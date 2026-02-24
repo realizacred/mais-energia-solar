@@ -5,13 +5,7 @@ import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { MessageSquare, Send, User, Phone } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 
@@ -109,81 +103,60 @@ export function WhatsAppSendDialog({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-success" />
-            Enviar WhatsApp
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Destinatário */}
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-sm">{nome}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                {telefone}
-              </p>
-            </div>
+    <FormModalTemplate
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Enviar WhatsApp"
+      submitLabel="Enviar"
+      onSubmit={handleSend}
+      saving={sending}
+      disabled={!mensagem.trim()}
+    >
+        {/* Destinatário */}
+        <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="h-5 w-5 text-primary" />
           </div>
-
-          {/* Templates rápidos */}
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Mensagens rápidas</Label>
-            <div className="flex flex-wrap gap-2">
-              {templates.map((t, i) => (
-                <Button
-                  key={i}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setMensagem(t.text)}
-                >
-                  {t.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Mensagem */}
-          <div className="space-y-2">
-            <Label htmlFor="mensagem">Mensagem</Label>
-            <Textarea
-              id="mensagem"
-              value={mensagem}
-              onChange={(e) => setMensagem(e.target.value)}
-              placeholder="Digite sua mensagem..."
-              rows={4}
-              className="resize-none"
-            />
+          <div className="flex-1">
+            <p className="font-medium text-sm">{nome}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              {telefone}
+            </p>
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSend}
-            disabled={sending || !mensagem.trim()}
-            className="bg-success hover:bg-success/90 text-success-foreground gap-2"
-          >
-            {sending ? (
-              <Spinner size="sm" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            Enviar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {/* Templates rápidos */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Mensagens rápidas</Label>
+          <div className="flex flex-wrap gap-2">
+            {templates.map((t, i) => (
+              <Button
+                key={i}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => setMensagem(t.text)}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Mensagem */}
+        <div className="space-y-2">
+          <Label htmlFor="mensagem">Mensagem</Label>
+          <Textarea
+            id="mensagem"
+            value={mensagem}
+            onChange={(e) => setMensagem(e.target.value)}
+            placeholder="Digite sua mensagem..."
+            rows={4}
+            className="resize-none"
+          />
+        </div>
+    </FormModalTemplate>
   );
 }

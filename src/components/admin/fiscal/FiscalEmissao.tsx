@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -179,10 +180,14 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
   };
 
   return (
-    <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nova NFS-e</DialogTitle></DialogHeader>
-        <div className="space-y-4">
+    <FormModalTemplate
+      open={open}
+      onOpenChange={v => !v && onClose()}
+      title="Nova NFS-e"
+      submitLabel="Criar Rascunho"
+      onSubmit={handleSave}
+      saving={saving}
+    >
           <div className="space-y-2">
             <Label>Serviço Municipal</Label>
             <Select onValueChange={handleServiceSelect}>
@@ -196,7 +201,7 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
             <Label>Descrição do Serviço *</Label>
             <Textarea value={form.service_description} onChange={e => setForm(p => ({ ...p, service_description: e.target.value }))} rows={3} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <FormGrid>
             <div className="space-y-2">
               <Label>Valor (R$) *</Label>
               <Input type="number" step="0.01" value={form.value} onChange={e => setForm(p => ({ ...p, value: e.target.value }))} />
@@ -205,7 +210,7 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
               <Label>Deduções (R$)</Label>
               <Input type="number" step="0.01" value={form.deductions} onChange={e => setForm(p => ({ ...p, deductions: e.target.value }))} />
             </div>
-          </div>
+          </FormGrid>
           <div className="space-y-2">
             <Label>Data Efetiva</Label>
             <Input type="date" value={form.effective_date} onChange={e => setForm(p => ({ ...p, effective_date: e.target.value }))} />
@@ -214,16 +219,7 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
             <Label>Observações</Label>
             <Textarea value={form.observations} onChange={e => setForm(p => ({ ...p, observations: e.target.value }))} rows={2} />
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving} className="gap-1.5">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReceiptText className="h-4 w-4" />}
-            Criar Rascunho
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormModalTemplate>
   );
 }
 

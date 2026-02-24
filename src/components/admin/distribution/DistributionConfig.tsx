@@ -9,9 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { useDistributionRules, useDistributionLog, type DistributionRule } from "@/hooks/useDistribution";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -185,17 +183,20 @@ function RuleDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{rule ? "Editar Regra" : "Nova Regra de Distribuição"}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
+    <FormModalTemplate
+      open={open}
+      onOpenChange={onOpenChange}
+      title={rule ? "Editar Regra" : "Nova Regra de Distribuição"}
+      submitLabel="Salvar"
+      onSubmit={handleSubmit}
+      saving={saving}
+      disabled={!nome.trim()}
+    >
+          <div className="space-y-2">
             <Label>Nome da regra</Label>
             <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Round Robin Principal" />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>Tipo de distribuição</Label>
             <Select value={tipo} onValueChange={setTipo}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -210,14 +211,6 @@ function RuleDialog({
             <Label>Ativa</Label>
             <Switch checked={ativo} onCheckedChange={setAtivo} />
           </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={handleSubmit} disabled={saving || !nome.trim()}>
-            {saving ? <Spinner size="sm" className="mr-2" /> : null}
-            Salvar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormModalTemplate>
   );
 }

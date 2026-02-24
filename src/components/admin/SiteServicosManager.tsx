@@ -11,9 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
-} from "@/components/ui/dialog";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -253,15 +251,14 @@ export function SiteServicosManager() {
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
-            <DialogDescription>
-              {editing ? "Atualize as informações do serviço" : "Adicione um novo serviço ao site"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
+      <FormModalTemplate
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editing ? "Editar Serviço" : "Novo Serviço"}
+        submitLabel={editing ? "Atualizar" : "Adicionar"}
+        onSubmit={handleSave}
+        saving={saving}
+      >
             <div className="space-y-2">
               <Label>Título *</Label>
               <Input
@@ -288,18 +285,7 @@ export function SiteServicosManager() {
               accept="image/png,image/jpeg,image/webp"
               previewHeight="h-24"
             />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={saving} className="gap-2">
-              {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
-              {editing ? "Atualizar" : "Adicionar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </FormModalTemplate>
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
