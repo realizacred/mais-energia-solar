@@ -67,6 +67,15 @@ export default function GoogleMapView({
 
   useEffect(() => {
     onSnapshotsChange?.(snapshots);
+    // After snapshots change, trigger map resize so tiles realign properly
+    const map = mapInstanceRef.current;
+    if (map) {
+      requestAnimationFrame(() => {
+        google.maps.event.trigger(map, "resize");
+        const center = map.getCenter();
+        if (center) map.setCenter(center);
+      });
+    }
   }, [snapshots, onSnapshotsChange]);
 
   // ─── Load Google Maps script + drawing library ────
