@@ -512,38 +512,40 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
               </Popover>
             </div>
 
-            {/* Right side: status badges + consultor */}
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "text-xs shrink-0 capitalize",
-                  deal.status === "won" && "bg-success/10 text-success border-success/20",
-                  deal.status === "lost" && "bg-destructive/10 text-destructive border-destructive/20",
-                  deal.status === "open" && "bg-info/10 text-info border-info/20"
-                )}
-              >
-                {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
-              </Badge>
-              {deal.value > 0 && (
-                <Badge variant="outline" className="text-xs shrink-0 font-semibold">
-                  {formatBRL(deal.value)}
+            {/* Right side: status + consultor on top, nova proposta below */}
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "text-xs shrink-0 capitalize",
+                    deal.status === "won" && "bg-success/10 text-success border-success/20",
+                    deal.status === "lost" && "bg-destructive/10 text-destructive border-destructive/20",
+                    deal.status === "open" && "bg-info/10 text-info border-info/20"
+                  )}
+                >
+                  {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
                 </Badge>
+                {deal.value > 0 && (
+                  <Badge variant="outline" className="text-xs shrink-0 font-semibold">
+                    {formatBRL(deal.value)}
+                  </Badge>
+                )}
+                <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
+                  <UserCircle className="h-3.5 w-3.5" />
+                  {ownerName || "Sem consultor"}
+                </Badge>
+              </div>
+              {deal.status !== "won" && deal.status !== "lost" && (
+                <Button size="sm" onClick={() => {
+                  const params = new URLSearchParams({ deal_id: dealId });
+                  if (deal.customer_id) params.set("customer_id", deal.customer_id);
+                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                }} className="gap-1.5 shrink-0">
+                  <Plus className="h-3.5 w-3.5" />Nova proposta
+                </Button>
               )}
-              <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
-                <UserCircle className="h-3.5 w-3.5" />
-                {ownerName || "Sem consultor"}
-              </Badge>
             </div>
-            {deal.status !== "won" && deal.status !== "lost" && (
-              <Button size="sm" onClick={() => {
-                const params = new URLSearchParams({ deal_id: dealId });
-                if (deal.customer_id) params.set("customer_id", deal.customer_id);
-                navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-              }} className="gap-1.5 shrink-0">
-                <Plus className="h-3.5 w-3.5" />Nova proposta
-              </Button>
-            )}
           </div>
 
           {/* Row 2: Tabs */}
