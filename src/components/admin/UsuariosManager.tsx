@@ -7,8 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { usePlanGuard } from "@/components/plan";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
+import { PageHeader, EmptyState } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -457,65 +457,51 @@ export function UsuariosManager() {
     setUserToEdit(u);
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent>
-          <LoadingState className="py-12" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (checkingPermission) {
-    return (
-      <Card>
-        <CardContent>
-          <LoadingState className="py-12" />
-        </CardContent>
-      </Card>
-    );
+  if (loading || checkingPermission) {
+    return <LoadingState />;
   }
 
   if (!canManageUsers) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestão de Usuários</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Somente administradores podem ver e alterar os perfis de outros usuários.
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/portal", { replace: true })}>
-              Voltar ao portal
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <PageHeader icon={Shield} title="Gestão de Usuários" />
+        <EmptyState
+          icon={Shield}
+          title="Acesso restrito"
+          description="Somente administradores podem ver e alterar os perfis de outros usuários."
+          action={{ label: "Voltar ao portal", onClick: () => navigate("/portal", { replace: true }) }}
+        />
+      </div>
     );
   }
 
   return (
-    <>
-      <SectionCard
+    <div className="space-y-6">
+      <PageHeader
         icon={Shield}
-        title={`Gestão de Usuários e Perfis`}
-        variant="blue"
+        title="Gestão de Usuários"
+        description="Gerencie usuários e seus perfis de acesso"
         actions={
           <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
             <Plus className="w-4 h-4" />
             Novo Usuário
           </Button>
         }
+      />
+
+      <SectionCard
+        icon={Users}
+        title="Usuários Cadastrados"
+        variant="blue"
       >
         
           {users.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <p>Nenhum usuário encontrado</p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="Nenhum usuário encontrado"
+              description="Crie um novo usuário para começar"
+              action={{ label: "Novo Usuário", onClick: () => setIsCreateDialogOpen(true), icon: Plus }}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -756,6 +742,6 @@ export function UsuariosManager() {
       />
 
       {LimitDialog}
-    </>
+    </div>
   );
 }

@@ -156,7 +156,7 @@ export function ProposalBuilderEditor({
               <span className="text-xs text-muted-foreground">— {templateName}</span>
             )}
             {state.isDirty && (
-              <span className="text-[9px] text-amber-500 font-medium">● Não salvo</span>
+              <span className="text-[9px] text-warning font-medium">● Não salvo</span>
             )}
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>

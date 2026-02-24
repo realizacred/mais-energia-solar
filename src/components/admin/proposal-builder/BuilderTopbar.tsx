@@ -72,7 +72,7 @@ export function BuilderTopbar({
       <div className="flex items-center gap-2">
         {/* Mode indicator */}
         {state.mode === "preview" && (
-          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-[10px] gap-1">
+          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px] gap-1">
             <Eye className="h-3 w-3" />
             Modo Demonstração (Leitura)
           </Badge>
