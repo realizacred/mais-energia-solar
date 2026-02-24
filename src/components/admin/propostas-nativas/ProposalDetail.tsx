@@ -26,6 +26,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { ProposalViewsCard } from "./ProposalViewsCard";
+import { GenerateFileDialog } from "./GenerateFileDialog";
 import { cn } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any; color: string }> = {
@@ -84,6 +85,7 @@ export function ProposalDetail() {
   const [existingOs, setExistingOs] = useState<any>(null);
   const [lastEditor, setLastEditor] = useState<string | null>(null);
   const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
   useEffect(() => {
     if (versaoId) loadData();
@@ -561,7 +563,7 @@ export function ProposalDetail() {
               size="sm"
               variant="outline"
               className={cn("gap-2 w-full justify-start border-primary/30 text-primary hover:bg-primary/5")}
-              onClick={handleRender}
+              onClick={() => setGenerateDialogOpen(true)}
               disabled={rendering}
             >
               {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
@@ -827,6 +829,20 @@ export function ProposalDetail() {
       <div id="proposal-tracking">
         {proposta?.id && <ProposalViewsCard propostaId={proposta.id} versaoId={versaoId} />}
       </div>
+
+      {/* ══════════ GENERATE FILE DIALOG ══════════ */}
+      {versaoId && proposta?.id && (
+        <GenerateFileDialog
+          open={generateDialogOpen}
+          onOpenChange={setGenerateDialogOpen}
+          versaoId={versaoId}
+          propostaId={proposta.id}
+          onGenerated={(generatedHtml) => {
+            if (generatedHtml) setHtml(generatedHtml);
+            loadData();
+          }}
+        />
+      )}
     </div>
   );
 }
