@@ -265,9 +265,6 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                 )}
               >
                 {membership.pipeline_name}
-                <Badge variant="outline" className="text-[9px] h-4 px-1 border-current/20">
-                  {membership.stage_name}
-                </Badge>
               </button>
             ))}
           </div>
