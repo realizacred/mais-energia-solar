@@ -407,7 +407,9 @@ export function ProposalDetail() {
     const params = new URLSearchParams();
     if (proposta?.deal_id) params.set("deal_id", proposta.deal_id);
     if (proposta?.cliente_id) params.set("customer_id", proposta.cliente_id);
-    params.set("orc_id", proposta?.id);
+    // Pass proposta + versão IDs so the wizard loads the full snapshot from DB
+    if (proposta?.id) params.set("proposta_id", proposta.id);
+    if (versaoId) params.set("versao_id", versaoId);
     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
   };
 

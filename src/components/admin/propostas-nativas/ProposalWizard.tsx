@@ -134,6 +134,8 @@ export function ProposalWizard() {
   const customerIdFromUrl = searchParams.get("customer_id");
   const leadIdFromUrl = searchParams.get("lead_id");
   const orcIdFromUrl = searchParams.get("orc_id");
+  const propostaIdFromUrl = searchParams.get("proposta_id");
+  const versaoIdFromUrl = searchParams.get("versao_id");
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
@@ -271,16 +273,8 @@ export function ProposalWizard() {
     persistLocal(snapshot, savedPropostaId, savedVersaoId);
   }, [collectSnapshot, persistLocal, savedPropostaId, savedVersaoId]);
 
-  // Restore from localStorage on mount (only once)
-  useEffect(() => {
-    if (hasRestoredRef.current) return;
-    hasRestoredRef.current = true;
-
-    const draft = loadLocal();
-    if (!draft?.snapshot) return;
-    const s = draft.snapshot;
-
-    // Restore all state
+  // ─── Helper: restore all wizard state from a WizardSnapshot ───
+  const restoreFromSnapshot = useCallback((s: WizardSnapshot) => {
     if (s.locEstado) setLocEstado(s.locEstado);
     if (s.locCidade) setLocCidade(s.locCidade);
     if (s.locTipoTelhado) setLocTipoTelhado(s.locTipoTelhado);
@@ -311,12 +305,61 @@ export function ProposalWizard() {
     if (s.descricaoProposta) setDescricaoProposta(s.descricaoProposta);
     if (s.templateSelecionado) setTemplateSelecionado(s.templateSelecionado);
     if (s.step > 0) setStep(s.step);
+  }, []);
 
+  // Restore from localStorage on mount (only once, skip if loading from DB)
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    // If we have proposta_id + versao_id, the DB restore effect will handle it
+    if (propostaIdFromUrl && versaoIdFromUrl) return;
+    hasRestoredRef.current = true;
+
+    const draft = loadLocal();
+    if (!draft?.snapshot) return;
+
+    restoreFromSnapshot(draft.snapshot);
     if (draft.savedPropostaId) setSavedPropostaId(draft.savedPropostaId);
     if (draft.savedVersaoId) setSavedVersaoId(draft.savedVersaoId);
 
     toast({ title: "📋 Rascunho restaurado", description: "O progresso anterior foi recuperado automaticamente." });
-  }, []);
+  }, [propostaIdFromUrl, versaoIdFromUrl, restoreFromSnapshot]);
+
+  // ─── Restore from DB when proposta_id + versao_id in URL (edit mode) ───
+  const dbRestoreAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (!propostaIdFromUrl || !versaoIdFromUrl) return;
+    if (dbRestoreAttemptedRef.current) return;
+    dbRestoreAttemptedRef.current = true;
+
+    (async () => {
+      try {
+        const { data: versao } = await supabase
+          .from("proposta_versoes")
+          .select("id, proposta_id, snapshot, potencia_kwp, valor_total, status, grupo")
+          .eq("id", versaoIdFromUrl)
+          .single();
+
+        if (!versao?.snapshot) {
+          console.warn("[ProposalWizard] No snapshot found for versao", versaoIdFromUrl);
+          return;
+        }
+
+        const s = versao.snapshot as unknown as WizardSnapshot;
+        restoreFromSnapshot(s);
+        setSavedPropostaId(propostaIdFromUrl);
+        setSavedVersaoId(versaoIdFromUrl);
+        hasRestoredRef.current = true; // enable local draft auto-save
+
+        // Clear localStorage draft to avoid conflicts
+        clearLocal();
+
+        toast({ title: "📋 Proposta carregada", description: "Todos os dados foram restaurados do banco de dados." });
+      } catch (err) {
+        console.error("[ProposalWizard] Error loading proposal from DB:", err);
+        toast({ title: "Erro ao carregar proposta", description: "Não foi possível restaurar os dados.", variant: "destructive" });
+      }
+    })();
+  }, [propostaIdFromUrl, versaoIdFromUrl, restoreFromSnapshot, clearLocal]);
 
   // dealIdFromUrl is a deals.id UUID — passed as deal_id to RPC (which resolves/creates projetos)
   const resolvedDealId = projectContext?.dealId || dealIdFromUrl || undefined;
@@ -1138,7 +1181,7 @@ export function ProposalWizard() {
             <ChevronLeft className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Voltar</span>
           </Button>
           <div className="h-4 w-px bg-border shrink-0" />
-          <h1 className="text-sm font-bold truncate">Nova Proposta</h1>
+          <h1 className="text-sm font-bold truncate">{savedPropostaId ? "Editar Proposta" : "Nova Proposta"}</h1>
           {selectedLead && (
             <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary shrink-0 hidden sm:inline-flex">
               {selectedLead.nome}
