@@ -71,7 +71,7 @@ export function ProjetoKanban({ etapas, projetosByEtapa, onMoveProjeto, onViewPr
             <div
               key={etapa.id}
               className={cn(
-                "w-72 flex-shrink-0 rounded-xl border border-border/60 bg-card transition-colors",
+                "w-[260px] sm:w-[280px] xl:w-[300px] flex-shrink-0 rounded-xl border border-border/60 bg-card transition-colors",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
               onDragOver={e => handleDragOver(e, etapa.id)}

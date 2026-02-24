@@ -71,7 +71,7 @@ export function ProjetoFilters({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col lg:flex-row lg:items-end gap-3 lg:gap-4 flex-wrap">
+      <div className="flex flex-col xl:flex-row xl:items-end gap-3 xl:gap-4 flex-wrap">
         {/* Left: Funil | Lista toggle */}
         <div className="flex items-center gap-3 sm:gap-4 shrink-0 overflow-x-auto">
           <button
@@ -113,7 +113,7 @@ export function ProjetoFilters({
         </div>
 
         {/* Right: Filters with labels above */}
-        <div className="grid grid-cols-2 lg:flex lg:items-end gap-2 lg:gap-3 lg:ml-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:flex xl:items-end gap-2 xl:gap-3 xl:ml-auto">
           {/* Funil - Tabs horizontais */}
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -177,7 +177,7 @@ export function ProjetoFilters({
               Consultor
             </label>
             <Select value={filterConsultor} onValueChange={onFilterConsultorChange}>
-              <SelectTrigger className="w-full lg:w-[140px] h-9 text-xs border-border/60 bg-card">
+              <SelectTrigger className="w-full xl:w-[140px] h-9 text-xs border-border/60 bg-card">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
@@ -195,7 +195,7 @@ export function ProjetoFilters({
               Status
             </label>
             <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-              <SelectTrigger className="w-full lg:w-[130px] h-9 text-xs border-border/60 bg-card">
+               <SelectTrigger className="w-full xl:w-[130px] h-9 text-xs border-border/60 bg-card">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
@@ -213,7 +213,7 @@ export function ProjetoFilters({
               Etiquetas
             </label>
             <Select value="todas" onValueChange={(v) => { if (v !== "todas") toggleEtiqueta(v); }}>
-              <SelectTrigger className="w-full lg:w-[130px] h-9 text-xs border-border/60 bg-card">
+              <SelectTrigger className="w-full xl:w-[130px] h-9 text-xs border-border/60 bg-card">
                 <SelectValue placeholder="Todas">
                   {filterEtiquetas.length > 0 ? `${filterEtiquetas.length} selecionada(s)` : "Todas"}
                 </SelectValue>
@@ -236,7 +236,7 @@ export function ProjetoFilters({
           </div>
 
           {/* Search */}
-          <div className="flex flex-col gap-1 col-span-2 lg:col-span-1">
+          <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
             <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider opacity-0 hidden sm:block">
               Buscar
             </label>
