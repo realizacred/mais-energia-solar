@@ -1912,10 +1912,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">
-          Propostas ({propostas.length})
-        </h3>
+      <div className="flex items-center justify-end">
         {isClosed ? (
           <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
             <AlertCircle className="h-3 w-3 mr-1" />
@@ -2014,8 +2011,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
         <div className="space-y-6">
           {/* Proposta principal */}
           {principal && (
-            <div className="space-y-2">
-              <p className="text-sm font-bold text-foreground">Proposta principal</p>
+            <div>
               {renderPropostaCard(principal, true)}
             </div>
           )}
