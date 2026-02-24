@@ -172,13 +172,14 @@ export function DialogPosDimensionamento({
               }}
               disabled={saving}
             >
-              {saving ? "Salvando..." : savedPropostaId ? "Atualizar Rascunho" : "Salvar Rascunho"}
+              {saving ? "Salvando..." : "Salvar"}
             </Button>
           )}
           {onSaveActive && (
             <Button
               variant="secondary"
               size="sm"
+              className="gap-1.5"
               onClick={async () => {
                 try {
                   await onSaveActive();
@@ -189,7 +190,7 @@ export function DialogPosDimensionamento({
               }}
               disabled={saving}
             >
-              {saving ? "Salvando..." : "Salvar como ativa"}
+              {saving ? "Salvando..." : "⭐ Salvar como Ativa"}
             </Button>
           )}
           <Button
