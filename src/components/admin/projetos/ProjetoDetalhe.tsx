@@ -425,10 +425,10 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
       </div>
 
       {/* ── Header Card ── */}
-      <Card className="mb-4 overflow-hidden">
-        <CardContent className="p-4 sm:p-5">
+      <Card className="mb-2 overflow-hidden">
+        <CardContent className="p-3 sm:p-4">
           {/* Row 1: Title + Etiquetas + Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
               <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full">
                 {customerName || deal.title}
@@ -523,7 +523,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
           </div>
 
           {/* Row 2: Tabs */}
-          <div className="flex items-center border-b border-border/60 -mx-4 sm:-mx-5 px-2 sm:px-5 overflow-x-auto scrollbar-hide overflow-y-hidden">
+          <div className="flex items-center border-b border-border/60 -mx-3 sm:-mx-4 px-2 sm:px-4 overflow-x-auto scrollbar-hide overflow-y-hidden">
             {TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -553,8 +553,8 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
 
       {/* ── Multi-Pipeline Manager ── */}
       {activeTab === "gerenciamento" && (
-        <Card className="mb-4">
-          <CardContent className="p-4 sm:p-5">
+        <Card className="mb-2">
+          <CardContent className="p-3 sm:p-4">
             <ProjetoMultiPipelineManager
               dealId={deal.id}
               dealStatus={deal.status}
