@@ -1338,14 +1338,15 @@ function GerenciamentoTab({
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="space-y-1 text-xs">
-                  {importantFields.map(field => (
+                <div className="divide-y-0">
+                  {importantFields.map((field, idx) => (
                     <ImportantFieldRow
                       key={field.id}
                       field={field}
                       value={customFieldValues[field.id]}
                       dealId={deal.id}
                       onSaved={() => loadImportantFields()}
+                      showSeparator={idx < importantFields.length - 1}
                     />
                   ))}
                 </div>

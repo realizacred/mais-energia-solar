@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Pencil } from "lucide-react";
+import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, FileText, AlignLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 interface FieldDef {
   id: string;
@@ -26,16 +28,30 @@ interface Props {
   value: FieldValue | undefined;
   dealId: string;
   onSaved: () => void;
+  showSeparator?: boolean;
 }
 
-export function ImportantFieldRow({ field, value, dealId, onSaved }: Props) {
+const TYPE_ICON_MAP: Record<string, typeof Type> = {
+  text: Type,
+  textarea: AlignLeft,
+  number: Hash,
+  currency: DollarSign,
+  boolean: ToggleLeft,
+  date: Calendar,
+  select: List,
+  multiselect: List,
+  file: FileText,
+};
+
+export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState("");
   const [draftBool, setDraftBool] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   const displayValue = getDisplayValue(field, value);
+  const FieldIcon = TYPE_ICON_MAP[field.field_type] || Type;
 
   function startEdit() {
     if (field.field_type === "boolean") {
@@ -53,7 +69,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved }: Props) {
   useEffect(() => {
     if (editing && inputRef.current) {
       inputRef.current.focus();
-      inputRef.current.select();
+      if ("select" in inputRef.current) inputRef.current.select();
     }
   }, [editing]);
 
@@ -96,7 +112,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved }: Props) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") save();
+    if (e.key === "Enter" && field.field_type !== "textarea") save();
     if (e.key === "Escape") cancel();
   }
 
@@ -121,75 +137,101 @@ export function ImportantFieldRow({ field, value, dealId, onSaved }: Props) {
     }
   }
 
-  // For boolean, render switch directly (no edit mode needed)
-  if (field.field_type === "boolean") {
-    return (
-      <div className="flex items-center justify-between py-1">
-        <span className="text-muted-foreground">{field.title}</span>
-        <Switch
-          checked={value?.value_boolean ?? false}
-          onCheckedChange={() => toggleBool()}
-          disabled={saving}
-          className="scale-75"
-        />
-      </div>
-    );
-  }
-
-  // For select/dropdown fields
   const options: string[] = Array.isArray(field.options) ? field.options : [];
 
-  if (editing) {
+  // ── Boolean row ──
+  if (field.field_type === "boolean") {
     return (
-      <div className="flex items-center gap-2 py-1">
-        <span className="text-muted-foreground shrink-0 min-w-0 truncate">{field.title}</span>
-        <div className="flex items-center gap-1 flex-1 justify-end">
-          {field.field_type === "select" && options.length > 0 ? (
-            <Select value={draft || "none"} onValueChange={(v) => { setDraft(v === "none" ? "" : v); }}>
-              <SelectTrigger className="h-7 text-xs w-32">
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
-                {options.map(opt => (
-                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              ref={inputRef}
-              type={field.field_type === "number" || field.field_type === "currency" ? "number" : field.field_type === "date" ? "date" : "text"}
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="h-7 text-xs w-32"
-              step={field.field_type === "currency" ? "0.01" : undefined}
-            />
-          )}
-          <button onClick={save} disabled={saving} className="h-6 w-6 flex items-center justify-center rounded hover:bg-primary/10 text-primary transition-colors">
-            <Check className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={cancel} className="h-6 w-6 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground transition-colors">
-            <X className="h-3.5 w-3.5" />
-          </button>
+      <>
+        <div className="flex items-center gap-3 py-3 px-1">
+          <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm text-foreground flex-1 min-w-0 truncate">{field.title}</span>
+          <Switch
+            checked={value?.value_boolean ?? false}
+            onCheckedChange={() => toggleBool()}
+            disabled={saving}
+          />
         </div>
-      </div>
+        {showSeparator && <Separator />}
+      </>
     );
   }
 
+  // ── Editing row ──
+  if (editing) {
+    return (
+      <>
+        <div className="flex items-start gap-3 py-3 px-1">
+          <FieldIcon className="h-4 w-4 shrink-0 text-primary mt-2" />
+          <span className="text-sm text-foreground shrink-0 mt-1.5">{field.title}</span>
+          <div className="flex-1 flex items-start gap-1.5 justify-end">
+            {field.field_type === "select" && options.length > 0 ? (
+              <Select value={draft || "none"} onValueChange={(v) => setDraft(v === "none" ? "" : v)}>
+                <SelectTrigger className="h-9 text-sm flex-1 max-w-[200px]">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {options.map(opt => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : field.field_type === "textarea" ? (
+              <Textarea
+                ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="text-sm flex-1 max-w-[200px] min-h-[60px]"
+              />
+            ) : (
+              <Input
+                ref={inputRef as React.RefObject<HTMLInputElement>}
+                type={field.field_type === "number" || field.field_type === "currency" ? "number" : field.field_type === "date" ? "date" : "text"}
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="h-9 text-sm flex-1 max-w-[200px]"
+                step={field.field_type === "currency" ? "0.01" : undefined}
+              />
+            )}
+            <button onClick={save} disabled={saving} className="h-9 w-8 flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors">
+              <Check className="h-4 w-4" />
+            </button>
+            <button onClick={cancel} className="h-9 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        {showSeparator && <Separator />}
+      </>
+    );
+  }
+
+  // ── Display row ──
   return (
-    <button
-      type="button"
-      onClick={startEdit}
-      className="flex items-center justify-between w-full text-left py-1 group hover:bg-muted/40 -mx-1 px-1 rounded transition-colors cursor-pointer"
-    >
-      <span className="text-muted-foreground">{field.title}</span>
-      <span className="flex items-center gap-1.5">
-        <span className={cn("font-medium", displayValue === "—" ? "text-muted-foreground/50" : "text-foreground")}>{displayValue}</span>
-        <Pencil className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground/60 transition-colors" />
-      </span>
-    </button>
+    <>
+      <div
+        className="flex items-center gap-3 py-3 px-1 group hover:bg-muted/40 -mx-1 rounded-md transition-colors cursor-pointer"
+        onClick={startEdit}
+      >
+        <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
+        <span className="text-sm text-foreground min-w-0 truncate">{field.title}</span>
+        <div className="flex-1 flex justify-end">
+          <span className={cn(
+            "text-sm px-3 py-1 rounded-md border min-w-[140px] text-center",
+            displayValue === "—"
+              ? "text-muted-foreground/50 border-dashed border-border"
+              : "font-medium text-foreground border-border bg-background"
+          )}>
+            {displayValue}
+          </span>
+        </div>
+        <Pencil className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />
+      </div>
+      {showSeparator && <Separator />}
+    </>
   );
 }
 
