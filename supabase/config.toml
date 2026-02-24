@@ -179,3 +179,18 @@ verify_jwt = false
 
 [functions.bulk-import-modules]
 verify_jwt = false
+
+[functions.fiscal-readiness-status]
+verify_jwt = false
+
+[functions.fiscal-municipal-services-sync]
+verify_jwt = false
+
+[functions.fiscal-invoice-schedule]
+verify_jwt = false
+
+[functions.fiscal-invoice-cancel]
+verify_jwt = false
+
+[functions.fiscal-webhook-ingest]
+verify_jwt = false

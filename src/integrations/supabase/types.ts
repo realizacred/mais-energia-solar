@@ -3132,6 +3132,541 @@ export type Database = {
         }
         Relationships: []
       }
+      fiscal_idempotency: {
+        Row: {
+          created_at: string
+          id: string
+          idempotency_key: string
+          operation: string
+          result: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          operation: string
+          result?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          operation?: string
+          result?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_idempotency_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_invoice_events: {
+        Row: {
+          created_at: string
+          event_source: string
+          event_type: string
+          id: string
+          invoice_id: string
+          new_status: string | null
+          old_status: string | null
+          payload: Json | null
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_source?: string
+          event_type: string
+          id?: string
+          invoice_id: string
+          new_status?: string | null
+          old_status?: string | null
+          payload?: Json | null
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_source?: string
+          event_type?: string
+          id?: string
+          invoice_id?: string
+          new_status?: string | null
+          old_status?: string | null
+          payload?: Json | null
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_invoice_events_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_invoice_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          tenant_id: string
+          total_value: number
+          unit_value: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          tenant_id: string
+          total_value?: number
+          unit_value?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          tenant_id?: string
+          total_value?: number
+          unit_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_invoice_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_invoices: {
+        Row: {
+          asaas_invoice_id: string | null
+          cliente_id: string | null
+          created_at: string
+          customer_id: string | null
+          deductions: number | null
+          effective_date: string
+          error_details: Json | null
+          error_message: string | null
+          id: string
+          idempotency_key: string | null
+          installment_id: string | null
+          invoice_number: string | null
+          municipal_service_code: string | null
+          municipal_service_id: string | null
+          municipal_service_name: string | null
+          observations: string | null
+          payment_id: string | null
+          pdf_url: string | null
+          recebimento_id: string | null
+          rps_number: string | null
+          service_description: string
+          snapshot_json: Json | null
+          snapshot_locked: boolean
+          status: string
+          status_asaas: string | null
+          taxes: Json | null
+          tenant_id: string
+          updated_at: string
+          validation_code: string | null
+          value: number
+          xml_url: string | null
+        }
+        Insert: {
+          asaas_invoice_id?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          deductions?: number | null
+          effective_date?: string
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          installment_id?: string | null
+          invoice_number?: string | null
+          municipal_service_code?: string | null
+          municipal_service_id?: string | null
+          municipal_service_name?: string | null
+          observations?: string | null
+          payment_id?: string | null
+          pdf_url?: string | null
+          recebimento_id?: string | null
+          rps_number?: string | null
+          service_description?: string
+          snapshot_json?: Json | null
+          snapshot_locked?: boolean
+          status?: string
+          status_asaas?: string | null
+          taxes?: Json | null
+          tenant_id: string
+          updated_at?: string
+          validation_code?: string | null
+          value?: number
+          xml_url?: string | null
+        }
+        Update: {
+          asaas_invoice_id?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          deductions?: number | null
+          effective_date?: string
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          installment_id?: string | null
+          invoice_number?: string | null
+          municipal_service_code?: string | null
+          municipal_service_id?: string | null
+          municipal_service_name?: string | null
+          observations?: string | null
+          payment_id?: string | null
+          pdf_url?: string | null
+          recebimento_id?: string | null
+          rps_number?: string | null
+          service_description?: string
+          snapshot_json?: Json | null
+          snapshot_locked?: boolean
+          status?: string
+          status_asaas?: string | null
+          taxes?: Json | null
+          tenant_id?: string
+          updated_at?: string
+          validation_code?: string | null
+          value?: number
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_invoices_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_municipal_requirements: {
+        Row: {
+          created_at: string
+          id: string
+          municipality_code: string | null
+          municipality_name: string | null
+          raw_response: Json | null
+          required_fields: Json
+          synced_at: string
+          tenant_id: string
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          municipality_code?: string | null
+          municipality_name?: string | null
+          raw_response?: Json | null
+          required_fields?: Json
+          synced_at?: string
+          tenant_id: string
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          municipality_code?: string | null
+          municipality_name?: string | null
+          raw_response?: Json | null
+          required_fields?: Json
+          synced_at?: string
+          tenant_id?: string
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_municipal_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_municipal_services: {
+        Row: {
+          asaas_service_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_manual: boolean
+          service_code: string | null
+          service_name: string
+          synced_at: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          asaas_service_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_manual?: boolean
+          service_code?: string | null
+          service_name: string
+          synced_at?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          asaas_service_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_manual?: boolean
+          service_code?: string | null
+          service_name?: string
+          synced_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_municipal_services_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_provider_requests: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          endpoint: string
+          error_message: string | null
+          id: string
+          invoice_id: string | null
+          method: string
+          request_body_redacted: Json | null
+          response_body_redacted: Json | null
+          response_status: number | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          invoice_id?: string | null
+          method?: string
+          request_body_redacted?: Json | null
+          response_body_redacted?: Json | null
+          response_status?: number | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          invoice_id?: string | null
+          method?: string
+          request_body_redacted?: Json | null
+          response_body_redacted?: Json | null
+          response_status?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_provider_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_provider_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_provider_webhooks: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string | null
+          id: string
+          invoice_id: string | null
+          processed: boolean
+          processed_at: string | null
+          raw_payload: Json
+          signature_valid: boolean | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          invoice_id?: string | null
+          processed?: boolean
+          processed_at?: string | null
+          raw_payload: Json
+          signature_valid?: boolean | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          invoice_id?: string | null
+          processed?: boolean
+          processed_at?: string | null
+          raw_payload?: Json
+          signature_valid?: boolean | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_provider_webhooks_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_settings: {
+        Row: {
+          allow_deductions: boolean
+          auto_issue_on_payment: boolean
+          cnpj_emitente: string | null
+          created_at: string
+          default_effective_date_rule: string | null
+          default_observations: string | null
+          default_service_description: string | null
+          default_taxes: Json | null
+          environment: string
+          homologation_tested: boolean
+          homologation_tested_at: string | null
+          id: string
+          inscricao_municipal: string | null
+          is_active: boolean
+          municipio_emitente: string | null
+          portal_nacional_enabled: boolean
+          provider: string
+          regime_tributario: string | null
+          tenant_id: string
+          uf_emitente: string | null
+          updated_at: string
+        }
+        Insert: {
+          allow_deductions?: boolean
+          auto_issue_on_payment?: boolean
+          cnpj_emitente?: string | null
+          created_at?: string
+          default_effective_date_rule?: string | null
+          default_observations?: string | null
+          default_service_description?: string | null
+          default_taxes?: Json | null
+          environment?: string
+          homologation_tested?: boolean
+          homologation_tested_at?: string | null
+          id?: string
+          inscricao_municipal?: string | null
+          is_active?: boolean
+          municipio_emitente?: string | null
+          portal_nacional_enabled?: boolean
+          provider?: string
+          regime_tributario?: string | null
+          tenant_id: string
+          uf_emitente?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allow_deductions?: boolean
+          auto_issue_on_payment?: boolean
+          cnpj_emitente?: string | null
+          created_at?: string
+          default_effective_date_rule?: string | null
+          default_observations?: string | null
+          default_service_description?: string | null
+          default_taxes?: Json | null
+          environment?: string
+          homologation_tested?: boolean
+          homologation_tested_at?: string | null
+          id?: string
+          inscricao_municipal?: string | null
+          is_active?: boolean
+          municipio_emitente?: string | null
+          portal_nacional_enabled?: boolean
+          provider?: string
+          regime_tributario?: string | null
+          tenant_id?: string
+          uf_emitente?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean
