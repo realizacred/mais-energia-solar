@@ -103,7 +103,6 @@ export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProp
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-foreground">Conversas WhatsApp</h3>
 
       {conversations.length === 0 ? (
         <Card>
