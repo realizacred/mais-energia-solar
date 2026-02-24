@@ -17,6 +17,7 @@ import {
   type UCData, type Concessionaria, type RegraCompensacao, type GrupoTarifario,
   createEmptyUC, SUBGRUPO_BT, SUBGRUPO_MT, MESES, FASE_TENSAO_OPTIONS,
 } from "./types";
+import solarBuildingImg from "@/assets/solar-building.png";
 
 interface Props {
   ucs: UCData[];
@@ -179,8 +180,9 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
             {/* ── Add UC Area ── */}
             <button
               onClick={addUC}
-              className="shrink-0 w-[220px] min-h-[400px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+              className="shrink-0 w-[220px] min-h-[400px] flex flex-col items-center justify-center gap-3 border-2 border-dashed border-primary/30 rounded-xl text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
             >
+              <img src={solarBuildingImg} alt="" className="h-12 w-12 object-contain opacity-60" />
               <Plus className="h-6 w-6" />
               <span className="text-sm font-medium">+ Nova Unidade</span>
             </button>
@@ -261,6 +263,8 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
     <div className="border rounded-xl bg-card p-4 min-w-[320px] w-full space-y-4 relative">
       {/* Header */}
       <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <img src={solarBuildingImg} alt="UC" className="h-8 w-8 object-contain" />
         {editingName ? (
           <Input
             value={tempName}
@@ -284,6 +288,7 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
             {index + 1}. {uc.nome}
           </h4>
         )}
+        </div>
         <div className="flex items-center gap-1">
           <TooltipProvider>
             <Tooltip>
