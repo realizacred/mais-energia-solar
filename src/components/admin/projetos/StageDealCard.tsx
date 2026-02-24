@@ -160,33 +160,19 @@ export function StageDealCard({
       )}
       style={borderStyle}
     >
-      {/* ── Etiqueta accent bar at the top ── */}
+      {/* ── Etiqueta chips at the top (no bar) ── */}
       {allEtiquetaCfgs.length > 0 && (
-        <div className="relative">
-          {allEtiquetaCfgs.length === 1 ? (
-            <div
-              className="h-[5px] rounded-t-[inherit]"
-              style={{ background: allEtiquetaCfgs[0].cor }}
-            />
-          ) : (
-            <div className="h-[5px] rounded-t-[inherit] flex overflow-hidden">
-              {allEtiquetaCfgs.map((et, i) => (
-                <div key={i} className="flex-1 h-full" style={{ background: et.cor }} />
-              ))}
-            </div>
-          )}
-          <div className="absolute top-0 right-2 flex items-center gap-1">
-            {allEtiquetaCfgs.map((et, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-b-md text-[9px] font-bold text-white shadow-md"
-                style={{ backgroundColor: et.cor }}
-              >
-                {et.icon && <span className="text-[10px]">{et.icon}</span>}
-                {et.short || et.label}
-              </div>
-            ))}
-          </div>
+        <div className="flex items-center gap-1 flex-wrap px-3 pt-2.5 pb-0">
+          {allEtiquetaCfgs.map((et, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white shadow-sm"
+              style={{ backgroundColor: et.cor }}
+            >
+              {et.icon && <span className="text-[10px]">{et.icon}</span>}
+              {et.short || et.label}
+            </span>
+          ))}
         </div>
       )}
 
