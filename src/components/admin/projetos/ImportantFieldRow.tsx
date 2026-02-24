@@ -217,8 +217,8 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
         onClick={startEdit}
       >
         <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
-        <span className="text-sm text-foreground min-w-0 truncate">{field.title}</span>
-        <div className="flex-1 flex justify-end">
+        <span className="text-sm text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
+        <div className="shrink-0 flex justify-end">
           <span className={cn(
             "text-sm px-3 py-1 rounded-md border min-w-[140px] text-center",
             displayValue === "—"
