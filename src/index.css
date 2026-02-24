@@ -210,15 +210,10 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    scroll-behavior: smooth;
-    overflow-x: hidden;
-  }
-
-  body {
-    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv11", "ss01", "ss03";
-    line-height: 1.7;
+    font-size: 14px;
+    line-height: 1.6;
     letter-spacing: -0.01em;
     overflow-x: hidden;
     width: 100%;
@@ -226,31 +221,31 @@
   }
 
   h1 {
-    @apply text-3xl md:text-4xl font-bold tracking-tight leading-[1.15];
+    @apply text-2xl md:text-3xl font-bold tracking-tight leading-[1.15];
     font-family: var(--font-heading, 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif);
   }
 
   h2 {
-    @apply text-2xl md:text-3xl font-semibold tracking-tight leading-[1.2];
+    @apply text-xl md:text-2xl font-semibold tracking-tight leading-[1.2];
     font-family: var(--font-heading, 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif);
   }
 
   h3 {
-    @apply text-xl md:text-2xl font-semibold tracking-tight leading-[1.25];
+    @apply text-lg md:text-xl font-semibold tracking-tight leading-[1.25];
     font-family: var(--font-heading, 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif);
   }
 
   h4 {
-    @apply text-lg font-semibold tracking-tight leading-snug;
+    @apply text-base font-semibold tracking-tight leading-snug;
     font-family: var(--font-heading, 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif);
   }
 
   h5 {
-    @apply text-base font-semibold leading-snug;
+    @apply text-sm font-semibold leading-snug;
   }
 
   h6 {
-    @apply text-sm font-semibold uppercase tracking-wider text-muted-foreground;
+    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
   }
 
   p {
