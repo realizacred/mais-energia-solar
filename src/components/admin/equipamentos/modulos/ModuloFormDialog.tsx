@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -216,12 +216,15 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{modulo ? "Editar Módulo" : "Novo Módulo Fotovoltaico"}</DialogTitle>
-        </DialogHeader>
-
+    <FormModalTemplate
+      open={open}
+      onOpenChange={onOpenChange}
+      title={modulo ? "Editar Módulo" : "Novo Módulo Fotovoltaico"}
+      onSubmit={handleSave}
+      submitLabel={isPending ? "Salvando..." : "Salvar"}
+      saving={isPending}
+      className="max-w-2xl"
+    >
         <div className="space-y-1 divide-y">
           <SectionCollapsible title="📋 Identificação" defaultOpen>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -316,7 +319,6 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
                 set("datasheet_found_at", new Date().toISOString());
               }}
               onExtracted={(data) => {
-                // Auto-fill form fields from extracted data
                 const mapping: Record<string, keyof FormData> = {
                   fabricante: "fabricante", modelo: "modelo",
                   potencia_wp: "potencia_wp", tipo_celula: "tipo_celula",
@@ -349,14 +351,6 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
             />
           </SectionCollapsible>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={isPending}>
-            {isPending ? "Salvando..." : "Salvar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormModalTemplate>
   );
 }

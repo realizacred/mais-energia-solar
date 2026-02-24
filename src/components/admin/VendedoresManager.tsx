@@ -7,6 +7,7 @@ import { formatPhone, formatName } from "@/lib/validations";
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -690,14 +691,18 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       </SectionCard>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingVendedor ? "Editar Consultor" : "Novo Consultor"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+      <FormModalTemplate
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        title={editingVendedor ? "Editar Consultor" : "Novo Consultor"}
+        onSubmit={handleSave}
+        submitLabel={saving && creatingUser 
+          ? "Criando acesso..." 
+          : editingVendedor 
+            ? "Salvar" 
+            : "Cadastrar"}
+        saving={saving}
+      >
             <div className="space-y-2">
               <Label htmlFor="nome">Nome *</Label>
               <Input
@@ -736,42 +741,21 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                 </p>
               </div>
             </div>
-            {/* Tipo de acesso - escolha entre criar novo ou vincular existente */}
+            {/* Tipo de acesso */}
             {isNewVendedor && (
               <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
                 <Label>Tipo de Acesso ao Portal *</Label>
                 <div className="flex flex-wrap gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="tipoAcesso"
-                      value="convite"
-                      checked={formData.tipoAcesso === "convite"}
-                      onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "convite", user_id: "", senha: "" }))}
-                      className="w-4 h-4 text-primary"
-                    />
+                    <input type="radio" name="tipoAcesso" value="convite" checked={formData.tipoAcesso === "convite"} onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "convite", user_id: "", senha: "" }))} className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium">Enviar convite</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="tipoAcesso"
-                      value="criar"
-                      checked={formData.tipoAcesso === "criar"}
-                      onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "criar", user_id: "" }))}
-                      className="w-4 h-4 text-primary"
-                    />
+                    <input type="radio" name="tipoAcesso" value="criar" checked={formData.tipoAcesso === "criar"} onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "criar", user_id: "" }))} className="w-4 h-4 text-primary" />
                     <span className="text-sm">Criar com senha</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="tipoAcesso"
-                      value="vincular"
-                      checked={formData.tipoAcesso === "vincular"}
-                      onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "vincular", email: "", senha: "" }))}
-                      className="w-4 h-4 text-primary"
-                    />
+                    <input type="radio" name="tipoAcesso" value="vincular" checked={formData.tipoAcesso === "vincular"} onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "vincular", email: "", senha: "" }))} className="w-4 h-4 text-primary" />
                     <span className="text-sm">Vincular existente</span>
                   </label>
                 </div>
@@ -788,17 +772,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             {isNewVendedor && formData.tipoAcesso === "convite" && (
               <div className="space-y-2">
                 <Label htmlFor="email">Email do consultor *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="email@exemplo.com"
-                />
-                <p className="text-xs text-muted-foreground">
-                  <Mail className="w-3 h-3 inline mr-1" />
-                  Será usado para login após ativação do convite.
-                </p>
+                <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="email@exemplo.com" />
+                <p className="text-xs text-muted-foreground"><Mail className="w-3 h-3 inline mr-1" />Será usado para login após ativação do convite.</p>
               </div>
             )}
 
@@ -807,89 +782,43 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               <>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="email@exemplo.com"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    <Mail className="w-3 h-3 inline mr-1" />
-                    Será usado para login no Portal do Consultor.
-                  </p>
+                  <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="email@exemplo.com" />
+                  <p className="text-xs text-muted-foreground"><Mail className="w-3 h-3 inline mr-1" />Será usado para login no Portal do Consultor.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="senha">Senha *</Label>
                   <div className="relative">
-                    <Input
-                      id="senha"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.senha}
-                      onChange={(e) => setFormData(prev => ({ ...prev, senha: e.target.value }))}
-                      placeholder="Mínimo 6 caracteres"
-                      className="pr-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="w-4 h-4 text-muted-foreground" />
-                      )}
+                    <Input id="senha" type={showPassword ? "text" : "password"} value={formData.senha} onChange={(e) => setFormData(prev => ({ ...prev, senha: e.target.value }))} placeholder="Mínimo 6 caracteres" className="pr-10" />
+                    <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-3 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
+                      {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    <KeyRound className="w-3 h-3 inline mr-1" />
-                    Senha padrão que o consultor usará para acessar.
-                  </p>
+                  <p className="text-xs text-muted-foreground"><KeyRound className="w-3 h-3 inline mr-1" />Senha padrão que o consultor usará para acessar.</p>
                 </div>
               </>
             )}
 
-            {/* Campos para VINCULAR USUÁRIO EXISTENTE */}
+            {/* Vincular existente */}
             {isNewVendedor && formData.tipoAcesso === "vincular" && (
               <div className="space-y-2">
                 <Label htmlFor="user_id">Usuário *</Label>
-                <Select
-                  value={formData.user_id}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, user_id: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um usuário..." />
-                  </SelectTrigger>
+                <Select value={formData.user_id} onValueChange={(value) => setFormData((prev) => ({ ...prev, user_id: value }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um usuário..." /></SelectTrigger>
                   <SelectContent>
                     {availableUsers.map((user) => (
-                      <SelectItem key={user.user_id} value={user.user_id}>
-                        {user.nome}
-                      </SelectItem>
+                      <SelectItem key={user.user_id} value={user.user_id}>{user.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  <UserCheck className="w-3 h-3 inline mr-1" />
-                  Escolha um usuário que já existe no sistema.
-                </p>
+                <p className="text-xs text-muted-foreground"><UserCheck className="w-3 h-3 inline mr-1" />Escolha um usuário que já existe no sistema.</p>
               </div>
             )}
 
-            {/* Email para edição (readonly quando já tem user vinculado) */}
+            {/* Email para edição */}
             {editingVendedor && (
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="email@exemplo.com"
-                  disabled={!!editingVendedor?.user_id}
-                />
+                <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="email@exemplo.com" disabled={!!editingVendedor?.user_id} />
               </div>
             )}
             
@@ -899,51 +828,31 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                 <div className="flex items-center justify-between">
                   <Label>Usuário Vinculado</Label>
                   {formData.user_id && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setFormData(prev => ({ ...prev, user_id: "" }))}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 h-7"
-                    >
-                      <Unlink className="w-3 h-3" />
-                      Desvincular
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setFormData(prev => ({ ...prev, user_id: "" }))} className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 h-7">
+                      <Unlink className="w-3 h-3" />Desvincular
                     </Button>
                   )}
                 </div>
-                
                 {formData.user_id ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 p-2 rounded bg-background border">
                       <UserCheck className="w-4 h-4 text-primary" />
                       <span className="text-sm font-medium">{getUserName(formData.user_id) || "Usuário vinculado"}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Este usuário pode acessar o Portal do Consultor. Para alterar, primeiro desvincule.
-                    </p>
+                    <p className="text-xs text-muted-foreground">Este usuário pode acessar o Portal do Consultor. Para alterar, primeiro desvincule.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Select
-                      value={formData.user_id || "none"}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value === "none" ? "" : value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um usuário..." />
-                      </SelectTrigger>
+                    <Select value={formData.user_id || "none"} onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value === "none" ? "" : value }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecione um usuário..." /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Nenhum (sem acesso ao portal)</SelectItem>
                         {availableUsers.map((user) => (
-                          <SelectItem key={user.user_id} value={user.user_id}>
-                            {user.nome}
-                          </SelectItem>
+                          <SelectItem key={user.user_id} value={user.user_id}>{user.nome}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
-                      <UserCheck className="w-3 h-3 inline mr-1" />
-                      Vincular permite que o usuário acesse o Portal do Consultor.
-                    </p>
+                    <p className="text-xs text-muted-foreground"><UserCheck className="w-3 h-3 inline mr-1" />Vincular permite que o usuário acesse o Portal do Consultor.</p>
                   </div>
                 )}
               </div>
@@ -961,29 +870,14 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               <ConsultorHorariosEdit consultorId={editingVendedor.id} />
             )}
 
-            {/* WhatsApp Auto-Message Settings (only when editing) */}
+            {/* WhatsApp Auto-Message Settings */}
             {editingVendedor && (
               <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">WhatsApp Automático</p>
                 <WaAutoMessageToggle vendedorId={editingVendedor.id} />
               </div>
             )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Spinner size="sm" className="mr-2" />}
-              {saving && creatingUser 
-                ? "Criando acesso..." 
-                : editingVendedor 
-                  ? "Salvar" 
-                  : "Cadastrar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </FormModalTemplate>
 
       {/* Delete Confirmation */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
