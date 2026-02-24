@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { PageHeader } from "@/components/ui-kit";
+import { PageHeader, EmptyState, LoadingState } from "@/components/ui-kit";
 
 interface Instalador {
   id: string;
@@ -264,11 +264,7 @@ export function InstaladorManager() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <LoadingState message="Carregando instaladores..." />;
   }
 
   return (
@@ -292,21 +288,9 @@ export function InstaladorManager() {
 
         {/* Ranking Tab */}
         <TabsContent value="ranking" className="mt-6">
-          <Card className="rounded-xl border-2 border-border/60">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-primary" />
-                Ranking do Mês - {format(new Date(), "MMMM yyyy", { locale: ptBR })}
-              </CardTitle>
-              <CardDescription>
-                Classificação dos instaladores baseada em serviços e avaliações
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <SectionCard icon={Trophy} title={`Ranking do Mês - ${format(new Date(), "MMMM yyyy", { locale: ptBR })}`} description="Classificação dos instaladores baseada em serviços e avaliações" variant="neutral">
               {performance.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum instalador registrado.
-                </div>
+                <EmptyState icon={Trophy} title="Nenhum instalador registrado" description="Cadastre instaladores para ver o ranking." />
               ) : (
                 <>
                   {/* Podium */}
@@ -402,23 +386,12 @@ export function InstaladorManager() {
                   </Table>
                 </>
               )}
-            </CardContent>
-          </Card>
+          </SectionCard>
         </TabsContent>
 
         {/* Metas Tab */}
         <TabsContent value="metas" className="mt-6">
-          <Card className="rounded-xl border-2 border-border/60">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                Configuração de Metas Globais
-              </CardTitle>
-              <CardDescription>
-                Defina os valores padrão de metas para todos os instaladores
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <SectionCard icon={Target} title="Configuração de Metas Globais" description="Defina os valores padrão de metas para todos os instaladores" variant="neutral">
               {config && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -501,27 +474,14 @@ export function InstaladorManager() {
                   </Button>
                 </>
               )}
-            </CardContent>
-          </Card>
+          </SectionCard>
         </TabsContent>
 
         {/* Individuais Tab */}
         <TabsContent value="individuais" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Metas Individuais
-              </CardTitle>
-              <CardDescription>
-                Configure metas personalizadas para cada instalador
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <SectionCard icon={Users} title="Metas Individuais" description="Configure metas personalizadas para cada instalador" variant="neutral">
               {instaladores.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum instalador cadastrado.
-                </div>
+                <EmptyState icon={Users} title="Nenhum instalador cadastrado" description="Adicione instaladores com a role 'instalador' para gerenciar metas." />
               ) : (
                 <div className="space-y-4">
                   {instaladores.map(inst => {
@@ -529,7 +489,7 @@ export function InstaladorManager() {
                     const perf = performance.find(p => p.instalador_id === inst.id);
 
                     return (
-                      <Card key={inst.id} className="p-4">
+                      <div key={inst.id} className="p-4 border border-border rounded-lg">
                         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">
@@ -579,13 +539,12 @@ export function InstaladorManager() {
                             </div>
                           </div>
                         </div>
-                      </Card>
+                      </div>
                     );
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </SectionCard>
         </TabsContent>
       </Tabs>
     </div>

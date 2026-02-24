@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PageHeader, EmptyState } from "@/components/ui-kit";
 import {
   Dialog,
   DialogContent,
@@ -101,20 +102,12 @@ export function WaInstancesManager() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-            <Smartphone className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Instâncias WhatsApp</h2>
-            <p className="text-sm text-muted-foreground">
-              {connectedCount}/{instances.length} conectada{connectedCount !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        icon={Smartphone}
+        title="Instâncias WhatsApp"
+        description={`${connectedCount}/${instances.length} conectada${connectedCount !== 1 ? "s" : ""}`}
+        actions={
+          <div className="flex items-center gap-2">
           <WaSetupGuide />
           {instances.length > 0 && (
             <Button
@@ -135,8 +128,9 @@ export function WaInstancesManager() {
             <Plus className="h-4 w-4" />
             Nova Instância
           </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Instances Grid */}
       {loading ? (
@@ -148,19 +142,12 @@ export function WaInstancesManager() {
           ))}
         </div>
       ) : instances.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Smartphone className="h-12 w-12 text-muted-foreground/30 mb-4" />
-            <h3 className="text-lg font-semibold text-foreground/70">Nenhuma instância configurada</h3>
-            <p className="text-sm text-muted-foreground mt-1 max-w-md">
-              Conecte sua primeira instância da Evolution API para começar a receber e enviar mensagens pelo WhatsApp.
-            </p>
-            <Button onClick={() => setShowCreate(true)} className="mt-4 gap-2">
-              <Plus className="h-4 w-4" />
-              Configurar Primeira Instância
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Smartphone}
+          title="Nenhuma instância configurada"
+          description="Conecte sua primeira instância da Evolution API para começar a receber e enviar mensagens pelo WhatsApp."
+          action={{ label: "Configurar Primeira Instância", onClick: () => setShowCreate(true), icon: Plus }}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {instances.map((inst) => {

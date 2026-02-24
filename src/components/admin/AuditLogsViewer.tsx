@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -147,21 +147,19 @@ export function AuditLogsViewer() {
 
   return (
     <div className="space-y-6">
-      <Card className="rounded-xl border-2 border-border/60">
-      <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            Auditoria do Sistema
-          </CardTitle>
+      <SectionCard
+        icon={Activity}
+        title="Auditoria do Sistema"
+        variant="neutral"
+        actions={
           <Button variant="outline" size="sm" onClick={fetchLogs} className="gap-2">
             <RefreshCw className="h-4 w-4" />
             Atualizar
           </Button>
-        </div>
-
+        }
+      >
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-4">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -195,9 +193,8 @@ export function AuditLogsViewer() {
             </SelectContent>
           </Select>
         </div>
-      </CardHeader>
 
-      <CardContent>
+      <div>
         {/* Stats summary */}
         <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
           <span>{totalCount.toLocaleString()} registros encontrados</span>
@@ -313,7 +310,7 @@ export function AuditLogsViewer() {
             </Button>
           </div>
         )}
-      </CardContent>
+      </div>
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
@@ -369,7 +366,7 @@ export function AuditLogsViewer() {
           )}
         </DialogContent>
       </Dialog>
-    </Card>
+    </SectionCard>
     </div>
   );
 }

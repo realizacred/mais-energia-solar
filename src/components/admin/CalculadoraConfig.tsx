@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Settings, Save, Calculator, Zap, Leaf, DollarSign, Calendar, Info } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { InlineLoader } from "@/components/loading/InlineLoader";
+import { LoadingState } from "@/components/ui-kit";
 
 interface CalcFields {
   id?: string;
@@ -126,35 +126,19 @@ export default function CalculadoraConfig() {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent><InlineLoader context="data_load" /></CardContent>
-      </Card>
-    );
+    return <LoadingState message="Carregando configuração..." />;
   }
 
   if (!config) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          Configuração não encontrada.
-        </CardContent>
-      </Card>
+      <div className="text-center py-8 text-muted-foreground">
+        Configuração não encontrada.
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Calculator className="w-5 h-5 text-primary" />
-          <CardTitle className="text-foreground">Configuração da Calculadora Solar</CardTitle>
-        </div>
-        <CardDescription>
-          Ajuste os parâmetros utilizados nos cálculos de economia e investimento
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <SectionCard icon={Calculator} title="Configuração da Calculadora Solar" description="Ajuste os parâmetros utilizados nos cálculos de economia e investimento" variant="blue">
         <Alert className="border-info/20 bg-info/5">
           <Info className="w-4 h-4 text-info" />
           <AlertDescription className="text-sm text-foreground">
@@ -261,7 +245,6 @@ export default function CalculadoraConfig() {
             Salvar Configuração
           </Button>
         </div>
-      </CardContent>
-    </Card>
+    </SectionCard>
   );
 }

@@ -1,7 +1,7 @@
  import { useState, useEffect } from "react";
  import { supabase } from "@/integrations/supabase/client";
  import { useToast } from "@/hooks/use-toast";
- import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+ import { SectionCard } from "@/components/ui-kit/SectionCard";
  import { Input } from "@/components/ui/input";
  import { Button } from "@/components/ui/button";
  import { Label } from "@/components/ui/label";
@@ -212,22 +212,12 @@ import { Spinner } from "@/components/ui-kit/Spinner";
  
          {/* Ranking Tab */}
          <TabsContent value="ranking" className="mt-6">
-           <Card>
-             <CardHeader>
-               <CardTitle className="flex items-center gap-2">
-                 <Trophy className="h-5 w-5 text-primary" />
-                 Ranking do Mês - {format(new Date(), "MMMM yyyy", { locale: ptBR })}
-               </CardTitle>
-               <CardDescription>
-                 Classificação de consultores baseada em pontuação total do mês
-               </CardDescription>
-             </CardHeader>
-             <CardContent>
-               {ranking.length === 0 ? (
-                 <div className="text-center py-8 text-muted-foreground">
-                   Nenhum dado de performance registrado para este mês.
-                 </div>
-               ) : (
+          <SectionCard icon={Trophy} title={`Ranking do Mês - ${format(new Date(), "MMMM yyyy", { locale: ptBR })}`} description="Classificação de consultores baseada em pontuação total do mês" variant="neutral">
+              {ranking.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum dado de performance registrado para este mês.
+                </div>
+              ) : (
                  <>
                    {/* Podium for top 3 */}
                    <div className="flex items-end justify-center gap-4 mb-8">
@@ -313,25 +303,13 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                    </Table>
                  </>
                )}
-             </CardContent>
-           </Card>
+          </SectionCard>
          </TabsContent>
- 
+
          {/* Metas Tab */}
          <TabsContent value="metas" className="mt-6">
-           <Card>
-             <CardHeader>
-               <CardTitle className="flex items-center gap-2">
-                 <Target className="h-5 w-5 text-primary" />
-                 Configuração de Metas Globais
-               </CardTitle>
-               <CardDescription>
-                  Defina os valores padrão de metas mensais para todos os consultores.
-                  Consultores individuais podem ter metas personalizadas.
-               </CardDescription>
-             </CardHeader>
-             <CardContent className="space-y-6">
-               {config && (
+          <SectionCard icon={Target} title="Configuração de Metas Globais" description="Defina os valores padrão de metas mensais para todos os consultores." variant="neutral">
+              {config && (
                  <>
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                      <div className="space-y-2">
@@ -409,8 +387,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                   </Button>
                  </>
                )}
-             </CardContent>
-           </Card>
+          </SectionCard>
          </TabsContent>
  
          {/* Metas Individuais Tab */}
@@ -420,18 +397,8 @@ import { Spinner } from "@/components/ui-kit/Spinner";
  
          {/* Conquistas Tab */}
          <TabsContent value="conquistas" className="mt-6">
-           <Card>
-             <CardHeader>
-               <CardTitle className="flex items-center gap-2">
-                 <Medal className="h-5 w-5 text-primary" />
-                 Pontuação de Conquistas
-               </CardTitle>
-               <CardDescription>
-                 Configure quantos pontos cada tipo de conquista concede aos consultores
-               </CardDescription>
-             </CardHeader>
-             <CardContent>
-               {config && (
+          <SectionCard icon={Medal} title="Pontuação de Conquistas" description="Configure quantos pontos cada tipo de conquista concede aos consultores" variant="neutral">
+              {config && (
                  <div className="space-y-6">
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                      {Object.entries(ACHIEVEMENT_LABELS).map(([key, { label, icon: Icon }]) => (
@@ -455,8 +422,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                   </Button>
                  </div>
                )}
-             </CardContent>
-           </Card>
+          </SectionCard>
          </TabsContent>
        </Tabs>
      </div>

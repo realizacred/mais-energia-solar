@@ -1,6 +1,6 @@
  import { useState, useEffect } from "react";
  import { supabase } from "@/integrations/supabase/client";
- import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+ import { SectionCard } from "@/components/ui-kit/SectionCard";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@
  import { toast } from "@/hooks/use-toast";
  import { format } from "date-fns";
  import { ptBR } from "date-fns/locale";
- import { LoadingState, PageHeader, StatCard } from "@/components/ui-kit";
+ import { LoadingState, PageHeader, StatCard, SearchInput, EmptyState } from "@/components/ui-kit";
  import {
  ClipboardCheck,
  Search,
@@ -139,32 +139,21 @@
        <StatCard icon={RefreshCw} label="Pendente Sync" value={stats.pendentesSync} color="warning" />
      </div>
  
-     {/* Search and Table */}
-     <Card>
-       <CardHeader className="pb-3">
-         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-           <CardTitle className="flex items-center gap-2">
-             <ClipboardCheck className="h-5 w-5" />
-             Registros de Serviço
-           </CardTitle>
-           <div className="relative w-full sm:w-64">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-             <Input
-               placeholder="Buscar por cliente, endereço..."
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-               className="pl-9"
-             />
-           </div>
-         </div>
-       </CardHeader>
-       <CardContent>
-         {filteredChecklists.length === 0 ? (
-           <div className="text-center py-12 text-muted-foreground">
-             <ClipboardCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
-             <p>Nenhum checklist encontrado</p>
-           </div>
-         ) : (
+      {/* Search and Table */}
+      <SearchInput
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Buscar por cliente, endereço..."
+      />
+
+      <SectionCard icon={ClipboardCheck} title="Registros de Serviço" variant="neutral">
+          {filteredChecklists.length === 0 ? (
+            <EmptyState
+              icon={ClipboardCheck}
+              title="Nenhum checklist encontrado"
+              description="Os checklists aparecerão aqui quando forem preenchidos."
+            />
+          ) : (
            <div className="overflow-x-auto">
              <Table>
                <TableHeader>
@@ -230,8 +219,7 @@
              </Table>
            </div>
          )}
-       </CardContent>
-     </Card>
+      </SectionCard>
  
      {/* View Dialog */}
      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
