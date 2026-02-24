@@ -4,14 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import {
   Select,
   SelectContent,
@@ -153,18 +146,18 @@ export function WaParticipants({ conversationId, tenantId, assignedTo }: WaParti
             <Badge variant="secondary" className="text-xs">{participants.length}</Badge>
           )}
         </div>
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <UserPlus className="h-4 w-4 mr-1" /> Chamar apoio
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Adicionar participante</DialogTitle>
-              <DialogDescription>Selecione quem deve participar desta conversa.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
+        <Button variant="ghost" size="sm" onClick={() => setAddDialogOpen(true)}>
+          <UserPlus className="h-4 w-4 mr-1" /> Chamar apoio
+        </Button>
+        <FormModalTemplate
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          title="Adicionar participante"
+          submitLabel="Adicionar"
+          onSubmit={() => addMutation.mutate()}
+          saving={addMutation.isPending}
+          disabled={!selectedUser}
+        >
               <Select value={selectedUser} onValueChange={setSelectedUser}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecionar usuário" />
@@ -184,17 +177,7 @@ export function WaParticipants({ conversationId, tenantId, assignedTo }: WaParti
                   <SelectItem value="viewer">Visualizador (somente leitura)</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                className="w-full"
-                disabled={!selectedUser || addMutation.isPending}
-                onClick={() => addMutation.mutate()}
-              >
-                {addMutation.isPending ? <Spinner size="sm" className="mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
-                Adicionar
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        </FormModalTemplate>
       </div>
 
       {isLoading ? (

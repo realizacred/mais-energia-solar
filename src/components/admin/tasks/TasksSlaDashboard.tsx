@@ -32,6 +32,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -296,63 +297,58 @@ function CreateTaskDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nova Tarefa
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Nova Tarefa</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Título *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Ligar para cliente X" />
-          </div>
-          <div>
-            <Label>Descrição</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Prioridade</Label>
-              <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+    <>
+      <Button size="sm" className="gap-2" onClick={() => onOpenChange(true)}>
+        <Plus className="h-4 w-4" />
+        Nova Tarefa
+      </Button>
+      <FormModalTemplate
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Nova Tarefa"
+        submitLabel="Criar Tarefa"
+        onSubmit={handleSubmit}
+        saving={isSubmitting}
+        disabled={!title.trim()}
+      >
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Ligar para cliente X" />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+            </div>
+            <FormGrid>
+              <div className="space-y-2">
+                <Label>Prioridade</Label>
+                <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="P0">P0 - Urgente</SelectItem>
+                    <SelectItem value="P1">P1 - Alto</SelectItem>
+                    <SelectItem value="P2">P2 - Normal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Prazo</Label>
+                <Input type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+              </div>
+            </FormGrid>
+            <div className="space-y-2">
+              <Label>Atribuir a</Label>
+              <Select value={assignedTo} onValueChange={setAssignedTo}>
+                <SelectTrigger><SelectValue placeholder="Selecionar consultor" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="P0">P0 - Urgente</SelectItem>
-                  <SelectItem value="P1">P1 - Alto</SelectItem>
-                  <SelectItem value="P2">P2 - Normal</SelectItem>
+                  {vendedores.map((v) => (
+                    <SelectItem key={v.id} value={v.user_id || v.id}>{v.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Prazo</Label>
-              <Input type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
-            </div>
-          </div>
-          <div>
-            <Label>Atribuir a</Label>
-            <Select value={assignedTo} onValueChange={setAssignedTo}>
-              <SelectTrigger><SelectValue placeholder="Selecionar consultor" /></SelectTrigger>
-              <SelectContent>
-                {vendedores.map((v) => (
-                  <SelectItem key={v.id} value={v.user_id || v.id}>{v.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !title.trim()} className="gap-2">
-            {isSubmitting && <Spinner size="sm" />}
-            Criar Tarefa
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </FormModalTemplate>
+    </>
   );
 }
 
@@ -625,18 +621,21 @@ function SlaRulesManager() {
       )}
 
       {/* Edit/Create Dialog */}
-      <Dialog open={showCreate} onOpenChange={(v) => { if (!v) { setEditRule(null); } setShowCreate(v); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editRule?.id ? "Editar Regra SLA" : "Nova Regra SLA"}</DialogTitle>
-          </DialogHeader>
+      <FormModalTemplate
+        open={showCreate}
+        onOpenChange={(v) => { if (!v) { setEditRule(null); } setShowCreate(v); }}
+        title={editRule?.id ? "Editar Regra SLA" : "Nova Regra SLA"}
+        submitLabel="Salvar"
+        onSubmit={handleSave}
+        disabled={!editRule?.rule_name}
+      >
           {editRule && (
-            <div className="space-y-4">
-              <div>
+            <>
+              <div className="space-y-2">
                 <Label>Nome da Regra *</Label>
                 <Input value={editRule.rule_name || ""} onChange={(e) => setEditRule({ ...editRule, rule_name: e.target.value })} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Aplicar quando lead entrar no status</Label>
                 <Select value={editRule.applies_to || ""} onValueChange={(v) => setEditRule({ ...editRule, applies_to: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecionar status" /></SelectTrigger>
@@ -647,17 +646,17 @@ function SlaRulesManager() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <FormGrid>
+                <div className="space-y-2">
                   <Label>1º Contato (min)</Label>
                   <Input type="number" value={editRule.max_minutes_to_first_contact || 60} onChange={(e) => setEditRule({ ...editRule, max_minutes_to_first_contact: Number(e.target.value) })} />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>Follow-up (min)</Label>
                   <Input type="number" value={editRule.max_minutes_to_next_followup || 1440} onChange={(e) => setEditRule({ ...editRule, max_minutes_to_next_followup: Number(e.target.value) })} />
                 </div>
-              </div>
-              <div>
+              </FormGrid>
+              <div className="space-y-2">
                 <Label>Prioridade da Tarefa</Label>
                 <Select value={editRule.task_priority || "P1"} onValueChange={(v) => setEditRule({ ...editRule, task_priority: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -682,13 +681,9 @@ function SlaRulesManager() {
                   <Label>Regra ativa</Label>
                 </div>
               </div>
-            </div>
+            </>
           )}
-          <DialogFooter>
-            <Button onClick={handleSave} disabled={!editRule?.rule_name}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </FormModalTemplate>
     </div>
   );
 }
