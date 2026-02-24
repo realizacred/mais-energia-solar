@@ -4,15 +4,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Tag, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import {
   Select,
   SelectContent,
@@ -200,22 +195,24 @@ export function EtiquetasManager() {
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Editar etiqueta" : "Nova etiqueta"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Nome</label>
+      <FormModalTemplate
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editingId ? "Editar etiqueta" : "Nova etiqueta"}
+        onSubmit={handleSave}
+        submitLabel={editingId ? "Salvar" : "Criar"}
+        className="sm:max-w-md"
+      >
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Nome</Label>
               <Input
                 value={form.nome}
                 onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
                 placeholder="Ex: WEG, À Vista, Urgente"
               />
             </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Grupo</label>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Grupo</Label>
               <Select value={form.grupo} onValueChange={v => setForm(f => ({ ...f, grupo: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -225,8 +222,8 @@ export function EtiquetasManager() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Abreviação</label>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Abreviação</Label>
               <Input
                 value={form.short}
                 onChange={e => setForm(f => ({ ...f, short: e.target.value }))}
@@ -234,8 +231,8 @@ export function EtiquetasManager() {
                 maxLength={5}
               />
             </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Ícone (emoji)</label>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Ícone (emoji)</Label>
               <Input
                 value={form.icon}
                 onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
@@ -243,8 +240,8 @@ export function EtiquetasManager() {
                 maxLength={4}
               />
             </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-2 block">Cor</label>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Cor</Label>
               <div className="flex flex-wrap gap-2">
                 {COLOR_PRESETS.map(c => (
                   <button
@@ -270,8 +267,8 @@ export function EtiquetasManager() {
             </div>
 
             {/* Preview */}
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Preview</label>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Preview</Label>
               <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/40">
                 <Badge
                   className="text-[10px] font-bold border px-2 py-0.5"
@@ -286,13 +283,7 @@ export function EtiquetasManager() {
                 <span className="text-sm text-muted-foreground">{form.nome || "Nome da etiqueta"}</span>
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>{editingId ? "Salvar" : "Criar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </FormModalTemplate>
     </div>
   );
 }

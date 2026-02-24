@@ -29,6 +29,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import {
   Select,
   SelectContent,
@@ -648,15 +649,21 @@ export function UsuariosManager() {
       </Dialog>
 
       {/* Create User Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Criar Novo Usuário</DialogTitle>
-            <DialogDescription>
+      <FormModalTemplate
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) setNewUserForm({ nome: "", email: "", password: "", role: "consultor", telefone: "" });
+        }}
+        title="Criar Novo Usuário"
+        onSubmit={handleCreateUser}
+        submitLabel="Criar Usuário"
+        saving={saving}
+        className="sm:max-w-md"
+      >
+            <p className="text-sm text-muted-foreground -mt-2">
               Preencha os dados para criar um novo usuário no sistema.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+            </p>
             <div className="space-y-2">
               <Label htmlFor="nome">Nome completo *</Label>
               <Input
@@ -685,17 +692,17 @@ export function UsuariosManager() {
                 onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
                 placeholder="Mínimo 6 caracteres"
               />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={newUserForm.telefone}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, telefone: e.target.value })}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-              <div className="space-y-2">
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="telefone">Telefone</Label>
+              <Input
+                id="telefone"
+                value={newUserForm.telefone}
+                onChange={(e) => setNewUserForm({ ...newUserForm, telefone: e.target.value })}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="role">Perfil inicial</Label>
               <Select 
                 value={newUserForm.role} 
@@ -713,24 +720,7 @@ export function UsuariosManager() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setIsCreateDialogOpen(false);
-                setNewUserForm({ nome: "", email: "", password: "", role: "consultor", telefone: "" });
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateUser} disabled={saving}>
-              {saving && <Spinner size="sm" />}
-              Criar Usuário
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </FormModalTemplate>
 
       {/* User Edit Dialog */}
       <UserEditDialog

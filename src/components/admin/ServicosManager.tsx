@@ -15,11 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import {
   Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -329,19 +327,19 @@ export function ServicosManager() {
               </Button>
             </div>
 
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
+            <Button className="gap-2" onClick={() => setDialogOpen(true)}>
                   <Plus className="h-4 w-4" />
                   Agendar Serviço
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Agendar Novo Serviço</DialogTitle>
-                </DialogHeader>
-
-                <div className="space-y-4">
+            </Button>
+            <FormModalTemplate
+              open={dialogOpen}
+              onOpenChange={setDialogOpen}
+              title="Agendar Novo Serviço"
+              onSubmit={handleSubmit}
+              submitLabel="Agendar Serviço"
+              saving={saving}
+              className="max-w-lg"
+            >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Tipo de Serviço *</Label>
@@ -466,14 +464,7 @@ export function ServicosManager() {
                       rows={2}
                     />
                   </div>
-
-                  <Button onClick={handleSubmit} disabled={saving} className="w-full">
-                    {saving ? <Spinner size="sm" /> : null}
-                    Agendar Serviço
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            </FormModalTemplate>
           </div>
         }
       />
