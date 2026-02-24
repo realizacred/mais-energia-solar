@@ -12,7 +12,7 @@ import {
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
-  ChevronDown, SunMedium, Bell, Users, Tag, ShoppingCart
+  ChevronDown, SunMedium, Bell, Users, Tag
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -118,7 +118,7 @@ const TABS = [
   { id: "gerenciamento", label: "Gerenciamento", icon: Settings, color: "text-secondary" },
   { id: "chat", label: "Chat Whatsapp", icon: MessageSquare, color: "text-success" },
   { id: "propostas", label: "Propostas", icon: FileText, color: "text-primary" },
-  { id: "loja", label: "Loja Solarmarket", icon: ShoppingCart, color: "text-info" },
+  
   { id: "vinculo", label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
   { id: "documentos", label: "Documentos", icon: FolderOpen, color: "text-warning" },
 ] as const;
@@ -399,7 +399,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   const tabBadge = (tabId: string) => {
     if (tabId === "propostas") return propostasCount;
     if (tabId === "documentos") return docsCount;
-    if (tabId === "loja") return 0;
+    
     return null;
   };
 
@@ -592,15 +592,6 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
                 toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
               }}
             />
-          )}
-          {activeTab === "loja" && (
-            <Card>
-              <CardContent className="py-16 text-center">
-                <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-sm font-semibold text-foreground mb-1">Loja Solarmarket</p>
-                <p className="text-xs text-muted-foreground">Em breve — integração com a loja de equipamentos.</p>
-              </CardContent>
-            </Card>
           )}
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} />
