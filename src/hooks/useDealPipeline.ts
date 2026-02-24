@@ -198,22 +198,21 @@ export function useDealPipeline() {
         docChecklistMap.set(d.id, d.doc_checklist || null);
       });
 
-      // Fetch latest proposal per customer + city/state
+      // Fetch latest proposal per DEAL (not per customer — prevents cross-deal contamination)
       const customerIds = [...new Set(Array.from(customerMap.values()))];
       let locationMap = new Map<string, { city: string | null; state: string | null }>();
 
-      if (customerIds.length > 0) {
-        // Parallel: proposals + locations
+      if (customerIds.length > 0 || dealIds.length > 0) {
+        // Parallel: proposals by deal_id + locations by customer_id
         const [propostasRes, locationRes] = await Promise.all([
           supabase
             .from("propostas_nativas")
-            .select("id, cliente_id, status, versao_atual")
-            .in("cliente_id", customerIds)
+            .select("id, deal_id, status, versao_atual")
+            .in("deal_id", dealIds)
             .order("created_at", { ascending: false }),
-          supabase
-            .from("clientes")
-            .select("id, cidade, estado")
-            .in("id", customerIds),
+          customerIds.length > 0
+            ? supabase.from("clientes").select("id, cidade, estado").in("id", customerIds)
+            : Promise.resolve({ data: [] }),
         ]);
 
         // Location map
@@ -238,11 +237,11 @@ export function useDealPipeline() {
           });
         }
 
-        // Map best proposal per customer (latest)
-        const bestPropostaByCustomer = new Map<string, { id: string; status: string; economia: number | null }>();
+        // Map best proposal per deal (latest by created_at, already sorted)
+        const bestPropostaByDeal = new Map<string, { id: string; status: string; economia: number | null }>();
         propostas.forEach((p: any) => {
-          if (!bestPropostaByCustomer.has(p.cliente_id)) {
-            bestPropostaByCustomer.set(p.cliente_id, {
+          if (!bestPropostaByDeal.has(p.deal_id)) {
+            bestPropostaByDeal.set(p.deal_id, {
               id: p.id,
               status: p.status,
               economia: economiaMap.get(p.id) || null,
@@ -253,7 +252,7 @@ export function useDealPipeline() {
         // Enrich results
         results = results.map(d => {
           const custId = customerMap.get(d.deal_id);
-          const proposta = custId ? bestPropostaByCustomer.get(custId) : null;
+          const proposta = bestPropostaByDeal.get(d.deal_id) || null;
           const loc = custId ? locationMap.get(custId) : null;
           return {
             ...d,
