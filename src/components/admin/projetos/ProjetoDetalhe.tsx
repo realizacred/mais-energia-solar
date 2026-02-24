@@ -535,6 +535,15 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
                 {ownerName || "Sem consultor"}
               </Badge>
             </div>
+            {deal.status !== "won" && deal.status !== "lost" && (
+              <Button size="sm" onClick={() => {
+                const params = new URLSearchParams({ deal_id: dealId });
+                if (deal.customer_id) params.set("customer_id", deal.customer_id);
+                navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+              }} className="gap-1.5 shrink-0">
+                <Plus className="h-3.5 w-3.5" />Nova proposta
+              </Button>
+            )}
           </div>
 
           {/* Row 2: Tabs */}
@@ -1912,22 +1921,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-end">
-        {isClosed ? (
+      {isClosed && (
+        <div className="flex items-center justify-end">
           <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
             <AlertCircle className="h-3 w-3 mr-1" />
             Projeto fechado
           </Badge>
-        ) : (
-          <Button size="sm" onClick={() => {
-            const params = new URLSearchParams({ deal_id: dealId });
-            if (customerId) params.set("customer_id", customerId);
-            navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-          }} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" />Nova proposta
-          </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Lead discovery cards */}
       {linkedOrcs.length > 0 && (
