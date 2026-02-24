@@ -45,6 +45,7 @@ export interface DealKanbanCard {
   stage_probability: number;
   last_stage_change: string;
   etiqueta: string | null;
+  etiqueta_ids?: string[]; // relational etiqueta IDs from projeto_etiqueta_rel
   notas: string | null;
   cliente_code: string | null;
   deal_num: number | null;
@@ -156,6 +157,25 @@ export function useDealPipeline() {
         d.owner_name.toLowerCase().includes(q) ||
         (d.cliente_code || "").toLowerCase().includes(q)
       );
+    }
+
+    // Fetch relational etiquetas
+    if (results.length > 0) {
+      const dealIds = results.map(d => d.deal_id);
+      const { data: etiquetaRels } = await supabase
+        .from("projeto_etiqueta_rel")
+        .select("projeto_id, etiqueta_id")
+        .in("projeto_id", dealIds);
+      const etiquetaRelMap = new Map<string, string[]>();
+      (etiquetaRels || []).forEach((r: any) => {
+        const arr = etiquetaRelMap.get(r.projeto_id) || [];
+        arr.push(r.etiqueta_id);
+        etiquetaRelMap.set(r.projeto_id, arr);
+      });
+      results = results.map(d => ({
+        ...d,
+        etiqueta_ids: etiquetaRelMap.get(d.deal_id) || [],
+      }));
     }
 
     // Enrich with proposal data
