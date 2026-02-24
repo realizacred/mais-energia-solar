@@ -7,3 +7,4 @@ export { IconBadge } from "./IconBadge";
 export { LoadingState } from "./LoadingState";
 export { Spinner } from "./Spinner";
 export { SearchInput } from "./SearchInput";
+export { FormModalTemplate, FormSection, FormGrid } from "./FormModalTemplate";
