@@ -311,13 +311,19 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   useEffect(() => { loadEtiquetas(); }, [dealId]);
 
   const toggleEtiqueta = async (etId: string) => {
-    const has = dealEtiquetas.some(e => e.id === etId);
-    if (has) {
-      await supabase.from("projeto_etiqueta_rel").delete().eq("projeto_id", dealId).eq("etiqueta_id", etId);
-    } else {
-      await supabase.from("projeto_etiqueta_rel").insert({ projeto_id: dealId, etiqueta_id: etId } as any);
+    try {
+      const has = dealEtiquetas.some(e => e.id === etId);
+      if (has) {
+        const { error } = await supabase.from("projeto_etiqueta_rel").delete().eq("projeto_id", dealId).eq("etiqueta_id", etId);
+        if (error) { console.error("Erro ao remover etiqueta:", error); return; }
+      } else {
+        const { error } = await supabase.from("projeto_etiqueta_rel").insert({ projeto_id: dealId, etiqueta_id: etId } as any);
+        if (error) { console.error("Erro ao adicionar etiqueta:", error); return; }
+      }
+      await loadEtiquetas();
+    } catch (err) {
+      console.error("toggleEtiqueta error:", err);
     }
-    loadEtiquetas();
   };
 
   // ─── Realtime subscription for auto-refresh ────
@@ -469,11 +475,12 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
                         return (
                           <button
                             key={et.id}
+                            type="button"
                             className={cn(
-                              "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors",
+                              "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors cursor-pointer",
                               isSelected ? "bg-primary/10 text-foreground" : "hover:bg-muted text-muted-foreground"
                             )}
-                            onClick={() => toggleEtiqueta(et.id)}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleEtiqueta(et.id); }}
                           >
                             <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: et.cor }} />
                             <span className="flex-1 truncate">{et.nome}</span>
