@@ -360,7 +360,7 @@ export function FornecedoresManager() {
             <Card>
               <CardContent className="pt-4 space-y-4">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Endereço</p>
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="col-span-2 space-y-1.5">
                     <Label>Endereço</Label>
                     <Input value={form.endereco} onChange={e => setForm(p => ({ ...p, endereco: e.target.value }))} />

@@ -734,7 +734,7 @@ function MesAMesModal({ uc, tipo, onUpdate, onClose }: {
         <DialogHeader>
           <DialogTitle className="text-sm">{label} — mês a mês — {uc.nome}</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {MESES.map(m => (
             <div key={m} className="space-y-0.5">
               <Label className="text-[10px] uppercase text-muted-foreground">{m}</Label>
