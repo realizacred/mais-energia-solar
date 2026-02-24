@@ -9885,6 +9885,7 @@ export type Database = {
         Row: {
           aceita_at: string | null
           aceite_estimativa: boolean | null
+          aceite_motivo: string | null
           aneel_run_id: string | null
           ano_gd: number | null
           cliente_id: string | null
@@ -9925,6 +9926,7 @@ export type Database = {
         Insert: {
           aceita_at?: string | null
           aceite_estimativa?: boolean | null
+          aceite_motivo?: string | null
           aneel_run_id?: string | null
           ano_gd?: number | null
           cliente_id?: string | null
@@ -9965,6 +9967,7 @@ export type Database = {
         Update: {
           aceita_at?: string | null
           aceite_estimativa?: boolean | null
+          aceite_motivo?: string | null
           aneel_run_id?: string | null
           ano_gd?: number | null
           cliente_id?: string | null
