@@ -464,7 +464,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
                     Etiqueta
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-56 p-2" align="start">
+                <PopoverContent className="w-56 p-2 z-50" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                   <p className="text-xs font-semibold text-muted-foreground mb-2 px-1">Etiquetas</p>
                   {allEtiquetas.length === 0 ? (
                     <p className="text-xs text-muted-foreground px-1 py-2">Nenhuma etiqueta cadastrada</p>
@@ -480,7 +480,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
                               "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors cursor-pointer",
                               isSelected ? "bg-primary/10 text-foreground" : "hover:bg-muted text-muted-foreground"
                             )}
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleEtiqueta(et.id); }}
+                            onClick={() => { toggleEtiqueta(et.id); }}
                           >
                             <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: et.cor }} />
                             <span className="flex-1 truncate">{et.nome}</span>
