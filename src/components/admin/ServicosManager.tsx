@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { handleSupabaseError } from "@/lib/errorHandler";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
+import { PageHeader } from "@/components/ui-kit";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -300,189 +300,183 @@ export function ServicosManager() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Wrench className="h-5 w-5 text-primary" />
-            Serviços Agendados
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Gerencie instalações, manutenções e visitas técnicas
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <ExportActions servicos={filteredServicos} instaladores={instaladores} />
-          
-          <Button variant="outline" size="icon" onClick={fetchData}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              size="icon"
-              onClick={() => setViewMode("table")}
-            >
-              <Table2 className="h-4 w-4" />
+      <PageHeader
+        icon={Wrench}
+        title="Serviços Agendados"
+        description="Gerencie instalações, manutenções e visitas técnicas"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <ExportActions servicos={filteredServicos} instaladores={instaladores} />
+            
+            <Button variant="outline" size="icon" onClick={fetchData}>
+              <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button
-              variant={viewMode === "calendar" ? "secondary" : "ghost"}
-              size="icon"
-              onClick={() => setViewMode("calendar")}
-            >
-              <CalendarDays className="h-4 w-4" />
-            </Button>
-          </div>
 
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Agendar Serviço
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === "table" ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setViewMode("table")}
+              >
+                <Table2 className="h-4 w-4" />
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Agendar Novo Serviço</DialogTitle>
-              </DialogHeader>
+              <Button
+                variant={viewMode === "calendar" ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setViewMode("calendar")}
+              >
+                <CalendarDays className="h-4 w-4" />
+              </Button>
+            </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Tipo de Serviço *</Label>
-                    <Select
-                      value={formData.tipo}
-                      onValueChange={(v) => setFormData(prev => ({ ...prev, tipo: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tipoOptions.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Data *</Label>
-                    <Input
-                      type="date"
-                      value={formData.data_agendada}
-                      onChange={(e) => setFormData(prev => ({ ...prev, data_agendada: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Instalador *</Label>
-                    <Select
-                      value={formData.instalador_id}
-                      onValueChange={(v) => setFormData(prev => ({ ...prev, instalador_id: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {instaladores.map(inst => (
-                          <SelectItem key={inst.id} value={inst.id}>
-                            {inst.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Horário</Label>
-                    <Input
-                      type="time"
-                      value={formData.hora_inicio}
-                      onChange={(e) => setFormData(prev => ({ ...prev, hora_inicio: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Cliente</Label>
-                  <Select
-                    value={formData.cliente_id}
-                    onValueChange={handleClienteChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vincular a cliente (opcional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clientes.map(cliente => (
-                        <SelectItem key={cliente.id} value={cliente.id}>
-                          {cliente.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Endereço</Label>
-                  <Input
-                    value={formData.endereco}
-                    onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value }))}
-                    placeholder="Rua, número..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Bairro</Label>
-                    <Input
-                      value={formData.bairro}
-                      onChange={(e) => setFormData(prev => ({ ...prev, bairro: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cidade</Label>
-                    <Input
-                      value={formData.cidade}
-                      onChange={(e) => setFormData(prev => ({ ...prev, cidade: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Descrição do Serviço</Label>
-                  <Textarea
-                    value={formData.descricao}
-                    onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
-                    placeholder="Detalhes do serviço a ser executado..."
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Observações Internas</Label>
-                  <Textarea
-                    value={formData.observacoes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
-                    placeholder="Notas para o instalador..."
-                    rows={2}
-                  />
-                </div>
-
-                <Button onClick={handleSubmit} disabled={saving} className="w-full">
-                  {saving ? <Spinner size="sm" /> : null}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
                   Agendar Serviço
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Agendar Novo Serviço</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Tipo de Serviço *</Label>
+                      <Select
+                        value={formData.tipo}
+                        onValueChange={(v) => setFormData(prev => ({ ...prev, tipo: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tipoOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Data *</Label>
+                      <Input
+                        type="date"
+                        value={formData.data_agendada}
+                        onChange={(e) => setFormData(prev => ({ ...prev, data_agendada: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Instalador *</Label>
+                      <Select
+                        value={formData.instalador_id}
+                        onValueChange={(v) => setFormData(prev => ({ ...prev, instalador_id: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {instaladores.map(inst => (
+                            <SelectItem key={inst.id} value={inst.id}>
+                              {inst.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Horário</Label>
+                      <Input
+                        type="time"
+                        value={formData.hora_inicio}
+                        onChange={(e) => setFormData(prev => ({ ...prev, hora_inicio: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Cliente</Label>
+                    <Select
+                      value={formData.cliente_id}
+                      onValueChange={handleClienteChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vincular a cliente (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clientes.map(cliente => (
+                          <SelectItem key={cliente.id} value={cliente.id}>
+                            {cliente.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Endereço</Label>
+                    <Input
+                      value={formData.endereco}
+                      onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value }))}
+                      placeholder="Rua, número..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Bairro</Label>
+                      <Input
+                        value={formData.bairro}
+                        onChange={(e) => setFormData(prev => ({ ...prev, bairro: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cidade</Label>
+                      <Input
+                        value={formData.cidade}
+                        onChange={(e) => setFormData(prev => ({ ...prev, cidade: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Descrição do Serviço</Label>
+                    <Textarea
+                      value={formData.descricao}
+                      onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
+                      placeholder="Detalhes do serviço a ser executado..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Observações Internas</Label>
+                    <Textarea
+                      value={formData.observacoes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
+                      placeholder="Notas para o instalador..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <Button onClick={handleSubmit} disabled={saving} className="w-full">
+                    {saving ? <Spinner size="sm" /> : null}
+                    Agendar Serviço
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      />
 
       {/* Alerts */}
       <ServicoAlerts servicos={servicos} />

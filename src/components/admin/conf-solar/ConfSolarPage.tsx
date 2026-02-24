@@ -6,6 +6,7 @@ import { PrecificacaoTab } from "./tabs/PrecificacaoTab";
 import { FinanciamentosTab } from "./tabs/FinanciamentosTab";
 import { TemplatesTab } from "./tabs/TemplatesTab";
 import { VariaveisTab } from "./tabs/VariaveisTab";
+import { PageHeader } from "@/components/ui-kit";
 
 const TABS = [
   { value: "premissas", label: "Premissas", icon: Settings2 },
@@ -20,15 +21,11 @@ export function ConfSolarPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Sliders className="h-5 w-5 text-primary" />
-          Configurações Solar
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Premissas técnicas, regras de precificação, financiamentos, templates e variáveis.
-        </p>
-      </div>
+      <PageHeader
+        icon={Sliders}
+        title="Configurações Solar"
+        description="Premissas técnicas, regras de precificação, financiamentos, templates e variáveis."
+      />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full justify-start gap-1 bg-muted/50 p-1 rounded-xl flex-wrap">

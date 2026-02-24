@@ -428,7 +428,7 @@ export default function LeadsPipeline() {
                     const statusLeads = getLeadsByStatus(status.id);
                     const avgConsumo = statusLeads.length > 0 ? Math.round(statusLeads.reduce((sum, l) => sum + l.media_consumo, 0) / statusLeads.length) : 0;
                     return (
-                      <div key={status.id} className="flex items-center justify-between p-3 rounded-md border border-slate-200">
+                      <div key={status.id} className="flex items-center justify-between p-3 rounded-md border border-border/60">
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.cor }} />
                           <div>
@@ -475,7 +475,7 @@ export default function LeadsPipeline() {
                         ? Math.floor((Date.now() - new Date(lead.ultimo_contato).getTime()) / (1000 * 60 * 60 * 24))
                         : null;
                       return (
-                        <div key={lead.id} className="flex items-center justify-between p-2.5 rounded-md border border-slate-200 bg-muted/30 gap-3">
+                        <div key={lead.id} className="flex items-center justify-between p-2.5 rounded-md border border-border/60 bg-muted/30 gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{lead.nome}</p>
                             <p className="text-xs text-muted-foreground">{lead.telefone}{lead.cidade && ` · ${lead.cidade}`}</p>
