@@ -468,7 +468,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
 
               {/* Etiquetas vinculadas */}
               {dealEtiquetas.map(et => (
-                <Badge key={et.id} variant="outline" className="text-xs shrink-0 gap-1" style={{ borderColor: et.cor, color: et.cor }}>
+                <Badge key={et.id} variant="outline" className="text-xs shrink-0 gap-1" style={{ borderColor: et.cor, color: et.cor }} title={et.nome}>
                   {et.icon && <span>{et.icon}</span>}
                   {et.short || et.nome}
                 </Badge>
