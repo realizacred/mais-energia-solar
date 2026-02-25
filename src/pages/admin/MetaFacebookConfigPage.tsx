@@ -32,19 +32,19 @@ interface FieldConfig {
 const FIELDS: FieldConfig[] = [
   {
     serviceKey: META_KEYS.accessToken,
-    label: "Access Token",
-    placeholder: "Cole seu Access Token do Meta aqui...",
+    label: "Token de Acesso",
+    placeholder: "Cole seu Token de Acesso do Meta aqui...",
     description: "Token de acesso para a API de Marketing e Lead Ads",
   },
   {
     serviceKey: META_KEYS.appSecret,
-    label: "App Secret",
-    placeholder: "Cole o App Secret do seu aplicativo Meta...",
+    label: "Chave Secreta do Aplicativo",
+    placeholder: "Cole a Chave Secreta do seu aplicativo Meta...",
     description: "Usado para validar a assinatura dos webhooks (X-Hub-Signature-256)",
   },
   {
     serviceKey: META_KEYS.verifyToken,
-    label: "Verify Token",
+    label: "Token de Verificação",
     placeholder: "Defina um token de verificação para o webhook...",
     description: "Token personalizado usado na verificação do webhook pelo Meta",
   },
