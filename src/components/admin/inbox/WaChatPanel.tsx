@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { WaProfileAvatar } from "./WaProfileAvatar";
 import { supabase } from "@/integrations/supabase/client";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { WaAISidebar } from "./WaAISidebar";
@@ -374,17 +375,13 @@ export function WaChatPanel({
           {/* Row 1: Avatar + Name + Action icons */}
           <div className="px-3 pt-2 pb-1.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-[10px] font-bold text-primary overflow-hidden">
-                {conversation.profile_picture_url ? (
-                  <img src={conversation.profile_picture_url} alt="" className="w-full h-full object-cover" />
-                ) : conversation.is_group ? (
-                  <Users className="h-3.5 w-3.5" />
-                ) : conversation.cliente_nome ? (
-                  conversation.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
-                ) : (
-                  <User className="h-3.5 w-3.5" />
-                )}
-              </div>
+              <WaProfileAvatar
+                profilePictureUrl={conversation.profile_picture_url}
+                isGroup={conversation.is_group}
+                name={conversation.cliente_nome}
+                size="sm"
+                className="bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 text-primary"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-foreground truncate">
