@@ -271,10 +271,16 @@ export default function MetaFacebookConfigPage() {
                         <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Gere o Token de Acesso ↗</a>
                         <p className="ml-5 mt-1">No menu superior → <strong>"Ferramentas" → "Explorador da API do Graph"</strong>:</p>
                         <ul className="ml-5 mt-1 space-y-1">
-                          <li>• Selecione seu app no dropdown</li>
-                          <li>• Clique em <strong>"Adicionar permissão"</strong> e marque: <code className="bg-muted px-1 rounded text-xs">ads_read</code>, <code className="bg-muted px-1 rounded text-xs">leads_retrieval</code>, <code className="bg-muted px-1 rounded text-xs">pages_show_list</code>, <code className="bg-muted px-1 rounded text-xs">pages_read_engagement</code></li>
-                          <li>• Clique em <strong>"Gerar token de acesso"</strong> → copie → cole no campo <strong>Token de Acesso</strong> acima</li>
+                          <li>• Em <strong>"App da Meta"</strong> selecione seu app no dropdown</li>
+                          <li>• Em <strong>"Usuário ou Página"</strong> selecione <strong>"Token do usuário"</strong></li>
+                          <li>• Na aba <strong>"Permissões"</strong>, clique em <strong>"Adicionar uma permissão"</strong> e marque: <code className="bg-muted px-1 rounded text-xs">ads_read</code>, <code className="bg-muted px-1 rounded text-xs">leads_retrieval</code>, <code className="bg-muted px-1 rounded text-xs">pages_show_list</code>, <code className="bg-muted px-1 rounded text-xs">pages_read_engagement</code></li>
+                          <li>• Clique no botão azul <strong>"Generate Access Token"</strong></li>
+                          <li>• O token gerado aparece no campo <strong>"Token de acesso"</strong> no topo — é um texto longo começando com <code className="bg-muted px-1 rounded text-xs">EAAWCdk...</code> (letras e números misturados)</li>
+                          <li>• <strong>Copie esse valor inteiro</strong> e cole no campo <strong>Token de Acesso</strong> acima</li>
                         </ul>
+                        <div className="ml-5 mt-2 p-2 rounded-md bg-primary/10 border border-primary/20">
+                          <p className="text-xs text-foreground">💡 <strong>Dica:</strong> O token correto é alfanumérico e longo (ex: <code className="text-xs">EAAWCdkMG4fs...</code>). Se o valor que você copiou for apenas números (ex: <code className="text-xs">744200091640333</code>), esse é o <strong>ID do Aplicativo</strong>, não o token.</p>
+                        </div>
                       </li>
                       <li>
                         <span className="font-medium text-foreground">Defina o Token de Verificação</span>
