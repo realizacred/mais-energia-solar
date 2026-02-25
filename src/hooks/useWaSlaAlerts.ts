@@ -76,7 +76,7 @@ export function useWaSlaAlerts() {
       const { data, error } = await query;
       return ((data || []) as any[]).map((a) => ({
         ...a,
-        cliente_nome: a.wa_conversations?.cliente_nome || null,
+        cliente_nome: (Array.isArray(a.wa_conversations) ? a.wa_conversations[0]?.cliente_nome : a.wa_conversations?.cliente_nome) || null,
         wa_conversations: undefined,
       })) as SlaAlert[];
     },
