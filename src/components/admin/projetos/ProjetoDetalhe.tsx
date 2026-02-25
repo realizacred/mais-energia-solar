@@ -1258,15 +1258,15 @@ function GerenciamentoTab({
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Card: Dados do Cliente */}
           <Card>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <User className="h-4 w-4 text-secondary" />
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 px-3 pt-3">
+              <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5 text-secondary" />
                 Dados do Cliente
               </CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                    <MoreVertical className="h-3.5 w-3.5" />
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <MoreVertical className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -1293,7 +1293,7 @@ function GerenciamentoTab({
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent className="px-3 pb-3 pt-0">
               <div className="space-y-1.5">
                 <ClientRow icon={User} label={customerName || "—"} />
                 <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
