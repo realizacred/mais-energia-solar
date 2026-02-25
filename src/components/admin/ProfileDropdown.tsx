@@ -31,9 +31,6 @@ export function ProfileDropdown({ userEmail, onSignOut }: ProfileDropdownProps) 
               {initials}
             </AvatarFallback>
           </Avatar>
-          <span className="text-xs font-medium hidden lg:inline max-w-[120px] truncate">
-            {userEmail}
-          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

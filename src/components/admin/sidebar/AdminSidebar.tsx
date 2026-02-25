@@ -529,13 +529,6 @@ export function AdminSidebar({
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
-        {!collapsed && userEmail && (
-          <div className="px-3 py-2 rounded-lg bg-sidebar-accent border border-sidebar-border">
-            <p className="text-[11px] text-sidebar-foreground-muted truncate font-medium">
-              {userEmail}
-            </p>
-          </div>
-        )}
         {!collapsed && <PortalSwitcher />}
         {isSuperAdmin && (
           <Link to="/super-admin">
