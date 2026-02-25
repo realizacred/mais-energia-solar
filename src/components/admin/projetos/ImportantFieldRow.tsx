@@ -161,13 +161,13 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   if (editing) {
     return (
       <>
-        <div className="flex items-center gap-2 py-2 px-1">
+        <div className="flex items-center gap-1.5 py-2 px-1 min-w-0">
           <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground shrink-0">{field.title}</span>
-          <div className="flex-1 flex items-center gap-1 justify-end">
+          <span className="text-xs text-foreground truncate min-w-0 max-w-[80px]" title={field.title}>{field.title}</span>
+          <div className="flex-1 flex items-center gap-1 justify-end min-w-0">
             {field.field_type === "select" && options.length > 0 ? (
               <Select value={draft || "none"} onValueChange={(v) => setDraft(v === "none" ? "" : v)}>
-                <SelectTrigger className="h-7 text-xs flex-1 max-w-[160px]">
+                <SelectTrigger className="h-7 text-xs w-full min-w-0">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -183,7 +183,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="text-xs flex-1 max-w-[160px] min-h-[32px] h-8 resize-none"
+                className="text-xs w-full min-w-0 min-h-[28px] h-7 resize-none"
               />
             ) : (
               <Input
@@ -192,15 +192,15 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="h-7 text-xs flex-1 max-w-[160px]"
+                className="h-7 text-xs w-full min-w-0"
                 step={field.field_type === "currency" ? "0.01" : undefined}
               />
             )}
-            <button onClick={save} disabled={saving} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors">
-              <Check className="h-3.5 w-3.5" />
+            <button onClick={save} disabled={saving} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors shrink-0">
+              <Check className="h-3 w-3" />
             </button>
-            <button onClick={cancel} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground transition-colors">
-              <X className="h-3.5 w-3.5" />
+            <button onClick={cancel} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground transition-colors shrink-0">
+              <X className="h-3 w-3" />
             </button>
           </div>
         </div>
