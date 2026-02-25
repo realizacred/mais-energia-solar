@@ -94,6 +94,9 @@ const OpenAIConfigPage = lazy(() => import("@/pages/admin/OpenAIConfigPage"));
 const GeminiConfigPage = lazy(() => import("@/pages/admin/GeminiConfigPage"));
 const SolarMarketConfigPage = lazy(() => import("@/pages/admin/SolarMarketConfigPage"));
 const MetaFacebookConfigPage = lazy(() => import("@/pages/admin/MetaFacebookConfigPage"));
+const MetaDashboardPage = lazy(() => import("@/pages/admin/meta/MetaDashboardPage"));
+const MetaLeadsPage = lazy(() => import("@/pages/admin/meta/MetaLeadsPage"));
+const MetaCampaignsPage = lazy(() => import("@/pages/admin/meta/MetaCampaignsPage"));
 const GoogleMapsConfigPage = lazy(() => import("@/pages/admin/GoogleMapsConfigPage"));
 const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
@@ -565,6 +568,10 @@ export default function Admin() {
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
                 <Route path="solarmarket-config" element={<SolarMarketConfigPage />} />
                 <Route path="meta-facebook-config" element={<MetaFacebookConfigPage />} />
+                <Route path="meta-dashboard" element={<MetaDashboardPage />} />
+                <Route path="meta-leads" element={<MetaLeadsPage />} />
+                <Route path="meta-campaigns" element={<MetaCampaignsPage />} />
+                <Route path="meta-config" element={<Navigate to="/admin/meta-facebook-config" replace />} />
                 <Route path="google-maps-config" element={<GoogleMapsConfigPage />} />
                 <Route path="ai-config" element={<AiConfigPage />} />
                 
