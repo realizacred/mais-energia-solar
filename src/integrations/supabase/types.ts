@@ -10250,6 +10250,7 @@ export type Database = {
           created_at: string
           economia_mensal: number | null
           engine_version: string | null
+          geracao_mensal: number | null
           gerado_em: string | null
           gerado_por: string | null
           grupo: string | null
@@ -10280,6 +10281,7 @@ export type Database = {
           created_at?: string
           economia_mensal?: number | null
           engine_version?: string | null
+          geracao_mensal?: number | null
           gerado_em?: string | null
           gerado_por?: string | null
           grupo?: string | null
@@ -10310,6 +10312,7 @@ export type Database = {
           created_at?: string
           economia_mensal?: number | null
           engine_version?: string | null
+          geracao_mensal?: number | null
           gerado_em?: string | null
           gerado_por?: string | null
           grupo?: string | null
