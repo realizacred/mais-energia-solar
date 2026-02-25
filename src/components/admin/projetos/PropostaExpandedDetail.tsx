@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
-  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw
+  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -628,11 +628,19 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                             (snapshot?.ucs || []).map((uc, idx) => (
                               <div key={idx} className="flex items-start gap-3">
                                 <div className={cn(
-                                  "mt-0.5 h-2.5 w-2.5 rounded-full shrink-0",
-                                  uc.is_geradora ? "bg-success" : "bg-info"
-                                )} />
+                                  "mt-0.5 p-1.5 rounded-lg shrink-0",
+                                  uc.is_geradora ? "bg-success/10" : "bg-info/10"
+                                )}>
+                                  {uc.is_geradora
+                                    ? <SunMedium className="h-4 w-4 text-success" />
+                                    : <Home className="h-4 w-4 text-info" />
+                                  }
+                                </div>
                                 <div className="min-w-0">
-                                  <p className="text-xs font-bold text-foreground">{uc.nome}</p>
+                                  <p className="text-xs font-bold text-foreground">
+                                    {uc.nome}
+                                    {uc.is_geradora && <span className="text-[9px] font-normal text-success ml-1">(Geradora)</span>}
+                                  </p>
                                   {uc.tarifa_distribuidora && uc.consumo_mensal && (
                                     <p className="text-[10px] text-muted-foreground">
                                       Economia: {formatBRL(uc.tarifa_distribuidora * uc.consumo_mensal * 0.7)} ({((uc.consumo_mensal > 0 ? 0.7 : 0) * 100).toFixed(0)}%)
@@ -647,7 +655,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           ) : ucsDetail.length > 0 ? (
                             ucsDetail.map(uc => (
                               <div key={uc.id} className="flex items-start gap-3">
-                                <div className="mt-0.5 h-2.5 w-2.5 rounded-full shrink-0 bg-success" />
+                                <div className="mt-0.5 p-1.5 rounded-lg shrink-0 bg-success/10">
+                                  <Home className="h-4 w-4 text-success" />
+                                </div>
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-foreground">{uc.nome}</p>
                                   <p className="text-[10px] text-muted-foreground">Consumo: {uc.consumo_mensal_kwh} kWh</p>
