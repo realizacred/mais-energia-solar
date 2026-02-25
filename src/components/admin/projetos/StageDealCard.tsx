@@ -163,17 +163,24 @@ export function StageDealCard({
       {/* ── Etiqueta chips at the top (no bar) ── */}
       {allEtiquetaCfgs.length > 0 && (
         <div className="flex items-center gap-1 flex-wrap px-3 pt-2.5 pb-0">
-          {allEtiquetaCfgs.map((et, i) => (
-            <span
-              key={i}
-              title={et.label}
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white shadow-sm cursor-default"
-              style={{ backgroundColor: et.cor }}
-            >
-              {et.icon && <span className="text-[10px]">{et.icon}</span>}
-              {et.short || et.label}
-            </span>
-          ))}
+          <TooltipProvider delayDuration={200}>
+            {allEtiquetaCfgs.map((et, i) => (
+              <Tooltip key={i}>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white shadow-sm cursor-default"
+                    style={{ backgroundColor: et.cor }}
+                  >
+                    {et.icon && <span className="text-[10px]">{et.icon}</span>}
+                    {et.short || et.label}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {et.label}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
         </div>
       )}
 
