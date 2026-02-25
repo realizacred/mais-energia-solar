@@ -773,7 +773,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             {isNewVendedor && formData.tipoAcesso === "convite" && (
               <div className="space-y-2">
                 <Label htmlFor="email">Email do consultor *</Label>
-                <EmailInput id="email" value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} required />
+                <EmailInput id="email" value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} required blockDisposable />
                 <p className="text-xs text-muted-foreground"><Mail className="w-3 h-3 inline mr-1" />Será usado para login após ativação do convite.</p>
               </div>
             )}
@@ -783,7 +783,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               <>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
-                  <EmailInput id="email" value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} required />
+                  <EmailInput id="email" value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} required blockDisposable />
                   <p className="text-xs text-muted-foreground"><Mail className="w-3 h-3 inline mr-1" />Será usado para login no Portal do Consultor.</p>
                 </div>
                 <div className="space-y-2">

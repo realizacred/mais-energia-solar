@@ -12,16 +12,18 @@ interface EmailInputProps extends Omit<React.ComponentProps<"input">, "type" | "
   required?: boolean;
   /** Normalize (lowercase) on blur */
   normalize?: boolean;
+  /** Block disposable/temporary email domains */
+  blockDisposable?: boolean;
 }
 
 export const EmailInput = forwardRef<HTMLInputElement, EmailInputProps>(
-  ({ value, onChange, forceError, required, normalize = true, className, ...props }, ref) => {
+  ({ value, onChange, forceError, required, normalize = true, blockDisposable, className, ...props }, ref) => {
     const [touched, setTouched] = useState(false);
 
     const error = (() => {
       const trimmed = value.trim();
       if (required && !trimmed) return "E-mail é obrigatório";
-      return validateEmail(trimmed);
+      return validateEmail(trimmed, { blockDisposable });
     })();
 
     const showError = (touched || forceError) && !!error;
