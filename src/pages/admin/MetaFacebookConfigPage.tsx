@@ -242,72 +242,69 @@ export default function MetaFacebookConfigPage() {
                 <AccordionTrigger className="text-sm font-medium py-2 hover:no-underline">
                   📖 Como configurar passo a passo
                 </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-5 text-sm text-muted-foreground">
-                    <div className="p-3 rounded-md bg-muted/50 border">
-                      <p className="font-medium text-foreground mb-1">📌 Onde encontrar cada campo</p>
-                      <ul className="space-y-1 ml-1">
-                        <li>• <strong>ID do Aplicativo</strong> → Configurações do app → Básico (campo "ID do Aplicativo" no topo)</li>
-                        <li>• <strong>Chave Secreta</strong> → Configurações do app → Básico (clique "Mostrar" ao lado de "Chave Secreta do Aplicativo")</li>
-                        <li>• <strong>Token de Acesso</strong> → Menu superior "Ferramentas" → Explorador da API do Graph → Gerar token</li>
-                        <li>• <strong>Token de Verificação</strong> → Você cria uma senha qualquer aqui e usa a mesma no webhook</li>
-                      </ul>
-                    </div>
+                 <AccordionContent>
+                   <div className="space-y-4 text-sm text-muted-foreground">
+                     <div className="p-3 rounded-md bg-primary/10 border border-primary/20">
+                       <p className="font-medium text-foreground mb-2">⚡ Resumo rápido</p>
+                       <ol className="space-y-1 list-decimal list-inside text-foreground text-xs">
+                         <li><strong>ID do Aplicativo</strong> → número no painel do seu app</li>
+                         <li><strong>Chave Secreta</strong> → ao lado do ID, clique "Mostrar"</li>
+                         <li><strong>Token de Acesso</strong> → gere no Graph API Explorer (começa com <code className="bg-muted px-1 rounded">EAA...</code>)</li>
+                         <li><strong>Token de Verificação</strong> → invente uma senha qualquer e use a mesma no webhook</li>
+                       </ol>
+                     </div>
 
-                    <ol className="space-y-4 list-decimal list-inside">
-                      <li>
-                        <a href="https://developers.facebook.com/apps/creation/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Acesse o Meta for Developers e crie um App ↗</a>
-                        <p className="ml-5 mt-1">Clique em <strong>"Criar App"</strong> → escolha <strong>"Outro"</strong> → tipo <strong>"Empresa"</strong> → preencha o nome e vincule sua conta Business.</p>
-                      </li>
-                      <li>
-                        <span className="font-medium text-foreground">Copie o ID e a Chave Secreta</span>
-                        <p className="ml-5 mt-1">No menu lateral esquerdo → <strong>"Configurações do app" → "Básico"</strong>:</p>
-                        <ul className="ml-5 mt-1 space-y-1">
-                          <li>• Copie o <strong>"ID do Aplicativo"</strong> (número no topo) → cole no campo <strong>ID do Aplicativo</strong> acima</li>
-                          <li>• Clique <strong>"Mostrar"</strong> ao lado de <strong>"Chave Secreta do Aplicativo"</strong> → copie → cole no campo <strong>Chave Secreta do Aplicativo</strong> acima</li>
-                        </ul>
-                      </li>
-                      <li>
-                        <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Gere o Token de Acesso ↗</a>
-                        <p className="ml-5 mt-1">No menu superior → <strong>"Ferramentas" → "Explorador da API do Graph"</strong>:</p>
-                        <ul className="ml-5 mt-1 space-y-1">
-                          <li>• Em <strong>"App da Meta"</strong> selecione seu app no dropdown</li>
-                          <li>• Em <strong>"Usuário ou Página"</strong> selecione <strong>"Token do usuário"</strong></li>
-                          <li>• Na aba <strong>"Permissões"</strong>, clique em <strong>"Adicionar uma permissão"</strong> e marque: <code className="bg-muted px-1 rounded text-xs">ads_read</code>, <code className="bg-muted px-1 rounded text-xs">leads_retrieval</code>, <code className="bg-muted px-1 rounded text-xs">pages_show_list</code>, <code className="bg-muted px-1 rounded text-xs">pages_read_engagement</code></li>
-                          <li>• Clique no botão azul <strong>"Generate Access Token"</strong></li>
-                          <li>• O token gerado aparece no campo <strong>"Token de acesso"</strong> no topo — é um texto longo começando com <code className="bg-muted px-1 rounded text-xs">EAAWCdk...</code> (letras e números misturados)</li>
-                          <li>• <strong>Copie esse valor inteiro</strong> e cole no campo <strong>Token de Acesso</strong> acima</li>
-                        </ul>
-                        <div className="ml-5 mt-2 p-2 rounded-md bg-primary/10 border border-primary/20">
-                          <p className="text-xs text-foreground">💡 <strong>Dica:</strong> O token correto é alfanumérico e longo (ex: <code className="text-xs">EAAWCdkMG4fs...</code>). Se o valor que você copiou for apenas números (ex: <code className="text-xs">744200091640333</code>), esse é o <strong>ID do Aplicativo</strong>, não o token.</p>
-                        </div>
-                      </li>
-                      <li>
-                        <span className="font-medium text-foreground">Defina o Token de Verificação</span>
-                        <p className="ml-5 mt-1">Crie uma senha/frase secreta qualquer (ex: <code className="bg-muted px-1 rounded text-xs">minha-chave-2026</code>) e cole no campo <strong>Token de Verificação</strong> acima. Guarde essa mesma frase para o próximo passo.</p>
-                      </li>
-                      <li>
-                        <span className="font-medium text-foreground">Configure o Webhook no Meta</span>
-                        <p className="ml-5 mt-1">No menu lateral → <strong>"Funções do app" → "Webhooks"</strong>:</p>
-                        <ul className="ml-5 mt-1 space-y-1">
-                          <li>• Selecione <strong>"Página"</strong> no dropdown</li>
-                          <li>• Clique em <strong>"Assinar"</strong> ou <strong>"Editar assinatura"</strong></li>
-                          <li>• Marque o campo <code className="bg-muted px-1 rounded text-xs">leadgen</code></li>
-                          <li>• Em <strong>"URL de retorno"</strong> cole a URL do seu webhook</li>
-                          <li>• Em <strong>"Token de verificação"</strong> cole a mesma frase do passo anterior</li>
-                        </ul>
-                      </li>
-                      <li>
-                        <span className="font-medium text-foreground">Vincule sua Página</span>
-                        <p className="ml-5 mt-1">No menu lateral → <strong>"Configurações do app" → "Avançado"</strong> → em <strong>"Páginas autorizadas"</strong>, adicione a página do Facebook que receberá os leads.</p>
-                      </li>
-                      <li>
-                        <a href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Teste a integração ↗</a>
-                        <p className="ml-5 mt-1">Abra a ferramenta de teste → selecione sua página e formulário → envie um lead de teste. Ele deve aparecer na aba <strong>"Leads"</strong> do menu Meta no sistema.</p>
-                      </li>
-                    </ol>
-                  </div>
-                </AccordionContent>
+                     <ol className="space-y-4 list-decimal list-inside">
+                       <li>
+                         <span className="font-medium text-foreground">Abra o painel do seu App</span>
+                         <p className="ml-5 mt-1">
+                           Acesse{" "}
+                           <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer" className="text-primary underline">developers.facebook.com/apps ↗</a>
+                           {" "}→ clique no seu app (ou crie um novo).
+                         </p>
+                       </li>
+                       <li>
+                         <span className="font-medium text-foreground">Copie o ID e a Chave Secreta</span>
+                         <p className="ml-5 mt-1">Dentro do app → menu lateral <strong>"Configurações" → "Básico"</strong>:</p>
+                         <ul className="ml-5 mt-1 space-y-1">
+                           <li>• <strong>"ID do Aplicativo"</strong> (número no topo) → cole acima</li>
+                           <li>• <strong>"Chave Secreta do Aplicativo"</strong> → clique <strong>"Mostrar"</strong>, copie → cole acima</li>
+                         </ul>
+                       </li>
+                       <li>
+                         <span className="font-medium text-foreground">Gere o Token de Acesso</span>
+                         <p className="ml-5 mt-1">
+                           Acesse{" "}
+                           <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Graph API Explorer ↗</a>
+                           {" "}(já estando logado no Facebook):
+                         </p>
+                         <ul className="ml-5 mt-1 space-y-1">
+                           <li>• <strong>"App da Meta"</strong> → selecione seu app</li>
+                           <li>• <strong>"Usuário ou Página"</strong> → selecione <strong>"Token do usuário"</strong></li>
+                           <li>• <strong>"Permissões"</strong> → adicione: <code className="bg-muted px-1 rounded text-xs">ads_read</code>, <code className="bg-muted px-1 rounded text-xs">leads_retrieval</code>, <code className="bg-muted px-1 rounded text-xs">pages_show_list</code>, <code className="bg-muted px-1 rounded text-xs">pages_read_engagement</code></li>
+                           <li>• Clique <strong>"Generate Access Token"</strong> (botão azul)</li>
+                           <li>• <strong>Copie o token longo</strong> que aparece no topo (ex: <code className="bg-muted px-1 rounded text-xs">EAAWCdk...</code>) → cole acima</li>
+                         </ul>
+                       </li>
+                       <li>
+                         <span className="font-medium text-foreground">Token de Verificação</span>
+                         <p className="ml-5 mt-1">Invente qualquer frase-senha (ex: <code className="bg-muted px-1 rounded text-xs">minha-chave-2026</code>) → cole acima. Use essa mesma frase ao configurar o webhook no Meta.</p>
+                       </li>
+                       <li>
+                         <span className="font-medium text-foreground">Configure o Webhook</span>
+                         <p className="ml-5 mt-1">No painel do app → <strong>"Webhooks"</strong> → selecione <strong>"Página"</strong> → assine <code className="bg-muted px-1 rounded text-xs">leadgen</code> → cole a URL do webhook e o token de verificação.</p>
+                       </li>
+                       <li>
+                         <span className="font-medium text-foreground">Teste</span>
+                         <p className="ml-5 mt-1">
+                           Acesse{" "}
+                           <a href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noopener noreferrer" className="text-primary underline">Ferramenta de teste de Lead Ads ↗</a>
+                           {" "}→ selecione sua página → envie um lead de teste.
+                         </p>
+                       </li>
+                     </ol>
+                   </div>
+                 </AccordionContent>
               </AccordionItem>
             </Accordion>
           </div>
