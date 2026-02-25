@@ -3005,6 +3005,148 @@ export type Database = {
         }
         Relationships: []
       }
+      facebook_ad_metrics: {
+        Row: {
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          clicks: number
+          cpc: number
+          cpl: number
+          created_at: string
+          ctr: number
+          date: string
+          id: string
+          impressions: number
+          leads_count: number
+          spend: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number
+          cpc?: number
+          cpl?: number
+          created_at?: string
+          ctr?: number
+          date: string
+          id?: string
+          impressions?: number
+          leads_count?: number
+          spend?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number
+          cpc?: number
+          cpl?: number
+          created_at?: string
+          ctr?: number
+          date?: string
+          id?: string
+          impressions?: number
+          leads_count?: number
+          spend?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_ad_metrics_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_leads: {
+        Row: {
+          ad_id: string | null
+          adset_id: string | null
+          campaign_id: string | null
+          created_at: string
+          error_message: string | null
+          facebook_lead_id: string
+          form_id: string | null
+          id: string
+          lead_email: string | null
+          lead_name: string | null
+          lead_phone: string | null
+          page_id: string | null
+          processed_at: string | null
+          processing_status: string
+          raw_json: Json
+          received_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ad_id?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          facebook_lead_id: string
+          form_id?: string | null
+          id?: string
+          lead_email?: string | null
+          lead_name?: string | null
+          lead_phone?: string | null
+          page_id?: string | null
+          processed_at?: string | null
+          processing_status?: string
+          raw_json?: Json
+          received_at?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ad_id?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          facebook_lead_id?: string
+          form_id?: string | null
+          id?: string
+          lead_email?: string | null
+          lead_name?: string | null
+          lead_phone?: string | null
+          page_id?: string | null
+          processed_at?: string | null
+          processing_status?: string
+          raw_json?: Json
+          received_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financiamento_api_config: {
         Row: {
           api_key: string | null
@@ -16661,7 +16803,7 @@ export type Database = {
         | "token_refreshed"
         | "token_revoked"
         | "token_expired"
-      integration_provider: "google_calendar"
+      integration_provider: "google_calendar" | "meta_facebook"
       integration_status:
         | "disconnected"
         | "connected"
@@ -16919,7 +17061,7 @@ export const Constants = {
         "token_revoked",
         "token_expired",
       ],
-      integration_provider: ["google_calendar"],
+      integration_provider: ["google_calendar", "meta_facebook"],
       integration_status: [
         "disconnected",
         "connected",
