@@ -3,7 +3,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
-import { formatCEP } from "@/lib/validations";
+import { formatCEP, emailFieldSchema } from "@/lib/validations";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -75,7 +75,7 @@ interface Simulacao {
 const formSchema = z.object({
   nome: z.string().min(2, "Nome é obrigatório"),
   telefone: z.string().min(10, "Telefone é obrigatório"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
+  email: emailFieldSchema,
   cpf_cnpj: z.string().optional(),
   cep: z.string().optional(),
   estado: z.string().min(2, "Estado é obrigatório"),
