@@ -101,6 +101,11 @@ function MetaField({ field, config, saveMutation }: {
     setValue("");
   };
 
+  const valueToAudit = (value.trim() || config?.api_key || "").trim();
+  const accessTokenLooksLikeAppId =
+    field.serviceKey === META_KEYS.accessToken &&
+    /^\d{10,}$/.test(valueToAudit);
+
   return (
     <div className="space-y-2">
       <Label className="font-medium">{field.label}</Label>
@@ -128,6 +133,12 @@ function MetaField({ field, config, saveMutation }: {
           <span className="ml-1">Salvar</span>
         </Button>
       </div>
+
+      {accessTokenLooksLikeAppId && (
+        <p className="text-xs text-destructive">
+          ⚠️ Auditoria: este valor parece ser um <strong>ID do Aplicativo</strong> (apenas números). No campo <strong>Token de Acesso</strong> use o token gerado no Graph API Explorer.
+        </p>
+      )}
 
       {config?.updated_at && (
         <p className="text-xs text-muted-foreground">
