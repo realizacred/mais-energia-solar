@@ -126,7 +126,7 @@ export function ProposalDetail() {
     try {
       const { data: v } = await supabase
         .from("proposta_versoes")
-        .select("id, proposta_id, versao_numero, status, grupo, potencia_kwp, valor_total, economia_mensal, payback_meses, valido_ate, observacoes, snapshot, created_at, updated_at, gerado_em")
+        .select("id, proposta_id, versao_numero, status, grupo, potencia_kwp, valor_total, economia_mensal, payback_meses, valido_ate, observacoes, snapshot, final_snapshot, snapshot_locked, finalized_at, public_slug, created_at, updated_at, gerado_em")
         .eq("id", versaoId!)
         .single();
 
@@ -403,15 +403,42 @@ export function ProposalDetail() {
     }
   };
 
-  const navigateToEdit = () => {
+  const isFinalized = !!versao?.finalized_at || !!versao?.snapshot_locked;
+  const [cloning, setCloning] = useState(false);
+
+  const navigateToEdit = useCallback(async () => {
+    // If version is finalized/locked, clone it first
+    if (isFinalized) {
+      setCloning(true);
+      try {
+        const { data, error } = await supabase.rpc(
+          "clone_proposta_versao" as any,
+          { p_from_versao_id: versaoId }
+        );
+        if (error) throw error;
+        const result = data as any;
+        toast({ title: "✅ Nova versão criada", description: "A versão finalizada foi clonada para edição." });
+        const params = new URLSearchParams();
+        if (proposta?.deal_id) params.set("deal_id", proposta.deal_id);
+        if (proposta?.cliente_id) params.set("customer_id", proposta.cliente_id);
+        params.set("proposta_id", result.proposta_id);
+        params.set("versao_id", result.new_versao_id);
+        navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+      } catch (e: any) {
+        toast({ title: "Erro ao clonar versão", description: e.message, variant: "destructive" });
+      } finally {
+        setCloning(false);
+      }
+      return;
+    }
+
     const params = new URLSearchParams();
     if (proposta?.deal_id) params.set("deal_id", proposta.deal_id);
     if (proposta?.cliente_id) params.set("customer_id", proposta.cliente_id);
-    // Pass proposta + versão IDs so the wizard loads the full snapshot from DB
     if (proposta?.id) params.set("proposta_id", proposta.id);
     if (versaoId) params.set("versao_id", versaoId);
     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-  };
+  }, [isFinalized, versaoId, proposta, navigate]);
 
   if (loading) {
     return (
@@ -628,9 +655,12 @@ export function ProposalDetail() {
               <CheckCircle2 className="h-5 w-5 text-success" />
             </div>
 
-            <Button size="sm" variant="outline" className="gap-2 w-full justify-start border-primary/30 text-primary hover:bg-primary/5" onClick={navigateToEdit}>
-              <Pencil className="h-3.5 w-3.5" /> Editar Dimensionamento
+            <Button size="sm" variant="outline" className="gap-2 w-full justify-start border-primary/30 text-primary hover:bg-primary/5" onClick={navigateToEdit} disabled={cloning}>
+              <Pencil className="h-3.5 w-3.5" /> {isFinalized ? "Editar (nova versão)" : "Editar Dimensionamento"}
             </Button>
+            {isFinalized && (
+              <p className="text-[10px] text-muted-foreground px-1">Versão finalizada — editar cria uma nova versão rascunho.</p>
+            )}
 
             <Separator />
 
