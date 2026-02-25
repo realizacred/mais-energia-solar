@@ -79,6 +79,8 @@ export interface ProposalResolverContext {
   empresaTelefone?: string;
   // Extra overrides
   extras?: Record<string, string | number>;
+  // Final snapshot (SSOT for finalized versions — inputs + outputs)
+  finalSnapshot?: Record<string, unknown> | null;
 }
 
 export interface ResolverResult {
@@ -116,6 +118,20 @@ function fmtKwh(v: number | null | undefined): string {
   return `${fmtNumber(v, 1)} kWh`;
 }
 
+// ── Deep get helper ──────────────────────────────────────────
+// Resolves nested paths like "outputs.cenarios.0.tir" from an object
+
+function deepGet(obj: unknown, path: string): unknown {
+  if (obj == null || typeof obj !== "object") return undefined;
+  const parts = path.split(".");
+  let current: unknown = obj;
+  for (const part of parts) {
+    if (current == null || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
 // ── Source resolver maps ─────────────────────────────────────
 // Each function maps a dotted key to a value from context
 
@@ -123,6 +139,27 @@ function resolveFromContext(
   key: string,
   ctx: ProposalResolverContext
 ): string | null {
+  // ── Priority 1: final_snapshot (SSOT for finalized versions) ──
+  if (ctx.finalSnapshot) {
+    // Try direct key match in final_snapshot
+    const fsVal = deepGet(ctx.finalSnapshot, key);
+    if (fsVal != null && fsVal !== "") {
+      if (typeof fsVal === "number") return fmtNumber(fsVal);
+      return String(fsVal);
+    }
+    // Try outputs.{key} and inputs.{key}
+    const outVal = deepGet(ctx.finalSnapshot, `outputs.${key}`);
+    if (outVal != null && outVal !== "") {
+      if (typeof outVal === "number") return fmtNumber(outVal);
+      return String(outVal);
+    }
+    const inVal = deepGet(ctx.finalSnapshot, `inputs.${key}`);
+    if (inVal != null && inVal !== "") {
+      if (typeof inVal === "number") return fmtNumber(inVal);
+      return String(inVal);
+    }
+  }
+
   const uc1 = ctx.ucs?.[0];
   const t = ctx.tariffVersion;
   const gd = ctx.gdResult;

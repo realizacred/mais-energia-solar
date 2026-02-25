@@ -10250,6 +10250,8 @@ export type Database = {
           created_at: string
           economia_mensal: number | null
           engine_version: string | null
+          final_snapshot: Json | null
+          finalized_at: string | null
           geracao_mensal: number | null
           gerado_em: string | null
           gerado_por: string | null
@@ -10264,6 +10266,7 @@ export type Database = {
           payback_meses: number | null
           potencia_kwp: number | null
           proposta_id: string
+          public_slug: string | null
           rejeitado_em: string | null
           snapshot: Json | null
           snapshot_locked: boolean
@@ -10281,6 +10284,8 @@ export type Database = {
           created_at?: string
           economia_mensal?: number | null
           engine_version?: string | null
+          final_snapshot?: Json | null
+          finalized_at?: string | null
           geracao_mensal?: number | null
           gerado_em?: string | null
           gerado_por?: string | null
@@ -10295,6 +10300,7 @@ export type Database = {
           payback_meses?: number | null
           potencia_kwp?: number | null
           proposta_id: string
+          public_slug?: string | null
           rejeitado_em?: string | null
           snapshot?: Json | null
           snapshot_locked?: boolean
@@ -10312,6 +10318,8 @@ export type Database = {
           created_at?: string
           economia_mensal?: number | null
           engine_version?: string | null
+          final_snapshot?: Json | null
+          finalized_at?: string | null
           geracao_mensal?: number | null
           gerado_em?: string | null
           gerado_por?: string | null
@@ -10326,6 +10334,7 @@ export type Database = {
           payback_meses?: number | null
           potencia_kwp?: number | null
           proposta_id?: string
+          public_slug?: string | null
           rejeitado_em?: string | null
           snapshot?: Json | null
           snapshot_locked?: boolean
@@ -15881,6 +15890,10 @@ export type Database = {
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
+      clone_proposta_versao: {
+        Args: { p_from_versao_id: string }
+        Returns: Json
+      }
       create_appointment_idempotent: {
         Args: {
           _all_day?: boolean
@@ -15970,6 +15983,10 @@ export type Database = {
         Returns: string
       }
       expire_proposals: { Args: never; Returns: undefined }
+      finalize_proposta_versao: {
+        Args: { p_final_snapshot?: Json; p_versao_id: string }
+        Returns: Json
+      }
       find_leads_by_phone: {
         Args: { _telefone: string }
         Returns: {
