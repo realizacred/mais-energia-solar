@@ -114,9 +114,9 @@ function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: bool
   const isAccepted = ["aceita", "ganha"].includes(status);
   const isRejected = ["rejeitada", "recusada", "perdida"].includes(status);
   
-  if (isAccepted) return <CheckCircle className={cn("h-5 w-5 shrink-0 mr-3", colorCls)} />;
-  if (isRejected) return <AlertCircle className={cn("h-5 w-5 shrink-0 mr-3", colorCls)} />;
-  return <FileText className={cn("h-5 w-5 shrink-0 mr-3", colorCls)} />;
+  if (isAccepted) return <CheckCircle className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
+  if (isRejected) return <AlertCircle className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
+  return <FileText className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
 }
 
 // ─── Main Component ──────────────────────────────────
@@ -624,16 +624,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           <h4 className="text-sm font-bold text-foreground">Unidades</h4>
                         </div>
                         <div className="border rounded-lg p-3 space-y-3">
-                          {(snapshot?.ucs || ucsDetail).length > 0 ? (
-                            (snapshot?.ucs || []).map((uc, idx) => (
+                          {(snapshot?.ucs && snapshot.ucs.length > 0) ? (
+                            snapshot.ucs.map((uc, idx) => (
                               <div key={idx} className="flex items-start gap-3">
                                 <div className={cn(
-                                  "mt-0.5 p-1.5 rounded-lg shrink-0",
+                                  "mt-0.5 p-2 rounded-lg shrink-0",
                                   uc.is_geradora ? "bg-success/10" : "bg-info/10"
                                 )}>
                                   {uc.is_geradora
-                                    ? <SunMedium className="h-4 w-4 text-success" />
-                                    : <Home className="h-4 w-4 text-info" />
+                                    ? <SunMedium className="h-5 w-5 text-success" />
+                                    : <Home className="h-5 w-5 text-info" />
                                   }
                                 </div>
                                 <div className="min-w-0">
@@ -655,8 +655,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           ) : ucsDetail.length > 0 ? (
                             ucsDetail.map(uc => (
                               <div key={uc.id} className="flex items-start gap-3">
-                                <div className="mt-0.5 p-1.5 rounded-lg shrink-0 bg-success/10">
-                                  <Home className="h-4 w-4 text-success" />
+                                <div className="mt-0.5 p-2 rounded-lg shrink-0 bg-info/10">
+                                  <Home className="h-5 w-5 text-info" />
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-foreground">{uc.nome}</p>
