@@ -15,6 +15,7 @@ export interface SlaAlert {
   escalated: boolean;
   resolved: boolean;
   created_at: string;
+  cliente_nome?: string | null;
 }
 
 export function useWaSlaAlerts() {
@@ -62,7 +63,7 @@ export function useWaSlaAlerts() {
     queryFn: async () => {
       let query = (supabase as any)
         .from("wa_sla_alerts")
-        .select("id, conversation_id, tipo, tempo_sem_resposta_minutos, assigned_to, escalated, escalated_at, acknowledged, acknowledged_at, acknowledged_by, ai_summary, resolved, resolved_at, created_at")
+        .select("id, conversation_id, tipo, tempo_sem_resposta_minutos, assigned_to, escalated, escalated_at, acknowledged, acknowledged_at, acknowledged_by, ai_summary, resolved, resolved_at, created_at, wa_conversations(cliente_nome)")
         .eq("resolved", false)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -73,8 +74,11 @@ export function useWaSlaAlerts() {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as SlaAlert[];
+      return ((data || []) as any[]).map((a) => ({
+        ...a,
+        cliente_nome: a.wa_conversations?.cliente_nome || null,
+        wa_conversations: undefined,
+      })) as SlaAlert[];
     },
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
