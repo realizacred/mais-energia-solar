@@ -88,24 +88,35 @@ interface UCDetailData {
 }
 
 // ─── Status Badge ───────────────────────────────────
-const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  rascunho: { label: "Rascunho", cls: "bg-muted text-muted-foreground" },
-  gerada: { label: "Gerada", cls: "bg-primary/10 text-primary" },
-  generated: { label: "Gerada", cls: "bg-primary/10 text-primary" },
-  enviada: { label: "Enviada", cls: "bg-info/10 text-info" },
-  sent: { label: "Enviada", cls: "bg-info/10 text-info" },
-  aceita: { label: "Aceita", cls: "bg-success/10 text-success" },
-  ganha: { label: "Ganha", cls: "bg-success/10 text-success" },
-  rejeitada: { label: "Rejeitada", cls: "bg-destructive/10 text-destructive" },
-  recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive" },
-  perdida: { label: "Perdida", cls: "bg-destructive/10 text-destructive" },
-  arquivada: { label: "Arquivada", cls: "bg-muted text-muted-foreground" },
-  expirada: { label: "Expirada", cls: "bg-warning/10 text-warning" },
+const STATUS_MAP: Record<string, { label: string; cls: string; iconCls: string }> = {
+  rascunho: { label: "Rascunho", cls: "bg-muted text-muted-foreground", iconCls: "text-muted-foreground" },
+  gerada: { label: "Gerada", cls: "bg-primary/10 text-primary", iconCls: "text-primary" },
+  generated: { label: "Gerada", cls: "bg-primary/10 text-primary", iconCls: "text-primary" },
+  enviada: { label: "Enviada", cls: "bg-info/10 text-info", iconCls: "text-info" },
+  sent: { label: "Enviada", cls: "bg-info/10 text-info", iconCls: "text-info" },
+  aceita: { label: "Aceita", cls: "bg-success/10 text-success", iconCls: "text-success" },
+  ganha: { label: "Ganha", cls: "bg-success/10 text-success", iconCls: "text-success" },
+  rejeitada: { label: "Rejeitada", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
+  recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
+  perdida: { label: "Perdida", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
+  arquivada: { label: "Arquivada", cls: "bg-muted text-muted-foreground", iconCls: "text-muted-foreground" },
+  expirada: { label: "Expirada", cls: "bg-warning/10 text-warning", iconCls: "text-warning" },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const s = STATUS_MAP[status] || { label: status, cls: "bg-muted text-muted-foreground" };
   return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.cls)}>{s.label}</span>;
+}
+
+function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
+  const s = STATUS_MAP[status];
+  const colorCls = s?.iconCls || (isPrincipal ? "text-primary" : "text-muted-foreground");
+  const isAccepted = ["aceita", "ganha"].includes(status);
+  const isRejected = ["rejeitada", "recusada", "perdida"].includes(status);
+  
+  if (isAccepted) return <CheckCircle className={cn("h-5 w-5 shrink-0 mr-3", colorCls)} />;
+  if (isRejected) return <AlertCircle className={cn("h-5 w-5 shrink-0 mr-3", colorCls)} />;
+  return <FileText className={cn("h-5 w-5 shrink-0 mr-3", colorCls)} />;
 }
 
 // ─── Main Component ──────────────────────────────────
@@ -427,7 +438,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           onClick={onToggle}
         >
           {/* Icon */}
-          <FileText className={cn("h-5 w-5 shrink-0 mr-3", isPrincipal ? "text-primary" : "text-muted-foreground")} />
+          <StatusIcon status={p.status} isPrincipal={isPrincipal} />
 
           {/* Col 1: Name + Status */}
           <div className="min-w-0 pr-3">
