@@ -9,14 +9,36 @@ const EMAIL_REGEX =
   /^[a-zA-Z0-9](?:[a-zA-Z0-9._%+\-]*[a-zA-Z0-9])?@[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
 
 export const EMAIL_ERROR_MESSAGE = "E-mail inválido. Verifique e tente novamente.";
+export const EMAIL_DISPOSABLE_MESSAGE = "Não aceitamos e-mails temporários para cadastro.";
 export const EMAIL_PLACEHOLDER = "email@exemplo.com";
 
+// ─── Disposable-email domain blocklist ─────────────────────
+const DISPOSABLE_DOMAINS = new Set([
+  "mailinator.com", "guerrillamail.com", "guerrillamail.net", "tempmail.com",
+  "throwaway.email", "10minutemail.com", "trashmail.com", "yopmail.com",
+  "sharklasers.com", "guerrillamailblock.com", "grr.la", "dispostable.com",
+  "maildrop.cc", "mailnesia.com", "tempail.com", "tempr.email", "temp-mail.org",
+  "fakeinbox.com", "emailondeck.com", "getnada.com", "mohmal.com",
+  "minutemail.com", "burnermail.io", "discard.email", "mailcatch.com",
+  "mytemp.email", "tmpmail.net", "tmpmail.org", "jetable.org",
+]);
+
+/** Returns true if the domain is in the disposable blocklist */
+export function isDisposableEmail(value: string): boolean {
+  const trimmed = value.trim().toLowerCase();
+  const atIdx = trimmed.lastIndexOf("@");
+  if (atIdx < 0) return false;
+  return DISPOSABLE_DOMAINS.has(trimmed.slice(atIdx + 1));
+}
+
 /** Pure validation – returns error string or null. Empty is not invalid (use required separately). */
-export function validateEmail(value: string): string | null {
+export function validateEmail(value: string, options?: { blockDisposable?: boolean }): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  if (trimmed.includes("..")) return EMAIL_ERROR_MESSAGE; // consecutive dots
-  return EMAIL_REGEX.test(trimmed) ? null : EMAIL_ERROR_MESSAGE;
+  if (trimmed.includes("..")) return EMAIL_ERROR_MESSAGE;
+  if (!EMAIL_REGEX.test(trimmed)) return EMAIL_ERROR_MESSAGE;
+  if (options?.blockDisposable && isDisposableEmail(trimmed)) return EMAIL_DISPOSABLE_MESSAGE;
+  return null;
 }
 
 /** Normalises email for storage: trim + lowercase */
@@ -36,6 +58,17 @@ export const emailRequiredSchema = z
   .trim()
   .min(1, "E-mail é obrigatório")
   .refine((v) => validateEmail(v) === null, { message: EMAIL_ERROR_MESSAGE });
+
+/** Zod schema for required email that also blocks disposable domains */
+export const emailRequiredNoDisposableSchema = z
+  .string()
+  .trim()
+  .min(1, "E-mail é obrigatório")
+  .refine((v) => validateEmail(v, { blockDisposable: true }) === null, {
+    message: EMAIL_ERROR_MESSAGE,
+    path: [],
+  })
+  .refine((v) => !isDisposableEmail(v), { message: EMAIL_DISPOSABLE_MESSAGE });
 
 // Brazilian phone validation
 const phoneRegex = /^\(\d{2}\) \d{4,5}-\d{4}$/;
@@ -133,7 +166,7 @@ export type LoginData = z.infer<typeof loginSchema>;
 
 export const signupSchema = z.object({
   nome: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
-  email: emailRequiredSchema,
+  email: emailRequiredNoDisposableSchema,
   password: passwordSchema,
   cargo: z.enum(["consultor", "instalador"], { required_error: "Selecione um cargo" }),
 });

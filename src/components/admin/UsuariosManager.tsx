@@ -681,6 +681,7 @@ export function UsuariosManager() {
                 value={newUserForm.email}
                 onChange={(v) => setNewUserForm({ ...newUserForm, email: v })}
                 required
+                blockDisposable
               />
             </div>
             <div className="space-y-2">
