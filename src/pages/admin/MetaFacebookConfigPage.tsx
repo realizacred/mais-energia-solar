@@ -17,6 +17,7 @@ import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
 
 // Service keys for each Meta credential
 const META_KEYS = {
+  appId: "meta_facebook_app_id",
   accessToken: "meta_facebook",
   appSecret: "meta_facebook_app_secret",
   verifyToken: "meta_facebook_verify_token",
@@ -27,9 +28,17 @@ interface FieldConfig {
   label: string;
   placeholder: string;
   description: string;
+  isSecret?: boolean;
 }
 
 const FIELDS: FieldConfig[] = [
+  {
+    serviceKey: META_KEYS.appId,
+    label: "ID do Aplicativo",
+    placeholder: "Cole o ID do Aplicativo (ex: 744200091640333)...",
+    description: "Número do seu app, encontrado em Configurações do app → Básico",
+    isSecret: false,
+  },
   {
     serviceKey: META_KEYS.accessToken,
     label: "Token de Acesso",
@@ -109,7 +118,7 @@ function MetaField({ field, config, saveMutation }: {
 
       <div className="flex gap-2">
         <Input
-          type="password"
+          type={field.isSecret === false ? "text" : "password"}
           placeholder={maskedKey ? "Cole para substituir..." : field.placeholder}
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -223,40 +232,64 @@ export default function MetaFacebookConfigPage() {
                   📖 Como configurar passo a passo
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ol className="space-y-4 text-sm text-muted-foreground list-decimal list-inside">
-                    <li>
-                      <a href="https://developers.facebook.com/apps/creation/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Crie um App no Meta for Developers ↗</a>
-                      <p className="ml-5 mt-1">Clique em <strong>"Criar App"</strong> → escolha <strong>"Outro"</strong> → tipo <strong>"Empresa"</strong> → preencha o nome e vincule sua conta Business.</p>
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">Configure os Casos de Uso</span>
-                      <p className="ml-5 mt-1">No painel do app, vá em <strong>"Casos de uso"</strong> no menu lateral → adicione os casos <strong>"Conectar-se com os clientes pelo WhatsApp"</strong> e/ou <strong>"Gerenciar mensagens e conteúdo"</strong>. Personalize cada caso de uso clicando na seta <strong>"›"</strong>.</p>
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">Copie a Chave Secreta do Aplicativo</span>
-                      <p className="ml-5 mt-1">No menu lateral → <strong>"Configurações do app" → "Básico"</strong> → copie o valor de <strong>"Chave Secreta do Aplicativo"</strong> e cole no campo <strong>Chave Secreta do Aplicativo</strong> acima.</p>
-                    </li>
-                    <li>
-                      <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Gere o Token de Acesso no Graph API Explorer ↗</a>
-                      <p className="ml-5 mt-1">No menu superior → <strong>"Ferramentas" → "Explorador da API do Graph"</strong> → selecione seu app → adicione as permissões: <code className="bg-muted px-1 rounded text-xs">ads_read</code>, <code className="bg-muted px-1 rounded text-xs">leads_retrieval</code>, <code className="bg-muted px-1 rounded text-xs">pages_show_list</code>, <code className="bg-muted px-1 rounded text-xs">pages_read_engagement</code> → clique em <strong>"Gerar token de acesso"</strong> → cole no campo <strong>Token de Acesso</strong> acima.</p>
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">Defina o Token de Verificação</span>
-                      <p className="ml-5 mt-1">Crie uma string secreta qualquer (ex: <code className="bg-muted px-1 rounded text-xs">meu-token-secreto-2024</code>) e cole no campo <strong>Token de Verificação</strong> acima. Você usará essa mesma string no próximo passo.</p>
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">Configure o Webhook</span>
-                      <p className="ml-5 mt-1">No menu lateral → <strong>"Funções do app" → "Webhooks"</strong> → selecione <strong>"Página"</strong> → clique em <strong>"Assinar"</strong> ou <strong>"Editar assinatura"</strong> → marque <code className="bg-muted px-1 rounded text-xs">leadgen</code> → no campo <strong>"URL de retorno"</strong> cole a URL do seu webhook e no <strong>"Token de verificação"</strong> cole o Token de Verificação definido acima.</p>
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">Vincule sua Página ao App</span>
-                      <p className="ml-5 mt-1">No menu lateral → <strong>"Configurações do app" → "Avançado"</strong> → em <strong>"Páginas autorizadas"</strong>, adicione a página do Facebook que receberá os leads.</p>
-                    </li>
-                    <li>
-                      <a href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Teste a integração ↗</a>
-                      <p className="ml-5 mt-1">Use a <strong>Lead Ads Testing Tool</strong> do Meta → selecione sua página e formulário → envie um lead de teste. Ele deve aparecer automaticamente na aba <strong>"Leads"</strong> do menu Meta no sistema.</p>
-                    </li>
-                  </ol>
+                  <div className="space-y-5 text-sm text-muted-foreground">
+                    <div className="p-3 rounded-md bg-muted/50 border">
+                      <p className="font-medium text-foreground mb-1">📌 Onde encontrar cada campo</p>
+                      <ul className="space-y-1 ml-1">
+                        <li>• <strong>ID do Aplicativo</strong> → Configurações do app → Básico (campo "ID do Aplicativo" no topo)</li>
+                        <li>• <strong>Chave Secreta</strong> → Configurações do app → Básico (clique "Mostrar" ao lado de "Chave Secreta do Aplicativo")</li>
+                        <li>• <strong>Token de Acesso</strong> → Menu superior "Ferramentas" → Explorador da API do Graph → Gerar token</li>
+                        <li>• <strong>Token de Verificação</strong> → Você cria uma senha qualquer aqui e usa a mesma no webhook</li>
+                      </ul>
+                    </div>
+
+                    <ol className="space-y-4 list-decimal list-inside">
+                      <li>
+                        <a href="https://developers.facebook.com/apps/creation/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Acesse o Meta for Developers e crie um App ↗</a>
+                        <p className="ml-5 mt-1">Clique em <strong>"Criar App"</strong> → escolha <strong>"Outro"</strong> → tipo <strong>"Empresa"</strong> → preencha o nome e vincule sua conta Business.</p>
+                      </li>
+                      <li>
+                        <span className="font-medium text-foreground">Copie o ID e a Chave Secreta</span>
+                        <p className="ml-5 mt-1">No menu lateral esquerdo → <strong>"Configurações do app" → "Básico"</strong>:</p>
+                        <ul className="ml-5 mt-1 space-y-1">
+                          <li>• Copie o <strong>"ID do Aplicativo"</strong> (número no topo) → cole no campo <strong>ID do Aplicativo</strong> acima</li>
+                          <li>• Clique <strong>"Mostrar"</strong> ao lado de <strong>"Chave Secreta do Aplicativo"</strong> → copie → cole no campo <strong>Chave Secreta do Aplicativo</strong> acima</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Gere o Token de Acesso ↗</a>
+                        <p className="ml-5 mt-1">No menu superior → <strong>"Ferramentas" → "Explorador da API do Graph"</strong>:</p>
+                        <ul className="ml-5 mt-1 space-y-1">
+                          <li>• Selecione seu app no dropdown</li>
+                          <li>• Clique em <strong>"Adicionar permissão"</strong> e marque: <code className="bg-muted px-1 rounded text-xs">ads_read</code>, <code className="bg-muted px-1 rounded text-xs">leads_retrieval</code>, <code className="bg-muted px-1 rounded text-xs">pages_show_list</code>, <code className="bg-muted px-1 rounded text-xs">pages_read_engagement</code></li>
+                          <li>• Clique em <strong>"Gerar token de acesso"</strong> → copie → cole no campo <strong>Token de Acesso</strong> acima</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <span className="font-medium text-foreground">Defina o Token de Verificação</span>
+                        <p className="ml-5 mt-1">Crie uma senha/frase secreta qualquer (ex: <code className="bg-muted px-1 rounded text-xs">minha-chave-2026</code>) e cole no campo <strong>Token de Verificação</strong> acima. Guarde essa mesma frase para o próximo passo.</p>
+                      </li>
+                      <li>
+                        <span className="font-medium text-foreground">Configure o Webhook no Meta</span>
+                        <p className="ml-5 mt-1">No menu lateral → <strong>"Funções do app" → "Webhooks"</strong>:</p>
+                        <ul className="ml-5 mt-1 space-y-1">
+                          <li>• Selecione <strong>"Página"</strong> no dropdown</li>
+                          <li>• Clique em <strong>"Assinar"</strong> ou <strong>"Editar assinatura"</strong></li>
+                          <li>• Marque o campo <code className="bg-muted px-1 rounded text-xs">leadgen</code></li>
+                          <li>• Em <strong>"URL de retorno"</strong> cole a URL do seu webhook</li>
+                          <li>• Em <strong>"Token de verificação"</strong> cole a mesma frase do passo anterior</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <span className="font-medium text-foreground">Vincule sua Página</span>
+                        <p className="ml-5 mt-1">No menu lateral → <strong>"Configurações do app" → "Avançado"</strong> → em <strong>"Páginas autorizadas"</strong>, adicione a página do Facebook que receberá os leads.</p>
+                      </li>
+                      <li>
+                        <a href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Teste a integração ↗</a>
+                        <p className="ml-5 mt-1">Abra a ferramenta de teste → selecione sua página e formulário → envie um lead de teste. Ele deve aparecer na aba <strong>"Leads"</strong> do menu Meta no sistema.</p>
+                      </li>
+                    </ol>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
