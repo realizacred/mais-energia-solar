@@ -194,3 +194,6 @@ verify_jwt = false
 
 [functions.fiscal-webhook-ingest]
 verify_jwt = false
+
+[functions.facebook-lead-webhook]
+verify_jwt = false
