@@ -189,7 +189,7 @@ export default function MetaFacebookConfigPage() {
             <div>
               <CardTitle className="text-base">Credenciais do Meta</CardTitle>
               <CardDescription>
-                Access Token, App Secret e Verify Token para integração completa
+                Token de Acesso, Chave Secreta do Aplicativo e Token de Verificação para integração completa
               </CardDescription>
             </div>
             {mainConfig?.id && (
@@ -233,20 +233,20 @@ export default function MetaFacebookConfigPage() {
                       <p className="ml-5 mt-1">No painel do app, vá em <strong>"Casos de uso"</strong> no menu lateral → adicione os casos <strong>"Conectar-se com os clientes pelo WhatsApp"</strong> e/ou <strong>"Gerenciar mensagens e conteúdo"</strong>. Personalize cada caso de uso clicando na seta <strong>"›"</strong>.</p>
                     </li>
                     <li>
-                      <span className="font-medium text-foreground">Copie o App Secret</span>
-                      <p className="ml-5 mt-1">No menu lateral → <strong>"Configurações do app" → "Básico"</strong> → copie o valor de <strong>"Chave Secreta do Aplicativo"</strong> e cole no campo <strong>App Secret</strong> acima.</p>
+                      <span className="font-medium text-foreground">Copie a Chave Secreta do Aplicativo</span>
+                      <p className="ml-5 mt-1">No menu lateral → <strong>"Configurações do app" → "Básico"</strong> → copie o valor de <strong>"Chave Secreta do Aplicativo"</strong> e cole no campo <strong>Chave Secreta do Aplicativo</strong> acima.</p>
                     </li>
                     <li>
-                      <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Gere o Access Token no Graph API Explorer ↗</a>
-                      <p className="ml-5 mt-1">No menu superior → <strong>"Ferramentas" → "Explorador da API do Graph"</strong> → selecione seu app → adicione as permissões: <code className="bg-muted px-1 rounded text-xs">ads_read</code>, <code className="bg-muted px-1 rounded text-xs">leads_retrieval</code>, <code className="bg-muted px-1 rounded text-xs">pages_show_list</code>, <code className="bg-muted px-1 rounded text-xs">pages_read_engagement</code> → clique em <strong>"Gerar token de acesso"</strong> → cole no campo <strong>Access Token</strong> acima.</p>
+                      <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">Gere o Token de Acesso no Graph API Explorer ↗</a>
+                      <p className="ml-5 mt-1">No menu superior → <strong>"Ferramentas" → "Explorador da API do Graph"</strong> → selecione seu app → adicione as permissões: <code className="bg-muted px-1 rounded text-xs">ads_read</code>, <code className="bg-muted px-1 rounded text-xs">leads_retrieval</code>, <code className="bg-muted px-1 rounded text-xs">pages_show_list</code>, <code className="bg-muted px-1 rounded text-xs">pages_read_engagement</code> → clique em <strong>"Gerar token de acesso"</strong> → cole no campo <strong>Token de Acesso</strong> acima.</p>
                     </li>
                     <li>
-                      <span className="font-medium text-foreground">Defina o Verify Token</span>
-                      <p className="ml-5 mt-1">Crie uma string secreta qualquer (ex: <code className="bg-muted px-1 rounded text-xs">meu-token-secreto-2024</code>) e cole no campo <strong>Verify Token</strong> acima. Você usará essa mesma string no próximo passo.</p>
+                      <span className="font-medium text-foreground">Defina o Token de Verificação</span>
+                      <p className="ml-5 mt-1">Crie uma string secreta qualquer (ex: <code className="bg-muted px-1 rounded text-xs">meu-token-secreto-2024</code>) e cole no campo <strong>Token de Verificação</strong> acima. Você usará essa mesma string no próximo passo.</p>
                     </li>
                     <li>
                       <span className="font-medium text-foreground">Configure o Webhook</span>
-                      <p className="ml-5 mt-1">No menu lateral → <strong>"Funções do app" → "Webhooks"</strong> → selecione <strong>"Page"</strong> → clique em <strong>"Assinar"</strong> ou <strong>"Editar assinatura"</strong> → marque <code className="bg-muted px-1 rounded text-xs">leadgen</code> → no campo <strong>"URL de retorno"</strong> cole a URL do seu webhook e no <strong>"Token de verificação"</strong> cole o Verify Token definido acima.</p>
+                      <p className="ml-5 mt-1">No menu lateral → <strong>"Funções do app" → "Webhooks"</strong> → selecione <strong>"Página"</strong> → clique em <strong>"Assinar"</strong> ou <strong>"Editar assinatura"</strong> → marque <code className="bg-muted px-1 rounded text-xs">leadgen</code> → no campo <strong>"URL de retorno"</strong> cole a URL do seu webhook e no <strong>"Token de verificação"</strong> cole o Token de Verificação definido acima.</p>
                     </li>
                     <li>
                       <span className="font-medium text-foreground">Vincule sua Página ao App</span>
