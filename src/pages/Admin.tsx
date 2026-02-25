@@ -439,11 +439,8 @@ export default function Admin() {
               <Menu className="h-4 w-4" />
             </SidebarTrigger>
             <div className="h-4 w-px bg-border/40 hidden sm:block" />
-            <div className="flex flex-col gap-0 min-w-0 flex-1">
+            <div className="flex items-center min-w-0 flex-1">
               <AdminBreadcrumb activeTab={activeTab} />
-              <h1 className="text-base sm:text-lg font-display font-bold tracking-tight leading-tight truncate">
-                {TAB_TITLES[activeTab] || activeTab}
-              </h1>
             </div>
 
             {/* Right-aligned actions — hide less important on mobile */}
