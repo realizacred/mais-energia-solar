@@ -512,30 +512,28 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
               </Popover>
             </div>
 
-            {/* Right side: status + consultor on top, nova proposta below */}
-            <div className="flex flex-col items-end gap-2 shrink-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "text-xs shrink-0 capitalize",
-                    deal.status === "won" && "bg-success/10 text-success border-success/20",
-                    deal.status === "lost" && "bg-destructive/10 text-destructive border-destructive/20",
-                    deal.status === "open" && "bg-info/10 text-info border-info/20"
-                  )}
-                >
-                  {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
-                </Badge>
-                {deal.value > 0 && (
-                  <Badge variant="outline" className="text-xs shrink-0 font-semibold">
-                    {formatBRL(deal.value)}
-                  </Badge>
+            {/* Right side: status + consultor + nova proposta inline */}
+            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-xs shrink-0 capitalize",
+                  deal.status === "won" && "bg-success/10 text-success border-success/20",
+                  deal.status === "lost" && "bg-destructive/10 text-destructive border-destructive/20",
+                  deal.status === "open" && "bg-info/10 text-info border-info/20"
                 )}
-                <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
-                  <UserCircle className="h-3.5 w-3.5" />
-                  {ownerName || "Sem consultor"}
+              >
+                {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
+              </Badge>
+              {deal.value > 0 && (
+                <Badge variant="outline" className="text-xs shrink-0 font-semibold">
+                  {formatBRL(deal.value)}
                 </Badge>
-              </div>
+              )}
+              <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
+                <UserCircle className="h-3.5 w-3.5" />
+                {ownerName || "Sem consultor"}
+              </Badge>
               {deal.status !== "won" && deal.status !== "lost" && (
                 <Button size="sm" onClick={() => {
                   const params = new URLSearchParams({ deal_id: dealId });
