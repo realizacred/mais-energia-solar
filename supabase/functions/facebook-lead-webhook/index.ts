@@ -8,6 +8,13 @@ const corsHeaders = {
 
 // ── Helpers ─────────────────────────────────────────────────
 
+function getSupabaseAdmin() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+}
+
 async function verifySignature(
   body: string,
   signature: string | null,
@@ -22,15 +29,32 @@ async function verifySignature(
     ["sign"]
   );
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
-  const expected = "sha256=" + Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const expected =
+    "sha256=" +
+    Array.from(new Uint8Array(sig))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   return expected === signature;
 }
 
-function getSupabaseAdmin() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
+// ── Read Meta config from integration_configs (DB, not env) ──
+async function getMetaConfig(
+  supabase: ReturnType<typeof createClient>
+): Promise<{ appSecret: string | null; verifyToken: string | null }> {
+  const { data } = await supabase
+    .from("integration_configs")
+    .select("service_key, api_key")
+    .in("service_key", ["meta_facebook_app_secret", "meta_facebook_verify_token"])
+    .eq("is_active", true);
+
+  let appSecret: string | null = null;
+  let verifyToken: string | null = null;
+
+  for (const row of data ?? []) {
+    if (row.service_key === "meta_facebook_app_secret") appSecret = row.api_key;
+    if (row.service_key === "meta_facebook_verify_token") verifyToken = row.api_key;
+  }
+  return { appSecret, verifyToken };
 }
 
 // ── Resolve tenant from webhook endpoint registry ───────────
@@ -38,8 +62,6 @@ async function resolveTenantFromPageId(
   supabase: ReturnType<typeof createClient>,
   pageId: string
 ): Promise<string | null> {
-  // First try: integration_configs with service_key = meta_facebook where metadata contains page_id
-  // Since integration_configs doesn't have metadata, we look up integration_webhook_endpoints
   const { data } = await supabase
     .from("integration_webhook_endpoints")
     .select("tenant_id")
@@ -49,10 +71,7 @@ async function resolveTenantFromPageId(
 
   if (data && data.length === 1) return data[0].tenant_id;
 
-  // If multiple tenants, try matching via integration_configs metadata
-  // For now, look for a config with service_key containing the page_id
   if (data && data.length > 1) {
-    // Multi-tenant disambiguation: check integrations table metadata
     for (const endpoint of data) {
       const { data: integration } = await supabase
         .from("integrations")
@@ -61,7 +80,10 @@ async function resolveTenantFromPageId(
         .eq("provider", "meta_facebook")
         .maybeSingle();
 
-      if (integration?.metadata && (integration.metadata as any).page_id === pageId) {
+      if (
+        integration?.metadata &&
+        (integration.metadata as any).page_id === pageId
+      ) {
         return endpoint.tenant_id;
       }
     }
@@ -85,17 +107,17 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabase = getSupabaseAdmin();
   const url = new URL(req.url);
 
-  // ── GET: Hub challenge verification (Meta subscription verification) ──
+  // ── GET: Hub challenge verification ───────────────────────
   if (req.method === "GET") {
     const mode = url.searchParams.get("hub.mode");
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
 
-    // Verify token should match the one configured per-tenant
-    // For simplicity, we use a shared FACEBOOK_VERIFY_TOKEN or accept any valid format
-    const expectedToken = Deno.env.get("FACEBOOK_VERIFY_TOKEN") || "mais_energia_fb_verify";
+    const { verifyToken } = await getMetaConfig(supabase);
+    const expectedToken = verifyToken || "mais_energia_fb_verify";
 
     if (mode === "subscribe" && token === expectedToken) {
       console.log("[FB-WEBHOOK] Hub challenge verified");
@@ -110,13 +132,13 @@ Deno.serve(async (req) => {
 
   // ── POST: Lead data from Meta ─────────────────────────────
   if (req.method === "POST") {
-    const appSecret = Deno.env.get("FACEBOOK_APP_SECRET");
+    const { appSecret } = await getMetaConfig(supabase);
     if (!appSecret) {
-      console.error("[FB-WEBHOOK][ERROR] FACEBOOK_APP_SECRET not configured");
-      return new Response(JSON.stringify({ error: "Server misconfiguration" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("[FB-WEBHOOK][ERROR] App Secret não configurado no sistema");
+      return new Response(
+        JSON.stringify({ error: "App Secret não configurado" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const rawBody = await req.text();
@@ -126,30 +148,26 @@ Deno.serve(async (req) => {
     const isValid = await verifySignature(rawBody, signature, appSecret);
     if (!isValid) {
       console.error("[FB-WEBHOOK][SECURITY] Invalid signature");
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     let payload: any;
     try {
       payload = JSON.parse(rawBody);
     } catch {
-      console.error("[FB-WEBHOOK][ERROR] Invalid JSON body");
-      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const supabase = getSupabaseAdmin();
     let processedCount = 0;
     let errorCount = 0;
 
-    // Meta sends { object: "page", entry: [...] }
     if (payload.object !== "page" || !Array.isArray(payload.entry)) {
-      // Acknowledge but skip non-page events
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -169,20 +187,18 @@ Deno.serve(async (req) => {
         const adId = leadgenValue?.ad_id?.toString();
 
         if (!fbLeadId) {
-          console.warn("[FB-WEBHOOK][WARN] Missing leadgen_id, skipping");
+          console.warn("[FB-WEBHOOK][WARN] Missing leadgen_id");
           errorCount++;
           continue;
         }
 
-        // Resolve tenant
         const tenantId = await resolveTenantFromPageId(supabase, pageId);
         if (!tenantId) {
-          console.error(`[FB-WEBHOOK][ERROR] No tenant found for page_id=${pageId}`);
+          console.error(`[FB-WEBHOOK][ERROR] No tenant for page_id=${pageId}`);
           errorCount++;
           continue;
         }
 
-        // Idempotent insert (ON CONFLICT DO NOTHING)
         const { error: insertError } = await supabase
           .from("facebook_leads")
           .upsert(
@@ -200,21 +216,18 @@ Deno.serve(async (req) => {
           );
 
         if (insertError) {
-          console.error(`[FB-WEBHOOK][ERROR] Insert failed for lead ${fbLeadId}: ${insertError.message}`);
+          console.error(`[FB-WEBHOOK][ERROR] Insert failed: ${insertError.message}`);
           errorCount++;
         } else {
           processedCount++;
-          console.log(`[FB-WEBHOOK] Lead ${fbLeadId} stored for tenant ${tenantId.slice(0, 8)}...`);
+          console.log(`[FB-WEBHOOK] Lead ${fbLeadId} stored`);
         }
       }
     }
 
     return new Response(
       JSON.stringify({ received: true, processed: processedCount, errors: errorCount }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
