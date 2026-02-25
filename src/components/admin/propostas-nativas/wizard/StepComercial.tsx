@@ -1,6 +1,7 @@
 import { Briefcase } from "lucide-react";
 import { formatCpfCnpj, CPF_CNPJ_MAX_LENGTH } from "@/lib/cpfCnpjUtils";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
@@ -38,7 +39,7 @@ export function StepComercial({ comercial, onComercialChange }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">E-mail</Label>
-            <Input type="email" value={comercial.responsavel_email} onChange={e => update("responsavel_email", e.target.value)} className="h-9" />
+            <EmailInput value={comercial.responsavel_email} onChange={v => update("responsavel_email", v)} className="h-9" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Celular</Label>
@@ -57,7 +58,7 @@ export function StepComercial({ comercial, onComercialChange }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">E-mail</Label>
-            <Input type="email" value={comercial.representante_email} onChange={e => update("representante_email", e.target.value)} className="h-9" />
+            <EmailInput value={comercial.representante_email} onChange={v => update("representante_email", v)} className="h-9" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Celular</Label>

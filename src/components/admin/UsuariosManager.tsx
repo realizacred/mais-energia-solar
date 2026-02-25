@@ -12,6 +12,7 @@ import { PageHeader, EmptyState } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { 
   Table, 
@@ -675,12 +676,11 @@ export function UsuariosManager() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">E-mail *</Label>
-              <Input
+              <EmailInput
                 id="email"
-                type="email"
                 value={newUserForm.email}
-                onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                placeholder="email@exemplo.com"
+                onChange={(v) => setNewUserForm({ ...newUserForm, email: v })}
+                required
               />
             </div>
             <div className="space-y-2">

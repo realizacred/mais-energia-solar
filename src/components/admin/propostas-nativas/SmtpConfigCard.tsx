@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Save, Loader2, Mail, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
@@ -160,11 +161,11 @@ export function SmtpConfigCard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Email de envio</Label>
-            <Input
+            <EmailInput
               value={config.from_email}
-              onChange={(e) => setConfig((c) => ({ ...c, from_email: e.target.value }))}
-              placeholder="propostas@empresa.com"
+              onChange={(v) => setConfig((c) => ({ ...c, from_email: v }))}
               className="h-8 text-xs"
+              required
             />
           </div>
           <div>

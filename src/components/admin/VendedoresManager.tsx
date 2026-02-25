@@ -11,6 +11,7 @@ import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -772,7 +773,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             {isNewVendedor && formData.tipoAcesso === "convite" && (
               <div className="space-y-2">
                 <Label htmlFor="email">Email do consultor *</Label>
-                <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="email@exemplo.com" />
+                <EmailInput id="email" value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} required />
                 <p className="text-xs text-muted-foreground"><Mail className="w-3 h-3 inline mr-1" />Será usado para login após ativação do convite.</p>
               </div>
             )}
@@ -782,7 +783,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               <>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
-                  <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="email@exemplo.com" />
+                  <EmailInput id="email" value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} required />
                   <p className="text-xs text-muted-foreground"><Mail className="w-3 h-3 inline mr-1" />Será usado para login no Portal do Consultor.</p>
                 </div>
                 <div className="space-y-2">
@@ -818,7 +819,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             {editingVendedor && (
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="email@exemplo.com" disabled={!!editingVendedor?.user_id} />
+                <EmailInput id="email" value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} disabled={!!editingVendedor?.user_id} />
               </div>
             )}
             

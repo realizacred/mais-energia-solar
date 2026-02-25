@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -372,7 +373,7 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">E-mail *</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-9 text-sm" placeholder="email@exemplo.com" />
+            <EmailInput value={email} onChange={setEmail} required className="h-9 text-sm" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Nome completo *</Label>

@@ -1,5 +1,38 @@
 import { z } from "zod";
 
+// ─── Shared email validation (SSOT) ────────────────────────
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+export const EMAIL_ERROR_MESSAGE = "E-mail inválido. Verifique e tente novamente.";
+export const EMAIL_PLACEHOLDER = "email@exemplo.com";
+
+/** Pure validation function – returns error string or null */
+export function validateEmail(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null; // empty is not invalid, use required check separately
+  return EMAIL_REGEX.test(trimmed) ? null : EMAIL_ERROR_MESSAGE;
+}
+
+/** Normalises email for storage: trim + lowercase */
+export function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/** Zod schema for optional email fields */
+export const emailFieldSchema = z
+  .string()
+  .trim()
+  .transform((v) => v.toLowerCase())
+  .pipe(z.string().email(EMAIL_ERROR_MESSAGE))
+  .or(z.literal(""));
+
+/** Zod schema for required email fields */
+export const emailRequiredSchema = z
+  .string()
+  .trim()
+  .min(1, "E-mail é obrigatório")
+  .transform((v) => v.toLowerCase())
+  .pipe(z.string().email(EMAIL_ERROR_MESSAGE));
+
 // Brazilian phone validation
 const phoneRegex = /^\(\d{2}\) \d{4,5}-\d{4}$/;
 

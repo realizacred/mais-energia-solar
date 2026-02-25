@@ -4,6 +4,7 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -215,7 +216,7 @@ export function SiteConfigManager() {
               </div>
               <div className="space-y-2">
                 <Label>E-mail</Label>
-                <Input value={settings.email || ""} onChange={(e) => update("email", e.target.value)} />
+                <EmailInput value={settings.email || ""} onChange={(v) => update("email", v)} />
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="space-y-2">

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -212,7 +213,7 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
                   <div className="border-t pt-3 space-y-3">
                     <p className="text-sm font-medium">Admin Inicial</p>
                     <div><Label>Nome</Label><Input value={form.admin_nome} onChange={(e) => setForm(f => ({ ...f, admin_nome: e.target.value }))} /></div>
-                    <div><Label>Email *</Label><Input type="email" value={form.admin_email} onChange={(e) => setForm(f => ({ ...f, admin_email: e.target.value }))} /></div>
+                    <div><Label>Email *</Label><EmailInput value={form.admin_email} onChange={(v) => setForm(f => ({ ...f, admin_email: v }))} required /></div>
                     <div><Label>Senha *</Label><Input type="password" value={form.admin_password} onChange={(e) => setForm(f => ({ ...f, admin_password: e.target.value }))} /></div>
                   </div>
                 </div>
