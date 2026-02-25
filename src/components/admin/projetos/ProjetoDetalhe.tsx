@@ -1113,6 +1113,7 @@ function GerenciamentoTab({
           .limit(50);
         if (data && data.length > 0) {
           const EVENT_LABELS: Record<string, string> = {
+            created: "Projeto criado",
             stage_changed: "Etapa alterada",
             status_changed: "Status alterado",
             owner_changed: "Responsável alterado",
@@ -1121,13 +1122,23 @@ function GerenciamentoTab({
             pipeline_removed: "Removido do funil",
             consultor_changed: "Consultor alterado",
           };
+          const VALUE_LABELS: Record<string, string> = {
+            open: "Aberto",
+            won: "Ganho",
+            lost: "Perdido",
+            created: "Criado",
+          };
+          const translateValue = (v: string | null | undefined) => {
+            if (!v) return v;
+            return VALUE_LABELS[v] || v;
+          };
           setProjectEventEntries(data.map((e: any) => ({
             id: `pe-${e.id}`,
             type: "projeto" as const,
             title: EVENT_LABELS[e.event_type] || e.event_type,
             subtitle: e.from_value && e.to_value
-              ? `${e.from_value} → ${e.to_value}`
-              : e.to_value || e.from_value || undefined,
+              ? `${translateValue(e.from_value)} → ${translateValue(e.to_value)}`
+              : translateValue(e.to_value) || translateValue(e.from_value) || undefined,
             date: formatDate(e.created_at),
           })));
         }
@@ -1147,11 +1158,14 @@ function GerenciamentoTab({
           .order("created_at", { ascending: false })
           .limit(20);
         if (data && data.length > 0) {
+          const PROPOSTA_STATUS: Record<string, string> = {
+            draft: "Rascunho", sent: "Enviada", accepted: "Aceita", rejected: "Rejeitada", expired: "Expirada",
+          };
           setPropostaEntries(data.map((p: any) => ({
             id: `prop-${p.id}`,
             type: "proposta" as const,
             title: `Proposta: ${p.titulo}`,
-            subtitle: `${p.codigo || "—"} • Status: ${p.status}`,
+            subtitle: `${p.codigo || "—"} • Status: ${PROPOSTA_STATUS[p.status] || p.status}`,
             date: formatDate(p.created_at),
           })));
         }
