@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Calendar, CheckCircle2, XCircle, AlertTriangle, Clock, Plug, Unplug,
   RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2, Save, KeyRound, Eye, EyeOff, Copy, Info, MapPin,
-  Sparkles, FileText, Bot
+  Sparkles, FileText, Bot, Facebook
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -402,6 +402,29 @@ export function IntegrationsPage() {
           <Button variant="outline" onClick={() => navigate("/admin/google-maps-config")}>
             <KeyRound className="mr-2 h-4 w-4" />
             Configurar API Key
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* ── Meta Facebook Ads Card ─────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Facebook className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Meta Facebook Ads</CardTitle>
+                <CardDescription>Captura automática de leads e métricas de campanhas</CardDescription>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" onClick={() => navigate("/admin/meta-facebook-config")}>
+            <KeyRound className="mr-2 h-4 w-4" />
+            Configurar Access Token
           </Button>
         </CardContent>
       </Card>
