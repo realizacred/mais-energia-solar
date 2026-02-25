@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, User, Plus, AlertTriangle, Loader2, MapPin, Link2, FileText, Phone, Mail, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -529,7 +530,7 @@ function StepClienteForm({
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">E-mail</Label>
-            <Input type="email" value={cliente.email} onChange={e => update("email", e.target.value)} placeholder="email@exemplo.com" className="h-9" />
+            <EmailInput value={cliente.email} onChange={v => update("email", v)} className="h-9" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Celular *</Label>

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -560,10 +561,10 @@ export function StepDocumento({
 
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground">Destinatário</Label>
-            <Input
+            <EmailInput
               value={emailDestinatario}
-              onChange={e => setEmailDestinatario(e.target.value)}
-              placeholder="Email não fornecido"
+              onChange={setEmailDestinatario}
+              placeholder="email@exemplo.com"
               className="h-8 text-xs"
             />
           </div>
@@ -597,9 +598,9 @@ export function StepDocumento({
 
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground">Responder a</Label>
-            <Input
+            <EmailInput
               value={emailReplyTo}
-              onChange={e => setEmailReplyTo(e.target.value)}
+              onChange={setEmailReplyTo}
               className="h-8 text-xs"
             />
           </div>

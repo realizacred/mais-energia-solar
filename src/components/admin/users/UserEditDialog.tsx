@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -406,11 +407,10 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
             <div className="space-y-2">
               <Label htmlFor="edit-email">E-mail</Label>
               <div className="flex gap-2">
-                <Input
+                <EmailInput
                   id="edit-email"
-                  type="email"
                   value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
+                  onChange={setEditEmail}
                   placeholder="email@exemplo.com"
                 />
                 {emailChanged && (
