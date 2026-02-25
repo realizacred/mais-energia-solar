@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { WaProfileAvatar } from "./WaProfileAvatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -160,17 +161,13 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
                   disabled={sending}
                   className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/60 transition-colors text-left disabled:opacity-50"
                 >
-                  <div className="w-9 h-9 rounded-full bg-muted/80 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground overflow-hidden">
-                    {conv.profile_picture_url ? (
-                      <img src={conv.profile_picture_url} alt="" className="w-full h-full object-cover rounded-full" />
-                    ) : conv.is_group ? (
-                      <Users className="h-4 w-4" />
-                    ) : conv.cliente_nome ? (
-                      conv.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
-                    ) : (
-                      <User className="h-4 w-4" />
-                    )}
-                  </div>
+                  <WaProfileAvatar
+                    profilePictureUrl={conv.profile_picture_url}
+                    isGroup={conv.is_group}
+                    name={conv.cliente_nome}
+                    size="md"
+                    className="bg-muted/80 text-muted-foreground"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{conv.cliente_nome || conv.cliente_telefone}</p>
                     <p className="text-xs text-muted-foreground truncate">{conv.cliente_telefone}</p>
