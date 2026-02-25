@@ -413,7 +413,8 @@ export function useWaMessages(conversationId?: string) {
       return withNames;
     },
     enabled: !!conversationId,
-    staleTime: 5 * 1000,
+    staleTime: 30_000,
+    gcTime: 2 * 60_000,
   });
 
   // Reset on conversation change
