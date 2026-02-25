@@ -496,13 +496,17 @@ function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
 
   // Grid card (similar to reference screenshot)
   return (
-    <div className="rounded-xl border border-border bg-card p-4 hover:border-primary/30 transition-all flex flex-col justify-between min-h-[220px]">
+    <div
+      className="rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer"
+      onClick={onSelect}
+    >
       {/* Distributor header */}
       <div>
-        <div className="mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
             {card.distribuidorNome || "Manual"}
           </span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">KIT</span>
         </div>
 
         {/* Module info */}
@@ -535,10 +539,10 @@ function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">Total: <strong className="text-foreground">{formatBRL(card.precoTotal)}</strong></p>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onEdit}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
               <Pencil className="h-3 w-3" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={onDelete}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
