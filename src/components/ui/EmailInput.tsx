@@ -44,10 +44,11 @@ export const EmailInput = forwardRef<HTMLInputElement, EmailInputProps>(
           placeholder={props.placeholder || EMAIL_PLACEHOLDER}
           className={cn(showError && "border-destructive focus-visible:ring-destructive/40", className)}
           aria-invalid={showError || undefined}
+          aria-describedby={showError ? `${props.id || "email"}-error` : undefined}
           {...props}
         />
         {showError && (
-          <p className="text-[11px] text-destructive mt-1">{error}</p>
+          <p id={`${props.id || "email"}-error`} role="alert" className="text-[11px] text-destructive mt-1">{error}</p>
         )}
       </div>
     );

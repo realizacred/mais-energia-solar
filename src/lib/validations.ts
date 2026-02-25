@@ -1,14 +1,21 @@
 import { z } from "zod";
 
 // ─── Shared email validation (SSOT) ────────────────────────
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Strict regex: local@domain.tld
+// - No consecutive dots in local or domain
+// - Domain must have at least one dot with 2+ char TLD
+// - No leading/trailing dots in local or domain parts
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9](?:[a-zA-Z0-9._%+\-]*[a-zA-Z0-9])?@[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+
 export const EMAIL_ERROR_MESSAGE = "E-mail inválido. Verifique e tente novamente.";
 export const EMAIL_PLACEHOLDER = "email@exemplo.com";
 
-/** Pure validation function – returns error string or null */
+/** Pure validation – returns error string or null. Empty is not invalid (use required separately). */
 export function validateEmail(value: string): string | null {
   const trimmed = value.trim();
-  if (!trimmed) return null; // empty is not invalid, use required check separately
+  if (!trimmed) return null;
+  if (trimmed.includes("..")) return EMAIL_ERROR_MESSAGE; // consecutive dots
   return EMAIL_REGEX.test(trimmed) ? null : EMAIL_ERROR_MESSAGE;
 }
 
@@ -17,21 +24,18 @@ export function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
 }
 
-/** Zod schema for optional email fields */
+/** Zod schema for optional email (empty string allowed, outputs string) */
 export const emailFieldSchema = z
   .string()
   .trim()
-  .transform((v) => v.toLowerCase())
-  .pipe(z.string().email(EMAIL_ERROR_MESSAGE))
-  .or(z.literal(""));
+  .refine((v) => v === "" || validateEmail(v) === null, { message: EMAIL_ERROR_MESSAGE });
 
-/** Zod schema for required email fields */
+/** Zod schema for required email (outputs string) */
 export const emailRequiredSchema = z
   .string()
   .trim()
   .min(1, "E-mail é obrigatório")
-  .transform((v) => v.toLowerCase())
-  .pipe(z.string().email(EMAIL_ERROR_MESSAGE));
+  .refine((v) => validateEmail(v) === null, { message: EMAIL_ERROR_MESSAGE });
 
 // Brazilian phone validation
 const phoneRegex = /^\(\d{2}\) \d{4,5}-\d{4}$/;
@@ -129,7 +133,7 @@ export type LoginData = z.infer<typeof loginSchema>;
 
 export const signupSchema = z.object({
   nome: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
-  email: z.string().email("Email inválido"),
+  email: emailRequiredSchema,
   password: passwordSchema,
   cargo: z.enum(["consultor", "instalador"], { required_error: "Selecione um cargo" }),
 });
