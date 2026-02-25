@@ -187,6 +187,7 @@ export function WaChatPanel({
       return count || 0;
     },
     enabled: !!conversation?.id,
+    staleTime: 60_000, // cache 1min — participant count rarely changes
   });
   const [atBottom, setAtBottom] = useState(true);
   const [newMsgCount, setNewMsgCount] = useState(0);
@@ -197,21 +198,21 @@ export function WaChatPanel({
 
   // Load hidden messages from DB on conversation change
   useEffect(() => {
-    if (!conversation) return;
+    if (!conversation || !currentUserId) return;
     setDeletedMsgIds(new Set());
     const loadHidden = async () => {
       try {
         const { data } = await supabase
           .from("wa_message_hidden" as any)
           .select("message_id")
-          .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "");
+          .eq("user_id", currentUserId);
         if (data && data.length > 0) {
           setDeletedMsgIds(new Set(data.map((d: any) => d.message_id)));
         }
       } catch {}
     };
     loadHidden();
-  }, [conversation?.id]);
+  }, [conversation?.id, currentUserId]);
 
   // Build a map for quoted message lookup
   const messagesMap = useMemo(() => {
