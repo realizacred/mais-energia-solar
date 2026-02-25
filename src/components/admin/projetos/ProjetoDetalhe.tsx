@@ -1255,7 +1255,7 @@ function GerenciamentoTab({
     <>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* ── LEFT SIDEBAR (30%) ── */}
-        <div className="lg:col-span-4 xl:col-span-3 space-y-4">
+        <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Card: Dados do Cliente */}
           <Card>
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
@@ -1382,7 +1382,7 @@ function GerenciamentoTab({
         </div>
 
         {/* ── RIGHT WORK AREA (70%) ── */}
-        <div className="lg:col-span-8 xl:col-span-9 space-y-4">
+        <div className="lg:col-span-7 xl:col-span-8 space-y-4">
           {/* Card: Atividades */}
           <Card>
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
