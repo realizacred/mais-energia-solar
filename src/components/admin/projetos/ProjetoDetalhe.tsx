@@ -1682,14 +1682,17 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
   const iconColor = iconColorMap[Icon.displayName || ""] || "text-secondary";
   return (
     <div
-      className={cn("flex items-center gap-2.5 group", onEdit && "cursor-pointer hover:bg-muted/40 -mx-2 px-2 py-0.5 rounded-md transition-colors")}
+      className={cn(
+        "flex items-center gap-2.5 py-1 group",
+        onEdit && "cursor-pointer hover:bg-muted/40 -mx-2 px-2 rounded-md transition-colors"
+      )}
       onClick={onEdit}
     >
       <Icon className={cn("h-3.5 w-3.5 shrink-0", iconColor)} />
       <span className={cn(
         "text-sm leading-snug flex-1 min-w-0 truncate",
-        muted ? "text-muted-foreground" : "font-medium text-foreground",
-        isLink && "text-primary"
+        muted && !isLink ? "text-muted-foreground" : "",
+        isLink ? "text-muted-foreground/70 text-xs" : "font-medium text-foreground",
       )}>
         {label}
       </span>
