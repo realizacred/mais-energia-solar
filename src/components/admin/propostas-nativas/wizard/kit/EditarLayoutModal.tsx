@@ -49,13 +49,35 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
   };
 
   const increment = (id: string, field: "num_linhas" | "modulos_por_linha") => {
-    setArranjos(prev => prev.map(a => a.id === id ? { ...a, [field]: a[field] + 1 } : a));
+    setArranjos(prev => prev.map(a => {
+      if (a.id !== id) return a;
+      const newVal = a[field] + 1;
+      // Auto-calculate the other dimension when single arranjo
+      if (prev.length === 1 && totalModulos > 0) {
+        if (field === "num_linhas") {
+          return { ...a, num_linhas: newVal, modulos_por_linha: Math.max(1, Math.ceil(totalModulos / newVal)) };
+        } else {
+          return { ...a, modulos_por_linha: newVal, num_linhas: Math.max(1, Math.ceil(totalModulos / newVal)) };
+        }
+      }
+      return { ...a, [field]: newVal };
+    }));
   };
 
   const decrement = (id: string, field: "num_linhas" | "modulos_por_linha") => {
-    setArranjos(prev => prev.map(a =>
-      a.id === id ? { ...a, [field]: Math.max(1, a[field] - 1) } : a
-    ));
+    setArranjos(prev => prev.map(a => {
+      if (a.id !== id) return a;
+      const newVal = Math.max(1, a[field] - 1);
+      // Auto-calculate the other dimension when single arranjo
+      if (prev.length === 1 && totalModulos > 0) {
+        if (field === "num_linhas") {
+          return { ...a, num_linhas: newVal, modulos_por_linha: Math.max(1, Math.ceil(totalModulos / newVal)) };
+        } else {
+          return { ...a, modulos_por_linha: newVal, num_linhas: Math.max(1, Math.ceil(totalModulos / newVal)) };
+        }
+      }
+      return { ...a, [field]: newVal };
+    }));
   };
 
   const addArranjo = () => {
