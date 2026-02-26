@@ -114,13 +114,24 @@ Deno.serve(async (req) => {
     const { sync_type = "full" } = await req.json().catch(() => ({}));
 
     // ─── SolarMarket API Token ─────────────────────────────
+    const { data: integrationConfig } = await supabase
+      .from("integration_configs")
+      .select("api_key, is_active")
+      .eq("tenant_id", tenantId)
+      .eq("service_key", "solarmarket")
+      .maybeSingle();
+
     const { data: config } = await supabase
       .from("solar_market_config")
       .select("api_token, base_url, enabled")
       .eq("tenant_id", tenantId)
-      .single();
+      .maybeSingle();
 
-    const apiToken = config?.api_token || Deno.env.get("SOLARMARKET_TOKEN") || null;
+    const apiToken =
+      (integrationConfig?.is_active ? integrationConfig.api_key : null) ||
+      config?.api_token ||
+      Deno.env.get("SOLARMARKET_TOKEN") ||
+      null;
     const baseUrl = (config?.base_url || "https://business.solarmarket.com.br/api/v2").replace(/\/$/, "");
 
     if (!apiToken) {
@@ -147,6 +158,7 @@ Deno.serve(async (req) => {
     let totalFetched = 0;
     let totalUpserted = 0;
     let totalErrors = 0;
+    let hasSolarMarketAuthError = false;
     const errors: string[] = [];
 
     // ─── Sync Clients ──────────────────────────────────────
@@ -183,8 +195,10 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error("[SM Sync] Clients error:", e);
+        const msg = (e as Error).message;
+        if (msg.includes("SM API 401")) hasSolarMarketAuthError = true;
         totalErrors++;
-        errors.push(`clients: ${(e as Error).message}`);
+        errors.push(`clients: ${msg}`);
       }
     }
 
@@ -221,8 +235,10 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error("[SM Sync] Projects error:", e);
+        const msg = (e as Error).message;
+        if (msg.includes("SM API 401")) hasSolarMarketAuthError = true;
         totalErrors++;
-        errors.push(`projects: ${(e as Error).message}`);
+        errors.push(`projects: ${msg}`);
       }
     }
 
@@ -284,13 +300,39 @@ Deno.serve(async (req) => {
           await new Promise((r) => setTimeout(r, 100));
         } catch (e) {
           console.error(`[SM Sync] Proposals for project ${projId} error:`, e);
+          const msg = (e as Error).message;
+          if (msg.includes("SM proposals 401") || msg.includes("SM API 401")) hasSolarMarketAuthError = true;
           totalErrors++;
-          errors.push(`proposals proj ${projId}: ${(e as Error).message}`);
+          errors.push(`proposals proj ${projId}: ${msg}`);
         }
       }
     }
 
     // ─── Finalize ──────────────────────────────────────────
+    if (hasSolarMarketAuthError && totalUpserted === 0) {
+      if (logId) {
+        await supabase
+          .from("solar_market_sync_logs")
+          .update({
+            status: "failed",
+            total_fetched: totalFetched,
+            total_upserted: totalUpserted,
+            total_errors: totalErrors,
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", logId);
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: "SolarMarket retornou 401 Unauthorized. Verifique se a API key em Integrações > SolarMarket está correta e ativa.",
+          total_errors: totalErrors,
+          error_details: errors.slice(0, 10),
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const finalStatus = totalErrors > 0 ? "completed_with_errors" : "completed";
 
     if (logId) {

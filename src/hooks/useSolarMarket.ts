@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -134,12 +135,13 @@ export function useSyncSolarMarket() {
       });
 
       if (error) {
-        const rawMessage = (error as Error)?.message || "Erro ao chamar a sincronização";
-        const isAuthError = /401|unauthorized/i.test(rawMessage);
+        const parsed = await parseInvokeError(error);
+        const message = parsed.message || "Erro ao chamar a sincronização";
+        const isAuthError = parsed.status === 401 || /401|unauthorized/i.test(message);
         throw new Error(
           isAuthError
-            ? "Sua sessão não foi validada na integração. Saia e entre novamente no sistema para sincronizar."
-            : rawMessage
+            ? "Token SolarMarket inválido/expirado ou sessão inválida. Revise a chave em Integrações > SolarMarket e tente novamente."
+            : message
         );
       }
 
