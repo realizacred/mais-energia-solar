@@ -211,23 +211,33 @@ async function checkToken(config: TenantConfig): Promise<{
   }
 
   const scopes: string[] = tokenData?.scopes || [];
-  const CRITICAL_SCOPES = ["pages_show_list", "pages_manage_ads", "leads_retrieval"];
-  const missingCritical = CRITICAL_SCOPES.filter((s) => !scopes.includes(s));
+  // Only check scopes that debug_token actually returns.
+  // leads_retrieval and pages_manage_ads are app-level permissions (App Review),
+  // NOT token scopes — they are validated in the Lead Access check instead.
+  const REQUIRED_SCOPES = ["pages_show_list"];
+  const RECOMMENDED_SCOPES = ["ads_management", "pages_read_engagement"];
+  const missingRequired = REQUIRED_SCOPES.filter((s) => !scopes.includes(s));
+  const missingRecommended = RECOMMENDED_SCOPES.filter((s) => !scopes.includes(s));
   const hasManageMetadata = scopes.includes("pages_manage_metadata");
 
-  const status: TokenStatus = missingCritical.length > 0 ? "INVALID" : "VALID";
-  const message = missingCritical.length > 0
-    ? `Token válido, mas faltam permissões obrigatórias: ${missingCritical.join(", ")}.`
-    : hasManageMetadata
+  const status: TokenStatus = missingRequired.length > 0 ? "INVALID" : "VALID";
+  let message: string;
+  if (missingRequired.length > 0) {
+    message = `Token válido, mas faltam scopes obrigatórios: ${missingRequired.join(", ")}.`;
+  } else if (missingRecommended.length > 0) {
+    message = `Token válido. Scopes recomendados ausentes: ${missingRecommended.join(", ")}.`;
+  } else {
+    message = hasManageMetadata
       ? "Token válido com todas as permissões (incluindo pages_manage_metadata)."
       : "Token válido. pages_manage_metadata ausente — webhook deve ser assinado manualmente no Meta.";
+  }
 
   return {
     status,
     message,
     expires_at: tokenData?.expires_at ?? null,
     scopes,
-    missing_critical_scopes: missingCritical.length > 0 ? missingCritical : undefined,
+    missing_critical_scopes: missingRequired.length > 0 ? missingRequired : undefined,
     has_pages_manage_metadata: hasManageMetadata,
   };
 }
