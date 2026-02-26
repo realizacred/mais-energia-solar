@@ -8,6 +8,14 @@ const corsHeaders = {
 
 const BATCH_SIZE = 50;
 
+// ── Structured Timing Logger ──
+function timingLog(step: string, t0: number, extra?: Record<string, unknown>) {
+  const elapsed = Date.now() - t0;
+  const payload = { step, elapsed_ms: elapsed, ts: new Date().toISOString(), ...extra };
+  console.log(`[TIMING] ${JSON.stringify(payload)}`);
+  return elapsed;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -68,10 +76,13 @@ Deno.serve(async (req) => {
 
     let processed = 0;
     let errors = 0;
+    // Collect fire-and-forget media promises to settle before function exits
+    const backgroundTasks: Promise<void>[] = [];
 
     for (const event of events) {
       try {
-        await processEvent(supabase, event);
+        const bgTasks = await processEvent(supabase, event);
+        if (bgTasks.length > 0) backgroundTasks.push(...bgTasks);
         
         await supabase
           .from("wa_webhook_events")
@@ -94,10 +105,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[process-webhook-events] Done: ${processed} processed, ${errors} errors`);
+    // Wait for background tasks with a safety timeout so the function doesn't hang
+    if (backgroundTasks.length > 0) {
+      const BG_TIMEOUT_MS = 25_000; // 25s safety cap
+      await Promise.race([
+        Promise.allSettled(backgroundTasks),
+        new Promise(resolve => setTimeout(resolve, BG_TIMEOUT_MS)),
+      ]);
+    }
+
+    console.log(`[process-webhook-events] Done: ${processed} processed, ${errors} errors, ${backgroundTasks.length} bg_tasks`);
 
     return new Response(
-      JSON.stringify({ processed, errors, total: events.length }),
+      JSON.stringify({ processed, errors, total: events.length, bg_tasks: backgroundTasks.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
@@ -127,34 +147,38 @@ interface WebhookEvent {
   event_type: string;
   payload: any;
   retry_count: number;
+  created_at: string;
 }
 
-async function processEvent(supabase: any, event: WebhookEvent) {
+/**
+ * Process a single event. Returns an array of background (fire-and-forget) promises
+ * that the caller should settle before the function exits.
+ */
+async function processEvent(supabase: any, event: WebhookEvent): Promise<Promise<void>[]> {
   const { event_type, payload, instance_id, tenant_id } = event;
 
   switch (event_type) {
     case "messages.upsert":
     case "MESSAGES_UPSERT":
-      await handleMessageUpsert(supabase, instance_id, tenant_id, payload);
-      break;
+      return await handleMessageUpsert(supabase, instance_id, tenant_id, payload, event.created_at);
 
     case "messages.update":
     case "MESSAGES_UPDATE":
       await handleMessageUpdate(supabase, payload);
-      break;
+      return [];
 
     case "connection.update":
     case "CONNECTION_UPDATE":
       await handleConnectionUpdate(supabase, instance_id, payload);
-      break;
+      return [];
 
     case "contacts.upsert":
     case "CONTACTS_UPSERT":
-      await handleContactsUpsert(supabase, instance_id, tenant_id, payload);
-      break;
+      return await handleContactsUpsert(supabase, instance_id, tenant_id, payload);
 
     default:
       console.log(`[process-webhook-events] Ignoring event type: ${event_type}`);
+      return [];
   }
 }
 
@@ -165,7 +189,6 @@ function parseMessageTimestamp(msg: any): Date {
 
   let epochMs: number;
   if (typeof raw === "number") {
-    // Evolution sends seconds; if < 1e12 it's seconds, otherwise ms
     epochMs = raw < 1e12 ? raw * 1000 : raw;
   } else if (typeof raw === "string") {
     const parsed = Number(raw);
@@ -179,71 +202,65 @@ function parseMessageTimestamp(msg: any): Date {
   return new Date(epochMs);
 }
 
+/**
+ * Handle messages.upsert — CRITICAL PATH.
+ * Rule: DB INSERT must ALWAYS happen FIRST. No external calls before insert.
+ * Returns background promises for deferred work (media, group name).
+ */
 async function handleMessageUpsert(
   supabase: any,
   instanceId: string,
   tenantId: string,
-  payload: any
-) {
+  payload: any,
+  webhookCreatedAt: string,
+): Promise<Promise<void>[]> {
+  const t0_total = Date.now();
+  const backgroundTasks: Promise<void>[] = [];
+
   const messages = payload.data || payload.messages || (payload.key ? [payload] : []);
   
   for (const msg of Array.isArray(messages) ? messages : [messages]) {
+    const t0_msg = Date.now();
     const key = msg.key || {};
     const remoteJid = key.remoteJid || msg.remoteJid;
     
     if (!remoteJid || remoteJid === "status@broadcast") continue;
     
-    // Detect group
     const isGroup = remoteJid.endsWith("@g.us");
-    
-    // Determine direction
     const fromMe = key.fromMe === true;
     const direction = fromMe ? "out" : "in";
     
-    // Extract message content
     const messageContent = msg.message || {};
     const { content, messageType } = extractMessageContent(messageContent, msg);
     
-    // Evolution message ID for deduplication
     const evolutionMessageId = key.id || msg.id || null;
-    
-    // Group participant info
     const participantJid = isGroup ? (key.participant || msg.participant || null) : null;
     const participantName = isGroup ? (msg.pushName || null) : null;
-    
-    // For individual chats, use pushName as contact name
     const contactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
-    
-    // Phone / group ID
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
-    // Group subject (Evolution API sends it in different places)
     // ⚡ PERF: Only use data already in payload — NEVER block on external API call
     const groupSubject: string | null = isGroup
       ? (msg.groupMetadata?.subject || msg.messageContextInfo?.messageSecret?.groupSubject || payload.groupSubject || payload.subject || msg.subject || null)
       : null;
 
-    // P0-5: Parse event timestamp defensively
     const eventDate = parseMessageTimestamp(msg);
 
     // ── P0-NORM: Build alternate JID formats for BR phone normalization ──
-    // Evolution API sometimes strips/adds the 9th digit for Brazilian mobile numbers
     const altJids: string[] = [remoteJid];
     if (!isGroup) {
-      const digits = phone; // already stripped of @s.whatsapp.net
+      const digits = phone;
       if (digits.startsWith("55") && digits.length === 13) {
-        // Has 9th digit → try without
         const without9 = `55${digits.slice(2, 4)}${digits.slice(5)}`;
         altJids.push(`${without9}@s.whatsapp.net`);
       } else if (digits.startsWith("55") && digits.length === 12) {
-        // Missing 9th digit → try with
         const with9 = `55${digits.slice(2, 4)}9${digits.slice(4)}`;
         altJids.push(`${with9}@s.whatsapp.net`);
       }
     }
 
-    // Upsert conversation — include last_message_at for P0-5 timestamp comparison
-    // Use altJids to find existing conversation regardless of 9th digit format
+    // ── STEP 1: Upsert conversation ──
+    const t0_conv = Date.now();
     const { data: existingConv } = await supabase
       .from("wa_conversations")
       .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
@@ -260,7 +277,6 @@ async function handleMessageUpsert(
         ? `${participantName}: ${content ? content.substring(0, 80) : `[${messageType}]`}`
         : content ? content.substring(0, 100) : `[${messageType}]`;
       
-      // P0-5: Only update preview/direction/last_message_at if event is newer
       const existingEpoch = existingConv.last_message_at
         ? new Date(existingConv.last_message_at).getTime()
         : 0;
@@ -275,27 +291,21 @@ async function handleMessageUpsert(
         updates.last_message_direction = direction;
       }
       
-      // Update group name if we got it from payload (always update, even if already set with fallback)
       if (isGroup && groupSubject) {
         updates.cliente_nome = groupSubject;
       }
       
       if (!fromMe) {
-        // P0-5: unread_count ALWAYS increments for inbound, regardless of timestamp order
         updates.unread_count = (existingConv.unread_count || 0) + 1;
-        // For individual chats, update contact name
         if (!isGroup && contactName) {
           updates.cliente_nome = contactName;
         }
-        // Reopen resolved conversations when client sends a new message
-        // BUT not if the message is a satisfaction survey response
         if (existingConv.status === "resolved") {
           const trimmedContent = content?.trim() || "";
           const possibleRating = parseInt(trimmedContent, 10);
           const isSurveyResponse = possibleRating >= 1 && possibleRating <= 5 && trimmedContent.length <= 2;
           
           if (isSurveyResponse) {
-            // Check if there's a pending satisfaction rating
             const { data: pendingSurvey } = await supabase
               .from("wa_satisfaction_ratings")
               .select("id")
@@ -305,11 +315,8 @@ async function handleMessageUpsert(
               .maybeSingle();
             
             if (!pendingSurvey) {
-              // No pending survey — reopen normally
               updates.status = "open";
               console.log(`[process-webhook-events] Reopening resolved conversation ${conversationId} (not a survey response)`);
-            } else {
-              console.log(`[process-webhook-events] Keeping conversation ${conversationId} resolved (satisfaction survey response)`);
             }
           } else {
             updates.status = "open";
@@ -318,12 +325,10 @@ async function handleMessageUpsert(
         }
       }
       
-      // Ensure is_group flag is set
       if (isGroup && !existingConv.is_group) {
         updates.is_group = true;
       }
       
-      // Only update if there are actual changes
       if (Object.keys(updates).length > 0) {
         await supabase
           .from("wa_conversations")
@@ -333,11 +338,6 @@ async function handleMessageUpsert(
     } else {
       const displayName = isGroup ? (groupSubject || `Grupo ${phone.substring(0, 12)}...`) : contactName;
       
-      // ⚡ PERF: Skip profile picture on hot path — cron job handles it every 6h
-      const profilePicUrl: string | null = null;
-
-      // ⚠️ HARDENING: Use upsert with onConflict to avoid duplicate key errors
-      // from concurrent webhook events for the same conversation
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
         .upsert({
@@ -352,7 +352,7 @@ async function handleMessageUpsert(
           last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
           last_message_direction: direction,
           unread_count: fromMe ? 0 : 1,
-          profile_picture_url: profilePicUrl,
+          profile_picture_url: null,
         }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: false })
         .select("id")
         .single();
@@ -363,16 +363,88 @@ async function handleMessageUpsert(
       }
       conversationId = newConv.id;
     }
+    timingLog("conversation_upsert", t0_conv, { conversationId, isNew: !existingConv });
 
-    // ── HARDENING: Smart auto-assign conversations ──
-    // HMV4: Auto-assign ONLY on conversation creation (INSERT), never on subsequent messages.
-    // This prevents flip-flop when conversations are returned to team queue.
-    // Priority:
-    //   A) #CANAL:slug marker → ALWAYS auto-assign to that consultor
-    //   B) No marker:
-    //      - 1 active consultor on instance → auto-assign
-    //      - 2+ active consultores → leave null (team queue, "Equipe")
-    //      - 0 consultores → fallback to instance owner, else null
+    // ── STEP 2: INSERT MESSAGE (CRITICAL PATH — always first, no external calls) ──
+    const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || messageContent?.stickerMessage?.mimetype || null;
+    const inlineMediaUrl: string | null = msg.mediaUrl || null;
+
+    const t0_insert = Date.now();
+    const { error: msgInsertError } = await supabase.from("wa_messages").upsert({
+      conversation_id: conversationId,
+      tenant_id: tenantId,
+      evolution_message_id: evolutionMessageId,
+      direction,
+      message_type: messageType,
+      content,
+      media_url: inlineMediaUrl, // Only use if already present in payload
+      media_mime_type: mediaMimeType,
+      status: fromMe ? "sent" : "delivered",
+      participant_jid: participantJid,
+      participant_name: participantName,
+      metadata: { raw_key: key },
+    }, { onConflict: "evolution_message_id", ignoreDuplicates: true });
+
+    const insertMs = timingLog("db_insert", t0_insert, { evolutionMessageId, messageType });
+
+    if (msgInsertError) {
+      console.warn(`[process-webhook-events] Message upsert warning: ${msgInsertError.message}`);
+    }
+
+    // ── TIMING: webhook queue → DB insert latency ──
+    if (webhookCreatedAt) {
+      const webhookMs = new Date(webhookCreatedAt).getTime();
+      const totalLatency = Date.now() - webhookMs;
+      timingLog("webhook_to_db_insert", webhookMs, {
+        latency_ms: totalLatency,
+        evolutionMessageId,
+        messageType,
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // EVERYTHING BELOW IS NON-BLOCKING — message is already in DB
+    // and visible via Realtime. Background tasks are collected and
+    // settled with a safety timeout before the function exits.
+    // ══════════════════════════════════════════════════════════════
+
+    // ── BACKGROUND: Fetch media AFTER insert (fire-and-forget) ──
+    if (!inlineMediaUrl && ["image", "video", "audio", "document", "gif", "sticker"].includes(messageType) && evolutionMessageId) {
+      const bgMedia = (async () => {
+        const t0_media = Date.now();
+        try {
+          const mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType === "gif" ? "video" : messageType, mediaMimeType, msg);
+          timingLog("media_fetch_done", t0_media, { evolutionMessageId, mediaUrl: !!mediaUrl });
+          if (mediaUrl) {
+            await supabase.from("wa_messages")
+              .update({ media_url: mediaUrl })
+              .eq("evolution_message_id", evolutionMessageId);
+          }
+        } catch (e) {
+          timingLog("media_fetch_error", t0_media, { evolutionMessageId, error: String(e) });
+        }
+      })();
+      backgroundTasks.push(bgMedia);
+    }
+
+    // ── BACKGROUND: Fetch group name if missing ──
+    if (isGroup && !groupSubject && existingConv && !existingConv.cliente_nome?.startsWith("Grupo ") === false) {
+      const bgGroup = (async () => {
+        const t0_group = Date.now();
+        try {
+          const name = await fetchGroupName(supabase, instanceId, remoteJid);
+          timingLog("group_fetch_done", t0_group, { conversationId, name });
+          if (name) {
+            await supabase.from("wa_conversations").update({ cliente_nome: name }).eq("id", conversationId);
+          }
+        } catch (e) {
+          timingLog("group_fetch_error", t0_group, { error: String(e) });
+        }
+      })();
+      backgroundTasks.push(bgGroup);
+    }
+
+    // ── Auto-assign (only new conversations, non-group) ──
     const isNewConversation = !existingConv;
     if (!isGroup && isNewConversation) {
       const { data: convCheck } = await supabase
@@ -385,7 +457,6 @@ async function handleMessageUpsert(
         let ownerId: string | null = null;
         let assignSource = "unknown";
 
-        // A. Check #CANAL:slug marker in first inbound message
         if (!fromMe && content) {
           const canalMatch = content.match(/#CANAL:([a-zA-Z0-9_-]+)/);
           if (canalMatch) {
@@ -404,20 +475,17 @@ async function handleMessageUpsert(
               if (consultorData?.user_id) {
                 ownerId = consultorData.user_id;
                 assignSource = `canal:${canalSlug}`;
-                console.log(`[process-webhook-events] #CANAL marker detected: ${canalSlug} → user ${ownerId}`);
               }
             }
           }
         }
 
-        // B. No canal marker → count-based logic (single query, no N+1)
         if (!ownerId) {
           const { data: linkedConsultores } = await supabase
             .from("wa_instance_consultores")
             .select("consultor_id, consultores:consultor_id(user_id, ativo)")
             .eq("instance_id", instanceId);
 
-          // Filter to active consultores with user_id
           const activeConsultores = (linkedConsultores || []).filter(
             (lc: any) => lc.consultores?.ativo === true && lc.consultores?.user_id
           );
@@ -427,10 +495,8 @@ async function handleMessageUpsert(
           if (activeCount === 1) {
             ownerId = (activeConsultores[0].consultores as any).user_id;
             assignSource = "single_consultor";
-            console.log(`[process-webhook-events] Single active consultor on instance → auto-assign to ${ownerId}`);
           } else if (activeCount > 1) {
             assignSource = "team_queue";
-            console.log(`[process-webhook-events] ${activeCount} active consultores on instance → team queue (assigned_to=null)`);
           } else {
             const { data: instData } = await supabase
               .from("wa_instances")
@@ -441,33 +507,25 @@ async function handleMessageUpsert(
             if (instData?.owner_user_id) {
               ownerId = instData.owner_user_id;
               assignSource = "instance_owner_fallback";
-              console.log(`[process-webhook-events] No linked consultores → fallback to instance owner ${ownerId}`);
-            } else {
-              console.warn(`[process-webhook-events] Conversation ${conversationId} has no consultores and no owner → stays unassigned`);
             }
           }
         }
 
-        // Idempotent: only assign if still null
         if (ownerId) {
-          const { error: assignErr } = await supabase
+          await supabase
             .from("wa_conversations")
             .update({ assigned_to: ownerId, status: "open" })
             .eq("id", conversationId)
             .is("assigned_to", null);
 
-          if (!assignErr) {
-            console.log(`[process-webhook-events] Auto-assigned conversation ${conversationId} to ${ownerId} (source=${assignSource})`);
-          }
+          console.log(`[process-webhook-events] Auto-assigned ${conversationId} to ${ownerId} (source=${assignSource})`);
         }
       }
     }
 
-    // ── AUTO-REPLY INSTANTÂNEA: primeiro contato ──
-    // Dispara resposta automática configurável quando um contato novo envia a primeira mensagem
+    // ── Auto-reply (new conversations, inbound, non-group) ──
     if (isNewConversation && !fromMe && !isGroup) {
       try {
-        // Check if tenant has auto-reply enabled
         const { data: autoReplyConfig } = await supabase
           .from("whatsapp_automation_config")
           .select("auto_reply_enabled, auto_reply_message, auto_reply_cooldown_minutes")
@@ -480,7 +538,6 @@ async function handleMessageUpsert(
             .replace(/\{nome\}/g, contactName || "")
             .replace(/\{telefone\}/g, phone || "");
 
-          // Send via wa_outbox (non-blocking)
           const { data: outMsg } = await supabase.from("wa_messages").insert({
             conversation_id: conversationId,
             direction: "out",
@@ -505,8 +562,6 @@ async function handleMessageUpsert(
               p_idempotency_key: idempKey,
             });
 
-            console.log(`[process-webhook-events] Auto-reply queued for conversation ${conversationId}`);
-
             // Fire-and-forget outbox processing
             try {
               const outboxUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-wa-outbox`;
@@ -525,61 +580,7 @@ async function handleMessageUpsert(
       }
     }
 
-    // ⚡ PERF: Profile picture refresh moved to cron job — never block hot path
-
-    // ── Extract media MIME for metadata (no external calls yet) ──
-    const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || messageContent?.stickerMessage?.mimetype || null;
-    
-    // ⚡ PERF CRITICAL: Insert message FIRST without media URL
-    // Media will be fetched asynchronously AFTER the message is visible in realtime
-    const inlineMediaUrl: string | null = msg.mediaUrl || null;
-
-    // ⚠️ HARDENING: Use upsert with ignoreDuplicates to prevent duplicate key errors
-    const { error: msgInsertError } = await supabase.from("wa_messages").upsert({
-      conversation_id: conversationId,
-      tenant_id: tenantId,
-      evolution_message_id: evolutionMessageId,
-      direction,
-      message_type: messageType,
-      content,
-      media_url: inlineMediaUrl, // Only use if already present in payload
-      media_mime_type: mediaMimeType,
-      status: fromMe ? "sent" : "delivered",
-      participant_jid: participantJid,
-      participant_name: participantName,
-      metadata: { raw_key: key },
-    }, { onConflict: "evolution_message_id", ignoreDuplicates: true });
-
-    if (msgInsertError) {
-      console.warn(`[process-webhook-events] Message upsert warning: ${msgInsertError.message}`);
-    }
-
-    // ⚡ PERF: Fetch media AFTER message insert (non-blocking for realtime)
-    // Message is already visible in UI; media URL will update via realtime UPDATE event
-    if (!inlineMediaUrl && ["image", "video", "audio", "document", "gif", "sticker"].includes(messageType) && evolutionMessageId) {
-      try {
-        const mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType === "gif" ? "video" : messageType, mediaMimeType, msg);
-        if (mediaUrl) {
-          await supabase.from("wa_messages")
-            .update({ media_url: mediaUrl })
-            .eq("evolution_message_id", evolutionMessageId);
-        }
-      } catch (e) {
-        console.warn(`[process-webhook-events] Deferred media fetch failed: ${e}`);
-      }
-    }
-
-    // ⚡ PERF: Fetch group name AFTER message insert if missing
-    if (isGroup && !groupSubject && existingConv && !existingConv.cliente_nome?.startsWith("Grupo ") === false) {
-      // Fire-and-forget: fetch group name and update conversation
-      fetchGroupName(supabase, instanceId, remoteJid).then(name => {
-        if (name) {
-          supabase.from("wa_conversations").update({ cliente_nome: name }).eq("id", conversationId).then(() => {});
-        }
-      }).catch(() => {});
-    }
-
-    // ── Send Web Push for inbound messages (fire-and-forget) ──
+    // ── Push notification (fire-and-forget) ──
     if (!fromMe && evolutionMessageId) {
       const preview = isGroup && participantName
         ? `${participantName}: ${content ? content.substring(0, 60) : `[${messageType}]`}`
@@ -608,11 +609,11 @@ async function handleMessageUpsert(
       }
     }
 
+    // ── Satisfaction rating check ──
     if (!fromMe && content) {
       const trimmed = content.trim();
       const rating = parseInt(trimmed, 10);
       if (rating >= 1 && rating <= 5 && trimmed.length <= 2) {
-        // Look for a pending satisfaction rating for this conversation
         const { data: pendingRating } = await supabase
           .from("wa_satisfaction_ratings")
           .select("id")
@@ -625,17 +626,19 @@ async function handleMessageUpsert(
         if (pendingRating) {
           await supabase
             .from("wa_satisfaction_ratings")
-            .update({
-              rating,
-              answered_at: new Date().toISOString(),
-            })
+            .update({ rating, answered_at: new Date().toISOString() })
             .eq("id", pendingRating.id);
 
           console.log(`[process-webhook-events] Satisfaction rating ${rating} recorded for conversation ${conversationId}`);
         }
       }
     }
+
+    timingLog("message_total", t0_msg, { evolutionMessageId, messageType, bg_tasks: backgroundTasks.length });
   }
+
+  timingLog("upsert_batch_total", t0_total, { msg_count: (Array.isArray(messages) ? messages : [messages]).length });
+  return backgroundTasks;
 }
 
 // ── Fetch media from Evolution API and store in Supabase Storage ──
@@ -650,7 +653,6 @@ async function fetchAndStoreMedia(
   rawMsg: any,
 ): Promise<string | null> {
   try {
-    // Get instance details for API call
     const { data: instance } = await supabase
       .from("wa_instances")
       .select("evolution_api_url, evolution_instance_key, api_key")
@@ -668,8 +670,6 @@ async function fetchAndStoreMedia(
 
     if (!apiUrl || !instanceKey) return null;
 
-    // Call Evolution API to get base64 media
-    // The key must include remoteJid, fromMe, and id for Evolution to find the message
     const mediaEndpoint = `${apiUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceKey)}`;
     const messageKey = rawMsg.key && rawMsg.key.remoteJid
       ? rawMsg.key
@@ -696,7 +696,6 @@ async function fetchAndStoreMedia(
       return null;
     }
 
-    // Determine file extension
     const extMap: Record<string, string> = {
       "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
       "video/mp4": "mp4", "video/3gpp": "3gp",
@@ -706,10 +705,8 @@ async function fetchAndStoreMedia(
     const cleanMime = mediaMime.split(";")[0].trim();
     const ext = extMap[mediaMime] || extMap[cleanMime] || cleanMime.split("/")[1] || "bin";
 
-    // Upload to Supabase Storage
     const filePath = `${tenantId}/media/${messageId}.${ext}`;
     
-    // Convert base64 to Uint8Array
     const binaryStr = atob(base64);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
@@ -772,9 +769,6 @@ async function fetchGroupName(
 
     const data = await res.json();
     const subject = data?.subject || data?.data?.subject || null;
-    if (subject) {
-      console.log(`[process-webhook-events] Fetched group name: "${subject}" for ${groupJid}`);
-    }
     return subject;
   } catch (err) {
     console.warn("[process-webhook-events] Failed to fetch group name:", err);
@@ -793,7 +787,6 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
     return { content: messageContent.imageMessage.caption || null, messageType: "image" };
   }
   if (messageContent.videoMessage) {
-    // WhatsApp sends GIFs as videoMessage with gifPlayback=true
     const isGif = messageContent.videoMessage.gifPlayback === true;
     return { content: messageContent.videoMessage.caption || null, messageType: isGif ? "gif" : "video" };
   }
@@ -816,7 +809,6 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
   if (messageContent.reactionMessage) {
     return { content: messageContent.reactionMessage.text || null, messageType: "reaction" };
   }
-  // Fallback: use body or text from msg directly
   if (msg.body || msg.text) {
     return { content: msg.body || msg.text, messageType: "text" };
   }
@@ -854,32 +846,11 @@ async function fetchProfilePicture(
     if (!res.ok) return null;
 
     const data = await res.json();
-    const picUrl = data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || null;
-    if (picUrl) {
-      console.log(`[process-webhook-events] Profile picture fetched for ${remoteJid}`);
-    }
-    return picUrl;
+    return data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || null;
   } catch (err) {
     console.warn("[process-webhook-events] Failed to fetch profile picture:", err);
     return null;
   }
-}
-
-// Check if we should refresh profile picture
-// - Always refresh if missing
-// - Retry every ~24h if still missing after last update
-function shouldRefreshProfilePic(existingConv: any): boolean {
-  if (!existingConv.profile_picture_url) {
-    if (existingConv.updated_at) {
-      const lastUpdate = new Date(existingConv.updated_at).getTime();
-      const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000;
-      if (lastUpdate > sixHoursAgo) {
-        return false;
-      }
-    }
-    return true;
-  }
-  return false;
 }
 
 async function handleMessageUpdate(supabase: any, payload: any) {
@@ -887,25 +858,16 @@ async function handleMessageUpdate(supabase: any, payload: any) {
   const updates = Array.isArray(data) ? data : [data];
   
   for (const update of updates) {
-    // Evolution API v2 uses keyId, v1 uses key.id
     const evolutionId = update.keyId || update.key?.id || update.id;
     if (!evolutionId) continue;
 
-    // Map both numeric (v1) and string (v2) statuses
     const numericStatusMap: Record<number, string> = {
-      0: "pending",
-      1: "sent",
-      2: "delivered",
-      3: "read",
-      4: "read",
+      0: "pending", 1: "sent", 2: "delivered", 3: "read", 4: "read",
     };
 
     const stringStatusMap: Record<string, string> = {
-      "PENDING": "pending",
-      "SERVER_ACK": "sent",
-      "DELIVERY_ACK": "delivered",
-      "READ": "read",
-      "PLAYED": "read",
+      "PENDING": "pending", "SERVER_ACK": "sent", "DELIVERY_ACK": "delivered",
+      "READ": "read", "PLAYED": "read",
     };
 
     const rawStatus = update.status || update.update?.status;
@@ -915,10 +877,7 @@ async function handleMessageUpdate(supabase: any, payload: any) {
       ? stringStatusMap[rawStatus.toUpperCase()] || null
       : null;
 
-    if (!newStatus) {
-      console.log(`[process-webhook-events] Unknown message status: ${rawStatus} for ${evolutionId}`);
-      continue;
-    }
+    if (!newStatus) continue;
 
     const { data: updated, error } = await supabase
       .from("wa_messages")
@@ -939,10 +898,7 @@ async function handleConnectionUpdate(supabase: any, instanceId: string, payload
   const state = payload.data?.state || payload.state || payload.status;
   
   const statusMap: Record<string, string> = {
-    open: "connected",
-    close: "disconnected",
-    connecting: "connecting",
-    refused: "error",
+    open: "connected", close: "disconnected", connecting: "connecting", refused: "error",
   };
 
   const dbStatus = statusMap[state] || "disconnected";
@@ -963,8 +919,9 @@ async function handleContactsUpsert(
   instanceId: string,
   _tenantId: string,
   payload: any
-) {
+): Promise<Promise<void>[]> {
   const contacts = payload.data || payload.contacts || [];
+  const bgTasks: Promise<void>[] = [];
   
   for (const contact of Array.isArray(contacts) ? contacts : [contacts]) {
     const jid = contact.id || contact.jid;
@@ -985,19 +942,22 @@ async function handleContactsUpsert(
         .eq("remote_jid", jid);
     }
 
-    // If contact has no profile picture, try to fetch it
+    // Profile picture fetch is BACKGROUND — never block the event loop
     if (!profilePicUrl && !jid.endsWith("@g.us")) {
-      try {
-        const picUrl = await fetchProfilePicture(supabase, instanceId, jid);
-        if (picUrl) {
-          await supabase
-            .from("wa_conversations")
-            .update({ profile_picture_url: picUrl })
-            .eq("instance_id", instanceId)
-            .eq("remote_jid", jid);
-          console.log(`[process-webhook-events] Profile picture fetched via contacts.upsert for ${jid}`);
-        }
-      } catch (_) { /* ignore */ }
+      const bgPic = (async () => {
+        try {
+          const picUrl = await fetchProfilePicture(supabase, instanceId, jid);
+          if (picUrl) {
+            await supabase
+              .from("wa_conversations")
+              .update({ profile_picture_url: picUrl })
+              .eq("instance_id", instanceId)
+              .eq("remote_jid", jid);
+          }
+        } catch (_) { /* ignore */ }
+      })();
+      bgTasks.push(bgPic);
     }
   }
+  return bgTasks;
 }

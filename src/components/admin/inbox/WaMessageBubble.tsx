@@ -167,6 +167,12 @@ export function WaMessageBubble({
               <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover" />
             </div>
           )}
+          {msg.message_type === "image" && !msg.media_url && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
+              <Clock className="h-3.5 w-3.5" />
+              <span>Carregando imagem…</span>
+            </div>
+          )}
           {msg.message_type === "image" && msg.content && (
             <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
           )}
@@ -211,8 +217,9 @@ export function WaMessageBubble({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-xs opacity-80">
-                <span>🎬</span> Vídeo
+              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Carregando vídeo…</span>
               </div>
             )
           )}
@@ -223,18 +230,26 @@ export function WaMessageBubble({
                 Seu navegador não suporta áudio.
               </audio>
             ) : (
-              <div className="flex items-center gap-2 text-xs opacity-80">
-                <span>🎵</span> Mensagem de áudio (mídia indisponível)
+              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Carregando áudio…</span>
               </div>
             )
           )}
           {msg.message_type === "document" && (
-            <div
-              className="flex items-center gap-2 text-xs opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
-              onClick={() => msg.media_url && onMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
-            >
-              <span>📄</span> {msg.content || "Documento"}
-            </div>
+            msg.media_url ? (
+              <div
+                className="flex items-center gap-2 text-xs opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
+                onClick={() => msg.media_url && onMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
+              >
+                <span>📄</span> {msg.content || "Documento"}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Carregando documento…</span>
+              </div>
+            )
           )}
           {msg.message_type === "sticker" && (
             msg.media_url ? (

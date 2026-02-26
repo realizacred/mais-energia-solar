@@ -11,6 +11,8 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const t0 = Date.now();
+
   try {
     // ===== RATE LIMITING =====
     const url = new URL(req.url);
@@ -25,7 +27,7 @@ Deno.serve(async (req) => {
       _function_name: "evolution-webhook",
       _identifier: identifier,
       _window_seconds: 60,
-      _max_requests: 120, // webhooks can be bursty
+      _max_requests: 120,
     });
     if (allowed === false) {
       console.warn(`[evolution-webhook] Rate limited: ${identifier}`);
@@ -47,7 +49,6 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const eventType = body.event || body.type || "unknown";
-    console.log(`[evolution-webhook] Event received for instance=${instanceKey}, type=${eventType}`);
 
     // Create admin client
     const supabase = createClient(
@@ -58,7 +59,6 @@ Deno.serve(async (req) => {
     // Look up the instance — try multiple strategies
     let instance: { id: string; tenant_id: string; webhook_secret: string } | null = null;
 
-    // Strategy 1: Try by evolution_instance_key (exact match)
     const { data: byKey } = await supabase
       .from("wa_instances")
       .select("id, tenant_id, webhook_secret")
@@ -67,10 +67,8 @@ Deno.serve(async (req) => {
 
     if (byKey) {
       instance = byKey;
-      console.log(`[evolution-webhook] Found instance by evolution_instance_key: ${instance.id}`);
     }
 
-    // Strategy 2: Try by ID (if instanceKey looks like UUID)
     if (!instance) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceKey);
       if (isUuid) {
@@ -79,36 +77,28 @@ Deno.serve(async (req) => {
           .select("id, tenant_id, webhook_secret")
           .eq("id", instanceKey)
           .maybeSingle();
-        if (byId) {
-          instance = byId;
-          console.log(`[evolution-webhook] Found instance by ID: ${instance.id}`);
-        }
+        if (byId) instance = byId;
       }
     }
 
-    // Strategy 3: Try by webhook_secret match (if secret was provided)
     if (!instance && webhookSecret) {
       const { data: bySecret } = await supabase
         .from("wa_instances")
         .select("id, tenant_id, webhook_secret")
         .eq("webhook_secret", webhookSecret)
         .maybeSingle();
-      if (bySecret) {
-        instance = bySecret;
-        console.log(`[evolution-webhook] Found instance by webhook_secret: ${instance.id}`);
-      }
+      if (bySecret) instance = bySecret;
     }
 
-    // No fallback — if no strategy matched, reject
     if (!instance) {
-      console.error(`[evolution-webhook] Instance not found by any strategy: ${instanceKey}`);
+      console.error(`[evolution-webhook] Instance not found: ${instanceKey}`);
       return new Response(JSON.stringify({ error: "Instance not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // G3: Tenant status enforcement — reject webhooks for inactive tenants
+    // G3: Tenant status enforcement
     const { data: tenantCheck } = await supabase
       .from("tenants")
       .select("status, deleted_at")
@@ -116,16 +106,15 @@ Deno.serve(async (req) => {
       .single();
 
     if (!tenantCheck || tenantCheck.status !== "active" || tenantCheck.deleted_at) {
-      console.warn(`[evolution-webhook] Tenant ${instance.tenant_id} inactive (${tenantCheck?.status}), rejecting webhook`);
+      console.warn(`[evolution-webhook] Tenant ${instance.tenant_id} inactive`);
       return new Response(JSON.stringify({ error: "tenant_inactive" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate webhook secret if both are provided
+    // Validate webhook secret
     if (webhookSecret && instance.webhook_secret && webhookSecret !== instance.webhook_secret) {
-      console.error(`[evolution-webhook] Invalid webhook secret for instance=${instanceKey}`);
       return new Response(JSON.stringify({ error: "Invalid secret" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -151,7 +140,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[evolution-webhook] Event queued: type=${eventType}, instance=${instance.id}`);
+    const queueMs = Date.now() - t0;
+    console.log(`[TIMING] {"step":"webhook_queued","elapsed_ms":${queueMs},"event_type":"${eventType}","instance":"${instance.id}"}`);
 
     // Auto-trigger processing for message and status events
     const autoTriggerEvents = [
@@ -175,7 +165,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, queue_ms: queueMs }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
