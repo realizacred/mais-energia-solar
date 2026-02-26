@@ -197,3 +197,6 @@ verify_jwt = false
 
 [functions.facebook-lead-webhook]
 verify_jwt = false
+
+[functions.meta-facebook-diagnostics]
+verify_jwt = false
