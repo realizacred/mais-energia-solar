@@ -155,6 +155,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     unacknowledgedCount: slaUnackedCount,
     acknowledgeAlert: acknowledgeSlaAlert,
     acknowledgeAll: acknowledgeAllSla,
+    pauseSla: pauseSlaConversation,
     isEnabled: slaEnabled,
   } = useWaSlaAlerts();
 
@@ -633,6 +634,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           }}
           onAcknowledge={acknowledgeSlaAlert}
           onAcknowledgeAll={acknowledgeAllSla}
+          onPauseSla={pauseSlaConversation}
           isAdmin={isAdminUser}
         />
       )}

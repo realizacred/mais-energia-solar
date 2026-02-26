@@ -14402,6 +14402,7 @@ export type Database = {
           lead_id: string | null
           profile_picture_url: string | null
           remote_jid: string
+          sla_paused_until: string | null
           status: string
           telefone_normalized: string | null
           tenant_id: string
@@ -14426,6 +14427,7 @@ export type Database = {
           lead_id?: string | null
           profile_picture_url?: string | null
           remote_jid: string
+          sla_paused_until?: string | null
           status?: string
           telefone_normalized?: string | null
           tenant_id?: string
@@ -14450,6 +14452,7 @@ export type Database = {
           lead_id?: string | null
           profile_picture_url?: string | null
           remote_jid?: string
+          sla_paused_until?: string | null
           status?: string
           telefone_normalized?: string | null
           tenant_id?: string
