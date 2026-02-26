@@ -3005,6 +3005,219 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_itens: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          custo_medio: number
+          estoque_minimo: number
+          id: string
+          nome: string
+          sku: string | null
+          tenant_id: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          custo_medio?: number
+          estoque_minimo?: number
+          id?: string
+          nome: string
+          sku?: string | null
+          tenant_id: string
+          unidade?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          custo_medio?: number
+          estoque_minimo?: number
+          id?: string
+          nome?: string
+          sku?: string | null
+          tenant_id?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_locais: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tenant_id: string
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_locais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_movimentos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          custo_unitario: number | null
+          id: string
+          item_id: string
+          local_id: string | null
+          observacao: string | null
+          origem: string
+          quantidade: number
+          ref_id: string | null
+          ref_type: string | null
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          custo_unitario?: number | null
+          id?: string
+          item_id: string
+          local_id?: string | null
+          observacao?: string | null
+          origem?: string
+          quantidade: number
+          ref_id?: string | null
+          ref_type?: string | null
+          tenant_id: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          custo_unitario?: number | null
+          id?: string
+          item_id?: string
+          local_id?: string | null
+          observacao?: string | null
+          origem?: string
+          quantidade?: number
+          ref_id?: string | null
+          ref_type?: string | null
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_local_id_fkey"
+            columns: ["local_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_locais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_reservas: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          local_id: string | null
+          quantidade_reservada: number
+          ref_id: string | null
+          ref_type: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          local_id?: string | null
+          quantidade_reservada: number
+          ref_id?: string | null
+          ref_type?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          local_id?: string | null
+          quantidade_reservada?: number
+          ref_id?: string | null
+          ref_type?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_reservas_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_local_id_fkey"
+            columns: ["local_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_locais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facebook_ad_metrics: {
         Row: {
           ad_id: string | null
@@ -16022,7 +16235,37 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      estoque_saldos: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          custo_medio: number | null
+          estoque_atual: number | null
+          estoque_minimo: number | null
+          item_id: string | null
+          nome: string | null
+          reservado: number | null
+          sku: string | null
+          tenant_id: string | null
+          unidade: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       acquire_conversation_lock: {
