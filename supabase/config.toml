@@ -31,6 +31,12 @@ verify_jwt = false
 verify_jwt = false
 wall_clock_limit = 300
 
+[functions.wa-bg-worker]
+verify_jwt = false
+
+[functions.sync-wa-profile-pictures]
+verify_jwt = false
+
 [functions.test-evolution-connection]
 verify_jwt = false
 
