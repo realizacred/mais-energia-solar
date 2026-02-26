@@ -26,7 +26,6 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // ── P0-2: Advisory lock to prevent concurrent processing ──
   let lockAcquired = false;
   try {
     const { data: lockResult } = await supabase.rpc("try_webhook_lock");
@@ -40,7 +39,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── P1-2: Backlog alert (stuck events > 5min old) ──
+    // Backlog alert
     {
       const { count: stuckCount } = await supabase
         .from("wa_webhook_events")
@@ -52,7 +51,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch unprocessed events
     const { data: events, error: fetchError } = await supabase
       .from("wa_webhook_events")
       .select("*")
@@ -76,14 +74,14 @@ Deno.serve(async (req) => {
 
     let processed = 0;
     let errors = 0;
-    // Collect fire-and-forget media promises to settle before function exits
-    const backgroundTasks: Promise<void>[] = [];
+    let jobsEnqueued = 0;
 
     for (const event of events) {
       try {
-        const bgTasks = await processEvent(supabase, event);
-        if (bgTasks.length > 0) backgroundTasks.push(...bgTasks);
+        const enqueued = await processEvent(supabase, event);
+        jobsEnqueued += enqueued;
         
+        // Mark processed IMMEDIATELY after DB insert — no extra awaits
         await supabase
           .from("wa_webhook_events")
           .update({ processed: true, processed_at: new Date().toISOString() })
@@ -105,19 +103,29 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Wait for background tasks with a safety timeout so the function doesn't hang
-    if (backgroundTasks.length > 0) {
-      const BG_TIMEOUT_MS = 25_000; // 25s safety cap
-      await Promise.race([
-        Promise.allSettled(backgroundTasks),
-        new Promise(resolve => setTimeout(resolve, BG_TIMEOUT_MS)),
-      ]);
+    // ══════════════════════════════════════════════════════════════
+    // NO Promise.allSettled — NO waiting for background tasks.
+    // All deferred work is in wa_bg_jobs, processed by wa-bg-worker.
+    // ══════════════════════════════════════════════════════════════
+
+    // Fire-and-forget: trigger the background worker
+    if (jobsEnqueued > 0) {
+      try {
+        const workerUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/wa-bg-worker`;
+        fetch(workerUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            "Content-Type": "application/json",
+          },
+        }).catch(() => {});
+      } catch {}
     }
 
-    console.log(`[process-webhook-events] Done: ${processed} processed, ${errors} errors, ${backgroundTasks.length} bg_tasks`);
+    console.log(`[process-webhook-events] Done: ${processed} processed, ${errors} errors, ${jobsEnqueued} jobs_enqueued`);
 
     return new Response(
-      JSON.stringify({ processed, errors, total: events.length, bg_tasks: backgroundTasks.length }),
+      JSON.stringify({ processed, errors, total: events.length, jobs_enqueued: jobsEnqueued }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
@@ -127,7 +135,6 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } finally {
-    // P0-2: Always release lock in finally (even though session-scoped)
     if (lockAcquired) {
       try {
         await supabase.rpc("release_webhook_lock");
@@ -151,10 +158,11 @@ interface WebhookEvent {
 }
 
 /**
- * Process a single event. Returns an array of background (fire-and-forget) promises
- * that the caller should settle before the function exits.
+ * Process a single event. Returns the number of background jobs enqueued.
+ * CRITICAL PATH ONLY: conversation upsert + message insert.
+ * Everything else → wa_bg_jobs.
  */
-async function processEvent(supabase: any, event: WebhookEvent): Promise<Promise<void>[]> {
+async function processEvent(supabase: any, event: WebhookEvent): Promise<number> {
   const { event_type, payload, instance_id, tenant_id } = event;
 
   switch (event_type) {
@@ -165,12 +173,12 @@ async function processEvent(supabase: any, event: WebhookEvent): Promise<Promise
     case "messages.update":
     case "MESSAGES_UPDATE":
       await handleMessageUpdate(supabase, payload);
-      return [];
+      return 0;
 
     case "connection.update":
     case "CONNECTION_UPDATE":
       await handleConnectionUpdate(supabase, instance_id, payload);
-      return [];
+      return 0;
 
     case "contacts.upsert":
     case "CONTACTS_UPSERT":
@@ -178,11 +186,11 @@ async function processEvent(supabase: any, event: WebhookEvent): Promise<Promise
 
     default:
       console.log(`[process-webhook-events] Ignoring event type: ${event_type}`);
-      return [];
+      return 0;
   }
 }
 
-// ── P0-5: Defensive epoch parsing ──
+// ── Defensive epoch parsing ──
 function parseMessageTimestamp(msg: any): Date {
   const raw = msg.messageTimestamp ?? msg.message_timestamp ?? msg.timestamp;
   if (raw == null) return new Date();
@@ -203,9 +211,37 @@ function parseMessageTimestamp(msg: any): Date {
 }
 
 /**
+ * Enqueue a background job with idempotency.
+ * Returns 1 if enqueued, 0 if duplicate (already exists).
+ */
+async function enqueueJob(
+  supabase: any,
+  tenantId: string,
+  instanceId: string,
+  jobType: string,
+  payload: Record<string, unknown>,
+  idempotencyKey: string,
+): Promise<number> {
+  const { error } = await supabase.from("wa_bg_jobs").upsert({
+    tenant_id: tenantId,
+    instance_id: instanceId,
+    job_type: jobType,
+    payload,
+    status: "pending",
+    idempotency_key: idempotencyKey,
+  }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+
+  if (error) {
+    console.warn(`[process-webhook-events] Failed to enqueue ${jobType} job:`, error.message);
+    return 0;
+  }
+  return 1;
+}
+
+/**
  * Handle messages.upsert — CRITICAL PATH.
  * Rule: DB INSERT must ALWAYS happen FIRST. No external calls before insert.
- * Returns background promises for deferred work (media, group name).
+ * All background work → wa_bg_jobs table.
  */
 async function handleMessageUpsert(
   supabase: any,
@@ -213,9 +249,9 @@ async function handleMessageUpsert(
   tenantId: string,
   payload: any,
   webhookCreatedAt: string,
-): Promise<Promise<void>[]> {
+): Promise<number> {
   const t0_total = Date.now();
-  const backgroundTasks: Promise<void>[] = [];
+  let jobsEnqueued = 0;
 
   const messages = payload.data || payload.messages || (payload.key ? [payload] : []);
   
@@ -239,14 +275,14 @@ async function handleMessageUpsert(
     const contactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
-    // ⚡ PERF: Only use data already in payload — NEVER block on external API call
+    // Only use data already in payload — NEVER block on external API call
     const groupSubject: string | null = isGroup
       ? (msg.groupMetadata?.subject || msg.messageContextInfo?.messageSecret?.groupSubject || payload.groupSubject || payload.subject || msg.subject || null)
       : null;
 
     const eventDate = parseMessageTimestamp(msg);
 
-    // ── P0-NORM: Build alternate JID formats for BR phone normalization ──
+    // BR phone normalization
     const altJids: string[] = [remoteJid];
     if (!isGroup) {
       const digits = phone;
@@ -259,7 +295,7 @@ async function handleMessageUpsert(
       }
     }
 
-    // ── STEP 1: Upsert conversation ──
+    // ── STEP 1: Upsert conversation (CRITICAL PATH) ──
     const t0_conv = Date.now();
     const { data: existingConv } = await supabase
       .from("wa_conversations")
@@ -316,11 +352,9 @@ async function handleMessageUpsert(
             
             if (!pendingSurvey) {
               updates.status = "open";
-              console.log(`[process-webhook-events] Reopening resolved conversation ${conversationId} (not a survey response)`);
             }
           } else {
             updates.status = "open";
-            console.log(`[process-webhook-events] Reopening resolved conversation ${conversationId}`);
           }
         }
       }
@@ -336,7 +370,8 @@ async function handleMessageUpsert(
           .eq("id", conversationId);
       }
     } else {
-      const displayName = isGroup ? (groupSubject || `Grupo ${phone.substring(0, 12)}...`) : contactName;
+      // P0-5: Fix group name placeholder — use null when no subject available
+      const displayName = isGroup ? (groupSubject || null) : contactName;
       
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
@@ -377,7 +412,7 @@ async function handleMessageUpsert(
       direction,
       message_type: messageType,
       content,
-      media_url: inlineMediaUrl, // Only use if already present in payload
+      media_url: inlineMediaUrl,
       media_mime_type: mediaMimeType,
       status: fromMe ? "sent" : "delivered",
       participant_jid: participantJid,
@@ -403,213 +438,77 @@ async function handleMessageUpsert(
     }
 
     // ══════════════════════════════════════════════════════════════
-    // EVERYTHING BELOW IS NON-BLOCKING — message is already in DB
-    // and visible via Realtime. Background tasks are collected and
-    // settled with a safety timeout before the function exits.
+    // CRITICAL PATH ENDS HERE.
+    // Everything below enqueues jobs into wa_bg_jobs.
+    // NO awaits on external APIs. NO Promise.allSettled.
     // ══════════════════════════════════════════════════════════════
 
-    // ── BACKGROUND: Fetch media AFTER insert (fire-and-forget) ──
+    // ── ENQUEUE: Media fetch job ──
     if (!inlineMediaUrl && ["image", "video", "audio", "document", "gif", "sticker"].includes(messageType) && evolutionMessageId) {
-      const bgMedia = (async () => {
-        const t0_media = Date.now();
-        try {
-          const mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType === "gif" ? "video" : messageType, mediaMimeType, msg);
-          timingLog("media_fetch_done", t0_media, { evolutionMessageId, mediaUrl: !!mediaUrl });
-          if (mediaUrl) {
-            await supabase.from("wa_messages")
-              .update({ media_url: mediaUrl })
-              .eq("evolution_message_id", evolutionMessageId);
-          }
-        } catch (e) {
-          timingLog("media_fetch_error", t0_media, { evolutionMessageId, error: String(e) });
-        }
-      })();
-      backgroundTasks.push(bgMedia);
+      jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "media_fetch", {
+        evolution_message_id: evolutionMessageId,
+        message_type: messageType === "gif" ? "video" : messageType,
+        mime_type: mediaMimeType,
+        raw_key: key,
+        remote_jid: remoteJid,
+        from_me: fromMe,
+      }, `media:${evolutionMessageId}`);
     }
 
-    // ── BACKGROUND: Fetch group name if missing ──
-    if (isGroup && !groupSubject && existingConv && !existingConv.cliente_nome?.startsWith("Grupo ") === false) {
-      const bgGroup = (async () => {
-        const t0_group = Date.now();
-        try {
-          const name = await fetchGroupName(supabase, instanceId, remoteJid);
-          timingLog("group_fetch_done", t0_group, { conversationId, name });
-          if (name) {
-            await supabase.from("wa_conversations").update({ cliente_nome: name }).eq("id", conversationId);
-          }
-        } catch (e) {
-          timingLog("group_fetch_error", t0_group, { error: String(e) });
-        }
-      })();
-      backgroundTasks.push(bgGroup);
-    }
-
-    // ── Auto-assign (only new conversations, non-group) ──
-    const isNewConversation = !existingConv;
-    if (!isGroup && isNewConversation) {
-      const { data: convCheck } = await supabase
-        .from("wa_conversations")
-        .select("assigned_to")
-        .eq("id", conversationId)
-        .maybeSingle();
-
-      if (convCheck && !convCheck.assigned_to) {
-        let ownerId: string | null = null;
-        let assignSource = "unknown";
-
-        if (!fromMe && content) {
-          const canalMatch = content.match(/#CANAL:([a-zA-Z0-9_-]+)/);
-          if (canalMatch) {
-            const canalSlug = canalMatch[1];
-            const { data: canalConsultor } = await supabase
-              .rpc("resolve_consultor_public", { _codigo: canalSlug })
-              .maybeSingle();
-
-            if (canalConsultor && canalConsultor.tenant_id === tenantId && canalConsultor.id) {
-              const { data: consultorData } = await supabase
-                .from("consultores")
-                .select("user_id")
-                .eq("id", canalConsultor.id)
-                .maybeSingle();
-
-              if (consultorData?.user_id) {
-                ownerId = consultorData.user_id;
-                assignSource = `canal:${canalSlug}`;
-              }
-            }
-          }
-        }
-
-        if (!ownerId) {
-          const { data: linkedConsultores } = await supabase
-            .from("wa_instance_consultores")
-            .select("consultor_id, consultores:consultor_id(user_id, ativo)")
-            .eq("instance_id", instanceId);
-
-          const activeConsultores = (linkedConsultores || []).filter(
-            (lc: any) => lc.consultores?.ativo === true && lc.consultores?.user_id
-          );
-
-          const activeCount = activeConsultores.length;
-
-          if (activeCount === 1) {
-            ownerId = (activeConsultores[0].consultores as any).user_id;
-            assignSource = "single_consultor";
-          } else if (activeCount > 1) {
-            assignSource = "team_queue";
-          } else {
-            const { data: instData } = await supabase
-              .from("wa_instances")
-              .select("owner_user_id")
-              .eq("id", instanceId)
-              .maybeSingle();
-
-            if (instData?.owner_user_id) {
-              ownerId = instData.owner_user_id;
-              assignSource = "instance_owner_fallback";
-            }
-          }
-        }
-
-        if (ownerId) {
-          await supabase
-            .from("wa_conversations")
-            .update({ assigned_to: ownerId, status: "open" })
-            .eq("id", conversationId)
-            .is("assigned_to", null);
-
-          console.log(`[process-webhook-events] Auto-assigned ${conversationId} to ${ownerId} (source=${assignSource})`);
-        }
+    // ── ENQUEUE: Group name fetch job ──
+    // P0-5 FIX: Check if name is null OR starts with "Grupo "
+    if (isGroup && !groupSubject) {
+      const needsGroupName = !existingConv 
+        || existingConv.cliente_nome == null 
+        || (typeof existingConv.cliente_nome === "string" && existingConv.cliente_nome.startsWith("Grupo "));
+      
+      if (needsGroupName) {
+        jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "group_name", {
+          conversation_id: conversationId,
+          remote_jid: remoteJid,
+        }, `group:${conversationId}`);
       }
     }
 
-    // ── Auto-reply (new conversations, inbound, non-group) ──
-    if (isNewConversation && !fromMe && !isGroup) {
-      try {
-        const { data: autoReplyConfig } = await supabase
-          .from("whatsapp_automation_config")
-          .select("auto_reply_enabled, auto_reply_message, auto_reply_cooldown_minutes")
-          .eq("tenant_id", tenantId)
-          .eq("ativo", true)
-          .maybeSingle();
-
-        if (autoReplyConfig?.auto_reply_enabled && autoReplyConfig?.auto_reply_message) {
-          const replyMsg = autoReplyConfig.auto_reply_message
-            .replace(/\{nome\}/g, contactName || "")
-            .replace(/\{telefone\}/g, phone || "");
-
-          const { data: outMsg } = await supabase.from("wa_messages").insert({
-            conversation_id: conversationId,
-            direction: "out",
-            message_type: "text",
-            content: replyMsg,
-            is_internal_note: false,
-            status: "pending",
-            tenant_id: tenantId,
-            source: "auto_reply",
-          }).select("id").single();
-
-          if (outMsg) {
-            const idempKey = `auto_reply:${tenantId}:${conversationId}:${outMsg.id}`;
-            await supabase.rpc("enqueue_wa_outbox_item", {
-              p_tenant_id: tenantId,
-              p_instance_id: instanceId,
-              p_remote_jid: remoteJid,
-              p_message_type: "text",
-              p_content: replyMsg,
-              p_conversation_id: conversationId,
-              p_message_id: outMsg.id,
-              p_idempotency_key: idempKey,
-            });
-
-            // Fire-and-forget outbox processing
-            try {
-              const outboxUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-wa-outbox`;
-              fetch(outboxUrl, {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                  "Content-Type": "application/json",
-                },
-              }).catch(() => {});
-            } catch {}
-          }
-        }
-      } catch (e) {
-        console.warn(`[process-webhook-events] Auto-reply error:`, e);
-      }
-    }
-
-    // ── Push notification (fire-and-forget) ──
+    // ── ENQUEUE: Push notification job ──
     if (!fromMe && evolutionMessageId) {
       const preview = isGroup && participantName
         ? `${participantName}: ${content ? content.substring(0, 60) : `[${messageType}]`}`
         : content ? content.substring(0, 80) : `[${messageType}]`;
 
-      try {
-        const pushUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`;
-        fetch(pushUrl, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            conversationId,
-            tenantId,
-            instanceId,
-            contactName: isGroup ? (groupSubject || contactName) : contactName,
-            messagePreview: preview,
-            messageId: evolutionMessageId,
-            direction,
-          }),
-        }).catch(e => console.warn("[process-webhook-events] Push trigger failed:", e));
-      } catch (e) {
-        console.warn("[process-webhook-events] Push trigger error:", e);
-      }
+      jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "push", {
+        conversation_id: conversationId,
+        contact_name: isGroup ? (groupSubject || contactName) : contactName,
+        message_preview: preview,
+        message_id: evolutionMessageId,
+        direction,
+      }, `push:${evolutionMessageId}`);
     }
 
-    // ── Satisfaction rating check ──
+    // ── ENQUEUE: Auto-assign job (only new conversations, non-group) ──
+    const isNewConversation = !existingConv;
+    if (!isGroup && isNewConversation) {
+      jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "auto_assign", {
+        conversation_id: conversationId,
+        remote_jid: remoteJid,
+        from_me: fromMe,
+        content,
+        contact_name: contactName,
+        phone,
+      }, `assign:${conversationId}`);
+    }
+
+    // ── ENQUEUE: Auto-reply job (new conversations, inbound, non-group) ──
+    if (isNewConversation && !fromMe && !isGroup) {
+      jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "auto_reply", {
+        conversation_id: conversationId,
+        remote_jid: remoteJid,
+        contact_name: contactName,
+        phone,
+      }, `reply:${conversationId}`);
+    }
+
+    // ── Satisfaction rating check (lightweight, stays inline) ──
     if (!fromMe && content) {
       const trimmed = content.trim();
       const rating = parseInt(trimmed, 10);
@@ -628,152 +527,15 @@ async function handleMessageUpsert(
             .from("wa_satisfaction_ratings")
             .update({ rating, answered_at: new Date().toISOString() })
             .eq("id", pendingRating.id);
-
-          console.log(`[process-webhook-events] Satisfaction rating ${rating} recorded for conversation ${conversationId}`);
         }
       }
     }
 
-    timingLog("message_total", t0_msg, { evolutionMessageId, messageType, bg_tasks: backgroundTasks.length });
+    timingLog("message_total", t0_msg, { evolutionMessageId, messageType, jobs_enqueued: jobsEnqueued });
   }
 
   timingLog("upsert_batch_total", t0_total, { msg_count: (Array.isArray(messages) ? messages : [messages]).length });
-  return backgroundTasks;
-}
-
-// ── Fetch media from Evolution API and store in Supabase Storage ──
-
-async function fetchAndStoreMedia(
-  supabase: any,
-  instanceId: string,
-  tenantId: string,
-  messageId: string,
-  messageType: string,
-  mimeType: string | null,
-  rawMsg: any,
-): Promise<string | null> {
-  try {
-    const { data: instance } = await supabase
-      .from("wa_instances")
-      .select("evolution_api_url, evolution_instance_key, api_key")
-      .eq("id", instanceId)
-      .maybeSingle();
-
-    if (!instance) {
-      console.warn(`[process-webhook-events] No instance found for media fetch: ${instanceId}`);
-      return null;
-    }
-
-    const apiUrl = instance.evolution_api_url?.replace(/\/$/, "");
-    const apiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
-    const instanceKey = instance.evolution_instance_key;
-
-    if (!apiUrl || !instanceKey) return null;
-
-    const mediaEndpoint = `${apiUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceKey)}`;
-    const messageKey = rawMsg.key && rawMsg.key.remoteJid
-      ? rawMsg.key
-      : { remoteJid: rawMsg.key?.remoteJid || rawMsg.remoteJid || "", fromMe: rawMsg.key?.fromMe ?? false, id: messageId };
-    
-    const mediaRes = await fetch(mediaEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: apiKey },
-      body: JSON.stringify({ message: { key: messageKey }, convertToMp4: messageType === "audio" }),
-    });
-
-    if (!mediaRes.ok) {
-      const errText = await mediaRes.text().catch(() => "");
-      console.warn(`[process-webhook-events] Media fetch failed [${mediaRes.status}]: ${errText.substring(0, 200)}`);
-      return null;
-    }
-
-    const mediaData = await mediaRes.json();
-    const base64 = mediaData.base64 || mediaData.data?.base64 || null;
-    const mediaMime = mediaData.mimetype || mediaData.data?.mimetype || mimeType || "application/octet-stream";
-
-    if (!base64) {
-      console.warn("[process-webhook-events] No base64 in media response");
-      return null;
-    }
-
-    const extMap: Record<string, string> = {
-      "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
-      "video/mp4": "mp4", "video/3gpp": "3gp",
-      "audio/ogg": "ogg", "audio/ogg; codecs=opus": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a",
-      "application/pdf": "pdf",
-    };
-    const cleanMime = mediaMime.split(";")[0].trim();
-    const ext = extMap[mediaMime] || extMap[cleanMime] || cleanMime.split("/")[1] || "bin";
-
-    const filePath = `${tenantId}/media/${messageId}.${ext}`;
-    
-    const binaryStr = atob(base64);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-
-    const { error: uploadError } = await supabase.storage
-      .from("wa-attachments")
-      .upload(filePath, bytes, {
-        contentType: mediaMime,
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error("[process-webhook-events] Storage upload error:", uploadError);
-      return null;
-    }
-
-    const { data: publicUrl } = supabase.storage
-      .from("wa-attachments")
-      .getPublicUrl(filePath);
-
-    console.log(`[process-webhook-events] Media stored: ${messageType} -> ${filePath}`);
-    return publicUrl?.publicUrl || null;
-  } catch (err) {
-    console.error("[process-webhook-events] Media fetch/store error:", err);
-    return null;
-  }
-}
-
-// ── Fetch group name from Evolution API ──
-async function fetchGroupName(
-  supabase: any,
-  instanceId: string,
-  groupJid: string,
-): Promise<string | null> {
-  try {
-    const { data: instance } = await supabase
-      .from("wa_instances")
-      .select("evolution_api_url, evolution_instance_key, api_key")
-      .eq("id", instanceId)
-      .maybeSingle();
-
-    if (!instance) return null;
-
-    const apiUrl = instance.evolution_api_url?.replace(/\/$/, "");
-    const apiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
-    const instanceKey = instance.evolution_instance_key;
-
-    if (!apiUrl || !instanceKey) return null;
-
-    const endpoint = `${apiUrl}/group/findGroupInfos/${encodeURIComponent(instanceKey)}?groupJid=${encodeURIComponent(groupJid)}`;
-
-    const res = await fetch(endpoint, {
-      method: "GET",
-      headers: { apikey: apiKey },
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    const subject = data?.subject || data?.data?.subject || null;
-    return subject;
-  } catch (err) {
-    console.warn("[process-webhook-events] Failed to fetch group name:", err);
-    return null;
-  }
+  return jobsEnqueued;
 }
 
 function extractMessageContent(messageContent: any, msg: any): { content: string | null; messageType: string } {
@@ -813,44 +575,6 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
     return { content: msg.body || msg.text, messageType: "text" };
   }
   return { content: null, messageType: "text" };
-}
-
-// ── Fetch profile picture from Evolution API ──
-async function fetchProfilePicture(
-  supabase: any,
-  instanceId: string,
-  remoteJid: string,
-): Promise<string | null> {
-  try {
-    const { data: instance } = await supabase
-      .from("wa_instances")
-      .select("evolution_api_url, evolution_instance_key, api_key")
-      .eq("id", instanceId)
-      .maybeSingle();
-
-    if (!instance) return null;
-
-    const apiUrl = instance.evolution_api_url?.replace(/\/$/, "");
-    const apiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
-    const instanceKey = instance.evolution_instance_key;
-
-    if (!apiUrl || !instanceKey) return null;
-
-    const endpoint = `${apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceKey)}`;
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: apiKey },
-      body: JSON.stringify({ number: remoteJid }),
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    return data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || null;
-  } catch (err) {
-    console.warn("[process-webhook-events] Failed to fetch profile picture:", err);
-    return null;
-  }
 }
 
 async function handleMessageUpdate(supabase: any, payload: any) {
@@ -917,11 +641,11 @@ async function handleConnectionUpdate(supabase: any, instanceId: string, payload
 async function handleContactsUpsert(
   supabase: any,
   instanceId: string,
-  _tenantId: string,
+  tenantId: string,
   payload: any
-): Promise<Promise<void>[]> {
+): Promise<number> {
   const contacts = payload.data || payload.contacts || [];
-  const bgTasks: Promise<void>[] = [];
+  let jobsEnqueued = 0;
   
   for (const contact of Array.isArray(contacts) ? contacts : [contacts]) {
     const jid = contact.id || contact.jid;
@@ -942,22 +666,13 @@ async function handleContactsUpsert(
         .eq("remote_jid", jid);
     }
 
-    // Profile picture fetch is BACKGROUND — never block the event loop
+    // Profile picture → enqueue as background job
     if (!profilePicUrl && !jid.endsWith("@g.us")) {
-      const bgPic = (async () => {
-        try {
-          const picUrl = await fetchProfilePicture(supabase, instanceId, jid);
-          if (picUrl) {
-            await supabase
-              .from("wa_conversations")
-              .update({ profile_picture_url: picUrl })
-              .eq("instance_id", instanceId)
-              .eq("remote_jid", jid);
-          }
-        } catch (_) { /* ignore */ }
-      })();
-      bgTasks.push(bgPic);
+      jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "profile_pic", {
+        remote_jid: jid,
+      }, `pic:${instanceId}:${jid}`);
     }
   }
-  return bgTasks;
+
+  return jobsEnqueued;
 }

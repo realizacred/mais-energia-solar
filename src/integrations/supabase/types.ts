@@ -13880,6 +13880,59 @@ export type Database = {
           },
         ]
       }
+      wa_bg_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          instance_id: string
+          job_type: string
+          last_error: string | null
+          next_run_at: string | null
+          payload: Json
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          instance_id: string
+          job_type: string
+          last_error?: string | null
+          next_run_at?: string | null
+          payload?: Json
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          instance_id?: string
+          job_type?: string
+          last_error?: string | null
+          next_run_at?: string | null
+          payload?: Json
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_bg_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_cadence_enrollments: {
         Row: {
           cadence_id: string
