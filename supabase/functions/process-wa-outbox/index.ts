@@ -105,7 +105,11 @@ Deno.serve(async (req) => {
           }
 
           // Use remote_jid_canonical for sending, fallback to remote_jid
-          const canonicalJid = item.remote_jid_canonical || item.remote_jid;
+          // IMPORTANT: For group JIDs (@g.us), NEVER use canonical — it's incorrectly normalized
+          const isGroup = item.remote_jid?.includes("@g.us");
+          const canonicalJid = isGroup
+            ? item.remote_jid
+            : (item.remote_jid_canonical || item.remote_jid);
 
           const effectiveApiKey = inst.api_key || EVOLUTION_API_KEY;
           const sendResult = await sendEvolutionMessage(
@@ -210,8 +214,11 @@ async function sendEvolutionMessage(
   let endpoint: string;
   let body: any;
 
-  // Extract number from canonical JID
-  const number = item.remote_jid.replace("@s.whatsapp.net", "").replace("@c.us", "");
+  // Detect group JID and extract number accordingly
+  const isGroup = item.remote_jid?.includes("@g.us");
+  const number = isGroup
+    ? item.remote_jid // Groups: send full JID as-is (e.g. 120363xxx@g.us)
+    : item.remote_jid.replace("@s.whatsapp.net", "").replace("@c.us", "");
 
   switch (item.message_type) {
     case "text":
