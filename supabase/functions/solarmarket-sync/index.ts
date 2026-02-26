@@ -45,8 +45,8 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
     // Safety: max 50 pages (5000 records)
     if (page > 50) break;
 
-    // Rate limit: ~1 req/sec (60 req/min)
-    await delay(1100);
+    // Rate limit: ~2s between pages (safe for 60 req/min with margin)
+    await delay(2000);
   }
 
   return all;
