@@ -580,6 +580,13 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
 async function handleMessageUpdate(supabase: any, payload: any) {
   const data = payload.data || payload;
   const updates = Array.isArray(data) ? data : [data];
+
+  const statusPriority: Record<string, number> = {
+    pending: 0,
+    sent: 1,
+    delivered: 2,
+    read: 3,
+  };
   
   for (const update of updates) {
     const evolutionId = update.keyId || update.key?.id || update.id;
@@ -603,10 +610,35 @@ async function handleMessageUpdate(supabase: any, payload: any) {
 
     if (!newStatus) continue;
 
+    const { data: currentMsg, error: fetchErr } = await supabase
+      .from("wa_messages")
+      .select("id, status")
+      .eq("evolution_message_id", evolutionId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      console.warn(`[process-webhook-events] Failed to fetch message ${evolutionId}:`, fetchErr.message);
+      continue;
+    }
+
+    if (!currentMsg) continue;
+
+    const currentStatus = currentMsg.status || "pending";
+    const currentPriority = statusPriority[currentStatus] ?? -1;
+    const newPriority = statusPriority[newStatus] ?? -1;
+
+    // Ignore stale/out-of-order status events (never downgrade status)
+    if (newPriority < currentPriority) {
+      console.log(`[process-webhook-events] Ignored stale status for ${evolutionId}: ${newStatus} < ${currentStatus}`);
+      continue;
+    }
+
+    if (newPriority === currentPriority) continue;
+
     const { data: updated, error } = await supabase
       .from("wa_messages")
       .update({ status: newStatus })
-      .eq("evolution_message_id", evolutionId)
+      .eq("id", currentMsg.id)
       .select("id")
       .maybeSingle();
 
