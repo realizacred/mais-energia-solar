@@ -141,11 +141,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // SolarMarket API uses the token directly (no Bearer prefix per docs)
+    // SolarMarket API v2 uses Token prefix per their docs
     const smHeaders: Record<string, string> = {
       Accept: "application/json",
-      Authorization: `Bearer ${apiToken}`,
+      Authorization: `Token ${apiToken}`,
     };
+    console.log(`[SM Sync] Using API token (len=${apiToken.length}, prefix=${apiToken.slice(0, 8)}) with Token auth`);
 
     // ─── Create sync log ───────────────────────────────────
     const { data: syncLog } = await supabase
