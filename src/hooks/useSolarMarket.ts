@@ -120,10 +120,31 @@ export function useSyncSolarMarket() {
 
   return useMutation({
     mutationFn: async (syncType: string = "full") => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error("Sessão expirada. Faça login novamente para sincronizar o SolarMarket.");
+      }
+
       const { data, error } = await supabase.functions.invoke("solarmarket-sync", {
         body: { sync_type: syncType },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
-      if (error) throw error;
+
+      if (error) {
+        const rawMessage = (error as Error)?.message || "Erro ao chamar a sincronização";
+        const isAuthError = /401|unauthorized|non-2xx/i.test(rawMessage);
+        throw new Error(
+          isAuthError
+            ? "Sua sessão não foi validada na integração. Entre novamente no sistema e tente sincronizar."
+            : rawMessage
+        );
+      }
+
       if (data?.error) throw new Error(data.error);
       return data;
     },
