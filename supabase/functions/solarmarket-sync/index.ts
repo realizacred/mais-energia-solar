@@ -141,12 +141,47 @@ Deno.serve(async (req) => {
       );
     }
 
-    // SolarMarket API v2 — token sent directly, no Bearer prefix
+    // SolarMarket API v2 — two-step auth: POST /auth/signin with token → get JWT
+    console.log(`[SM Sync] Authenticating with /auth/signin (token len=${apiToken.length}, prefix=${apiToken.slice(0, 8)})`);
+
+    const signinRes = await fetch(`${baseUrl}/auth/signin`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token: apiToken }),
+    });
+
+    if (!signinRes.ok) {
+      const signinBody = await signinRes.text();
+      console.error(`[SM Sync] /auth/signin failed: ${signinRes.status} ${signinBody.slice(0, 300)}`);
+      return new Response(
+        JSON.stringify({
+          error: `Falha na autenticação SolarMarket (${signinRes.status}). Verifique se a API key em Integrações > SolarMarket está correta.`,
+          details: signinBody.slice(0, 200),
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const signinData = await signinRes.json();
+    const accessToken = signinData.access_token || signinData.accessToken || signinData.token;
+
+    if (!accessToken) {
+      console.error("[SM Sync] /auth/signin response missing access_token:", JSON.stringify(signinData).slice(0, 300));
+      return new Response(
+        JSON.stringify({ error: "SolarMarket /auth/signin não retornou access_token." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[SM Sync] JWT obtained (len=${accessToken.length})`);
+
     const smHeaders: Record<string, string> = {
       Accept: "application/json",
-      Authorization: apiToken,
+      Authorization: `Bearer ${accessToken}`,
     };
-    console.log(`[SM Sync] Using raw token auth (len=${apiToken.length}, prefix=${apiToken.slice(0, 8)})`);
 
     // ─── Create sync log ───────────────────────────────────
     const { data: syncLog } = await supabase
