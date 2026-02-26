@@ -122,6 +122,10 @@ export function useSmSyncLogs() {
       if (error) throw error;
       return data || [];
     },
+    refetchInterval: (query) => {
+      const latest = query.state.data?.[0];
+      return latest?.status === "running" ? 2000 : false;
+    },
   });
 }
 

@@ -15,7 +15,7 @@ import {
   useDeleteSmClient,
   type SmClient,
 } from "@/hooks/useSolarMarket";
-import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
+import { useSolarMarketSync, type SyncStage } from "@/hooks/useSolarMarketSync";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { formatDistanceToNow } from "date-fns";
@@ -45,6 +45,29 @@ export default function SolarMarketPage() {
     };
   }, [clients, projects, proposals, search]);
 
+  const serverRunningLog = syncLogs.find((log) => log.status === "running");
+
+  const persistedProgress = useMemo(() => {
+    if (progress.isRunning || progress.stages.some((s) => s.status !== "pending")) return progress;
+    if (!serverRunningLog) return progress;
+
+    const serverStage = (["clients", "projects", "proposals"].includes(serverRunningLog.sync_type)
+      ? serverRunningLog.sync_type
+      : "clients") as SyncStage;
+
+    return {
+      ...progress,
+      isRunning: true,
+      currentStage: serverStage,
+      stages: progress.stages.map((stage) => ({
+        ...stage,
+        status: (stage.stage === serverStage ? "running" : "pending") as "running" | "pending",
+      })),
+    };
+  }, [progress, serverRunningLog]);
+
+  const syncIsRunning = persistedProgress.isRunning;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -60,18 +83,18 @@ export default function SolarMarketPage() {
             )}
             <Button
               onClick={() => sync()}
-              disabled={progress.isRunning}
+              disabled={syncIsRunning}
               size="sm"
             >
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${progress.isRunning ? "animate-spin" : ""}`} />
-              {progress.isRunning ? "Sincronizando..." : "Sincronizar Tudo"}
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
+              {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
             </Button>
           </div>
         }
       />
 
       {/* Sync Progress */}
-      <SyncProgressBar progress={progress} />
+      <SyncProgressBar progress={persistedProgress} />
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={Users} label="Clientes SM" value={clients.length} color="primary" />
