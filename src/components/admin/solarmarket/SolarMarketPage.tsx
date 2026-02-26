@@ -104,27 +104,27 @@ export default function SolarMarketPage() {
                   <thead>
                     <tr className="border-b bg-muted/30">
                       <th className="text-left p-3 font-medium text-muted-foreground">Nome</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden sm:table-cell">Email</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Telefone</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">CPF/CNPJ</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Cidade/UF</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Empresa</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden xl:table-cell">Responsável</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Email</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Telefone</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">CPF/CNPJ</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Cidade/UF</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Empresa</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Responsável</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">ID SM</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.clients.map(c => (
                       <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                        <td className="p-3 font-medium text-foreground">{c.name || "—"}</td>
-                        <td className="p-3 text-muted-foreground hidden sm:table-cell">{c.email || "—"}</td>
-                        <td className="p-3 text-muted-foreground hidden md:table-cell">{c.phone || "—"}</td>
-                        <td className="p-3 text-muted-foreground hidden md:table-cell">{c.document || "—"}</td>
-                        <td className="p-3 text-muted-foreground hidden lg:table-cell">
+                        <td className="p-3 font-medium text-foreground whitespace-nowrap">{c.name || "—"}</td>
+                        <td className="p-3 text-muted-foreground">{c.email || "—"}</td>
+                        <td className="p-3 text-muted-foreground whitespace-nowrap">{c.phone || "—"}</td>
+                        <td className="p-3 text-muted-foreground whitespace-nowrap">{c.document || "—"}</td>
+                        <td className="p-3 text-muted-foreground whitespace-nowrap">
                           {[c.city, c.state].filter(Boolean).join("/") || "—"}
                         </td>
-                        <td className="p-3 text-muted-foreground hidden lg:table-cell">{c.company || "—"}</td>
-                        <td className="p-3 text-muted-foreground hidden xl:table-cell text-xs">
+                        <td className="p-3 text-muted-foreground">{c.company || "—"}</td>
+                        <td className="p-3 text-muted-foreground text-xs">
                           {c.responsible?.name || "—"}
                         </td>
                         <td className="p-3 text-right">
@@ -154,10 +154,10 @@ export default function SolarMarketPage() {
                     <tr className="border-b bg-muted/30">
                       <th className="text-left p-3 font-medium text-muted-foreground">Projeto</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">Potência</th>
-                      <th className="text-right p-3 font-medium text-muted-foreground hidden sm:table-cell">Valor</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Cidade/UF</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Tipo Inst.</th>
-                      <th className="text-right p-3 font-medium text-muted-foreground hidden lg:table-cell">Consumo kWh</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">Valor</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Cidade/UF</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Tipo Inst.</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">Consumo kWh</th>
                       <th className="text-center p-3 font-medium text-muted-foreground">Status</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">ID SM</th>
                     </tr>
@@ -165,18 +165,18 @@ export default function SolarMarketPage() {
                   <tbody>
                     {filtered.projects.map(p => (
                       <tr key={p.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                        <td className="p-3 font-medium text-foreground">{p.name || "—"}</td>
-                        <td className="p-3 text-right text-foreground">
+                        <td className="p-3 font-medium text-foreground whitespace-nowrap">{p.name || "—"}</td>
+                        <td className="p-3 text-right text-foreground whitespace-nowrap">
                           {p.potencia_kwp ? `${p.potencia_kwp} kWp` : "—"}
                         </td>
-                        <td className="p-3 text-right text-muted-foreground hidden sm:table-cell">
+                        <td className="p-3 text-right text-muted-foreground whitespace-nowrap">
                           {p.valor ? `R$ ${Number(p.valor).toLocaleString("pt-BR")}` : "—"}
                         </td>
-                        <td className="p-3 text-muted-foreground hidden md:table-cell">
+                        <td className="p-3 text-muted-foreground whitespace-nowrap">
                           {[p.city, p.state].filter(Boolean).join("/") || "—"}
                         </td>
-                        <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs">{p.installation_type || "—"}</td>
-                        <td className="p-3 text-right text-muted-foreground hidden lg:table-cell">
+                        <td className="p-3 text-muted-foreground text-xs">{p.installation_type || "—"}</td>
+                        <td className="p-3 text-right text-muted-foreground">
                           {p.energy_consumption ? `${Number(p.energy_consumption).toLocaleString("pt-BR")}` : "—"}
                         </td>
                         <td className="p-3 text-center">
@@ -209,26 +209,26 @@ export default function SolarMarketPage() {
                     <tr className="border-b bg-muted/30">
                       <th className="text-left p-3 font-medium text-muted-foreground">Título</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">Potência</th>
-                      <th className="text-right p-3 font-medium text-muted-foreground hidden sm:table-cell">Valor Total</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Painel</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Inversor</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">Valor Total</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Painel</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Inversor</th>
                       <th className="text-center p-3 font-medium text-muted-foreground">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.proposals.map(pr => (
                       <tr key={pr.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                        <td className="p-3 font-medium text-foreground">{pr.titulo || "—"}</td>
-                        <td className="p-3 text-right text-foreground">
+                        <td className="p-3 font-medium text-foreground whitespace-nowrap">{pr.titulo || "—"}</td>
+                        <td className="p-3 text-right text-foreground whitespace-nowrap">
                           {pr.potencia_kwp ? `${pr.potencia_kwp} kWp` : "—"}
                         </td>
-                        <td className="p-3 text-right text-muted-foreground hidden sm:table-cell">
+                        <td className="p-3 text-right text-muted-foreground whitespace-nowrap">
                           {pr.valor_total ? `R$ ${Number(pr.valor_total).toLocaleString("pt-BR")}` : "—"}
                         </td>
-                        <td className="p-3 text-muted-foreground hidden md:table-cell text-xs max-w-[200px] truncate">
+                        <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">
                           {pr.panel_model ? `${pr.panel_model}${pr.panel_quantity ? ` (${pr.panel_quantity}x)` : ""}` : pr.modulos || "—"}
                         </td>
-                        <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs max-w-[200px] truncate">
+                        <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">
                           {pr.inverter_model ? `${pr.inverter_model}${pr.inverter_quantity ? ` (${pr.inverter_quantity}x)` : ""}` : pr.inversores || "—"}
                         </td>
                         <td className="p-3 text-center">
