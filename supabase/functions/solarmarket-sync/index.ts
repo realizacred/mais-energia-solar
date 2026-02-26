@@ -61,27 +61,29 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Validate user JWT (robust fallback to avoid parser edge-cases)
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { authorization: authHeader } },
-    });
-
+    // Validate user JWT directly against Supabase Auth API (more reliable in Edge runtime)
     let userId: string | null = null;
     try {
-      const authApi = authClient.auth as any;
-      if (typeof authApi.getClaims === "function") {
-        const { data: claimsData, error: claimsError } = await authApi.getClaims(token);
-        if (!claimsError) {
-          userId = claimsData?.claims?.sub ?? null;
-        }
-      }
+      const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: anonKey,
+        },
+      });
 
-      if (!userId) {
-        const { data: userData, error: userError } = await authClient.auth.getUser(token);
-        if (userError) {
-          console.error("[SM Sync] Auth failed (getUser):", userError.message);
-        }
-        userId = userData?.user?.id ?? null;
+      const contentType = authRes.headers.get("content-type") || "";
+      if (!authRes.ok) {
+        const raw = await authRes.text();
+        console.error(
+          `[SM Sync] Auth validate failed: status=${authRes.status} body=${raw.slice(0, 300)}`
+        );
+      } else if (!contentType.includes("application/json")) {
+        const raw = await authRes.text();
+        console.error(`[SM Sync] Auth validate non-json response: ${raw.slice(0, 300)}`);
+      } else {
+        const authUser = await authRes.json();
+        userId = authUser?.id ?? null;
       }
     } catch (authEx) {
       console.error("[SM Sync] Auth exception:", authEx);
