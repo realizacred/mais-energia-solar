@@ -294,14 +294,27 @@ export default function MetaFacebookConfigPage() {
                          <span className="font-medium text-foreground">Configure o Webhook</span>
                          <p className="ml-5 mt-1">No painel do app → <strong>"Webhooks"</strong> → selecione <strong>"Página"</strong> → assine <code className="bg-muted px-1 rounded text-xs">leadgen</code> → cole a URL do webhook e o token de verificação.</p>
                        </li>
-                       <li>
-                         <span className="font-medium text-foreground">Teste</span>
-                         <p className="ml-5 mt-1">
-                           Acesse{" "}
-                           <a href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noopener noreferrer" className="text-primary underline">Ferramenta de teste de Lead Ads ↗</a>
-                           {" "}→ selecione sua página → envie um lead de teste.
-                         </p>
-                       </li>
+                        <li>
+                          <span className="font-medium text-foreground">Habilite o Gerenciador de Acesso a Leads</span>
+                          <p className="ml-5 mt-1">
+                            Acesse{" "}
+                            <a href="https://www.facebook.com/settings/?tab=business_tools" target="_blank" rel="noopener noreferrer" className="text-primary underline">Configurações do Facebook → Integrações comerciais ↗</a>
+                            {" "}→ encontre seu app → ative <strong>"Acesso a Leads"</strong>.
+                          </p>
+                          <p className="ml-5 mt-1">
+                            Ou: na{" "}
+                            <a href="https://www.facebook.com/pages/?category=your_pages" target="_blank" rel="noopener noreferrer" className="text-primary underline">sua Página ↗</a>
+                            {" "}→ <strong>Configurações</strong> → <strong>Acesso a Leads</strong> → ative seu app/CRM.
+                          </p>
+                        </li>
+                        <li>
+                          <span className="font-medium text-foreground">Teste</span>
+                          <p className="ml-5 mt-1">
+                            Acesse{" "}
+                            <a href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noopener noreferrer" className="text-primary underline">Ferramenta de teste de Lead Ads ↗</a>
+                            {" "}→ selecione sua página → confirme que todos os diagnósticos estão ✅ → clique <strong>"Criar lead"</strong>.
+                          </p>
+                        </li>
                      </ol>
                    </div>
                  </AccordionContent>
