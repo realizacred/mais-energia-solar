@@ -6,7 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/** Fetch all pages from a paginated SolarMarket endpoint */
+/** Small delay helper to respect rate limits (60 req/min) */
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Fetch all pages from a paginated SolarMarket endpoint with rate limiting */
 async function fetchAllPages(url: string, headers: Record<string, string>): Promise<any[]> {
   const all: any[] = [];
   let page = 1;
@@ -18,6 +21,15 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
     console.log(`[SM Sync] Fetching: ${pageUrl}`);
 
     const res = await fetch(pageUrl, { headers });
+
+    // Handle rate limiting with retry
+    if (res.status === 429) {
+      const retryAfter = parseInt(res.headers.get("retry-after") || "5", 10);
+      console.log(`[SM Sync] Rate limited, waiting ${retryAfter}s...`);
+      await delay(retryAfter * 1000);
+      continue; // retry same page
+    }
+
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`SM API ${res.status}: ${body.slice(0, 300)}`);
@@ -32,6 +44,9 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
 
     // Safety: max 50 pages (5000 records)
     if (page > 50) break;
+
+    // Rate limit: ~1 req/sec (60 req/min)
+    await delay(1100);
   }
 
   return all;
@@ -332,8 +347,8 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Small delay to respect rate limits
-          await new Promise((r) => setTimeout(r, 100));
+          // Rate limit: ~1 req/sec
+          await delay(1100);
         } catch (e) {
           console.error(`[SM Sync] Proposals for project ${projId} error:`, e);
           const msg = (e as Error).message;
