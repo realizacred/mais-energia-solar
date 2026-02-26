@@ -11,8 +11,9 @@ import {
   useSmProjects,
   useSmProposals,
   useSmSyncLogs,
-  useSyncSolarMarket,
 } from "@/hooks/useSolarMarket";
+import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
+import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -24,7 +25,7 @@ export default function SolarMarketPage() {
   const { data: projects = [], isLoading: loadingP } = useSmProjects();
   const { data: proposals = [], isLoading: loadingPr } = useSmProposals();
   const { data: syncLogs = [] } = useSmSyncLogs();
-  const syncMutation = useSyncSolarMarket();
+  const { sync, progress } = useSolarMarketSync();
 
   const lastSync = syncLogs[0];
 
@@ -51,17 +52,19 @@ export default function SolarMarketPage() {
               </span>
             )}
             <Button
-              onClick={() => syncMutation.mutate("full")}
-              disabled={syncMutation.isPending}
+              onClick={() => sync()}
+              disabled={progress.isRunning}
               size="sm"
             >
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-              {syncMutation.isPending ? "Sincronizando..." : "Sincronizar Tudo"}
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${progress.isRunning ? "animate-spin" : ""}`} />
+              {progress.isRunning ? "Sincronizando..." : "Sincronizar Tudo"}
             </Button>
           </div>
         }
       />
 
+      {/* Sync Progress */}
+      <SyncProgressBar progress={progress} />
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={Users} label="Clientes SM" value={clients.length} color="primary" />
