@@ -141,12 +141,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    // SolarMarket API v2 uses Bearer token
+    // SolarMarket API v2 — try multiple auth formats
+    // First attempt: Bearer prefix (most common)
+    // If 401, fallback to raw token (some SM accounts use this)
     const smHeaders: Record<string, string> = {
       Accept: "application/json",
       Authorization: `Bearer ${apiToken}`,
     };
-    console.log(`[SM Sync] Using API token (len=${apiToken.length}, prefix=${apiToken.slice(0, 8)}) with Bearer auth`);
+    console.log(`[SM Sync] Trying Bearer auth (token len=${apiToken.length}, prefix=${apiToken.slice(0, 8)})`);
+
+    // Test auth with a lightweight request before full sync
+    const testRes = await fetch(`${baseUrl}/clients?limit=1`, { headers: smHeaders });
+    if (testRes.status === 401) {
+      console.log("[SM Sync] Bearer failed, trying raw token...");
+      smHeaders.Authorization = apiToken;
+      const testRes2 = await fetch(`${baseUrl}/clients?limit=1`, { headers: smHeaders });
+      if (testRes2.status === 401) {
+        console.log("[SM Sync] Raw token failed, trying Token prefix...");
+        smHeaders.Authorization = `Token ${apiToken}`;
+        const testRes3 = await fetch(`${baseUrl}/clients?limit=1`, { headers: smHeaders });
+        if (testRes3.status === 401) {
+          console.error("[SM Sync] All auth formats failed (Bearer, raw, Token). Token is likely invalid.");
+        } else {
+          console.log("[SM Sync] Token prefix worked!");
+        }
+      } else {
+        console.log("[SM Sync] Raw token worked!");
+      }
+    } else {
+      console.log("[SM Sync] Bearer auth worked!");
+    }
 
     // ─── Create sync log ───────────────────────────────────
     const { data: syncLog } = await supabase
