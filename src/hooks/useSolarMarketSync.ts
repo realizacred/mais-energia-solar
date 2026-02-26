@@ -11,7 +11,7 @@ export type SyncStage = "clients" | "projects" | "proposals";
 export interface SyncStageStatus {
   stage: SyncStage;
   label: string;
-  status: "pending" | "running" | "done" | "error";
+  status: "pending" | "running" | "done" | "error" | "skipped";
   fetched: number;
   upserted: number;
   errors: number;
@@ -30,13 +30,19 @@ const STAGE_LABELS: Record<SyncStage, string> = {
   proposals: "Propostas",
 };
 
-const STAGE_ORDER: SyncStage[] = ["clients", "projects", "proposals"];
+const STAGE_QUERY_KEYS: Record<SyncStage, string> = {
+  clients: "sm-clients",
+  projects: "sm-projects",
+  proposals: "sm-proposals",
+};
 
-function createInitialStages(): SyncStageStatus[] {
-  return STAGE_ORDER.map((stage) => ({
+const ALL_STAGES: SyncStage[] = ["clients", "projects", "proposals"];
+
+function createInitialStages(onlyStage?: SyncStage): SyncStageStatus[] {
+  return ALL_STAGES.map((stage) => ({
     stage,
     label: STAGE_LABELS[stage],
-    status: "pending",
+    status: onlyStage && stage !== onlyStage ? "skipped" : "pending",
     fetched: 0,
     upserted: 0,
     errors: 0,
@@ -62,8 +68,77 @@ export function useSolarMarketSync() {
     }));
   };
 
-  const sync = useCallback(async () => {
-    // Validate session first
+  const syncStage = useCallback(async (stage: SyncStage) => {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      toast.error("Sessão expirada. Faça login novamente.");
+      return;
+    }
+
+    setProgress({
+      isRunning: true,
+      stages: createInitialStages(stage),
+      currentStage: stage,
+    });
+
+    updateStage(stage, { status: "running" });
+
+    try {
+      const { data, error } = await supabase.functions.invoke("solarmarket-sync", {
+        body: { sync_type: stage },
+      });
+
+      if (error) {
+        const parsed = await parseInvokeError(error);
+        const message = parsed.message || `Erro na etapa ${STAGE_LABELS[stage]}`;
+        const isAuthError = parsed.status === 401 || /401|unauthorized/i.test(message);
+
+        updateStage(stage, {
+          status: "error",
+          errorMessage: isAuthError
+            ? "Token SolarMarket inválido/expirado"
+            : message,
+        });
+
+        if (isAuthError) {
+          toast.error("Token SolarMarket inválido/expirado. Revise a chave em Integrações > SolarMarket.");
+        }
+      } else if (data?.error) {
+        updateStage(stage, { status: "error", errorMessage: data.error });
+      } else {
+        const fetched = data?.total_fetched || 0;
+        const upserted = data?.total_upserted || 0;
+        const errors = data?.total_errors || 0;
+
+        updateStage(stage, {
+          status: errors > 0 ? "error" : "done",
+          fetched,
+          upserted,
+          errors,
+        });
+
+        toast.success(
+          `${STAGE_LABELS[stage]}: ${fetched} encontrados, ${upserted} importados.${errors > 0 ? ` (${errors} erros)` : ""}`
+        );
+      }
+
+      qc.invalidateQueries({ queryKey: [STAGE_QUERY_KEYS[stage]] });
+      qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
+    } catch (e: any) {
+      updateStage(stage, {
+        status: "error",
+        errorMessage: e.message || "Erro desconhecido",
+      });
+    }
+
+    setProgress((prev) => ({ ...prev, isRunning: false, currentStage: null }));
+  }, [qc]);
+
+  const syncAll = useCallback(async () => {
     const {
       data: { user },
       error: userError,
@@ -80,12 +155,14 @@ export function useSolarMarketSync() {
       currentStage: "clients",
     });
 
-    let totalFetched = 0;
-    let totalUpserted = 0;
-    let totalErrors = 0;
     let hadFatalError = false;
 
-    for (const stage of STAGE_ORDER) {
+    for (const stage of ALL_STAGES) {
+      if (hadFatalError) {
+        updateStage(stage, { status: "skipped" });
+        continue;
+      }
+
       setProgress((prev) => ({ ...prev, currentStage: stage }));
       updateStage(stage, { status: "running" });
 
@@ -101,37 +178,25 @@ export function useSolarMarketSync() {
 
           updateStage(stage, {
             status: "error",
-            errorMessage: isAuthError
-              ? "Token SolarMarket inválido/expirado"
-              : message,
+            errorMessage: isAuthError ? "Token inválido/expirado" : message,
           });
 
           if (isAuthError) {
-            toast.error("Token SolarMarket inválido/expirado. Revise a chave em Integrações > SolarMarket.");
+            toast.error("Token SolarMarket inválido/expirado.");
             hadFatalError = true;
-            break;
+            continue;
           }
-
-          totalErrors++;
           continue;
         }
 
         if (data?.error) {
-          updateStage(stage, {
-            status: "error",
-            errorMessage: data.error,
-          });
-          totalErrors++;
+          updateStage(stage, { status: "error", errorMessage: data.error });
           continue;
         }
 
         const fetched = data?.total_fetched || 0;
         const upserted = data?.total_upserted || 0;
         const errors = data?.total_errors || 0;
-
-        totalFetched += fetched;
-        totalUpserted += upserted;
-        totalErrors += errors;
 
         updateStage(stage, {
           status: errors > 0 ? "error" : "done",
@@ -140,14 +205,11 @@ export function useSolarMarketSync() {
           errors,
         });
 
-        // Invalidate relevant queries
-        if (stage === "clients") qc.invalidateQueries({ queryKey: ["sm-clients"] });
-        if (stage === "projects") qc.invalidateQueries({ queryKey: ["sm-projects"] });
-        if (stage === "proposals") qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+        qc.invalidateQueries({ queryKey: [STAGE_QUERY_KEYS[stage]] });
         qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
 
         // Pause between stages
-        if (STAGE_ORDER.indexOf(stage) < STAGE_ORDER.length - 1) {
+        if (ALL_STAGES.indexOf(stage) < ALL_STAGES.length - 1) {
           await new Promise((r) => setTimeout(r, 1500));
         }
       } catch (e: any) {
@@ -155,7 +217,6 @@ export function useSolarMarketSync() {
           status: "error",
           errorMessage: e.message || "Erro desconhecido",
         });
-        totalErrors++;
       }
     }
 
@@ -167,11 +228,9 @@ export function useSolarMarketSync() {
     qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
 
     if (!hadFatalError) {
-      toast.success(
-        `Sincronização concluída! ${totalFetched} encontrados, ${totalUpserted} importados.${totalErrors > 0 ? ` (${totalErrors} erros)` : ""}`
-      );
+      toast.success("Sincronização completa finalizada!");
     }
   }, [qc]);
 
-  return { sync, progress };
+  return { syncAll, syncStage, progress };
 }

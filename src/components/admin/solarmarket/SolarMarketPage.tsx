@@ -15,7 +15,7 @@ import {
   useDeleteSmClient,
   type SmClient,
 } from "@/hooks/useSolarMarket";
-import { useSolarMarketSync, type SyncStage } from "@/hooks/useSolarMarketSync";
+import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { formatDistanceToNow } from "date-fns";
@@ -30,11 +30,12 @@ export default function SolarMarketPage() {
   const { data: projects = [], isLoading: loadingP } = useSmProjects();
   const { data: proposals = [], isLoading: loadingPr } = useSmProposals();
   const { data: syncLogs = [] } = useSmSyncLogs();
-  const { sync, progress } = useSolarMarketSync();
+  const { syncAll, syncStage, progress } = useSolarMarketSync();
   const updateClient = useUpdateSmClient();
   const deleteClient = useDeleteSmClient();
 
   const lastSync = syncLogs[0];
+  const syncIsRunning = progress.isRunning;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -44,29 +45,6 @@ export default function SolarMarketPage() {
       proposals: q ? proposals.filter(p => p.titulo?.toLowerCase().includes(q)) : proposals,
     };
   }, [clients, projects, proposals, search]);
-
-  const serverRunningLog = syncLogs.find((log) => log.status === "running");
-
-  const persistedProgress = useMemo(() => {
-    if (progress.isRunning || progress.stages.some((s) => s.status !== "pending")) return progress;
-    if (!serverRunningLog) return progress;
-
-    const serverStage = (["clients", "projects", "proposals"].includes(serverRunningLog.sync_type)
-      ? serverRunningLog.sync_type
-      : "clients") as SyncStage;
-
-    return {
-      ...progress,
-      isRunning: true,
-      currentStage: serverStage,
-      stages: progress.stages.map((stage) => ({
-        ...stage,
-        status: (stage.stage === serverStage ? "running" : "pending") as "running" | "pending",
-      })),
-    };
-  }, [progress, serverRunningLog]);
-
-  const syncIsRunning = persistedProgress.isRunning;
 
   return (
     <div className="space-y-6">
@@ -82,7 +60,7 @@ export default function SolarMarketPage() {
               </span>
             )}
             <Button
-              onClick={() => sync()}
+              onClick={() => syncAll()}
               disabled={syncIsRunning}
               size="sm"
             >
@@ -94,7 +72,8 @@ export default function SolarMarketPage() {
       />
 
       {/* Sync Progress */}
-      <SyncProgressBar progress={persistedProgress} />
+      <SyncProgressBar progress={progress} />
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={Users} label="Clientes SM" value={clients.length} color="primary" />
@@ -116,17 +95,30 @@ export default function SolarMarketPage() {
             <TabsTrigger value="propostas">Propostas ({proposals.length})</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
-          <SearchInput value={search} onChange={setSearch} placeholder="Buscar..." className="w-48" />
+          <div className="flex items-center gap-2">
+            <SearchInput value={search} onChange={setSearch} placeholder="Buscar..." className="w-48" />
+          </div>
         </div>
 
         {/* Clientes */}
-        <TabsContent value="clientes" className="mt-4">
+        <TabsContent value="clientes" className="mt-4 space-y-3">
+          <div className="flex justify-end">
+            <Button
+              onClick={() => syncStage("clients")}
+              disabled={syncIsRunning}
+              size="sm"
+              variant="outline"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
+              Sincronizar Clientes
+            </Button>
+          </div>
           {loadingC ? <InlineLoader context="data_load" /> :
             filtered.clients.length === 0 ? (
               <EmptyState
                 icon={Users}
                 title="Nenhum cliente importado"
-                description="Clique em 'Sincronizar Tudo' para importar os clientes do SolarMarket."
+                description="Clique em 'Sincronizar Clientes' para importar."
               />
             ) : (
               <div className="rounded-lg border overflow-x-auto">
@@ -169,13 +161,24 @@ export default function SolarMarketPage() {
         </TabsContent>
 
         {/* Projetos */}
-        <TabsContent value="projetos" className="mt-4">
+        <TabsContent value="projetos" className="mt-4 space-y-3">
+          <div className="flex justify-end">
+            <Button
+              onClick={() => syncStage("projects")}
+              disabled={syncIsRunning}
+              size="sm"
+              variant="outline"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
+              Sincronizar Projetos
+            </Button>
+          </div>
           {loadingP ? <InlineLoader context="data_load" /> :
             filtered.projects.length === 0 ? (
               <EmptyState
                 icon={FolderKanban}
                 title="Nenhum projeto importado"
-                description="Clique em 'Sincronizar Tudo' para importar os projetos do SolarMarket."
+                description="Clique em 'Sincronizar Projetos' para importar."
               />
             ) : (
               <div className="rounded-lg border overflow-x-auto">
@@ -183,40 +186,40 @@ export default function SolarMarketPage() {
                   <thead>
                     <tr className="border-b bg-muted/30">
                       <th className="text-left p-3 font-medium text-muted-foreground">Projeto</th>
-                      <th className="text-right p-3 font-medium text-muted-foreground">Potência</th>
-                      <th className="text-right p-3 font-medium text-muted-foreground">Valor</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Cliente</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Cidade/UF</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground">Tipo Inst.</th>
-                      <th className="text-right p-3 font-medium text-muted-foreground">Consumo kWh</th>
-                      <th className="text-center p-3 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Responsável</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Criado em</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">ID SM</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.projects.map(p => (
-                      <tr key={p.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                        <td className="p-3 font-medium text-foreground whitespace-nowrap">{p.name || "—"}</td>
-                        <td className="p-3 text-right text-foreground whitespace-nowrap">
-                          {p.potencia_kwp ? `${p.potencia_kwp} kWp` : "—"}
-                        </td>
-                        <td className="p-3 text-right text-muted-foreground whitespace-nowrap">
-                          {p.valor ? `R$ ${Number(p.valor).toLocaleString("pt-BR")}` : "—"}
-                        </td>
-                        <td className="p-3 text-muted-foreground whitespace-nowrap">
-                          {[p.city, p.state].filter(Boolean).join("/") || "—"}
-                        </td>
-                        <td className="p-3 text-muted-foreground text-xs">{p.installation_type || "—"}</td>
-                        <td className="p-3 text-right text-muted-foreground">
-                          {p.energy_consumption ? `${Number(p.energy_consumption).toLocaleString("pt-BR")}` : "—"}
-                        </td>
-                        <td className="p-3 text-center">
-                          <Badge variant="outline" className="text-xs">{p.status || "—"}</Badge>
-                        </td>
-                        <td className="p-3 text-right">
-                          <Badge variant="outline" className="text-xs font-mono">{p.sm_project_id}</Badge>
-                        </td>
-                      </tr>
-                    ))}
+                    {filtered.projects.map(p => {
+                      // Extract client data from raw_payload if available
+                      const clientData = (p as any).raw_payload?.client;
+                      const clientName = clientData?.name || "—";
+                      const clientCity = clientData?.city || p.city;
+                      const clientState = clientData?.state || p.state;
+                      const responsibleName = (p as any).responsible?.name || (p as any).raw_payload?.responsible?.name || "—";
+                      const createdAt = (p as any).sm_created_at || (p as any).raw_payload?.createdAt;
+
+                      return (
+                        <tr key={p.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="p-3 font-medium text-foreground whitespace-nowrap">{p.name || "—"}</td>
+                          <td className="p-3 text-muted-foreground whitespace-nowrap text-xs">{clientName}</td>
+                          <td className="p-3 text-muted-foreground whitespace-nowrap">
+                            {[clientCity, clientState].filter(Boolean).join("/") || "—"}
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs">{responsibleName}</td>
+                          <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
+                            {createdAt ? new Date(createdAt).toLocaleDateString("pt-BR") : "—"}
+                          </td>
+                          <td className="p-3 text-right">
+                            <Badge variant="outline" className="text-xs font-mono">{p.sm_project_id}</Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -224,13 +227,24 @@ export default function SolarMarketPage() {
         </TabsContent>
 
         {/* Propostas */}
-        <TabsContent value="propostas" className="mt-4">
+        <TabsContent value="propostas" className="mt-4 space-y-3">
+          <div className="flex justify-end">
+            <Button
+              onClick={() => syncStage("proposals")}
+              disabled={syncIsRunning}
+              size="sm"
+              variant="outline"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
+              Sincronizar Propostas
+            </Button>
+          </div>
           {loadingPr ? <InlineLoader context="data_load" /> :
             filtered.proposals.length === 0 ? (
               <EmptyState
                 icon={FileText}
                 title="Nenhuma proposta importada"
-                description="Clique em 'Sincronizar Tudo' para importar as propostas do SolarMarket."
+                description="Clique em 'Sincronizar Propostas' para importar."
               />
             ) : (
               <div className="rounded-lg border overflow-x-auto">
@@ -322,7 +336,7 @@ export default function SolarMarketPage() {
           )}
         </TabsContent>
       </Tabs>
-      {/* Client Detail Dialog */}
+
       <SmClientDetailDialog
         client={selectedClient}
         open={!!selectedClient}
