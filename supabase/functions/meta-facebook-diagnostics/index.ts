@@ -218,7 +218,7 @@ async function checkToken(config: TenantConfig): Promise<{
 
 async function loadPages(userAccessToken: string): Promise<{ pages: PageCandidate[]; error?: string }> {
   const pagesRes = await graphGet("/me/accounts", {
-    fields: "id,name,access_token,tasks,perms",
+    fields: "id,name,access_token,tasks",
     limit: "25",
     access_token: userAccessToken,
   });
@@ -269,7 +269,7 @@ async function checkLeadAccess(config: TenantConfig): Promise<{
   let formSampleId: string | null = null;
 
   for (const page of pages) {
-    const tasks = page.tasks || page.perms || [];
+    const tasks = page.tasks || [];
     const hasLeadTask = tasks.includes("LEADS_RETRIEVAL") || tasks.includes("MANAGE_LEADS") || tasks.includes("ADMINISTER");
 
     if (!page.access_token) {
