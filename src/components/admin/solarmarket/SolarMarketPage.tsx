@@ -107,6 +107,9 @@ export default function SolarMarketPage() {
                       <th className="text-left p-3 font-medium text-muted-foreground hidden sm:table-cell">Email</th>
                       <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Telefone</th>
                       <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">CPF/CNPJ</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Cidade/UF</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Empresa</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden xl:table-cell">Responsável</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">ID SM</th>
                     </tr>
                   </thead>
@@ -117,6 +120,13 @@ export default function SolarMarketPage() {
                         <td className="p-3 text-muted-foreground hidden sm:table-cell">{c.email || "—"}</td>
                         <td className="p-3 text-muted-foreground hidden md:table-cell">{c.phone || "—"}</td>
                         <td className="p-3 text-muted-foreground hidden md:table-cell">{c.document || "—"}</td>
+                        <td className="p-3 text-muted-foreground hidden lg:table-cell">
+                          {[c.city, c.state].filter(Boolean).join("/") || "—"}
+                        </td>
+                        <td className="p-3 text-muted-foreground hidden lg:table-cell">{c.company || "—"}</td>
+                        <td className="p-3 text-muted-foreground hidden xl:table-cell text-xs">
+                          {c.responsible?.name || "—"}
+                        </td>
                         <td className="p-3 text-right">
                           <Badge variant="outline" className="text-xs font-mono">{c.sm_client_id}</Badge>
                         </td>
@@ -145,6 +155,9 @@ export default function SolarMarketPage() {
                       <th className="text-left p-3 font-medium text-muted-foreground">Projeto</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">Potência</th>
                       <th className="text-right p-3 font-medium text-muted-foreground hidden sm:table-cell">Valor</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Cidade/UF</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Tipo Inst.</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground hidden lg:table-cell">Consumo kWh</th>
                       <th className="text-center p-3 font-medium text-muted-foreground">Status</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">ID SM</th>
                     </tr>
@@ -158,6 +171,13 @@ export default function SolarMarketPage() {
                         </td>
                         <td className="p-3 text-right text-muted-foreground hidden sm:table-cell">
                           {p.valor ? `R$ ${Number(p.valor).toLocaleString("pt-BR")}` : "—"}
+                        </td>
+                        <td className="p-3 text-muted-foreground hidden md:table-cell">
+                          {[p.city, p.state].filter(Boolean).join("/") || "—"}
+                        </td>
+                        <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs">{p.installation_type || "—"}</td>
+                        <td className="p-3 text-right text-muted-foreground hidden lg:table-cell">
+                          {p.energy_consumption ? `${Number(p.energy_consumption).toLocaleString("pt-BR")}` : "—"}
                         </td>
                         <td className="p-3 text-center">
                           <Badge variant="outline" className="text-xs">{p.status || "—"}</Badge>
@@ -190,7 +210,8 @@ export default function SolarMarketPage() {
                       <th className="text-left p-3 font-medium text-muted-foreground">Título</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">Potência</th>
                       <th className="text-right p-3 font-medium text-muted-foreground hidden sm:table-cell">Valor Total</th>
-                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Módulos</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Painel</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">Inversor</th>
                       <th className="text-center p-3 font-medium text-muted-foreground">Status</th>
                     </tr>
                   </thead>
@@ -205,7 +226,10 @@ export default function SolarMarketPage() {
                           {pr.valor_total ? `R$ ${Number(pr.valor_total).toLocaleString("pt-BR")}` : "—"}
                         </td>
                         <td className="p-3 text-muted-foreground hidden md:table-cell text-xs max-w-[200px] truncate">
-                          {pr.modulos || "—"}
+                          {pr.panel_model ? `${pr.panel_model}${pr.panel_quantity ? ` (${pr.panel_quantity}x)` : ""}` : pr.modulos || "—"}
+                        </td>
+                        <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs max-w-[200px] truncate">
+                          {pr.inverter_model ? `${pr.inverter_model}${pr.inverter_quantity ? ` (${pr.inverter_quantity}x)` : ""}` : pr.inversores || "—"}
                         </td>
                         <td className="p-3 text-center">
                           <Badge variant="outline" className="text-xs">{pr.status || "—"}</Badge>

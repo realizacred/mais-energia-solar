@@ -13,6 +13,10 @@ export interface SmClient {
   email: string | null;
   phone: string | null;
   document: string | null;
+  city: string | null;
+  state: string | null;
+  company: string | null;
+  responsible: any | null;
   synced_at: string;
 }
 
@@ -25,6 +29,10 @@ export interface SmProject {
   potencia_kwp: number | null;
   status: string | null;
   valor: number | null;
+  city: string | null;
+  state: string | null;
+  installation_type: string | null;
+  energy_consumption: number | null;
   synced_at: string;
 }
 
@@ -40,6 +48,10 @@ export interface SmProposal {
   status: string | null;
   modulos: string | null;
   inversores: string | null;
+  panel_model: string | null;
+  panel_quantity: number | null;
+  inverter_model: string | null;
+  inverter_quantity: number | null;
   synced_at: string;
 }
 
@@ -62,7 +74,7 @@ export function useSmClients() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solar_market_clients")
-        .select("id, tenant_id, sm_client_id, name, email, phone, document, synced_at")
+        .select("id, tenant_id, sm_client_id, name, email, phone, document, city, state, company, responsible, synced_at")
         .order("name");
       if (error) throw error;
       return data || [];
@@ -76,7 +88,7 @@ export function useSmProjects() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solar_market_projects")
-        .select("id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, synced_at")
+        .select("id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, synced_at")
         .order("synced_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -90,7 +102,7 @@ export function useSmProposals() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solar_market_proposals")
-        .select("id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, potencia_kwp, valor_total, status, modulos, inversores, synced_at")
+        .select("id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, synced_at")
         .order("synced_at", { ascending: false });
       if (error) throw error;
       return data || [];
