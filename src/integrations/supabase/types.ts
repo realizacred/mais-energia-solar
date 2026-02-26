@@ -12795,43 +12795,91 @@ export type Database = {
       }
       solar_market_projects: {
         Row: {
+          address: string | null
+          city: string | null
+          complement: string | null
           created_at: string
+          description: string | null
+          energy_consumption: number | null
           id: string
+          installation_type: string | null
           name: string | null
+          neighborhood: string | null
+          number: string | null
+          phase_type: string | null
           potencia_kwp: number | null
           raw_payload: Json | null
+          representative: Json | null
+          responsible: Json | null
           sm_client_id: number | null
+          sm_created_at: string | null
           sm_project_id: number
+          sm_updated_at: string | null
+          state: string | null
           status: string | null
           synced_at: string
           tenant_id: string
           valor: number | null
+          voltage: string | null
+          zip_code: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
+          complement?: string | null
           created_at?: string
+          description?: string | null
+          energy_consumption?: number | null
           id?: string
+          installation_type?: string | null
           name?: string | null
+          neighborhood?: string | null
+          number?: string | null
+          phase_type?: string | null
           potencia_kwp?: number | null
           raw_payload?: Json | null
+          representative?: Json | null
+          responsible?: Json | null
           sm_client_id?: number | null
+          sm_created_at?: string | null
           sm_project_id: number
+          sm_updated_at?: string | null
+          state?: string | null
           status?: string | null
           synced_at?: string
           tenant_id: string
           valor?: number | null
+          voltage?: string | null
+          zip_code?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
+          complement?: string | null
           created_at?: string
+          description?: string | null
+          energy_consumption?: number | null
           id?: string
+          installation_type?: string | null
           name?: string | null
+          neighborhood?: string | null
+          number?: string | null
+          phase_type?: string | null
           potencia_kwp?: number | null
           raw_payload?: Json | null
+          representative?: Json | null
+          responsible?: Json | null
           sm_client_id?: number | null
+          sm_created_at?: string | null
           sm_project_id?: number
+          sm_updated_at?: string | null
+          state?: string | null
           status?: string | null
           synced_at?: string
           tenant_id?: string
           valor?: number | null
+          voltage?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -12846,51 +12894,99 @@ export type Database = {
       solar_market_proposals: {
         Row: {
           created_at: string
+          description: string | null
+          discount: number | null
+          energy_generation: number | null
+          equipment_cost: number | null
           id: string
+          installation_cost: number | null
           inversores: string | null
+          inverter_model: string | null
+          inverter_quantity: number | null
           modulos: string | null
+          panel_model: string | null
+          panel_quantity: number | null
+          payment_conditions: string | null
           potencia_kwp: number | null
           raw_payload: Json | null
+          roof_type: string | null
           sm_client_id: number | null
+          sm_created_at: string | null
           sm_project_id: number | null
           sm_proposal_id: number
+          sm_updated_at: string | null
           status: string | null
+          structure_type: string | null
           synced_at: string
           tenant_id: string
           titulo: string | null
+          valid_until: string | null
           valor_total: number | null
+          warranty: string | null
         }
         Insert: {
           created_at?: string
+          description?: string | null
+          discount?: number | null
+          energy_generation?: number | null
+          equipment_cost?: number | null
           id?: string
+          installation_cost?: number | null
           inversores?: string | null
+          inverter_model?: string | null
+          inverter_quantity?: number | null
           modulos?: string | null
+          panel_model?: string | null
+          panel_quantity?: number | null
+          payment_conditions?: string | null
           potencia_kwp?: number | null
           raw_payload?: Json | null
+          roof_type?: string | null
           sm_client_id?: number | null
+          sm_created_at?: string | null
           sm_project_id?: number | null
           sm_proposal_id: number
+          sm_updated_at?: string | null
           status?: string | null
+          structure_type?: string | null
           synced_at?: string
           tenant_id: string
           titulo?: string | null
+          valid_until?: string | null
           valor_total?: number | null
+          warranty?: string | null
         }
         Update: {
           created_at?: string
+          description?: string | null
+          discount?: number | null
+          energy_generation?: number | null
+          equipment_cost?: number | null
           id?: string
+          installation_cost?: number | null
           inversores?: string | null
+          inverter_model?: string | null
+          inverter_quantity?: number | null
           modulos?: string | null
+          panel_model?: string | null
+          panel_quantity?: number | null
+          payment_conditions?: string | null
           potencia_kwp?: number | null
           raw_payload?: Json | null
+          roof_type?: string | null
           sm_client_id?: number | null
+          sm_created_at?: string | null
           sm_project_id?: number | null
           sm_proposal_id?: number
+          sm_updated_at?: string | null
           status?: string | null
+          structure_type?: string | null
           synced_at?: string
           tenant_id?: string
           titulo?: string | null
+          valid_until?: string | null
           valor_total?: number | null
+          warranty?: string | null
         }
         Relationships: [
           {
