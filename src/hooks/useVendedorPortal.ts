@@ -127,7 +127,7 @@ const ADMIN_PROFILE: VendedorProfile = {
         if (isAdmin && adminAsVendedor) {
           const { data: targetVendedor, error: targetError } = await (supabase as any)
             .from("consultores")
-            .select("id, nome, codigo, slug, telefone, email, ativo, user_id, comissao_percentual, foto_url, tenant_id, created_at")
+            .select("id, nome, codigo, slug, telefone, email, ativo, user_id, percentual_comissao, tenant_id, created_at")
             .eq("codigo", adminAsVendedor)
             .eq("ativo", true)
            .single();
@@ -152,7 +152,7 @@ const ADMIN_PROFILE: VendedorProfile = {
        // Normal flow: load user's own vendedor profile
         const { data: vendedorData, error: vendedorError } = await (supabase as any)
           .from("consultores")
-          .select("id, nome, codigo, slug, telefone, email, ativo, user_id, comissao_percentual, foto_url, tenant_id, created_at")
+          .select("id, nome, codigo, slug, telefone, email, ativo, user_id, percentual_comissao, tenant_id, created_at")
           .eq("user_id", user.id)
           .single();
  
