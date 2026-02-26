@@ -11,6 +11,8 @@ export interface TokenDiagnostic {
   error_code?: number | null;
   expires_at?: number | null;
   scopes?: string[];
+  missing_critical_scopes?: string[];
+  has_pages_manage_metadata?: boolean;
 }
 
 export interface LeadPageDetail {
@@ -51,6 +53,7 @@ export interface MetaDiagnosticsResult {
   context: {
     app_id: string | null;
     pages_checked: number;
+    has_pages_manage_metadata: boolean;
   };
 }
 
@@ -74,6 +77,7 @@ export async function fetchMetaDiagnostics(): Promise<MetaDiagnosticsResult> {
     context: {
       app_id: data.context?.app_id ?? null,
       pages_checked: Number(data.context?.pages_checked ?? 0),
+      has_pages_manage_metadata: Boolean(data.context?.has_pages_manage_metadata),
     },
   };
 }

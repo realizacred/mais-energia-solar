@@ -140,6 +140,28 @@ export function MetaLeadAdsDiagnosticsCard() {
               title="1) Validade do Token (debug_token)"
               status={data.statuses.token.status}
               message={data.statuses.token.message}
+              details={
+                <>
+                  {data.statuses.token.missing_critical_scopes?.length ? (
+                    <Alert variant="destructive" className="mt-2">
+                      <AlertTitle className="text-xs">Permissões obrigatórias ausentes</AlertTitle>
+                      <AlertDescription className="text-xs space-y-1">
+                        <ul className="list-disc list-inside">
+                          {data.statuses.token.missing_critical_scopes.map((s) => (
+                            <li key={s}><code>{s}</code></li>
+                          ))}
+                        </ul>
+                        <p className="pt-1">Vá em <strong>Meta Developer Console → App Review → Permissions and Features</strong> e solicite estas permissões.</p>
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                  {data.statuses.token.scopes?.length ? (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Scopes: {data.statuses.token.scopes.join(", ")}
+                    </p>
+                  ) : null}
+                </>
+              }
             />
 
             <DiagnosticRow
@@ -170,12 +192,31 @@ export function MetaLeadAdsDiagnosticsCard() {
                       ))}
                     </ul>
                   ) : null}
+                  {!data.context.has_pages_manage_metadata && (
+                    <Alert className="mt-2">
+                      <AlertTitle className="text-xs font-semibold">Webhook manual necessário</AlertTitle>
+                      <AlertDescription className="text-xs space-y-1 mt-1">
+                        <p>A permissão <code>pages_manage_metadata</code> não está concedida, então o CRM não pode assinar automaticamente.</p>
+                        <p><strong>Passos para assinar manualmente:</strong></p>
+                        <ol className="list-decimal list-inside space-y-0.5">
+                          <li>Acesse o <a className="text-primary underline" href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer noopener">Meta Developer Dashboard</a></li>
+                          <li>Selecione seu App → <strong>Webhooks</strong> (menu lateral)</li>
+                          <li>Objeto <strong>Page</strong> → clique <strong>Subscribe to this object</strong></li>
+                          <li>Callback URL: <code className="bg-muted px-1 py-0.5 rounded">{data.statuses.webhook.callback_url_expected}</code></li>
+                          <li>Verify Token: use o token configurado em Integrações</li>
+                          <li>Marque o campo <strong>leadgen</strong> e salve</li>
+                        </ol>
+                        <p className="pt-1">Após isso, vá em <strong>Configurações da Página → Lead Access Manager</strong> e autorize este App.</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               }
             />
 
             <p className="text-xs text-muted-foreground">
               App ID: {data.context.app_id || "não configurado"} • páginas verificadas: {data.context.pages_checked}
+              {data.context.has_pages_manage_metadata ? " • pages_manage_metadata: ✓" : " • pages_manage_metadata: ✗ (manual)"}
             </p>
           </>
         ) : null}

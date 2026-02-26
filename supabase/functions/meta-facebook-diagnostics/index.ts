@@ -172,6 +172,8 @@ async function checkToken(config: TenantConfig): Promise<{
   error_code?: number | null;
   expires_at?: number | null;
   scopes?: string[];
+  missing_critical_scopes?: string[];
+  has_pages_manage_metadata?: boolean;
 }> {
   if (!config.userAccessToken || !config.appId || !config.appSecret) {
     return {
@@ -208,11 +210,25 @@ async function checkToken(config: TenantConfig): Promise<{
     };
   }
 
+  const scopes: string[] = tokenData?.scopes || [];
+  const CRITICAL_SCOPES = ["pages_show_list", "pages_manage_ads", "leads_retrieval"];
+  const missingCritical = CRITICAL_SCOPES.filter((s) => !scopes.includes(s));
+  const hasManageMetadata = scopes.includes("pages_manage_metadata");
+
+  const status: TokenStatus = missingCritical.length > 0 ? "INVALID" : "VALID";
+  const message = missingCritical.length > 0
+    ? `Token válido, mas faltam permissões obrigatórias: ${missingCritical.join(", ")}.`
+    : hasManageMetadata
+      ? "Token válido com todas as permissões (incluindo pages_manage_metadata)."
+      : "Token válido. pages_manage_metadata ausente — webhook deve ser assinado manualmente no Meta.";
+
   return {
-    status: "VALID",
-    message: "Token válido no debug_token.",
+    status,
+    message,
     expires_at: tokenData?.expires_at ?? null,
-    scopes: tokenData?.scopes || [],
+    scopes,
+    missing_critical_scopes: missingCritical.length > 0 ? missingCritical : undefined,
+    has_pages_manage_metadata: hasManageMetadata,
   };
 }
 
@@ -472,6 +488,7 @@ Deno.serve(async (req) => {
       context: {
         app_id: config.appId,
         pages_checked: leadAccess.details.length,
+        has_pages_manage_metadata: token.has_pages_manage_metadata ?? false,
       },
     });
   } catch (error: any) {
