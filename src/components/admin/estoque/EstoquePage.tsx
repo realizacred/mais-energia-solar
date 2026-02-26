@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search, Plus, Filter } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search, Plus, Filter, ScanBarcode, QrCode } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InlineLoader } from "@/components/loading/InlineLoader";
+import { BarcodeScannerDialog } from "./BarcodeScannerDialog";
+import { ItemQRCodeDialog } from "./ItemQRCodeDialog";
 import {
   useEstoqueSaldos,
   useEstoqueMovimentos,
@@ -35,7 +37,10 @@ export function EstoquePage() {
 
   // Dialogs
   const [itemDialog, setItemDialog] = useState(false);
+  const [itemDialogSku, setItemDialogSku] = useState("");
   const [movDialog, setMovDialog] = useState<"entrada" | "saida" | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [qrItem, setQrItem] = useState<EstoqueSaldo | null>(null);
 
   const { data: saldos = [], isLoading: loadingSaldos } = useEstoqueSaldos();
   const { data: movimentos = [], isLoading: loadingMov } = useEstoqueMovimentos(
@@ -73,7 +78,11 @@ export function EstoquePage() {
         title="Estoque"
         description="Controle de materiais elétricos e estruturais"
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="soft" size="sm" onClick={() => setScannerOpen(true)}>
+              <ScanBarcode className="h-4 w-4 mr-1.5" />
+              Scanner
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setMovDialog("saida")}>
               <ArrowUpCircle className="h-4 w-4 mr-1.5" />
               Saída
@@ -82,7 +91,7 @@ export function EstoquePage() {
               <ArrowDownCircle className="h-4 w-4 mr-1.5" />
               Entrada
             </Button>
-            <Button size="sm" onClick={() => setItemDialog(true)}>
+            <Button size="sm" onClick={() => { setItemDialogSku(""); setItemDialog(true); }}>
               <Plus className="h-4 w-4 mr-1.5" />
               Novo Item
             </Button>
@@ -177,8 +186,8 @@ export function EstoquePage() {
               action={!search ? { label: "Novo Item", onClick: () => setItemDialog(true), icon: Plus } : undefined}
             />
           ) : (
-            <ItemsTable items={filteredSaldos} />
-          )}
+             <ItemsTable items={filteredSaldos} onQrCode={setQrItem} />
+           )}
         </TabsContent>
 
         <TabsContent value="movimentos" className="mt-4">
@@ -197,15 +206,24 @@ export function EstoquePage() {
       </Tabs>
 
       {/* Dialogs */}
-      <ItemFormDialog open={itemDialog} onOpenChange={setItemDialog} />
+      <ItemFormDialog open={itemDialog} onOpenChange={setItemDialog} defaultSku={itemDialogSku} />
       <MovementFormDialog open={!!movDialog} tipo={movDialog || "entrada"} onOpenChange={() => setMovDialog(null)} saldos={saldos} />
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onItemNotFound={(sku) => {
+          setItemDialogSku(sku);
+          setItemDialog(true);
+        }}
+      />
+      <ItemQRCodeDialog open={!!qrItem} onOpenChange={() => setQrItem(null)} item={qrItem} />
     </div>
   );
 }
 
 // ─── Items Table ────────────────────────────────────────
 
-function ItemsTable({ items }: { items: EstoqueSaldo[] }) {
+function ItemsTable({ items, onQrCode }: { items: EstoqueSaldo[]; onQrCode: (item: EstoqueSaldo) => void }) {
   return (
     <div className="rounded-lg border overflow-x-auto">
       <table className="w-full text-sm">
@@ -217,6 +235,7 @@ function ItemsTable({ items }: { items: EstoqueSaldo[] }) {
             <th className="text-right p-3 font-medium text-muted-foreground hidden md:table-cell">Mínimo</th>
             <th className="text-right p-3 font-medium text-muted-foreground hidden md:table-cell">Custo Médio</th>
             <th className="text-center p-3 font-medium text-muted-foreground">Status</th>
+            <th className="text-center p-3 font-medium text-muted-foreground w-10"></th>
           </tr>
         </thead>
         <tbody>
@@ -246,6 +265,11 @@ function ItemsTable({ items }: { items: EstoqueSaldo[] }) {
                   ) : (
                     <Badge variant="outline" className="text-[10px] text-success border-success/30">OK</Badge>
                   )}
+                </td>
+                <td className="p-3 text-center">
+                  <Button variant="ghost" size="icon-sm" onClick={() => onQrCode(item)} title="QR Code">
+                    <QrCode className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 </td>
               </tr>
             );
@@ -310,12 +334,14 @@ function MovementsTable({ movements }: { movements: any[] }) {
 
 // ─── Item Form Dialog ───────────────────────────────────
 
-function ItemFormDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function ItemFormDialog({ open, onOpenChange, defaultSku = "" }: { open: boolean; onOpenChange: (o: boolean) => void; defaultSku?: string }) {
   const [nome, setNome] = useState("");
   const [sku, setSku] = useState("");
   const [categoria, setCategoria] = useState("geral");
   const [unidade, setUnidade] = useState("UN");
   const [estoqueMinimo, setEstoqueMinimo] = useState("0");
+
+  useEffect(() => { if (open && defaultSku) setSku(defaultSku); }, [open, defaultSku]);
 
   const createItem = useCreateEstoqueItem();
 
