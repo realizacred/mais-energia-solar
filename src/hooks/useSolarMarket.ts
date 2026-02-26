@@ -130,23 +130,59 @@ export function useSyncSolarMarket() {
         throw new Error("Sessão expirada. Faça login novamente para sincronizar o SolarMarket.");
       }
 
-      const { data, error } = await supabase.functions.invoke("solarmarket-sync", {
-        body: { sync_type: syncType },
-      });
+      // Sequential sync by stage to avoid timeouts and rate limits
+      const stages: string[] = syncType === "full"
+        ? ["clients", "projects", "proposals"]
+        : [syncType];
 
-      if (error) {
-        const parsed = await parseInvokeError(error);
-        const message = parsed.message || "Erro ao chamar a sincronização";
-        const isAuthError = parsed.status === 401 || /401|unauthorized/i.test(message);
-        throw new Error(
-          isAuthError
-            ? "Token SolarMarket inválido/expirado ou sessão inválida. Revise a chave em Integrações > SolarMarket e tente novamente."
-            : message
-        );
+      let totalFetched = 0;
+      let totalUpserted = 0;
+      let totalErrors = 0;
+      const allErrorDetails: string[] = [];
+
+      for (const stage of stages) {
+        console.log(`[SM Sync] Starting stage: ${stage}`);
+
+        const { data, error } = await supabase.functions.invoke("solarmarket-sync", {
+          body: { sync_type: stage },
+        });
+
+        if (error) {
+          const parsed = await parseInvokeError(error);
+          const message = parsed.message || `Erro na etapa ${stage}`;
+          const isAuthError = parsed.status === 401 || /401|unauthorized/i.test(message);
+          throw new Error(
+            isAuthError
+              ? "Token SolarMarket inválido/expirado. Revise a chave em Integrações > SolarMarket."
+              : `Erro na etapa "${stage}": ${message}`
+          );
+        }
+
+        if (data?.error) throw new Error(`Erro na etapa "${stage}": ${data.error}`);
+
+        totalFetched += data?.total_fetched || 0;
+        totalUpserted += data?.total_upserted || 0;
+        totalErrors += data?.total_errors || 0;
+        if (data?.error_details) allErrorDetails.push(...data.error_details);
+
+        // Invalidate queries after each stage for real-time feedback
+        if (stage === "clients") qc.invalidateQueries({ queryKey: ["sm-clients"] });
+        if (stage === "projects") qc.invalidateQueries({ queryKey: ["sm-projects"] });
+        if (stage === "proposals") qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+        qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
+
+        // Small pause between stages
+        if (stages.indexOf(stage) < stages.length - 1) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
       }
 
-      if (data?.error) throw new Error(data.error);
-      return data;
+      return {
+        total_fetched: totalFetched,
+        total_upserted: totalUpserted,
+        total_errors: totalErrors,
+        error_details: allErrorDetails.length > 0 ? allErrorDetails.slice(0, 10) : undefined,
+      };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["sm-clients"] });
@@ -155,7 +191,7 @@ export function useSyncSolarMarket() {
       qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
       toast({
         title: "Sincronização concluída",
-        description: `${data.total_fetched} registros encontrados, ${data.total_upserted} importados.`,
+        description: `${data.total_fetched} registros encontrados, ${data.total_upserted} importados.${data.total_errors > 0 ? ` (${data.total_errors} erros)` : ""}`,
       });
     },
     onError: (e: Error) => {
