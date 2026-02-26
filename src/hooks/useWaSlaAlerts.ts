@@ -18,6 +18,14 @@ export interface SlaAlert {
   cliente_nome?: string | null;
 }
 
+function mapAlert(a: any): SlaAlert {
+  return {
+    ...a,
+    cliente_nome: (Array.isArray(a.wa_conversations) ? a.wa_conversations[0]?.cliente_nome : a.wa_conversations?.cliente_nome) || null,
+    wa_conversations: undefined,
+  };
+}
+
 export function useWaSlaAlerts() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -58,27 +66,48 @@ export function useWaSlaAlerts() {
   );
 
   // Fetch active (unresolved) alerts — scoped by role
-  const { data: alerts = [], isLoading } = useQuery({
+  // Consultores: veem apenas alertas das suas conversas (imediatamente)
+  // Admins/Gerentes: veem alertas sem atribuição + alertas escalados de outros consultores
+  const { data: alerts = [], isLoading } = useQuery<SlaAlert[]>({
     queryKey: ["wa-sla-alerts", isAdminRef.current, user?.id],
     queryFn: async () => {
-      let query = (supabase as any)
+      const isAdmin = isAdminRef.current;
+
+      if (!isAdmin && user?.id) {
+        // 🔐 Consultor: só vê alertas das suas próprias conversas
+        const { data, error } = await (supabase as any)
+          .from("wa_sla_alerts")
+          .select("id, conversation_id, tipo, tempo_sem_resposta_minutos, assigned_to, escalated, escalated_at, acknowledged, acknowledged_at, acknowledged_by, ai_summary, resolved, resolved_at, created_at, wa_conversations(cliente_nome)")
+          .eq("resolved", false)
+          .eq("assigned_to", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        return ((data || []) as any[]).map(mapAlert);
+      }
+
+      // 👑 Admin/Gerente: busca todos, mas filtra no client-side
+      // - Alertas SEM atribuição → visíveis sempre
+      // - Alertas atribuídos AO PRÓPRIO admin → visíveis sempre
+      // - Alertas atribuídos a OUTROS consultores → só se escalados
+      const { data, error } = await (supabase as any)
         .from("wa_sla_alerts")
         .select("id, conversation_id, tipo, tempo_sem_resposta_minutos, assigned_to, escalated, escalated_at, acknowledged, acknowledged_at, acknowledged_by, ai_summary, resolved, resolved_at, created_at, wa_conversations(cliente_nome)")
         .eq("resolved", false)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
-      // 🔐 Consultores só veem alertas de conversas atribuídas a eles
-      if (!isAdminRef.current && user?.id) {
-        query = query.eq("assigned_to", user.id);
-      }
+      const allAlerts = ((data || []) as any[]).map(mapAlert);
 
-      const { data, error } = await query;
-      return ((data || []) as any[]).map((a) => ({
-        ...a,
-        cliente_nome: (Array.isArray(a.wa_conversations) ? a.wa_conversations[0]?.cliente_nome : a.wa_conversations?.cliente_nome) || null,
-        wa_conversations: undefined,
-      })) as SlaAlert[];
+      // Filtrar visibilidade: admins só veem alertas de outros consultores após escalação
+      return allAlerts.filter((a) => {
+        // Sem atribuição → visível
+        if (!a.assigned_to) return true;
+        // Atribuído ao próprio admin → visível
+        if (a.assigned_to === user?.id) return true;
+        // Atribuído a outro consultor → só se escalado
+        return a.escalated;
+      });
     },
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
