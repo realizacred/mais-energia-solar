@@ -16079,6 +16079,29 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      claim_wa_bg_jobs: {
+        Args: { max_jobs?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          instance_id: string
+          job_type: string
+          last_error: string | null
+          next_run_at: string | null
+          payload: Json
+          status: string
+          tenant_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "wa_bg_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
       cleanup_security_events: { Args: never; Returns: undefined }
       cleanup_stuck_irradiance_versions: { Args: never; Returns: number }
@@ -16523,6 +16546,19 @@ export type Database = {
               unread_for_user: number
             }[]
           }
+      get_wa_bg_jobs_metrics: {
+        Args: never
+        Returns: {
+          avg_duration_s: number
+          dead_jobs: number
+          job_count: number
+          job_type: string
+          max_attempts_seen: number
+          p50_duration_s: number
+          p95_duration_s: number
+          status: string
+        }[]
+      }
       get_wa_messages: {
         Args: {
           _conversation_id: string

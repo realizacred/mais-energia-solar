@@ -22,18 +22,13 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
 
   try {
-    // Claim pending jobs (oldest first, skip already processing)
-    const { data: jobs, error } = await supabase
-      .from("wa_bg_jobs")
-      .select("*")
-      .in("status", ["pending", "failed"])
-      .lt("attempts", MAX_ATTEMPTS)
-      .lte("next_run_at", new Date().toISOString())
-      .order("created_at", { ascending: true })
-      .limit(MAX_JOBS_PER_RUN);
+    // ── ATOMIC CLAIM: uses FOR UPDATE SKIP LOCKED inside the RPC ──
+    const { data: jobs, error } = await supabase.rpc("claim_wa_bg_jobs", {
+      max_jobs: MAX_JOBS_PER_RUN,
+    });
 
     if (error) {
-      console.error("[wa-bg-worker] Fetch error:", error);
+      console.error("[wa-bg-worker] Claim error:", error);
       throw error;
     }
 
@@ -43,12 +38,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Mark all as processing
-    const jobIds = jobs.map(j => j.id);
-    await supabase
-      .from("wa_bg_jobs")
-      .update({ status: "processing" })
-      .in("id", jobIds);
+    console.log(`[wa-bg-worker] Claimed ${jobs.length} jobs`);
 
     let done = 0;
     let failed = 0;
@@ -57,18 +47,19 @@ Deno.serve(async (req) => {
       const t0_job = Date.now();
       try {
         await processJob(supabase, job);
-        
+
         await supabase
           .from("wa_bg_jobs")
           .update({ status: "done", updated_at: new Date().toISOString() })
           .eq("id", job.id);
-        
+
         done++;
-        console.log(`[wa-bg-worker] ${job.job_type} done in ${Date.now() - t0_job}ms (${job.idempotency_key})`);
+        const elapsed = Date.now() - t0_job;
+        console.log(`[wa-bg-worker] [METRIC] ${job.job_type} done in ${elapsed}ms (${job.idempotency_key})`);
       } catch (err) {
         const nextAttempt = (job.attempts || 0) + 1;
         const backoffMs = Math.min(60_000, 1000 * Math.pow(2, nextAttempt));
-        
+
         await supabase
           .from("wa_bg_jobs")
           .update({
@@ -78,14 +69,14 @@ Deno.serve(async (req) => {
             next_run_at: new Date(Date.now() + backoffMs).toISOString(),
           })
           .eq("id", job.id);
-        
+
         failed++;
         console.warn(`[wa-bg-worker] ${job.job_type} failed (attempt ${nextAttempt}):`, String(err).substring(0, 200));
       }
     }
 
     const elapsed = Date.now() - t0;
-    console.log(`[wa-bg-worker] Done: ${done} ok, ${failed} failed, ${elapsed}ms total`);
+    console.log(`[wa-bg-worker] [METRIC] batch_summary: ${done} ok, ${failed} failed, ${elapsed}ms total, ${jobs.length} claimed`);
 
     return new Response(
       JSON.stringify({ done, failed, total: jobs.length, elapsed_ms: elapsed }),
@@ -103,7 +94,7 @@ Deno.serve(async (req) => {
 // ── Job Dispatcher ──
 async function processJob(supabase: any, job: any) {
   const p = job.payload;
-  
+
   switch (job.job_type) {
     case "media_fetch":
       return await jobMediaFetch(supabase, job.instance_id, job.tenant_id, p);
@@ -129,9 +120,9 @@ async function getInstanceDetails(supabase: any, instanceId: string) {
     .select("evolution_api_url, evolution_instance_key, api_key, owner_user_id")
     .eq("id", instanceId)
     .maybeSingle();
-  
+
   if (!data) return null;
-  
+
   return {
     apiUrl: data.evolution_api_url?.replace(/\/$/, ""),
     apiKey: data.api_key || Deno.env.get("EVOLUTION_API_KEY") || "",
@@ -140,12 +131,25 @@ async function getInstanceDetails(supabase: any, instanceId: string) {
   };
 }
 
-// ── JOB: Media Fetch ──
+// ── JOB: Media Fetch (idempotent: skips if media_url already set) ──
 async function jobMediaFetch(supabase: any, instanceId: string, tenantId: string, p: any) {
+  const messageId = p.evolution_message_id;
+
+  // IDEMPOTENCY: skip if media already uploaded
+  const { data: existing } = await supabase
+    .from("wa_messages")
+    .select("media_url")
+    .eq("evolution_message_id", messageId)
+    .maybeSingle();
+
+  if (existing?.media_url) {
+    console.log(`[wa-bg-worker] media_fetch SKIP (already uploaded): ${messageId}`);
+    return;
+  }
+
   const inst = await getInstanceDetails(supabase, instanceId);
   if (!inst || !inst.apiUrl || !inst.instanceKey) return;
 
-  const messageId = p.evolution_message_id;
   const messageType = p.message_type;
   const mimeType = p.mime_type;
 
@@ -254,7 +258,7 @@ async function jobProfilePic(supabase: any, instanceId: string, p: any) {
   }
 }
 
-// ── JOB: Push Notification ──
+// ── JOB: Push Notification (idempotent via idempotency_key on wa_bg_jobs) ──
 async function jobPushNotification(supabase: any, tenantId: string, instanceId: string, p: any) {
   const pushUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`;
   const res = await fetch(pushUrl, {
@@ -273,8 +277,7 @@ async function jobPushNotification(supabase: any, tenantId: string, instanceId: 
       direction: p.direction,
     }),
   });
-  // Consume response body
-  await res.text();
+  await res.text(); // consume body
 }
 
 // ── JOB: Auto-Assign ──
@@ -285,7 +288,7 @@ async function jobAutoAssign(supabase: any, instanceId: string, tenantId: string
     .eq("id", p.conversation_id)
     .maybeSingle();
 
-  if (!convCheck || convCheck.assigned_to) return; // Already assigned
+  if (!convCheck || convCheck.assigned_to) return; // Already assigned — idempotent
 
   let ownerId: string | null = null;
   let assignSource = "unknown";
@@ -337,6 +340,7 @@ async function jobAutoAssign(supabase: any, instanceId: string, tenantId: string
   }
 
   if (ownerId) {
+    // Use IS NULL guard for idempotency
     await supabase
       .from("wa_conversations")
       .update({ assigned_to: ownerId, status: "open" })
@@ -347,7 +351,7 @@ async function jobAutoAssign(supabase: any, instanceId: string, tenantId: string
   }
 }
 
-// ── JOB: Auto-Reply ──
+// ── JOB: Auto-Reply (idempotent: checks cooldown + uses unique idempotency_key on outbox) ──
 async function jobAutoReply(supabase: any, instanceId: string, tenantId: string, p: any) {
   const { data: autoReplyConfig } = await supabase
     .from("whatsapp_automation_config")
