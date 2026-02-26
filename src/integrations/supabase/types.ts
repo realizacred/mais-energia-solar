@@ -12669,45 +12669,78 @@ export type Database = {
       solar_market_clients: {
         Row: {
           address: Json | null
+          city: string | null
+          company: string | null
+          complement: string | null
           created_at: string
           document: string | null
           email: string | null
           id: string
           name: string | null
+          neighborhood: string | null
+          number: string | null
           phone: string | null
           phone_normalized: string | null
           raw_payload: Json | null
+          representative: Json | null
+          responsible: Json | null
+          secondary_phone: string | null
           sm_client_id: number
+          sm_created_at: string | null
+          state: string | null
           synced_at: string
           tenant_id: string
+          zip_code: string | null
         }
         Insert: {
           address?: Json | null
+          city?: string | null
+          company?: string | null
+          complement?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
           id?: string
           name?: string | null
+          neighborhood?: string | null
+          number?: string | null
           phone?: string | null
           phone_normalized?: string | null
           raw_payload?: Json | null
+          representative?: Json | null
+          responsible?: Json | null
+          secondary_phone?: string | null
           sm_client_id: number
+          sm_created_at?: string | null
+          state?: string | null
           synced_at?: string
           tenant_id: string
+          zip_code?: string | null
         }
         Update: {
           address?: Json | null
+          city?: string | null
+          company?: string | null
+          complement?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
           id?: string
           name?: string | null
+          neighborhood?: string | null
+          number?: string | null
           phone?: string | null
           phone_normalized?: string | null
           raw_payload?: Json | null
+          representative?: Json | null
+          responsible?: Json | null
+          secondary_phone?: string | null
           sm_client_id?: number
+          sm_created_at?: string | null
+          state?: string | null
           synced_at?: string
           tenant_id?: string
+          zip_code?: string | null
         }
         Relationships: [
           {
