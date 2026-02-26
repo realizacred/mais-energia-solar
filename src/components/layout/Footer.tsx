@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, Instagram } from "lucide-react";
 import { useLogo } from "@/hooks/useLogo";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -89,7 +90,10 @@ const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
         {/* Copyright — ultra slim */}
         <div className="mt-3 pt-3 border-t border-secondary-foreground/6 flex items-center justify-center">
           <p className="text-[11px] text-secondary-foreground/25">
-            © {new Date().getFullYear()} {nomeEmpresa} · Todos os direitos reservados
+            © {new Date().getFullYear()} {nomeEmpresa} · Todos os direitos reservados ·{" "}
+            <Link to="/politica-de-privacidade" className="hover:text-primary transition-colors underline">
+              Política de Privacidade
+            </Link>
           </p>
         </div>
       </div>
