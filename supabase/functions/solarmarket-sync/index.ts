@@ -54,22 +54,40 @@ Deno.serve(async (req) => {
       });
     }
 
-    const token = authHeader.replace("Bearer ", "").trim();
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Validate user JWT
+    // Validate user JWT (robust fallback to avoid parser edge-cases)
     const authClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { authorization: authHeader } },
     });
-    const { data: userData, error: userError } = await authClient.auth.getUser(token);
-    const userId = userData?.user?.id;
 
-    if (userError || !userId) {
-      console.error("[SM Sync] Auth failed:", userError?.message);
+    let userId: string | null = null;
+    try {
+      const authApi = authClient.auth as any;
+      if (typeof authApi.getClaims === "function") {
+        const { data: claimsData, error: claimsError } = await authApi.getClaims(token);
+        if (!claimsError) {
+          userId = claimsData?.claims?.sub ?? null;
+        }
+      }
+
+      if (!userId) {
+        const { data: userData, error: userError } = await authClient.auth.getUser(token);
+        if (userError) {
+          console.error("[SM Sync] Auth failed (getUser):", userError.message);
+        }
+        userId = userData?.user?.id ?? null;
+      }
+    } catch (authEx) {
+      console.error("[SM Sync] Auth exception:", authEx);
+    }
+
+    if (!userId) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
