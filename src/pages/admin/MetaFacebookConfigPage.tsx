@@ -14,6 +14,7 @@ import { Eye, EyeOff, Save, CheckCircle2, Loader2, Facebook, Copy } from "lucide
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
+import { MetaLeadAdsDiagnosticsCard } from "@/components/admin/integrations/MetaLeadAdsDiagnosticsCard";
 
 // Service keys for each Meta credential
 const META_KEYS = {
@@ -202,6 +203,8 @@ export default function MetaFacebookConfigPage() {
         title="Meta Facebook Ads"
         description="Configure suas credenciais para captura de leads e métricas de anúncios"
       />
+
+      <MetaLeadAdsDiagnosticsCard />
 
       <Card className="rounded-xl">
         <CardHeader>
