@@ -13,7 +13,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function fetchAllPages(url: string, headers: Record<string, string>): Promise<any[]> {
   const all: any[] = [];
   let page = 1;
-  const limit = 50; // smaller pages to avoid timeouts
+  const limit = 200; // large pages to minimize total requests and avoid timeout
 
   while (true) {
     const sep = url.includes("?") ? "&" : "?";
@@ -25,17 +25,15 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
       res = await fetch(pageUrl, { headers });
     } catch (fetchErr) {
       console.error(`[SM Sync] Network error on page ${page}:`, fetchErr);
-      // retry once after 5s
-      await delay(5000);
+      await delay(3000);
       res = await fetch(pageUrl, { headers });
     }
 
-    // Handle rate limiting with retry
     if (res.status === 429) {
       const retryAfter = parseInt(res.headers.get("retry-after") || "10", 10);
       console.log(`[SM Sync] Rate limited, waiting ${retryAfter}s...`);
       await delay(retryAfter * 1000);
-      continue; // retry same page
+      continue;
     }
 
     if (!res.ok) {
@@ -49,17 +47,16 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
 
     console.log(`[SM Sync] Page ${page}: got ${items.length} items, total: ${all.length}`);
 
-    if (items.length < limit) break; // last page
+    if (items.length < limit) break;
     page++;
 
-    // Safety: max 200 pages (10000 records)
-    if (page > 200) {
-      console.log(`[SM Sync] Hit max pages (200), stopping with ${all.length} items`);
+    if (page > 100) {
+      console.log(`[SM Sync] Hit max pages (100), stopping with ${all.length} items`);
       break;
     }
 
-    // Rate limit: ~2.5s between pages (safe for 60 req/min)
-    await delay(2500);
+    // ~1.2s between pages (fits 60 req/min with margin)
+    await delay(1200);
   }
 
   return all;
@@ -434,8 +431,8 @@ Deno.serve(async (req) => {
             });
           }
 
-          // Rate limit: ~2s between project proposal fetches
-          await delay(2000);
+          // Rate limit: ~1.2s between project proposal fetches
+          await delay(1200);
         } catch (e) {
           console.error(`[SM Sync] Proposals for project ${projId} error:`, e);
           const msg = (e as Error).message;
