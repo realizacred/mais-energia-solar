@@ -68,16 +68,46 @@ export interface SmSyncLog {
 
 // ─── Queries ────────────────────────────────────────────
 
+const SM_PAGE_SIZE = 1000;
+
+async function fetchAllRows<T>(params: {
+  table: string;
+  select: string;
+  orderBy: string;
+  ascending?: boolean;
+}): Promise<T[]> {
+  const allRows: T[] = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + SM_PAGE_SIZE - 1;
+    const { data, error } = await (supabase as any)
+      .from(params.table)
+      .select(params.select)
+      .order(params.orderBy, { ascending: params.ascending ?? true })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const batch = (data || []) as T[];
+    allRows.push(...batch);
+
+    if (batch.length < SM_PAGE_SIZE) break;
+    from += SM_PAGE_SIZE;
+  }
+
+  return allRows;
+}
+
 export function useSmClients() {
   return useQuery<SmClient[]>({
     queryKey: ["sm-clients"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("solar_market_clients")
-        .select("id, tenant_id, sm_client_id, name, email, phone, document, city, state, company, responsible, synced_at")
-        .order("name");
-      if (error) throw error;
-      return data || [];
+      return fetchAllRows<SmClient>({
+        table: "solar_market_clients",
+        select: "id, tenant_id, sm_client_id, name, email, phone, document, city, state, company, responsible, synced_at",
+        orderBy: "name",
+      });
     },
   });
 }
@@ -86,12 +116,12 @@ export function useSmProjects() {
   return useQuery<SmProject[]>({
     queryKey: ["sm-projects"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("solar_market_projects")
-        .select("id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, synced_at")
-        .order("synced_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
+      return fetchAllRows<SmProject>({
+        table: "solar_market_projects",
+        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, synced_at",
+        orderBy: "synced_at",
+        ascending: false,
+      });
     },
   });
 }
@@ -100,12 +130,12 @@ export function useSmProposals() {
   return useQuery<SmProposal[]>({
     queryKey: ["sm-proposals"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("solar_market_proposals")
-        .select("id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, synced_at")
-        .order("synced_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
+      return fetchAllRows<SmProposal>({
+        table: "solar_market_proposals",
+        select: "id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, synced_at",
+        orderBy: "synced_at",
+        ascending: false,
+      });
     },
   });
 }
