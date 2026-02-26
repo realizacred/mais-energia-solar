@@ -13,18 +13,26 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function fetchAllPages(url: string, headers: Record<string, string>): Promise<any[]> {
   const all: any[] = [];
   let page = 1;
-  const limit = 100;
+  const limit = 50; // smaller pages to avoid timeouts
 
   while (true) {
     const sep = url.includes("?") ? "&" : "?";
     const pageUrl = `${url}${sep}limit=${limit}&page=${page}`;
-    console.log(`[SM Sync] Fetching: ${pageUrl}`);
+    console.log(`[SM Sync] Fetching: ${pageUrl} (accumulated: ${all.length})`);
 
-    const res = await fetch(pageUrl, { headers });
+    let res: Response;
+    try {
+      res = await fetch(pageUrl, { headers });
+    } catch (fetchErr) {
+      console.error(`[SM Sync] Network error on page ${page}:`, fetchErr);
+      // retry once after 5s
+      await delay(5000);
+      res = await fetch(pageUrl, { headers });
+    }
 
     // Handle rate limiting with retry
     if (res.status === 429) {
-      const retryAfter = parseInt(res.headers.get("retry-after") || "5", 10);
+      const retryAfter = parseInt(res.headers.get("retry-after") || "10", 10);
       console.log(`[SM Sync] Rate limited, waiting ${retryAfter}s...`);
       await delay(retryAfter * 1000);
       continue; // retry same page
@@ -39,17 +47,56 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
     const items = Array.isArray(json) ? json : json.data || [];
     all.push(...items);
 
+    console.log(`[SM Sync] Page ${page}: got ${items.length} items, total: ${all.length}`);
+
     if (items.length < limit) break; // last page
     page++;
 
-    // Safety: max 50 pages (5000 records)
-    if (page > 50) break;
+    // Safety: max 200 pages (10000 records)
+    if (page > 200) {
+      console.log(`[SM Sync] Hit max pages (200), stopping with ${all.length} items`);
+      break;
+    }
 
-    // Rate limit: ~2s between pages (safe for 60 req/min with margin)
-    await delay(2000);
+    // Rate limit: ~2.5s between pages (safe for 60 req/min)
+    await delay(2500);
   }
 
   return all;
+}
+
+/** Batch upsert helper — splits array into chunks to avoid payload limits */
+async function batchUpsert(
+  supabase: any,
+  table: string,
+  rows: any[],
+  onConflict: string,
+  batchSize = 50
+): Promise<{ upserted: number; errors: string[] }> {
+  let upserted = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batch = rows.slice(i, i + batchSize);
+    const { error } = await supabase.from(table).upsert(batch, { onConflict });
+    if (error) {
+      console.error(`[SM Sync] Batch upsert error on ${table} (rows ${i}-${i + batch.length}):`, error.message);
+      errors.push(`${table} batch ${i}: ${error.message}`);
+      // Try one-by-one for this failed batch
+      for (const row of batch) {
+        const { error: singleErr } = await supabase.from(table).upsert(row, { onConflict });
+        if (singleErr) {
+          errors.push(`${table} row: ${singleErr.message}`);
+        } else {
+          upserted++;
+        }
+      }
+    } else {
+      upserted += batch.length;
+    }
+  }
+
+  return { upserted, errors };
 }
 
 Deno.serve(async (req) => {
@@ -217,44 +264,47 @@ Deno.serve(async (req) => {
       try {
         const clients = await fetchAllPages(`${baseUrl}/clients`, smHeaders);
         totalFetched += clients.length;
-        console.log(`[SM Sync] Clients fetched: ${clients.length}`);
 
-        for (const c of clients) {
-          try {
-            const phone = c.primaryPhone || c.phone || c.telefone || "";
-            const phoneNorm = phone.replace(/\D/g, "").slice(-11);
-            await supabase.from("solar_market_clients").upsert(
-              {
-                tenant_id: tenantId,
-                sm_client_id: c.id,
-                name: c.name || c.nome || null,
-                email: c.email || null,
-                phone: phone || null,
-                phone_normalized: phoneNorm || null,
-                document: c.cnpjCpf || c.document || c.cpf_cnpj || null,
-                address: c.address || null,
-                city: c.city || null,
-                neighborhood: c.neighborhood || null,
-                state: c.state || null,
-                zip_code: c.zipCode || c.zip_code || null,
-                number: c.number || null,
-                complement: c.complement || null,
-                company: c.company || null,
-                secondary_phone: c.secondaryPhone || c.secondary_phone || null,
-                representative: c.representative || null,
-                responsible: c.responsible || null,
-                sm_created_at: c.createdAt || c.created_at || null,
-                raw_payload: c,
-                synced_at: new Date().toISOString(),
-              },
-              { onConflict: "tenant_id,sm_client_id" }
-            );
-            totalUpserted++;
-          } catch (e) {
-            totalErrors++;
-            errors.push(`client ${c.id}: ${(e as Error).message}`);
-          }
-        }
+        // Filter: only clients with a name (all real clients have a name)
+        const validClients = clients.filter((c: any) => {
+          const name = c.name || c.nome || "";
+          return typeof name === "string" && name.trim().length > 0;
+        });
+        const skipped = clients.length - validClients.length;
+        console.log(`[SM Sync] Clients fetched: ${clients.length}, valid (with name): ${validClients.length}, skipped: ${skipped}`);
+
+        const rows = validClients.map((c: any) => {
+          const phone = c.primaryPhone || c.phone || c.telefone || "";
+          const phoneNorm = phone.replace(/\D/g, "").slice(-11);
+          return {
+            tenant_id: tenantId,
+            sm_client_id: c.id,
+            name: (c.name || c.nome || "").trim(),
+            email: c.email || null,
+            phone: phone || null,
+            phone_normalized: phoneNorm || null,
+            document: c.cnpjCpf || c.document || c.cpf_cnpj || null,
+            address: c.address || null,
+            city: c.city || null,
+            neighborhood: c.neighborhood || null,
+            state: c.state || null,
+            zip_code: c.zipCode || c.zip_code || null,
+            number: c.number || null,
+            complement: c.complement || null,
+            company: c.company || null,
+            secondary_phone: c.secondaryPhone || c.secondary_phone || null,
+            representative: c.representative || null,
+            responsible: c.responsible || null,
+            sm_created_at: c.createdAt || c.created_at || null,
+            raw_payload: c,
+            synced_at: new Date().toISOString(),
+          };
+        });
+
+        const result = await batchUpsert(supabase, "solar_market_clients", rows, "tenant_id,sm_client_id");
+        totalUpserted += result.upserted;
+        totalErrors += result.errors.length;
+        errors.push(...result.errors);
       } catch (e) {
         console.error("[SM Sync] Clients error:", e);
         const msg = (e as Error).message;
@@ -272,45 +322,41 @@ Deno.serve(async (req) => {
         totalFetched += projects.length;
         console.log(`[SM Sync] Projects fetched: ${projects.length}`);
 
-        for (const p of projects) {
-          try {
-            projectIds.push(p.id);
-            await supabase.from("solar_market_projects").upsert(
-              {
-                tenant_id: tenantId,
-                sm_project_id: p.id,
-                sm_client_id: p.clientId || p.client_id || null,
-                name: p.name || p.nome || null,
-                description: p.description || p.descricao || null,
-                potencia_kwp: p.potencia_kwp || p.power || null,
-                status: p.status || null,
-                valor: p.value || p.valor || null,
-                address: p.address || null,
-                city: p.city || null,
-                neighborhood: p.neighborhood || null,
-                state: p.state || null,
-                zip_code: p.zipCode || p.zip_code || null,
-                number: p.number || null,
-                complement: p.complement || null,
-                installation_type: p.installationType || p.installation_type || null,
-                phase_type: p.phaseType || p.phase_type || null,
-                voltage: p.voltage || null,
-                energy_consumption: p.energyConsumption || p.energy_consumption || null,
-                representative: p.representative || null,
-                responsible: p.responsible || null,
-                sm_created_at: p.createdAt || p.created_at || null,
-                sm_updated_at: p.updatedAt || p.updated_at || null,
-                raw_payload: p,
-                synced_at: new Date().toISOString(),
-              },
-              { onConflict: "tenant_id,sm_project_id" }
-            );
-            totalUpserted++;
-          } catch (e) {
-            totalErrors++;
-            errors.push(`project ${p.id}: ${(e as Error).message}`);
-          }
-        }
+        const rows = projects.map((p: any) => {
+          projectIds.push(p.id);
+          return {
+            tenant_id: tenantId,
+            sm_project_id: p.id,
+            sm_client_id: p.clientId || p.client_id || null,
+            name: p.name || p.nome || null,
+            description: p.description || p.descricao || null,
+            potencia_kwp: p.potencia_kwp || p.power || null,
+            status: p.status || null,
+            valor: p.value || p.valor || null,
+            address: p.address || null,
+            city: p.city || null,
+            neighborhood: p.neighborhood || null,
+            state: p.state || null,
+            zip_code: p.zipCode || p.zip_code || null,
+            number: p.number || null,
+            complement: p.complement || null,
+            installation_type: p.installationType || p.installation_type || null,
+            phase_type: p.phaseType || p.phase_type || null,
+            voltage: p.voltage || null,
+            energy_consumption: p.energyConsumption || p.energy_consumption || null,
+            representative: p.representative || null,
+            responsible: p.responsible || null,
+            sm_created_at: p.createdAt || p.created_at || null,
+            sm_updated_at: p.updatedAt || p.updated_at || null,
+            raw_payload: p,
+            synced_at: new Date().toISOString(),
+          };
+        });
+
+        const result = await batchUpsert(supabase, "solar_market_projects", rows, "tenant_id,sm_project_id");
+        totalUpserted += result.upserted;
+        totalErrors += result.errors.length;
+        errors.push(...result.errors);
       } catch (e) {
         console.error("[SM Sync] Projects error:", e);
         const msg = (e as Error).message;
@@ -334,13 +380,20 @@ Deno.serve(async (req) => {
 
       console.log(`[SM Sync] Fetching proposals for ${ids.length} projects`);
 
+      const allProposalRows: any[] = [];
+
       for (const projId of ids) {
         try {
           const url = `${baseUrl}/projects/${projId}/proposals`;
           const res = await fetch(url, { headers: smHeaders });
           if (!res.ok) {
-            // Some projects may have no proposals — skip 404s
-            if (res.status === 404) continue;
+            if (res.status === 404) { await res.text(); continue; }
+            if (res.status === 429) {
+              const ra = parseInt(res.headers.get("retry-after") || "10", 10);
+              console.log(`[SM Sync] Proposals rate limited, waiting ${ra}s...`);
+              await delay(ra * 1000);
+              continue;
+            }
             const body = await res.text();
             throw new Error(`SM proposals ${res.status}: ${body.slice(0, 200)}`);
           }
@@ -349,49 +402,40 @@ Deno.serve(async (req) => {
           totalFetched += proposals.length;
 
           for (const pr of proposals) {
-            try {
-              await supabase.from("solar_market_proposals").upsert(
-                {
-                  tenant_id: tenantId,
-                  sm_proposal_id: pr.id,
-                  sm_project_id: projId,
-                  sm_client_id: pr.clientId || pr.client_id || null,
-                  titulo: pr.title || pr.titulo || pr.name || null,
-                  description: pr.description || pr.descricao || null,
-                  potencia_kwp: pr.potencia_kwp || pr.power || null,
-                  valor_total: pr.totalValue || pr.total_value || pr.valor_total || null,
-                  status: pr.status || null,
-                  modulos: pr.modules || pr.modulos || null,
-                  inversores: pr.inverters || pr.inversores || null,
-                  discount: pr.discount || pr.desconto || null,
-                  installation_cost: pr.installationCost || pr.installation_cost || null,
-                  equipment_cost: pr.equipmentCost || pr.equipment_cost || null,
-                  energy_generation: pr.energyGeneration || pr.energy_generation || null,
-                  roof_type: pr.roofType || pr.roof_type || null,
-                  panel_model: pr.panelModel || pr.panel_model || null,
-                  panel_quantity: pr.panelQuantity || pr.panel_quantity || null,
-                  inverter_model: pr.inverterModel || pr.inverter_model || null,
-                  inverter_quantity: pr.inverterQuantity || pr.inverter_quantity || null,
-                  structure_type: pr.structureType || pr.structure_type || null,
-                  warranty: pr.warranty || pr.garantia || null,
-                  payment_conditions: pr.paymentConditions || pr.payment_conditions || null,
-                  valid_until: pr.validUntil || pr.valid_until || null,
-                  sm_created_at: pr.createdAt || pr.created_at || null,
-                  sm_updated_at: pr.updatedAt || pr.updated_at || null,
-                  raw_payload: pr,
-                  synced_at: new Date().toISOString(),
-                },
-                { onConflict: "tenant_id,sm_proposal_id" }
-              );
-              totalUpserted++;
-            } catch (e) {
-              totalErrors++;
-              errors.push(`proposal ${pr.id}: ${(e as Error).message}`);
-            }
+            allProposalRows.push({
+              tenant_id: tenantId,
+              sm_proposal_id: pr.id,
+              sm_project_id: projId,
+              sm_client_id: pr.clientId || pr.client_id || null,
+              titulo: pr.title || pr.titulo || pr.name || null,
+              description: pr.description || pr.descricao || null,
+              potencia_kwp: pr.potencia_kwp || pr.power || null,
+              valor_total: pr.totalValue || pr.total_value || pr.valor_total || null,
+              status: pr.status || null,
+              modulos: pr.modules || pr.modulos || null,
+              inversores: pr.inverters || pr.inversores || null,
+              discount: pr.discount || pr.desconto || null,
+              installation_cost: pr.installationCost || pr.installation_cost || null,
+              equipment_cost: pr.equipmentCost || pr.equipment_cost || null,
+              energy_generation: pr.energyGeneration || pr.energy_generation || null,
+              roof_type: pr.roofType || pr.roof_type || null,
+              panel_model: pr.panelModel || pr.panel_model || null,
+              panel_quantity: pr.panelQuantity || pr.panel_quantity || null,
+              inverter_model: pr.inverterModel || pr.inverter_model || null,
+              inverter_quantity: pr.inverterQuantity || pr.inverter_quantity || null,
+              structure_type: pr.structureType || pr.structure_type || null,
+              warranty: pr.warranty || pr.garantia || null,
+              payment_conditions: pr.paymentConditions || pr.payment_conditions || null,
+              valid_until: pr.validUntil || pr.valid_until || null,
+              sm_created_at: pr.createdAt || pr.created_at || null,
+              sm_updated_at: pr.updatedAt || pr.updated_at || null,
+              raw_payload: pr,
+              synced_at: new Date().toISOString(),
+            });
           }
 
-          // Rate limit: ~1 req/sec
-          await delay(1100);
+          // Rate limit: ~2s between project proposal fetches
+          await delay(2000);
         } catch (e) {
           console.error(`[SM Sync] Proposals for project ${projId} error:`, e);
           const msg = (e as Error).message;
@@ -399,6 +443,14 @@ Deno.serve(async (req) => {
           totalErrors++;
           errors.push(`proposals proj ${projId}: ${msg}`);
         }
+      }
+
+      // Batch upsert all proposals at once
+      if (allProposalRows.length > 0) {
+        const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_proposal_id");
+        totalUpserted += result.upserted;
+        totalErrors += result.errors.length;
+        errors.push(...result.errors);
       }
     }
 
