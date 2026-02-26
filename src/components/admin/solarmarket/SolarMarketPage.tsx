@@ -11,21 +11,28 @@ import {
   useSmProjects,
   useSmProposals,
   useSmSyncLogs,
+  useUpdateSmClient,
+  useDeleteSmClient,
+  type SmClient,
 } from "@/hooks/useSolarMarket";
 import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
+import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function SolarMarketPage() {
   const [tab, setTab] = useState("clientes");
   const [search, setSearch] = useState("");
+  const [selectedClient, setSelectedClient] = useState<SmClient | null>(null);
 
   const { data: clients = [], isLoading: loadingC } = useSmClients();
   const { data: projects = [], isLoading: loadingP } = useSmProjects();
   const { data: proposals = [], isLoading: loadingPr } = useSmProposals();
   const { data: syncLogs = [] } = useSmSyncLogs();
   const { sync, progress } = useSolarMarketSync();
+  const updateClient = useUpdateSmClient();
+  const deleteClient = useDeleteSmClient();
 
   const lastSync = syncLogs[0];
 
@@ -115,7 +122,7 @@ export default function SolarMarketPage() {
                   </thead>
                   <tbody>
                     {filtered.clients.map(c => (
-                      <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                      <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setSelectedClient(c)}>
                         <td className="p-3 font-medium text-foreground whitespace-nowrap">{c.name || "—"}</td>
                         <td className="p-3 text-muted-foreground">{c.email || "—"}</td>
                         <td className="p-3 text-muted-foreground whitespace-nowrap">{c.phone || "—"}</td>
@@ -292,6 +299,19 @@ export default function SolarMarketPage() {
           )}
         </TabsContent>
       </Tabs>
+      {/* Client Detail Dialog */}
+      <SmClientDetailDialog
+        client={selectedClient}
+        open={!!selectedClient}
+        onOpenChange={(v) => { if (!v) setSelectedClient(null); }}
+        onSave={async (id, data) => {
+          await updateClient.mutateAsync({ id, data });
+        }}
+        onDelete={async (id) => {
+          await deleteClient.mutateAsync(id);
+          setSelectedClient(null);
+        }}
+      />
     </div>
   );
 }
