@@ -13,7 +13,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function fetchAllPages(url: string, headers: Record<string, string>): Promise<any[]> {
   const all: any[] = [];
   let page = 1;
-  const limit = 200; // large pages to minimize total requests and avoid timeout
+  const limit = 100; // SM API max is 100
 
   while (true) {
     const sep = url.includes("?") ? "&" : "?";
