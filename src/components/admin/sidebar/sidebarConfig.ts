@@ -281,7 +281,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"] },
       { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP", keywords: ["n8n", "automação", "workflow", "MCP"] },
       { id: "ai-config", title: "Configuração de IA", icon: Brain, description: "Modelo, temperatura e gate de follow-up", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"] },
-      { id: "solarmarket-config", title: "SolarMarket", icon: Sun, description: "API Key para cotações de equipamentos", keywords: ["solarmarket", "cotação", "equipamento", "preço", "importar"] },
+      { id: "solarmarket-config", title: "SolarMarket Config", icon: Sun, description: "API Key para cotações de equipamentos", keywords: ["solarmarket", "cotação", "api", "key"] },
+      { id: "solarmarket", title: "SolarMarket Importação", icon: Sun, description: "Importar clientes, projetos e propostas do SolarMarket", keywords: ["solarmarket", "importar", "cliente", "projeto", "proposta", "sincronizar"] },
     ],
   },
 
