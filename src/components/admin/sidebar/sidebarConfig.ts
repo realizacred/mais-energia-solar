@@ -12,6 +12,7 @@ import {
   UserCheck,
   Star,
   Wrench,
+  Package,
   CalendarClock,
   Calendar,
   DollarSign,
@@ -195,6 +196,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "instaladores", title: "Instaladores", icon: Wrench, description: "Equipe de campo", keywords: ["técnico", "instalador", "equipe", "campo"] },
+      { id: "estoque", title: "Estoque", icon: Package, description: "Materiais e insumos", keywords: ["estoque", "material", "cabo", "disjuntor", "inventário"] },
       { id: "validacao", title: "Validação", icon: ClipboardCheck, description: "Aprovar vendas realizadas", keywords: ["aprovação", "validar", "conferência"] },
       { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList, description: "Prazos e pendências", keywords: ["tarefa", "prazo", "SLA", "pendência"] },
     ],
