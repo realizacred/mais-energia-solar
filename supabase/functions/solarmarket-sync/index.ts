@@ -30,16 +30,16 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Validate JWT claims explicitly (verify_jwt = false in config)
+    // Validate JWT explicitly (verify_jwt = false in config)
     const authClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { authorization: authHeader } },
     });
 
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    const userId = claimsData?.claims?.sub;
+    const { data: userData, error: userError } = await authClient.auth.getUser(token);
+    const userId = userData?.user?.id;
 
-    if (claimsError || !userId) {
-      return new Response(JSON.stringify({ error: "Invalid token claims" }), {
+    if (userError || !userId) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     // Get tenant
     const { data: profile } = await supabase
       .from("profiles")
-      .select("tenant_id, role")
+      .select("tenant_id")
       .eq("user_id", userId)
       .single();
     if (!profile) {
