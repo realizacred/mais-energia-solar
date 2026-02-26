@@ -30,6 +30,7 @@ const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const PropostaPublica = lazy(() => import("./pages/PropostaPublica"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const WaChannelPage = lazy(() => import("./pages/WaChannelPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
@@ -96,6 +97,7 @@ const App = () => (
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
               <Route path="/proposta/:token" element={<PropostaPublica />} />
               <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
+              <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
 
               {/* Protected routes — tenant guard active */}
               <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />
