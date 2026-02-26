@@ -33,6 +33,9 @@ export interface SmProject {
   state: string | null;
   installation_type: string | null;
   energy_consumption: number | null;
+  responsible: any | null;
+  raw_payload: any | null;
+  sm_created_at: string | null;
   synced_at: string;
 }
 
@@ -118,7 +121,7 @@ export function useSmProjects() {
     queryFn: async () => {
       return fetchAllRows<SmProject>({
         table: "solar_market_projects",
-        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, synced_at",
+        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, responsible, raw_payload, sm_created_at, synced_at",
         orderBy: "synced_at",
         ascending: false,
       });

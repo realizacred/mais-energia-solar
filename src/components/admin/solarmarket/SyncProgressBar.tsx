@@ -1,30 +1,39 @@
 import { SyncProgress, SyncStageStatus } from "@/hooks/useSolarMarketSync";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, Loader2, Clock } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Clock, SkipForward } from "lucide-react";
 
-const stageIcons: Record<SyncStageStatus["status"], React.ReactNode> = {
-  pending: <Clock className="h-4 w-4 text-muted-foreground" />,
-  running: <Loader2 className="h-4 w-4 text-primary animate-spin" />,
-  done: <CheckCircle className="h-4 w-4 text-success" />,
-  error: <XCircle className="h-4 w-4 text-destructive" />,
-};
+function StageIcon({ status }: { status: SyncStageStatus["status"] }) {
+  switch (status) {
+    case "running":
+      return <Loader2 className="h-4 w-4 text-primary animate-spin" />;
+    case "done":
+      return <CheckCircle className="h-4 w-4 text-success" />;
+    case "error":
+      return <XCircle className="h-4 w-4 text-destructive" />;
+    case "skipped":
+      return <SkipForward className="h-4 w-4 text-muted-foreground/50" />;
+    default:
+      return <Clock className="h-4 w-4 text-muted-foreground" />;
+  }
+}
 
 interface Props {
   progress: SyncProgress;
 }
 
 export function SyncProgressBar({ progress }: Props) {
-  if (!progress.isRunning && progress.stages.every((s) => s.status === "pending")) {
+  const activeStages = progress.stages.filter((s) => s.status !== "skipped");
+  const hasActivity = activeStages.some((s) => s.status !== "pending");
+
+  if (!progress.isRunning && !hasActivity) {
     return null;
   }
 
-  const doneCount = progress.stages.filter((s) => s.status === "done").length;
-  const totalStages = progress.stages.length;
-  const runningStage = progress.stages.find((s) => s.status === "running");
+  const doneCount = activeStages.filter((s) => s.status === "done").length;
+  const totalActive = activeStages.length;
+  const runningStage = activeStages.find((s) => s.status === "running");
   const percent = progress.isRunning
-    ? Math.round(((doneCount + (runningStage ? 0.5 : 0)) / totalStages) * 100)
-    : progress.stages.some((s) => s.status === "error")
-    ? 100
+    ? Math.round(((doneCount + (runningStage ? 0.5 : 0)) / totalActive) * 100)
     : 100;
 
   return (
@@ -32,7 +41,7 @@ export function SyncProgressBar({ progress }: Props) {
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">
           {progress.isRunning
-            ? `Sincronizando... (${doneCount}/${totalStages} etapas)`
+            ? `Sincronizando... (${doneCount}/${totalActive} etapas)`
             : "Sincronização finalizada"}
         </span>
         <span className="text-xs text-muted-foreground font-mono">{percent}%</span>
@@ -51,10 +60,12 @@ export function SyncProgressBar({ progress }: Props) {
                 ? "border-success/30 bg-success/5"
                 : stage.status === "error"
                 ? "border-destructive/30 bg-destructive/5"
+                : stage.status === "skipped"
+                ? "border-border/50 bg-muted/10 opacity-50"
                 : "border-border bg-muted/20"
             }`}
           >
-            {stageIcons[stage.status]}
+            <StageIcon status={stage.status} />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium truncate">{stage.label}</p>
               {stage.status === "running" && (
@@ -67,6 +78,9 @@ export function SyncProgressBar({ progress }: Props) {
               )}
               {stage.status === "error" && stage.errorMessage && (
                 <p className="text-[10px] text-destructive truncate">{stage.errorMessage}</p>
+              )}
+              {stage.status === "skipped" && (
+                <p className="text-[10px] text-muted-foreground">Pulado</p>
               )}
             </div>
           </div>
