@@ -135,7 +135,7 @@ export function useSyncSolarMarket() {
 
       if (error) {
         const rawMessage = (error as Error)?.message || "Erro ao chamar a sincronização";
-        const isAuthError = /401|unauthorized|non-2xx/i.test(rawMessage);
+        const isAuthError = /401|unauthorized/i.test(rawMessage);
         throw new Error(
           isAuthError
             ? "Sua sessão não foi validada na integração. Saia e entre novamente no sistema para sincronizar."
