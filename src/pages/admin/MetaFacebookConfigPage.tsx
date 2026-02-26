@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Eye, EyeOff, Save, CheckCircle2, Loader2, Facebook } from "lucide-react";
+import { Eye, EyeOff, Save, CheckCircle2, Loader2, Facebook, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
@@ -291,9 +291,24 @@ export default function MetaFacebookConfigPage() {
                          <p className="ml-5 mt-1">Invente qualquer frase-senha (ex: <code className="bg-muted px-1 rounded text-xs">minha-chave-2026</code>) → cole acima. Use essa mesma frase ao configurar o webhook no Meta.</p>
                        </li>
                        <li>
-                         <span className="font-medium text-foreground">Configure o Webhook</span>
-                         <p className="ml-5 mt-1">No painel do app → <strong>"Webhooks"</strong> → selecione <strong>"Página"</strong> → assine <code className="bg-muted px-1 rounded text-xs">leadgen</code> → cole a URL do webhook e o token de verificação.</p>
-                       </li>
+                          <span className="font-medium text-foreground">Configure o Webhook</span>
+                          <p className="ml-5 mt-1">No painel do app → <strong>"Webhooks"</strong> → selecione <strong>"Página"</strong> → assine <code className="bg-muted px-1 rounded text-xs">leadgen</code> → cole a <strong>Callback URL</strong> abaixo e o token de verificação.</p>
+                          <div className="ml-5 mt-2 flex items-center gap-2 p-2 bg-muted rounded-md">
+                            <code className="text-xs break-all flex-1 select-all">{`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/facebook-lead-webhook`}</code>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="shrink-0 h-7 w-7"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/facebook-lead-webhook`);
+                                toast.success("URL do webhook copiada!");
+                              }}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </li>
                         <li>
                           <span className="font-medium text-foreground">Habilite o Gerenciador de Acesso a Leads</span>
                           <p className="ml-5 mt-1">
