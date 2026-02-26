@@ -52,6 +52,9 @@ verify_jwt = false
 [functions.solar-market-auth]
 verify_jwt = false
 
+[functions.solarmarket-sync]
+verify_jwt = false
+
 [functions.evolution-webhook]
 verify_jwt = false
 
