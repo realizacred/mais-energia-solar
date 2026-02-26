@@ -14,24 +14,32 @@ Deno.serve(async (req) => {
   try {
     // Auth check
     const authHeader = req.headers.get("authorization");
+    console.log("[SM Sync] Request auth header present:", Boolean(authHeader));
+
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const token = authHeader.replace("Bearer ", "").trim();
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Validate user
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    // Validate JWT claims explicitly (verify_jwt = false in config)
+    const authClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { authorization: authHeader } },
     });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    const userId = claimsData?.claims?.sub;
+
+    if (claimsError || !userId) {
+      return new Response(JSON.stringify({ error: "Invalid token claims" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -41,7 +49,7 @@ Deno.serve(async (req) => {
     const { data: profile } = await supabase
       .from("profiles")
       .select("tenant_id, role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
     if (!profile) {
       return new Response(JSON.stringify({ error: "Profile not found" }), {
