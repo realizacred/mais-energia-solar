@@ -125,6 +125,52 @@ export function useSmSyncLogs() {
   });
 }
 
+// ─── CRUD Mutations ────────────────────────────────────
+
+export function useUpdateSmClient() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<SmClient> }) => {
+      const { error } = await (supabase as any)
+        .from("solar_market_clients")
+        .update(data)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sm-clients"] });
+      toast({ title: "Cliente atualizado" });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useDeleteSmClient() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("solar_market_clients")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sm-clients"] });
+      toast({ title: "Cliente excluído" });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    },
+  });
+}
+
 // ─── Sync Mutation ──────────────────────────────────────
 
 export function useSyncSolarMarket() {
