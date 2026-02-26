@@ -196,6 +196,7 @@ export function useWaConversations(filters?: {
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // ⚡ PERF: Reduced debounce from 500ms → 150ms for near-instant conversation list updates
     const channel = supabase
       .channel("wa-conversations-realtime")
       .on(
@@ -205,7 +206,7 @@ export function useWaConversations(filters?: {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-          }, 500);
+          }, 150);
         }
       )
       .on(
@@ -215,7 +216,7 @@ export function useWaConversations(filters?: {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-          }, 500);
+          }, 150);
         }
       )
       .subscribe();

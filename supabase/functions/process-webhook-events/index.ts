@@ -218,14 +218,10 @@ async function handleMessageUpsert(
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
     // Group subject (Evolution API sends it in different places)
-    let groupSubject: string | null = isGroup
+    // ⚡ PERF: Only use data already in payload — NEVER block on external API call
+    const groupSubject: string | null = isGroup
       ? (msg.groupMetadata?.subject || msg.messageContextInfo?.messageSecret?.groupSubject || payload.groupSubject || payload.subject || msg.subject || null)
       : null;
-    
-    // If group but no subject, try fetching from Evolution API
-    if (isGroup && !groupSubject) {
-      groupSubject = await fetchGroupName(supabase, instanceId, remoteJid);
-    }
 
     // P0-5: Parse event timestamp defensively
     const eventDate = parseMessageTimestamp(msg);
@@ -337,11 +333,8 @@ async function handleMessageUpsert(
     } else {
       const displayName = isGroup ? (groupSubject || `Grupo ${phone.substring(0, 12)}...`) : contactName;
       
-      // Fetch profile picture for new conversations (individuals and groups)
-      let profilePicUrl: string | null = null;
-      try {
-        profilePicUrl = await fetchProfilePicture(supabase, instanceId, remoteJid);
-      } catch (_) { /* ignore for groups */ }
+      // ⚡ PERF: Skip profile picture on hot path — cron job handles it every 6h
+      const profilePicUrl: string | null = null;
 
       // ⚠️ HARDENING: Use upsert with onConflict to avoid duplicate key errors
       // from concurrent webhook events for the same conversation
@@ -532,34 +525,16 @@ async function handleMessageUpsert(
       }
     }
 
-    if (existingConv && !fromMe && !isGroup) {
-      const shouldRefresh = shouldRefreshProfilePic(existingConv);
-      if (shouldRefresh) {
-        try {
-          const picUrl = await fetchProfilePicture(supabase, instanceId, remoteJid);
-          if (picUrl && picUrl !== existingConv.profile_picture_url) {
-            await supabase
-              .from("wa_conversations")
-              .update({ profile_picture_url: picUrl })
-              .eq("id", existingConv.id);
-            console.log(`[process-webhook-events] Profile picture updated for conversation ${conversationId}`);
-          }
-        } catch (e) {
-          console.warn(`[process-webhook-events] Profile picture refresh failed for ${remoteJid}:`, e);
-        }
-      }
-    }
+    // ⚡ PERF: Profile picture refresh moved to cron job — never block hot path
 
-    // ── Fetch media if applicable ──
-    let mediaUrl: string | null = msg.mediaUrl || null;
+    // ── Extract media MIME for metadata (no external calls yet) ──
     const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || messageContent?.stickerMessage?.mimetype || null;
     
-    if (!mediaUrl && ["image", "video", "audio", "document", "gif", "sticker"].includes(messageType) && evolutionMessageId) {
-      mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType === "gif" ? "video" : messageType, mediaMimeType, msg);
-    }
+    // ⚡ PERF CRITICAL: Insert message FIRST without media URL
+    // Media will be fetched asynchronously AFTER the message is visible in realtime
+    const inlineMediaUrl: string | null = msg.mediaUrl || null;
 
     // ⚠️ HARDENING: Use upsert with ignoreDuplicates to prevent duplicate key errors
-    // from concurrent webhook processing of the same message
     const { error: msgInsertError } = await supabase.from("wa_messages").upsert({
       conversation_id: conversationId,
       tenant_id: tenantId,
@@ -567,7 +542,7 @@ async function handleMessageUpsert(
       direction,
       message_type: messageType,
       content,
-      media_url: mediaUrl,
+      media_url: inlineMediaUrl, // Only use if already present in payload
       media_mime_type: mediaMimeType,
       status: fromMe ? "sent" : "delivered",
       participant_jid: participantJid,
@@ -577,6 +552,31 @@ async function handleMessageUpsert(
 
     if (msgInsertError) {
       console.warn(`[process-webhook-events] Message upsert warning: ${msgInsertError.message}`);
+    }
+
+    // ⚡ PERF: Fetch media AFTER message insert (non-blocking for realtime)
+    // Message is already visible in UI; media URL will update via realtime UPDATE event
+    if (!inlineMediaUrl && ["image", "video", "audio", "document", "gif", "sticker"].includes(messageType) && evolutionMessageId) {
+      try {
+        const mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType === "gif" ? "video" : messageType, mediaMimeType, msg);
+        if (mediaUrl) {
+          await supabase.from("wa_messages")
+            .update({ media_url: mediaUrl })
+            .eq("evolution_message_id", evolutionMessageId);
+        }
+      } catch (e) {
+        console.warn(`[process-webhook-events] Deferred media fetch failed: ${e}`);
+      }
+    }
+
+    // ⚡ PERF: Fetch group name AFTER message insert if missing
+    if (isGroup && !groupSubject && existingConv && !existingConv.cliente_nome?.startsWith("Grupo ") === false) {
+      // Fire-and-forget: fetch group name and update conversation
+      fetchGroupName(supabase, instanceId, remoteJid).then(name => {
+        if (name) {
+          supabase.from("wa_conversations").update({ cliente_nome: name }).eq("id", conversationId).then(() => {});
+        }
+      }).catch(() => {});
     }
 
     // ── Send Web Push for inbound messages (fire-and-forget) ──
