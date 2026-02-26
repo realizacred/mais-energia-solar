@@ -363,91 +363,124 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── Sync Proposals (per project: GET /projects/{id}/proposals) ──
+    // ─── Sync Proposals ───────────────────────────────────
     if (sync_type === "full" || sync_type === "proposals") {
-      // If we didn't fetch projects above, get project IDs from DB
-      let ids = projectIds;
-      if (ids.length === 0) {
-        const { data: dbProjects } = await supabase
-          .from("solar_market_projects")
-          .select("sm_project_id")
-          .eq("tenant_id", tenantId);
-        ids = (dbProjects || []).map((p: any) => p.sm_project_id);
-      }
+      try {
+        // Try bulk endpoint first: GET /proposals
+        console.log(`[SM Sync] Trying bulk /proposals endpoint...`);
+        const proposals = await fetchAllPages(`${baseUrl}/proposals`, smHeaders);
+        totalFetched += proposals.length;
+        console.log(`[SM Sync] Proposals fetched (bulk): ${proposals.length}`);
 
-      console.log(`[SM Sync] Fetching proposals for ${ids.length} projects`);
+        if (proposals.length > 0) {
+          const rows = proposals.map((pr: any) => ({
+            tenant_id: tenantId,
+            sm_proposal_id: pr.id,
+            sm_project_id: pr.projectId || pr.project_id || null,
+            sm_client_id: pr.clientId || pr.client_id || null,
+            titulo: pr.title || pr.titulo || pr.name || null,
+            description: pr.description || pr.descricao || null,
+            potencia_kwp: pr.potencia_kwp || pr.power || null,
+            valor_total: pr.totalValue || pr.total_value || pr.valor_total || null,
+            status: pr.status || null,
+            modulos: pr.modules || pr.modulos || null,
+            inversores: pr.inverters || pr.inversores || null,
+            discount: pr.discount || pr.desconto || null,
+            installation_cost: pr.installationCost || pr.installation_cost || null,
+            equipment_cost: pr.equipmentCost || pr.equipment_cost || null,
+            energy_generation: pr.energyGeneration || pr.energy_generation || null,
+            roof_type: pr.roofType || pr.roof_type || null,
+            panel_model: pr.panelModel || pr.panel_model || null,
+            panel_quantity: pr.panelQuantity || pr.panel_quantity || null,
+            inverter_model: pr.inverterModel || pr.inverter_model || null,
+            inverter_quantity: pr.inverterQuantity || pr.inverter_quantity || null,
+            structure_type: pr.structureType || pr.structure_type || null,
+            warranty: pr.warranty || pr.garantia || null,
+            payment_conditions: pr.paymentConditions || pr.payment_conditions || null,
+            valid_until: pr.validUntil || pr.valid_until || null,
+            sm_created_at: pr.createdAt || pr.created_at || null,
+            sm_updated_at: pr.updatedAt || pr.updated_at || null,
+            raw_payload: pr,
+            synced_at: new Date().toISOString(),
+          }));
 
-      const allProposalRows: any[] = [];
+          const result = await batchUpsert(supabase, "solar_market_proposals", rows, "tenant_id,sm_proposal_id");
+          totalUpserted += result.upserted;
+          totalErrors += result.errors.length;
+          errors.push(...result.errors);
+        }
+      } catch (bulkErr) {
+        console.warn(`[SM Sync] Bulk /proposals failed: ${(bulkErr as Error).message}, trying per-project fallback (limited)...`);
 
-      for (const projId of ids) {
-        try {
-          const url = `${baseUrl}/projects/${projId}/proposals`;
-          const res = await fetch(url, { headers: smHeaders });
-          if (!res.ok) {
-            if (res.status === 404) { await res.text(); continue; }
-            if (res.status === 429) {
-              const ra = parseInt(res.headers.get("retry-after") || "10", 10);
-              console.log(`[SM Sync] Proposals rate limited, waiting ${ra}s...`);
-              await delay(ra * 1000);
+        // Fallback: fetch per-project but limit to avoid timeout
+        let ids = projectIds;
+        if (ids.length === 0) {
+          const { data: dbProjects } = await supabase
+            .from("solar_market_projects")
+            .select("sm_project_id")
+            .eq("tenant_id", tenantId)
+            .order("synced_at", { ascending: false })
+            .limit(200);
+          ids = (dbProjects || []).map((p: any) => p.sm_project_id);
+        } else {
+          ids = ids.slice(0, 200);
+        }
+
+        console.log(`[SM Sync] Fetching proposals for ${ids.length} projects (fallback, limited)`);
+        const allProposalRows: any[] = [];
+
+        for (const projId of ids) {
+          try {
+            const url = `${baseUrl}/projects/${projId}/proposals`;
+            const res = await fetch(url, { headers: smHeaders });
+            if (!res.ok) {
+              if (res.status === 404) { await res.text(); continue; }
+              if (res.status === 429) {
+                const ra = parseInt(res.headers.get("retry-after") || "10", 10);
+                await delay(ra * 1000);
+                continue;
+              }
+              await res.text();
               continue;
             }
-            const body = await res.text();
-            throw new Error(`SM proposals ${res.status}: ${body.slice(0, 200)}`);
-          }
-          const propData = await res.json();
-          const proposals = Array.isArray(propData) ? propData : propData.data ? [propData.data] : propData ? [propData] : [];
-          totalFetched += proposals.length;
+            const propData = await res.json();
+            const proposals = Array.isArray(propData) ? propData : propData.data ? [propData.data] : propData ? [propData] : [];
+            totalFetched += proposals.length;
 
-          for (const pr of proposals) {
-            allProposalRows.push({
-              tenant_id: tenantId,
-              sm_proposal_id: pr.id,
-              sm_project_id: projId,
-              sm_client_id: pr.clientId || pr.client_id || null,
-              titulo: pr.title || pr.titulo || pr.name || null,
-              description: pr.description || pr.descricao || null,
-              potencia_kwp: pr.potencia_kwp || pr.power || null,
-              valor_total: pr.totalValue || pr.total_value || pr.valor_total || null,
-              status: pr.status || null,
-              modulos: pr.modules || pr.modulos || null,
-              inversores: pr.inverters || pr.inversores || null,
-              discount: pr.discount || pr.desconto || null,
-              installation_cost: pr.installationCost || pr.installation_cost || null,
-              equipment_cost: pr.equipmentCost || pr.equipment_cost || null,
-              energy_generation: pr.energyGeneration || pr.energy_generation || null,
-              roof_type: pr.roofType || pr.roof_type || null,
-              panel_model: pr.panelModel || pr.panel_model || null,
-              panel_quantity: pr.panelQuantity || pr.panel_quantity || null,
-              inverter_model: pr.inverterModel || pr.inverter_model || null,
-              inverter_quantity: pr.inverterQuantity || pr.inverter_quantity || null,
-              structure_type: pr.structureType || pr.structure_type || null,
-              warranty: pr.warranty || pr.garantia || null,
-              payment_conditions: pr.paymentConditions || pr.payment_conditions || null,
-              valid_until: pr.validUntil || pr.valid_until || null,
-              sm_created_at: pr.createdAt || pr.created_at || null,
-              sm_updated_at: pr.updatedAt || pr.updated_at || null,
-              raw_payload: pr,
-              synced_at: new Date().toISOString(),
-            });
+            for (const pr of proposals) {
+              allProposalRows.push({
+                tenant_id: tenantId,
+                sm_proposal_id: pr.id,
+                sm_project_id: projId,
+                sm_client_id: pr.clientId || pr.client_id || null,
+                titulo: pr.title || pr.titulo || pr.name || null,
+                description: pr.description || pr.descricao || null,
+                potencia_kwp: pr.potencia_kwp || pr.power || null,
+                valor_total: pr.totalValue || pr.total_value || pr.valor_total || null,
+                status: pr.status || null,
+                modulos: pr.modules || pr.modulos || null,
+                inversores: pr.inverters || pr.inversores || null,
+                panel_model: pr.panelModel || pr.panel_model || null,
+                panel_quantity: pr.panelQuantity || pr.panel_quantity || null,
+                inverter_model: pr.inverterModel || pr.inverter_model || null,
+                inverter_quantity: pr.inverterQuantity || pr.inverter_quantity || null,
+                raw_payload: pr,
+                synced_at: new Date().toISOString(),
+              });
+            }
+            await delay(800);
+          } catch (e) {
+            totalErrors++;
+            errors.push(`proposals proj ${projId}: ${(e as Error).message}`);
           }
-
-          // Rate limit: ~1.2s between project proposal fetches
-          await delay(1200);
-        } catch (e) {
-          console.error(`[SM Sync] Proposals for project ${projId} error:`, e);
-          const msg = (e as Error).message;
-          if (msg.includes("SM proposals 401") || msg.includes("SM API 401")) hasSolarMarketAuthError = true;
-          totalErrors++;
-          errors.push(`proposals proj ${projId}: ${msg}`);
         }
-      }
 
-      // Batch upsert all proposals at once
-      if (allProposalRows.length > 0) {
-        const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_proposal_id");
-        totalUpserted += result.upserted;
-        totalErrors += result.errors.length;
-        errors.push(...result.errors);
+        if (allProposalRows.length > 0) {
+          const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_proposal_id");
+          totalUpserted += result.upserted;
+          totalErrors += result.errors.length;
+          errors.push(...result.errors);
+        }
       }
     }
 
