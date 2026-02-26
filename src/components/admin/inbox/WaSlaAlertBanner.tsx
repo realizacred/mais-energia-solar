@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Clock,
   Eye,
+  PauseCircle,
   Sparkles,
   X,
 } from "lucide-react";
@@ -47,6 +48,7 @@ interface WaSlaAlertBannerProps {
   onOpenConversation: (conversationId: string) => void;
   onAcknowledge: (alertId: string) => void;
   onAcknowledgeAll: () => void;
+  onPauseSla?: (conversationId: string, hours: number) => void;
   isAdmin?: boolean;
 }
 
@@ -55,6 +57,7 @@ export function WaSlaAlertBanner({
   onOpenConversation,
   onAcknowledge,
   onAcknowledgeAll,
+  onPauseSla,
   isAdmin = false,
 }: WaSlaAlertBannerProps) {
   const [isOpen, setIsOpen] = useState(true);
@@ -175,6 +178,17 @@ export function WaSlaAlertBanner({
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      {onPauseSla && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => onPauseSla(alert.conversation_id, 4)}
+                          title="Pausar SLA por 4h"
+                        >
+                          <PauseCircle className="h-3.5 w-3.5 text-warning" />
+                        </Button>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"

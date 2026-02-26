@@ -155,6 +155,23 @@ export function useWaSlaAlerts() {
     queryClient.invalidateQueries({ queryKey: ["wa-sla-alerts"] });
   }, [queryClient]);
 
+  const pauseSla = useCallback(async (conversationId: string, hours: number) => {
+    const pauseUntil = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    await (supabase as any)
+      .from("wa_conversations")
+      .update({ sla_paused_until: pauseUntil })
+      .eq("id", conversationId);
+    // Resolve existing alerts for this conversation
+    const alertsForConv = alerts.filter((a) => a.conversation_id === conversationId && !a.resolved);
+    if (alertsForConv.length) {
+      await (supabase as any)
+        .from("wa_sla_alerts")
+        .update({ resolved: true, resolved_at: new Date().toISOString() })
+        .in("id", alertsForConv.map((a) => a.id));
+    }
+    queryClient.invalidateQueries({ queryKey: ["wa-sla-alerts"] });
+  }, [alerts, queryClient]);
+
   const acknowledgeAll = useCallback(async () => {
     const unacked = alerts.filter((a) => !a.acknowledged);
     if (!unacked.length) return;
@@ -184,6 +201,7 @@ export function useWaSlaAlerts() {
     escalatedCount,
     acknowledgeAlert,
     resolveAlert,
+    pauseSla,
     acknowledgeAll,
     isEnabled: !!slaConfig?.ativo,
   };
