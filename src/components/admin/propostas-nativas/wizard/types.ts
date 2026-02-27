@@ -141,6 +141,8 @@ export interface KitItemRow {
   preco_unitario: number;
   categoria: string;
   avulso: boolean;
+  /** Referência ao produto de origem (modulos_solares.id, inversores_catalogo.id, etc.) para rastreabilidade do snapshot. */
+  produto_ref?: string | null;
 }
 
 export interface KitData {
