@@ -1,0 +1,1 @@
+UPDATE solar_market_sync_logs SET status = 'failed', finished_at = now(), total_errors = 1 WHERE status = 'running';
