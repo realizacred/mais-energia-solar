@@ -13046,99 +13046,171 @@ export type Database = {
       }
       solar_market_proposals: {
         Row: {
+          acceptance_date: string | null
+          cidade: string | null
+          consumo_mensal: number | null
           created_at: string
+          custo_disponibilidade: number | null
           description: string | null
+          dis_energia: string | null
           discount: number | null
+          economia_mensal: number | null
+          economia_mensal_percent: number | null
           energy_generation: number | null
           equipment_cost: number | null
+          estado: string | null
+          fase: string | null
+          generated_at: string | null
+          geracao_anual: number | null
           id: string
+          inflacao_energetica: number | null
           installation_cost: number | null
           inversores: string | null
           inverter_model: string | null
           inverter_quantity: number | null
+          link_pdf: string | null
           modulos: string | null
           panel_model: string | null
           panel_quantity: number | null
+          payback: string | null
           payment_conditions: string | null
+          perda_eficiencia_anual: number | null
           potencia_kwp: number | null
+          preco_total: number | null
           raw_payload: Json | null
+          rejection_date: string | null
           roof_type: string | null
+          send_at: string | null
           sm_client_id: number | null
           sm_created_at: string | null
           sm_project_id: number | null
           sm_proposal_id: number
           sm_updated_at: string | null
+          sobredimensionamento: number | null
           status: string | null
           structure_type: string | null
           synced_at: string
+          tarifa_distribuidora: number | null
           tenant_id: string
+          tipo_dimensionamento: string | null
+          tir: number | null
           titulo: string | null
           valid_until: string | null
           valor_total: number | null
+          viewed_at: string | null
+          vpl: number | null
           warranty: string | null
         }
         Insert: {
+          acceptance_date?: string | null
+          cidade?: string | null
+          consumo_mensal?: number | null
           created_at?: string
+          custo_disponibilidade?: number | null
           description?: string | null
+          dis_energia?: string | null
           discount?: number | null
+          economia_mensal?: number | null
+          economia_mensal_percent?: number | null
           energy_generation?: number | null
           equipment_cost?: number | null
+          estado?: string | null
+          fase?: string | null
+          generated_at?: string | null
+          geracao_anual?: number | null
           id?: string
+          inflacao_energetica?: number | null
           installation_cost?: number | null
           inversores?: string | null
           inverter_model?: string | null
           inverter_quantity?: number | null
+          link_pdf?: string | null
           modulos?: string | null
           panel_model?: string | null
           panel_quantity?: number | null
+          payback?: string | null
           payment_conditions?: string | null
+          perda_eficiencia_anual?: number | null
           potencia_kwp?: number | null
+          preco_total?: number | null
           raw_payload?: Json | null
+          rejection_date?: string | null
           roof_type?: string | null
+          send_at?: string | null
           sm_client_id?: number | null
           sm_created_at?: string | null
           sm_project_id?: number | null
           sm_proposal_id: number
           sm_updated_at?: string | null
+          sobredimensionamento?: number | null
           status?: string | null
           structure_type?: string | null
           synced_at?: string
+          tarifa_distribuidora?: number | null
           tenant_id: string
+          tipo_dimensionamento?: string | null
+          tir?: number | null
           titulo?: string | null
           valid_until?: string | null
           valor_total?: number | null
+          viewed_at?: string | null
+          vpl?: number | null
           warranty?: string | null
         }
         Update: {
+          acceptance_date?: string | null
+          cidade?: string | null
+          consumo_mensal?: number | null
           created_at?: string
+          custo_disponibilidade?: number | null
           description?: string | null
+          dis_energia?: string | null
           discount?: number | null
+          economia_mensal?: number | null
+          economia_mensal_percent?: number | null
           energy_generation?: number | null
           equipment_cost?: number | null
+          estado?: string | null
+          fase?: string | null
+          generated_at?: string | null
+          geracao_anual?: number | null
           id?: string
+          inflacao_energetica?: number | null
           installation_cost?: number | null
           inversores?: string | null
           inverter_model?: string | null
           inverter_quantity?: number | null
+          link_pdf?: string | null
           modulos?: string | null
           panel_model?: string | null
           panel_quantity?: number | null
+          payback?: string | null
           payment_conditions?: string | null
+          perda_eficiencia_anual?: number | null
           potencia_kwp?: number | null
+          preco_total?: number | null
           raw_payload?: Json | null
+          rejection_date?: string | null
           roof_type?: string | null
+          send_at?: string | null
           sm_client_id?: number | null
           sm_created_at?: string | null
           sm_project_id?: number | null
           sm_proposal_id?: number
           sm_updated_at?: string | null
+          sobredimensionamento?: number | null
           status?: string | null
           structure_type?: string | null
           synced_at?: string
+          tarifa_distribuidora?: number | null
           tenant_id?: string
+          tipo_dimensionamento?: string | null
+          tir?: number | null
           titulo?: string | null
           valid_until?: string | null
           valor_total?: number | null
+          viewed_at?: string | null
+          vpl?: number | null
           warranty?: string | null
         }
         Relationships: [

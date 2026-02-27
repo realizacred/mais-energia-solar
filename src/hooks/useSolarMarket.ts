@@ -69,6 +69,31 @@ export interface SmProposal {
   sm_updated_at: string | null;
   raw_payload: any | null;
   synced_at: string;
+  // New fields
+  link_pdf: string | null;
+  consumo_mensal: number | null;
+  tarifa_distribuidora: number | null;
+  economia_mensal: number | null;
+  economia_mensal_percent: number | null;
+  payback: string | null;
+  vpl: number | null;
+  tir: number | null;
+  preco_total: number | null;
+  fase: string | null;
+  tipo_dimensionamento: string | null;
+  dis_energia: string | null;
+  cidade: string | null;
+  estado: string | null;
+  geracao_anual: number | null;
+  inflacao_energetica: number | null;
+  perda_eficiencia_anual: number | null;
+  sobredimensionamento: number | null;
+  custo_disponibilidade: number | null;
+  generated_at: string | null;
+  send_at: string | null;
+  viewed_at: string | null;
+  acceptance_date: string | null;
+  rejection_date: string | null;
 }
 
 export interface SmSyncLog {
