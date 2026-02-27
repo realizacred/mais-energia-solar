@@ -195,8 +195,8 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados do Cliente</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Nome" value={client.name} />
-                    <Field label="CPF/CNPJ" value={client.document} />
-                    <Field label="Email" value={client.email} />
+                    <Field label="CPF/CNPJ" value={client.document_formatted || client.document} />
+                    <Field label="Email" value={client.email_normalized || client.email} />
                     <Field label="Empresa" value={client.company} />
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
                 <div className="space-y-3">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contato</h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Tel. Principal" value={client.phone} />
+                    <Field label="Tel. Principal" value={client.phone_formatted || client.phone} />
                     <Field label="Tel. Secundário" value={client.secondary_phone} />
                   </div>
                 </div>
@@ -220,7 +220,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Endereço" value={endereco || null} />
                     <Field label="Cidade/UF" value={cidadeEstado || null} />
-                    <Field label="CEP" value={client.zip_code} />
+                    <Field label="CEP" value={client.zip_code_formatted || client.zip_code} />
                   </div>
                 </div>
 

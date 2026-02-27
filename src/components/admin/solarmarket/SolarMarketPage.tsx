@@ -58,13 +58,13 @@ function ClientsTable({ clients, onSelect, onNavigateProjects }: {
               <TableCell>
                 <div>
                   <p className="font-medium">{c.name || "—"}</p>
-                  {c.document && <p className="text-xs text-muted-foreground">{c.document}</p>}
+                  {(c.document_formatted || c.document) && <p className="text-xs text-muted-foreground">{c.document_formatted || c.document}</p>}
                 </div>
               </TableCell>
               <TableCell>
                 <div className="text-sm">
-                  <p>{c.phone || "—"}</p>
-                  {c.email && <p className="text-muted-foreground text-xs">{c.email}</p>}
+                  <p>{c.phone_formatted || c.phone || "—"}</p>
+                  {(c.email_normalized || c.email) && <p className="text-muted-foreground text-xs">{c.email_normalized || c.email}</p>}
                 </div>
               </TableCell>
               <TableCell>

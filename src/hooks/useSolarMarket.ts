@@ -11,10 +11,15 @@ export interface SmClient {
   sm_client_id: number;
   name: string | null;
   email: string | null;
+  email_normalized: string | null;
   phone: string | null;
+  phone_formatted: string | null;
+  phone_normalized: string | null;
   secondary_phone: string | null;
   document: string | null;
+  document_formatted: string | null;
   zip_code: string | null;
+  zip_code_formatted: string | null;
   address: any | null;
   number: string | null;
   complement: string | null;
@@ -188,7 +193,7 @@ export function useSmClients(syncRunning?: boolean) {
     queryFn: async () => {
       return fetchAllRows<SmClient>({
         table: "solar_market_clients",
-        select: "id, tenant_id, sm_client_id, name, email, phone, secondary_phone, document, zip_code, address, number, complement, neighborhood, city, state, company, responsible, representative, sm_created_at, synced_at",
+        select: "id, tenant_id, sm_client_id, name, email, email_normalized, phone, phone_formatted, phone_normalized, secondary_phone, document, document_formatted, zip_code, zip_code_formatted, address, number, complement, neighborhood, city, state, company, responsible, representative, sm_created_at, synced_at",
         orderBy: "name",
       });
     },
