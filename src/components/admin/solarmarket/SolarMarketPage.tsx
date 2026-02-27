@@ -1,12 +1,19 @@
 import { useState, useMemo } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, AlertTriangle, UserX, UserMinus } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2 } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InlineLoader } from "@/components/loading/InlineLoader";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   useSmClients,
   useSmProjects,
@@ -34,48 +41,53 @@ function ClientsTable({ clients, onSelect, onNavigateProjects }: {
   onNavigateProjects: (id: number) => void;
 }) {
   return (
-    <div className="rounded-lg border overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/30">
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs">Nome</th>
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs hidden md:table-cell">Telefone</th>
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs hidden lg:table-cell">Cidade/UF</th>
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs hidden xl:table-cell">Responsável</th>
-            <th className="text-right p-2.5 font-medium text-muted-foreground text-xs">ID</th>
-            <th className="w-9 p-2.5"></th>
-          </tr>
-        </thead>
-        <tbody>
+    <SectionCard icon={Users} title="Clientes" variant="neutral" noPadding>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Contato</TableHead>
+            <TableHead>Cidade/UF</TableHead>
+            <TableHead>Responsável</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {clients.map(c => (
-            <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => onSelect(c)}>
-              <td className="p-2.5">
-                <div className="font-medium text-foreground text-xs truncate max-w-[200px]" title={c.name || ""}>{c.name || "—"}</div>
-                <div className="text-[11px] text-muted-foreground truncate max-w-[200px] md:hidden">{c.phone || c.email || ""}</div>
-              </td>
-              <td className="p-2.5 text-muted-foreground text-xs whitespace-nowrap hidden md:table-cell">{c.phone || "—"}</td>
-              <td className="p-2.5 text-muted-foreground text-xs whitespace-nowrap hidden lg:table-cell">
-                {[c.city, c.state].filter(Boolean).join("/") || "—"}
-              </td>
-              <td className="p-2.5 text-muted-foreground text-[11px] hidden xl:table-cell">{c.responsible?.name || "—"}</td>
-              <td className="p-2.5 text-right">
-                <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">{c.sm_client_id}</Badge>
-              </td>
-              <td className="p-2.5 text-center">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onNavigateProjects(c.sm_client_id); }}>
-                      <FolderKanban className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Ver projetos</TooltipContent>
-                </Tooltip>
-              </td>
-            </tr>
+            <TableRow key={c.id} className="cursor-pointer" onClick={() => onSelect(c)}>
+              <TableCell>
+                <div>
+                  <p className="font-medium">{c.name || "—"}</p>
+                  {c.document && <p className="text-xs text-muted-foreground">{c.document}</p>}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  <p>{c.phone || "—"}</p>
+                  {c.email && <p className="text-muted-foreground text-xs">{c.email}</p>}
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm">{[c.city, c.state].filter(Boolean).join("/") || "—"}</span>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm text-muted-foreground">{c.responsible?.name || "—"}</span>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-1">
+                  <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary" onClick={(e) => { e.stopPropagation(); onSelect(c); }}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-primary hover:text-primary" onClick={(e) => { e.stopPropagation(); onNavigateProjects(c.sm_client_id); }}>
+                    <FolderKanban className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </SectionCard>
   );
 }
 
@@ -85,19 +97,19 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals }: {
   onNavigateProposals: (id: number) => void;
 }) {
   return (
-    <div className="rounded-lg border overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/30">
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs">Projeto</th>
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs hidden md:table-cell">Cliente</th>
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs hidden lg:table-cell">Cidade/UF</th>
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs hidden xl:table-cell">Criado em</th>
-            <th className="text-right p-2.5 font-medium text-muted-foreground text-xs">ID</th>
-            <th className="w-9 p-2.5"></th>
-          </tr>
-        </thead>
-        <tbody>
+    <SectionCard icon={FolderKanban} title="Projetos" variant="neutral" noPadding>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Projeto</TableHead>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Potência</TableHead>
+            <TableHead>Cidade/UF</TableHead>
+            <TableHead>Criado em</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {projects.map(p => {
             const clientName = (p as any).raw_payload?.client?.name || "—";
             const city = (p as any).raw_payload?.client?.city || p.city;
@@ -105,37 +117,50 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals }: {
             const createdAt = (p as any).sm_created_at || (p as any).raw_payload?.createdAt;
 
             return (
-              <tr key={p.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => onSelect(p)}>
-                <td className="p-2.5">
-                  <div className="font-medium text-foreground text-xs truncate max-w-[200px]" title={p.name || ""}>{p.name || "—"}</div>
-                  <div className="text-[11px] text-muted-foreground md:hidden truncate">{clientName}</div>
-                </td>
-                <td className="p-2.5 text-muted-foreground text-xs whitespace-nowrap hidden md:table-cell truncate max-w-[160px]">{clientName}</td>
-                <td className="p-2.5 text-muted-foreground text-xs whitespace-nowrap hidden lg:table-cell">
-                  {[city, state].filter(Boolean).join("/") || "—"}
-                </td>
-                <td className="p-2.5 text-muted-foreground text-xs whitespace-nowrap hidden xl:table-cell">
-                  {createdAt ? new Date(createdAt).toLocaleDateString("pt-BR") : "—"}
-                </td>
-                <td className="p-2.5 text-right">
-                  <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">{p.sm_project_id}</Badge>
-                </td>
-                <td className="p-2.5 text-center">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onNavigateProposals(p.sm_project_id); }}>
-                        <FileText className="h-3 w-3 text-muted-foreground" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Ver propostas</TooltipContent>
-                  </Tooltip>
-                </td>
-              </tr>
+              <TableRow key={p.id} className="cursor-pointer" onClick={() => onSelect(p)}>
+                <TableCell>
+                  <div>
+                    <p className="font-medium">{p.name || "—"}</p>
+                    {p.status && <Badge variant="outline" className="text-[10px] mt-0.5">{p.status}</Badge>}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{clientName}</span>
+                </TableCell>
+                <TableCell>
+                  {p.potencia_kwp ? (
+                    <Badge variant="secondary" className="gap-1">
+                      <Sun className="h-3 w-3" />
+                      {p.potencia_kwp} kWp
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{[city, state].filter(Boolean).join("/") || "—"}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {createdAt ? new Date(createdAt).toLocaleDateString("pt-BR") : "—"}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary" onClick={(e) => { e.stopPropagation(); onSelect(p); }}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-primary hover:text-primary" onClick={(e) => { e.stopPropagation(); onNavigateProposals(p.sm_project_id); }}>
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </SectionCard>
   );
 }
 
@@ -144,74 +169,84 @@ function ProposalsTable({ proposals, onSelect }: {
   onSelect: (p: SmProposal) => void;
 }) {
   return (
-    <div className="rounded-lg border overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/30">
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs">Título</th>
-            <th className="text-right p-2.5 font-medium text-muted-foreground text-xs hidden md:table-cell">Potência</th>
-            <th className="text-right p-2.5 font-medium text-muted-foreground text-xs">Valor</th>
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs hidden lg:table-cell">Equipamento</th>
-            <th className="text-center p-2.5 font-medium text-muted-foreground text-xs hidden md:table-cell">Status</th>
-            <th className="text-right p-2.5 font-medium text-muted-foreground text-xs">ID</th>
-          </tr>
-        </thead>
-        <tbody>
+    <SectionCard icon={FileText} title="Propostas" variant="neutral" noPadding>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Título</TableHead>
+            <TableHead>Potência</TableHead>
+            <TableHead>Valor</TableHead>
+            <TableHead>Equipamento</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {proposals.map(pr => (
-            <tr key={pr.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => onSelect(pr)}>
-              <td className="p-2.5">
-                <div className="font-medium text-foreground text-xs truncate max-w-[200px]" title={pr.titulo || ""}>{pr.titulo || "—"}</div>
-                <div className="text-[11px] text-muted-foreground md:hidden">
-                  {pr.potencia_kwp ? `${Number(pr.potencia_kwp).toFixed(1)} kWp` : ""}
-                </div>
-              </td>
-              <td className="p-2.5 text-right text-foreground text-xs whitespace-nowrap hidden md:table-cell">
-                {pr.potencia_kwp ? `${Number(pr.potencia_kwp).toFixed(2)} kWp` : "—"}
-              </td>
-              <td className="p-2.5 text-right text-muted-foreground text-xs whitespace-nowrap">
-                {pr.valor_total ? `R$ ${Number(pr.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
-              </td>
-              <td className="p-2.5 text-muted-foreground text-[11px] hidden lg:table-cell truncate max-w-[180px]">
-                {pr.panel_model ? `${pr.panel_model}${pr.panel_quantity ? ` (${pr.panel_quantity}x)` : ""}` : pr.modulos || "—"}
-              </td>
-              <td className="p-2.5 text-center hidden md:table-cell">
+            <TableRow key={pr.id} className="cursor-pointer" onClick={() => onSelect(pr)}>
+              <TableCell>
+                <p className="font-medium">{pr.titulo || "—"}</p>
+              </TableCell>
+              <TableCell>
+                {pr.potencia_kwp ? (
+                  <Badge variant="secondary" className="gap-1">
+                    <Sun className="h-3 w-3" />
+                    {Number(pr.potencia_kwp).toFixed(2)} kWp
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                <span className="text-sm">
+                  {pr.valor_total ? `R$ ${Number(pr.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm text-muted-foreground">
+                  {pr.panel_model ? `${pr.panel_model}${pr.panel_quantity ? ` (${pr.panel_quantity}x)` : ""}` : pr.modulos || "—"}
+                </span>
+              </TableCell>
+              <TableCell>
                 <Badge variant="outline" className="text-[10px]">{pr.status || "—"}</Badge>
-              </td>
-              <td className="p-2.5 text-right">
-                <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">{pr.sm_proposal_id}</Badge>
-              </td>
-            </tr>
+              </TableCell>
+              <TableCell className="text-right">
+                <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary" onClick={(e) => { e.stopPropagation(); onSelect(pr); }}>
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </SectionCard>
   );
 }
 
 function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; status: string; total_fetched: number; total_upserted: number; total_errors: number; started_at: string }> }) {
   return (
-    <div className="rounded-lg border overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/30">
-            <th className="text-left p-2.5 font-medium text-muted-foreground text-xs">Quando</th>
-            <th className="text-center p-2.5 font-medium text-muted-foreground text-xs">Tipo</th>
-            <th className="text-center p-2.5 font-medium text-muted-foreground text-xs">Status</th>
-            <th className="text-right p-2.5 font-medium text-muted-foreground text-xs">Encontr.</th>
-            <th className="text-right p-2.5 font-medium text-muted-foreground text-xs">Import.</th>
-            <th className="text-right p-2.5 font-medium text-muted-foreground text-xs">Erros</th>
-          </tr>
-        </thead>
-        <tbody>
+    <SectionCard icon={Clock} title="Histórico de Sincronizações" variant="neutral" noPadding>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Quando</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Encontr.</TableHead>
+            <TableHead className="text-right">Import.</TableHead>
+            <TableHead className="text-right">Erros</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {logs.map(log => (
-            <tr key={log.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-              <td className="p-2.5 text-xs text-muted-foreground whitespace-nowrap">
+            <TableRow key={log.id}>
+              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                 {formatDistanceToNow(new Date(log.started_at), { addSuffix: true, locale: ptBR })}
-              </td>
-              <td className="p-2.5 text-center">
+              </TableCell>
+              <TableCell>
                 <Badge variant="outline" className="text-[10px]">{log.sync_type}</Badge>
-              </td>
-              <td className="p-2.5 text-center">
+              </TableCell>
+              <TableCell>
                 {log.status === "completed" ? (
                   <Badge className="text-[10px] bg-success/10 text-success border-0"><CheckCircle className="h-3 w-3 mr-1" />OK</Badge>
                 ) : log.status === "running" ? (
@@ -219,68 +254,14 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
                 ) : (
                   <Badge className="text-[10px] bg-destructive/10 text-destructive border-0"><XCircle className="h-3 w-3 mr-1" />Erro</Badge>
                 )}
-              </td>
-              <td className="p-2.5 text-right text-xs font-medium">{log.total_fetched}</td>
-              <td className="p-2.5 text-right text-xs font-medium text-success">{log.total_upserted}</td>
-              <td className="p-2.5 text-right text-xs font-medium text-destructive">{log.total_errors}</td>
-            </tr>
+              </TableCell>
+              <TableCell className="text-right text-sm font-medium">{log.total_fetched}</TableCell>
+              <TableCell className="text-right text-sm font-medium text-success">{log.total_upserted}</TableCell>
+              <TableCell className="text-right text-sm font-medium text-destructive">{log.total_errors}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ─── Clients Without Proposals ──────────────────────────
-
-function ClientsWithoutProposalsSection({ clients, proposals, onSelect }: {
-  clients: SmClient[];
-  proposals: SmProposal[];
-  onSelect: (c: SmClient) => void;
-}) {
-  const clientsWithoutProposals = useMemo(() => {
-    const clientIdsWithProposals = new Set(proposals.map(p => p.sm_client_id).filter(Boolean));
-    return clients.filter(c => !clientIdsWithProposals.has(c.sm_client_id));
-  }, [clients, proposals]);
-
-  if (clientsWithoutProposals.length === 0) return null;
-
-  return (
-    <SectionCard
-      title={`Clientes sem Propostas (${clientsWithoutProposals.length})`}
-      icon={UserX}
-      className="border-warning/30"
-    >
-      <div className="rounded-lg border overflow-x-auto max-h-[300px] overflow-y-auto">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10">
-            <tr className="border-b bg-muted/50">
-              <th className="text-left p-2 font-medium text-muted-foreground text-xs">Nome</th>
-              <th className="text-left p-2 font-medium text-muted-foreground text-xs hidden md:table-cell">Telefone</th>
-              <th className="text-left p-2 font-medium text-muted-foreground text-xs hidden lg:table-cell">Cidade/UF</th>
-              <th className="text-left p-2 font-medium text-muted-foreground text-xs hidden xl:table-cell">Responsável</th>
-              <th className="text-right p-2 font-medium text-muted-foreground text-xs">ID</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clientsWithoutProposals.map(c => (
-              <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => onSelect(c)}>
-                <td className="p-2">
-                  <div className="font-medium text-foreground text-xs truncate max-w-[180px]" title={c.name || ""}>{c.name || "—"}</div>
-                </td>
-                <td className="p-2 text-muted-foreground text-xs whitespace-nowrap hidden md:table-cell">{c.phone || "—"}</td>
-                <td className="p-2 text-muted-foreground text-xs whitespace-nowrap hidden lg:table-cell">
-                  {[c.city, c.state].filter(Boolean).join("/") || "—"}
-                </td>
-                <td className="p-2 text-muted-foreground text-[11px] hidden xl:table-cell">{c.responsible?.name || "—"}</td>
-                <td className="p-2 text-right">
-                  <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">{c.sm_client_id}</Badge>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        </TableBody>
+      </Table>
     </SectionCard>
   );
 }
@@ -327,13 +308,11 @@ export default function SolarMarketPage() {
 
   const lastSync = syncLogs[0];
 
-  // Compute clients without proposals count
   const clientsWithoutProposalsCount = useMemo(() => {
     const clientIdsWithProposals = new Set(proposals.map(p => p.sm_client_id).filter(Boolean));
     return clients.filter(c => !clientIdsWithProposals.has(c.sm_client_id)).length;
   }, [clients, proposals]);
 
-  // Compute clients without projects count
   const clientsWithoutProjectsCount = useMemo(() => {
     const clientIdsWithProjects = new Set(projects.map(p => p.sm_client_id).filter(Boolean));
     return clients.filter(c => !clientIdsWithProjects.has(c.sm_client_id)).length;
@@ -343,6 +322,11 @@ export default function SolarMarketPage() {
     const clientIdsWithProjects = new Set(projects.map(p => p.sm_client_id).filter(Boolean));
     return clients.filter(c => !clientIdsWithProjects.has(c.sm_client_id));
   }, [clients, projects]);
+
+  const clientsWithoutProposals = useMemo(() => {
+    const clientIdsWithProposals = new Set(proposals.map(p => p.sm_client_id).filter(Boolean));
+    return clients.filter(c => !clientIdsWithProposals.has(c.sm_client_id));
+  }, [clients, proposals]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -495,12 +479,12 @@ export default function SolarMarketPage() {
 
         {/* ─── Sem Proposta Tab ────────────────────────────── */}
         <TabsContent value="sem-proposta" className="mt-3">
-          {loadingC || loadingPr ? <InlineLoader context="data_load" /> : (
-            <ClientsWithoutProposalsSection clients={clients} proposals={proposals} onSelect={setSelectedClient} />
-          )}
-          {!loadingC && !loadingPr && clientsWithoutProposalsCount === 0 && (
-            <EmptyState icon={CheckCircle} title="Todos os clientes têm propostas" description="Nenhum cliente sem proposta encontrado." />
-          )}
+          {loadingC || loadingPr ? <InlineLoader context="data_load" /> :
+            clientsWithoutProposalsCount === 0 ? (
+              <EmptyState icon={CheckCircle} title="Todos os clientes têm propostas" description="Nenhum cliente sem proposta encontrado." />
+            ) : (
+              <ClientsTable clients={clientsWithoutProposals} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} />
+            )}
         </TabsContent>
 
         {/* ─── Logs Tab ───────────────────────────────────── */}
