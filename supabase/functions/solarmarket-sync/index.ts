@@ -742,7 +742,7 @@ Deno.serve(async (req) => {
           return {
             tenant_id: tenantId,
             sm_project_id: p.id,
-            sm_client_id: p.clientId || p.client_id || null,
+            sm_client_id: p.clientId || p.client_id || p.client?.id || null,
             name: formatName(p.name || p.nome) || p.name || p.nome || null,
             description: p.description || p.descricao || null,
             potencia_kwp: p.potencia_kwp || p.power || null,
