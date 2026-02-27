@@ -182,7 +182,7 @@ async function fetchAllRows<T>(params: {
   return allRows;
 }
 
-export function useSmClients() {
+export function useSmClients(syncRunning?: boolean) {
   return useQuery<SmClient[]>({
     queryKey: ["sm-clients"],
     queryFn: async () => {
@@ -192,10 +192,11 @@ export function useSmClients() {
         orderBy: "name",
       });
     },
+    refetchInterval: syncRunning ? 5000 : false,
   });
 }
 
-export function useSmProjects() {
+export function useSmProjects(syncRunning?: boolean) {
   return useQuery<SmProject[]>({
     queryKey: ["sm-projects"],
     queryFn: async () => {
@@ -206,6 +207,7 @@ export function useSmProjects() {
         ascending: false,
       });
     },
+    refetchInterval: syncRunning ? 5000 : false,
   });
 }
 
@@ -251,7 +253,7 @@ export function useSmCustomFields() {
   });
 }
 
-export function useSmProposals() {
+export function useSmProposals(syncRunning?: boolean) {
   return useQuery<SmProposal[]>({
     queryKey: ["sm-proposals"],
     queryFn: async () => {
@@ -262,6 +264,7 @@ export function useSmProposals() {
         ascending: false,
       });
     },
+    refetchInterval: syncRunning ? 5000 : false,
   });
 }
 

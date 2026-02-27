@@ -315,16 +315,17 @@ export default function SolarMarketPage() {
     setFilterProjectId(null);
   };
 
-  const { data: clients = [], isLoading: loadingC } = useSmClients();
-  const { data: projects = [], isLoading: loadingP } = useSmProjects();
-  const { data: proposals = [], isLoading: loadingPr } = useSmProposals();
-  const { data: syncLogs = [] } = useSmSyncLogs();
   const { syncAll, syncStage, progress } = useSolarMarketSync();
+  const syncIsRunning = progress.isRunning;
+
+  const { data: clients = [], isLoading: loadingC } = useSmClients(syncIsRunning);
+  const { data: projects = [], isLoading: loadingP } = useSmProjects(syncIsRunning);
+  const { data: proposals = [], isLoading: loadingPr } = useSmProposals(syncIsRunning);
+  const { data: syncLogs = [] } = useSmSyncLogs();
   const updateClient = useUpdateSmClient();
   const deleteClient = useDeleteSmClient();
 
   const lastSync = syncLogs[0];
-  const syncIsRunning = progress.isRunning;
 
   // Compute clients without proposals count
   const clientsWithoutProposalsCount = useMemo(() => {
