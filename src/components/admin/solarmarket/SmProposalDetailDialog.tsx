@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ExternalLink } from "lucide-react";
 import type { SmProposal } from "@/hooks/useSolarMarket";
@@ -30,9 +30,7 @@ interface PricingItem {
 }
 
 function formatValue(v: Variable): string {
-  if (v.formattedValue != null && v.formattedValue !== "" && v.formattedValue !== "null") {
-    return String(v.formattedValue);
-  }
+  if (v.formattedValue != null && v.formattedValue !== "" && v.formattedValue !== "null") return String(v.formattedValue);
   if (v.value == null || v.value === "undefined" || v.value === "") return "—";
   return String(v.value);
 }
@@ -47,6 +45,15 @@ function groupByTopic(variables: Variable[]): Record<string, Variable[]> {
   return groups;
 }
 
+function Field({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className="text-sm font-medium text-foreground min-h-[20px]">{value || "—"}</p>
+    </div>
+  );
+}
+
 export function SmProposalDetailDialog({ proposal, open, onOpenChange }: Props) {
   if (!proposal) return null;
 
@@ -54,54 +61,52 @@ export function SmProposalDetailDialog({ proposal, open, onOpenChange }: Props) 
   const variables: Variable[] = Array.isArray(raw?.variables) ? raw.variables : [];
   const pricingTable: PricingItem[] = Array.isArray(raw?.pricingTable) ? raw.pricingTable : [];
   const grouped = groupByTopic(variables);
-  const topicOrder = [
-    "Entrada de Dados",
-    "Sistema Solar",
-    "Financeiro",
-    "Conta de Energia",
-    "Comercial",
-    "Cliente",
-    "Séries",
-    "Premissas",
-    "Outros",
-  ];
+  const topicOrder = ["Entrada de Dados", "Sistema Solar", "Financeiro", "Conta de Energia", "Comercial", "Cliente", "Séries", "Premissas", "Outros"];
   const sortedTopics = Object.keys(grouped).sort((a, b) => {
     const ia = topicOrder.indexOf(a);
     const ib = topicOrder.indexOf(b);
     return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
   });
 
-  // Top-level raw fields (excluding variables and pricingTable)
-  const topFields: Record<string, any> = {};
-  if (raw) {
-    for (const [k, v] of Object.entries(raw)) {
-      if (k === "variables" || k === "pricingTable" || k === "raw_payload") continue;
-      topFields[k] = v;
-    }
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0 flex flex-col">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            Proposta: {proposal.titulo || `#${proposal.sm_proposal_id}`}
-            <Badge variant="outline" className="text-xs font-mono ml-2">ID {proposal.sm_proposal_id}</Badge>
-            {proposal.link_pdf && (
-              <a href={proposal.link_pdf} target="_blank" rel="noopener noreferrer" className="ml-auto">
-                <Badge className="text-xs cursor-pointer bg-primary/10 text-primary hover:bg-primary/20">
-                  <ExternalLink className="h-3 w-3 mr-1" /> PDF
-                </Badge>
-              </a>
-            )}
-          </DialogTitle>
+      <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-base">
+              {proposal.titulo || `Proposta #${proposal.sm_proposal_id}`}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px] font-mono">ID {proposal.sm_proposal_id}</Badge>
+              {proposal.link_pdf && (
+                <a href={proposal.link_pdf} target="_blank" rel="noopener noreferrer">
+                  <Badge className="text-[10px] cursor-pointer bg-primary/10 text-primary hover:bg-primary/20">
+                    <ExternalLink className="h-3 w-3 mr-1" /> PDF
+                  </Badge>
+                </a>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 pb-6">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {/* Resumo */}
+          <div className="space-y-3 mb-5">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Potência" value={proposal.potencia_kwp ? `${Number(proposal.potencia_kwp).toFixed(2)} kWp` : null} />
+              <Field label="Valor Total" value={proposal.valor_total ? `R$ ${Number(proposal.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : null} />
+              <Field label="Status" value={proposal.status} />
+              <Field label="Módulos" value={proposal.modulos} />
+              <Field label="Inversores" value={proposal.inversores} />
+              <Field label="Economia Mensal" value={proposal.economia_mensal ? `R$ ${Number(proposal.economia_mensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : null} />
+            </div>
+          </div>
+
           {/* Pricing Table */}
           {pricingTable.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-foreground mb-2">Tabela de Preços ({pricingTable.length} itens)</h3>
+            <div className="mb-5">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tabela de Preços</h4>
               <div className="rounded-lg border overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -109,28 +114,16 @@ export function SmProposalDetailDialog({ proposal, open, onOpenChange }: Props) 
                       <th className="text-left p-2 font-medium text-muted-foreground">Categoria</th>
                       <th className="text-left p-2 font-medium text-muted-foreground">Item</th>
                       <th className="text-right p-2 font-medium text-muted-foreground">Qtd</th>
-                      <th className="text-right p-2 font-medium text-muted-foreground">Custo Unit.</th>
-                      <th className="text-right p-2 font-medium text-muted-foreground">Preço Unit.</th>
-                      <th className="text-right p-2 font-medium text-muted-foreground">Custo Total</th>
-                      <th className="text-right p-2 font-medium text-muted-foreground">Venda Total</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground">Venda</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pricingTable.map((p, i) => (
-                      <tr key={i} className="border-b last:border-0 hover:bg-muted/10">
-                        <td className="p-2 font-medium text-foreground">{p.category || "—"}</td>
-                        <td className="p-2 text-muted-foreground max-w-[200px] truncate">{p.item || "—"}</td>
+                      <tr key={i} className="border-b last:border-0">
+                        <td className="p-2 font-medium">{p.category || "—"}</td>
+                        <td className="p-2 text-muted-foreground truncate max-w-[150px]">{p.item || "—"}</td>
                         <td className="p-2 text-right">{p.qnt ?? "—"}</td>
-                        <td className="p-2 text-right text-muted-foreground">
-                          {p.unitCost != null ? `R$ ${Number(p.unitCost).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
-                        </td>
-                        <td className="p-2 text-right text-muted-foreground">
-                          {p.unitPrice != null ? `R$ ${Number(p.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
-                        </td>
-                        <td className="p-2 text-right text-muted-foreground">
-                          {p.costValue != null ? `R$ ${Number(p.costValue).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
-                        </td>
-                        <td className="p-2 text-right font-medium text-foreground">
+                        <td className="p-2 text-right font-medium">
                           {p.salesValue != null ? `R$ ${Number(p.salesValue).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
                         </td>
                       </tr>
@@ -141,56 +134,24 @@ export function SmProposalDetailDialog({ proposal, open, onOpenChange }: Props) 
             </div>
           )}
 
-          {/* Top-level fields */}
-          {Object.keys(topFields).length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-foreground mb-2">Dados Gerais</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                {Object.entries(topFields).map(([k, v]) => {
-                  if (v == null || v === "") return null;
-                  const display = typeof v === "object" ? JSON.stringify(v) : String(v);
-                  if (display.length > 200) return null; // skip huge objects
-                  return (
-                    <div key={k} className="flex justify-between py-1 border-b border-border/40">
-                      <span className="text-muted-foreground font-mono truncate mr-2">{k}</span>
-                      <span className="text-foreground text-right truncate max-w-[200px]">{display}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Variables grouped by topic */}
           {sortedTopics.length > 0 && (
-            <Accordion type="multiple" defaultValue={sortedTopics.slice(0, 3)} className="w-full">
+            <Accordion type="multiple" defaultValue={sortedTopics.slice(0, 2)} className="w-full">
               {sortedTopics.map((topic) => {
                 const vars = grouped[topic];
                 return (
                   <AccordionItem key={topic} value={topic}>
-                    <AccordionTrigger className="text-sm font-semibold py-2">
+                    <AccordionTrigger className="text-xs font-semibold py-2">
                       {topic} <Badge variant="secondary" className="ml-2 text-[10px]">{vars.length}</Badge>
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="grid grid-cols-1 gap-0 text-xs">
                         {vars.map((v, i) => {
                           const display = formatValue(v);
-                          const isLongArray = display.startsWith("[") && display.length > 80;
                           return (
-                            <div
-                              key={`${v.key}-${i}`}
-                              className="flex justify-between items-start py-1.5 px-1 border-b border-border/30 hover:bg-muted/20"
-                            >
-                              <div className="flex-1 min-w-0 mr-3">
-                                <span className="text-muted-foreground">{v.item || v.key}</span>
-                                <span className="text-muted-foreground/50 ml-1 font-mono text-[10px]">({v.key})</span>
-                              </div>
-                              <span
-                                className={`text-foreground font-medium text-right shrink-0 ${isLongArray ? "max-w-[250px] break-all text-[10px] leading-tight" : "max-w-[200px] truncate"}`}
-                                title={display}
-                              >
-                                {display}
-                              </span>
+                            <div key={`${v.key}-${i}`} className="flex justify-between items-start py-1.5 px-1 border-b border-border/30">
+                              <span className="text-muted-foreground truncate mr-3">{v.item || v.key}</span>
+                              <span className="text-foreground font-medium text-right truncate max-w-[180px]" title={display}>{display}</span>
                             </div>
                           );
                         })}
@@ -207,7 +168,7 @@ export function SmProposalDetailDialog({ proposal, open, onOpenChange }: Props) 
               Nenhuma variável encontrada no payload desta proposta.
             </p>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
