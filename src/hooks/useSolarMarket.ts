@@ -104,6 +104,18 @@ export interface SmFunnelStage {
   synced_at: string;
 }
 
+export interface SmCustomField {
+  id: string;
+  tenant_id: string;
+  sm_custom_field_id: number;
+  key: string | null;
+  name: string | null;
+  field_type: string | null;
+  options: any | null;
+  raw_payload: any | null;
+  synced_at: string;
+}
+
 // ─── Queries ────────────────────────────────────────────
 
 const SM_PAGE_SIZE = 1000;
@@ -189,6 +201,19 @@ export function useSmFunnelStages(funnelId?: number) {
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
+    },
+  });
+}
+
+export function useSmCustomFields() {
+  return useQuery<SmCustomField[]>({
+    queryKey: ["sm-custom-fields"],
+    queryFn: async () => {
+      return fetchAllRows<SmCustomField>({
+        table: "solar_market_custom_fields",
+        select: "*",
+        orderBy: "name",
+      });
     },
   });
 }

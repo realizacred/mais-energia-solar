@@ -12793,6 +12793,78 @@ export type Database = {
           },
         ]
       }
+      solar_market_custom_field_values: {
+        Row: {
+          field_key: string | null
+          field_value: string | null
+          id: string
+          raw_payload: Json | null
+          sm_client_id: number | null
+          sm_custom_field_id: number
+          sm_project_id: number | null
+          synced_at: string
+          tenant_id: string
+        }
+        Insert: {
+          field_key?: string | null
+          field_value?: string | null
+          id?: string
+          raw_payload?: Json | null
+          sm_client_id?: number | null
+          sm_custom_field_id: number
+          sm_project_id?: number | null
+          synced_at?: string
+          tenant_id: string
+        }
+        Update: {
+          field_key?: string | null
+          field_value?: string | null
+          id?: string
+          raw_payload?: Json | null
+          sm_client_id?: number | null
+          sm_custom_field_id?: number
+          sm_project_id?: number | null
+          synced_at?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      solar_market_custom_fields: {
+        Row: {
+          field_type: string | null
+          id: string
+          key: string | null
+          name: string | null
+          options: Json | null
+          raw_payload: Json | null
+          sm_custom_field_id: number
+          synced_at: string
+          tenant_id: string
+        }
+        Insert: {
+          field_type?: string | null
+          id?: string
+          key?: string | null
+          name?: string | null
+          options?: Json | null
+          raw_payload?: Json | null
+          sm_custom_field_id: number
+          synced_at?: string
+          tenant_id: string
+        }
+        Update: {
+          field_type?: string | null
+          id?: string
+          key?: string | null
+          name?: string | null
+          options?: Json | null
+          raw_payload?: Json | null
+          sm_custom_field_id?: number
+          synced_at?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       solar_market_funnel_stages: {
         Row: {
           funnel_name: string | null
@@ -12865,6 +12937,7 @@ export type Database = {
           city: string | null
           complement: string | null
           created_at: string
+          custom_fields: Json | null
           description: string | null
           energy_consumption: number | null
           id: string
@@ -12898,6 +12971,7 @@ export type Database = {
           city?: string | null
           complement?: string | null
           created_at?: string
+          custom_fields?: Json | null
           description?: string | null
           energy_consumption?: number | null
           id?: string
@@ -12931,6 +13005,7 @@ export type Database = {
           city?: string | null
           complement?: string | null
           created_at?: string
+          custom_fields?: Json | null
           description?: string | null
           energy_consumption?: number | null
           id?: string

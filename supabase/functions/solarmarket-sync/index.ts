@@ -391,6 +391,39 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Sync Custom Fields ───────────────────────────────
+    if (sync_type === "full" || sync_type === "custom_fields") {
+      try {
+        const customFields = await fetchAllPages(`${baseUrl}/custom-fields`, smHeaders);
+        totalFetched += customFields.length;
+        console.log(`[SM Sync] Custom fields fetched: ${customFields.length}`);
+
+        const rows = customFields.map((cf: any) => ({
+          tenant_id: tenantId,
+          sm_custom_field_id: cf.id,
+          key: cf.key || null,
+          name: cf.name || cf.label || null,
+          field_type: cf.type || cf.fieldType || cf.field_type || null,
+          options: cf.options || cf.choices || null,
+          raw_payload: cf,
+          synced_at: new Date().toISOString(),
+        }));
+
+        if (rows.length > 0) {
+          const result = await batchUpsert(supabase, "solar_market_custom_fields", rows, "tenant_id,sm_custom_field_id");
+          totalUpserted += result.upserted;
+          totalErrors += result.errors.length;
+          errors.push(...result.errors);
+        }
+      } catch (e) {
+        console.error("[SM Sync] Custom fields error:", e);
+        const msg = (e as Error).message;
+        if (msg.includes("SM API 401")) hasSolarMarketAuthError = true;
+        totalErrors++;
+        errors.push(`custom_fields: ${msg}`);
+      }
+    }
+
     // ─── Sync Clients ──────────────────────────────────────
     if (sync_type === "full" || sync_type === "clients") {
       try {
@@ -459,6 +492,16 @@ Deno.serve(async (req) => {
           // Extract funnel/stage info
           const funnel = p.funnel || p.pipeline || null;
           const stage = p.stage || p.funnelStage || p.pipelineStage || null;
+          // Extract custom fields from project payload
+          const customFieldsData: Record<string, any> = {};
+          const cfArray = p.customFields || p.custom_fields || [];
+          if (Array.isArray(cfArray)) {
+            for (const cf of cfArray) {
+              const cfKey = cf.key || cf.name || `cf_${cf.id}`;
+              customFieldsData[cfKey] = cf.value ?? cf.answer ?? null;
+            }
+          }
+
           return {
             tenant_id: tenantId,
             sm_project_id: p.id,
@@ -485,6 +528,7 @@ Deno.serve(async (req) => {
             sm_stage_id: stage?.id || p.stageId || p.stage_id || null,
             sm_funnel_name: funnel?.name || null,
             sm_stage_name: stage?.name || stage?.title || null,
+            custom_fields: Object.keys(customFieldsData).length > 0 ? customFieldsData : null,
             sm_created_at: p.createdAt || p.created_at || null,
             sm_updated_at: p.updatedAt || p.updated_at || null,
             raw_payload: p,
