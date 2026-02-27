@@ -62,6 +62,65 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
   return all;
 }
 
+/** Extract equipment and financial data from SolarMarket proposal payload */
+function extractProposalFields(pr: any) {
+  const pricingTable = Array.isArray(pr.pricingTable) ? pr.pricingTable : [];
+  const variables = Array.isArray(pr.variables) ? pr.variables : [];
+
+  // Find variable by key
+  const getVar = (key: string) => {
+    const v = variables.find((v: any) => v.key === key);
+    return v?.value ?? null;
+  };
+
+  // Extract from pricingTable by category
+  const findPricing = (cat: string) => pricingTable.find((p: any) => p.category === cat);
+  const moduloRow = findPricing("Módulo");
+  const inversorRow = findPricing("Inversor");
+  const kitRow = findPricing("KIT");
+  const instRow = findPricing("Instalação");
+
+  // Total value = sum of salesValue across all pricing items
+  const valorTotal = pricingTable.reduce((sum: number, p: any) => sum + (Number(p.salesValue) || 0), 0);
+
+  // Power from variables
+  const potencia = Number(getVar("potencia_sistema")) || Number(getVar("vc_potencia_sistema")) || null;
+
+  // Equipment cost = kit salesValue; Installation cost = instalação salesValue
+  const equipmentCost = kitRow ? Number(kitRow.salesValue) || null : null;
+  const installationCost = instRow ? Number(instRow.salesValue) || null : null;
+
+  // Energy generation from variables
+  const energyGen = Number(getVar("geracao_mensal")) || Number(getVar("geracao_media")) || null;
+
+  return {
+    titulo: pr.title || pr.titulo || pr.name || null,
+    sm_project_id: pr.project?.id || pr.projectId || pr.project_id || null,
+    sm_client_id: pr.clientId || pr.client_id || pr.project?.client?.id || null,
+    description: pr.description || pr.descricao || null,
+    potencia_kwp: potencia,
+    valor_total: valorTotal > 0 ? valorTotal : (pr.totalValue || pr.valor_total || null),
+    status: pr.status || null,
+    modulos: moduloRow ? `${moduloRow.item} (${moduloRow.qnt}x)` : (pr.modules || pr.modulos || null),
+    inversores: inversorRow ? `${inversorRow.item} (${inversorRow.qnt}x)` : (pr.inverters || pr.inversores || null),
+    panel_model: moduloRow?.item || pr.panelModel || pr.panel_model || null,
+    panel_quantity: moduloRow ? Number(moduloRow.qnt) || null : (pr.panelQuantity || null),
+    inverter_model: inversorRow?.item || pr.inverterModel || pr.inverter_model || null,
+    inverter_quantity: inversorRow ? Number(inversorRow.qnt) || null : (pr.inverterQuantity || null),
+    discount: pr.discount || pr.desconto || null,
+    installation_cost: installationCost,
+    equipment_cost: equipmentCost,
+    energy_generation: energyGen,
+    roof_type: pr.roofType || pr.roof_type || getVar("tipo_telhado") || null,
+    structure_type: pr.structureType || pr.structure_type || getVar("tipo_estrutura") || null,
+    warranty: pr.warranty || pr.garantia || null,
+    payment_conditions: pr.paymentConditions || pr.payment_conditions || null,
+    valid_until: pr.validUntil || pr.valid_until || pr.expirationDate || null,
+    sm_created_at: pr.createdAt || pr.created_at || pr.generatedAt || null,
+    sm_updated_at: pr.updatedAt || pr.updated_at || null,
+  };
+}
+
 /** Deduplicate rows by a key field (keep last occurrence) */
 function deduplicateRows(rows: any[], keyField: string): any[] {
   const map = new Map<string | number, any>();
@@ -394,30 +453,7 @@ Deno.serve(async (req) => {
           const rows = proposals.map((pr: any) => ({
             tenant_id: tenantId,
             sm_proposal_id: pr.id,
-            sm_project_id: pr.projectId || pr.project_id || null,
-            sm_client_id: pr.clientId || pr.client_id || null,
-            titulo: pr.title || pr.titulo || pr.name || null,
-            description: pr.description || pr.descricao || null,
-            potencia_kwp: pr.potencia_kwp || pr.power || null,
-            valor_total: pr.totalValue || pr.total_value || pr.valor_total || null,
-            status: pr.status || null,
-            modulos: pr.modules || pr.modulos || null,
-            inversores: pr.inverters || pr.inversores || null,
-            discount: pr.discount || pr.desconto || null,
-            installation_cost: pr.installationCost || pr.installation_cost || null,
-            equipment_cost: pr.equipmentCost || pr.equipment_cost || null,
-            energy_generation: pr.energyGeneration || pr.energy_generation || null,
-            roof_type: pr.roofType || pr.roof_type || null,
-            panel_model: pr.panelModel || pr.panel_model || null,
-            panel_quantity: pr.panelQuantity || pr.panel_quantity || null,
-            inverter_model: pr.inverterModel || pr.inverter_model || null,
-            inverter_quantity: pr.inverterQuantity || pr.inverter_quantity || null,
-            structure_type: pr.structureType || pr.structure_type || null,
-            warranty: pr.warranty || pr.garantia || null,
-            payment_conditions: pr.paymentConditions || pr.payment_conditions || null,
-            valid_until: pr.validUntil || pr.valid_until || null,
-            sm_created_at: pr.createdAt || pr.created_at || null,
-            sm_updated_at: pr.updatedAt || pr.updated_at || null,
+            ...extractProposalFields(pr),
             raw_payload: pr,
             synced_at: new Date().toISOString(),
           }));
@@ -467,22 +503,13 @@ Deno.serve(async (req) => {
             totalFetched += proposals.length;
 
             for (const pr of proposals) {
+              const extracted = extractProposalFields(pr);
               allProposalRows.push({
                 tenant_id: tenantId,
                 sm_proposal_id: pr.id,
+                ...extracted,
+                // Override sm_project_id with the known project ID from the URL
                 sm_project_id: projId,
-                sm_client_id: pr.clientId || pr.client_id || null,
-                titulo: pr.title || pr.titulo || pr.name || null,
-                description: pr.description || pr.descricao || null,
-                potencia_kwp: pr.potencia_kwp || pr.power || null,
-                valor_total: pr.totalValue || pr.total_value || pr.valor_total || null,
-                status: pr.status || null,
-                modulos: pr.modules || pr.modulos || null,
-                inversores: pr.inverters || pr.inversores || null,
-                panel_model: pr.panelModel || pr.panel_model || null,
-                panel_quantity: pr.panelQuantity || pr.panel_quantity || null,
-                inverter_model: pr.inverterModel || pr.inverter_model || null,
-                inverter_quantity: pr.inverterQuantity || pr.inverter_quantity || null,
                 raw_payload: pr,
                 synced_at: new Date().toISOString(),
               });

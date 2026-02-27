@@ -331,7 +331,10 @@ export default function SolarMarketPage() {
                       <th className="text-right p-3 font-medium text-muted-foreground">Valor Total</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Painel</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Inversor</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">Geração</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Validade</th>
                       <th className="text-center p-3 font-medium text-muted-foreground">Status</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">ID SM</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -339,10 +342,10 @@ export default function SolarMarketPage() {
                       <tr key={pr.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                         <td className="p-3 font-medium text-foreground whitespace-nowrap">{pr.titulo || "—"}</td>
                         <td className="p-3 text-right text-foreground whitespace-nowrap">
-                          {pr.potencia_kwp ? `${pr.potencia_kwp} kWp` : "—"}
+                          {pr.potencia_kwp ? `${Number(pr.potencia_kwp).toFixed(2)} kWp` : "—"}
                         </td>
                         <td className="p-3 text-right text-muted-foreground whitespace-nowrap">
-                          {pr.valor_total ? `R$ ${Number(pr.valor_total).toLocaleString("pt-BR")}` : "—"}
+                          {pr.valor_total ? `R$ ${Number(pr.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
                         </td>
                         <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">
                           {pr.panel_model ? `${pr.panel_model}${pr.panel_quantity ? ` (${pr.panel_quantity}x)` : ""}` : pr.modulos || "—"}
@@ -350,8 +353,17 @@ export default function SolarMarketPage() {
                         <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">
                           {pr.inverter_model ? `${pr.inverter_model}${pr.inverter_quantity ? ` (${pr.inverter_quantity}x)` : ""}` : pr.inversores || "—"}
                         </td>
+                        <td className="p-3 text-right text-muted-foreground whitespace-nowrap text-xs">
+                          {pr.energy_generation ? `${Number(pr.energy_generation).toFixed(0)} kWh/mês` : "—"}
+                        </td>
+                        <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
+                          {pr.valid_until ? new Date(pr.valid_until).toLocaleDateString("pt-BR") : "—"}
+                        </td>
                         <td className="p-3 text-center">
                           <Badge variant="outline" className="text-xs">{pr.status || "—"}</Badge>
+                        </td>
+                        <td className="p-3 text-right">
+                          <Badge variant="outline" className="text-xs font-mono">{pr.sm_proposal_id}</Badge>
                         </td>
                       </tr>
                     ))}
