@@ -46,6 +46,7 @@ export interface SmProposal {
   sm_project_id: number | null;
   sm_client_id: number | null;
   titulo: string | null;
+  description: string | null;
   potencia_kwp: number | null;
   valor_total: number | null;
   status: string | null;
@@ -55,6 +56,18 @@ export interface SmProposal {
   panel_quantity: number | null;
   inverter_model: string | null;
   inverter_quantity: number | null;
+  discount: number | null;
+  installation_cost: number | null;
+  equipment_cost: number | null;
+  energy_generation: number | null;
+  roof_type: string | null;
+  structure_type: string | null;
+  warranty: string | null;
+  payment_conditions: string | null;
+  valid_until: string | null;
+  sm_created_at: string | null;
+  sm_updated_at: string | null;
+  raw_payload: any | null;
   synced_at: string;
 }
 
@@ -135,7 +148,7 @@ export function useSmProposals() {
     queryFn: async () => {
       return fetchAllRows<SmProposal>({
         table: "solar_market_proposals",
-        select: "id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, synced_at",
+        select: "*",
         orderBy: "synced_at",
         ascending: false,
       });
