@@ -62,7 +62,17 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
   return all;
 }
 
-/** Batch upsert helper — splits array into chunks to avoid payload limits */
+/** Deduplicate rows by a key field (keep last occurrence) */
+function deduplicateRows(rows: any[], keyField: string): any[] {
+  const map = new Map<string | number, any>();
+  for (const row of rows) {
+    const key = row[keyField];
+    if (key != null) map.set(key, row);
+  }
+  return Array.from(map.values());
+}
+
+/** Batch upsert helper — deduplicates then splits array into chunks */
 async function batchUpsert(
   supabase: any,
   table: string,
@@ -70,11 +80,19 @@ async function batchUpsert(
   onConflict: string,
   batchSize = 50
 ): Promise<{ upserted: number; errors: string[] }> {
+  // Deduplicate to avoid "ON CONFLICT DO UPDATE cannot affect row a second time"
+  const conflictCols = onConflict.split(",").map(c => c.trim());
+  const keyField = conflictCols.length > 1 ? conflictCols[1] : conflictCols[0];
+  const uniqueRows = deduplicateRows(rows, keyField);
+  if (uniqueRows.length < rows.length) {
+    console.log(`[SM Sync] Deduplicated ${table}: ${rows.length} → ${uniqueRows.length} rows`);
+  }
+
   let upserted = 0;
   const errors: string[] = [];
 
-  for (let i = 0; i < rows.length; i += batchSize) {
-    const batch = rows.slice(i, i + batchSize);
+  for (let i = 0; i < uniqueRows.length; i += batchSize) {
+    const batch = uniqueRows.slice(i, i + batchSize);
     const { error } = await supabase.from(table).upsert(batch, { onConflict });
     if (error) {
       console.error(`[SM Sync] Batch upsert error on ${table} (rows ${i}-${i + batch.length}):`, error.message);
