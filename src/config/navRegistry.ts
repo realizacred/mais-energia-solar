@@ -74,6 +74,10 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "instaladores", label_default: "Equipe Técnica", group_default: "Operações", order_default: 0, icon: "Wrench", description: "Cadastro e gestão de instaladores", keywords: ["técnico", "instalador", "equipe", "campo"], criticality: "normal", permission: "admin_only" },
   { nav_key: "validacao", label_default: "Aprovação de Vendas", group_default: "Operações", order_default: 1, icon: "ClipboardCheck", description: "Validar e aprovar vendas realizadas", keywords: ["aprovação", "validar", "conferência"], criticality: "normal", permission: "admin_only" },
   { nav_key: "tarefas", label_default: "Tarefas & Prazos", group_default: "Operações", order_default: 2, icon: "ClipboardList", description: "Controle de pendências e prazos", keywords: ["tarefa", "prazo", "SLA", "pendência"], criticality: "normal", permission: "all" },
+  { nav_key: "estoque", label_default: "Estoque", group_default: "Operações", order_default: 3, icon: "Package", description: "Materiais e insumos", keywords: ["estoque", "material", "cabo", "disjuntor", "inventário"], criticality: "normal", permission: "admin_only" },
+
+  // ── SolarMarket (importação) ──
+  { nav_key: "solarmarket", label_default: "SolarMarket Importação", group_default: "Integrações", order_default: 4.5, icon: "Sun", description: "Importar clientes, projetos e propostas do SolarMarket", keywords: ["solarmarket", "importar", "cliente", "projeto", "proposta", "sincronizar"], criticality: "normal", permission: "admin_only" },
 
   // ── Financeiro ──
   { nav_key: "recebimentos", label_default: "Contas a Receber", group_default: "Financeiro", order_default: 0, icon: "DollarSign", description: "Controle de parcelas e pagamentos", keywords: ["pagamento", "parcela", "receber", "financeiro"], criticality: "normal", permission: "admin_only" },
