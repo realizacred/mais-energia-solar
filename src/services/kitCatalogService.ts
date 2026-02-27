@@ -4,6 +4,9 @@
  * Service dedicado para integração do Catálogo de Kits Solares com o Wizard de Propostas.
  * Responsabilidades: fetch de kits ativos, fetch de itens, snapshot/mapeamento para KitItemRow[].
  * 
+ * SSOT: O kit na proposta é persistido como snapshot JSONB (proposta_versoes.snapshot → itens[]).
+ * As tabelas proposta_kits / proposta_kit_itens são legado e NÃO são populadas pelo fluxo atual.
+ * 
  * SRP: nenhuma lógica de UI aqui. Apenas data-fetching e mapeamento.
  */
 
