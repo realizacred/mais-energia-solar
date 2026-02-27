@@ -20,10 +20,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { Pencil, Trash2, Save, X, User } from "lucide-react";
+import { Pencil, Trash2, Save, X, User, Phone, Mail, MapPin, Building2, Calendar, CreditCard } from "lucide-react";
 import type { SmClient } from "@/hooks/useSolarMarket";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Props {
   client: SmClient | null;
@@ -31,6 +35,19 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSave: (id: string, data: Partial<SmClient>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+}
+
+function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div>
+        <span className="text-muted-foreground">{label}: </span>
+        <span className="font-medium">{value}</span>
+      </div>
+    </div>
+  );
 }
 
 export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDelete }: Props) {
@@ -47,7 +64,12 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
       name: client.name,
       email: client.email,
       phone: client.phone,
+      secondary_phone: client.secondary_phone,
       document: client.document,
+      zip_code: client.zip_code,
+      number: client.number,
+      complement: client.complement,
+      neighborhood: client.neighborhood,
       city: client.city,
       state: client.state,
       company: client.company,
@@ -96,96 +118,158 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
   const set = (key: keyof SmClient, val: string) =>
     setForm((prev) => ({ ...prev, [key]: val }));
 
+  const endereco = [client.address, client.number, client.complement, client.neighborhood]
+    .filter(Boolean)
+    .join(", ");
+  const cidadeEstado = [client.city, client.state].filter(Boolean).join("/");
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              {editing ? "Editar Cliente SM" : "Detalhes do Cliente SM"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* ID Badge */}
-            <div className="flex items-center gap-2">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                {editing ? "Editar Cliente SM" : client.name || "Cliente SM"}
+              </DialogTitle>
               <Badge variant="outline" className="text-xs font-mono">
                 ID SM: {client.sm_client_id}
               </Badge>
-              <span className="text-xs text-muted-foreground">
-                Sync: {new Date(client.synced_at).toLocaleDateString("pt-BR")}
-              </span>
             </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+              <span>Sync: {new Date(client.synced_at).toLocaleDateString("pt-BR")}</span>
+              {client.sm_created_at && (
+                <span>Criado SM: {format(new Date(client.sm_created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+              )}
+            </div>
+          </DialogHeader>
 
-            {editing ? (
-              /* ── Edit Mode ── */
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} />
-                </div>
-                <FormGrid>
+          <ScrollArea className="flex-1 px-6 pb-4">
+            <div className="space-y-4 pt-4">
+              {editing ? (
+                /* ── Edit Mode ── */
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} />
+                    <Label>Nome</Label>
+                    <Input value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Telefone</Label>
-                    <Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
-                  </div>
-                </FormGrid>
-                <FormGrid>
-                  <div className="space-y-2">
-                    <Label>CPF/CNPJ</Label>
-                    <Input value={form.document ?? ""} onChange={(e) => set("document", e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Empresa</Label>
-                    <Input value={form.company ?? ""} onChange={(e) => set("company", e.target.value)} />
-                  </div>
-                </FormGrid>
-                <FormGrid>
-                  <div className="space-y-2">
-                    <Label>Cidade</Label>
-                    <Input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
+                  <FormGrid>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Empresa</Label>
+                      <Input value={form.company ?? ""} onChange={(e) => set("company", e.target.value)} />
+                    </div>
+                  </FormGrid>
+                  <FormGrid>
+                    <div className="space-y-2">
+                      <Label>CPF/CNPJ</Label>
+                      <Input value={form.document ?? ""} onChange={(e) => set("document", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telefone Principal</Label>
+                      <Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
+                    </div>
+                  </FormGrid>
+                  <FormGrid>
+                    <div className="space-y-2">
+                      <Label>Telefone Secundário</Label>
+                      <Input value={form.secondary_phone ?? ""} onChange={(e) => set("secondary_phone", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CEP</Label>
+                      <Input value={form.zip_code ?? ""} onChange={(e) => set("zip_code", e.target.value)} />
+                    </div>
+                  </FormGrid>
+                  <FormGrid>
+                    <div className="space-y-2">
+                      <Label>Número</Label>
+                      <Input value={form.number ?? ""} onChange={(e) => set("number", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Complemento</Label>
+                      <Input value={form.complement ?? ""} onChange={(e) => set("complement", e.target.value)} />
+                    </div>
+                  </FormGrid>
+                  <FormGrid>
+                    <div className="space-y-2">
+                      <Label>Bairro</Label>
+                      <Input value={form.neighborhood ?? ""} onChange={(e) => set("neighborhood", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cidade</Label>
+                      <Input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} />
+                    </div>
+                  </FormGrid>
+                  <div className="space-y-2 max-w-[50%]">
                     <Label>Estado</Label>
                     <Input value={form.state ?? ""} onChange={(e) => set("state", e.target.value)} maxLength={2} />
                   </div>
-                </FormGrid>
-              </div>
-            ) : (
-              /* ── View Mode ── */
-              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-                <span className="text-muted-foreground font-medium">Nome</span>
-                <span className="text-foreground">{client.name || "—"}</span>
+                </div>
+              ) : (
+                /* ── View Mode ── */
+                <div className="space-y-4">
+                  {/* Dados Pessoais */}
+                  <SectionCard icon={User} title="Dados do Cliente" variant="blue">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <InfoRow icon={User} label="Nome" value={client.name} />
+                      <InfoRow icon={CreditCard} label="CPF/CNPJ" value={client.document} />
+                      <InfoRow icon={Mail} label="Email" value={client.email} />
+                      <InfoRow icon={Building2} label="Empresa" value={client.company} />
+                    </div>
+                  </SectionCard>
 
-                <span className="text-muted-foreground font-medium">Email</span>
-                <span className="text-foreground">{client.email || "—"}</span>
+                  {/* Contato */}
+                  <SectionCard icon={Phone} title="Contato" variant="neutral">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <InfoRow icon={Phone} label="Tel. Principal" value={client.phone} />
+                      <InfoRow icon={Phone} label="Tel. Secundário" value={client.secondary_phone} />
+                    </div>
+                  </SectionCard>
 
-                <span className="text-muted-foreground font-medium">Telefone</span>
-                <span className="text-foreground">{client.phone || "—"}</span>
+                  {/* Endereço */}
+                  <SectionCard icon={MapPin} title="Endereço" variant="green">
+                    <div className="space-y-2">
+                      {endereco && <InfoRow icon={MapPin} label="Endereço" value={endereco} />}
+                      {cidadeEstado && <InfoRow icon={MapPin} label="Cidade/UF" value={cidadeEstado} />}
+                      <InfoRow icon={MapPin} label="CEP" value={client.zip_code} />
+                    </div>
+                  </SectionCard>
 
-                <span className="text-muted-foreground font-medium">CPF/CNPJ</span>
-                <span className="text-foreground">{client.document || "—"}</span>
+                  {/* Responsável / Representante */}
+                  <SectionCard icon={User} title="Responsável & Representante" variant="neutral">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <InfoRow icon={User} label="Responsável" value={client.responsible?.name} />
+                      <InfoRow icon={Mail} label="Email Resp." value={client.responsible?.email} />
+                      <InfoRow icon={User} label="Representante" value={client.representative?.name} />
+                      <InfoRow icon={Mail} label="Email Repr." value={client.representative?.email} />
+                    </div>
+                  </SectionCard>
 
-                <span className="text-muted-foreground font-medium">Cidade/UF</span>
-                <span className="text-foreground">
-                  {[client.city, client.state].filter(Boolean).join("/") || "—"}
-                </span>
+                  {/* Datas */}
+                  <SectionCard icon={Calendar} title="Datas" variant="neutral">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <InfoRow
+                        icon={Calendar}
+                        label="Criado no SM"
+                        value={client.sm_created_at ? format(new Date(client.sm_created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : null}
+                      />
+                      <InfoRow
+                        icon={Calendar}
+                        label="Última Sincronização"
+                        value={format(new Date(client.synced_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      />
+                    </div>
+                  </SectionCard>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
 
-                <span className="text-muted-foreground font-medium">Empresa</span>
-                <span className="text-foreground">{client.company || "—"}</span>
-
-                <span className="text-muted-foreground font-medium">Responsável</span>
-                <span className="text-foreground">{client.responsible?.name || "—"}</span>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 p-6 pt-2 border-t">
             {editing ? (
               <>
                 <Button variant="outline" onClick={cancelEdit} disabled={saving}>
