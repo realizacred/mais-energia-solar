@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 /** Small delay helper to respect rate limits (60 req/min) */
@@ -214,73 +214,156 @@ Deno.serve(async (req) => {
   try {
     // ─── Auth ──────────────────────────────────────────────
     const authHeader = req.headers.get("authorization");
-    console.log("[SM Sync] Auth header present:", Boolean(authHeader));
-
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Validate user JWT directly against Supabase Auth API (more reliable in Edge runtime)
-    let userId: string | null = null;
-    try {
-      const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: anonKey,
-        },
-      });
+    let tenantId: string | null = null;
 
-      const contentType = authRes.headers.get("content-type") || "";
-      if (!authRes.ok) {
-        const raw = await authRes.text();
-        console.error(
-          `[SM Sync] Auth validate failed: status=${authRes.status} body=${raw.slice(0, 300)}`
-        );
-      } else if (!contentType.includes("application/json")) {
-        const raw = await authRes.text();
-        console.error(`[SM Sync] Auth validate non-json response: ${raw.slice(0, 300)}`);
+    // ── Cron mode: accept CRON_SECRET via body or x-cron-secret header ──
+    const body = await req.json().catch(() => ({}));
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const headerCronSecret = req.headers.get("x-cron-secret");
+    console.log(`[SM Sync] Cron check: headerSecret=${!!headerCronSecret}, bodySecret=${!!body.cron_secret}, envSecret=${!!cronSecret}, headerLen=${headerCronSecret?.length}, envLen=${cronSecret?.length}, match=${headerCronSecret === cronSecret}`);
+    const isCron = cronSecret && (
+      (body.cron_secret && body.cron_secret === cronSecret) ||
+      (headerCronSecret && headerCronSecret === cronSecret)
+    );
+
+    if (isCron) {
+      console.log("[SM Sync] Cron mode activated");
+      // Find tenant with active SolarMarket config
+      const { data: configs } = await supabase
+        .from("integration_configs")
+        .select("tenant_id")
+        .eq("service_key", "solarmarket")
+        .eq("is_active", true)
+        .limit(1);
+
+      if (configs && configs.length > 0) {
+        tenantId = configs[0].tenant_id;
       } else {
-        const authUser = await authRes.json();
-        userId = authUser?.id ?? null;
+        // Fallback: check solar_market_config
+        const { data: smConfigs } = await supabase
+          .from("solar_market_config")
+          .select("tenant_id")
+          .eq("enabled", true)
+          .limit(1);
+        tenantId = smConfigs?.[0]?.tenant_id || null;
       }
-    } catch (authEx) {
-      console.error("[SM Sync] Auth exception:", authEx);
+
+      if (!tenantId) {
+        console.log("[SM Sync] Cron: no tenant with active SM config found");
+        return new Response(JSON.stringify({ skipped: true, reason: "no_active_tenant" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      // ── User mode: validate JWT ──
+      console.log("[SM Sync] Auth header present:", Boolean(authHeader));
+
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+      let userId: string | null = null;
+      try {
+        const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: anonKey,
+          },
+        });
+
+        const contentType = authRes.headers.get("content-type") || "";
+        if (!authRes.ok) {
+          const raw = await authRes.text();
+          console.error(`[SM Sync] Auth validate failed: status=${authRes.status} body=${raw.slice(0, 300)}`);
+        } else if (!contentType.includes("application/json")) {
+          const raw = await authRes.text();
+          console.error(`[SM Sync] Auth validate non-json response: ${raw.slice(0, 300)}`);
+        } else {
+          const authUser = await authRes.json();
+          userId = authUser?.id ?? null;
+        }
+      } catch (authEx) {
+        console.error("[SM Sync] Auth exception:", authEx);
+      }
+
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", userId)
+        .single();
+
+      if (!profile) {
+        return new Response(JSON.stringify({ error: "Profile not found" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      tenantId = profile.tenant_id;
     }
 
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let sync_type = body.sync_type || "full";
+
+    // ── Cron auto-detection: pick what's still pending ──
+    if (isCron && (!body.sync_type || body.sync_type === "auto")) {
+      // Check pending proposals (projects without proposals)
+      const { count: totalProjects } = await supabase
+        .from("solar_market_projects")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId);
+
+      const { data: syncedProjectIds } = await supabase
+        .from("solar_market_proposals")
+        .select("sm_project_id")
+        .eq("tenant_id", tenantId);
+      const syncedCount = new Set((syncedProjectIds || []).map((r: any) => r.sm_project_id)).size;
+
+      // Check pending funnel enrichment
+      const { count: enrichedCount } = await supabase
+        .from("solar_market_projects")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .not("sm_funnel_id", "is", null);
+
+      const pendingProposals = (totalProjects || 0) - syncedCount;
+      const pendingFunnels = (totalProjects || 0) - (enrichedCount || 0);
+
+      console.log(`[SM Sync] Cron auto: ${pendingProposals} pending proposals, ${pendingFunnels} pending funnels`);
+
+      if (pendingProposals > 0) {
+        sync_type = "proposals";
+      } else if (pendingFunnels > 0) {
+        sync_type = "projects"; // This triggers funnel enrichment
+      } else {
+        console.log("[SM Sync] Cron: everything synced, skipping");
+        return new Response(JSON.stringify({ 
+          skipped: true, 
+          reason: "all_synced",
+          total_projects: totalProjects,
+          synced_proposals: syncedCount,
+          enriched_funnels: enrichedCount,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
-
-    // ─── Tenant ────────────────────────────────────────────
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("tenant_id")
-      .eq("user_id", userId)
-      .single();
-
-    if (!profile) {
-      return new Response(JSON.stringify({ error: "Profile not found" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const tenantId = profile.tenant_id;
-
-    const { sync_type = "full" } = await req.json().catch(() => ({}));
 
     // ─── SolarMarket API Token ─────────────────────────────
     const { data: integrationConfig } = await supabase
