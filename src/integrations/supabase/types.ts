@@ -12666,6 +12666,110 @@ export type Database = {
           },
         ]
       }
+      solar_kit_catalog: {
+        Row: {
+          created_at: string
+          description: string | null
+          estimated_kwp: number | null
+          fixed_price: number | null
+          id: string
+          name: string
+          pricing_mode: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          estimated_kwp?: number | null
+          fixed_price?: number | null
+          id?: string
+          name: string
+          pricing_mode?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          estimated_kwp?: number | null
+          fixed_price?: number | null
+          id?: string
+          name?: string
+          pricing_mode?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_kit_catalog_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solar_kit_catalog_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          item_type: string
+          kit_id: string
+          notes: string | null
+          quantity: number
+          ref_id: string | null
+          tenant_id: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          item_type: string
+          kit_id: string
+          notes?: string | null
+          quantity: number
+          ref_id?: string | null
+          tenant_id: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          item_type?: string
+          kit_id?: string
+          notes?: string | null
+          quantity?: number
+          ref_id?: string | null
+          tenant_id?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_kit_catalog_items_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "solar_kit_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solar_kit_catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solar_market_clients: {
         Row: {
           address: Json | null
