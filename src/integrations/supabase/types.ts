@@ -7807,6 +7807,388 @@ export type Database = {
         }
         Relationships: []
       }
+      post_sale_attachments: {
+        Row: {
+          created_at: string
+          file_url: string
+          id: string
+          label: string | null
+          tenant_id: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_url: string
+          id?: string
+          label?: string | null
+          tenant_id?: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string
+          id?: string
+          label?: string | null
+          tenant_id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_sale_attachments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_attachments_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "post_sale_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_sale_checklist_items: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          ordem: number
+          template_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          ordem?: number
+          template_id: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          template_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_sale_checklist_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "post_sale_checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_sale_checklist_templates: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_sale_checklist_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_sale_plans: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_inicio: string | null
+          garantia_inversor_fim: string | null
+          garantia_modulos_fim: string | null
+          id: string
+          observacoes: string | null
+          periodicidade_meses: number
+          projeto_id: string
+          proxima_preventiva: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_inicio?: string | null
+          garantia_inversor_fim?: string | null
+          garantia_modulos_fim?: string | null
+          id?: string
+          observacoes?: string | null
+          periodicidade_meses?: number
+          projeto_id: string
+          proxima_preventiva?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_inicio?: string | null
+          garantia_inversor_fim?: string | null
+          garantia_modulos_fim?: string | null
+          id?: string
+          observacoes?: string | null
+          periodicidade_meses?: number
+          projeto_id?: string
+          proxima_preventiva?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_sale_plans_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_plans_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_sale_upsell_opportunities: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          projeto_id: string | null
+          status: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          projeto_id?: string | null
+          status?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          projeto_id?: string | null
+          status?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_sale_upsell_opportunities_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_upsell_opportunities_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_upsell_opportunities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_sale_visit_checklist: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          observacao: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          observacao?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          observacao?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_sale_visit_checklist_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "post_sale_checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_visit_checklist_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_visit_checklist_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "post_sale_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_sale_visits: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          data_agendada: string | null
+          data_conclusao: string | null
+          data_prevista: string | null
+          id: string
+          observacoes: string | null
+          plan_id: string | null
+          projeto_id: string | null
+          status: string
+          tecnico_id: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          data_agendada?: string | null
+          data_conclusao?: string | null
+          data_prevista?: string | null
+          id?: string
+          observacoes?: string | null
+          plan_id?: string | null
+          projeto_id?: string | null
+          status?: string
+          tecnico_id?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          data_agendada?: string | null
+          data_conclusao?: string | null
+          data_prevista?: string | null
+          id?: string
+          observacoes?: string | null
+          plan_id?: string | null
+          projeto_id?: string | null
+          status?: string
+          tecnico_id?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_sale_visits_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_visits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "post_sale_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_visits_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_sale_visits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       premissas_default_tenant: {
         Row: {
           created_at: string

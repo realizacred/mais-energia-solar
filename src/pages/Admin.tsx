@@ -119,6 +119,10 @@ const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
+const PostSaleDashboardPage = lazy(() => import("@/components/admin/post-sale/PostSaleDashboard"));
+const PostSaleVisitsPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitsList"));
+const PostSalePlansPage = lazy(() => import("@/components/admin/post-sale/PostSalePlansList"));
+const PostSaleUpsellPage = lazy(() => import("@/components/admin/post-sale/PostSaleUpsellList"));
 // SolarZap removed — functionality consolidated into WaInbox (Atendimento)
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard")
@@ -289,6 +293,10 @@ const TAB_TITLES: Record<string, string> = {
   "data-reset": "Manutenção de dados",
   "integracoes": "Integrações",
   "aneel": "Integração ANEEL",
+  "pos-venda": "Dashboard pós-venda",
+  "pos-venda-visitas": "Preventivas",
+  "pos-venda-planos": "Planos pós-venda",
+  "pos-venda-upsell": "Oportunidades",
 
   "payment-gateway": "Pagamentos (Asaas)",
   "ai-config": "Configuração de IA",
@@ -511,6 +519,12 @@ export default function Admin() {
                 <Route path="servicos" element={<ServicosManager />} />
                 <Route path="documentos" element={<DocumentosPage />} />
                 
+                {/* Pós-Venda */}
+                <Route path="pos-venda" element={<PostSaleDashboardPage />} />
+                <Route path="pos-venda-visitas" element={<PostSaleVisitsPage />} />
+                <Route path="pos-venda-planos" element={<PostSalePlansPage />} />
+                <Route path="pos-venda-upsell" element={<PostSaleUpsellPage />} />
+
                 {/* Operações */}
                 <Route path="instaladores" element={<InstaladorManager />} />
                 <Route path="estoque" element={<EstoquePage />} />
