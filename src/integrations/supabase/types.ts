@@ -12674,12 +12674,16 @@ export type Database = {
           complement: string | null
           created_at: string
           document: string | null
+          document_formatted: string | null
           email: string | null
+          email_normalized: string | null
           id: string
+          lead_id: string | null
           name: string | null
           neighborhood: string | null
           number: string | null
           phone: string | null
+          phone_formatted: string | null
           phone_normalized: string | null
           raw_payload: Json | null
           representative: Json | null
@@ -12691,6 +12695,7 @@ export type Database = {
           synced_at: string
           tenant_id: string
           zip_code: string | null
+          zip_code_formatted: string | null
         }
         Insert: {
           address?: Json | null
@@ -12699,12 +12704,16 @@ export type Database = {
           complement?: string | null
           created_at?: string
           document?: string | null
+          document_formatted?: string | null
           email?: string | null
+          email_normalized?: string | null
           id?: string
+          lead_id?: string | null
           name?: string | null
           neighborhood?: string | null
           number?: string | null
           phone?: string | null
+          phone_formatted?: string | null
           phone_normalized?: string | null
           raw_payload?: Json | null
           representative?: Json | null
@@ -12716,6 +12725,7 @@ export type Database = {
           synced_at?: string
           tenant_id: string
           zip_code?: string | null
+          zip_code_formatted?: string | null
         }
         Update: {
           address?: Json | null
@@ -12724,12 +12734,16 @@ export type Database = {
           complement?: string | null
           created_at?: string
           document?: string | null
+          document_formatted?: string | null
           email?: string | null
+          email_normalized?: string | null
           id?: string
+          lead_id?: string | null
           name?: string | null
           neighborhood?: string | null
           number?: string | null
           phone?: string | null
+          phone_formatted?: string | null
           phone_normalized?: string | null
           raw_payload?: Json | null
           representative?: Json | null
@@ -12741,8 +12755,16 @@ export type Database = {
           synced_at?: string
           tenant_id?: string
           zip_code?: string | null
+          zip_code_formatted?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "solar_market_clients_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "solar_market_clients_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -12942,6 +12964,7 @@ export type Database = {
           energy_consumption: number | null
           id: string
           installation_type: string | null
+          lead_id: string | null
           name: string | null
           neighborhood: string | null
           number: string | null
@@ -12965,6 +12988,7 @@ export type Database = {
           valor: number | null
           voltage: string | null
           zip_code: string | null
+          zip_code_formatted: string | null
         }
         Insert: {
           address?: string | null
@@ -12976,6 +13000,7 @@ export type Database = {
           energy_consumption?: number | null
           id?: string
           installation_type?: string | null
+          lead_id?: string | null
           name?: string | null
           neighborhood?: string | null
           number?: string | null
@@ -12999,6 +13024,7 @@ export type Database = {
           valor?: number | null
           voltage?: string | null
           zip_code?: string | null
+          zip_code_formatted?: string | null
         }
         Update: {
           address?: string | null
@@ -13010,6 +13036,7 @@ export type Database = {
           energy_consumption?: number | null
           id?: string
           installation_type?: string | null
+          lead_id?: string | null
           name?: string | null
           neighborhood?: string | null
           number?: string | null
@@ -13033,8 +13060,16 @@ export type Database = {
           valor?: number | null
           voltage?: string | null
           zip_code?: string | null
+          zip_code_formatted?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "solar_market_projects_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "solar_market_projects_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -16877,53 +16912,89 @@ export type Database = {
         Row: {
           acceptance_date: string | null
           client_city: string | null
-          client_company: string | null
-          client_document: string | null
-          client_email: string | null
+          client_created_at: string | null
+          client_id: string | null
+          client_lead_id: string | null
           client_name: string | null
-          client_phone: string | null
           client_state: string | null
+          company: string | null
           consultor_sm: string | null
+          consumo_mensal: number | null
+          document: string | null
+          document_formatted: string | null
           economia_mensal: number | null
-          economia_mensal_percent: number | null
+          email: string | null
+          email_normalized: string | null
           energy_consumption: number | null
-          funnel_name: string | null
-          funnel_stage: string | null
-          geracao_anual: number | null
+          has_lead_link: boolean | null
+          has_project: boolean | null
           has_proposal: boolean | null
           installation_type: string | null
+          inversores: string | null
           inverter_model: string | null
           inverter_quantity: number | null
-          is_client: boolean | null
+          lead_code: string | null
+          lead_consultor_id: string | null
+          lead_nome: string | null
+          lead_status_id: string | null
           lifecycle_stage: string | null
           link_pdf: string | null
+          modulos: string | null
           panel_model: string | null
           panel_quantity: number | null
           payback: string | null
+          phase_type: string | null
+          phone: string | null
+          phone_formatted: string | null
+          phone_normalized: string | null
           project_city: string | null
-          project_created_at: string | null
+          project_id: string | null
           project_name: string | null
           project_potencia_kwp: number | null
           project_state: string | null
           project_status: string | null
           project_valor: number | null
           proposal_created_at: string | null
+          proposal_id: string | null
           proposal_potencia_kwp: number | null
-          proposal_preco_total: number | null
           proposal_status: string | null
-          proposal_title: string | null
+          proposal_titulo: string | null
           proposal_valor_total: number | null
           rejection_date: string | null
-          responsible_name: string | null
           sm_client_id: number | null
+          sm_funnel_name: string | null
           sm_project_id: number | null
           sm_proposal_id: number | null
+          sm_stage_name: string | null
           tenant_id: string | null
-          total_proposals: number | null
+          voltage: string | null
+          zip_code: string | null
+          zip_code_formatted: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "solar_market_projects_tenant_id_fkey"
+            foreignKeyName: "leads_status_id_fkey"
+            columns: ["lead_status_id"]
+            isOneToOne: false
+            referencedRelation: "lead_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_vendedor_id_fkey"
+            columns: ["lead_consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solar_market_clients_lead_id_fkey"
+            columns: ["client_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solar_market_clients_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -17679,6 +17750,10 @@ export type Database = {
           p_to_user_id: string
         }
         Returns: Json
+      }
+      sm_match_clients_to_leads: {
+        Args: { p_tenant_id: string }
+        Returns: number
       }
       start_conversation_by_phone:
         | {

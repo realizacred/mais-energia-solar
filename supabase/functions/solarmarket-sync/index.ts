@@ -9,6 +9,73 @@ const corsHeaders = {
 /** Small delay helper to respect rate limits (60 req/min) */
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// ─── Data Formatting Helpers ──────────────────────────────
+
+/** Format phone: (XX) XXXXX-XXXX or (XX) XXXX-XXXX */
+function formatPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  if (digits.length >= 8) return digits; // raw fallback
+  return raw;
+}
+
+/** Normalize phone to last 11 digits */
+function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  return digits.slice(-11) || null;
+}
+
+/** Format CEP: XXXXX-XXX */
+function formatCEP(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 8) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return raw;
+}
+
+/** Normalize email: trim + lowercase */
+function normalizeEmail(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim().toLowerCase();
+  return trimmed || null;
+}
+
+/** Format CPF: XXX.XXX.XXX-XX or CNPJ: XX.XXX.XXX/XXXX-XX */
+function formatDocument(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 11) return `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6,9)}-${digits.slice(9)}`;
+  if (digits.length === 14) return `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8,12)}-${digits.slice(12)}`;
+  return raw;
+}
+
+/** Title case name (respects small words like "de", "da") */
+function formatName(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const smallWords = new Set(["de", "da", "do", "das", "dos", "e"]);
+  return trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, i) => {
+      if (i > 0 && smallWords.has(word)) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
+/** Normalize state to uppercase 2-char */
+function normalizeState(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim().toUpperCase();
+  return trimmed.length === 2 ? trimmed : raw.trim();
+}
+
 /** Fetch all pages from a paginated SolarMarket endpoint with rate limiting */
 async function fetchAllPages(url: string, headers: Record<string, string>): Promise<any[]> {
   const all: any[] = [];
@@ -571,25 +638,32 @@ Deno.serve(async (req) => {
         console.log(`[SM Sync] Clients fetched: ${clients.length}, valid (with name): ${validClients.length}, skipped: ${skipped}`);
 
         const rows = validClients.map((c: any) => {
-          const phone = c.primaryPhone || c.phone || c.telefone || "";
-          const phoneNorm = phone.replace(/\D/g, "").slice(-11);
+          const rawPhone = c.primaryPhone || c.phone || c.telefone || "";
+          const rawEmail = c.email || null;
+          const rawDoc = c.cnpjCpf || c.document || c.cpf_cnpj || null;
+          const rawZip = c.zipCode || c.zip_code || null;
+          const rawSecondary = c.secondaryPhone || c.secondary_phone || null;
           return {
             tenant_id: tenantId,
             sm_client_id: c.id,
-            name: (c.name || c.nome || "").trim(),
-            email: c.email || null,
-            phone: phone || null,
-            phone_normalized: phoneNorm || null,
-            document: c.cnpjCpf || c.document || c.cpf_cnpj || null,
+            name: formatName(c.name || c.nome) || (c.name || c.nome || "").trim(),
+            email: rawEmail,
+            email_normalized: normalizeEmail(rawEmail),
+            phone: rawPhone || null,
+            phone_formatted: formatPhone(rawPhone),
+            phone_normalized: normalizePhone(rawPhone),
+            document: rawDoc,
+            document_formatted: formatDocument(rawDoc),
             address: c.address || null,
             city: c.city || null,
             neighborhood: c.neighborhood || null,
-            state: c.state || null,
-            zip_code: c.zipCode || c.zip_code || null,
+            state: normalizeState(c.state),
+            zip_code: rawZip,
+            zip_code_formatted: formatCEP(rawZip),
             number: c.number || null,
             complement: c.complement || null,
             company: c.company || null,
-            secondary_phone: c.secondaryPhone || c.secondary_phone || null,
+            secondary_phone: formatPhone(rawSecondary),
             representative: c.representative || null,
             responsible: c.responsible || null,
             sm_created_at: c.createdAt || c.created_at || null,
@@ -602,6 +676,16 @@ Deno.serve(async (req) => {
         totalUpserted += result.upserted;
         totalErrors += result.errors.length;
         errors.push(...result.errors);
+
+        // ── Auto-match SM clients to internal leads by phone ──
+        try {
+          const { data: matchCount } = await supabase.rpc("sm_match_clients_to_leads", { p_tenant_id: tenantId });
+          if (matchCount && matchCount > 0) {
+            console.log(`[SM Sync] Auto-matched ${matchCount} SM clients to leads by phone`);
+          }
+        } catch (matchErr) {
+          console.warn("[SM Sync] Lead auto-match error:", matchErr);
+        }
       } catch (e) {
         console.error("[SM Sync] Clients error:", e);
         const msg = (e as Error).message;
@@ -638,7 +722,7 @@ Deno.serve(async (req) => {
             tenant_id: tenantId,
             sm_project_id: p.id,
             sm_client_id: p.clientId || p.client_id || null,
-            name: p.name || p.nome || null,
+            name: formatName(p.name || p.nome) || p.name || p.nome || null,
             description: p.description || p.descricao || null,
             potencia_kwp: p.potencia_kwp || p.power || null,
             status: p.status || null,
@@ -646,8 +730,9 @@ Deno.serve(async (req) => {
             address: p.address || null,
             city: p.city || null,
             neighborhood: p.neighborhood || null,
-            state: p.state || null,
+            state: normalizeState(p.state),
             zip_code: p.zipCode || p.zip_code || null,
+            zip_code_formatted: formatCEP(p.zipCode || p.zip_code),
             number: p.number || null,
             complement: p.complement || null,
             installation_type: p.installationType || p.installation_type || null,
