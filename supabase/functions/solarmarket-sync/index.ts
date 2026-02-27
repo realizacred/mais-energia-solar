@@ -806,25 +806,33 @@ Deno.serve(async (req) => {
           errors.push(...result.errors);
         }
       } catch (bulkErr) {
-        console.warn(`[SM Sync] Bulk /proposals failed: ${(bulkErr as Error).message}, trying per-project fallback (limited)...`);
+        console.warn(`[SM Sync] Bulk /proposals failed: ${(bulkErr as Error).message}, trying per-project fallback...`);
 
-        // Fallback: fetch per-project but limit to avoid timeout
-        // Limit to 50 most recent projects to avoid compute resource exhaustion
+        // Fallback: fetch per-project for ALL projects (no artificial limit)
         let ids = projectIds;
         if (ids.length === 0) {
-          const { data: dbProjects } = await supabase
-            .from("solar_market_projects")
-            .select("sm_project_id")
-            .eq("tenant_id", tenantId)
-            .order("synced_at", { ascending: false })
-            .limit(50);
-          ids = (dbProjects || []).map((p: any) => p.sm_project_id);
-        } else {
-          ids = ids.slice(0, 50);
+          // Fetch ALL project IDs from DB
+          const allDbIds: number[] = [];
+          let offset = 0;
+          const pageSize = 1000;
+          while (true) {
+            const { data: dbProjects } = await supabase
+              .from("solar_market_projects")
+              .select("sm_project_id")
+              .eq("tenant_id", tenantId)
+              .order("synced_at", { ascending: false })
+              .range(offset, offset + pageSize - 1);
+            const batch = (dbProjects || []).map((p: any) => p.sm_project_id);
+            allDbIds.push(...batch);
+            if (batch.length < pageSize) break;
+            offset += pageSize;
+          }
+          ids = allDbIds;
         }
 
-        console.log(`[SM Sync] Fetching proposals for ${ids.length} projects (fallback, limited)`);
+        console.log(`[SM Sync] Fetching proposals for ${ids.length} projects (per-project fallback)`);
         const allProposalRows: any[] = [];
+        let batchCount = 0;
 
         for (const projId of ids) {
           try {
@@ -834,7 +842,25 @@ Deno.serve(async (req) => {
               if (res.status === 404) { await res.text(); continue; }
               if (res.status === 429) {
                 const ra = parseInt(res.headers.get("retry-after") || "10", 10);
+                console.log(`[SM Sync] Rate limited on proposals, waiting ${ra}s...`);
                 await delay(ra * 1000);
+                // Retry this project
+                const retryRes = await fetch(url, { headers: smHeaders });
+                if (!retryRes.ok) { await retryRes.text(); continue; }
+                const retryData = await retryRes.json();
+                const retryProposals = Array.isArray(retryData) ? retryData : retryData.data ? [retryData.data] : retryData ? [retryData] : [];
+                totalFetched += retryProposals.length;
+                for (const pr of retryProposals) {
+                  const extracted = extractProposalFields(pr);
+                  allProposalRows.push({
+                    tenant_id: tenantId,
+                    sm_proposal_id: pr.id,
+                    ...extracted,
+                    sm_project_id: projId,
+                    raw_payload: pr,
+                    synced_at: new Date().toISOString(),
+                  });
+                }
                 continue;
               }
               await res.text();
@@ -850,12 +876,24 @@ Deno.serve(async (req) => {
                 tenant_id: tenantId,
                 sm_proposal_id: pr.id,
                 ...extracted,
-                // Override sm_project_id with the known project ID from the URL
                 sm_project_id: projId,
                 raw_payload: pr,
                 synced_at: new Date().toISOString(),
               });
             }
+
+            batchCount++;
+            // Upsert in batches of 100 projects to save partial progress
+            if (allProposalRows.length >= 200) {
+              console.log(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${ids.length} projects processed)`);
+              const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
+              totalUpserted += result.upserted;
+              totalErrors += result.errors.length;
+              errors.push(...result.errors);
+              allProposalRows.length = 0; // clear
+            }
+
+            // Rate limit: ~150 req/min (400ms between)
             await delay(400);
           } catch (e) {
             totalErrors++;
@@ -863,12 +901,16 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Save remaining rows
         if (allProposalRows.length > 0) {
+          console.log(`[SM Sync] Saving final proposals batch: ${allProposalRows.length} rows`);
           const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
           totalUpserted += result.upserted;
           totalErrors += result.errors.length;
           errors.push(...result.errors);
         }
+
+        console.log(`[SM Sync] Proposals fallback complete: processed ${batchCount} projects`);
       }
     }
 
