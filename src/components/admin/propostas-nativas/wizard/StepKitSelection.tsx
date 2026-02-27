@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef } from "react";
-import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import {
   formatBRL,
 } from "./types";
 import { toast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { fetchActiveKits, snapshotCatalogKitToKitItemRows, type CatalogKit } from "@/services/kitCatalogService";
 
 import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
 import { KitCard, type KitCardData } from "./kit/KitCard";
@@ -55,7 +57,7 @@ interface Props {
   onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]) => void;
 }
 
-type TabType = "customizado" | "fechado" | "manual";
+type TabType = "customizado" | "fechado" | "manual" | "catalogo";
 
 function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardData | null {
   const modItem = itens.find(i => i.categoria === "modulo");
@@ -104,9 +106,56 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [showPremissas, setShowPremissas] = useState(false);
   const [premissasTab, setPremissasTab] = useState<"fator" | "sistema">("fator");
 
+  // ── Catálogo state ──
+  const [catalogKits, setCatalogKits] = useState<CatalogKit[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [snapshotLoading, setSnapshotLoading] = useState<string | null>(null); // kitId being loaded
+  const [confirmReplace, setConfirmReplace] = useState<{ kitId: string; kitName: string } | null>(null);
+  const catalogLoaded = useRef(false);
+
+  // Load catalog kits when tab switches to "catalogo"
+  useEffect(() => {
+    if (tab !== "catalogo" || catalogLoaded.current) return;
+    setCatalogLoading(true);
+    setCatalogError(null);
+    fetchActiveKits()
+      .then((kits) => { setCatalogKits(kits); catalogLoaded.current = true; })
+      .catch((err) => setCatalogError(err.message))
+      .finally(() => setCatalogLoading(false));
+  }, [tab]);
+
+  const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
+    // If items already exist, ask for confirmation
+    if (itens.length > 0 && itens.some(i => i.descricao)) {
+      setConfirmReplace({ kitId, kitName });
+      return;
+    }
+    await applyCatalogSnapshot(kitId, kitName);
+  };
+
+  const applyCatalogSnapshot = async (kitId: string, kitName: string) => {
+    setSnapshotLoading(kitId);
+    try {
+      const rows = await snapshotCatalogKitToKitItemRows(kitId);
+      if (rows.length === 0) {
+        toast({ title: "Kit vazio", description: "Este kit não possui itens cadastrados.", variant: "destructive" });
+        return;
+      }
+      onItensChange(rows);
+      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${rows.length} item(ns) carregados` });
+    } catch (err: any) {
+      toast({ title: "Erro ao importar kit", description: err.message, variant: "destructive" });
+    } finally {
+      setSnapshotLoading(null);
+      setConfirmReplace(null);
+    }
+  };
+
   const consumoTotal = filters.buscarValor;
 
   const mockKits: KitCardData[] = []; // Manual mode only for now
+
 
   const handleSelectKit = (kit: KitCardData) => {
     const newItens: KitItemRow[] = [
@@ -204,6 +253,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           {/* Tabs: Customizado | Fechado | + Criar manualmente */}
           <div className="flex items-center border-b border-border/50">
             {([
+              { key: "catalogo" as const, label: "📦 Catálogo", icon: true },
               { key: "customizado" as const, label: "Customizado" },
               { key: "fechado" as const, label: "Fechado" },
             ]).map(t => (
@@ -275,7 +325,67 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           </div>
 
           {/* Tab Content */}
-          {tab === "manual" ? (
+          {tab === "catalogo" ? (
+            /* ── Catálogo Tab ── */
+            <div className="space-y-3">
+              {catalogLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                </div>
+              ) : catalogError ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <AlertCircle className="h-10 w-10 text-destructive/50 mb-3" />
+                  <p className="text-sm font-medium text-destructive">{catalogError}</p>
+                  <Button size="sm" variant="outline" className="mt-3" onClick={() => { catalogLoaded.current = false; setTab("catalogo"); }}>
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : catalogKits.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <BookOpen className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum kit ativo no catálogo</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Cadastre kits em Configurações → Catálogo de Kits</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {catalogKits.map(kit => (
+                    <div
+                      key={kit.id}
+                      className="rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between min-h-[140px]"
+                    >
+                      <div className="space-y-1.5">
+                        <p className="text-sm font-bold truncate">{kit.name}</p>
+                        {kit.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{kit.description}</p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {kit.estimated_kwp != null && kit.estimated_kwp > 0 && (
+                            <Badge variant="secondary" className="text-[10px]">{kit.estimated_kwp} kWp</Badge>
+                          )}
+                          <Badge variant="outline" className="text-[10px]">{kit.pricing_mode === "fixed" ? "Preço fixo" : "Calculado"}</Badge>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex justify-end">
+                        <Button
+                          size="sm"
+                          className="gap-1.5 h-8 text-xs"
+                          disabled={snapshotLoading === kit.id}
+                          onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
+                        >
+                          {snapshotLoading === kit.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Plus className="h-3.5 w-3.5" />
+                          )}
+                          Selecionar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : tab === "manual" ? (
             <div className="space-y-3">
               {/* Manual Kit Cards in grid like reference */}
               {manualKits.length > 0 && (
@@ -444,6 +554,24 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           consumoTotal={consumoTotalProp}
         />
       )}
+
+      {/* Confirm Replace Dialog (Catálogo) */}
+      <AlertDialog open={!!confirmReplace} onOpenChange={(open) => { if (!open) setConfirmReplace(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir itens do kit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você já possui {itens.length} item(ns) no kit atual. Ao selecionar <strong>{confirmReplace?.kitName}</strong> do catálogo, os itens atuais serão substituídos. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmReplace && applyCatalogSnapshot(confirmReplace.kitId, confirmReplace.kitName)}>
+              Substituir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
