@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2 } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2 } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -19,11 +19,16 @@ import {
   useSmProjects,
   useSmProposals,
   useSmSyncLogs,
+  useSmFunnels,
+  useSmCustomFields,
+  useIsBackgroundSyncActive,
   useUpdateSmClient,
   useDeleteSmClient,
   type SmClient,
   type SmProject,
   type SmProposal,
+  type SmFunnel,
+  type SmCustomField,
 } from "@/hooks/useSolarMarket";
 import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
@@ -223,6 +228,71 @@ function ProposalsTable({ proposals, onSelect }: {
   );
 }
 
+function FunnelsTable({ funnels }: { funnels: SmFunnel[] }) {
+  return (
+    <SectionCard icon={GitBranch} title="Funis" variant="neutral" noPadding>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Funil</TableHead>
+            <TableHead>ID SM</TableHead>
+            <TableHead>Etapas</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {funnels.map(f => {
+            const stages = (() => { try { return typeof f.stages === "string" ? JSON.parse(f.stages) : f.stages; } catch { return []; } })();
+            return (
+              <TableRow key={f.id}>
+                <TableCell><p className="font-medium">{f.name || "—"}</p></TableCell>
+                <TableCell><span className="text-sm text-muted-foreground">{f.sm_funnel_id}</span></TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {Array.isArray(stages) && stages.map((s: any, i: number) => (
+                      <Badge key={i} variant="outline" className="text-[10px]">{s.name || s.title || `#${i + 1}`}</Badge>
+                    ))}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </SectionCard>
+  );
+}
+
+function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
+  return (
+    <SectionCard icon={Settings2} title="Campos Customizados" variant="neutral" noPadding>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nome</TableHead>
+            <TableHead>Chave</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Opções</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fields.map(cf => (
+            <TableRow key={cf.id}>
+              <TableCell><p className="font-medium">{cf.name || "—"}</p></TableCell>
+              <TableCell><code className="text-xs text-muted-foreground">{cf.key || "—"}</code></TableCell>
+              <TableCell><Badge variant="outline" className="text-[10px]">{cf.field_type || "—"}</Badge></TableCell>
+              <TableCell>
+                <span className="text-xs text-muted-foreground">
+                  {cf.options ? (Array.isArray(cf.options) ? cf.options.map((o: any) => o.label || o.name || o).join(", ") : JSON.stringify(cf.options).slice(0, 80)) : "—"}
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </SectionCard>
+  );
+}
+
 function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; status: string; total_fetched: number; total_upserted: number; total_errors: number; started_at: string }> }) {
   return (
     <SectionCard icon={Clock} title="Histórico de Sincronizações" variant="neutral" noPadding>
@@ -298,11 +368,15 @@ export default function SolarMarketPage() {
 
   const { syncAll, syncStage, progress } = useSolarMarketSync();
   const syncIsRunning = progress.isRunning;
+  const { data: isBgSyncActive = false } = useIsBackgroundSyncActive();
+  const isAnySyncActive = syncIsRunning || isBgSyncActive;
 
-  const { data: clients = [], isLoading: loadingC } = useSmClients(syncIsRunning);
-  const { data: projects = [], isLoading: loadingP } = useSmProjects(syncIsRunning);
-  const { data: proposals = [], isLoading: loadingPr } = useSmProposals(syncIsRunning);
+  const { data: clients = [], isLoading: loadingC } = useSmClients(isAnySyncActive);
+  const { data: projects = [], isLoading: loadingP } = useSmProjects(isAnySyncActive);
+  const { data: proposals = [], isLoading: loadingPr } = useSmProposals(isAnySyncActive);
   const { data: syncLogs = [] } = useSmSyncLogs();
+  const { data: funnels = [], isLoading: loadingF } = useSmFunnels();
+  const { data: customFields = [], isLoading: loadingCF } = useSmCustomFields();
   const updateClient = useUpdateSmClient();
   const deleteClient = useDeleteSmClient();
 
@@ -365,6 +439,14 @@ export default function SolarMarketPage() {
         }
       />
 
+      {/* Sync indicator for background sync */}
+      {isBgSyncActive && !syncIsRunning && (
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-warning/10 border border-warning/20 text-warning text-xs">
+          <RefreshCw className="h-3 w-3 animate-spin" />
+          Sincronização automática em andamento... os contadores atualizam a cada ~10s
+        </div>
+      )}
+
       {/* Sync Progress */}
       <SyncProgressBar progress={progress} />
 
@@ -403,6 +485,14 @@ export default function SolarMarketPage() {
             <TabsTrigger value="sem-proposta" className="text-xs px-2.5 h-7">
               <UserX className="h-3 w-3 mr-1" />
               Sem Proposta ({clientsWithoutProposalsCount})
+            </TabsTrigger>
+            <TabsTrigger value="funis" className="text-xs px-2.5 h-7">
+              <GitBranch className="h-3 w-3 mr-1" />
+              Funis ({funnels.length})
+            </TabsTrigger>
+            <TabsTrigger value="campos" className="text-xs px-2.5 h-7">
+              <Settings2 className="h-3 w-3 mr-1" />
+              Campos ({customFields.length})
             </TabsTrigger>
             <TabsTrigger value="logs" className="text-xs px-2.5 h-7">
               <Clock className="h-3 w-3 mr-1" />
@@ -484,6 +574,38 @@ export default function SolarMarketPage() {
               <EmptyState icon={CheckCircle} title="Todos os clientes têm propostas" description="Nenhum cliente sem proposta encontrado." />
             ) : (
               <ClientsTable clients={clientsWithoutProposals} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} />
+            )}
+        </TabsContent>
+
+        {/* ─── Funis Tab ──────────────────────────────────── */}
+        <TabsContent value="funis" className="mt-3 space-y-3">
+          <div className="flex justify-end">
+            <Button onClick={() => syncStage("funnels")} disabled={syncIsRunning} size="sm" variant="outline" className="h-7 text-xs">
+              <RefreshCw className={`h-3 w-3 mr-1 ${syncIsRunning ? "animate-spin" : ""}`} />
+              Sync Funis
+            </Button>
+          </div>
+          {loadingF ? <InlineLoader context="data_load" /> :
+            funnels.length === 0 ? (
+              <EmptyState icon={GitBranch} title="Nenhum funil" description="Sincronize para importar funis." />
+            ) : (
+              <FunnelsTable funnels={funnels} />
+            )}
+        </TabsContent>
+
+        {/* ─── Campos Custom Tab ─────────────────────────────── */}
+        <TabsContent value="campos" className="mt-3 space-y-3">
+          <div className="flex justify-end">
+            <Button onClick={() => syncStage("custom_fields")} disabled={syncIsRunning} size="sm" variant="outline" className="h-7 text-xs">
+              <RefreshCw className={`h-3 w-3 mr-1 ${syncIsRunning ? "animate-spin" : ""}`} />
+              Sync Campos
+            </Button>
+          </div>
+          {loadingCF ? <InlineLoader context="data_load" /> :
+            customFields.length === 0 ? (
+              <EmptyState icon={Settings2} title="Nenhum campo" description="Sincronize para importar campos customizados." />
+            ) : (
+              <CustomFieldsTable fields={customFields} />
             )}
         </TabsContent>
 

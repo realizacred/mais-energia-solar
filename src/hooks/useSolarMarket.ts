@@ -187,6 +187,22 @@ async function fetchAllRows<T>(params: {
   return allRows;
 }
 
+/** Detects if there's an active background sync (cron) by checking recent running logs */
+export function useIsBackgroundSyncActive() {
+  return useQuery<boolean>({
+    queryKey: ["sm-bg-sync-active"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("solar_market_sync_logs")
+        .select("id")
+        .eq("status", "running")
+        .limit(1);
+      return (data || []).length > 0;
+    },
+    refetchInterval: 8000,
+  });
+}
+
 export function useSmClients(syncRunning?: boolean) {
   return useQuery<SmClient[]>({
     queryKey: ["sm-clients"],
