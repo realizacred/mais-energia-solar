@@ -61,7 +61,7 @@ export default function RlsTestPage() {
       update(3, { status: "running" });
       const { data: inserted, error: e3 } = await supabase
         .from("solar_kit_catalog")
-        .insert({ tenant_id: tenantId, name: `Kit RLS Test ${Date.now()}`, status: "active", pricing_mode: "calculated" })
+        .insert({ tenant_id: tenantId, name: `Kit RLS Test ${Date.now()}`, status: "active" as const, pricing_mode: "calculated" })
         .select("id, tenant_id, name")
         .single();
       if (e3) throw new Error(`INSERT falhou: ${e3.message} (code: ${e3.code})`);
