@@ -590,13 +590,37 @@ Deno.serve(async (req) => {
         totalErrors += result.errors.length;
         errors.push(...result.errors);
 
-        // ── Enrich projects with per-project funnel data ──
-        // GET /projects/{id}/funnels returns which funnel/stage each project belongs to
-        const projsToEnrich = projectIds.slice(0, 80); // limit to avoid timeout
-        console.log(`[SM Sync] Fetching per-project funnels for ${projsToEnrich.length} projects...`);
-        let enriched = 0;
+        // ── Enrich projects with per-project funnel data (with resume) ──
+        // Skip projects that already have funnel data
+        const alreadyEnrichedSet = new Set<number>();
+        {
+          let offset = 0;
+          const pageSize = 1000;
+          while (true) {
+            const { data: enrichedRows } = await supabase
+              .from("solar_market_projects")
+              .select("sm_project_id")
+              .eq("tenant_id", tenantId)
+              .not("sm_funnel_id", "is", null)
+              .range(offset, offset + pageSize - 1);
+            for (const r of (enrichedRows || [])) alreadyEnrichedSet.add(r.sm_project_id);
+            if ((enrichedRows || []).length < pageSize) break;
+            offset += pageSize;
+          }
+        }
 
-        for (const projId of projsToEnrich) {
+        const pendingEnrich = projectIds.filter((id: number) => !alreadyEnrichedSet.has(id));
+        console.log(`[SM Sync] Funnel enrichment: ${alreadyEnrichedSet.size} already done, ${pendingEnrich.length} pending`);
+        
+        let enriched = 0;
+        const funnelTimeBudget = 20_000; // 20s budget for funnel enrichment
+        const funnelStart = Date.now();
+
+        for (const projId of pendingEnrich) {
+          if (Date.now() - funnelStart > funnelTimeBudget) {
+            console.log(`[SM Sync] Funnel enrichment time budget hit after ${enriched} projects`);
+            break;
+          }
           try {
             const fUrl = `${baseUrl}/projects/${projId}/funnels`;
             const res = await fetch(fUrl, { headers: smHeaders });
@@ -612,11 +636,22 @@ Deno.serve(async (req) => {
             }
 
             const funnelData = await res.json();
-            // Could be array or single object
             const funnels = Array.isArray(funnelData) ? funnelData : funnelData.data ? (Array.isArray(funnelData.data) ? funnelData.data : [funnelData.data]) : [funnelData];
 
             if (funnels.length > 0) {
-              const f = funnels[0]; // primary funnel
+              // Store ALL funnels for the project, finding the Vendedores one specifically
+              let vendedoresFunnel: any = null;
+              let primaryFunnel: any = funnels[0];
+
+              for (const f of funnels) {
+                const fName = f.funnelName || f.funnel_name || f.name || "";
+                if (fName === "Vendedores") {
+                  vendedoresFunnel = f;
+                }
+              }
+
+              // Prefer Vendedores funnel for consultant identification
+              const f = vendedoresFunnel || primaryFunnel;
               const funnelId = f.funnelId || f.funnel_id || f.id || null;
               const funnelName = f.funnelName || f.funnel_name || f.name || null;
               const stageId = f.stageId || f.stage_id || f.currentStageId || null;
@@ -637,12 +672,12 @@ Deno.serve(async (req) => {
               }
             }
 
-            await delay(400);
+            await delay(250);
           } catch (e) {
             // Non-fatal, just skip
           }
         }
-        console.log(`[SM Sync] Enriched ${enriched}/${projsToEnrich.length} projects with funnel data`);
+        console.log(`[SM Sync] Enriched ${enriched}/${pendingEnrich.length} pending projects with funnel data`);
       } catch (e) {
         console.error("[SM Sync] Projects error:", e);
         const msg = (e as Error).message;

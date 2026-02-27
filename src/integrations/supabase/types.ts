@@ -16873,6 +16873,64 @@ export type Database = {
           },
         ]
       }
+      sm_analytics_view: {
+        Row: {
+          acceptance_date: string | null
+          client_city: string | null
+          client_company: string | null
+          client_document: string | null
+          client_email: string | null
+          client_name: string | null
+          client_phone: string | null
+          client_state: string | null
+          consultor_sm: string | null
+          economia_mensal: number | null
+          economia_mensal_percent: number | null
+          energy_consumption: number | null
+          funnel_name: string | null
+          funnel_stage: string | null
+          geracao_anual: number | null
+          has_proposal: boolean | null
+          installation_type: string | null
+          inverter_model: string | null
+          inverter_quantity: number | null
+          is_client: boolean | null
+          lifecycle_stage: string | null
+          link_pdf: string | null
+          panel_model: string | null
+          panel_quantity: number | null
+          payback: string | null
+          project_city: string | null
+          project_created_at: string | null
+          project_name: string | null
+          project_potencia_kwp: number | null
+          project_state: string | null
+          project_status: string | null
+          project_valor: number | null
+          proposal_created_at: string | null
+          proposal_potencia_kwp: number | null
+          proposal_preco_total: number | null
+          proposal_status: string | null
+          proposal_title: string | null
+          proposal_valor_total: number | null
+          rejection_date: string | null
+          responsible_name: string | null
+          sm_client_id: number | null
+          sm_project_id: number | null
+          sm_proposal_id: number | null
+          tenant_id: string | null
+          total_proposals: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_market_projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       acquire_conversation_lock: {
