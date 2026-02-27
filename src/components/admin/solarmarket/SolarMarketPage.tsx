@@ -15,11 +15,13 @@ import {
   useUpdateSmClient,
   useDeleteSmClient,
   type SmClient,
+  type SmProject,
   type SmProposal,
 } from "@/hooks/useSolarMarket";
 import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
+import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,6 +30,7 @@ export default function SolarMarketPage() {
   const [tab, setTab] = useState("clientes");
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<SmClient | null>(null);
+  const [selectedProject, setSelectedProject] = useState<SmProject | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<SmProposal | null>(null);
   const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterProjectId, setFilterProjectId] = useState<number | null>(null);
@@ -267,7 +270,7 @@ export default function SolarMarketPage() {
                       const createdAt = (p as any).sm_created_at || (p as any).raw_payload?.createdAt;
 
                       return (
-                        <tr key={p.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                        <tr key={p.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setSelectedProject(p)}>
                           <td className="p-3 font-medium text-foreground whitespace-nowrap">{p.name || "—"}</td>
                           <td className="p-3 text-muted-foreground whitespace-nowrap text-xs">{clientName}</td>
                           <td className="p-3 text-muted-foreground whitespace-nowrap">
@@ -438,6 +441,12 @@ export default function SolarMarketPage() {
           await deleteClient.mutateAsync(id);
           setSelectedClient(null);
         }}
+      />
+
+      <SmProjectDetailDialog
+        project={selectedProject}
+        open={!!selectedProject}
+        onOpenChange={(v) => { if (!v) setSelectedProject(null); }}
       />
 
       <SmProposalDetailDialog
