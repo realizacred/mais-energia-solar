@@ -20,11 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { SectionCard } from "@/components/ui-kit/SectionCard";
-import { FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { Pencil, Trash2, Save, X, User, Phone, Mail, MapPin, Building2, Calendar, CreditCard } from "lucide-react";
+import { Pencil, Trash2, Save, X } from "lucide-react";
 import type { SmClient } from "@/hooks/useSolarMarket";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,15 +34,11 @@ interface Props {
   onDelete: (id: string) => Promise<void>;
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string | null | undefined }) {
-  if (!value) return null;
+function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="flex items-start gap-2 text-sm">
-      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-      <div>
-        <span className="text-muted-foreground">{label}: </span>
-        <span className="font-medium">{value}</span>
-      </div>
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className="text-sm font-medium text-foreground min-h-[20px]">{value || "—"}</p>
     </div>
   );
 }
@@ -55,7 +48,6 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
   const [form, setForm] = useState<Partial<SmClient>>({});
 
   const startEdit = () => {
@@ -77,10 +69,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
     setEditing(true);
   };
 
-  const cancelEdit = () => {
-    setEditing(false);
-    setForm({});
-  };
+  const cancelEdit = () => { setEditing(false); setForm({}); };
 
   const handleSave = async () => {
     if (!client) return;
@@ -106,10 +95,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
   };
 
   const handleOpenChange = (v: boolean) => {
-    if (!v) {
-      setEditing(false);
-      setForm({});
-    }
+    if (!v) { setEditing(false); setForm({}); }
     onOpenChange(v);
   };
 
@@ -119,162 +105,162 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
     setForm((prev) => ({ ...prev, [key]: val }));
 
   const endereco = [client.address, client.number, client.complement, client.neighborhood]
-    .filter(Boolean)
-    .join(", ");
+    .filter(Boolean).join(", ");
   const cidadeEstado = [client.city, client.state].filter(Boolean).join("/");
 
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="p-6 pb-0">
+        <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
+              <DialogTitle className="text-base">
                 {editing ? "Editar Cliente SM" : client.name || "Cliente SM"}
               </DialogTitle>
-              <Badge variant="outline" className="text-xs font-mono">
-                ID SM: {client.sm_client_id}
+              <Badge variant="outline" className="text-[10px] font-mono">
+                ID {client.sm_client_id}
               </Badge>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-              <span>Sync: {new Date(client.synced_at).toLocaleDateString("pt-BR")}</span>
-              {client.sm_created_at && (
-                <span>Criado SM: {format(new Date(client.sm_created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
-              )}
             </div>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6 pb-4">
-            <div className="space-y-4 pt-4">
-              {editing ? (
-                /* ── Edit Mode ── */
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Nome</Label>
-                    <Input value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} />
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {editing ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nome *</Label>
+                  <Input value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} placeholder="Nome do cliente" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Telefone *</Label>
+                    <Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} placeholder="(00) 00000-0000" />
                   </div>
-                  <FormGrid>
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Empresa</Label>
-                      <Input value={form.company ?? ""} onChange={(e) => set("company", e.target.value)} />
-                    </div>
-                  </FormGrid>
-                  <FormGrid>
-                    <div className="space-y-2">
-                      <Label>CPF/CNPJ</Label>
-                      <Input value={form.document ?? ""} onChange={(e) => set("document", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Telefone Principal</Label>
-                      <Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
-                    </div>
-                  </FormGrid>
-                  <FormGrid>
-                    <div className="space-y-2">
-                      <Label>Telefone Secundário</Label>
-                      <Input value={form.secondary_phone ?? ""} onChange={(e) => set("secondary_phone", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>CEP</Label>
-                      <Input value={form.zip_code ?? ""} onChange={(e) => set("zip_code", e.target.value)} />
-                    </div>
-                  </FormGrid>
-                  <FormGrid>
-                    <div className="space-y-2">
-                      <Label>Número</Label>
-                      <Input value={form.number ?? ""} onChange={(e) => set("number", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Complemento</Label>
-                      <Input value={form.complement ?? ""} onChange={(e) => set("complement", e.target.value)} />
-                    </div>
-                  </FormGrid>
-                  <FormGrid>
-                    <div className="space-y-2">
-                      <Label>Bairro</Label>
-                      <Input value={form.neighborhood ?? ""} onChange={(e) => set("neighborhood", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Cidade</Label>
-                      <Input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} />
-                    </div>
-                  </FormGrid>
-                  <div className="space-y-2 max-w-[50%]">
-                    <Label>Estado</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Tel. Secundário</Label>
+                    <Input value={form.secondary_phone ?? ""} onChange={(e) => set("secondary_phone", e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Email</Label>
+                    <Input value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} placeholder="email@exemplo.com" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">CPF/CNPJ</Label>
+                    <Input value={form.document ?? ""} onChange={(e) => set("document", e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Empresa</Label>
+                  <Input value={form.company ?? ""} onChange={(e) => set("company", e.target.value)} />
+                </div>
+
+                <hr className="border-border" />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">CEP</Label>
+                    <Input value={form.zip_code ?? ""} onChange={(e) => set("zip_code", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Número</Label>
+                    <Input value={form.number ?? ""} onChange={(e) => set("number", e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Bairro</Label>
+                    <Input value={form.neighborhood ?? ""} onChange={(e) => set("neighborhood", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Complemento</Label>
+                    <Input value={form.complement ?? ""} onChange={(e) => set("complement", e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Cidade</Label>
+                    <Input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Estado</Label>
                     <Input value={form.state ?? ""} onChange={(e) => set("state", e.target.value)} maxLength={2} />
                   </div>
                 </div>
-              ) : (
-                /* ── View Mode ── */
-                <div className="space-y-4">
-                  {/* Dados Pessoais */}
-                  <SectionCard icon={User} title="Dados do Cliente" variant="blue">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <InfoRow icon={User} label="Nome" value={client.name} />
-                      <InfoRow icon={CreditCard} label="CPF/CNPJ" value={client.document} />
-                      <InfoRow icon={Mail} label="Email" value={client.email} />
-                      <InfoRow icon={Building2} label="Empresa" value={client.company} />
-                    </div>
-                  </SectionCard>
-
-                  {/* Contato */}
-                  <SectionCard icon={Phone} title="Contato" variant="neutral">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <InfoRow icon={Phone} label="Tel. Principal" value={client.phone} />
-                      <InfoRow icon={Phone} label="Tel. Secundário" value={client.secondary_phone} />
-                    </div>
-                  </SectionCard>
-
-                  {/* Endereço */}
-                  <SectionCard icon={MapPin} title="Endereço" variant="green">
-                    <div className="space-y-2">
-                      {endereco && <InfoRow icon={MapPin} label="Endereço" value={endereco} />}
-                      {cidadeEstado && <InfoRow icon={MapPin} label="Cidade/UF" value={cidadeEstado} />}
-                      <InfoRow icon={MapPin} label="CEP" value={client.zip_code} />
-                    </div>
-                  </SectionCard>
-
-                  {/* Responsável / Representante */}
-                  <SectionCard icon={User} title="Responsável & Representante" variant="neutral">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <InfoRow icon={User} label="Responsável" value={client.responsible?.name} />
-                      <InfoRow icon={Mail} label="Email Resp." value={client.responsible?.email} />
-                      <InfoRow icon={User} label="Representante" value={client.representative?.name} />
-                      <InfoRow icon={Mail} label="Email Repr." value={client.representative?.email} />
-                    </div>
-                  </SectionCard>
-
-                  {/* Datas */}
-                  <SectionCard icon={Calendar} title="Datas" variant="neutral">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <InfoRow
-                        icon={Calendar}
-                        label="Criado no SM"
-                        value={client.sm_created_at ? format(new Date(client.sm_created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : null}
-                      />
-                      <InfoRow
-                        icon={Calendar}
-                        label="Última Sincronização"
-                        value={format(new Date(client.synced_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                      />
-                    </div>
-                  </SectionCard>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {/* Dados do Cliente */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados do Cliente</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Nome" value={client.name} />
+                    <Field label="CPF/CNPJ" value={client.document} />
+                    <Field label="Email" value={client.email} />
+                    <Field label="Empresa" value={client.company} />
+                  </div>
                 </div>
-              )}
-            </div>
-          </ScrollArea>
 
-          <DialogFooter className="gap-2 p-6 pt-2 border-t">
+                <hr className="border-border" />
+
+                {/* Contato */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contato</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Tel. Principal" value={client.phone} />
+                    <Field label="Tel. Secundário" value={client.secondary_phone} />
+                  </div>
+                </div>
+
+                <hr className="border-border" />
+
+                {/* Endereço */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Endereço</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Endereço" value={endereco || null} />
+                    <Field label="Cidade/UF" value={cidadeEstado || null} />
+                    <Field label="CEP" value={client.zip_code} />
+                  </div>
+                </div>
+
+                <hr className="border-border" />
+
+                {/* Responsável */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Responsável & Representante</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Responsável" value={client.responsible?.name} />
+                    <Field label="Email Resp." value={client.responsible?.email} />
+                    <Field label="Representante" value={client.representative?.name} />
+                    <Field label="Email Repr." value={client.representative?.email} />
+                  </div>
+                </div>
+
+                <hr className="border-border" />
+
+                {/* Datas */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Datas</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field
+                      label="Criado no SM"
+                      value={client.sm_created_at ? format(new Date(client.sm_created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : null}
+                    />
+                    <Field
+                      label="Última Sincronização"
+                      value={format(new Date(client.synced_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 px-6 py-4 border-t">
             {editing ? (
               <>
-                <Button variant="outline" onClick={cancelEdit} disabled={saving}>
-                  <X className="h-4 w-4 mr-1" /> Cancelar
-                </Button>
+                <Button variant="outline" onClick={cancelEdit} disabled={saving}>Cancelar</Button>
                 <Button onClick={handleSave} disabled={saving}>
                   {saving ? <Spinner size="sm" className="mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                   Salvar
@@ -282,11 +268,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
               </>
             ) : (
               <>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setConfirmDelete(true)}
-                >
+                <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(true)}>
                   <Trash2 className="h-4 w-4 mr-1" /> Excluir
                 </Button>
                 <Button variant="outline" onClick={startEdit}>
@@ -298,7 +280,6 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -309,11 +290,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleting && <Spinner size="sm" className="mr-1" />}
               Excluir
             </AlertDialogAction>

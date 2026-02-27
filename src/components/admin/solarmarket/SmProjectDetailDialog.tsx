@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import type { SmProject } from "@/hooks/useSolarMarket";
 
@@ -10,17 +10,24 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+function Field({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className="text-sm font-medium text-foreground min-h-[20px]">{value || "—"}</p>
+    </div>
+  );
+}
+
 function renderValue(v: any): string {
   if (v == null || v === "" || v === "undefined") return "—";
   if (typeof v === "object") return JSON.stringify(v);
   return String(v);
 }
 
-/** Flatten a nested object into key-value pairs with dot notation */
 function flattenObject(obj: any, prefix = ""): Array<{ key: string; value: any }> {
   const entries: Array<{ key: string; value: any }> = [];
   if (!obj || typeof obj !== "object") return entries;
-
   for (const [k, v] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}.${k}` : k;
     if (v && typeof v === "object" && !Array.isArray(v)) {
@@ -32,11 +39,9 @@ function flattenObject(obj: any, prefix = ""): Array<{ key: string; value: any }
   return entries;
 }
 
-/** Group fields by top-level key */
 function groupBySection(raw: any): Record<string, Array<{ key: string; value: any }>> {
   const groups: Record<string, Array<{ key: string; value: any }>> = {};
   if (!raw || typeof raw !== "object") return groups;
-
   for (const [topKey, topVal] of Object.entries(raw)) {
     if (topVal && typeof topVal === "object" && !Array.isArray(topVal)) {
       const section = topKey.charAt(0).toUpperCase() + topKey.slice(1);
@@ -62,74 +67,56 @@ export function SmProjectDetailDialog({ project, open, onOpenChange }: Props) {
     return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
   });
 
-  // DB columns (non-raw)
-  const dbFields: Array<{ key: string; value: any }> = [
-    { key: "Nome", value: project.name },
-    { key: "Status", value: project.status },
-    { key: "Potência (kWp)", value: project.potencia_kwp },
-    { key: "Valor", value: project.valor },
-    { key: "Cidade", value: project.city },
-    { key: "Estado", value: project.state },
-    { key: "Tipo Instalação", value: project.installation_type },
-    { key: "Consumo Energético", value: project.energy_consumption },
-    { key: "Funil", value: (project as any).sm_funnel_name },
-    { key: "Etapa", value: (project as any).sm_stage_name },
-    { key: "Criado em", value: project.sm_created_at ? new Date(project.sm_created_at).toLocaleString("pt-BR") : null },
-  ].filter(f => f.value != null && f.value !== "");
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0 flex flex-col">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            Projeto: {project.name || `#${project.sm_project_id}`}
-            <Badge variant="outline" className="text-xs font-mono ml-2">ID {project.sm_project_id}</Badge>
-          </DialogTitle>
+      <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-base">
+              {project.name || `Projeto #${project.sm_project_id}`}
+            </DialogTitle>
+            <Badge variant="outline" className="text-[10px] font-mono">ID {project.sm_project_id}</Badge>
+          </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 pb-6">
-          {/* DB columns summary */}
-          {dbFields.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-foreground mb-2">Resumo</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                {dbFields.map(f => (
-                  <div key={f.key} className="flex justify-between py-1 border-b border-border/40">
-                    <span className="text-muted-foreground mr-2">{f.key}</span>
-                    <span className="text-foreground text-right truncate max-w-[200px]">{renderValue(f.value)}</span>
-                  </div>
-                ))}
-              </div>
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {/* Resumo */}
+          <div className="space-y-3 mb-5">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Nome" value={project.name} />
+              <Field label="Status" value={project.status} />
+              <Field label="Potência (kWp)" value={project.potencia_kwp?.toString()} />
+              <Field label="Valor" value={project.valor ? `R$ ${Number(project.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : null} />
+              <Field label="Cidade" value={project.city} />
+              <Field label="Estado" value={project.state} />
+              <Field label="Tipo Instalação" value={project.installation_type} />
+              <Field label="Consumo Energético" value={project.energy_consumption?.toString()} />
+              <Field label="Funil" value={(project as any).sm_funnel_name} />
+              <Field label="Etapa" value={(project as any).sm_stage_name} />
+              <Field label="Criado em" value={project.sm_created_at ? new Date(project.sm_created_at).toLocaleDateString("pt-BR") : null} />
             </div>
-          )}
+          </div>
 
           {/* Raw payload sections */}
           {sortedSections.length > 0 && (
-            <Accordion type="multiple" defaultValue={sortedSections.slice(0, 3)} className="w-full">
+            <Accordion type="multiple" defaultValue={sortedSections.slice(0, 2)} className="w-full">
               {sortedSections.map((section) => {
                 const fields = grouped[section];
                 return (
                   <AccordionItem key={section} value={section}>
-                    <AccordionTrigger className="text-sm font-semibold py-2">
+                    <AccordionTrigger className="text-xs font-semibold py-2">
                       {section} <Badge variant="secondary" className="ml-2 text-[10px]">{fields.length}</Badge>
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="grid grid-cols-1 gap-0 text-xs">
                         {fields.map((f, i) => {
                           const display = renderValue(f.value);
-                          if (display.length > 500) return null; // skip huge blobs
+                          if (display.length > 500) return null;
                           return (
-                            <div
-                              key={`${f.key}-${i}`}
-                              className="flex justify-between items-start py-1.5 px-1 border-b border-border/30 hover:bg-muted/20"
-                            >
-                              <span className="text-muted-foreground font-mono truncate mr-3 min-w-0 flex-shrink-0">{f.key}</span>
-                              <span
-                                className="text-foreground font-medium text-right truncate max-w-[250px]"
-                                title={display}
-                              >
-                                {display}
-                              </span>
+                            <div key={`${f.key}-${i}`} className="flex justify-between items-start py-1.5 px-1 border-b border-border/30">
+                              <span className="text-muted-foreground font-mono truncate mr-3">{f.key}</span>
+                              <span className="text-foreground text-right truncate max-w-[200px]" title={display}>{display}</span>
                             </div>
                           );
                         })}
@@ -146,7 +133,7 @@ export function SmProjectDetailDialog({ project, open, onOpenChange }: Props) {
               Nenhum dado encontrado no payload deste projeto.
             </p>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

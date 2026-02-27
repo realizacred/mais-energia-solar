@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, AlertTriangle, UserX } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, AlertTriangle, UserX, UserMinus } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -333,6 +333,17 @@ export default function SolarMarketPage() {
     return clients.filter(c => !clientIdsWithProposals.has(c.sm_client_id)).length;
   }, [clients, proposals]);
 
+  // Compute clients without projects count
+  const clientsWithoutProjectsCount = useMemo(() => {
+    const clientIdsWithProjects = new Set(projects.map(p => p.sm_client_id).filter(Boolean));
+    return clients.filter(c => !clientIdsWithProjects.has(c.sm_client_id)).length;
+  }, [clients, projects]);
+
+  const clientsWithoutProjects = useMemo(() => {
+    const clientIdsWithProjects = new Set(projects.map(p => p.sm_client_id).filter(Boolean));
+    return clients.filter(c => !clientIdsWithProjects.has(c.sm_client_id));
+  }, [clients, projects]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const filteredClients = q ? clients.filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q)) : clients;
@@ -374,11 +385,12 @@ export default function SolarMarketPage() {
       <SyncProgressBar progress={progress} />
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <StatCard icon={Users} label="Clientes" value={clients.length} color="primary" />
         <StatCard icon={FolderKanban} label="Projetos" value={projects.length} color="info" />
         <StatCard icon={FileText} label="Propostas" value={proposals.length} color="success" />
-        <StatCard icon={UserX} label="Sem Propostas" value={clientsWithoutProposalsCount} color="warning" />
+        <StatCard icon={UserMinus} label="Sem Projeto" value={clientsWithoutProjectsCount} color="destructive" />
+        <StatCard icon={UserX} label="Sem Proposta" value={clientsWithoutProposalsCount} color="warning" />
         <StatCard icon={Clock} label="Syncs" value={syncLogs.length} color="secondary" />
       </div>
 
@@ -399,6 +411,10 @@ export default function SolarMarketPage() {
               <FileText className="h-3 w-3 mr-1" />
               Propostas ({filtered.proposals.length})
               {filterProjectId && <span className="ml-1 text-[10px] text-primary">●</span>}
+            </TabsTrigger>
+            <TabsTrigger value="sem-projeto" className="text-xs px-2.5 h-7">
+              <UserMinus className="h-3 w-3 mr-1" />
+              Sem Projeto ({clientsWithoutProjectsCount})
             </TabsTrigger>
             <TabsTrigger value="sem-proposta" className="text-xs px-2.5 h-7">
               <UserX className="h-3 w-3 mr-1" />
@@ -464,6 +480,16 @@ export default function SolarMarketPage() {
               <EmptyState icon={FileText} title="Nenhuma proposta" description="Sincronize para importar propostas." />
             ) : (
               <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} />
+            )}
+        </TabsContent>
+
+        {/* ─── Sem Projeto Tab ─────────────────────────────── */}
+        <TabsContent value="sem-projeto" className="mt-3">
+          {loadingC || loadingP ? <InlineLoader context="data_load" /> :
+            clientsWithoutProjectsCount === 0 ? (
+              <EmptyState icon={CheckCircle} title="Todos os clientes têm projetos" description="Nenhum cliente sem projeto encontrado." />
+            ) : (
+              <ClientsTable clients={clientsWithoutProjects} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} />
             )}
         </TabsContent>
 
