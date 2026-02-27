@@ -15,10 +15,12 @@ import {
   useUpdateSmClient,
   useDeleteSmClient,
   type SmClient,
+  type SmProposal,
 } from "@/hooks/useSolarMarket";
 import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
+import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -26,6 +28,7 @@ export default function SolarMarketPage() {
   const [tab, setTab] = useState("clientes");
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<SmClient | null>(null);
+  const [selectedProposal, setSelectedProposal] = useState<SmProposal | null>(null);
   const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterProjectId, setFilterProjectId] = useState<number | null>(null);
 
@@ -339,7 +342,7 @@ export default function SolarMarketPage() {
                   </thead>
                   <tbody>
                     {filtered.proposals.map(pr => (
-                      <tr key={pr.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                      <tr key={pr.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setSelectedProposal(pr)}>
                         <td className="p-3 font-medium text-foreground whitespace-nowrap">{pr.titulo || "—"}</td>
                         <td className="p-3 text-right text-foreground whitespace-nowrap">
                           {pr.potencia_kwp ? `${Number(pr.potencia_kwp).toFixed(2)} kWp` : "—"}
@@ -435,6 +438,12 @@ export default function SolarMarketPage() {
           await deleteClient.mutateAsync(id);
           setSelectedClient(null);
         }}
+      />
+
+      <SmProposalDetailDialog
+        proposal={selectedProposal}
+        open={!!selectedProposal}
+        onOpenChange={(v) => { if (!v) setSelectedProposal(null); }}
       />
     </div>
   );
