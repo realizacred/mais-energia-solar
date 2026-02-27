@@ -155,12 +155,12 @@ function extractProposalFields(pr: any) {
   };
 }
 
-/** Deduplicate rows by a key field (keep last occurrence) */
-function deduplicateRows(rows: any[], keyField: string): any[] {
-  const map = new Map<string | number, any>();
+/** Deduplicate rows by conflict key fields (keep last occurrence) */
+function deduplicateRows(rows: any[], conflictCols: string[]): any[] {
+  const map = new Map<string, any>();
   for (const row of rows) {
-    const key = row[keyField];
-    if (key != null) map.set(key, row);
+    const key = conflictCols.map(c => String(row[c] ?? "")).join("||");
+    map.set(key, row);
   }
   return Array.from(map.values());
 }
@@ -175,8 +175,7 @@ async function batchUpsert(
 ): Promise<{ upserted: number; errors: string[] }> {
   // Deduplicate to avoid "ON CONFLICT DO UPDATE cannot affect row a second time"
   const conflictCols = onConflict.split(",").map(c => c.trim());
-  const keyField = conflictCols.length > 1 ? conflictCols[1] : conflictCols[0];
-  const uniqueRows = deduplicateRows(rows, keyField);
+  const uniqueRows = deduplicateRows(rows, conflictCols);
   if (uniqueRows.length < rows.length) {
     console.log(`[SM Sync] Deduplicated ${table}: ${rows.length} → ${uniqueRows.length} rows`);
   }
@@ -768,16 +767,40 @@ Deno.serve(async (req) => {
         totalFetched += proposals.length;
         console.log(`[SM Sync] Proposals fetched (bulk): ${proposals.length}`);
 
+        // Debug: log first 3 proposals' keys and id fields to understand the structure
         if (proposals.length > 0) {
-          const rows = proposals.map((pr: any) => ({
-            tenant_id: tenantId,
-            sm_proposal_id: pr.id,
-            ...extractProposalFields(pr),
-            raw_payload: pr,
-            synced_at: new Date().toISOString(),
-          }));
+          for (let di = 0; di < Math.min(3, proposals.length); di++) {
+            const pr = proposals[di];
+            console.log(`[SM Sync] Proposal sample ${di}: id=${pr.id}, proposalId=${pr.proposalId}, proposal_id=${pr.proposal_id}, projectId=${pr.projectId || pr.project?.id}, title=${pr.title || pr.titulo || pr.name}, keys=${Object.keys(pr).slice(0, 20).join(",")}`);
+          }
+          // Check for duplicate IDs
+          const idSet = new Set(proposals.map((p: any) => p.id));
+          console.log(`[SM Sync] Unique proposal IDs: ${idSet.size} out of ${proposals.length}. Sample IDs: ${[...idSet].slice(0, 10).join(",")}`);
+        }
 
-          const result = await batchUpsert(supabase, "solar_market_proposals", rows, "tenant_id,sm_proposal_id");
+        if (proposals.length > 0) {
+          const rows = proposals.map((pr: any) => {
+            const extracted = extractProposalFields(pr);
+            // Ensure sm_project_id is always set (critical for composite unique key)
+            const projectId = extracted.sm_project_id || pr.project?.id || pr.projectId || null;
+            return {
+              tenant_id: tenantId,
+              sm_proposal_id: pr.id,
+              ...extracted,
+              sm_project_id: projectId,
+              raw_payload: pr,
+              synced_at: new Date().toISOString(),
+            };
+          });
+
+          // Filter out rows without sm_project_id (can't upsert without it)
+          const validRows = rows.filter((r: any) => r.sm_project_id != null);
+          const skipped = rows.length - validRows.length;
+          if (skipped > 0) {
+            console.log(`[SM Sync] Skipped ${skipped} proposals without project ID`);
+          }
+
+          const result = await batchUpsert(supabase, "solar_market_proposals", validRows, "tenant_id,sm_project_id,sm_proposal_id");
           totalUpserted += result.upserted;
           totalErrors += result.errors.length;
           errors.push(...result.errors);
@@ -841,7 +864,7 @@ Deno.serve(async (req) => {
         }
 
         if (allProposalRows.length > 0) {
-          const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_proposal_id");
+          const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
           totalUpserted += result.upserted;
           totalErrors += result.errors.length;
           errors.push(...result.errors);
