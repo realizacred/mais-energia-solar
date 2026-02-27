@@ -59,12 +59,17 @@ export default function RlsTestPage() {
 
       // Step 4: INSERT
       update(3, { status: "running" });
+      const payload = { tenant_id: tenantId, name: `Kit RLS Test ${Date.now()}`, status: "active", pricing_mode: "calculated" };
+      console.log("[RLS-TEST] INSERT payload:", JSON.stringify(payload));
       const { data: inserted, error: e3 } = await supabase
         .from("solar_kit_catalog")
-        .insert({ tenant_id: tenantId, name: `Kit RLS Test ${Date.now()}`, status: "active" as const, pricing_mode: "calculated" })
+        .insert(payload)
         .select("id, tenant_id, name")
         .single();
-      if (e3) throw new Error(`INSERT falhou: ${e3.message} (code: ${e3.code})`);
+      if (e3) {
+        console.error("[RLS-TEST] INSERT error:", JSON.stringify(e3));
+        throw new Error(`INSERT falhou: ${e3.message} (code: ${e3.code}, details: ${e3.details}, hint: ${e3.hint})`);
+      }
       kitId = inserted.id;
       update(3, { status: "pass", result: `Criado: ${inserted.name} (id=${kitId})` });
 
