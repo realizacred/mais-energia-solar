@@ -548,6 +548,60 @@ Deno.serve(async (req) => {
         totalUpserted += result.upserted;
         totalErrors += result.errors.length;
         errors.push(...result.errors);
+
+        // ── Enrich projects with per-project funnel data ──
+        // GET /projects/{id}/funnels returns which funnel/stage each project belongs to
+        const projsToEnrich = projectIds.slice(0, 80); // limit to avoid timeout
+        console.log(`[SM Sync] Fetching per-project funnels for ${projsToEnrich.length} projects...`);
+        let enriched = 0;
+
+        for (const projId of projsToEnrich) {
+          try {
+            const fUrl = `${baseUrl}/projects/${projId}/funnels`;
+            const res = await fetch(fUrl, { headers: smHeaders });
+            const ct = res.headers.get("content-type") || "";
+
+            if (!res.ok || !ct.includes("application/json")) {
+              if (res.status === 429) {
+                const ra = parseInt(res.headers.get("retry-after") || "10", 10);
+                await delay(ra * 1000);
+              }
+              await res.text();
+              continue;
+            }
+
+            const funnelData = await res.json();
+            // Could be array or single object
+            const funnels = Array.isArray(funnelData) ? funnelData : funnelData.data ? (Array.isArray(funnelData.data) ? funnelData.data : [funnelData.data]) : [funnelData];
+
+            if (funnels.length > 0) {
+              const f = funnels[0]; // primary funnel
+              const funnelId = f.funnelId || f.funnel_id || f.id || null;
+              const funnelName = f.funnelName || f.funnel_name || f.name || null;
+              const stageId = f.stageId || f.stage_id || f.currentStageId || null;
+              const stageName = f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
+
+              if (funnelId || stageId) {
+                await supabase
+                  .from("solar_market_projects")
+                  .update({
+                    sm_funnel_id: funnelId,
+                    sm_stage_id: stageId,
+                    sm_funnel_name: funnelName,
+                    sm_stage_name: stageName,
+                  })
+                  .eq("tenant_id", tenantId)
+                  .eq("sm_project_id", projId);
+                enriched++;
+              }
+            }
+
+            await delay(400);
+          } catch (e) {
+            // Non-fatal, just skip
+          }
+        }
+        console.log(`[SM Sync] Enriched ${enriched}/${projsToEnrich.length} projects with funnel data`);
       } catch (e) {
         console.error("[SM Sync] Projects error:", e);
         const msg = (e as Error).message;
