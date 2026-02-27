@@ -107,6 +107,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [premissasTab, setPremissasTab] = useState<"fator" | "sistema">("fator");
 
   // ── Catálogo state ──
+  // SSOT: itens do catálogo são importados como KitItemRow[] e persistidos via snapshot JSONB.
+  // proposta_kits/proposta_kit_itens NÃO são populados neste fluxo (legado).
   const [catalogKits, setCatalogKits] = useState<CatalogKit[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
