@@ -352,6 +352,14 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${accessToken}`,
     };
 
+    // ─── Cleanup stale "running" logs ────────────────────
+    await supabase
+      .from("solar_market_sync_logs")
+      .update({ status: "failed", finished_at: new Date().toISOString(), total_errors: 1 })
+      .eq("tenant_id", tenantId)
+      .eq("status", "running")
+      .lt("started_at", new Date(Date.now() - 120_000).toISOString());
+
     // ─── Create sync log ───────────────────────────────────
     const { data: syncLog } = await supabase
       .from("solar_market_sync_logs")
@@ -808,7 +816,7 @@ Deno.serve(async (req) => {
       } catch (bulkErr) {
         console.warn(`[SM Sync] Bulk /proposals failed: ${(bulkErr as Error).message}, trying per-project fallback...`);
 
-        // Fallback: fetch per-project for ALL projects (no artificial limit)
+        // Fallback: fetch per-project, SKIPPING projects already synced (resume logic)
         let ids = projectIds;
         if (ids.length === 0) {
           // Fetch ALL project IDs from DB
@@ -820,7 +828,7 @@ Deno.serve(async (req) => {
               .from("solar_market_projects")
               .select("sm_project_id")
               .eq("tenant_id", tenantId)
-              .order("synced_at", { ascending: false })
+              .order("sm_project_id", { ascending: true })
               .range(offset, offset + pageSize - 1);
             const batch = (dbProjects || []).map((p: any) => p.sm_project_id);
             allDbIds.push(...batch);
@@ -830,16 +838,36 @@ Deno.serve(async (req) => {
           ids = allDbIds;
         }
 
-        console.log(`[SM Sync] Fetching proposals for ${ids.length} projects (per-project fallback)`);
+        // ── Resume logic: get projects that already have proposals ──
+        const alreadySyncedSet = new Set<number>();
+        {
+          let offset = 0;
+          const pageSize = 1000;
+          while (true) {
+            const { data: syncedRows } = await supabase
+              .from("solar_market_proposals")
+              .select("sm_project_id")
+              .eq("tenant_id", tenantId)
+              .range(offset, offset + pageSize - 1);
+            const batch = (syncedRows || []).map((r: any) => r.sm_project_id as number);
+            for (const id of batch) alreadySyncedSet.add(id);
+            if (batch.length < pageSize) break;
+            offset += pageSize;
+          }
+        }
+
+        const pendingIds = ids.filter((id: number) => !alreadySyncedSet.has(id));
+        console.log(`[SM Sync] Proposals resume: ${alreadySyncedSet.size} projects already synced, ${pendingIds.length} pending out of ${ids.length} total`);
+
         const allProposalRows: any[] = [];
         let batchCount = 0;
-        const timeBudgetMs = 45_000; // Stop after 45s to leave room for finalization
+        const timeBudgetMs = 45_000;
         const startTime = Date.now();
 
-        for (const projId of ids) {
+        for (const projId of pendingIds) {
           // Check time budget before each request
           if (Date.now() - startTime > timeBudgetMs) {
-            console.log(`[SM Sync] Time budget exhausted after ${batchCount}/${ids.length} projects (${Math.round((Date.now() - startTime) / 1000)}s)`);
+            console.log(`[SM Sync] Time budget exhausted after ${batchCount}/${pendingIds.length} pending projects (${Math.round((Date.now() - startTime) / 1000)}s)`);
             break;
           }
           try {
@@ -898,7 +926,7 @@ Deno.serve(async (req) => {
               allProposalRows.length = 0;
             }
 
-            await delay(400);
+            await delay(250);
           } catch (e) {
             totalErrors++;
             errors.push(`proposals proj ${projId}: ${(e as Error).message}`);
@@ -914,7 +942,61 @@ Deno.serve(async (req) => {
           errors.push(...result.errors);
         }
 
-        console.log(`[SM Sync] Proposals fallback complete: processed ${batchCount} projects`);
+        console.log(`[SM Sync] Proposals fallback complete: processed ${batchCount} pending projects`);
+      }
+
+      // ── Enrich proposals with sm_client_id from projects ──
+      try {
+        const { data: enrichCount, error: enrichErr } = await supabase.rpc("exec_sql", {});
+        // Use direct update join instead
+        const { error: updateErr } = await supabase
+          .from("solar_market_proposals")
+          .update({ sm_client_id: -1 }) // placeholder, we do it via raw query below
+          .eq("tenant_id", tenantId)
+          .is("sm_client_id", null)
+          .limit(0); // don't actually run this
+
+        // Enrich sm_client_id via batch: fetch projects with their client IDs
+        const projectClientMap = new Map<number, number>();
+        let offset = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data: projRows } = await supabase
+            .from("solar_market_projects")
+            .select("sm_project_id, sm_client_id")
+            .eq("tenant_id", tenantId)
+            .not("sm_client_id", "is", null)
+            .range(offset, offset + pageSize - 1);
+          for (const p of (projRows || [])) {
+            projectClientMap.set(p.sm_project_id, p.sm_client_id);
+          }
+          if ((projRows || []).length < pageSize) break;
+          offset += pageSize;
+        }
+
+        // Get proposals without sm_client_id
+        const { data: nullClientProposals } = await supabase
+          .from("solar_market_proposals")
+          .select("id, sm_project_id")
+          .eq("tenant_id", tenantId)
+          .is("sm_client_id", null);
+
+        let enriched = 0;
+        for (const prop of (nullClientProposals || [])) {
+          const clientId = projectClientMap.get(prop.sm_project_id);
+          if (clientId) {
+            await supabase
+              .from("solar_market_proposals")
+              .update({ sm_client_id: clientId })
+              .eq("id", prop.id);
+            enriched++;
+          }
+        }
+        if (enriched > 0) {
+          console.log(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
+        }
+      } catch (enrichErr) {
+        console.warn(`[SM Sync] sm_client_id enrichment error:`, enrichErr);
       }
     }
 
