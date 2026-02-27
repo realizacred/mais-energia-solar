@@ -267,7 +267,7 @@ export function useSmCustomFields() {
     queryFn: async () => {
       return fetchAllRows<SmCustomField>({
         table: "solar_market_custom_fields",
-        select: "*",
+        select: "id, tenant_id, sm_custom_field_id, key, name, field_type, options, synced_at",
         orderBy: "name",
       });
     },
@@ -280,7 +280,7 @@ export function useSmProposals(syncRunning?: boolean) {
     queryFn: async () => {
       return fetchAllRows<SmProposal>({
         table: "solar_market_proposals",
-        select: "*",
+        select: "id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, description, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, discount, installation_cost, equipment_cost, energy_generation, roof_type, structure_type, warranty, payment_conditions, valid_until, sm_created_at, sm_updated_at, synced_at, link_pdf, consumo_mensal, tarifa_distribuidora, economia_mensal, economia_mensal_percent, payback, vpl, tir, preco_total, fase, tipo_dimensionamento, dis_energia, cidade, estado, geracao_anual, inflacao_energetica, perda_eficiencia_anual, sobredimensionamento, custo_disponibilidade, generated_at, send_at, viewed_at, acceptance_date, rejection_date",
         orderBy: "synced_at",
         ascending: false,
       });
