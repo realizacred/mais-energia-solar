@@ -72,6 +72,12 @@ function extractProposalFields(pr: any) {
     const v = variables.find((v: any) => v.key === key);
     return v?.value ?? null;
   };
+  const getVarNum = (key: string): number | null => {
+    const val = getVar(key);
+    if (val == null || val === "" || val === "undefined") return null;
+    const n = Number(val);
+    return isNaN(n) ? null : n;
+  };
 
   // Extract from pricingTable by category
   const findPricing = (cat: string) => pricingTable.find((p: any) => p.category === cat);
@@ -84,14 +90,17 @@ function extractProposalFields(pr: any) {
   const valorTotal = pricingTable.reduce((sum: number, p: any) => sum + (Number(p.salesValue) || 0), 0);
 
   // Power from variables
-  const potencia = Number(getVar("potencia_sistema")) || Number(getVar("vc_potencia_sistema")) || null;
+  const potencia = getVarNum("potencia_sistema") || getVarNum("vc_potencia_sistema") || null;
 
   // Equipment cost = kit salesValue; Installation cost = instalação salesValue
   const equipmentCost = kitRow ? Number(kitRow.salesValue) || null : null;
   const installationCost = instRow ? Number(instRow.salesValue) || null : null;
 
   // Energy generation from variables
-  const energyGen = Number(getVar("geracao_mensal")) || Number(getVar("geracao_media")) || null;
+  const energyGen = getVarNum("geracao_mensal") || getVarNum("geracao_media") || null;
+
+  // Annual generation
+  const geracaoAnual = getVarNum("geracao_anual_0") || null;
 
   return {
     titulo: pr.title || pr.titulo || pr.name || null,
@@ -118,6 +127,31 @@ function extractProposalFields(pr: any) {
     valid_until: pr.validUntil || pr.valid_until || pr.expirationDate || null,
     sm_created_at: pr.createdAt || pr.created_at || pr.generatedAt || null,
     sm_updated_at: pr.updatedAt || pr.updated_at || null,
+    // New fields
+    link_pdf: pr.linkPdf || pr.link_pdf || null,
+    consumo_mensal: getVarNum("consumo_mensal"),
+    tarifa_distribuidora: getVarNum("tarifa_distribuidora"),
+    economia_mensal: getVarNum("economia_mensal"),
+    economia_mensal_percent: getVarNum("economia_mensal_p") != null ? (getVarNum("economia_mensal_p")! * 100) : null,
+    payback: getVar("payback"),
+    vpl: getVarNum("vpl"),
+    tir: getVarNum("tir"),
+    preco_total: getVarNum("preco"),
+    fase: getVar("fase"),
+    tipo_dimensionamento: getVar("tipo"),
+    dis_energia: getVar("dis_energia"),
+    cidade: getVar("cidade") || pr.project?.client?.city || null,
+    estado: getVar("estado") || pr.project?.client?.state || null,
+    geracao_anual: geracaoAnual,
+    inflacao_energetica: getVarNum("inflacao_energetica"),
+    perda_eficiencia_anual: getVarNum("perda_eficiencia_anual"),
+    sobredimensionamento: getVarNum("sobredimensionamento"),
+    custo_disponibilidade: getVarNum("custo_disponibilidade_valor"),
+    generated_at: pr.generatedAt || null,
+    send_at: pr.sendAt || null,
+    viewed_at: pr.viewedAt || null,
+    acceptance_date: pr.acceptanceDate || null,
+    rejection_date: pr.rejectionDate || null,
   };
 }
 

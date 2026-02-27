@@ -1,0 +1,27 @@
+
+-- Add important missing columns to solar_market_proposals
+ALTER TABLE solar_market_proposals
+  ADD COLUMN IF NOT EXISTS link_pdf text,
+  ADD COLUMN IF NOT EXISTS consumo_mensal numeric,
+  ADD COLUMN IF NOT EXISTS tarifa_distribuidora numeric,
+  ADD COLUMN IF NOT EXISTS economia_mensal numeric,
+  ADD COLUMN IF NOT EXISTS economia_mensal_percent numeric,
+  ADD COLUMN IF NOT EXISTS payback text,
+  ADD COLUMN IF NOT EXISTS vpl numeric,
+  ADD COLUMN IF NOT EXISTS tir numeric,
+  ADD COLUMN IF NOT EXISTS preco_total numeric,
+  ADD COLUMN IF NOT EXISTS fase text,
+  ADD COLUMN IF NOT EXISTS tipo_dimensionamento text,
+  ADD COLUMN IF NOT EXISTS dis_energia text,
+  ADD COLUMN IF NOT EXISTS cidade text,
+  ADD COLUMN IF NOT EXISTS estado text,
+  ADD COLUMN IF NOT EXISTS geracao_anual numeric,
+  ADD COLUMN IF NOT EXISTS inflacao_energetica numeric,
+  ADD COLUMN IF NOT EXISTS perda_eficiencia_anual numeric,
+  ADD COLUMN IF NOT EXISTS sobredimensionamento numeric,
+  ADD COLUMN IF NOT EXISTS custo_disponibilidade numeric,
+  ADD COLUMN IF NOT EXISTS generated_at timestamptz,
+  ADD COLUMN IF NOT EXISTS send_at timestamptz,
+  ADD COLUMN IF NOT EXISTS viewed_at timestamptz,
+  ADD COLUMN IF NOT EXISTS acceptance_date timestamptz,
+  ADD COLUMN IF NOT EXISTS rejection_date timestamptz;
