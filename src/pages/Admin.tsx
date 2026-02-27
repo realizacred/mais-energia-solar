@@ -117,6 +117,7 @@ const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
 const RolePermissionsManager = lazy(() => import("@/components/admin/RolePermissionsManager").then(m => ({ default: m.RolePermissionsManager })));
 const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
+const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 // SolarZap removed — functionality consolidated into WaInbox (Atendimento)
 const ProposalWizardPage = lazy(() =>
@@ -597,6 +598,7 @@ export default function Admin() {
                 <Route path="dev" element={<DevToolsPage />} />
                 <Route path="dev/seed" element={<DevToolsPage />} />
                 <Route path="dev/reset-seed" element={<DevToolsPage />} />
+                <Route path="dev/rls-test" element={<RlsTestPage />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
