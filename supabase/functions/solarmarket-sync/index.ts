@@ -333,6 +333,64 @@ Deno.serve(async (req) => {
     let hasSolarMarketAuthError = false;
     const errors: string[] = [];
 
+    // ─── Sync Funnels ──────────────────────────────────────
+    if (sync_type === "full" || sync_type === "funnels") {
+      try {
+        const funnels = await fetchAllPages(`${baseUrl}/funnels`, smHeaders);
+        totalFetched += funnels.length;
+        console.log(`[SM Sync] Funnels fetched: ${funnels.length}`);
+
+        const funnelRows: any[] = [];
+        const stageRows: any[] = [];
+
+        for (const f of funnels) {
+          const stages = Array.isArray(f.stages) ? f.stages : [];
+          funnelRows.push({
+            tenant_id: tenantId,
+            sm_funnel_id: f.id,
+            name: f.name || null,
+            stages: JSON.stringify(stages),
+            raw_payload: f,
+            synced_at: new Date().toISOString(),
+          });
+
+          for (let idx = 0; idx < stages.length; idx++) {
+            const s = stages[idx];
+            stageRows.push({
+              tenant_id: tenantId,
+              sm_funnel_id: f.id,
+              sm_stage_id: s.id,
+              funnel_name: f.name || null,
+              stage_name: s.name || s.title || null,
+              stage_order: s.order ?? s.position ?? idx,
+              raw_payload: s,
+              synced_at: new Date().toISOString(),
+            });
+          }
+        }
+
+        if (funnelRows.length > 0) {
+          const result = await batchUpsert(supabase, "solar_market_funnels", funnelRows, "tenant_id,sm_funnel_id");
+          totalUpserted += result.upserted;
+          totalErrors += result.errors.length;
+          errors.push(...result.errors);
+        }
+
+        if (stageRows.length > 0) {
+          const result = await batchUpsert(supabase, "solar_market_funnel_stages", stageRows, "tenant_id,sm_funnel_id,sm_stage_id");
+          totalUpserted += result.upserted;
+          totalErrors += result.errors.length;
+          errors.push(...result.errors);
+        }
+      } catch (e) {
+        console.error("[SM Sync] Funnels error:", e);
+        const msg = (e as Error).message;
+        if (msg.includes("SM API 401")) hasSolarMarketAuthError = true;
+        totalErrors++;
+        errors.push(`funnels: ${msg}`);
+      }
+    }
+
     // ─── Sync Clients ──────────────────────────────────────
     if (sync_type === "full" || sync_type === "clients") {
       try {
@@ -398,6 +456,9 @@ Deno.serve(async (req) => {
 
         const rows = projects.map((p: any) => {
           projectIds.push(p.id);
+          // Extract funnel/stage info
+          const funnel = p.funnel || p.pipeline || null;
+          const stage = p.stage || p.funnelStage || p.pipelineStage || null;
           return {
             tenant_id: tenantId,
             sm_project_id: p.id,
@@ -420,6 +481,10 @@ Deno.serve(async (req) => {
             energy_consumption: p.energyConsumption || p.energy_consumption || null,
             representative: p.representative || null,
             responsible: p.responsible || null,
+            sm_funnel_id: funnel?.id || p.funnelId || p.funnel_id || null,
+            sm_stage_id: stage?.id || p.stageId || p.stage_id || null,
+            sm_funnel_name: funnel?.name || null,
+            sm_stage_name: stage?.name || stage?.title || null,
             sm_created_at: p.createdAt || p.created_at || null,
             sm_updated_at: p.updatedAt || p.updated_at || null,
             raw_payload: p,

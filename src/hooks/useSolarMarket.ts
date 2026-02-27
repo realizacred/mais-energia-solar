@@ -82,6 +82,28 @@ export interface SmSyncLog {
   finished_at: string | null;
 }
 
+export interface SmFunnel {
+  id: string;
+  tenant_id: string;
+  sm_funnel_id: number;
+  name: string | null;
+  stages: any;
+  raw_payload: any | null;
+  synced_at: string;
+}
+
+export interface SmFunnelStage {
+  id: string;
+  tenant_id: string;
+  sm_funnel_id: number;
+  sm_stage_id: number;
+  funnel_name: string | null;
+  stage_name: string | null;
+  stage_order: number | null;
+  raw_payload: any | null;
+  synced_at: string;
+}
+
 // ─── Queries ────────────────────────────────────────────
 
 const SM_PAGE_SIZE = 1000;
@@ -138,6 +160,35 @@ export function useSmProjects() {
         orderBy: "synced_at",
         ascending: false,
       });
+    },
+  });
+}
+
+export function useSmFunnels() {
+  return useQuery<SmFunnel[]>({
+    queryKey: ["sm-funnels"],
+    queryFn: async () => {
+      return fetchAllRows<SmFunnel>({
+        table: "solar_market_funnels",
+        select: "*",
+        orderBy: "name",
+      });
+    },
+  });
+}
+
+export function useSmFunnelStages(funnelId?: number) {
+  return useQuery<SmFunnelStage[]>({
+    queryKey: ["sm-funnel-stages", funnelId],
+    queryFn: async () => {
+      let query = (supabase as any)
+        .from("solar_market_funnel_stages")
+        .select("*")
+        .order("stage_order", { ascending: true });
+      if (funnelId) query = query.eq("sm_funnel_id", funnelId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
     },
   });
 }

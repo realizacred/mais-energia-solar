@@ -12793,6 +12793,72 @@ export type Database = {
           },
         ]
       }
+      solar_market_funnel_stages: {
+        Row: {
+          funnel_name: string | null
+          id: string
+          raw_payload: Json | null
+          sm_funnel_id: number
+          sm_stage_id: number
+          stage_name: string | null
+          stage_order: number | null
+          synced_at: string
+          tenant_id: string
+        }
+        Insert: {
+          funnel_name?: string | null
+          id?: string
+          raw_payload?: Json | null
+          sm_funnel_id: number
+          sm_stage_id: number
+          stage_name?: string | null
+          stage_order?: number | null
+          synced_at?: string
+          tenant_id: string
+        }
+        Update: {
+          funnel_name?: string | null
+          id?: string
+          raw_payload?: Json | null
+          sm_funnel_id?: number
+          sm_stage_id?: number
+          stage_name?: string | null
+          stage_order?: number | null
+          synced_at?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      solar_market_funnels: {
+        Row: {
+          id: string
+          name: string | null
+          raw_payload: Json | null
+          sm_funnel_id: number
+          stages: Json | null
+          synced_at: string
+          tenant_id: string
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          raw_payload?: Json | null
+          sm_funnel_id: number
+          stages?: Json | null
+          synced_at?: string
+          tenant_id: string
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          raw_payload?: Json | null
+          sm_funnel_id?: number
+          stages?: Json | null
+          synced_at?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       solar_market_projects: {
         Row: {
           address: string | null
@@ -12813,7 +12879,11 @@ export type Database = {
           responsible: Json | null
           sm_client_id: number | null
           sm_created_at: string | null
+          sm_funnel_id: number | null
+          sm_funnel_name: string | null
           sm_project_id: number
+          sm_stage_id: number | null
+          sm_stage_name: string | null
           sm_updated_at: string | null
           state: string | null
           status: string | null
@@ -12842,7 +12912,11 @@ export type Database = {
           responsible?: Json | null
           sm_client_id?: number | null
           sm_created_at?: string | null
+          sm_funnel_id?: number | null
+          sm_funnel_name?: string | null
           sm_project_id: number
+          sm_stage_id?: number | null
+          sm_stage_name?: string | null
           sm_updated_at?: string | null
           state?: string | null
           status?: string | null
@@ -12871,7 +12945,11 @@ export type Database = {
           responsible?: Json | null
           sm_client_id?: number | null
           sm_created_at?: string | null
+          sm_funnel_id?: number | null
+          sm_funnel_name?: string | null
           sm_project_id?: number
+          sm_stage_id?: number | null
+          sm_stage_name?: string | null
           sm_updated_at?: string | null
           state?: string | null
           status?: string | null
