@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Search, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Search, Clock, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   useSmClients,
   useSmProjects,
@@ -25,6 +26,27 @@ export default function SolarMarketPage() {
   const [tab, setTab] = useState("clientes");
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<SmClient | null>(null);
+  const [filterClientId, setFilterClientId] = useState<number | null>(null);
+  const [filterProjectId, setFilterProjectId] = useState<number | null>(null);
+
+  const navigateToProjects = (smClientId: number) => {
+    setFilterClientId(smClientId);
+    setFilterProjectId(null);
+    setSearch("");
+    setTab("projetos");
+  };
+
+  const navigateToProposals = (smProjectId: number) => {
+    setFilterProjectId(smProjectId);
+    setFilterClientId(null);
+    setSearch("");
+    setTab("propostas");
+  };
+
+  const clearFilters = () => {
+    setFilterClientId(null);
+    setFilterProjectId(null);
+  };
 
   const { data: clients = [], isLoading: loadingC } = useSmClients();
   const { data: projects = [], isLoading: loadingP } = useSmProjects();
@@ -39,12 +61,22 @@ export default function SolarMarketPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
+    let filteredClients = q ? clients.filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q)) : clients;
+    
+    let filteredProjects = projects;
+    if (filterClientId) filteredProjects = filteredProjects.filter(p => p.sm_client_id === filterClientId);
+    if (q) filteredProjects = filteredProjects.filter(p => p.name?.toLowerCase().includes(q));
+    
+    let filteredProposals = proposals;
+    if (filterProjectId) filteredProposals = filteredProposals.filter(p => p.sm_project_id === filterProjectId);
+    if (q) filteredProposals = filteredProposals.filter(p => p.titulo?.toLowerCase().includes(q));
+    
     return {
-      clients: q ? clients.filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q)) : clients,
-      projects: q ? projects.filter(p => p.name?.toLowerCase().includes(q)) : projects,
-      proposals: q ? proposals.filter(p => p.titulo?.toLowerCase().includes(q)) : proposals,
+      clients: filteredClients,
+      projects: filteredProjects,
+      proposals: filteredProposals,
     };
-  }, [clients, projects, proposals, search]);
+  }, [clients, projects, proposals, search, filterClientId, filterProjectId]);
 
   return (
     <div className="space-y-6">
@@ -87,15 +119,26 @@ export default function SolarMarketPage() {
         />
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={(v) => { setTab(v); clearFilters(); }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <TabsList>
             <TabsTrigger value="clientes">Clientes ({clients.length})</TabsTrigger>
-            <TabsTrigger value="projetos">Projetos ({projects.length})</TabsTrigger>
-            <TabsTrigger value="propostas">Propostas ({proposals.length})</TabsTrigger>
+            <TabsTrigger value="projetos">
+              Projetos ({filtered.projects.length})
+              {filterClientId && <span className="ml-1 text-[10px] text-primary">●</span>}
+            </TabsTrigger>
+            <TabsTrigger value="propostas">
+              Propostas ({filtered.proposals.length})
+              {filterProjectId && <span className="ml-1 text-[10px] text-primary">●</span>}
+            </TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-2">
+            {(filterClientId || filterProjectId) && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs h-7">
+                Limpar filtro
+              </Button>
+            )}
             <SearchInput value={search} onChange={setSearch} placeholder="Buscar..." className="w-48" />
           </div>
         </div>
@@ -133,6 +176,7 @@ export default function SolarMarketPage() {
                       <th className="text-left p-3 font-medium text-muted-foreground">Empresa</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Responsável</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">ID SM</th>
+                      <th className="w-10 p-3"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -151,6 +195,21 @@ export default function SolarMarketPage() {
                         </td>
                         <td className="p-3 text-right">
                           <Badge variant="outline" className="text-xs font-mono">{c.sm_client_id}</Badge>
+                        </td>
+                        <td className="p-3 text-center">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => { e.stopPropagation(); navigateToProjects(c.sm_client_id); }}
+                              >
+                                <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Ver projetos deste cliente</TooltipContent>
+                          </Tooltip>
                         </td>
                       </tr>
                     ))}
@@ -191,6 +250,7 @@ export default function SolarMarketPage() {
                       <th className="text-left p-3 font-medium text-muted-foreground">Responsável</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Criado em</th>
                       <th className="text-right p-3 font-medium text-muted-foreground">ID SM</th>
+                      <th className="w-10 p-3"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -216,6 +276,21 @@ export default function SolarMarketPage() {
                           </td>
                           <td className="p-3 text-right">
                             <Badge variant="outline" className="text-xs font-mono">{p.sm_project_id}</Badge>
+                          </td>
+                          <td className="p-3 text-center">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => navigateToProposals(p.sm_project_id)}
+                                >
+                                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Ver propostas deste projeto</TooltipContent>
+                            </Tooltip>
                           </td>
                         </tr>
                       );

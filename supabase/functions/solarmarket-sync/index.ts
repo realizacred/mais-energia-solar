@@ -413,6 +413,7 @@ Deno.serve(async (req) => {
         console.warn(`[SM Sync] Bulk /proposals failed: ${(bulkErr as Error).message}, trying per-project fallback (limited)...`);
 
         // Fallback: fetch per-project but limit to avoid timeout
+        // Limit to 50 most recent projects to avoid compute resource exhaustion
         let ids = projectIds;
         if (ids.length === 0) {
           const { data: dbProjects } = await supabase
@@ -420,10 +421,10 @@ Deno.serve(async (req) => {
             .select("sm_project_id")
             .eq("tenant_id", tenantId)
             .order("synced_at", { ascending: false })
-            .limit(200);
+            .limit(50);
           ids = (dbProjects || []).map((p: any) => p.sm_project_id);
         } else {
-          ids = ids.slice(0, 200);
+          ids = ids.slice(0, 50);
         }
 
         console.log(`[SM Sync] Fetching proposals for ${ids.length} projects (fallback, limited)`);
@@ -468,7 +469,7 @@ Deno.serve(async (req) => {
                 synced_at: new Date().toISOString(),
               });
             }
-            await delay(800);
+            await delay(400);
           } catch (e) {
             totalErrors++;
             errors.push(`proposals proj ${projId}: ${(e as Error).message}`);
