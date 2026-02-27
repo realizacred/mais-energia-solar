@@ -123,7 +123,7 @@ export async function snapshotCatalogKitToKitItemRows(kitId: string): Promise<Ki
     bateriaRefIds.length > 0 ? lookupBaterias(bateriaRefIds) : Promise.resolve(new Map<string, BateriaRef>()),
   ]);
 
-  return items.map((item, index) => {
+  return items.map((item) => {
     let fabricante = "";
     let modelo = "";
     let potencia_w = 0;
@@ -161,6 +161,7 @@ export async function snapshotCatalogKitToKitItemRows(kitId: string): Promise<Ki
       preco_unitario: 0, // Pricing stays in the existing flow
       categoria: mapCategoria(item.item_type),
       avulso: item.item_type === "generico",
+      produto_ref: item.ref_id || null,
     } satisfies KitItemRow;
   });
 }
