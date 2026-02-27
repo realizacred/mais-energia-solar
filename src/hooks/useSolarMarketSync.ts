@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────────
 
-export type SyncStage = "clients" | "projects" | "proposals";
+export type SyncStage = "funnels" | "clients" | "projects" | "proposals";
 
 export interface SyncStageStatus {
   stage: SyncStage;
@@ -25,18 +25,20 @@ export interface SyncProgress {
 }
 
 const STAGE_LABELS: Record<SyncStage, string> = {
+  funnels: "Funis",
   clients: "Clientes",
   projects: "Projetos",
   proposals: "Propostas",
 };
 
 const STAGE_QUERY_KEYS: Record<SyncStage, string> = {
+  funnels: "sm-funnels",
   clients: "sm-clients",
   projects: "sm-projects",
   proposals: "sm-proposals",
 };
 
-const ALL_STAGES: SyncStage[] = ["clients", "projects", "proposals"];
+const ALL_STAGES: SyncStage[] = ["funnels", "clients", "projects", "proposals"];
 
 function createInitialStages(onlyStage?: SyncStage): SyncStageStatus[] {
   return ALL_STAGES.map((stage) => ({
