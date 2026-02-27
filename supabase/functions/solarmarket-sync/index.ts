@@ -833,8 +833,15 @@ Deno.serve(async (req) => {
         console.log(`[SM Sync] Fetching proposals for ${ids.length} projects (per-project fallback)`);
         const allProposalRows: any[] = [];
         let batchCount = 0;
+        const timeBudgetMs = 45_000; // Stop after 45s to leave room for finalization
+        const startTime = Date.now();
 
         for (const projId of ids) {
+          // Check time budget before each request
+          if (Date.now() - startTime > timeBudgetMs) {
+            console.log(`[SM Sync] Time budget exhausted after ${batchCount}/${ids.length} projects (${Math.round((Date.now() - startTime) / 1000)}s)`);
+            break;
+          }
           try {
             const url = `${baseUrl}/projects/${projId}/proposals`;
             const res = await fetch(url, { headers: smHeaders });
@@ -844,7 +851,6 @@ Deno.serve(async (req) => {
                 const ra = parseInt(res.headers.get("retry-after") || "10", 10);
                 console.log(`[SM Sync] Rate limited on proposals, waiting ${ra}s...`);
                 await delay(ra * 1000);
-                // Retry this project
                 const retryRes = await fetch(url, { headers: smHeaders });
                 if (!retryRes.ok) { await retryRes.text(); continue; }
                 const retryData = await retryRes.json();
@@ -883,17 +889,15 @@ Deno.serve(async (req) => {
             }
 
             batchCount++;
-            // Upsert in batches of 100 projects to save partial progress
             if (allProposalRows.length >= 200) {
               console.log(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${ids.length} projects processed)`);
               const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
               totalUpserted += result.upserted;
               totalErrors += result.errors.length;
               errors.push(...result.errors);
-              allProposalRows.length = 0; // clear
+              allProposalRows.length = 0;
             }
 
-            // Rate limit: ~150 req/min (400ms between)
             await delay(400);
           } catch (e) {
             totalErrors++;
