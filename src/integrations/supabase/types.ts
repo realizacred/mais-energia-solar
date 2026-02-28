@@ -11025,104 +11025,149 @@ export type Database = {
         Row: {
           aceito_em: string | null
           calc_hash: string | null
+          consumo_mensal: number | null
           created_at: string
+          custo_disponibilidade: number | null
+          distribuidora_nome: string | null
           economia_mensal: number | null
+          economia_mensal_percent: number | null
           engine_version: string | null
+          enviado_em: string | null
           final_snapshot: Json | null
           finalized_at: string | null
+          geracao_anual: number | null
           geracao_mensal: number | null
           gerado_em: string | null
           gerado_por: string | null
           grupo: string | null
           id: string
           idempotency_key: string | null
+          inflacao_energetica: number | null
           irradiance_dataset_code: string | null
           irradiance_source_point: Json | null
           irradiance_version_id: string | null
+          link_pdf: string | null
           motivo_rejeicao: string | null
           observacoes: string | null
+          origem: string
           payback_meses: number | null
+          perda_eficiencia_anual: number | null
           potencia_kwp: number | null
           proposta_id: string
           public_slug: string | null
           rejeitado_em: string | null
           snapshot: Json | null
           snapshot_locked: boolean
+          sobredimensionamento: number | null
           status: Database["public"]["Enums"]["proposta_nativa_status"]
+          tarifa_distribuidora: number | null
           tenant_id: string
+          tir: number | null
           updated_at: string
           validade_dias: number
           valido_ate: string | null
           valor_total: number | null
           versao_numero: number
+          viewed_at: string | null
+          vpl: number | null
         }
         Insert: {
           aceito_em?: string | null
           calc_hash?: string | null
+          consumo_mensal?: number | null
           created_at?: string
+          custo_disponibilidade?: number | null
+          distribuidora_nome?: string | null
           economia_mensal?: number | null
+          economia_mensal_percent?: number | null
           engine_version?: string | null
+          enviado_em?: string | null
           final_snapshot?: Json | null
           finalized_at?: string | null
+          geracao_anual?: number | null
           geracao_mensal?: number | null
           gerado_em?: string | null
           gerado_por?: string | null
           grupo?: string | null
           id?: string
           idempotency_key?: string | null
+          inflacao_energetica?: number | null
           irradiance_dataset_code?: string | null
           irradiance_source_point?: Json | null
           irradiance_version_id?: string | null
+          link_pdf?: string | null
           motivo_rejeicao?: string | null
           observacoes?: string | null
+          origem?: string
           payback_meses?: number | null
+          perda_eficiencia_anual?: number | null
           potencia_kwp?: number | null
           proposta_id: string
           public_slug?: string | null
           rejeitado_em?: string | null
           snapshot?: Json | null
           snapshot_locked?: boolean
+          sobredimensionamento?: number | null
           status?: Database["public"]["Enums"]["proposta_nativa_status"]
+          tarifa_distribuidora?: number | null
           tenant_id: string
+          tir?: number | null
           updated_at?: string
           validade_dias?: number
           valido_ate?: string | null
           valor_total?: number | null
           versao_numero: number
+          viewed_at?: string | null
+          vpl?: number | null
         }
         Update: {
           aceito_em?: string | null
           calc_hash?: string | null
+          consumo_mensal?: number | null
           created_at?: string
+          custo_disponibilidade?: number | null
+          distribuidora_nome?: string | null
           economia_mensal?: number | null
+          economia_mensal_percent?: number | null
           engine_version?: string | null
+          enviado_em?: string | null
           final_snapshot?: Json | null
           finalized_at?: string | null
+          geracao_anual?: number | null
           geracao_mensal?: number | null
           gerado_em?: string | null
           gerado_por?: string | null
           grupo?: string | null
           id?: string
           idempotency_key?: string | null
+          inflacao_energetica?: number | null
           irradiance_dataset_code?: string | null
           irradiance_source_point?: Json | null
           irradiance_version_id?: string | null
+          link_pdf?: string | null
           motivo_rejeicao?: string | null
           observacoes?: string | null
+          origem?: string
           payback_meses?: number | null
+          perda_eficiencia_anual?: number | null
           potencia_kwp?: number | null
           proposta_id?: string
           public_slug?: string | null
           rejeitado_em?: string | null
           snapshot?: Json | null
           snapshot_locked?: boolean
+          sobredimensionamento?: number | null
           status?: Database["public"]["Enums"]["proposta_nativa_status"]
+          tarifa_distribuidora?: number | null
           tenant_id?: string
+          tir?: number | null
           updated_at?: string
           validade_dias?: number
           valido_ate?: string | null
           valor_total?: number | null
           versao_numero?: number
+          viewed_at?: string | null
+          vpl?: number | null
         }
         Relationships: [
           {
