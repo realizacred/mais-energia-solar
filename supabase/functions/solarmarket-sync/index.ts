@@ -146,6 +146,25 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
   return all;
 }
 
+/** Robustly extract an array of proposals from various API response shapes */
+function extractProposalArray(data: any): any[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.items)) return data.items;
+  if (Array.isArray(data.results)) return data.results;
+  if (Array.isArray(data.proposals)) return data.proposals;
+  // If data is a single proposal object with an id, wrap it
+  if (data.id && typeof data.id === "number") return [data];
+  if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) {
+    if (Array.isArray(data.data.items)) return data.data.items;
+    if (Array.isArray(data.data.proposals)) return data.data.proposals;
+    // Single proposal wrapped in data
+    if (data.data.id) return [data.data];
+  }
+  return [];
+}
+
 /** Extract equipment and financial data from SolarMarket proposal payload */
 function extractProposalFields(pr: any) {
   const pricingTable = Array.isArray(pr.pricingTable) ? pr.pricingTable : [];
@@ -1164,7 +1183,7 @@ Deno.serve(async (req) => {
                   const retryRes = await fetch(url, { headers: smHeaders });
                   if (!retryRes.ok) { await retryRes.text(); return []; }
                   const retryData = await retryRes.json();
-                  return (Array.isArray(retryData) ? retryData : retryData.data ? [retryData.data] : retryData ? [retryData] : []).map((pr: any) => ({
+                  return extractProposalArray(retryData).map((pr: any) => ({
                     tenant_id: tenantId,
                     sm_proposal_id: pr.id,
                     ...extractProposalFields(pr),
@@ -1173,11 +1192,24 @@ Deno.serve(async (req) => {
                     synced_at: new Date().toISOString(),
                   }));
                 }
-                await res.text();
+                // Log non-429 errors for first few projects
+                if (batchCount < 5) {
+                  const errBody = await res.text();
+                  console.warn(`[SM Sync] Project ${projId} proposals returned ${res.status}: ${errBody.slice(0, 200)}`);
+                } else {
+                  await res.text();
+                }
                 return [];
               }
               const propData = await res.json();
-              const proposals = Array.isArray(propData) ? propData : propData.data ? [propData.data] : propData ? [propData] : [];
+
+              // Debug: log first 3 project responses to understand structure
+              if (batchCount + chunk.indexOf(projId) < 3) {
+                const keys = propData ? (Array.isArray(propData) ? `array[${propData.length}]` : `object{${Object.keys(propData).slice(0, 15).join(",")}}`) : "null";
+                console.log(`[SM Sync] Project ${projId} proposals response: ${keys}`);
+              }
+
+              const proposals = extractProposalArray(propData);
               return proposals.map((pr: any) => ({
                 tenant_id: tenantId,
                 sm_proposal_id: pr.id,
