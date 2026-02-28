@@ -140,14 +140,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   }, []);
 
   const runMigration = useCallback(async (dryRun: boolean) => {
-    if (!ownerId) {
-      setError("Selecione um responsável (owner).");
-      return;
-    }
-
+    // owner_id is now optional — auto-resolved from SM funnel "Vendedores"
     resetState();
     setRunning(true);
     addLog(`Iniciando ${dryRun ? "simulação (dry-run)" : "migração real"} para ${smIds.length} proposta(s)`);
+    addLog(ownerId ? `Responsável manual: ${consultores.find(c => c.id === ownerId)?.nome || ownerId}` : "Responsável será auto-resolvido pelo funil Vendedores");
 
     // Step: Fetch
     updateStep("fetch", { state: "running" });
@@ -170,14 +167,18 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         updateStep("cliente", { state: "running" });
       }
 
-      const payload = {
+      const payload: Record<string, any> = {
         dry_run: dryRun,
         pipeline_id: PIPELINE_ID,
         stage_id: stageInfo.stage_id,
-        owner_id: ownerId,
+        auto_resolve_owner: true,
         filters: { sm_proposal_ids: smIds },
         batch_size: smIds.length,
       };
+      // Only include owner_id if manually selected (not "__auto__")
+      if (ownerId && ownerId !== "__auto__") {
+        payload.owner_id = ownerId;
+      }
 
       const { data, error: fnError } = await supabase.functions.invoke("migrate-sm-proposals", {
         body: payload,
@@ -323,19 +324,24 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               </div>
             )}
 
-            {/* Owner selector */}
+            {/* Owner selector — optional, auto-resolved from funnel */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Responsável (obrigatório)</label>
+              <label className="text-xs font-medium text-muted-foreground">Responsável (opcional — auto-resolvido pelo funil Vendedores)</label>
               <Select value={ownerId} onValueChange={setOwnerId}>
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Selecione o consultor..." />
+                  <SelectValue placeholder="Automático (funil Vendedores)" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__auto__">🔄 Automático (funil Vendedores)</SelectItem>
                   {consultores.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Se o projeto SM estiver no funil "Vendedores", o nome da etapa define o consultor automaticamente.
+                Vendedores não cadastrados serão criados sem acesso ao sistema.
+              </p>
             </div>
 
             {/* Pipeline info (fixed) */}

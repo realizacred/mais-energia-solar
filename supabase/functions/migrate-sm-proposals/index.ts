@@ -22,8 +22,10 @@ interface MigrationParams {
   pipeline_id?: string;
   /** Required: stage_id for "won" deals */
   stage_id?: string;
-  /** Required: owner_id (consultor_id) for deals */
+  /** Optional: owner_id (consultor_id) — if omitted, auto-resolved from SM project funnel "Vendedores" */
   owner_id?: string;
+  /** If true, auto-resolve owner from SM funnel stage name and create consultor if missing */
+  auto_resolve_owner?: boolean;
 }
 
 type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "CONFLICT" | "ERROR";
@@ -128,21 +130,28 @@ Deno.serve(async (req) => {
     const params: MigrationParams = await req.json();
     const { dry_run = true, filters = {}, batch_size = 50 } = params;
 
-    // Validate required params for real execution
+    const autoResolveOwner = params.auto_resolve_owner !== false; // default true
+
+    // Validate required params — owner_id is optional when auto_resolve_owner is enabled
     if (!dry_run) {
-      if (!params.pipeline_id || !params.owner_id) {
-        console.error("ERR", { step: "params_validation", err: "missing pipeline_id or owner_id" });
+      if (!params.pipeline_id) {
         return new Response(
-          JSON.stringify({ error: "pipeline_id and owner_id are required", step: "params_validation", debug: { pipeline_id: params.pipeline_id, owner_id: params.owner_id } }),
+          JSON.stringify({ error: "pipeline_id is required", step: "params_validation" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (!params.owner_id && !autoResolveOwner) {
+        return new Response(
+          JSON.stringify({ error: "owner_id is required (or enable auto_resolve_owner)", step: "params_validation" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
     }
 
-    // If sm_proposal_ids filter is used, also require pipeline_id and owner_id for dry_run
-    if (filters.sm_proposal_ids && filters.sm_proposal_ids.length > 0 && (!params.pipeline_id || !params.owner_id)) {
+    // pipeline_id is always required for targeted proposals
+    if (filters.sm_proposal_ids && filters.sm_proposal_ids.length > 0 && !params.pipeline_id) {
       return new Response(
-        JSON.stringify({ error: "pipeline_id and owner_id are required when targeting specific proposals", step: "params_validation" }),
+        JSON.stringify({ error: "pipeline_id is required when targeting specific proposals", step: "params_validation" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -231,6 +240,79 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
+
+    // ─── 2b. Pre-fetch SM projects to resolve funnel/stage (vendedor) ─
+    const smProjectIds = [...new Set(allProposals.map((p) => p.sm_project_id).filter(Boolean))];
+    const smProjectMap = new Map<number, { sm_funnel_name: string | null; sm_stage_name: string | null }>();
+
+    for (let i = 0; i < smProjectIds.length; i += 500) {
+      const chunk = smProjectIds.slice(i, i + 500);
+      const { data: projects } = await adminClient
+        .from("solar_market_projects")
+        .select("sm_project_id, sm_funnel_name, sm_stage_name")
+        .eq("tenant_id", tenantId)
+        .in("sm_project_id", chunk);
+      for (const p of projects || []) {
+        smProjectMap.set(p.sm_project_id, { sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name });
+      }
+    }
+    console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for funnel resolution`);
+
+    // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
+    const consultoresMap = new Map<string, string>(); // lowercase name → id
+    {
+      const { data: consultores } = await adminClient
+        .from("consultores")
+        .select("id, nome")
+        .eq("tenant_id", tenantId);
+      for (const c of consultores || []) {
+        if (c.nome) consultoresMap.set(c.nome.toLowerCase().trim(), c.id);
+      }
+    }
+    console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
+
+    // ─── Helper: resolve or create consultor by name ─────
+    async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
+      const key = stageName.toLowerCase().trim();
+      const existing = consultoresMap.get(key);
+      if (existing) return { id: existing, created: false };
+
+      // Also try partial match (first name)
+      for (const [k, v] of consultoresMap) {
+        if (k.startsWith(key) || key.startsWith(k)) {
+          return { id: v, created: false };
+        }
+      }
+
+      if (dry_run) {
+        // In dry-run, return a placeholder
+        return { id: `AUTO_CREATE:${stageName}`, created: true };
+      }
+
+      // Create consultor without user access (user_id = null)
+      const codigo = `SM-${stageName.replace(/\s+/g, "-").substring(0, 20)}`;
+      const { data: newConsultor, error: consErr } = await adminClient
+        .from("consultores")
+        .insert({
+          tenant_id: tenantId,
+          nome: stageName,
+          telefone: "N/A",
+          codigo,
+          ativo: true,
+          user_id: null, // No login access
+        })
+        .select("id")
+        .single();
+
+      if (consErr) {
+        console.error(`[SM Migration] Failed to create consultor "${stageName}":`, consErr.message);
+        throw new Error(`Falha ao criar consultor "${stageName}": ${consErr.message}`);
+      }
+
+      const id = newConsultor!.id;
+      consultoresMap.set(key, id);
+      return { id, created: true };
+    }
 
     // ─── 3. Pre-fetch existing deals with legacy_key ─────
 
@@ -385,6 +467,37 @@ Deno.serve(async (req) => {
             }
           }
 
+          // ── B2. Resolve owner_id (auto from funnel or fallback to params) ──
+          let resolvedOwnerId = params.owner_id || null;
+          let ownerAutoCreated = false;
+          let ownerSource = "manual";
+
+          if (autoResolveOwner && smProp.sm_project_id) {
+            const smProj = smProjectMap.get(smProp.sm_project_id);
+            if (smProj?.sm_funnel_name?.toLowerCase() === "vendedores" && smProj.sm_stage_name) {
+              try {
+                const { id, created } = await resolveOrCreateConsultor(smProj.sm_stage_name);
+                resolvedOwnerId = id;
+                ownerAutoCreated = created;
+                ownerSource = `funnel:${smProj.sm_stage_name}`;
+                (report as any).owner_resolved = { name: smProj.sm_stage_name, id, created, source: "vendedores_funnel" };
+              } catch (e) {
+                // Fallback to params.owner_id
+                (report as any).owner_resolved = { error: (e as Error).message, fallback: params.owner_id };
+              }
+            }
+          }
+
+          // If still no owner, abort
+          if (!resolvedOwnerId) {
+            report.aborted = true;
+            report.steps.deal = { status: "ERROR", reason: "Nenhum vendedor encontrado (sem funil Vendedores e sem owner_id manual)" };
+            summary.ERROR++;
+            reports.push(report);
+            await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+            continue;
+          }
+
           // ── C. Deal (idempotent via legacy_key) ──
           const legacyKey = `sm:${smProp.sm_proposal_id}`;
           let dealId: string | null = existingDeals.get(legacyKey) || null;
@@ -393,7 +506,7 @@ Deno.serve(async (req) => {
             report.steps.deal = { status: "WOULD_SKIP", id: dealId };
           } else {
             if (dry_run) {
-              report.steps.deal = { status: "WOULD_CREATE" };
+              report.steps.deal = { status: "WOULD_CREATE", reason: `owner: ${ownerSource}${ownerAutoCreated ? " (criar)" : ""}` };
             } else {
               const { data: newDeal, error: dealErr } = await adminClient
                 .from("deals")
@@ -402,13 +515,13 @@ Deno.serve(async (req) => {
                   pipeline_id: params.pipeline_id!,
                   stage_id: params.stage_id || null,
                   customer_id: clienteId!,
-                  owner_id: params.owner_id!,
+                  owner_id: resolvedOwnerId!,
                   title: smProp.titulo || smClient.name || `SM Proposta ${smProp.sm_proposal_id}`,
                   value: smProp.preco_total || smProp.valor_total || 0,
                   kwp: smProp.potencia_kwp || null,
                   status: "won",
                   legacy_key: legacyKey,
-                  deal_num: 0, // trigger will assign
+                  deal_num: 0,
                 })
                 .select("id")
                 .single();
@@ -449,7 +562,7 @@ Deno.serve(async (req) => {
                   tenant_id: tenantId,
                   cliente_id: clienteId!,
                   deal_id: dealId,
-                  consultor_id: params.owner_id || null,
+                  consultor_id: resolvedOwnerId || null,
                   potencia_kwp: smProp.potencia_kwp || null,
                   valor_total: smProp.preco_total || smProp.valor_total || null,
                   cidade_instalacao: smProp.cidade || smClient.city || null,
