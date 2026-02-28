@@ -1101,24 +1101,38 @@ Deno.serve(async (req) => {
     }
 
     /** Build custom_fields_raw object from proposal payload */
+    /** Prefixes that identify custom field keys vs system variables */
+    const CF_KEY_PREFIXES = ["capo_", "cap_", "cape_", "cli_", "pre_"];
+    function isCustomFieldKey(key: string): boolean {
+      const bare = key.replace(/^\[|\]$/g, "").trim();
+      return CF_KEY_PREFIXES.some((p) => bare.startsWith(p));
+    }
+    /** Normalize key: remove brackets, trim */
+    function normalizeKey(key: string): string {
+      return key.replace(/^\[|\]$/g, "").trim();
+    }
+
     function buildCustomFieldsRaw(pr: any): any {
       const variables = Array.isArray(pr.variables) ? pr.variables : [];
       const customFields = pr.customFields || pr.custom_fields || {};
       const warnings: string[] = [];
 
       const values: Record<string, any> = {};
-      const unmapped: Record<string, any> = {};
+      const unmappedCandidates: Record<string, any> = {};
       const definitionVersionHashes: Record<string, string> = {};
 
-      // Process variables (most custom field values come through here)
+      // Process variables — only custom field keys
       for (const v of variables) {
         const key = v.key;
-        if (!key) continue;
+        if (!key || !isCustomFieldKey(key)) continue;
+        const bareKey = normalizeKey(key);
         const rawValue = v.value;
-        const def = cfDefsLookup.get(`[${key}]`) || cfDefsLookup.get(key);
+        // Lookup by bracketed key (how defs store them)
+        const bracketedKey = `[${bareKey}]`;
+        const def = cfDefsLookup.get(bracketedKey) || cfDefsLookup.get(bareKey);
 
         if (rawValue === "undefined" || rawValue === undefined) {
-          warnings.push(`${key}: value is "undefined"`);
+          warnings.push(`${bareKey}: value is "undefined"`);
         }
 
         const entry: any = {
@@ -1131,39 +1145,43 @@ Deno.serve(async (req) => {
           entry.label = def.label;
           entry.type = def.type;
           entry.external_field_id = def.external_field_id;
-          values[key] = entry;
-          if (def.version_hash) definitionVersionHashes[key] = def.version_hash;
+          values[bareKey] = entry;
+          if (def.version_hash) definitionVersionHashes[bareKey] = def.version_hash;
         } else {
           entry.note = "sem definicao no dicionario";
-          unmapped[key] = entry;
+          unmappedCandidates[bareKey] = entry;
         }
       }
 
       // Process explicit customFields object if present
       if (typeof customFields === "object" && !Array.isArray(customFields)) {
         for (const [key, val] of Object.entries(customFields)) {
-          if (values[key] || unmapped[key]) continue; // already processed
-          const def = cfDefsLookup.get(`[${key}]`) || cfDefsLookup.get(key);
+          const bareKey = normalizeKey(key);
+          if (values[bareKey] || unmappedCandidates[bareKey]) continue;
+          if (!isCustomFieldKey(key)) continue;
+          const bracketedKey = `[${bareKey}]`;
+          const def = cfDefsLookup.get(bracketedKey) || cfDefsLookup.get(bareKey);
           const entry: any = { value: val, raw_value: val, source: "solarmarket" };
           if (def) {
             entry.label = def.label;
             entry.type = def.type;
             entry.external_field_id = def.external_field_id;
-            values[key] = entry;
-            if (def.version_hash) definitionVersionHashes[key] = def.version_hash;
+            values[bareKey] = entry;
+            if (def.version_hash) definitionVersionHashes[bareKey] = def.version_hash;
           } else {
             entry.note = "sem definicao no dicionario";
-            unmapped[key] = entry;
+            unmappedCandidates[bareKey] = entry;
           }
         }
       }
 
-      if (Object.keys(values).length === 0 && Object.keys(unmapped).length === 0) return null;
+      if (Object.keys(values).length === 0 && Object.keys(unmappedCandidates).length === 0) return null;
 
       return {
         values,
-        unmapped: Object.keys(unmapped).length > 0 ? unmapped : undefined,
+        unmapped_candidates: Object.keys(unmappedCandidates).length > 0 ? unmappedCandidates : undefined,
         definition_version_hashes: Object.keys(definitionVersionHashes).length > 0 ? definitionVersionHashes : undefined,
+        built_at: new Date().toISOString(),
         _warnings: warnings.length > 0 ? warnings : undefined,
       };
     }
