@@ -324,24 +324,25 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               </div>
             )}
 
-            {/* Owner selector — required as fallback for proposals without Vendedores funnel */}
+            {/* Owner selector — optional fallback, auto-resolved from project responsible */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Responsável <span className="text-destructive">*</span>
+                Responsável (fallback opcional)
               </label>
               <Select value={ownerId} onValueChange={setOwnerId}>
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Selecione o consultor responsável" />
+                  <SelectValue placeholder="Automático (campo responsible do projeto)" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__auto__">🔄 Automático (responsible do projeto SM)</SelectItem>
                   {consultores.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-[10px] text-muted-foreground">
-                Se o projeto SM estiver no funil "Vendedores", o vendedor será auto-resolvido pelo nome da etapa.
-                Caso contrário, o consultor selecionado acima será usado.
+                O consultor é resolvido automaticamente pelo campo "responsible" do projeto SM.
+                Se não encontrar, usa o selecionado acima como fallback. Consultores inexistentes serão criados sem acesso.
               </p>
             </div>
 
@@ -459,7 +460,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               variant="outline"
               className="flex-1"
               onClick={() => runMigration(true)}
-              disabled={running || !ownerId}
+              disabled={running}
             >
               {running ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
               Simular (Dry-run)
@@ -467,7 +468,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             <Button
               className="flex-1"
               onClick={() => setConfirmOpen(true)}
-              disabled={running || !ownerId || !!existingCanonical}
+              disabled={running || !!existingCanonical}
             >
               Migrar agora
             </Button>
