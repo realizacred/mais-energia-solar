@@ -90,23 +90,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get tenant_id + role
+    // Get tenant_id
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: profile } = await adminClient
       .from("profiles")
-      .select("tenant_id, role")
+      .select("tenant_id")
       .eq("id", user.id)
       .single();
 
     if (!profile?.tenant_id) {
       return new Response(JSON.stringify({ error: "No tenant" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!["admin", "super_admin"].includes(profile.role)) {
-      return new Response(JSON.stringify({ error: "Admin only" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
