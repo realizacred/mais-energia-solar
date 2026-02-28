@@ -119,6 +119,473 @@ function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: bool
   return <FileText className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
 }
 
+// ─── SM (legacy_import) Tab Components ──────────────
+
+function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; latestVersao: VersaoData | undefined; wpPrice: string | null }) {
+  const totalFinal = latestVersao?.valor_total || 0;
+  const equipCost = snapshot.equipment_cost || 0;
+  const installCost = snapshot.installation_cost || 0;
+  const equipPct = totalFinal > 0 ? (equipCost / totalFinal) * 100 : 0;
+  const installPct = totalFinal > 0 ? (installCost / totalFinal) * 100 : 0;
+
+  return (
+    <div className="flex gap-5 mt-3">
+      {/* Left: Unidades */}
+      <div className="w-[280px] shrink-0">
+        <h4 className="text-sm font-bold text-foreground mb-2">Unidades</h4>
+        <div className="border rounded-lg p-3 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 p-2 rounded-lg shrink-0 bg-success/10">
+              <SunMedium className="h-5 w-5 text-success" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-foreground">Unidade (Geradora)</p>
+              {snapshot.economia_mensal_percent && (
+                <p className="text-[10px] text-muted-foreground">
+                  Economia: {formatBRL((snapshot.tarifa_distribuidora || 0) * (snapshot.consumo_mensal || 0) * (snapshot.economia_mensal_percent / 100))} ({snapshot.economia_mensal_percent}%)
+                </p>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Consumo Total: {snapshot.consumo_mensal || 0} kWh
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right: Summary table */}
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-bold text-foreground mb-2">Resumo</h4>
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-muted/30 text-muted-foreground">
+                <th className="text-left py-2 px-3 font-semibold">ITEM</th>
+                <th className="text-center py-2 px-3 font-semibold w-16">QTD</th>
+                <th className="text-right py-2 px-3 font-semibold w-28">VALORES</th>
+                <th className="text-right py-2 px-3 font-semibold w-24">% DO TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {equipCost > 0 && (
+                <>
+                  <tr className="border-t border-border/20">
+                    <td className="py-2 px-3 font-semibold text-foreground">Kit</td>
+                    <td className="py-2 px-3 text-center text-muted-foreground">1</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(equipCost)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{equipPct.toFixed(2)}%</td>
+                  </tr>
+                  {snapshot.panel_model && (
+                    <tr className="border-t border-border/10">
+                      <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{snapshot.panel_model}</td>
+                      <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{snapshot.panel_quantity || "—"}</td>
+                      <td /><td />
+                    </tr>
+                  )}
+                  {snapshot.inverter_model && (
+                    <tr className="border-t border-border/10">
+                      <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{snapshot.inverter_model}</td>
+                      <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{snapshot.inverter_quantity || 1}</td>
+                      <td /><td />
+                    </tr>
+                  )}
+                </>
+              )}
+              {installCost > 0 && (
+                <tr className="border-t border-border/20">
+                  <td className="py-2 px-3 font-semibold text-foreground">Instalação</td>
+                  <td className="py-2 px-3 text-center text-muted-foreground">1</td>
+                  <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(installCost)}</td>
+                  <td className="py-2 px-3 text-right text-muted-foreground">{installPct.toFixed(2)}%</td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-dashed border-border">
+                <td className="py-3 px-3 font-bold text-foreground">Total</td>
+                <td />
+                <td className="py-3 px-3 text-right">
+                  {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice} / Wp</span>}
+                  <span className="font-bold text-foreground text-sm">{formatBRL(totalFinal)}</span>
+                </td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SmArquivoTab({ snapshot }: { snapshot: any }) {
+  const pdfUrl = snapshot.link_pdf;
+  return (
+    <div className="flex gap-5 mt-3">
+      <div className="w-[220px] shrink-0 space-y-3">
+        <p className="text-sm font-bold text-foreground">Opções</p>
+        {pdfUrl && (
+          <div className="space-y-1">
+            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
+              <FileText className="h-3.5 w-3.5" /> Baixar PDF
+            </a>
+            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
+              <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
+            </a>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0 border rounded-lg overflow-hidden bg-muted/20">
+        {pdfUrl ? (
+          <iframe src={pdfUrl} className="w-full h-[500px] border-0" title="Preview do PDF" />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
+            <FileText className="h-10 w-10 opacity-20 mb-3" />
+            <p className="text-sm font-medium">Nenhum PDF disponível</p>
+            <p className="text-xs mt-1">Esta proposta não possui arquivo PDF vinculado</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SmDadosTab({ snapshot, latestVersao }: { snapshot: any; latestVersao: VersaoData | undefined }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
+      {/* Sistema */}
+      <div className="border rounded-lg p-4 space-y-3">
+        <h4 className="text-sm font-bold text-foreground">Sistema</h4>
+        <DadosField icon="check" label="Telhado" value={snapshot.roof_type || "—"} />
+        <DadosField icon="text" label="Estrutura" value={snapshot.structure_type || "—"} />
+        <DadosField icon="text" label="Módulo" value={snapshot.panel_model || "—"} />
+        <DadosField icon="text" label="Qtd Módulos" value={snapshot.panel_quantity?.toString() || "—"} />
+        <DadosField icon="text" label="Inversor" value={snapshot.inverter_model || "—"} />
+        <DadosField icon="text" label="Qtd Inversores" value={snapshot.inverter_quantity?.toString() || "—"} />
+        <DadosField icon="text" label="Garantia" value={snapshot.warranty || "—"} />
+      </div>
+
+      {/* Financeiro */}
+      <div className="border rounded-lg p-4 space-y-3">
+        <h4 className="text-sm font-bold text-foreground">Financeiro</h4>
+        <DadosField icon="dollar" label="Custo Equipamento" value={snapshot.equipment_cost ? formatBRL(snapshot.equipment_cost) : "—"} />
+        <DadosField icon="dollar" label="Custo Instalação" value={snapshot.installation_cost ? formatBRL(snapshot.installation_cost) : "—"} />
+        <DadosField icon="dollar" label="Desconto" value={snapshot.discount ? formatBRL(snapshot.discount) : "—"} />
+        <DadosField icon="dollar" label="TIR" value={snapshot.tir ? `${(snapshot.tir * 100).toFixed(2)}%` : "—"} />
+        <DadosField icon="dollar" label="VPL" value={snapshot.vpl ? formatBRL(snapshot.vpl) : "—"} />
+        <DadosField icon="text" label="Payback" value={snapshot.payback_original || "—"} />
+      </div>
+
+      {/* Energia */}
+      <div className="border rounded-lg p-4 space-y-3">
+        <h4 className="text-sm font-bold text-foreground">Energia</h4>
+        <DadosField icon="text" label="Consumo Mensal" value={snapshot.consumo_mensal ? `${snapshot.consumo_mensal} kWh` : "—"} />
+        <DadosField icon="text" label="Geração Anual" value={snapshot.geracao_anual ? `${Number(snapshot.geracao_anual).toFixed(0)} kWh` : "—"} />
+        <DadosField icon="text" label="Economia %" value={snapshot.economia_mensal_percent ? `${snapshot.economia_mensal_percent}%` : "—"} />
+        <DadosField icon="dollar" label="Tarifa Distribuidora" value={snapshot.tarifa_distribuidora ? `R$ ${Number(snapshot.tarifa_distribuidora).toFixed(4)}` : "—"} />
+        <DadosField icon="dollar" label="Custo Disponibilidade" value={snapshot.custo_disponibilidade ? formatBRL(snapshot.custo_disponibilidade) : "—"} />
+        <DadosField icon="text" label="Sobredimensionamento" value={snapshot.sobredimensionamento ? `${(snapshot.sobredimensionamento * 100).toFixed(0)}%` : "—"} />
+        <DadosField icon="text" label="Perda Eficiência/Ano" value={snapshot.perda_eficiencia_anual ? `${(snapshot.perda_eficiencia_anual * 100).toFixed(1)}%` : "—"} />
+        <DadosField icon="text" label="Inflação Energética" value={snapshot.inflacao_energetica ? `${(snapshot.inflacao_energetica * 100).toFixed(1)}%` : "—"} />
+      </div>
+
+      {/* Pagamento */}
+      <div className="border rounded-lg p-4 space-y-3">
+        <h4 className="text-sm font-bold text-foreground">Pagamento</h4>
+        <div className="pb-3 border-b border-border/30">
+          <p className="text-xs font-bold text-primary">À vista</p>
+          <p className="text-sm font-bold text-foreground">{formatBRL(latestVersao?.valor_total || 0)}</p>
+        </div>
+        {snapshot.payment_conditions ? (
+          <DadosField icon="text" label="Condições" value={snapshot.payment_conditions} />
+        ) : (
+          <p className="text-xs text-muted-foreground">Sem opções de financiamento</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Native Tab Components ─────────────────────────────
+
+function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSummaryRows }: {
+  snapshot: SnapshotData | null;
+  ucsDetail: UCDetailData[];
+  latestVersao: VersaoData | undefined;
+  wpPrice: string | null;
+  buildSummaryRows: () => Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }>;
+}) {
+  return (
+    <div className="flex gap-5 mt-3">
+      {/* Left: Unidades */}
+      <div className="w-[280px] shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-bold text-foreground">Unidades</h4>
+        </div>
+        <div className="border rounded-lg p-3 space-y-3">
+          {(snapshot?.ucs && snapshot.ucs.length > 0) ? (
+            snapshot.ucs.map((uc, idx) => (
+              <div key={idx} className="flex items-start gap-3">
+                <div className={cn("mt-0.5 p-2 rounded-lg shrink-0", uc.is_geradora ? "bg-success/10" : "bg-info/10")}>
+                  {uc.is_geradora ? <SunMedium className="h-5 w-5 text-success" /> : <Home className="h-5 w-5 text-info" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-foreground">
+                    {uc.nome}
+                    {uc.is_geradora && <span className="text-[9px] font-normal text-success ml-1">(Geradora)</span>}
+                  </p>
+                  {uc.tarifa_distribuidora && uc.consumo_mensal && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Economia: {formatBRL(uc.tarifa_distribuidora * uc.consumo_mensal * 0.7)} ({((uc.consumo_mensal > 0 ? 0.7 : 0) * 100).toFixed(0)}%)
+                    </p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">Consumo Total: {uc.consumo_mensal} kWh</p>
+                </div>
+              </div>
+            ))
+          ) : ucsDetail.length > 0 ? (
+            ucsDetail.map(uc => (
+              <div key={uc.id} className="flex items-start gap-3">
+                <div className="mt-0.5 p-2 rounded-lg shrink-0 bg-info/10">
+                  <Home className="h-5 w-5 text-info" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-foreground">{uc.nome}</p>
+                  <p className="text-[10px] text-muted-foreground">Consumo: {uc.consumo_mensal_kwh} kWh</p>
+                  {uc.geracao_mensal_estimada && (
+                    <p className="text-[10px] text-muted-foreground">Geração: {uc.geracao_mensal_estimada.toFixed(0)} kWh</p>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-[10px] text-muted-foreground">Sem UCs definidas</p>
+          )}
+        </div>
+      </div>
+
+      {/* Right: Summary table */}
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-bold text-foreground mb-2">Resumo</h4>
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-muted/30 text-muted-foreground">
+                <th className="text-left py-2 px-3 font-semibold">ITEM</th>
+                <th className="text-center py-2 px-3 font-semibold w-16">QTD</th>
+                <th className="text-right py-2 px-3 font-semibold w-28">VALORES</th>
+                <th className="text-right py-2 px-3 font-semibold w-24">% DO TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {buildSummaryRows().map((row, idx) => (
+                <>
+                  <tr key={idx} className="border-t border-border/20">
+                    <td className="py-2 px-3 font-semibold text-foreground">{row.label}</td>
+                    <td className="py-2 px-3 text-center text-muted-foreground">{row.qty}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(row.value)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{row.pct.toFixed(2)}%</td>
+                  </tr>
+                  {row.children?.map((child, ci) => (
+                    <tr key={`${idx}-${ci}`} className="border-t border-border/10">
+                      <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{child.label}</td>
+                      <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{child.qty}</td>
+                      <td className="py-1.5 px-3" />
+                      <td className="py-1.5 px-3" />
+                    </tr>
+                  ))}
+                </>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-dashed border-border">
+                <td className="py-3 px-3 font-bold text-foreground">Total</td>
+                <td />
+                <td className="py-3 px-3 text-right">
+                  {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice} / Wp</span>}
+                  <span className="font-bold text-foreground text-sm">{formatBRL(latestVersao?.valor_total || 0)}</span>
+                </td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, publicUrl, validadeDate, handleRender, handleDownloadPdf, handleSend, copyLink }: {
+  snapshot: SnapshotData | null;
+  html: string | null;
+  rendering: boolean;
+  downloadingPdf: boolean;
+  sending: boolean;
+  publicUrl: string | null;
+  validadeDate: string | null;
+  handleRender: () => void;
+  handleDownloadPdf: () => void;
+  handleSend: (canal: "link" | "whatsapp") => void;
+  copyLink: (withTracking: boolean) => void;
+}) {
+  return (
+    <>
+      {snapshot && html && (
+        <div className="flex items-center gap-2 mt-3 mb-3 py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <span>Atenção! Houve atualização na proposta e seu arquivo pode não estar atualizado. Gere um novo arquivo, se necessário.</span>
+        </div>
+      )}
+      <div className="flex gap-5 mt-3">
+        <div className="w-[220px] shrink-0 space-y-3">
+          <p className="text-sm font-bold text-foreground">Opções</p>
+          <Button size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={handleRender} disabled={rendering}>
+            {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Gerar outro arquivo
+          </Button>
+          <div className="space-y-1">
+            <button onClick={handleDownloadPdf} disabled={!html || downloadingPdf} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1">
+              <FileText className="h-3.5 w-3.5" />
+              {downloadingPdf ? "Gerando..." : "Baixar PDF"}
+            </button>
+            <button onClick={() => copyLink(true)} className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
+              <Link2 className="h-3.5 w-3.5" /> Copiar link com rastreio
+            </button>
+            <button onClick={() => copyLink(false)} className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
+              <Link2 className="h-3.5 w-3.5" /> Copiar link sem rastreio
+            </button>
+            {validadeDate && (
+              <div className="flex items-center gap-2 text-xs text-primary py-1">
+                <CalendarCheck className="h-3.5 w-3.5" /> Validade da proposta: {validadeDate}
+              </div>
+            )}
+          </div>
+          <div className="space-y-2 pt-1">
+            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-success text-success hover:bg-success/10" onClick={() => handleSend("whatsapp")} disabled={sending || !html}>
+              <MessageCircle className="h-3.5 w-3.5" /> Enviar por whatsapp
+            </Button>
+            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-primary text-primary hover:bg-primary/10" disabled={!html}>
+              <Mail className="h-3.5 w-3.5" /> Enviar por e-mail
+            </Button>
+          </div>
+        </div>
+        <div className="flex-1 min-w-0 border rounded-lg overflow-hidden bg-muted/20">
+          {html ? (
+            <iframe srcDoc={html} className="w-full h-[500px] border-0" title="Preview da proposta" sandbox="allow-same-origin" />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
+              <FileText className="h-10 w-10 opacity-20 mb-3" />
+              <p className="text-sm font-medium">Nenhum arquivo gerado</p>
+              <p className="text-xs mt-1">Clique em "Gerar outro arquivo" para visualizar</p>
+              <Button size="sm" variant="outline" className="mt-3 gap-1.5 text-xs" onClick={handleRender} disabled={rendering}>
+                {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                Gerar arquivo
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function NativeDadosTab({ snapshot, latestVersao }: { snapshot: SnapshotData | null; latestVersao: VersaoData | undefined }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
+      {/* Pré dimensionamento */}
+      <div className="border rounded-lg p-4 space-y-4">
+        <h4 className="text-sm font-bold text-foreground">Pré dimensionamento</h4>
+        {(() => {
+          const pre = (snapshot as any)?.preDimensionamento || {};
+          const loc = snapshot as any;
+          return (
+            <div className="space-y-3">
+              <DadosField icon="check" label="Telhado" value={loc?.locTipoTelhado || "—"} />
+              <DadosField icon="text" label="Topologia" value={pre.topologias?.join(", ") || "—"} />
+              <DadosField icon="text" label="Sistema" value={pre.sistema || "—"} />
+              <DadosField icon="text" label="Inclinação" value={pre.inclinacao != null ? `${pre.inclinacao}°` : "—"} />
+              <DadosField icon="text" label="Desvio Azimutal" value={pre.desvio_azimutal != null ? `${pre.desvio_azimutal}°` : "—"} />
+              <DadosField icon="text" label="Sombreamento" value={pre.sombreamento || "—"} />
+              <DadosField icon="text" label="Fator de Geração" value={pre.fator_geracao ? `${pre.fator_geracao}` : "—"} />
+              <DadosField icon="text" label="Desempenho" value={pre.desempenho ? `${pre.desempenho}%` : "—"} />
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Pós dimensionamento */}
+      <div className="border rounded-lg p-4 space-y-4">
+        <h4 className="text-sm font-bold text-foreground">Pós dimensionamento</h4>
+        {(() => {
+          const venda = (snapshot as any)?.venda || {};
+          const adicionais = (snapshot as any)?.adicionais || [];
+          const customFields = (snapshot as any)?.customFieldValues || {};
+          return (
+            <div className="space-y-3">
+              <DadosField icon="dollar" label="Margem" value={venda.margem_percentual ? `${venda.margem_percentual}%` : "—"} />
+              <DadosField icon="dollar" label="Desconto" value={venda.desconto_percentual ? `${venda.desconto_percentual}%` : "—"} />
+              <DadosField icon="text" label="Observações" value={venda.observacoes || "—"} />
+              {Object.entries(customFields).map(([key, val]) => (
+                <DadosField key={key} icon="text" label={key} value={String(val) || "—"} />
+              ))}
+              {adicionais.map((add: any, i: number) => (
+                <DadosField key={i} icon="check" label={add.descricao || add.nome || `Adicional ${i + 1}`} value={add.valor ? formatBRL(add.valor) : add.incluso ? "Grátis" : "—"} />
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Serviços */}
+      <div className="border rounded-lg p-4 space-y-4">
+        <h4 className="text-sm font-bold text-foreground">Serviços</h4>
+        {(() => {
+          const servicos = (snapshot as any)?.servicos || (snapshot as any)?.preDimensionamento?.servicos || [];
+          if (!servicos || servicos.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <AlertCircle className="h-8 w-8 text-warning/50 mb-2" />
+                <p className="text-xs">Nenhum serviço selecionado</p>
+              </div>
+            );
+          }
+          return (
+            <div className="space-y-3">
+              {servicos.map((s: any, i: number) => (
+                <DadosField key={i} icon="check" label={s.descricao || s.nome} value={s.valor ? formatBRL(s.valor) : s.incluso ? "Incluso" : "—"} />
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Formas de pagamento */}
+      <div className="border rounded-lg p-4 space-y-4">
+        <h4 className="text-sm font-bold text-foreground">Formas de pagamento</h4>
+        <div className="pb-3 border-b border-border/30">
+          <p className="text-xs font-bold text-primary">À vista</p>
+          <p className="text-sm font-bold text-foreground">{formatBRL(latestVersao?.valor_total || 0)}</p>
+        </div>
+        {(() => {
+          const opcoes = (snapshot as any)?.pagamentoOpcoes || [];
+          if (opcoes.length === 0) {
+            return <p className="text-xs text-muted-foreground">Sem opções de financiamento</p>;
+          }
+          return opcoes.map((op: any, i: number) => (
+            <div key={i} className="pb-3 border-b border-border/30 last:border-0 space-y-0.5">
+              <p className="text-xs font-bold text-primary">{op.banco || op.nome || `Opção ${i + 1}`}</p>
+              {op.valor_parcela && <p className="text-[11px] text-muted-foreground">Valor da parcela: <span className="text-foreground font-medium">{formatBRL(op.valor_parcela)}</span></p>}
+              {op.parcelas && <p className="text-[11px] text-muted-foreground">Parcelas: <span className="text-foreground font-medium">{op.parcelas}x</span></p>}
+              {op.carencia_meses && <p className="text-[11px] text-muted-foreground">Carência: <span className="text-foreground font-medium">{op.carencia_meses} meses</span></p>}
+              {op.taxa_mensal && <p className="text-[11px] text-muted-foreground">Taxa: <span className="text-foreground font-medium">{op.taxa_mensal}% a.m.</span></p>}
+            </div>
+          ));
+        })()}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────
 interface Props {
   proposta: PropostaData;
@@ -617,332 +1084,40 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 <>
                   {/* ─ Resumo Tab ─────────────── */}
                   <TabsContent value="resumo" className="px-4 pb-4 mt-0">
-                    <div className="flex gap-5 mt-3">
-                      {/* Left: Unidades */}
-                      <div className="w-[280px] shrink-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-bold text-foreground">Unidades</h4>
-                        </div>
-                        <div className="border rounded-lg p-3 space-y-3">
-                          {(snapshot?.ucs && snapshot.ucs.length > 0) ? (
-                            snapshot.ucs.map((uc, idx) => (
-                              <div key={idx} className="flex items-start gap-3">
-                                <div className={cn(
-                                  "mt-0.5 p-2 rounded-lg shrink-0",
-                                  uc.is_geradora ? "bg-success/10" : "bg-info/10"
-                                )}>
-                                  {uc.is_geradora
-                                    ? <SunMedium className="h-5 w-5 text-success" />
-                                    : <Home className="h-5 w-5 text-info" />
-                                  }
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-foreground">
-                                    {uc.nome}
-                                    {uc.is_geradora && <span className="text-[9px] font-normal text-success ml-1">(Geradora)</span>}
-                                  </p>
-                                  {uc.tarifa_distribuidora && uc.consumo_mensal && (
-                                    <p className="text-[10px] text-muted-foreground">
-                                      Economia: {formatBRL(uc.tarifa_distribuidora * uc.consumo_mensal * 0.7)} ({((uc.consumo_mensal > 0 ? 0.7 : 0) * 100).toFixed(0)}%)
-                                    </p>
-                                  )}
-                                  <p className="text-[10px] text-muted-foreground">
-                                    Consumo Total: {uc.consumo_mensal} kWh
-                                  </p>
-                                </div>
-                              </div>
-                            ))
-                          ) : ucsDetail.length > 0 ? (
-                            ucsDetail.map(uc => (
-                              <div key={uc.id} className="flex items-start gap-3">
-                                <div className="mt-0.5 p-2 rounded-lg shrink-0 bg-info/10">
-                                  <Home className="h-5 w-5 text-info" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-foreground">{uc.nome}</p>
-                                  <p className="text-[10px] text-muted-foreground">Consumo: {uc.consumo_mensal_kwh} kWh</p>
-                                  {uc.geracao_mensal_estimada && (
-                                    <p className="text-[10px] text-muted-foreground">Geração: {uc.geracao_mensal_estimada.toFixed(0)} kWh</p>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-[10px] text-muted-foreground">Sem UCs definidas</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right: Summary table */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-foreground mb-2">Resumo</h4>
-                        <div className="border rounded-lg overflow-hidden">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="bg-muted/30 text-muted-foreground">
-                                <th className="text-left py-2 px-3 font-semibold">ITEM</th>
-                                <th className="text-center py-2 px-3 font-semibold w-16">QTD</th>
-                                <th className="text-right py-2 px-3 font-semibold w-28">VALORES</th>
-                                <th className="text-right py-2 px-3 font-semibold w-24">% DO TOTAL</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {buildSummaryRows().map((row, idx) => (
-                                <>
-                                  <tr key={idx} className="border-t border-border/20">
-                                    <td className="py-2 px-3 font-semibold text-foreground">{row.label}</td>
-                                    <td className="py-2 px-3 text-center text-muted-foreground">{row.qty}</td>
-                                    <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(row.value)}</td>
-                                    <td className="py-2 px-3 text-right text-muted-foreground">{row.pct.toFixed(2)}%</td>
-                                  </tr>
-                                  {row.children?.map((child, ci) => (
-                                    <tr key={`${idx}-${ci}`} className="border-t border-border/10">
-                                      <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{child.label}</td>
-                                      <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{child.qty}</td>
-                                      <td className="py-1.5 px-3" />
-                                      <td className="py-1.5 px-3" />
-                                    </tr>
-                                  ))}
-                                </>
-                              ))}
-                            </tbody>
-                            <tfoot>
-                              <tr className="border-t-2 border-dashed border-border">
-                                <td className="py-3 px-3 font-bold text-foreground">Total</td>
-                                <td />
-                                <td className="py-3 px-3 text-right">
-                                  {wpPrice && (
-                                    <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice} / Wp</span>
-                                  )}
-                                  <span className="font-bold text-foreground text-sm">{formatBRL(latestVersao?.valor_total || 0)}</span>
-                                </td>
-                                <td />
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
+                    {(snapshot as any)?.source === "legacy_import" ? (
+                      <SmResumoTab snapshot={snapshot as any} latestVersao={latestVersao} wpPrice={wpPrice} />
+                    ) : (
+                      <NativeResumoTab snapshot={snapshot} ucsDetail={ucsDetail} latestVersao={latestVersao} wpPrice={wpPrice} buildSummaryRows={buildSummaryRows} />
+                    )}
                   </TabsContent>
 
                   {/* ─ Arquivo Tab ─────────────── */}
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
-                    {/* Warning banner if snapshot changed */}
-                    {snapshot && html && (
-                      <div className="flex items-center gap-2 mt-3 mb-3 py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning">
-                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                        <span>Atenção! Houve atualização na proposta e seu arquivo pode não estar atualizado. Gere um novo arquivo, se necessário.</span>
-                      </div>
+                    {(snapshot as any)?.source === "legacy_import" ? (
+                      <SmArquivoTab snapshot={snapshot as any} />
+                    ) : (
+                      <NativeArquivoTab
+                        snapshot={snapshot}
+                        html={html}
+                        rendering={rendering}
+                        downloadingPdf={downloadingPdf}
+                        sending={sending}
+                        publicUrl={publicUrl}
+                        validadeDate={validadeDate}
+                        handleRender={handleRender}
+                        handleDownloadPdf={handleDownloadPdf}
+                        handleSend={handleSend}
+                        copyLink={copyLink}
+                      />
                     )}
-
-                    <div className="flex gap-5 mt-3">
-                      {/* Left: Options panel */}
-                      <div className="w-[220px] shrink-0 space-y-3">
-                        <p className="text-sm font-bold text-foreground">Opções</p>
-
-                        <Button
-                          size="sm"
-                          className="w-full justify-start gap-2 h-8 text-xs"
-                          onClick={handleRender}
-                          disabled={rendering}
-                        >
-                          {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                          Gerar outro arquivo
-                        </Button>
-
-                        <div className="space-y-1">
-                          <button
-                            onClick={handleDownloadPdf}
-                            disabled={!html || downloadingPdf}
-                            className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1"
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                            {downloadingPdf ? "Gerando..." : "Baixar PDF"}
-                          </button>
-
-                          <button
-                            onClick={() => toast({ title: "Exportação DOCX", description: "Funcionalidade em desenvolvimento." })}
-                            className="flex items-center gap-2 text-xs text-primary hover:underline py-1"
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                            Baixar DOCX
-                          </button>
-
-                          <button
-                            onClick={() => copyLink(true)}
-                            className="flex items-center gap-2 text-xs text-primary hover:underline py-1"
-                          >
-                            <Link2 className="h-3.5 w-3.5" />
-                            Copiar link com rastreio
-                          </button>
-
-                          <button
-                            onClick={() => copyLink(false)}
-                            className="flex items-center gap-2 text-xs text-primary hover:underline py-1"
-                          >
-                            <Link2 className="h-3.5 w-3.5" />
-                            Copiar link sem rastreio
-                          </button>
-
-                          {validadeDate && (
-                            <div className="flex items-center gap-2 text-xs text-primary py-1">
-                              <CalendarCheck className="h-3.5 w-3.5" />
-                              Validade da proposta: {validadeDate}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="space-y-2 pt-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full justify-start gap-2 h-8 text-xs border-success text-success hover:bg-success/10"
-                            onClick={() => handleSend("whatsapp")}
-                            disabled={sending || !html}
-                          >
-                            <MessageCircle className="h-3.5 w-3.5" />
-                            Enviar por whatsapp
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full justify-start gap-2 h-8 text-xs border-primary text-primary hover:bg-primary/10"
-                            onClick={() => {
-                              toast({ title: "Envio por e-mail", description: "Funcionalidade em desenvolvimento." });
-                            }}
-                            disabled={!html}
-                          >
-                            <Mail className="h-3.5 w-3.5" />
-                            Enviar por e-mail
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Right: Preview */}
-                      <div className="flex-1 min-w-0 border rounded-lg overflow-hidden bg-muted/20">
-                        {html ? (
-                          <iframe
-                            srcDoc={html}
-                            className="w-full h-[500px] border-0"
-                            title="Preview da proposta"
-                            sandbox="allow-same-origin"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
-                            <FileText className="h-10 w-10 opacity-20 mb-3" />
-                            <p className="text-sm font-medium">Nenhum arquivo gerado</p>
-                            <p className="text-xs mt-1">Clique em "Gerar outro arquivo" para visualizar</p>
-                            <Button size="sm" variant="outline" className="mt-3 gap-1.5 text-xs" onClick={handleRender} disabled={rendering}>
-                              {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                              Gerar arquivo
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </TabsContent>
 
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
-                      {/* Pré dimensionamento */}
-                      <div className="border rounded-lg p-4 space-y-4">
-                        <h4 className="text-sm font-bold text-foreground">Pré dimensionamento</h4>
-                        {(() => {
-                          const pre = (snapshot as any)?.preDimensionamento || {};
-                          const loc = snapshot as any;
-                          return (
-                            <div className="space-y-3">
-                              <DadosField icon="check" label="Telhado" value={loc?.locTipoTelhado || "—"} />
-                              <DadosField icon="text" label="Topologia" value={pre.topologias?.join(", ") || "—"} />
-                              <DadosField icon="text" label="Sistema" value={pre.sistema || "—"} />
-                              <DadosField icon="text" label="Inclinação" value={pre.inclinacao != null ? `${pre.inclinacao}°` : "—"} />
-                              <DadosField icon="text" label="Desvio Azimutal" value={pre.desvio_azimutal != null ? `${pre.desvio_azimutal}°` : "—"} />
-                              <DadosField icon="text" label="Sombreamento" value={pre.sombreamento || "—"} />
-                              <DadosField icon="text" label="Fator de Geração" value={pre.fator_geracao ? `${pre.fator_geracao}` : "—"} />
-                              <DadosField icon="text" label="Desempenho" value={pre.desempenho ? `${pre.desempenho}%` : "—"} />
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {/* Pós dimensionamento */}
-                      <div className="border rounded-lg p-4 space-y-4">
-                        <h4 className="text-sm font-bold text-foreground">Pós dimensionamento</h4>
-                        {(() => {
-                          const venda = (snapshot as any)?.venda || {};
-                          const adicionais = (snapshot as any)?.adicionais || [];
-                          const customFields = (snapshot as any)?.customFieldValues || {};
-                          return (
-                            <div className="space-y-3">
-                              <DadosField icon="dollar" label="Margem" value={venda.margem_percentual ? `${venda.margem_percentual}%` : "—"} />
-                              <DadosField icon="dollar" label="Desconto" value={venda.desconto_percentual ? `${venda.desconto_percentual}%` : "—"} />
-                              <DadosField icon="text" label="Observações" value={venda.observacoes || "—"} />
-                              {Object.entries(customFields).map(([key, val]) => (
-                                <DadosField key={key} icon="text" label={key} value={String(val) || "—"} />
-                              ))}
-                              {adicionais.map((add: any, i: number) => (
-                                <DadosField key={i} icon="check" label={add.descricao || add.nome || `Adicional ${i + 1}`} value={add.valor ? formatBRL(add.valor) : add.incluso ? "Grátis" : "—"} />
-                              ))}
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {/* Serviços */}
-                      <div className="border rounded-lg p-4 space-y-4">
-                        <h4 className="text-sm font-bold text-foreground">Serviços</h4>
-                        {(() => {
-                          const servicos = (snapshot as any)?.servicos || (snapshot as any)?.preDimensionamento?.servicos || [];
-                          if (!servicos || servicos.length === 0) {
-                            return (
-                              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                                <AlertCircle className="h-8 w-8 text-warning/50 mb-2" />
-                                <p className="text-xs">Nenhum serviço selecionado</p>
-                              </div>
-                            );
-                          }
-                          return (
-                            <div className="space-y-3">
-                              {servicos.map((s: any, i: number) => (
-                                <DadosField key={i} icon="check" label={s.descricao || s.nome} value={s.valor ? formatBRL(s.valor) : s.incluso ? "Incluso" : "—"} />
-                              ))}
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {/* Formas de pagamento */}
-                      <div className="border rounded-lg p-4 space-y-4">
-                        <h4 className="text-sm font-bold text-foreground">Formas de pagamento</h4>
-                        <div className="pb-3 border-b border-border/30">
-                          <p className="text-xs font-bold text-primary">À vista</p>
-                          <p className="text-sm font-bold text-foreground">{formatBRL(latestVersao?.valor_total || 0)}</p>
-                        </div>
-                        {(() => {
-                          const opcoes = (snapshot as any)?.pagamentoOpcoes || [];
-                          if (opcoes.length === 0) {
-                            return <p className="text-xs text-muted-foreground">Sem opções de financiamento</p>;
-                          }
-                          return opcoes.map((op: any, i: number) => (
-                            <div key={i} className="pb-3 border-b border-border/30 last:border-0 space-y-0.5">
-                              <p className="text-xs font-bold text-primary">{op.banco || op.nome || `Opção ${i + 1}`}</p>
-                              {op.valor_parcela && (
-                                <p className="text-[11px] text-muted-foreground">Valor da parcela: <span className="text-foreground font-medium">{formatBRL(op.valor_parcela)}</span></p>
-                              )}
-                              {op.parcelas && (
-                                <p className="text-[11px] text-muted-foreground">Parcelas: <span className="text-foreground font-medium">{op.parcelas}x</span></p>
-                              )}
-                              {op.carencia_meses && (
-                                <p className="text-[11px] text-muted-foreground">Carência: <span className="text-foreground font-medium">{op.carencia_meses} meses</span></p>
-                              )}
-                              {op.taxa_mensal && (
-                                <p className="text-[11px] text-muted-foreground">Taxa: <span className="text-foreground font-medium">{op.taxa_mensal}% a.m.</span></p>
-                              )}
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    </div>
+                    {(snapshot as any)?.source === "legacy_import" ? (
+                      <SmDadosTab snapshot={snapshot as any} latestVersao={latestVersao} />
+                    ) : (
+                      <NativeDadosTab snapshot={snapshot} latestVersao={latestVersao} />
+                    )}
                   </TabsContent>
 
                   {/* ─ Histórico Tab ──────────── */}
@@ -955,7 +1130,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           {/* Timeline line */}
                           <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-primary/20" />
 
-                          {auditLogs.map((log, idx) => {
+                          {auditLogs.map((log) => {
                             const actionLabel = getAuditLabel(log.acao, log.tabela);
                             const userName = log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
                             const dateStr = new Date(log.created_at).toLocaleDateString("pt-BR");
