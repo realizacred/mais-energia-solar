@@ -663,9 +663,14 @@ Deno.serve(async (req) => {
 
           // No match → need to create
           if (!clienteId) {
+            // Generate a unique cliente_code using the real sm_client_id (resolved, not -1)
+            const resolvedSmClientId = smClient.sm_client_id || smProp.sm_client_id;
+            const clienteCode = `SM-${resolvedSmClientId}-${smProp.sm_project_id || 0}`;
+            
             if (dry_run) {
               report.steps.cliente = { status: "WOULD_CREATE" };
             } else {
+              // Try insert, on conflict with cliente_code → link to existing
               const { data: newClient, error: insErr } = await adminClient
                 .from("clientes")
                 .insert({
@@ -683,21 +688,43 @@ Deno.serve(async (req) => {
                   complemento: smClient.complement,
                   cep: smClient.zip_code_formatted || smClient.zip_code,
                   empresa: smClient.company,
-                  cliente_code: `SM-${smProp.sm_client_id}`,
+                  cliente_code: clienteCode,
                 })
                 .select("id")
                 .single();
 
               if (insErr) {
-                report.aborted = true;
-                report.steps.cliente = { status: "ERROR", reason: insErr.message };
-                summary.ERROR++;
-                reports.push(report);
-                await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
-                continue;
+                // If duplicate cliente_code, find existing and link
+                if (insErr.message.includes("uq_clientes_tenant_cliente_code")) {
+                  const { data: existing } = await adminClient
+                    .from("clientes")
+                    .select("id")
+                    .eq("tenant_id", tenantId)
+                    .eq("cliente_code", clienteCode)
+                    .maybeSingle();
+                  if (existing) {
+                    clienteId = existing.id;
+                    report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "cliente_code já existia" };
+                  } else {
+                    report.aborted = true;
+                    report.steps.cliente = { status: "ERROR", reason: insErr.message };
+                    summary.ERROR++;
+                    reports.push(report);
+                    await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+                    continue;
+                  }
+                } else {
+                  report.aborted = true;
+                  report.steps.cliente = { status: "ERROR", reason: insErr.message };
+                  summary.ERROR++;
+                  reports.push(report);
+                  await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+                  continue;
+                }
+              } else {
+                clienteId = newClient!.id;
+                report.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
               }
-              clienteId = newClient!.id;
-              report.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
             }
           }
 
