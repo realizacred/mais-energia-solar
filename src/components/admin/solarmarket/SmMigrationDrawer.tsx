@@ -103,7 +103,7 @@ interface SmMigrationDrawerProps {
 }
 
 export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigrationDrawerProps) {
-  const [ownerId, setOwnerId] = useState<string>("");
+  const [ownerId, setOwnerId] = useState<string>(""); // always used as fallback
   const [steps, setSteps] = useState<MigrationStep[]>(INITIAL_STEPS);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
@@ -175,7 +175,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         filters: { sm_proposal_ids: smIds },
         batch_size: smIds.length,
       };
-      // Only include owner_id if manually selected (not "__auto__")
+      // Always send owner_id as fallback for proposals without Vendedores funnel
       if (ownerId && ownerId !== "__auto__") {
         payload.owner_id = ownerId;
       }
@@ -324,23 +324,24 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               </div>
             )}
 
-            {/* Owner selector — optional, auto-resolved from funnel */}
+            {/* Owner selector — required as fallback for proposals without Vendedores funnel */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Responsável (opcional — auto-resolvido pelo funil Vendedores)</label>
+              <label className="text-xs font-medium text-muted-foreground">
+                Responsável <span className="text-destructive">*</span>
+              </label>
               <Select value={ownerId} onValueChange={setOwnerId}>
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Automático (funil Vendedores)" />
+                  <SelectValue placeholder="Selecione o consultor responsável" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__auto__">🔄 Automático (funil Vendedores)</SelectItem>
                   {consultores.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-[10px] text-muted-foreground">
-                Se o projeto SM estiver no funil "Vendedores", o nome da etapa define o consultor automaticamente.
-                Vendedores não cadastrados serão criados sem acesso ao sistema.
+                Se o projeto SM estiver no funil "Vendedores", o vendedor será auto-resolvido pelo nome da etapa.
+                Caso contrário, o consultor selecionado acima será usado.
               </p>
             </div>
 

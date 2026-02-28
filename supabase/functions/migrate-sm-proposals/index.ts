@@ -467,10 +467,10 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── B2. Resolve owner_id (auto from funnel or fallback to params) ──
+          // ── B2. Resolve owner_id (auto from funnel, then fallback to params.owner_id) ──
           let resolvedOwnerId = params.owner_id || null;
           let ownerAutoCreated = false;
-          let ownerSource = "manual";
+          let ownerSource = resolvedOwnerId ? "manual" : "none";
 
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
@@ -482,16 +482,17 @@ Deno.serve(async (req) => {
                 ownerSource = `funnel:${smProj.sm_stage_name}`;
                 (report as any).owner_resolved = { name: smProj.sm_stage_name, id, created, source: "vendedores_funnel" };
               } catch (e) {
-                // Fallback to params.owner_id
+                // Keep params.owner_id as fallback
                 (report as any).owner_resolved = { error: (e as Error).message, fallback: params.owner_id };
               }
             }
+            // No funnel match — keep params.owner_id as fallback (already set above)
           }
 
           // If still no owner, abort
           if (!resolvedOwnerId) {
             report.aborted = true;
-            report.steps.deal = { status: "ERROR", reason: "Nenhum vendedor encontrado (sem funil Vendedores e sem owner_id manual)" };
+            report.steps.deal = { status: "ERROR", reason: "Nenhum vendedor no funil Vendedores e nenhum responsável de fallback selecionado" };
             summary.ERROR++;
             reports.push(report);
             await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
