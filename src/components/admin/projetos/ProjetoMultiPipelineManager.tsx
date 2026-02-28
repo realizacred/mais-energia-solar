@@ -98,7 +98,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   );
 
   const addToPipeline = async (pipelineId: string, stageId: string) => {
-    if (isLocked) { toast({ title: "Projeto fechado", description: "Não é possível alterar funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "Projeto bloqueado", description: "Não é possível alterar funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
     setSaving(pipelineId);
     try {
       const { error } = await supabase.from("deal_pipeline_stages").insert({
@@ -119,7 +119,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   };
 
   const changeStage = async (membershipId: string, newStageId: string) => {
-    if (isLocked) { toast({ title: "Projeto fechado", description: "Não é possível alterar etapas de um projeto ganho/perdido.", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "Projeto bloqueado", description: "Não é possível alterar etapas de um projeto ganho/perdido.", variant: "destructive" }); return; }
     setSaving(membershipId);
     try {
       const { error } = await supabase
@@ -138,7 +138,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   };
 
   const removeFromPipeline = async (membershipId: string) => {
-    if (isLocked) { toast({ title: "Projeto fechado", description: "Não é possível remover funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "Projeto bloqueado", description: "Não é possível remover funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
     setSaving(membershipId);
     try {
       const { error } = await supabase
