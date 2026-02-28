@@ -849,9 +849,9 @@ Deno.serve(async (req) => {
             if (dry_run) {
               report.steps.deal = { status: "WOULD_CREATE", reason: `owner: ${ownerSource}${ownerAutoCreated ? " (criar)" : ""}` };
             } else {
-              const { data: newDeal, error: dealErr } = await adminClient
-                .from("deals")
-                .insert({
+              // Resolve original SM date for created_at
+              const smOriginalDate = smProp.sm_created_at || smProp.generated_at || smProp.send_at || null;
+              const dealInsert: Record<string, any> = {
                   tenant_id: tenantId,
                   pipeline_id: params.pipeline_id!,
                   stage_id: params.stage_id || null,
@@ -863,7 +863,16 @@ Deno.serve(async (req) => {
                   status: mapSmStatusToDeal(smProp),
                   legacy_key: legacyKey,
                   deal_num: null,
-                })
+              };
+              if (smOriginalDate) {
+                dealInsert.created_at = smOriginalDate;
+                dealInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smOriginalDate;
+              }
+              // deals table doesn't have closed_at column
+
+              const { data: newDeal, error: dealErr } = await adminClient
+                .from("deals")
+                .insert(dealInsert)
                 .select("id")
                 .single();
 
@@ -944,9 +953,8 @@ Deno.serve(async (req) => {
               projetoId = existingProjeto![0].id;
               report.steps.projeto = { status: "WOULD_LINK", id: projetoId };
             } else {
-              const { data: newProj, error: projErr } = await adminClient
-                .from("projetos")
-                .insert({
+              const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
+              const projInsert: Record<string, any> = {
                   tenant_id: tenantId,
                   cliente_id: clienteId!,
                   deal_id: dealId,
@@ -969,7 +977,14 @@ Deno.serve(async (req) => {
                   status: mapSmStatusToDeal(smProp) === "won" ? "concluido" : "criado",
                   codigo: `PROJ-SM-${smProp.sm_proposal_id}`,
                   projeto_num: null,
-                })
+              };
+              if (smProjDate) {
+                projInsert.created_at = smProjDate;
+                projInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smProjDate;
+              }
+              const { data: newProj, error: projErr } = await adminClient
+                .from("projetos")
+                .insert(projInsert)
                 .select("id")
                 .single();
 
@@ -1004,9 +1019,8 @@ Deno.serve(async (req) => {
                 continue;
               }
 
-              const { data: newProp, error: propErr } = await adminClient
-                .from("propostas_nativas")
-                .insert({
+              const smPropDate = smProp.generated_at || smProp.sm_created_at || null;
+              const propInsert: Record<string, any> = {
                   tenant_id: tenantId,
                   projeto_id: projetoId,
                   deal_id: dealId,
@@ -1019,9 +1033,18 @@ Deno.serve(async (req) => {
                   sm_project_id: smProp.sm_project_id ? String(smProp.sm_project_id) : null,
                   sm_raw_payload: null,
                   aceita_at: smProp.acceptance_date || null,
-                  proposta_num: null, // trigger assigns
-                  codigo: `PROP-SM-${smProp.sm_proposal_id}`, // trigger may override
-                })
+                  recusada_at: smProp.rejection_date || null,
+                  enviada_at: smProp.send_at || null,
+                  proposta_num: null,
+                  codigo: `PROP-SM-${smProp.sm_proposal_id}`,
+              };
+              if (smPropDate) {
+                propInsert.created_at = smPropDate;
+                propInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smPropDate;
+              }
+              const { data: newProp, error: propErr } = await adminClient
+                .from("propostas_nativas")
+                .insert(propInsert)
                 .select("id")
                 .single();
 
@@ -1089,9 +1112,8 @@ Deno.serve(async (req) => {
                 valid_until: smProp.valid_until,
               };
 
-              const { data: newVer, error: verErr } = await adminClient
-                .from("proposta_versoes")
-                .insert({
+              const smVerDate = smProp.generated_at || smProp.sm_created_at || null;
+              const verInsert: Record<string, any> = {
                   tenant_id: tenantId,
                   proposta_id: propostaId,
                   versao_numero: 1,
@@ -1106,7 +1128,6 @@ Deno.serve(async (req) => {
                   snapshot: finalSnapshot,
                   validade_dias: 30,
                   aceito_em: smProp.acceptance_date || null,
-                  // Promote KPI columns from SM data
                   link_pdf: smProp.link_pdf || null,
                   geracao_anual: smProp.geracao_anual || null,
                   tir: smProp.tir || null,
@@ -1122,7 +1143,14 @@ Deno.serve(async (req) => {
                   viewed_at: smProp.viewed_at || null,
                   enviado_em: smProp.send_at || null,
                   origem: "solarmarket",
-                })
+              };
+              if (smVerDate) {
+                verInsert.created_at = smVerDate;
+                verInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smVerDate;
+              }
+              const { data: newVer, error: verErr } = await adminClient
+                .from("proposta_versoes")
+                .insert(verInsert)
                 .select("id")
                 .single();
 
