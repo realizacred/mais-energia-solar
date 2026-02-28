@@ -151,9 +151,26 @@ Deno.serve(async (req) => {
 
     // ─── 1. Fetch SM proposals ───────────────────────────
 
+    // Select only needed columns — exclude raw_payload to avoid statement timeout
+    const SM_PROPOSAL_COLUMNS = [
+      "id", "tenant_id", "sm_proposal_id", "sm_project_id", "sm_client_id",
+      "titulo", "description", "potencia_kwp", "valor_total", "status",
+      "panel_model", "panel_quantity", "inverter_model", "inverter_quantity",
+      "discount", "installation_cost", "equipment_cost", "energy_generation",
+      "roof_type", "structure_type", "warranty", "payment_conditions",
+      "valid_until", "sm_created_at", "sm_updated_at",
+      "link_pdf", "consumo_mensal", "tarifa_distribuidora", "economia_mensal",
+      "economia_mensal_percent", "payback", "vpl", "tir", "preco_total",
+      "fase", "tipo_dimensionamento", "dis_energia", "cidade", "estado",
+      "geracao_anual", "inflacao_energetica", "perda_eficiencia_anual",
+      "sobredimensionamento", "custo_disponibilidade",
+      "generated_at", "send_at", "viewed_at", "acceptance_date", "rejection_date",
+      "migrar_para_canonico",
+    ].join(", ");
+
     let query = adminClient
       .from("solar_market_proposals")
-      .select("*")
+      .select(SM_PROPOSAL_COLUMNS)
       .eq("tenant_id", tenantId)
       .not("sm_client_id", "is", null)
       .order("sm_proposal_id", { ascending: true });
@@ -205,7 +222,7 @@ Deno.serve(async (req) => {
       const chunk = clientIds.slice(i, i + 500);
       const { data: clients } = await adminClient
         .from("solar_market_clients")
-        .select("*")
+        .select("sm_client_id, name, email, phone, phone_formatted, phone_normalized, document, document_formatted, city, state, neighborhood, address, number, complement, zip_code, zip_code_formatted, company")
         .eq("tenant_id", tenantId)
         .in("sm_client_id", chunk);
       for (const c of clients || []) {
@@ -488,7 +505,7 @@ Deno.serve(async (req) => {
                   versao_atual: 1,
                   sm_id: smIdKey,
                   sm_project_id: smProp.sm_project_id ? String(smProp.sm_project_id) : null,
-                  sm_raw_payload: smProp.raw_payload || null,
+                  sm_raw_payload: null, // raw_payload excluded from listing query for performance
                   aceita_at: smProp.acceptance_date || smProp.sm_created_at || new Date().toISOString(),
                   proposta_num: 0, // trigger assigns
                   codigo: `PROP-SM-${smProp.sm_proposal_id}`, // trigger may override
