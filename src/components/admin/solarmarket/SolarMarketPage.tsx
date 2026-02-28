@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDet
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
 import { SmMigrationToggle } from "@/components/admin/solarmarket/SmMigrationToggle";
+import { SmMigrationDrawer } from "@/components/admin/solarmarket/SmMigrationDrawer";
+import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
@@ -210,29 +212,57 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
   );
 }
 
-function ProposalsTable({ proposals, onSelect, pagination }: {
+function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggleSelect, onToggleAll, onMigrate }: {
   proposals: SmProposal[];
   onSelect: (p: SmProposal) => void;
   pagination?: { page: number; pageSize: number; onPageChange: (p: number) => void; onPageSizeChange: (s: number) => void };
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleAll: (displayed: SmProposal[]) => void;
+  onMigrate: (proposals: SmProposal[]) => void;
 }) {
   const displayed = pagination ? paginate(proposals, pagination.page, pagination.pageSize) : proposals;
+  const allDisplayedSelected = displayed.length > 0 && displayed.every(p => selectedIds.has(p.id));
+  const hasSelection = selectedIds.size > 0;
+
   return (
-    <SectionCard icon={FileText} title="Propostas" variant="neutral" noPadding>
+    <SectionCard icon={FileText} title="Propostas" variant="neutral" noPadding
+      actions={hasSelection ? (
+        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => {
+          const selected = proposals.filter(p => selectedIds.has(p.id));
+          onMigrate(selected.slice(0, 10));
+        }}>
+          <ArrowRightLeft className="h-3 w-3 mr-1" />
+          Migrar {selectedIds.size > 10 ? "10 de " : ""}{selectedIds.size} selecionada(s)
+        </Button>
+      ) : undefined}
+    >
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={allDisplayedSelected}
+                onCheckedChange={() => onToggleAll(displayed)}
+              />
+            </TableHead>
             <TableHead>Título</TableHead>
             <TableHead>Potência</TableHead>
             <TableHead>Valor</TableHead>
-            <TableHead>Equipamento</TableHead>
-             <TableHead>Status</TableHead>
-             <TableHead>Migração</TableHead>
-             <TableHead className="text-right">Ações</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Migração</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {displayed.map(pr => (
             <TableRow key={pr.id} className="cursor-pointer" onClick={() => onSelect(pr)}>
+              <TableCell onClick={e => e.stopPropagation()}>
+                <Checkbox
+                  checked={selectedIds.has(pr.id)}
+                  onCheckedChange={() => onToggleSelect(pr.id)}
+                />
+              </TableCell>
               <TableCell>
                 <p className="font-medium">{pr.titulo || "—"}</p>
               </TableCell>
@@ -252,20 +282,20 @@ function ProposalsTable({ proposals, onSelect, pagination }: {
                 </span>
               </TableCell>
               <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {pr.panel_model ? `${pr.panel_model}${pr.panel_quantity ? ` (${pr.panel_quantity}x)` : ""}` : pr.modulos || "—"}
-                </span>
-              </TableCell>
-              <TableCell>
                 <Badge variant="outline" className="text-[10px]">{pr.status || "—"}</Badge>
               </TableCell>
               <TableCell>
                 <SmMigrationToggle proposal={pr} />
               </TableCell>
-              <TableCell className="text-right">
-                <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary" onClick={(e) => { e.stopPropagation(); onSelect(pr); }}>
-                  <Eye className="h-4 w-4" />
-                </Button>
+              <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-end gap-1">
+                  <Button size="sm" variant="ghost" className="text-primary hover:text-primary h-7 px-1.5" onClick={() => onMigrate([pr])} title="Migrar">
+                    <ArrowRightLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary h-7 px-1.5" onClick={() => onSelect(pr)} title="Detalhes">
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -404,6 +434,37 @@ export default function SolarMarketPage() {
   const [selectedProposal, setSelectedProposal] = useState<SmProposal | null>(null);
   const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterProjectId, setFilterProjectId] = useState<number | null>(null);
+
+  // Migration selection state
+  const [selectedProposalIds, setSelectedProposalIds] = useState<Set<string>>(new Set());
+  const [migrationDrawerProposals, setMigrationDrawerProposals] = useState<SmProposal[]>([]);
+  const [migrationDrawerOpen, setMigrationDrawerOpen] = useState(false);
+
+  const toggleProposalSelect = useCallback((id: string) => {
+    setSelectedProposalIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAllProposals = useCallback((displayed: SmProposal[]) => {
+    setSelectedProposalIds(prev => {
+      const allSelected = displayed.every(p => prev.has(p.id));
+      const next = new Set(prev);
+      if (allSelected) {
+        displayed.forEach(p => next.delete(p.id));
+      } else {
+        displayed.forEach(p => next.add(p.id));
+      }
+      return next;
+    });
+  }, []);
+
+  const openMigrationDrawer = useCallback((proposals: SmProposal[]) => {
+    setMigrationDrawerProposals(proposals);
+    setMigrationDrawerOpen(true);
+  }, []);
 
   // Pagination state per tab
   const clientsPag = usePagination(100);
@@ -686,7 +747,7 @@ export default function SolarMarketPage() {
             filtered.proposals.length === 0 ? (
               <EmptyState icon={FileText} title="Nenhuma proposta" description="Sincronize para importar propostas." />
             ) : (
-              <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
+              <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} selectedIds={selectedProposalIds} onToggleSelect={toggleProposalSelect} onToggleAll={toggleAllProposals} onMigrate={openMigrationDrawer} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
             )}
         </TabsContent>
 
@@ -769,6 +830,11 @@ export default function SolarMarketPage() {
         proposal={selectedProposal}
         open={!!selectedProposal}
         onOpenChange={(v) => { if (!v) setSelectedProposal(null); }}
+      />
+      <SmMigrationDrawer
+        proposals={migrationDrawerProposals}
+        open={migrationDrawerOpen}
+        onOpenChange={setMigrationDrawerOpen}
       />
     </div>
   );
