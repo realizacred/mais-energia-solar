@@ -17,6 +17,7 @@ interface MigrationParams {
     date_to?: string;       // ISO date
     only_marked?: boolean;  // only migrar_para_canonico=true
     vendedor_name?: string; // filter by vendedor (SM funnel "Vendedores" stage name)
+    proposal_lifecycle?: string; // "aceita" | "enviada" | "vista" | "gerada" | "rejeitada"
   };
   batch_size?: number;
   /** Required: pipeline_id to assign deals into */
@@ -268,6 +269,26 @@ Deno.serve(async (req) => {
     }
     if (filters.only_marked) {
       query = query.eq("migrar_para_canonico", true);
+    }
+    // Lifecycle filter based on date columns
+    if (filters.proposal_lifecycle) {
+      switch (filters.proposal_lifecycle) {
+        case "aceita":
+          query = query.not("acceptance_date", "is", null);
+          break;
+        case "rejeitada":
+          query = query.not("rejection_date", "is", null);
+          break;
+        case "vista":
+          query = query.not("viewed_at", "is", null);
+          break;
+        case "enviada":
+          query = query.not("send_at", "is", null);
+          break;
+        case "gerada":
+          query = query.not("generated_at", "is", null);
+          break;
+      }
     }
 
     // Paginate SM proposals (max 1000 per page)
