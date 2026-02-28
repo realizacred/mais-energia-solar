@@ -250,14 +250,23 @@ export function useSmFunnelStages(funnelId?: number) {
   return useQuery<SmFunnelStage[]>({
     queryKey: ["sm-funnel-stages", funnelId],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("solar_market_funnel_stages")
-        .select("*")
-        .order("stage_order", { ascending: true });
-      if (funnelId) query = query.eq("sm_funnel_id", funnelId);
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
+      const allRows: SmFunnelStage[] = [];
+      let from = 0;
+      while (true) {
+        let query = (supabase as any)
+          .from("solar_market_funnel_stages")
+          .select("*")
+          .order("stage_order", { ascending: true })
+          .range(from, from + SM_PAGE_SIZE - 1);
+        if (funnelId) query = query.eq("sm_funnel_id", funnelId);
+        const { data, error } = await query;
+        if (error) throw error;
+        const batch = (data || []) as SmFunnelStage[];
+        allRows.push(...batch);
+        if (batch.length < SM_PAGE_SIZE) break;
+        from += SM_PAGE_SIZE;
+      }
+      return allRows;
     },
   });
 }
