@@ -341,8 +341,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                 </SelectContent>
               </Select>
               <p className="text-[10px] text-muted-foreground">
-                O consultor é resolvido automaticamente pelo campo "responsible" do projeto SM.
-                Se não encontrar, usa o selecionado acima como fallback. Consultores inexistentes serão criados sem acesso.
+                O consultor é resolvido automaticamente: 1º busca na API SM o funil "Vendedores" (nome da etapa = nome do consultor),
+                2º usa o campo "responsible" do projeto SM. Consultores inexistentes serão criados sem acesso ao sistema.
               </p>
             </div>
 
