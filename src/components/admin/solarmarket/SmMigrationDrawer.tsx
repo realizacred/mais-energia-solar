@@ -120,7 +120,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
   const proposal = proposals[0]; // Single or first for display
   const isBulk = proposals.length > 1;
-  const smIds = proposals.map(p => p.sm_proposal_id);
+  const internalIds = proposals.map(p => p.id); // Use UUID primary keys for unique identification
 
   const { data: existingCanonical } = useCanonicalCheck(proposal?.sm_proposal_id ?? null);
 
@@ -146,7 +146,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     // owner_id is now optional — auto-resolved from SM funnel "Vendedores"
     resetState();
     setRunning(true);
-    addLog(`Iniciando ${dryRun ? "simulação (dry-run)" : "migração real"} para ${smIds.length} proposta(s)`);
+    addLog(`Iniciando ${dryRun ? "simulação (dry-run)" : "migração real"} para ${internalIds.length} proposta(s)`);
     addLog(ownerId ? `Responsável manual: ${consultores.find(c => c.id === ownerId)?.nome || ownerId}` : "Responsável será auto-resolvido pelo funil Vendedores");
 
     // Step: Fetch
@@ -162,7 +162,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         return;
       }
 
-      updateStep("fetch", { state: "done", detail: `${smIds.length} proposta(s) selecionada(s)` });
+      updateStep("fetch", { state: "done", detail: `${internalIds.length} proposta(s) selecionada(s)` });
       addLog(`Token obtido. Invocando edge function...`);
 
       // Animate intermediate steps
@@ -175,8 +175,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         pipeline_id: PIPELINE_ID,
         stage_id: stageInfo.stage_id,
         auto_resolve_owner: true,
-        filters: { sm_proposal_ids: smIds },
-        batch_size: smIds.length,
+        filters: { internal_ids: internalIds },
+        batch_size: internalIds.length,
       };
       // Always send owner_id as fallback for proposals without Vendedores funnel
       if (ownerId && ownerId !== "__auto__") {
@@ -253,7 +253,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     } finally {
       setRunning(false);
     }
-  }, [ownerId, smIds, stageInfo, addLog, resetState, updateStep, isBulk, qc]);
+  }, [ownerId, internalIds, stageInfo, addLog, resetState, updateStep, isBulk, qc]);
 
   const handleExecuteConfirm = () => {
     setConfirmOpen(false);

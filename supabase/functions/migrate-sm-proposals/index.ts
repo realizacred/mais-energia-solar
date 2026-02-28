@@ -13,6 +13,7 @@ interface MigrationParams {
   filters?: {
     status?: string;        // e.g. "approved"
     sm_proposal_ids?: number[];
+    internal_ids?: string[]; // UUID primary keys from solar_market_proposals table
     date_from?: string;     // ISO date
     date_to?: string;       // ISO date
     only_marked?: boolean;  // only migrar_para_canonico=true
@@ -258,7 +259,9 @@ Deno.serve(async (req) => {
       // SM status field: "approved", "sent", "draft" etc.
       query = query.ilike("status", filters.status);
     }
-    if (filters.sm_proposal_ids && filters.sm_proposal_ids.length > 0) {
+    if (filters.internal_ids && filters.internal_ids.length > 0) {
+      query = query.in("id", filters.internal_ids);
+    } else if (filters.sm_proposal_ids && filters.sm_proposal_ids.length > 0) {
       query = query.in("sm_proposal_id", filters.sm_proposal_ids);
     }
     if (filters.date_from) {
