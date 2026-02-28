@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,30 +77,36 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Validate user auth
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { authorization: authHeader } },
-    });
-    const { data: { user }, error: authErr } = await userClient.auth.getUser();
-    if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    // Validate user auth using service client + getUser(jwt)
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized", detail: "No token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get tenant_id via user_id
     const adminClient = createClient(supabaseUrl, serviceKey);
+    const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
+    console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized", detail: authErr?.message }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get tenant_id via user_id (reuse adminClient)
     const { data: profile, error: profileError } = await adminClient
       .from("profiles")
       .select("tenant_id, status, ativo")
       .eq("user_id", user.id)
       .single();
 
+    console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
     if (profileError || !profile?.tenant_id) {
-      return new Response(JSON.stringify({ error: "No tenant/profile" }), {
+      return new Response(JSON.stringify({ error: "No tenant/profile", detail: profileError?.message }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
