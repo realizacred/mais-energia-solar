@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRLInteger as formatBRL } from "@/lib/formatters";
+import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 
@@ -142,7 +142,7 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
               <p className="text-xs font-bold text-foreground">Unidade (Geradora)</p>
               {snapshot.economia_mensal_percent && (
                 <p className="text-[10px] text-muted-foreground">
-                  Economia: {formatBRL((snapshot.tarifa_distribuidora || 0) * (snapshot.consumo_mensal || 0) * (snapshot.economia_mensal_percent / 100))} ({snapshot.economia_mensal_percent}%)
+                  Economia: {formatBRL((snapshot.tarifa_distribuidora || 0) * (snapshot.consumo_mensal || 0) * (snapshot.economia_mensal_percent / 100))} ({formatNumberBR(snapshot.economia_mensal_percent)}%)
                 </p>
               )}
               <p className="text-[10px] text-muted-foreground">
@@ -173,7 +173,7 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
                     <td className="py-2 px-3 font-semibold text-foreground">Kit</td>
                     <td className="py-2 px-3 text-center text-muted-foreground">1</td>
                     <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(equipCost)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{equipPct.toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(equipPct)}%</td>
                   </tr>
                   {snapshot.panel_model && (
                     <tr className="border-t border-border/10">
@@ -196,7 +196,7 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
                   <td className="py-2 px-3 font-semibold text-foreground">Instalação</td>
                   <td className="py-2 px-3 text-center text-muted-foreground">1</td>
                   <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(installCost)}</td>
-                  <td className="py-2 px-3 text-right text-muted-foreground">{installPct.toFixed(2)}%</td>
+                  <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(installPct)}%</td>
                 </tr>
               )}
             </tbody>
@@ -205,7 +205,7 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
                 <td className="py-3 px-3 font-bold text-foreground">Total</td>
                 <td />
                 <td className="py-3 px-3 text-right">
-                  {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice} / Wp</span>}
+                  {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice.replace('.', ',')} / Wp</span>}
                   <span className="font-bold text-foreground text-sm">{formatBRL(totalFinal)}</span>
                 </td>
                 <td />
@@ -271,7 +271,7 @@ function SmDadosTab({ snapshot, latestVersao }: { snapshot: any; latestVersao: V
         <DadosField icon="dollar" label="Custo Equipamento" value={snapshot.equipment_cost ? formatBRL(snapshot.equipment_cost) : "—"} />
         <DadosField icon="dollar" label="Custo Instalação" value={snapshot.installation_cost ? formatBRL(snapshot.installation_cost) : "—"} />
         <DadosField icon="dollar" label="Desconto" value={snapshot.discount ? formatBRL(snapshot.discount) : "—"} />
-        <DadosField icon="dollar" label="TIR" value={snapshot.tir ? `${(snapshot.tir * 100).toFixed(2)}%` : "—"} />
+        <DadosField icon="dollar" label="TIR" value={snapshot.tir ? `${formatNumberBR(snapshot.tir * 100)}%` : "—"} />
         <DadosField icon="dollar" label="VPL" value={snapshot.vpl ? formatBRL(snapshot.vpl) : "—"} />
         <DadosField icon="text" label="Payback" value={snapshot.payback_original || "—"} />
       </div>
@@ -279,14 +279,14 @@ function SmDadosTab({ snapshot, latestVersao }: { snapshot: any; latestVersao: V
       {/* Energia */}
       <div className="border rounded-lg p-4 space-y-3">
         <h4 className="text-sm font-bold text-foreground">Energia</h4>
-        <DadosField icon="text" label="Consumo Mensal" value={snapshot.consumo_mensal ? `${snapshot.consumo_mensal} kWh` : "—"} />
-        <DadosField icon="text" label="Geração Anual" value={snapshot.geracao_anual ? `${Number(snapshot.geracao_anual).toFixed(0)} kWh` : "—"} />
-        <DadosField icon="text" label="Economia %" value={snapshot.economia_mensal_percent ? `${snapshot.economia_mensal_percent}%` : "—"} />
-        <DadosField icon="dollar" label="Tarifa Distribuidora" value={snapshot.tarifa_distribuidora ? `R$ ${Number(snapshot.tarifa_distribuidora).toFixed(4)}` : "—"} />
+        <DadosField icon="text" label="Consumo Mensal" value={snapshot.consumo_mensal ? `${formatNumberBR(snapshot.consumo_mensal)} kWh` : "—"} />
+        <DadosField icon="text" label="Geração Anual" value={snapshot.geracao_anual ? `${formatNumberBR(Number(snapshot.geracao_anual))} kWh` : "—"} />
+        <DadosField icon="text" label="Economia %" value={snapshot.economia_mensal_percent ? `${formatNumberBR(snapshot.economia_mensal_percent)}%` : "—"} />
+        <DadosField icon="dollar" label="Tarifa Distribuidora" value={snapshot.tarifa_distribuidora ? `R$ ${Number(snapshot.tarifa_distribuidora).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}` : "—"} />
         <DadosField icon="dollar" label="Custo Disponibilidade" value={snapshot.custo_disponibilidade ? formatBRL(snapshot.custo_disponibilidade) : "—"} />
-        <DadosField icon="text" label="Sobredimensionamento" value={snapshot.sobredimensionamento ? `${(snapshot.sobredimensionamento * 100).toFixed(0)}%` : "—"} />
-        <DadosField icon="text" label="Perda Eficiência/Ano" value={snapshot.perda_eficiencia_anual ? `${(snapshot.perda_eficiencia_anual * 100).toFixed(1)}%` : "—"} />
-        <DadosField icon="text" label="Inflação Energética" value={snapshot.inflacao_energetica ? `${(snapshot.inflacao_energetica * 100).toFixed(1)}%` : "—"} />
+        <DadosField icon="text" label="Sobredimensionamento" value={snapshot.sobredimensionamento ? `${formatNumberBR(snapshot.sobredimensionamento * 100)}%` : "—"} />
+        <DadosField icon="text" label="Perda Eficiência/Ano" value={snapshot.perda_eficiencia_anual ? `${formatNumberBR(snapshot.perda_eficiencia_anual * 100)}%` : "—"} />
+        <DadosField icon="text" label="Inflação Energética" value={snapshot.inflacao_energetica ? `${formatNumberBR(snapshot.inflacao_energetica * 100)}%` : "—"} />
       </div>
 
       {/* Pagamento */}
@@ -384,7 +384,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
                     <td className="py-2 px-3 font-semibold text-foreground">{row.label}</td>
                     <td className="py-2 px-3 text-center text-muted-foreground">{row.qty}</td>
                     <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(row.value)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{row.pct.toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(row.pct)}%</td>
                   </tr>
                   {row.children?.map((child, ci) => (
                     <tr key={`${idx}-${ci}`} className="border-t border-border/10">
@@ -402,7 +402,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
                 <td className="py-3 px-3 font-bold text-foreground">Total</td>
                 <td />
                 <td className="py-3 px-3 text-right">
-                  {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice} / Wp</span>}
+                  {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice.replace('.', ',')} / Wp</span>}
                   <span className="font-bold text-foreground text-sm">{formatBRL(latestVersao?.valor_total || 0)}</span>
                 </td>
                 <td />
@@ -522,8 +522,8 @@ function NativeDadosTab({ snapshot, latestVersao }: { snapshot: SnapshotData | n
           const customFields = (snapshot as any)?.customFieldValues || {};
           return (
             <div className="space-y-3">
-              <DadosField icon="dollar" label="Margem" value={venda.margem_percentual ? `${venda.margem_percentual}%` : "—"} />
-              <DadosField icon="dollar" label="Desconto" value={venda.desconto_percentual ? `${venda.desconto_percentual}%` : "—"} />
+               <DadosField icon="dollar" label="Margem" value={venda.margem_percentual ? `${formatNumberBR(venda.margem_percentual)}%` : "—"} />
+               <DadosField icon="dollar" label="Desconto" value={venda.desconto_percentual ? `${formatNumberBR(venda.desconto_percentual)}%` : "—"} />
               <DadosField icon="text" label="Observações" value={venda.observacoes || "—"} />
               {Object.entries(customFields).map(([key, val]) => (
                 <DadosField key={key} icon="text" label={key} value={String(val) || "—"} />
@@ -884,7 +884,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     const marginPct = venda?.margem_percentual || 0;
     const marginValue = totalFinal > 0 ? totalFinal * marginPct / (100 + marginPct) : 0;
     rows.push({
-      label: `Margem (Markup ${marginPct.toFixed(2)}%)`,
+      label: `Margem (Markup ${formatNumberBR(marginPct)}%)`,
       qty: 1,
       value: marginValue,
       pct: totalFinal > 0 ? (marginValue / totalFinal) * 100 : 0,
@@ -949,7 +949,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <p className="text-[10px] text-muted-foreground leading-tight">Preço do Projeto</p>
               <p className="text-sm font-bold text-foreground">
                 {latestVersao?.valor_total ? formatBRL(latestVersao.valor_total) : "—"}
-                {wpPrice && <span className="text-[10px] font-normal text-muted-foreground ml-1.5">R$ {wpPrice} / Wp</span>}
+                {wpPrice && <span className="text-[10px] font-normal text-muted-foreground ml-1.5">R$ {wpPrice.replace('.', ',')} / Wp</span>}
               </p>
             </div>
           </div>
