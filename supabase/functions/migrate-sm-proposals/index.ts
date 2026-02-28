@@ -575,11 +575,34 @@ Deno.serve(async (req) => {
         };
 
         try {
-          // ── A. Resolve SM Client ──
-          const smClient = smClientMap.get(smProp.sm_client_id);
+          // ── A. Resolve SM Client (handle sm_client_id=-1 via project) ──
+          let smClient = smClientMap.get(smProp.sm_client_id);
+          if (!smClient && smProp.sm_project_id) {
+            // sm_client_id=-1 is common — resolve real client_id via project
+            const { data: proj } = await adminClient
+              .from("solar_market_projects")
+              .select("sm_client_id")
+              .eq("tenant_id", tenantId)
+              .eq("sm_project_id", smProp.sm_project_id)
+              .maybeSingle();
+            if (proj?.sm_client_id && proj.sm_client_id > 0) {
+              smClient = smClientMap.get(proj.sm_client_id);
+              if (!smClient) {
+                // Fetch directly if not pre-loaded
+                const { data: clients } = await adminClient
+                  .from("solar_market_clients")
+                  .select("sm_client_id, name, email, phone, phone_formatted, phone_normalized, document, document_formatted, city, state, neighborhood, address, number, complement, zip_code, zip_code_formatted, company")
+                  .eq("tenant_id", tenantId)
+                  .eq("sm_client_id", proj.sm_client_id)
+                  .limit(1);
+                if (clients?.[0]) smClient = clients[0];
+              }
+              if (smClient) console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
+            }
+          }
           if (!smClient) {
             report.aborted = true;
-            report.steps.cliente = { status: "ERROR", reason: "SM client not found for sm_client_id=" + smProp.sm_client_id };
+            report.steps.cliente = { status: "ERROR", reason: `Cliente SM não encontrado (sm_client_id=${smProp.sm_client_id}). Execute o sync primeiro.` };
             summary.ERROR++;
             reports.push(report);
             continue;
