@@ -440,6 +440,8 @@ export default function SolarMarketPage() {
   const [selectedProposal, setSelectedProposal] = useState<SmProposal | null>(null);
   const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterProjectId, setFilterProjectId] = useState<number | null>(null);
+  const [filterProposalStatus, setFilterProposalStatus] = useState("");
+  const [filterProposalConsultor, setFilterProposalConsultor] = useState("");
 
   // Migration selection state
   const [selectedProposalIds, setSelectedProposalIds] = useState<Set<string>>(new Set());
@@ -504,6 +506,8 @@ export default function SolarMarketPage() {
     setFilterProjectId(null);
     setFilterCity("");
     setFilterResponsible("");
+    setFilterProposalStatus("");
+    setFilterProposalConsultor("");
   };
 
   const { syncAll, syncStage, progress } = useSolarMarketSync();
@@ -560,6 +564,20 @@ export default function SolarMarketPage() {
     return [...new Set(names)].sort();
   }, [clients]);
 
+  const uniqueProposalStatuses = useMemo(() => {
+    const statuses = proposals.map(p => p.status).filter(Boolean) as string[];
+    return [...new Set(statuses)].sort();
+  }, [proposals]);
+
+  const uniqueProposalConsultores = useMemo(() => {
+    const projectIds = new Set(proposals.map(p => p.sm_project_id).filter(Boolean));
+    const names = projects
+      .filter(p => projectIds.has(p.sm_project_id))
+      .map(p => p.responsible?.name)
+      .filter(Boolean) as string[];
+    return [...new Set(names)].sort();
+  }, [proposals, projects]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const cityFilter = filterCity.toLowerCase();
@@ -593,9 +611,17 @@ export default function SolarMarketPage() {
     let filteredProposals = proposals;
     if (filterProjectId) filteredProposals = filteredProposals.filter(p => p.sm_project_id === filterProjectId);
     if (q) filteredProposals = filteredProposals.filter(p => p.titulo?.toLowerCase().includes(q));
+    if (filterProposalStatus) filteredProposals = filteredProposals.filter(p => p.status === filterProposalStatus);
+    if (filterProposalConsultor) {
+      // Match consultor via project's responsible
+      const projectIdsForConsultor = new Set(
+        projects.filter(pr => pr.responsible?.name === filterProposalConsultor).map(pr => pr.sm_project_id)
+      );
+      filteredProposals = filteredProposals.filter(p => p.sm_project_id && projectIdsForConsultor.has(p.sm_project_id));
+    }
 
     return { clients: filteredClients, projects: filteredProjects, proposals: filteredProposals };
-  }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible]);
+  }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible, filterProposalStatus, filterProposalConsultor]);
 
   return (
     <div className="space-y-4">
@@ -743,7 +769,30 @@ export default function SolarMarketPage() {
 
         {/* ─── Propostas Tab ──────────────────────────────── */}
         <TabsContent value="propostas" className="mt-3 space-y-3">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center gap-2 justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={filterProposalStatus}
+                onChange={(e) => { setFilterProposalStatus(e.target.value); proposalsPag.resetPage(); }}
+                className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+              >
+                <option value="">Todos status</option>
+                {uniqueProposalStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select
+                value={filterProposalConsultor}
+                onChange={(e) => { setFilterProposalConsultor(e.target.value); proposalsPag.resetPage(); }}
+                className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+              >
+                <option value="">Todos consultores</option>
+                {uniqueProposalConsultores.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {(filterProposalStatus || filterProposalConsultor) && (
+                <Button variant="ghost" size="sm" onClick={() => { setFilterProposalStatus(""); setFilterProposalConsultor(""); proposalsPag.resetPage(); }} className="text-[11px] h-7 px-2">
+                  ✕ Limpar
+                </Button>
+              )}
+            </div>
             <Button onClick={() => syncStage("proposals")} disabled={syncIsRunning} size="sm" variant="outline" className="h-7 text-xs">
               <RefreshCw className={`h-3 w-3 mr-1 ${syncIsRunning ? "animate-spin" : ""}`} />
               Sync Propostas
