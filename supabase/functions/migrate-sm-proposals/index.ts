@@ -689,6 +689,8 @@ Deno.serve(async (req) => {
                   cep: smClient.zip_code_formatted || smClient.zip_code,
                   empresa: smClient.company,
                   cliente_code: clienteCode,
+                  potencia_kwp: smProp.potencia_kwp || null,
+                  valor_projeto: smProp.preco_total || smProp.valor_total || null,
                 })
                 .select("id")
                 .single();
@@ -908,9 +910,17 @@ Deno.serve(async (req) => {
                   valor_total: smProp.preco_total || smProp.valor_total || null,
                   cidade_instalacao: smProp.cidade || smClient.city || null,
                   uf_instalacao: smProp.estado || smClient.state || null,
+                  tipo_instalacao: smProp.roof_type || null,
+                  modelo_inversor: smProp.inverter_model || null,
+                  numero_inversores: smProp.inverter_quantity || null,
+                  modelo_modulos: smProp.panel_model || null,
+                  numero_modulos: smProp.panel_quantity || null,
+                  valor_equipamentos: smProp.equipment_cost || null,
+                  valor_mao_obra: smProp.installation_cost || null,
+                  geracao_mensal_media_kwh: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
                   status: "criado",
-                  codigo: `PROJ-SM-${smProp.sm_proposal_id}`, // trigger will override if null
-                  projeto_num: null, // trigger assigns
+                  codigo: `PROJ-SM-${smProp.sm_proposal_id}`,
+                  projeto_num: null,
                 })
                 .select("id")
                 .single();
@@ -1041,6 +1051,19 @@ Deno.serve(async (req) => {
                   snapshot: finalSnapshot,
                   validade_dias: 30,
                   aceito_em: smProp.acceptance_date || smProp.sm_created_at || null,
+                  // Promote KPI columns from SM data
+                  link_pdf: smProp.link_pdf || null,
+                  geracao_anual: smProp.geracao_anual || null,
+                  tir: smProp.tir || null,
+                  vpl: smProp.vpl || null,
+                  consumo_mensal: smProp.consumo_mensal || null,
+                  tarifa_distribuidora: smProp.tarifa_distribuidora || null,
+                  economia_mensal_percent: smProp.economia_mensal_percent || null,
+                  inflacao_energetica: smProp.inflacao_energetica || null,
+                  perda_eficiencia_anual: smProp.perda_eficiencia_anual || null,
+                  sobredimensionamento: smProp.sobredimensionamento || null,
+                  custo_disponibilidade: smProp.custo_disponibilidade || null,
+                  origem: "solarmarket",
                 })
                 .select("id")
                 .single();
