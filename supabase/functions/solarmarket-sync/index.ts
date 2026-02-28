@@ -1636,8 +1636,8 @@ Deno.serve(async (req) => {
         let backfilled = 0;
         let bfErrors = 0;
         let bfOffset = 0;
-        const bfPageSize = 100;
-        const bfTimeBudget = 90_000; // 90s budget for backfill_cf_raw standalone
+        const bfPageSize = 200;
+        const bfTimeBudget = 110_000; // 110s budget
         const bfStart = Date.now();
 
         while (Date.now() - bfStart < bfTimeBudget) {
@@ -1652,38 +1652,51 @@ Deno.serve(async (req) => {
           if (!rows || rows.length === 0) break;
           console.log(`[SM Sync] Backfill batch: ${rows.length} proposals (offset=${bfOffset}), cfDefsLookup.size=${cfDefsLookup.size}`);
 
+          // Build all cfRaw objects in memory first, then batch update
+          const updates: { id: string; custom_fields_raw: any; warnings: any }[] = [];
           for (const row of rows) {
             try {
               const payload = row.raw_payload;
-              const vars = Array.isArray(payload?.variables) ? payload.variables : [];
-              if (bfOffset === 0 && backfilled === 0) {
-                // Log first proposal for debugging
+              if (bfOffset === 0 && backfilled === 0 && updates.length === 0) {
+                const vars = Array.isArray(payload?.variables) ? payload.variables : [];
                 console.log(`[SM Sync] Backfill sample: proposal ${row.id}, variables count=${vars.length}, first 3 keys=${vars.slice(0, 3).map((v: any) => v.key).join(",")}`);
               }
               const cfRaw = buildCustomFieldsRaw(payload);
               if (cfRaw) {
                 const warnings = cfRaw._warnings || null;
                 delete cfRaw._warnings;
-                const valuesCount = Object.keys(cfRaw.values || {}).length;
-                const { error: updateErr } = await supabase
-                  .from("solar_market_proposals")
-                  .update({ custom_fields_raw: cfRaw, warnings })
-                  .eq("id", row.id);
-                if (updateErr) {
-                  console.error(`[SM Sync] Backfill update error for ${row.id}: ${updateErr.message}`);
-                  bfErrors++;
-                } else {
-                  backfilled++;
-                  if (backfilled === 1) {
-                    console.log(`[SM Sync] Backfill first success: ${row.id}, values=${valuesCount}, keys=${Object.keys(cfRaw.values || {}).join(",")}`);
-                  }
-                }
+                updates.push({ id: row.id, custom_fields_raw: cfRaw, warnings });
               }
             } catch (rowErr) {
-              console.error(`[SM Sync] Backfill row error for ${row.id}:`, (rowErr as Error).message);
               bfErrors++;
             }
           }
+
+          // Batch update using Promise.all with chunks of 25
+          const CHUNK = 25;
+          for (let i = 0; i < updates.length; i += CHUNK) {
+            const chunk = updates.slice(i, i + CHUNK);
+            const results = await Promise.allSettled(
+              chunk.map((u) =>
+                supabase
+                  .from("solar_market_proposals")
+                  .update({ custom_fields_raw: u.custom_fields_raw, warnings: u.warnings })
+                  .eq("id", u.id)
+              )
+            );
+            for (const r of results) {
+              if (r.status === "fulfilled" && !r.value.error) {
+                backfilled++;
+              } else {
+                bfErrors++;
+              }
+            }
+          }
+
+          if (backfilled > 0 && backfilled <= updates.length) {
+            console.log(`[SM Sync] Backfill progress: ${backfilled} done, ${bfErrors} errors, elapsed=${Date.now() - bfStart}ms`);
+          }
+
           bfOffset += bfPageSize;
         }
 
