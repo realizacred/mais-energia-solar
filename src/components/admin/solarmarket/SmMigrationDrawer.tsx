@@ -97,6 +97,32 @@ function useCanonicalCheck(smProposalId: number | null) {
   });
 }
 
+// ─── Hook: fetch all funnels from SM project ───────────
+
+interface SmFunnel {
+  funnelId: number | null;
+  funnelName: string;
+  stageId: number | null;
+  stageName: string;
+}
+
+function useSmProjectFunnels(smProjectId: number | null) {
+  return useQuery<SmFunnel[]>({
+    queryKey: ["sm-project-funnels", smProjectId],
+    enabled: !!smProjectId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("solar_market_projects")
+        .select("all_funnels")
+        .eq("sm_project_id", smProjectId)
+        .limit(1);
+      const funnels = data?.[0]?.all_funnels;
+      return Array.isArray(funnels) ? funnels : [];
+    },
+    staleTime: 60_000,
+  });
+}
+
 // ─── Drawer Component ───────────────────────────────────
 
 interface SmMigrationDrawerProps {
@@ -123,6 +149,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const internalIds = proposals.map(p => p.id); // Use UUID primary keys for unique identification
 
   const { data: existingCanonical } = useCanonicalCheck(proposal?.sm_proposal_id ?? null);
+  const { data: projectFunnels = [] } = useSmProjectFunnels(proposal?.sm_project_id ?? null);
 
   const stageInfo = proposal ? (STAGE_MAP[proposal.status?.toLowerCase() ?? ""] ?? DEFAULT_STAGE) : DEFAULT_STAGE;
 
@@ -286,32 +313,48 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           <div className="px-4 pb-4 space-y-4 overflow-y-auto max-h-[60vh]">
             {/* Proposal Summary */}
             {!isBulk && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground text-xs">Cliente</span>
-                  <p className="font-medium truncate">{proposal.titulo || "—"}</p>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Cliente</span>
+                    <p className="font-medium truncate">{proposal.titulo || "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Status SM</span>
+                    <p><Badge variant="outline" className="text-[10px]">{proposal.status || "—"}</Badge></p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Potência</span>
+                    <p className="font-medium">{proposal.potencia_kwp ? `${proposal.potencia_kwp} kWp` : "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Valor</span>
+                    <p className="font-medium">{proposal.valor_total ? `R$ ${Number(proposal.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">PDF</span>
+                    <p className="truncate">{proposal.link_pdf ? <a href={proposal.link_pdf} target="_blank" rel="noopener" className="text-primary underline text-xs">Ver PDF</a> : "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Etapa mapeada</span>
+                    <p><Badge className="text-[10px] bg-primary/10 text-primary border-0">{stageInfo.label}</Badge></p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">Status SM</span>
-                  <p><Badge variant="outline" className="text-[10px]">{proposal.status || "—"}</Badge></p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">Potência</span>
-                  <p className="font-medium">{proposal.potencia_kwp ? `${proposal.potencia_kwp} kWp` : "—"}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">Valor</span>
-                  <p className="font-medium">{proposal.valor_total ? `R$ ${Number(proposal.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">PDF</span>
-                  <p className="truncate">{proposal.link_pdf ? <a href={proposal.link_pdf} target="_blank" rel="noopener" className="text-primary underline text-xs">Ver PDF</a> : "—"}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">Etapa mapeada</span>
-                  <p><Badge className="text-[10px] bg-primary/10 text-primary border-0">{stageInfo.label}</Badge></p>
-                </div>
-              </div>
+
+                {/* All SM funnels for this project */}
+                {projectFunnels.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground text-xs">Funis SM do projeto ({projectFunnels.length})</span>
+                    <div className="flex flex-wrap gap-1">
+                      {projectFunnels.map((f, i) => (
+                        <Badge key={i} variant="outline" className="text-[10px]">
+                          {f.funnelName}: <span className="font-semibold ml-0.5">{f.stageName || "—"}</span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Already migrated warning */}

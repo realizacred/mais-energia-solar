@@ -803,7 +803,8 @@ Deno.serve(async (req) => {
         errors.push(...result.errors);
 
         // ── Enrich projects with per-project funnel data (with resume) ──
-        // Skip projects that already have funnel data
+        // Skip projects that already have ALL funnel data (all_funnels populated)
+        // Previously used sm_funnel_id which caused projects to be skipped even without all_funnels
         const alreadyEnrichedSet = new Set<number>();
         {
           let offset = 0;
@@ -813,7 +814,7 @@ Deno.serve(async (req) => {
               .from("solar_market_projects")
               .select("sm_project_id")
               .eq("tenant_id", tenantId)
-              .not("sm_funnel_id", "is", null)
+              .not("all_funnels", "is", null)
               .range(offset, offset + pageSize - 1);
             for (const r of (enrichedRows || [])) alreadyEnrichedSet.add(r.sm_project_id);
             if ((enrichedRows || []).length < pageSize) break;
@@ -825,7 +826,7 @@ Deno.serve(async (req) => {
         console.log(`[SM Sync] Funnel enrichment: ${alreadyEnrichedSet.size} already done, ${pendingEnrich.length} pending`);
         
         let enriched = 0;
-        const funnelTimeBudget = 20_000; // 20s budget for funnel enrichment
+        const funnelTimeBudget = 50_000; // 50s budget for funnel enrichment (increased from 20s)
         const funnelStart = Date.now();
 
         for (const projId of pendingEnrich) {
