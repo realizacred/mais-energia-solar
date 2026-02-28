@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePostSaleVisits, useUpdateVisitStatus, useCreateVisit, PostSaleVisit } from "@/hooks/usePostSale";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,6 +29,7 @@ const TIPO_LABELS: Record<string, string> = {
 };
 
 export function PostSaleVisitsList() {
+  const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterTipo, setFilterTipo] = useState<string>("all");
   const [selectedVisit, setSelectedVisit] = useState<PostSaleVisit | null>(null);
@@ -101,6 +103,9 @@ export function PostSaleVisitsList() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => navigate(`/admin/pos-venda-visitas/${v.id}`)}>
+                          <Eye className="h-3.5 w-3.5" /> Abrir
+                        </Button>
                         {(v.status === "pendente" || v.status === "agendado") && (
                           <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setSelectedVisit(v)}>
                             <CheckCircle2 className="h-3.5 w-3.5" /> Concluir

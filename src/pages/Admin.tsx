@@ -123,6 +123,8 @@ const PostSaleDashboardPage = lazy(() => import("@/components/admin/post-sale/Po
 const PostSaleVisitsPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitsList"));
 const PostSalePlansPage = lazy(() => import("@/components/admin/post-sale/PostSalePlansList"));
 const PostSaleUpsellPage = lazy(() => import("@/components/admin/post-sale/PostSaleUpsellList"));
+const PostSaleVisitDetailPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitDetail"));
+const PostSaleChecklistsPage = lazy(() => import("@/components/admin/post-sale/PostSaleChecklistsPage"));
 // SolarZap removed — functionality consolidated into WaInbox (Atendimento)
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard")
@@ -297,6 +299,7 @@ const TAB_TITLES: Record<string, string> = {
   "pos-venda-visitas": "Preventivas",
   "pos-venda-planos": "Planos pós-venda",
   "pos-venda-upsell": "Oportunidades",
+  "pos-venda-checklists": "Checklists pós-venda",
 
   "payment-gateway": "Pagamentos (Asaas)",
   "ai-config": "Configuração de IA",
@@ -522,8 +525,10 @@ export default function Admin() {
                 {/* Pós-Venda */}
                 <Route path="pos-venda" element={<PostSaleDashboardPage />} />
                 <Route path="pos-venda-visitas" element={<PostSaleVisitsPage />} />
+                <Route path="pos-venda-visitas/:id" element={<PostSaleVisitDetailPage />} />
                 <Route path="pos-venda-planos" element={<PostSalePlansPage />} />
                 <Route path="pos-venda-upsell" element={<PostSaleUpsellPage />} />
+                <Route path="pos-venda-checklists" element={<PostSaleChecklistsPage />} />
 
                 {/* Operações */}
                 <Route path="instaladores" element={<InstaladorManager />} />

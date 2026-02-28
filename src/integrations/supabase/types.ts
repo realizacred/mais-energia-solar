@@ -18218,6 +18218,10 @@ export type Database = {
           status: string
         }[]
       }
+      rpc_post_sale_guarantees_expiring: {
+        Args: { p_tenant_id?: string }
+        Returns: number
+      }
       rpc_recall_or_start_conversation: {
         Args: {
           p_instance_preference?: string
@@ -18265,6 +18269,15 @@ export type Database = {
       touch_contact_last_interaction: {
         Args: { p_at: string; p_phone_e164: string; p_tenant_id: string }
         Returns: undefined
+      }
+      try_create_post_sale_visit: {
+        Args: {
+          p_data_prevista: string
+          p_plan_id: string
+          p_projeto_id: string
+          p_tenant_id: string
+        }
+        Returns: string
       }
       try_followup_lock: { Args: never; Returns: boolean }
       try_outbox_lock:
