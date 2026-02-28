@@ -41,9 +41,18 @@ interface DryRunResult {
   }>;
 }
 
+interface ErrorDetails {
+  name?: string;
+  message?: string;
+  status?: number;
+  statusText?: string;
+  body?: string;
+}
+
 export function MigracaoSmDryRun() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
   const [result, setResult] = useState<DryRunResult | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -51,18 +60,27 @@ export function MigracaoSmDryRun() {
   const runDryRun = async () => {
     setLoading(true);
     setError(null);
+    setErrorDetails(null);
     setResult(null);
     try {
-      // Force token refresh before calling
       await supabase.auth.getUser();
       
       const { data, error: fnError } = await supabase.functions.invoke("migrate-sm-proposals", {
         body: DRY_RUN_PAYLOAD,
       });
       if (fnError) {
-        // Try to extract JSON error message from response
-        const msg = typeof data === "object" && data?.error ? data.error : fnError.message;
-        throw new Error(msg);
+        const ctx = (fnError as any).context;
+        console.error({ fnError, ctx });
+        const details: ErrorDetails = {
+          name: fnError.name,
+          message: fnError.message,
+          status: ctx?.status,
+          statusText: ctx?.statusText,
+          body: ctx?.body ? JSON.stringify(ctx.body, null, 2) : (typeof data === "object" ? JSON.stringify(data, null, 2) : String(data ?? "")),
+        };
+        setErrorDetails(details);
+        setError(typeof data === "object" && data?.error ? data.error : fnError.message);
+        return;
       }
       setResult(data as DryRunResult);
     } catch (err: any) {
@@ -90,9 +108,18 @@ export function MigracaoSmDryRun() {
 
       {loading && <LoadingState message="Executando dry-run..." />}
 
-      {error && (
+      {(error || errorDetails) && (
         <SectionCard variant="red" icon={AlertTriangle} title="Erro">
-          <p className="text-sm text-destructive">{error}</p>
+          {error && <p className="text-sm text-destructive mb-2">{error}</p>}
+          {errorDetails && (
+            <pre className="text-xs bg-muted/50 p-3 rounded overflow-auto max-h-60 whitespace-pre-wrap break-all">
+{`Name: ${errorDetails.name ?? "—"}
+Message: ${errorDetails.message ?? "—"}
+Status: ${errorDetails.status ?? "—"} ${errorDetails.statusText ?? ""}
+Body:
+${errorDetails.body ?? "—"}`}
+            </pre>
+          )}
         </SectionCard>
       )}
 
