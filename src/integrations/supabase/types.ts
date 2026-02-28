@@ -2235,6 +2235,7 @@ export type Database = {
           is_active: boolean
           priority: number
           source_key: string
+          source_provider: string
           target_namespace: string
           target_path: string
           tenant_id: string
@@ -2247,6 +2248,7 @@ export type Database = {
           is_active?: boolean
           priority?: number
           source_key: string
+          source_provider?: string
           target_namespace?: string
           target_path?: string
           tenant_id: string
@@ -2259,6 +2261,7 @@ export type Database = {
           is_active?: boolean
           priority?: number
           source_key?: string
+          source_provider?: string
           target_namespace?: string
           target_path?: string
           tenant_id?: string

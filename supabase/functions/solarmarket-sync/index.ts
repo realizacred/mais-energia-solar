@@ -1570,6 +1570,70 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Backfill custom_fields_raw for existing proposals ──
+    if (sync_type === "backfill_cf_raw" || sync_type === "full") {
+      try {
+        // Re-load defs if not loaded yet
+        if (cfDefsLookup.size === 0) {
+          const { data: cfDefs } = await supabase
+            .from("solar_market_custom_fields")
+            .select("key, name, field_type, sm_custom_field_id, version_hash")
+            .eq("tenant_id", tenantId)
+            .eq("is_active", true);
+          for (const d of (cfDefs || [])) {
+            if (d.key) {
+              cfDefsLookup.set(d.key, {
+                label: d.name || d.key,
+                type: d.field_type || "unknown",
+                external_field_id: d.sm_custom_field_id,
+                version_hash: d.version_hash,
+              });
+            }
+          }
+        }
+
+        // Fetch proposals that have raw_payload but no custom_fields_raw
+        let backfilled = 0;
+        let bfOffset = 0;
+        const bfPageSize = 100;
+        const bfTimeBudget = 20_000;
+        const bfStart = Date.now();
+
+        while (Date.now() - bfStart < bfTimeBudget) {
+          const { data: rows } = await supabase
+            .from("solar_market_proposals")
+            .select("id, raw_payload")
+            .eq("tenant_id", tenantId)
+            .is("custom_fields_raw", null)
+            .not("raw_payload", "is", null)
+            .range(bfOffset, bfOffset + bfPageSize - 1);
+
+          if (!rows || rows.length === 0) break;
+
+          for (const row of rows) {
+            const cfRaw = buildCustomFieldsRaw(row.raw_payload);
+            if (cfRaw) {
+              const warnings = cfRaw._warnings || null;
+              delete cfRaw._warnings;
+              await supabase
+                .from("solar_market_proposals")
+                .update({ custom_fields_raw: cfRaw, warnings })
+                .eq("id", row.id);
+              backfilled++;
+            }
+          }
+          bfOffset += bfPageSize;
+        }
+
+        if (backfilled > 0) {
+          console.log(`[SM Sync] Backfilled custom_fields_raw for ${backfilled} proposals`);
+          totalUpserted += backfilled;
+        }
+      } catch (e) {
+        console.warn("[SM Sync] Backfill custom_fields_raw error:", (e as Error).message);
+      }
+    }
+
     // ─── Finalize ──────────────────────────────────────────
     if (hasSolarMarketAuthError && totalUpserted === 0) {
       if (logId) {

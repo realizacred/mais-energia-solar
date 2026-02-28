@@ -1210,6 +1210,66 @@ Deno.serve(async (req) => {
             report.steps.proposta_versao = { status: "WOULD_CREATE" };
           }
 
+          // ── G. Apply Custom Field Mappings to canonical entities ──
+          if (!dry_run && smProp.custom_fields_raw?.values && cfMappings.size > 0) {
+            const cfValues = smProp.custom_fields_raw.values as Record<string, any>;
+            const clientUpdates: Record<string, any> = {};
+            const projetoUpdates: Record<string, any> = {};
+            const propostaMetaCf: Record<string, any> = {};
+            const unmappedCf: Record<string, any> = {};
+
+            for (const [key, entry] of Object.entries(cfValues)) {
+              const mapping = cfMappings.get(key) || cfMappings.get(`[${key}]`);
+              if (!mapping) {
+                unmappedCf[key] = entry;
+                continue;
+              }
+              const transformed = applyTransform(entry.value ?? entry.raw_value, mapping.transform);
+
+              switch (mapping.target_namespace) {
+                case "client":
+                  if (mapping.target_path && clienteId) clientUpdates[mapping.target_path] = transformed;
+                  break;
+                case "project":
+                  if (mapping.target_path && projetoId) projetoUpdates[mapping.target_path] = transformed;
+                  break;
+                case "proposal":
+                case "finance":
+                case "tags":
+                case "metadata":
+                  propostaMetaCf[key] = { ...entry, mapped_to: `${mapping.target_namespace}.${mapping.target_path}`, transformed_value: transformed };
+                  break;
+              }
+            }
+
+            // Apply client updates
+            if (Object.keys(clientUpdates).length > 0 && clienteId) {
+              const { error: cuErr } = await adminClient.from("clientes").update(clientUpdates).eq("id", clienteId);
+              if (cuErr) console.warn(`[SM Migration] Client CF update error: ${cuErr.message}`);
+            }
+            // Apply project updates
+            if (Object.keys(projetoUpdates).length > 0 && projetoId) {
+              const { error: puErr } = await adminClient.from("projetos").update(projetoUpdates).eq("id", projetoId);
+              if (puErr) console.warn(`[SM Migration] Project CF update error: ${puErr.message}`);
+            }
+            // Save mapped + unmapped metadata on proposta
+            if (propostaId && (Object.keys(propostaMetaCf).length > 0 || Object.keys(unmappedCf).length > 0)) {
+              const metaPayload: any = {};
+              if (Object.keys(propostaMetaCf).length > 0) metaPayload.custom_fields_mapped = propostaMetaCf;
+              if (Object.keys(unmappedCf).length > 0) metaPayload.custom_fields_unmapped = unmappedCf;
+              // Update proposta_versoes final_snapshot with CF metadata
+              await adminClient
+                .from("proposta_versoes")
+                .update({ final_snapshot: { ...{}, custom_field_metadata: metaPayload } })
+                .eq("proposta_id", propostaId)
+                .eq("versao_numero", 1);
+            }
+            (report as any).custom_fields_applied = {
+              mapped: Object.keys(propostaMetaCf).length + Object.keys(clientUpdates).length + Object.keys(projetoUpdates).length,
+              unmapped: Object.keys(unmappedCf).length,
+            };
+          }
+
           // Determine overall status for logging
           const allSteps = Object.values(report.steps);
           const hasError = allSteps.some((s) => s.status === "ERROR");
