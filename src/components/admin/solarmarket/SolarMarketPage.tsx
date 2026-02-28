@@ -367,8 +367,14 @@ function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
               <TableCell><code className="text-xs text-muted-foreground">{cf.key || "—"}</code></TableCell>
               <TableCell><Badge variant="outline" className="text-[10px]">{cf.field_type || "—"}</Badge></TableCell>
               <TableCell>
-                <span className="text-xs text-muted-foreground">
-                  {cf.options ? (Array.isArray(cf.options) ? cf.options.map((o: any) => o.label || o.name || o).join(", ") : JSON.stringify(cf.options).slice(0, 80)) : "—"}
+                <span className="text-xs text-muted-foreground max-w-xs truncate block">
+                  {cf.options
+                    ? (Array.isArray(cf.options)
+                        ? cf.options.map((o: any) =>
+                            typeof o === "string" ? o : (o.label || o.name || o.text || o.value || JSON.stringify(o))
+                          ).join(", ")
+                        : JSON.stringify(cf.options).slice(0, 120))
+                    : "—"}
                 </span>
               </TableCell>
             </TableRow>
