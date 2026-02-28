@@ -1035,7 +1035,7 @@ Deno.serve(async (req) => {
                   economia_mensal: smProp.economia_mensal || null,
                   geracao_mensal: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
                   payback_meses: paybackMeses,
-                  status: "approved",
+                  status: "accepted",
                   snapshot_locked: true,
                   final_snapshot: finalSnapshot,
                   snapshot: finalSnapshot,
