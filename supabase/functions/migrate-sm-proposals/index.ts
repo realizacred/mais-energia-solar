@@ -568,7 +568,7 @@ Deno.serve(async (req) => {
                   valor_total: smProp.preco_total || smProp.valor_total || null,
                   cidade_instalacao: smProp.cidade || smClient.city || null,
                   uf_instalacao: smProp.estado || smClient.state || null,
-                  status: "em_andamento",
+                  status: "criado",
                   codigo: `PROJ-SM-${smProp.sm_proposal_id}`, // trigger will override if null
                   projeto_num: 0, // trigger assigns
                 })
