@@ -74,6 +74,16 @@ export function useApplyTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ visitId, templateId }: { visitId: string; templateId: string }) => {
+      // Anti-duplication: check if checklist already applied
+      const { data: existing } = await (supabase as any)
+        .from("post_sale_visit_checklist")
+        .select("id")
+        .eq("visit_id", visitId)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        throw new Error("DUPLICATE");
+      }
+
       // Fetch template items
       const { data: items, error: itemsError } = await (supabase as any)
         .from("post_sale_checklist_items")
@@ -96,7 +106,13 @@ export function useApplyTemplate() {
       qc.invalidateQueries({ queryKey: ["ps-visit-checklist", vars.visitId] });
       toast.success("Checklist aplicado");
     },
-    onError: () => toast.error("Erro ao aplicar checklist"),
+    onError: (err: any) => {
+      if (err?.message === "DUPLICATE") {
+        toast.error("Checklist já aplicado para esta visita");
+      } else {
+        toast.error("Erro ao aplicar checklist");
+      }
+    },
   });
 }
 

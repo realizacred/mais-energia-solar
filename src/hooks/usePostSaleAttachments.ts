@@ -7,9 +7,11 @@ export interface PostSaleAttachment {
   id: string;
   tenant_id: string;
   visit_id: string;
-  file_url: string;
+  storage_path: string;
   label: string | null;
   created_at: string;
+  /** Resolved at runtime via signed URL */
+  signedUrl?: string;
 }
 
 export function usePostSaleAttachments(visitId: string | undefined) {
@@ -19,11 +21,27 @@ export function usePostSaleAttachments(visitId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_attachments")
-        .select("*")
+        .select("id, tenant_id, visit_id, storage_path, label, created_at")
         .eq("visit_id", visitId)
         .order("created_at");
       if (error) throw error;
-      return data || [];
+
+      const attachments: PostSaleAttachment[] = data || [];
+
+      // Generate signed URLs in parallel
+      const withUrls = await Promise.all(
+        attachments.map(async (att) => {
+          const { data: urlData, error: urlErr } = await supabase.storage
+            .from("post_sale_attachments")
+            .createSignedUrl(att.storage_path, 600); // 10 min
+          return {
+            ...att,
+            signedUrl: urlErr ? undefined : urlData?.signedUrl,
+          };
+        })
+      );
+
+      return withUrls;
     },
   });
 }
@@ -40,13 +58,9 @@ export function useUploadAttachment() {
         .upload(storagePath, file, { upsert: false });
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("post_sale_attachments")
-        .getPublicUrl(storagePath);
-
       const { error: dbError } = await (supabase as any)
         .from("post_sale_attachments")
-        .insert({ visit_id: visitId, file_url: urlData.publicUrl, label });
+        .insert({ visit_id: visitId, storage_path: storagePath, label });
       if (dbError) throw dbError;
 
       return visitId;
@@ -63,11 +77,28 @@ export function useDeleteAttachment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, visitId }: { id: string; visitId: string }) => {
+      // 1. Fetch storage_path
+      const { data: att, error: fetchErr } = await (supabase as any)
+        .from("post_sale_attachments")
+        .select("storage_path")
+        .eq("id", id)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+
+      // 2. Remove from storage
+      if (att?.storage_path) {
+        await supabase.storage
+          .from("post_sale_attachments")
+          .remove([att.storage_path]);
+      }
+
+      // 3. Delete DB row
       const { error } = await (supabase as any)
         .from("post_sale_attachments")
         .delete()
         .eq("id", id);
       if (error) throw error;
+
       return visitId;
     },
     onSuccess: (visitId) => {
