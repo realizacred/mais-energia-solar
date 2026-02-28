@@ -16,6 +16,7 @@ interface MigrationParams {
     date_from?: string;     // ISO date
     date_to?: string;       // ISO date
     only_marked?: boolean;  // only migrar_para_canonico=true
+    vendedor_name?: string; // filter by vendedor (SM funnel "Vendedores" stage name)
   };
   batch_size?: number;
   /** Required: pipeline_id to assign deals into */
@@ -327,6 +328,7 @@ Deno.serve(async (req) => {
     }
     console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
 
+
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
     const consultoresMap = new Map<string, string>(); // lowercase name → id
     {
@@ -514,8 +516,34 @@ Deno.serve(async (req) => {
     };
 
     // Limit total processing to batch_size to avoid timeout
-    const proposalsToProcess = allProposals.slice(0, batch_size);
+    let proposalsToProcess = allProposals.slice(0, batch_size);
     console.log(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
+
+    // ─── Filter by vendedor if specified ─────
+    if (filters.vendedor_name) {
+      const vendedorFilter = filters.vendedor_name.toLowerCase().trim();
+      
+      // Get sm_project_ids that belong to this vendedor
+      const vendedorProjectIds = new Set<number>();
+      for (const [projId, proj] of smProjectMap) {
+        const funnels: any[] = proj.all_funnels || [];
+        for (const f of funnels) {
+          const fName = (f.funnelName || "").toLowerCase();
+          const sName = (f.stageName || "").toLowerCase().trim();
+          if (fName === "vendedores" && sName === vendedorFilter) {
+            vendedorProjectIds.add(projId);
+          }
+        }
+        // Also check legacy sm_funnel_name/sm_stage_name
+        if (proj.sm_funnel_name?.toLowerCase() === "vendedores" && proj.sm_stage_name?.toLowerCase().trim() === vendedorFilter) {
+          vendedorProjectIds.add(projId);
+        }
+      }
+      
+      const beforeCount = proposalsToProcess.length;
+      proposalsToProcess = proposalsToProcess.filter((p: any) => p.sm_project_id && vendedorProjectIds.has(p.sm_project_id));
+      console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
+    }
 
     for (const smProp of proposalsToProcess) {
         const report: ProposalReport = {
