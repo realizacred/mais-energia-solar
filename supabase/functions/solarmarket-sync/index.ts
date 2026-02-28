@@ -1034,21 +1034,46 @@ Deno.serve(async (req) => {
         }
 
         if (proposals.length > 0) {
+          // Build project→client lookup to resolve sm_client_id from projects
+          const projectClientMap = new Map<number, number>();
+          {
+            let offset = 0;
+            const pageSize = 1000;
+            while (true) {
+              const { data: projRows } = await supabase
+                .from("solar_market_projects")
+                .select("sm_project_id, sm_client_id")
+                .eq("tenant_id", tenantId)
+                .not("sm_client_id", "is", null)
+                .range(offset, offset + pageSize - 1);
+              for (const r of (projRows || [])) {
+                projectClientMap.set(r.sm_project_id, r.sm_client_id);
+              }
+              if ((projRows || []).length < pageSize) break;
+              offset += pageSize;
+            }
+          }
+          console.log(`[SM Sync] Project→Client lookup built: ${projectClientMap.size} entries`);
+
           const rows = proposals.map((pr: any) => {
             const extracted = extractProposalFields(pr);
-            // Ensure sm_project_id is always set (critical for composite unique key)
             const projectId = extracted.sm_project_id || pr.project?.id || pr.projectId || null;
+            // Resolve sm_client_id: prefer API value, fallback to project lookup
+            let clientId = extracted.sm_client_id;
+            if (!clientId || clientId === -1 || clientId === "-1") {
+              clientId = projectId ? (projectClientMap.get(projectId) ?? null) : null;
+            }
             return {
               tenant_id: tenantId,
               sm_proposal_id: pr.id,
               ...extracted,
               sm_project_id: projectId,
+              sm_client_id: clientId,
               raw_payload: pr,
               synced_at: new Date().toISOString(),
             };
           });
 
-          // Filter out rows without sm_project_id (can't upsert without it)
           const validRows = rows.filter((r: any) => r.sm_project_id != null);
           const skipped = rows.length - validRows.length;
           if (skipped > 0) {
