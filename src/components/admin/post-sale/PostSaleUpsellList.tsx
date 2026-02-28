@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { usePostSaleUpsells, useUpdateUpsellStatus, useCreateUpsell } from "@/hooks/usePostSale";
+import { usePostSaleUpsells, useUpdateUpsellStatus } from "@/hooks/usePostSale";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Plus } from "lucide-react";
+import { PostSaleNewUpsellDialog } from "./PostSaleNewUpsellDialog";
 
 const TIPO_LABELS: Record<string, string> = {
   bateria: "Bateria",
@@ -32,12 +32,22 @@ const STATUS_LABELS: Record<string, string> = {
 export function PostSaleUpsellList() {
   const { data: upsells = [], isLoading } = usePostSaleUpsells();
   const updateStatus = useUpdateUpsellStatus();
+  const [showNew, setShowNew] = useState(false);
+
+  const getClienteName = (u: any) => u.cliente?.nome ?? u.nome_avulso ?? "—";
 
   return (
     <div className="p-4 md:p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div />
+        <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
+          <Plus className="h-4 w-4" /> Nova Oportunidade
+        </Button>
+      </div>
+
       <SectionCard title="Oportunidades de Upsell" description={`${upsells.length} oportunidades`}>
         {upsells.length === 0 ? (
-          <EmptyState icon={TrendingUp} title="Nenhuma oportunidade" description="Cadastre oportunidades de venda adicional para clientes instalados." />
+          <EmptyState icon={TrendingUp} title="Nenhuma oportunidade" description="Clique em 'Nova Oportunidade' para cadastrar." />
         ) : (
           <Table>
             <TableHeader>
@@ -52,7 +62,7 @@ export function PostSaleUpsellList() {
             <TableBody>
               {upsells.map(u => (
                 <TableRow key={u.id}>
-                  <TableCell className="text-sm font-medium">{u.cliente?.nome ?? "—"}</TableCell>
+                  <TableCell className="text-sm font-medium">{getClienteName(u)}</TableCell>
                   <TableCell><Badge variant="outline" className="text-xs">{TIPO_LABELS[u.tipo] ?? u.tipo}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{u.descricao ?? "—"}</TableCell>
                   <TableCell>
@@ -86,6 +96,8 @@ export function PostSaleUpsellList() {
           </Table>
         )}
       </SectionCard>
+
+      <PostSaleNewUpsellDialog open={showNew} onOpenChange={setShowNew} />
     </div>
   );
 }

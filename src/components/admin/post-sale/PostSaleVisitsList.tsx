@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePostSaleVisits, useUpdateVisitStatus, useCreateVisit, PostSaleVisit } from "@/hooks/usePostSale";
+import { usePostSaleVisits, useUpdateVisitStatus, PostSaleVisit } from "@/hooks/usePostSale";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Clock, Eye } from "lucide-react";
+import { CheckCircle2, Clock, Eye, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { PostSaleNewVisitDialog } from "./PostSaleNewVisitDialog";
 
 const STATUS_COLORS: Record<string, string> = {
   pendente: "bg-warning/10 text-warning border-warning/30",
@@ -34,6 +35,7 @@ export function PostSaleVisitsList() {
   const [filterTipo, setFilterTipo] = useState<string>("all");
   const [selectedVisit, setSelectedVisit] = useState<PostSaleVisit | null>(null);
   const [conclusionNotes, setConclusionNotes] = useState("");
+  const [showNew, setShowNew] = useState(false);
 
   const { data: visits = [], isLoading } = usePostSaleVisits({
     status: filterStatus === "all" ? undefined : filterStatus,
@@ -49,10 +51,13 @@ export function PostSaleVisitsList() {
     );
   };
 
+  const getClienteName = (v: PostSaleVisit) =>
+    v.cliente?.nome ?? (v as any).nome_avulso ?? "—";
+
   return (
     <div className="p-4 md:p-6 space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      {/* Filters + New button */}
+      <div className="flex flex-wrap items-center gap-3">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-40 h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
@@ -70,11 +75,16 @@ export function PostSaleVisitsList() {
             {Object.entries(TIPO_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="ml-auto">
+          <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
+            <Plus className="h-4 w-4" /> Nova Visita
+          </Button>
+        </div>
       </div>
 
       <SectionCard title="Visitas" description={`${visits.length} registros`}>
         {visits.length === 0 ? (
-          <EmptyState icon={Clock} title="Nenhuma visita encontrada" description="Ajuste os filtros ou aguarde projetos instalados." />
+          <EmptyState icon={Clock} title="Nenhuma visita encontrada" description="Clique em 'Nova Visita' para agendar um serviço." />
         ) : (
           <Table>
             <TableHeader>
@@ -92,7 +102,7 @@ export function PostSaleVisitsList() {
                 const isLate = v.data_prevista && v.status !== "concluido" && v.status !== "cancelado" && isPast(new Date(v.data_prevista));
                 return (
                   <TableRow key={v.id}>
-                    <TableCell className="text-sm font-medium">{v.cliente?.nome ?? "—"}</TableCell>
+                    <TableCell className="text-sm font-medium">{getClienteName(v)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{v.projeto?.codigo ?? v.projeto?.nome ?? "—"}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{TIPO_LABELS[v.tipo] ?? v.tipo}</Badge></TableCell>
                     <TableCell className={`text-sm ${isLate ? "text-destructive font-medium" : ""}`}>
@@ -121,6 +131,9 @@ export function PostSaleVisitsList() {
         )}
       </SectionCard>
 
+      {/* New visit dialog */}
+      <PostSaleNewVisitDialog open={showNew} onOpenChange={setShowNew} />
+
       {/* Conclusion dialog */}
       <Dialog open={!!selectedVisit} onOpenChange={(o) => !o && setSelectedVisit(null)}>
         <DialogContent className="sm:max-w-md">
@@ -129,7 +142,7 @@ export function PostSaleVisitsList() {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Cliente: <strong>{selectedVisit?.cliente?.nome}</strong>
+              Cliente: <strong>{selectedVisit ? getClienteName(selectedVisit) : ""}</strong>
             </p>
             <Textarea
               placeholder="Observações da visita..."
