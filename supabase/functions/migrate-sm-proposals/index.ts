@@ -62,6 +62,51 @@ function normalizePhone(raw: string | null): string | null {
   return digits.slice(-11) || null;
 }
 
+// ─── Status Mapping Helpers ─────────────────────────────
+
+function resolveSmLifecycle(smProp: any): string {
+  if (smProp.acceptance_date) return "approved";
+  if (smProp.rejection_date) return "rejected";
+  if (smProp.viewed_at) return "viewed";
+  if (smProp.send_at) return "sent";
+  if (smProp.generated_at) return "generated";
+  // Fallback to status field
+  const s = (smProp.status || "").toLowerCase();
+  if (["approved", "rejected", "viewed", "sent", "generated", "draft"].includes(s)) return s;
+  return "draft";
+}
+
+function mapSmStatusToDeal(smProp: any): string {
+  const lc = resolveSmLifecycle(smProp);
+  if (lc === "approved") return "won";
+  if (lc === "rejected") return "lost";
+  return "open";
+}
+
+function mapSmStatusToProposta(smProp: any): string {
+  const lc = resolveSmLifecycle(smProp);
+  switch (lc) {
+    case "approved": return "aceita";
+    case "rejected": return "recusada";
+    case "viewed": return "vista";
+    case "sent": return "enviada";
+    case "generated": return "gerada";
+    default: return "rascunho";
+  }
+}
+
+function mapSmStatusToVersao(smProp: any): string {
+  const lc = resolveSmLifecycle(smProp);
+  switch (lc) {
+    case "approved": return "accepted";
+    case "rejected": return "rejected";
+    case "viewed": return "sent";
+    case "sent": return "sent";
+    case "generated": return "draft";
+    default: return "draft";
+  }
+}
+
 function parsePaybackMonths(payback: string | null): number | null {
   if (!payback) return null;
   // Parse "X anos e Y meses" or "X anos" or "Y meses"
@@ -815,7 +860,7 @@ Deno.serve(async (req) => {
                   title: smProp.titulo || smClient.name || `SM Proposta ${smProp.sm_proposal_id}`,
                   value: smProp.preco_total || smProp.valor_total || 0,
                   kwp: smProp.potencia_kwp || null,
-                  status: "won",
+                  status: mapSmStatusToDeal(smProp),
                   legacy_key: legacyKey,
                   deal_num: null,
                 })
@@ -910,6 +955,9 @@ Deno.serve(async (req) => {
                   valor_total: smProp.preco_total || smProp.valor_total || null,
                   cidade_instalacao: smProp.cidade || smClient.city || null,
                   uf_instalacao: smProp.estado || smClient.state || null,
+                  bairro_instalacao: smClient.neighborhood || null,
+                  rua_instalacao: smClient.address || null,
+                  cep_instalacao: smClient.zip_code_formatted || smClient.zip_code || null,
                   tipo_instalacao: smProp.roof_type || null,
                   modelo_inversor: smProp.inverter_model || null,
                   numero_inversores: smProp.inverter_quantity || null,
@@ -918,7 +966,7 @@ Deno.serve(async (req) => {
                   valor_equipamentos: smProp.equipment_cost || null,
                   valor_mao_obra: smProp.installation_cost || null,
                   geracao_mensal_media_kwh: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
-                  status: "criado",
+                  status: mapSmStatusToDeal(smProp) === "won" ? "fechado" : "criado",
                   codigo: `PROJ-SM-${smProp.sm_proposal_id}`,
                   projeto_num: null,
                 })
@@ -964,13 +1012,13 @@ Deno.serve(async (req) => {
                   deal_id: dealId,
                   cliente_id: clienteId,
                   titulo: smProp.titulo || `Proposta SM #${smProp.sm_proposal_id}`,
-                  status: "aceita",
+                  status: mapSmStatusToProposta(smProp),
                   origem: "imported",
                   versao_atual: 1,
                   sm_id: smIdKey,
                   sm_project_id: smProp.sm_project_id ? String(smProp.sm_project_id) : null,
-                  sm_raw_payload: null, // raw_payload excluded from listing query for performance
-                  aceita_at: smProp.acceptance_date || smProp.sm_created_at || new Date().toISOString(),
+                  sm_raw_payload: null,
+                  aceita_at: smProp.acceptance_date || null,
                   proposta_num: null, // trigger assigns
                   codigo: `PROP-SM-${smProp.sm_proposal_id}`, // trigger may override
                 })
@@ -1032,6 +1080,13 @@ Deno.serve(async (req) => {
                 structure_type: smProp.structure_type,
                 warranty: smProp.warranty,
                 discount: smProp.discount,
+                dis_energia: smProp.dis_energia,
+                generated_at: smProp.generated_at,
+                send_at: smProp.send_at,
+                viewed_at: smProp.viewed_at,
+                acceptance_date: smProp.acceptance_date,
+                rejection_date: smProp.rejection_date,
+                valid_until: smProp.valid_until,
               };
 
               const { data: newVer, error: verErr } = await adminClient
@@ -1045,12 +1100,12 @@ Deno.serve(async (req) => {
                   economia_mensal: smProp.economia_mensal || null,
                   geracao_mensal: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
                   payback_meses: paybackMeses,
-                  status: "accepted",
+                  status: mapSmStatusToVersao(smProp),
                   snapshot_locked: true,
                   final_snapshot: finalSnapshot,
                   snapshot: finalSnapshot,
                   validade_dias: 30,
-                  aceito_em: smProp.acceptance_date || smProp.sm_created_at || null,
+                  aceito_em: smProp.acceptance_date || null,
                   // Promote KPI columns from SM data
                   link_pdf: smProp.link_pdf || null,
                   geracao_anual: smProp.geracao_anual || null,
@@ -1063,6 +1118,9 @@ Deno.serve(async (req) => {
                   perda_eficiencia_anual: smProp.perda_eficiencia_anual || null,
                   sobredimensionamento: smProp.sobredimensionamento || null,
                   custo_disponibilidade: smProp.custo_disponibilidade || null,
+                  distribuidora_nome: smProp.dis_energia || null,
+                  viewed_at: smProp.viewed_at || null,
+                  enviado_em: smProp.send_at || null,
                   origem: "solarmarket",
                 })
                 .select("id")
