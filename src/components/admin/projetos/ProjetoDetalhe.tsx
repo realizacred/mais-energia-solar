@@ -1,5 +1,7 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { formatProjetoLabel, formatPropostaLabel } from "@/lib/format-entity-labels";
+import { formatPhone } from "@/lib/validations";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -1297,11 +1299,11 @@ function GerenciamentoTab({
               <div className="space-y-1.5">
                 <ClientRow icon={User} label={customerName || "—"} />
                 <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
-                <ClientRow icon={Hash} label={customerCpfCnpj || "Adicionar CNPJ/CPF"} muted={!customerCpfCnpj} isLink={!customerCpfCnpj} onCopy={customerCpfCnpj ? () => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); } : undefined} onEdit={!customerCpfCnpj ? () => openInlineEdit("cpf_cnpj", "CPF / CNPJ", customerCpfCnpj) : undefined} />
+                <ClientRow icon={Hash} label={customerCpfCnpj ? formatCpfCnpj(customerCpfCnpj) : "Adicionar CNPJ/CPF"} muted={!customerCpfCnpj} isLink={!customerCpfCnpj} onCopy={customerCpfCnpj ? () => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); } : undefined} onEdit={!customerCpfCnpj ? () => openInlineEdit("cpf_cnpj", "CPF / CNPJ", customerCpfCnpj) : undefined} />
                 <ClientRow
                   icon={Phone}
-                  label={customerPhone || "Adicionar Telefone"}
-                  muted
+                  label={customerPhone ? formatPhone(customerPhone) : "Adicionar Telefone"}
+                  muted={!customerPhone}
                   isLink={!customerPhone}
                   onCopy={customerPhone ? () => { navigator.clipboard.writeText(customerPhone); toast({ title: "Telefone copiado" }); } : undefined}
                   onAction={customerPhone ? () => window.open(`https://wa.me/${customerPhone.replace(/\D/g, "")}`, "_blank") : undefined}
@@ -1750,13 +1752,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   // Refetch when tab/window regains focus (user navigated back from wizard)
   useEffect(() => {
     const handleFocus = () => setRefreshKey(k => k + 1);
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", () => {
+    const handleVisibility = () => {
       if (document.visibilityState === "visible") handleFocus();
-    });
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
