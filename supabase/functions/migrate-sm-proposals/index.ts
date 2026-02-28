@@ -81,7 +81,8 @@ Deno.serve(async (req) => {
     // Validate user auth using service client + getUser(jwt)
     const token = authHeader.replace(/^Bearer\s+/i, "");
     if (!token) {
-      return new Response(JSON.stringify({ error: "Unauthorized", detail: "No token" }), {
+      console.error("ERR", { step: "token_extract", err: "No token in header" });
+      return new Response(JSON.stringify({ error: "Unauthorized", step: "token_extract", debug: { message: "No Bearer token found" } }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -91,7 +92,8 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
     console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized", detail: authErr?.message }), {
+      console.error("ERR", { step: "user_auth", err: authErr?.message });
+      return new Response(JSON.stringify({ error: "Unauthorized", step: "user_auth", debug: { message: authErr?.message } }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -106,14 +108,16 @@ Deno.serve(async (req) => {
 
     console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
     if (profileError || !profile?.tenant_id) {
-      return new Response(JSON.stringify({ error: "No tenant/profile", detail: profileError?.message }), {
+      console.error("ERR", { step: "profile_lookup", err: profileError?.message });
+      return new Response(JSON.stringify({ error: "No tenant/profile", step: "profile_lookup", debug: { message: profileError?.message, code: profileError?.code } }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (profile.status !== "aprovado" || !profile.ativo) {
-      return new Response(JSON.stringify({ error: "User not approved/active" }), {
+      console.error("ERR", { step: "profile_check", err: `status=${profile.status} ativo=${profile.ativo}` });
+      return new Response(JSON.stringify({ error: "User not approved/active", step: "profile_check", debug: { status: profile.status, ativo: profile.ativo } }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -126,8 +130,9 @@ Deno.serve(async (req) => {
     // Validate required params for real execution
     if (!dry_run) {
       if (!params.pipeline_id || !params.owner_id) {
+        console.error("ERR", { step: "params_validation", err: "missing pipeline_id or owner_id" });
         return new Response(
-          JSON.stringify({ error: "pipeline_id and owner_id are required for real execution" }),
+          JSON.stringify({ error: "pipeline_id and owner_id are required", step: "params_validation", debug: { pipeline_id: params.pipeline_id, owner_id: params.owner_id } }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -615,9 +620,9 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("[SM Migration] Fatal error:", err);
+    console.error("ERR", { step: "fatal", err: (err as Error).message, stack: (err as Error).stack });
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: (err as Error).message, step: "fatal", debug: { stack: (err as Error).stack } }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
