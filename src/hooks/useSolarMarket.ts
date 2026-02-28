@@ -221,9 +221,10 @@ export function useSmProjects(syncRunning?: boolean) {
   return useQuery<SmProject[]>({
     queryKey: ["sm-projects"],
     queryFn: async () => {
+      // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProject>({
         table: "solar_market_projects",
-        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, responsible, raw_payload, sm_created_at, synced_at",
+        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, responsible, sm_created_at, synced_at",
         orderBy: "synced_at",
         ascending: false,
       });
@@ -278,9 +279,10 @@ export function useSmProposals(syncRunning?: boolean) {
   return useQuery<SmProposal[]>({
     queryKey: ["sm-proposals"],
     queryFn: async () => {
+      // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProposal>({
         table: "solar_market_proposals",
-        select: "id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, description, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, discount, installation_cost, equipment_cost, energy_generation, roof_type, structure_type, warranty, payment_conditions, valid_until, sm_created_at, sm_updated_at, synced_at, link_pdf, consumo_mensal, tarifa_distribuidora, economia_mensal, economia_mensal_percent, payback, vpl, tir, preco_total, fase, tipo_dimensionamento, dis_energia, cidade, estado, geracao_anual, inflacao_energetica, perda_eficiencia_anual, sobredimensionamento, custo_disponibilidade, generated_at, send_at, viewed_at, acceptance_date, rejection_date, raw_payload",
+        select: "id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, description, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, discount, installation_cost, equipment_cost, energy_generation, roof_type, structure_type, warranty, payment_conditions, valid_until, sm_created_at, sm_updated_at, synced_at, link_pdf, consumo_mensal, tarifa_distribuidora, economia_mensal, economia_mensal_percent, payback, vpl, tir, preco_total, fase, tipo_dimensionamento, dis_energia, cidade, estado, geracao_anual, inflacao_energetica, perda_eficiencia_anual, sobredimensionamento, custo_disponibilidade, generated_at, send_at, viewed_at, acceptance_date, rejection_date",
         orderBy: "synced_at",
         ascending: false,
       });

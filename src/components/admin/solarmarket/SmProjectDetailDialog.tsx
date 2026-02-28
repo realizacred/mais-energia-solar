@@ -2,7 +2,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { SmProject } from "@/hooks/useSolarMarket";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 
 interface Props {
   project: SmProject | null;
@@ -57,9 +60,25 @@ function groupBySection(raw: any): Record<string, Array<{ key: string; value: an
 const SECTION_ORDER = ["Geral", "Client", "Responsible", "Representative", "CustomFields"];
 
 export function SmProjectDetailDialog({ project, open, onOpenChange }: Props) {
+  // Fetch raw_payload on demand when dialog opens
+  const { data: rawPayload, isLoading: loadingPayload } = useQuery({
+    queryKey: ["sm-project-payload", project?.id],
+    enabled: open && !!project?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("solar_market_projects")
+        .select("raw_payload")
+        .eq("id", project!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.raw_payload ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   if (!project) return null;
 
-  const raw = project.raw_payload as any;
+  const raw = rawPayload;
   const grouped = groupBySection(raw);
   const sortedSections = Object.keys(grouped).sort((a, b) => {
     const ia = SECTION_ORDER.indexOf(a);
@@ -92,14 +111,14 @@ export function SmProjectDetailDialog({ project, open, onOpenChange }: Props) {
               <Field label="Estado" value={project.state} />
               <Field label="Tipo Instalação" value={project.installation_type} />
               <Field label="Consumo Energético" value={project.energy_consumption?.toString()} />
-              <Field label="Funil" value={(project as any).sm_funnel_name} />
-              <Field label="Etapa" value={(project as any).sm_stage_name} />
               <Field label="Criado em" value={project.sm_created_at ? new Date(project.sm_created_at).toLocaleDateString("pt-BR") : null} />
             </div>
           </div>
 
           {/* Raw payload sections */}
-          {sortedSections.length > 0 && (
+          {loadingPayload ? (
+            <LoadingState message="Carregando detalhes..." />
+          ) : sortedSections.length > 0 ? (
             <Accordion type="multiple" defaultValue={sortedSections.slice(0, 2)} className="w-full">
               {sortedSections.map((section) => {
                 const fields = grouped[section];
@@ -126,13 +145,11 @@ export function SmProjectDetailDialog({ project, open, onOpenChange }: Props) {
                 );
               })}
             </Accordion>
-          )}
-
-          {!raw && (
+          ) : !raw ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
               Nenhum dado encontrado no payload deste projeto.
             </p>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
