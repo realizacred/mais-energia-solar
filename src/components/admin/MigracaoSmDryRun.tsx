@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { PageHeader, SectionCard, StatCard, LoadingState } from "@/components/ui-kit";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
-import { Play, AlertTriangle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Play, AlertTriangle, Users } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
+import { Badge } from "@/components/ui/badge";
 
 const BASE_PAYLOAD = {
   dry_run: true,
@@ -14,7 +17,7 @@ const BASE_PAYLOAD = {
   pipeline_id: "9b5cbcf3-a101-4950-b699-778e2e1219e6",
   stage_id: "bdad6238-90e1-4e12-b897-53ff61ece1b6",
   owner_id: "e0bd3d46-775e-45de-aabf-7fd70d52ef27",
-  batch_size: 25,
+  batch_size: 50,
 };
 
 type StatusVariant = "success" | "warning" | "destructive" | "info" | "muted";
@@ -41,6 +44,8 @@ interface DryRunResult {
     };
     error?: string;
   }>;
+  total_found?: number;
+  total_processed?: number;
 }
 
 interface ErrorDetails {
@@ -51,6 +56,42 @@ interface ErrorDetails {
   body?: string;
 }
 
+// ─── Hook: fetch distinct vendedores from SM projects ───
+
+function useSmVendedores() {
+  return useQuery<string[]>({
+    queryKey: ["sm-vendedores"],
+    queryFn: async () => {
+      // Fetch all_funnels from SM projects to extract vendedor names
+      const { data, error } = await (supabase as any)
+        .from("solar_market_projects")
+        .select("all_funnels, sm_funnel_name, sm_stage_name")
+        .not("all_funnels", "is", null)
+        .limit(2000);
+
+      if (error) throw error;
+
+      const vendedores = new Set<string>();
+      for (const row of data || []) {
+        // From all_funnels array
+        const funnels = Array.isArray(row.all_funnels) ? row.all_funnels : [];
+        for (const f of funnels) {
+          if ((f.funnelName || "").toLowerCase() === "vendedores" && f.stageName) {
+            vendedores.add(f.stageName.trim());
+          }
+        }
+        // Fallback: legacy fields
+        if (row.sm_funnel_name?.toLowerCase() === "vendedores" && row.sm_stage_name) {
+          vendedores.add(row.sm_stage_name.trim());
+        }
+      }
+
+      return Array.from(vendedores).sort();
+    },
+    staleTime: 60_000,
+  });
+}
+
 export function MigracaoSmDryRun() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,21 +100,30 @@ export function MigracaoSmDryRun() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [onlyMarked, setOnlyMarked] = useState(true);
+  const [selectedVendedor, setSelectedVendedor] = useState<string>("__all__");
+
+  const { data: vendedores = [], isLoading: loadingVendedores } = useSmVendedores();
 
   const runDryRun = async () => {
     setLoading(true);
     setError(null);
     setErrorDetails(null);
     setResult(null);
+    setPage(1);
     try {
       await supabase.auth.getUser();
-      
+
+      const filters: Record<string, any> = {
+        ...BASE_PAYLOAD.filters,
+        ...(onlyMarked ? { only_marked: true } : {}),
+      };
+      if (selectedVendedor && selectedVendedor !== "__all__") {
+        filters.vendedor_name = selectedVendedor;
+      }
+
       const payload = {
         ...BASE_PAYLOAD,
-        filters: {
-          ...BASE_PAYLOAD.filters,
-          ...(onlyMarked ? { only_marked: true } : {}),
-        },
+        filters,
       };
       const { data, error: fnError } = await supabase.functions.invoke("migrate-sm-proposals", {
         body: payload,
@@ -114,7 +164,7 @@ export function MigracaoSmDryRun() {
     } catch (err: any) {
       console.error("Catch geral dry-run:", err);
       const msg = err?.message ?? "Erro desconhecido";
-      setError(msg.includes("Failed to fetch") || msg.includes("network") 
+      setError(msg.includes("Failed to fetch") || msg.includes("network")
         ? "Timeout ou erro de rede. A função pode estar demorando muito. Tente reduzir o batch_size."
         : msg);
     } finally {
@@ -149,6 +199,31 @@ export function MigracaoSmDryRun() {
         }
       />
 
+      {/* Vendedor selector */}
+      <SectionCard icon={Users} title="Filtrar por Vendedor" variant="neutral">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
+            <SelectTrigger className="w-64 h-9">
+              <SelectValue placeholder={loadingVendedores ? "Carregando..." : "Selecione um vendedor"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos os vendedores</SelectItem>
+              {vendedores.map((v) => (
+                <SelectItem key={v} value={v}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedVendedor && selectedVendedor !== "__all__" && (
+            <Badge variant="secondary" className="text-xs">
+              Filtrando: {selectedVendedor}
+            </Badge>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {vendedores.length} vendedor(es) encontrado(s) nos funis SM
+          </span>
+        </div>
+      </SectionCard>
+
       {loading && <LoadingState message="Executando dry-run..." />}
 
       {(error || errorDetails) && (
@@ -167,23 +242,31 @@ ${errorDetails.body ?? "—"}`}
       )}
 
       {result?.summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {Object.entries(result.summary).map(([key, count]) => (
-            <StatCard
-              key={key}
-              icon={AlertTriangle}
-              label={key}
-              value={count}
-              color={
-                key === "WOULD_CREATE" ? "success"
-                : key === "WOULD_LINK" ? "info"
-                : key === "CONFLICT" ? "warning"
-                : key === "ERROR" ? "destructive"
-                : "muted"
-              }
-            />
-          ))}
-        </div>
+        <>
+          {result.total_found !== undefined && (
+            <p className="text-sm text-muted-foreground">
+              {result.total_found} encontradas → {result.total_processed} processadas
+              {selectedVendedor !== "__all__" && ` (vendedor: ${selectedVendedor})`}
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {Object.entries(result.summary).map(([key, count]) => (
+              <StatCard
+                key={key}
+                icon={AlertTriangle}
+                label={key}
+                value={count}
+                color={
+                  key === "WOULD_CREATE" ? "success"
+                  : key === "WOULD_LINK" ? "info"
+                  : key === "CONFLICT" ? "warning"
+                  : key === "ERROR" ? "destructive"
+                  : "muted"
+                }
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {details.length > 0 && (
