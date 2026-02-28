@@ -243,10 +243,11 @@ Deno.serve(async (req) => {
       SUCCESS: 0,
     };
 
-    for (let i = 0; i < allProposals.length; i += batch_size) {
-      const batch = allProposals.slice(i, i + batch_size);
+    // Limit total processing to batch_size to avoid timeout
+    const proposalsToProcess = allProposals.slice(0, batch_size);
+    console.log(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
 
-      for (const smProp of batch) {
+    for (const smProp of proposalsToProcess) {
         const report: ProposalReport = {
           sm_proposal_id: smProp.sm_proposal_id,
           sm_client_name: null,
@@ -604,14 +605,15 @@ Deno.serve(async (req) => {
 
         reports.push(report);
       }
-    }
 
     const result = {
       mode: dry_run ? "dry_run" : "execute",
-      total_processed: allProposals.length,
+      total_found: allProposals.length,
+      total_processed: proposalsToProcess.length,
       summary,
-      details: reports.slice(0, 200), // Limit response size
+      details: reports.slice(0, 200),
       filters_applied: filters,
+      has_more: allProposals.length > batch_size,
     };
 
     console.log(`[SM Migration] Done. Summary: ${JSON.stringify(summary)}`);

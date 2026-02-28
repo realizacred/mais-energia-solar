@@ -71,20 +71,42 @@ export function MigracaoSmDryRun() {
       if (fnError) {
         const ctx = (fnError as any).context;
         console.error({ fnError, ctx });
+        let bodyStr = "";
+        try {
+          if (ctx && typeof ctx.json === "function") {
+            const cloned = ctx.clone();
+            const json = await cloned.json();
+            bodyStr = JSON.stringify(json, null, 2);
+          } else if (ctx?.body) {
+            bodyStr = typeof ctx.body === "string" ? ctx.body : JSON.stringify(ctx.body, null, 2);
+          } else if (data) {
+            bodyStr = typeof data === "object" ? JSON.stringify(data, null, 2) : String(data);
+          }
+        } catch { /* ignore */ }
         const details: ErrorDetails = {
           name: fnError.name,
           message: fnError.message,
           status: ctx?.status,
           statusText: ctx?.statusText,
-          body: ctx?.body ? JSON.stringify(ctx.body, null, 2) : (typeof data === "object" ? JSON.stringify(data, null, 2) : String(data ?? "")),
+          body: bodyStr || "—",
         };
         setErrorDetails(details);
-        setError(typeof data === "object" && data?.error ? data.error : fnError.message);
+        const userMsg = typeof data === "object" && data?.error ? data.error : fnError.message;
+        setError(userMsg || "Erro desconhecido na edge function");
+        return;
+      }
+      if (!data || typeof data !== "object" || !data.summary) {
+        setError("Resposta inesperada da edge function (sem summary)");
+        setErrorDetails({ body: JSON.stringify(data, null, 2) });
         return;
       }
       setResult(data as DryRunResult);
     } catch (err: any) {
-      setError(err?.message ?? "Erro desconhecido");
+      console.error("Catch geral dry-run:", err);
+      const msg = err?.message ?? "Erro desconhecido";
+      setError(msg.includes("Failed to fetch") || msg.includes("network") 
+        ? "Timeout ou erro de rede. A função pode estar demorando muito. Tente reduzir o batch_size."
+        : msg);
     } finally {
       setLoading(false);
     }
