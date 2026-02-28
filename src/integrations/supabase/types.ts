@@ -7813,6 +7813,7 @@ export type Database = {
           file_url: string
           id: string
           label: string | null
+          storage_path: string
           tenant_id: string
           visit_id: string
         }
@@ -7821,6 +7822,7 @@ export type Database = {
           file_url: string
           id?: string
           label?: string | null
+          storage_path: string
           tenant_id?: string
           visit_id: string
         }
@@ -7829,6 +7831,7 @@ export type Database = {
           file_url?: string
           id?: string
           label?: string | null
+          storage_path?: string
           tenant_id?: string
           visit_id?: string
         }

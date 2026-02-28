@@ -213,7 +213,11 @@ export function PostSaleVisitDetail() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {attachments.map(att => (
               <div key={att.id} className="relative group rounded-lg border border-border overflow-hidden bg-muted/30">
-                <img src={att.file_url} alt={att.label ?? "Anexo"} className="w-full h-32 object-cover" />
+                {att.signedUrl ? (
+                  <img src={att.signedUrl} alt={att.label ?? "Anexo"} className="w-full h-32 object-cover" />
+                ) : (
+                  <div className="w-full h-32 flex items-center justify-center bg-muted text-muted-foreground text-xs">Sem preview</div>
+                )}
                 <div className="absolute bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm px-2 py-1 flex items-center justify-between">
                   <span className="text-xs truncate">{att.label ?? "—"}</span>
                   {canAct && (
