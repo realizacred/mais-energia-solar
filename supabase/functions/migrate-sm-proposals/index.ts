@@ -139,6 +139,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // If sm_proposal_ids filter is used, also require pipeline_id and owner_id for dry_run
+    if (filters.sm_proposal_ids && filters.sm_proposal_ids.length > 0 && (!params.pipeline_id || !params.owner_id)) {
+      return new Response(
+        JSON.stringify({ error: "pipeline_id and owner_id are required when targeting specific proposals", step: "params_validation" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
 
     // ─── 1. Fetch SM proposals ───────────────────────────
