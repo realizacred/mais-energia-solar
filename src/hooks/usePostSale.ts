@@ -132,10 +132,7 @@ export function usePostSaleDashboard() {
         (supabase as any).from("post_sale_visits").select("id", { count: "exact", head: true })
           .eq("tipo", "preventiva").eq("status", "concluido")
           .gte("data_conclusao", monthStart),
-        (supabase as any).from("post_sale_plans").select("id", { count: "exact", head: true })
-          .eq("status", "active")
-          .or(`garantia_inversor_fim.lte.${in3m},garantia_modulos_fim.lte.${in3m}`)
-          .or(`garantia_inversor_fim.gte.${today},garantia_modulos_fim.gte.${today}`),
+        (supabase as any).rpc("rpc_post_sale_guarantees_expiring"),
         (supabase as any).from("post_sale_plans").select("id", { count: "exact", head: true })
           .eq("status", "active"),
         (supabase as any).from("post_sale_upsell_opportunities").select("id", { count: "exact", head: true })
@@ -146,7 +143,7 @@ export function usePostSaleDashboard() {
         preventivas_proximas_30d: proximas.count ?? 0,
         preventivas_atrasadas: atrasadas.count ?? 0,
         preventivas_concluidas_mes: concluidas.count ?? 0,
-        garantias_vencendo_3m: garantias.count ?? 0,
+        garantias_vencendo_3m: garantias.data ?? 0,
         total_planos_ativos: planos.count ?? 0,
         total_upsell_pendentes: upsells.count ?? 0,
       };
