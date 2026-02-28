@@ -90,16 +90,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get tenant_id
+    // Get tenant_id via user_id
     const adminClient = createClient(supabaseUrl, serviceKey);
-    const { data: profile } = await adminClient
+    const { data: profile, error: profileError } = await adminClient
       .from("profiles")
-      .select("tenant_id")
-      .eq("id", user.id)
+      .select("tenant_id, status, ativo")
+      .eq("user_id", user.id)
       .single();
 
-    if (!profile?.tenant_id) {
-      return new Response(JSON.stringify({ error: "No tenant" }), {
+    if (profileError || !profile?.tenant_id) {
+      return new Response(JSON.stringify({ error: "No tenant/profile" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (profile.status !== "aprovado" || !profile.ativo) {
+      return new Response(JSON.stringify({ error: "User not approved/active" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
