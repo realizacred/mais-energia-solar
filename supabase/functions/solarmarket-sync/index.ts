@@ -495,75 +495,86 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── SolarMarket API Token ─────────────────────────────
-    const { data: integrationConfig } = await supabase
-      .from("integration_configs")
-      .select("api_key, is_active")
-      .eq("tenant_id", tenantId)
-      .eq("service_key", "solarmarket")
-      .maybeSingle();
+    // ─── Backfill CF Raw: DB-only, skip SM API auth ─────────
+    // backfill_cf_raw only reads from local DB, no SM API needed
+    const needsSmApi = sync_type !== "backfill_cf_raw";
 
-    const { data: config } = await supabase
-      .from("solar_market_config")
-      .select("api_token, base_url, enabled")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+    let smHeaders: Record<string, string> = { Accept: "application/json" };
+    let baseUrl = "https://business.solarmarket.com.br/api/v2";
 
-    const apiToken =
-      (integrationConfig?.is_active ? integrationConfig.api_key : null) ||
-      config?.api_token ||
-      Deno.env.get("SOLARMARKET_TOKEN") ||
-      null;
-    const baseUrl = (config?.base_url || "https://business.solarmarket.com.br/api/v2").replace(/\/$/, "");
+    if (needsSmApi) {
+      // ─── SolarMarket API Token ─────────────────────────────
+      const { data: integrationConfig } = await supabase
+        .from("integration_configs")
+        .select("api_key, is_active")
+        .eq("tenant_id", tenantId)
+        .eq("service_key", "solarmarket")
+        .maybeSingle();
 
-    if (!apiToken) {
-      return new Response(
-        JSON.stringify({ error: "Token SolarMarket não configurado. Adicione na página de configuração." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      const { data: config } = await supabase
+        .from("solar_market_config")
+        .select("api_token, base_url, enabled")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
 
-    // SolarMarket API v2 — two-step auth: POST /auth/signin with token → get JWT
-    console.log(`[SM Sync] Authenticating with /auth/signin (token len=${apiToken.length}, prefix=${apiToken.slice(0, 8)})`);
+      const apiToken =
+        (integrationConfig?.is_active ? integrationConfig.api_key : null) ||
+        config?.api_token ||
+        Deno.env.get("SOLARMARKET_TOKEN") ||
+        null;
+      baseUrl = (config?.base_url || "https://business.solarmarket.com.br/api/v2").replace(/\/$/, "");
 
-    const signinRes = await fetch(`${baseUrl}/auth/signin`, {
-      method: "POST",
-      headers: {
+      if (!apiToken) {
+        return new Response(
+          JSON.stringify({ error: "Token SolarMarket não configurado. Adicione na página de configuração." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // SolarMarket API v2 — two-step auth: POST /auth/signin with token → get JWT
+      console.log(`[SM Sync] Authenticating with /auth/signin (token len=${apiToken.length}, prefix=${apiToken.slice(0, 8)})`);
+
+      const signinRes = await fetch(`${baseUrl}/auth/signin`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token: apiToken }),
+      });
+
+      if (!signinRes.ok) {
+        const signinBody = await signinRes.text();
+        console.error(`[SM Sync] /auth/signin failed: ${signinRes.status} ${signinBody.slice(0, 300)}`);
+        return new Response(
+          JSON.stringify({
+            error: `Falha na autenticação SolarMarket (${signinRes.status}). Verifique se a API key em Integrações > SolarMarket está correta.`,
+            details: signinBody.slice(0, 200),
+          }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const signinData = await signinRes.json();
+      const accessToken = signinData.access_token || signinData.accessToken || signinData.token;
+
+      if (!accessToken) {
+        console.error("[SM Sync] /auth/signin response missing access_token:", JSON.stringify(signinData).slice(0, 300));
+        return new Response(
+          JSON.stringify({ error: "SolarMarket /auth/signin não retornou access_token." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`[SM Sync] JWT obtained (len=${accessToken.length})`);
+
+      smHeaders = {
         Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token: apiToken }),
-    });
-
-    if (!signinRes.ok) {
-      const signinBody = await signinRes.text();
-      console.error(`[SM Sync] /auth/signin failed: ${signinRes.status} ${signinBody.slice(0, 300)}`);
-      return new Response(
-        JSON.stringify({
-          error: `Falha na autenticação SolarMarket (${signinRes.status}). Verifique se a API key em Integrações > SolarMarket está correta.`,
-          details: signinBody.slice(0, 200),
-        }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        Authorization: `Bearer ${accessToken}`,
+      };
+    } else {
+      console.log(`[SM Sync] Skipping SM API auth for ${sync_type} (DB-only operation)`);
     }
-
-    const signinData = await signinRes.json();
-    const accessToken = signinData.access_token || signinData.accessToken || signinData.token;
-
-    if (!accessToken) {
-      console.error("[SM Sync] /auth/signin response missing access_token:", JSON.stringify(signinData).slice(0, 300));
-      return new Response(
-        JSON.stringify({ error: "SolarMarket /auth/signin não retornou access_token." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`[SM Sync] JWT obtained (len=${accessToken.length})`);
-
-    const smHeaders: Record<string, string> = {
-      Accept: "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    };
 
     // ─── Cleanup stale "running" logs ────────────────────
     await supabase
@@ -1089,12 +1100,16 @@ Deno.serve(async (req) => {
         .eq("is_active", true);
       for (const d of (cfDefs || [])) {
         if (d.key) {
-          cfDefsLookup.set(d.key, {
+          const defObj = {
             label: d.name || d.key,
             type: d.field_type || "unknown",
             external_field_id: d.sm_custom_field_id,
             version_hash: d.version_hash,
-          });
+          };
+          // Store both bracketed and bare key for robust lookup
+          cfDefsLookup.set(d.key, defObj); // e.g. "[cap_wifi]"
+          const bare = d.key.replace(/^\[|\]$/g, "").trim();
+          if (bare !== d.key) cfDefsLookup.set(bare, defObj); // e.g. "cap_wifi"
         }
       }
       console.log(`[SM Sync] Loaded ${cfDefsLookup.size} custom field definitions for enrichment`);
@@ -1619,9 +1634,10 @@ Deno.serve(async (req) => {
 
         // Fetch proposals that have raw_payload but no custom_fields_raw
         let backfilled = 0;
+        let bfErrors = 0;
         let bfOffset = 0;
         const bfPageSize = 100;
-        const bfTimeBudget = 20_000;
+        const bfTimeBudget = 90_000; // 90s budget for backfill_cf_raw standalone
         const bfStart = Date.now();
 
         while (Date.now() - bfStart < bfTimeBudget) {
@@ -1634,26 +1650,48 @@ Deno.serve(async (req) => {
             .range(bfOffset, bfOffset + bfPageSize - 1);
 
           if (!rows || rows.length === 0) break;
+          console.log(`[SM Sync] Backfill batch: ${rows.length} proposals (offset=${bfOffset}), cfDefsLookup.size=${cfDefsLookup.size}`);
 
           for (const row of rows) {
-            const cfRaw = buildCustomFieldsRaw(row.raw_payload);
-            if (cfRaw) {
-              const warnings = cfRaw._warnings || null;
-              delete cfRaw._warnings;
-              await supabase
-                .from("solar_market_proposals")
-                .update({ custom_fields_raw: cfRaw, warnings })
-                .eq("id", row.id);
-              backfilled++;
+            try {
+              const payload = row.raw_payload;
+              const vars = Array.isArray(payload?.variables) ? payload.variables : [];
+              if (bfOffset === 0 && backfilled === 0) {
+                // Log first proposal for debugging
+                console.log(`[SM Sync] Backfill sample: proposal ${row.id}, variables count=${vars.length}, first 3 keys=${vars.slice(0, 3).map((v: any) => v.key).join(",")}`);
+              }
+              const cfRaw = buildCustomFieldsRaw(payload);
+              if (cfRaw) {
+                const warnings = cfRaw._warnings || null;
+                delete cfRaw._warnings;
+                const valuesCount = Object.keys(cfRaw.values || {}).length;
+                const { error: updateErr } = await supabase
+                  .from("solar_market_proposals")
+                  .update({ custom_fields_raw: cfRaw, warnings })
+                  .eq("id", row.id);
+                if (updateErr) {
+                  console.error(`[SM Sync] Backfill update error for ${row.id}: ${updateErr.message}`);
+                  bfErrors++;
+                } else {
+                  backfilled++;
+                  if (backfilled === 1) {
+                    console.log(`[SM Sync] Backfill first success: ${row.id}, values=${valuesCount}, keys=${Object.keys(cfRaw.values || {}).join(",")}`);
+                  }
+                }
+              }
+            } catch (rowErr) {
+              console.error(`[SM Sync] Backfill row error for ${row.id}:`, (rowErr as Error).message);
+              bfErrors++;
             }
           }
           bfOffset += bfPageSize;
         }
 
+        console.log(`[SM Sync] Backfill complete: ${backfilled} enriched, ${bfErrors} errors, elapsed=${Date.now() - bfStart}ms`);
         if (backfilled > 0) {
-          console.log(`[SM Sync] Backfilled custom_fields_raw for ${backfilled} proposals`);
           totalUpserted += backfilled;
         }
+        totalErrors += bfErrors;
       } catch (e) {
         console.warn("[SM Sync] Backfill custom_fields_raw error:", (e as Error).message);
       }
