@@ -925,7 +925,7 @@ Deno.serve(async (req) => {
                   cliente_id: clienteId,
                   titulo: smProp.titulo || `Proposta SM #${smProp.sm_proposal_id}`,
                   status: "aceita",
-                  origem: "legacy_import",
+                  origem: "imported",
                   versao_atual: 1,
                   sm_id: smIdKey,
                   sm_project_id: smProp.sm_project_id ? String(smProp.sm_project_id) : null,
