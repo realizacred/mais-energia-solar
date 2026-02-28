@@ -118,15 +118,15 @@ export function ProposalDetail() {
   }, [validadeDate, versaoId]);
 
   useEffect(() => {
-    if (versaoId) loadData();
+    if (versaoId) loadData(!!versao);
   }, [versaoId]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const { data: v } = await supabase
         .from("proposta_versoes")
-        .select("id, proposta_id, versao_numero, status, grupo, potencia_kwp, valor_total, economia_mensal, payback_meses, valido_ate, observacoes, snapshot, final_snapshot, snapshot_locked, finalized_at, public_slug, created_at, updated_at, gerado_em")
+        .select("id, proposta_id, versao_numero, status, grupo, potencia_kwp, valor_total, economia_mensal, geracao_mensal, payback_meses, valido_ate, observacoes, snapshot, final_snapshot, snapshot_locked, finalized_at, public_slug, created_at, updated_at, gerado_em")
         .eq("id", versaoId!)
         .single();
 
@@ -491,6 +491,11 @@ export function ProposalDetail() {
   }
 
   let geracaoMensal = (snapshot.ucs || []).reduce((s: number, uc: any) => s + (uc.geracao_mensal_estimada || 0), 0);
+  // Fallback: coluna dedicada (propostas migradas armazenam aqui)
+  if ((!geracaoMensal || geracaoMensal === 0) && versao.geracao_mensal > 0) {
+    geracaoMensal = versao.geracao_mensal;
+  }
+  // Fallback: cálculo estimado via irradiação
   if ((!geracaoMensal || geracaoMensal === 0) && potenciaKwp > 0 && snapshot.locIrradiacao > 0) {
     geracaoMensal = Math.round(potenciaKwp * snapshot.locIrradiacao * 30 * 0.80);
   }
