@@ -855,8 +855,14 @@ Deno.serve(async (req) => {
               let vendedoresFunnel: any = null;
               let primaryFunnel: any = funnels[0];
 
+              // Build normalized array of ALL funnels for this project
+              const allFunnelsArray: any[] = [];
               for (const f of funnels) {
                 const fName = f.funnelName || f.funnel_name || f.name || "";
+                const fId = f.funnelId || f.funnel_id || f.id || null;
+                const sId = f.stageId || f.stage_id || f.currentStageId || null;
+                const sName = f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
+                allFunnelsArray.push({ funnelId: fId, funnelName: fName, stageId: sId, stageName: sName });
                 if (fName === "Vendedores") {
                   vendedoresFunnel = f;
                 }
@@ -869,7 +875,7 @@ Deno.serve(async (req) => {
               const stageId = f.stageId || f.stage_id || f.currentStageId || null;
               const stageName = f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
 
-              if (funnelId || stageId) {
+              if (funnelId || stageId || allFunnelsArray.length > 0) {
                 await supabase
                   .from("solar_market_projects")
                   .update({
@@ -877,6 +883,7 @@ Deno.serve(async (req) => {
                     sm_stage_id: stageId,
                     sm_funnel_name: funnelName,
                     sm_stage_name: stageName,
+                    all_funnels: allFunnelsArray,
                   })
                   .eq("tenant_id", tenantId)
                   .eq("sm_project_id", projId);
