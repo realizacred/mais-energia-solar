@@ -7999,6 +7999,41 @@ export type Database = {
           },
         ]
       }
+      post_sale_reports: {
+        Row: {
+          created_at: string
+          file_name: string | null
+          id: string
+          storage_path: string
+          tenant_id: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          storage_path: string
+          tenant_id?: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          storage_path?: string
+          tenant_id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_sale_reports_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "post_sale_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_sale_upsell_opportunities: {
         Row: {
           cliente_id: string | null

@@ -209,3 +209,6 @@ verify_jwt = false
 
 [functions.meta-facebook-diagnostics]
 verify_jwt = false
+
+[functions.generate-visit-report]
+verify_jwt = false
