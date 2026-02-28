@@ -2776,6 +2776,7 @@ export type Database = {
           expected_close_date: string | null
           id: string
           kwp: number | null
+          legacy_key: string | null
           motivo_perda_id: string | null
           motivo_perda_obs: string | null
           notas: string | null
@@ -2797,6 +2798,7 @@ export type Database = {
           expected_close_date?: string | null
           id?: string
           kwp?: number | null
+          legacy_key?: string | null
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
           notas?: string | null
@@ -2818,6 +2820,7 @@ export type Database = {
           expected_close_date?: string | null
           id?: string
           kwp?: number | null
+          legacy_key?: string | null
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
           notas?: string | null
@@ -12942,6 +12945,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sm_migration_log: {
+        Row: {
+          created_at: string
+          id: string
+          is_dry_run: boolean | null
+          payload: Json | null
+          sm_client_name: string | null
+          sm_proposal_id: number
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_dry_run?: boolean | null
+          payload?: Json | null
+          sm_client_name?: string | null
+          sm_proposal_id: number
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_dry_run?: boolean | null
+          payload?: Json | null
+          sm_client_name?: string | null
+          sm_proposal_id?: number
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_migration_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       smtp_settings: {
         Row: {
