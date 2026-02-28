@@ -158,6 +158,73 @@ Deno.serve(async (req) => {
 
     console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
 
+    // ─── 0. Authenticate with SolarMarket API to fetch funnel data ────
+    let smAccessToken: string | null = null;
+    let smBaseUrl = "https://business.solarmarket.com.br/api/v2";
+
+    if (autoResolveOwner) {
+      const { data: integrationConfig } = await adminClient
+        .from("integration_configs")
+        .select("api_key, is_active")
+        .eq("tenant_id", tenantId)
+        .eq("service_key", "solarmarket")
+        .maybeSingle();
+
+      const { data: smConfig } = await adminClient
+        .from("solar_market_config")
+        .select("api_token, base_url")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      const apiToken =
+        (integrationConfig?.is_active ? integrationConfig.api_key : null) ||
+        smConfig?.api_token ||
+        Deno.env.get("SOLARMARKET_TOKEN") ||
+        null;
+      smBaseUrl = (smConfig?.base_url || smBaseUrl).replace(/\/$/, "");
+
+      if (apiToken) {
+        try {
+          const signinRes = await fetch(`${smBaseUrl}/auth/signin`, {
+            method: "POST",
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ token: apiToken }),
+          });
+          if (signinRes.ok) {
+            const signinData = await signinRes.json();
+            smAccessToken = signinData.access_token || signinData.accessToken || signinData.token || null;
+            console.log(`[SM Migration] SM API authenticated (token len=${smAccessToken?.length})`);
+          } else {
+            console.warn(`[SM Migration] SM API auth failed: ${signinRes.status}`);
+          }
+        } catch (e) {
+          console.warn(`[SM Migration] SM API auth error: ${(e as Error).message}`);
+        }
+      } else {
+        console.warn("[SM Migration] No SM API token found, will fallback to DB responsible field");
+      }
+    }
+
+    // Helper: fetch funnel data for a project from SM API
+    async function fetchProjectFunnelVendedor(smProjectId: number): Promise<string | null> {
+      if (!smAccessToken) return null;
+      try {
+        const res = await fetch(`${smBaseUrl}/projects/${smProjectId}/funnels`, {
+          headers: { Accept: "application/json", Authorization: `Bearer ${smAccessToken}` },
+        });
+        if (!res.ok) { await res.text(); return null; }
+        const data = await res.json();
+        const funnels = Array.isArray(data) ? data : data.data ? (Array.isArray(data.data) ? data.data : [data.data]) : [data];
+        for (const f of funnels) {
+          const fName = f.funnelName || f.funnel_name || f.name || "";
+          if (fName === "Vendedores") {
+            return f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
+          }
+        }
+        return null;
+      } catch { return null; }
+    }
+
     // ─── 1. Fetch SM proposals ───────────────────────────
 
     // Select only needed columns — exclude raw_payload to avoid statement timeout
@@ -468,36 +535,56 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── B2. Resolve owner_id (auto from project responsible.name) ──
+          // ── B2. Resolve owner_id ──
+          // Priority: 1) SM API funnel "Vendedores" stage name (live fetch)
+          //           2) DB sm_funnel_name/sm_stage_name (cached from sync)
+          //           3) project responsible.name
+          //           4) params.owner_id (manual fallback)
           let resolvedOwnerId = params.owner_id || null;
           let ownerAutoCreated = false;
           let ownerSource = resolvedOwnerId ? "manual_fallback" : "none";
 
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
-            // Priority 1: project responsible.name (covers 100% of projects)
-            const respName = smProj?.responsible_name;
-            if (respName) {
+
+            // Priority 1: Live fetch from SM API — funnel "Vendedores" stage name
+            const apiFunnelName = await fetchProjectFunnelVendedor(smProp.sm_project_id);
+            if (apiFunnelName) {
               try {
-                const { id, created } = await resolveOrCreateConsultor(respName);
+                const { id, created } = await resolveOrCreateConsultor(apiFunnelName);
                 resolvedOwnerId = id;
                 ownerAutoCreated = created;
-                ownerSource = `responsible:${respName}`;
-                (report as any).owner_resolved = { name: respName, id, created, source: "project_responsible" };
+                ownerSource = `api_funnel:${apiFunnelName}`;
+                (report as any).owner_resolved = { name: apiFunnelName, id, created, source: "sm_api_vendedores" };
               } catch (e) {
-                (report as any).owner_resolved = { error: (e as Error).message, fallback: params.owner_id };
+                (report as any).owner_resolved = { error: (e as Error).message };
               }
             }
-            // Priority 2: funnel Vendedores stage name (legacy fallback)
-            if (!resolvedOwnerId && smProj?.sm_funnel_name?.toLowerCase() === "vendedores" && smProj.sm_stage_name) {
-              try {
-                const { id, created } = await resolveOrCreateConsultor(smProj.sm_stage_name);
-                resolvedOwnerId = id;
-                ownerAutoCreated = created;
-                ownerSource = `funnel:${smProj.sm_stage_name}`;
-                (report as any).owner_resolved = { name: smProj.sm_stage_name, id, created, source: "vendedores_funnel" };
-              } catch (e) {
-                (report as any).owner_resolved = { error: (e as Error).message, fallback: params.owner_id };
+
+            // Priority 2: DB cached funnel data
+            if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
+              if (smProj?.sm_funnel_name?.toLowerCase() === "vendedores" && smProj.sm_stage_name) {
+                try {
+                  const { id, created } = await resolveOrCreateConsultor(smProj.sm_stage_name);
+                  resolvedOwnerId = id;
+                  ownerAutoCreated = created;
+                  ownerSource = `db_funnel:${smProj.sm_stage_name}`;
+                  (report as any).owner_resolved = { name: smProj.sm_stage_name, id, created, source: "db_vendedores" };
+                } catch (e) { /* fallthrough */ }
+              }
+            }
+
+            // Priority 3: project responsible.name
+            if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
+              const respName = smProj?.responsible_name;
+              if (respName) {
+                try {
+                  const { id, created } = await resolveOrCreateConsultor(respName);
+                  resolvedOwnerId = id;
+                  ownerAutoCreated = created;
+                  ownerSource = `responsible:${respName}`;
+                  (report as any).owner_resolved = { name: respName, id, created, source: "project_responsible" };
+                } catch (e) { /* fallthrough */ }
               }
             }
           }
