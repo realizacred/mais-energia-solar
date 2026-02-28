@@ -1313,6 +1313,121 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Standalone Funnel Enrichment (runs after proposals OR projects sync) ──
+    // This ensures funnel data gets populated even when cron picks proposals sync
+    if ((sync_type === "proposals" || sync_type === "full") && smHeaders) {
+      try {
+        const alreadyEnrichedSet2 = new Set<number>();
+        {
+          let offset = 0;
+          const pageSize = 1000;
+          while (true) {
+            const { data: enrichedRows } = await supabase
+              .from("solar_market_projects")
+              .select("sm_project_id")
+              .eq("tenant_id", tenantId)
+              .not("all_funnels", "is", null)
+              .range(offset, offset + pageSize - 1);
+            for (const r of (enrichedRows || [])) alreadyEnrichedSet2.add(r.sm_project_id);
+            if ((enrichedRows || []).length < pageSize) break;
+            offset += pageSize;
+          }
+        }
+
+        // Get ALL project IDs that need enrichment
+        const pendingFunnelIds: number[] = [];
+        {
+          let offset = 0;
+          const pageSize = 1000;
+          while (true) {
+            const { data: projRows } = await supabase
+              .from("solar_market_projects")
+              .select("sm_project_id")
+              .eq("tenant_id", tenantId)
+              .is("all_funnels", null)
+              .range(offset, offset + pageSize - 1);
+            for (const r of (projRows || [])) pendingFunnelIds.push(r.sm_project_id);
+            if ((projRows || []).length < pageSize) break;
+            offset += pageSize;
+          }
+        }
+
+        console.log(`[SM Sync] Standalone funnel enrichment: ${alreadyEnrichedSet2.size} done, ${pendingFunnelIds.length} pending`);
+
+        if (pendingFunnelIds.length > 0) {
+          let enriched = 0;
+          const funnelTimeBudget = 30_000; // 30s budget
+          const funnelStart = Date.now();
+
+          for (const projId of pendingFunnelIds) {
+            if (Date.now() - funnelStart > funnelTimeBudget) {
+              console.log(`[SM Sync] Funnel enrichment time budget hit after ${enriched} projects`);
+              break;
+            }
+            try {
+              const fUrl = `${baseUrl}/projects/${projId}/funnels`;
+              const res = await fetch(fUrl, { headers: smHeaders });
+              const ct = res.headers.get("content-type") || "";
+
+              if (!res.ok || !ct.includes("application/json")) {
+                if (res.status === 429) {
+                  const ra = parseInt(res.headers.get("retry-after") || "10", 10);
+                  await delay(ra * 1000);
+                }
+                await res.text();
+                continue;
+              }
+
+              const funnelData = await res.json();
+              const funnels = Array.isArray(funnelData) ? funnelData : funnelData.data ? (Array.isArray(funnelData.data) ? funnelData.data : [funnelData.data]) : [funnelData];
+
+              if (funnels.length > 0) {
+                let vendedoresFunnel: any = null;
+                let primaryFunnel: any = funnels[0];
+                const allFunnelsArray: any[] = [];
+
+                for (const f of funnels) {
+                  const fName = f.funnelName || f.funnel_name || f.name || "";
+                  const fId = f.funnelId || f.funnel_id || f.id || null;
+                  const sId = f.stageId || f.stage_id || f.currentStageId || null;
+                  const sName = f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
+                  allFunnelsArray.push({ funnelId: fId, funnelName: fName, stageId: sId, stageName: sName });
+                  if (fName === "Vendedores") vendedoresFunnel = f;
+                }
+
+                const f = vendedoresFunnel || primaryFunnel;
+                const funnelId = f.funnelId || f.funnel_id || f.id || null;
+                const funnelName = f.funnelName || f.funnel_name || f.name || null;
+                const stageId = f.stageId || f.stage_id || f.currentStageId || null;
+                const stageName = f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
+
+                if (funnelId || stageId || allFunnelsArray.length > 0) {
+                  await supabase
+                    .from("solar_market_projects")
+                    .update({
+                      sm_funnel_id: funnelId,
+                      sm_stage_id: stageId,
+                      sm_funnel_name: funnelName,
+                      sm_stage_name: stageName,
+                      all_funnels: allFunnelsArray,
+                    })
+                    .eq("tenant_id", tenantId)
+                    .eq("sm_project_id", projId);
+                  enriched++;
+                }
+              }
+              await delay(250);
+            } catch (e) {
+              // Non-fatal
+            }
+          }
+          console.log(`[SM Sync] Standalone enriched ${enriched}/${pendingFunnelIds.length} projects with funnel data`);
+        }
+      } catch (e) {
+        console.warn("[SM Sync] Standalone funnel enrichment error:", e);
+      }
+    }
+
     // ─── Finalize ──────────────────────────────────────────
     if (hasSolarMarketAuthError && totalUpserted === 0) {
       if (logId) {
