@@ -53,10 +53,17 @@ export function MigracaoSmDryRun() {
     setError(null);
     setResult(null);
     try {
+      // Force token refresh before calling
+      await supabase.auth.getUser();
+      
       const { data, error: fnError } = await supabase.functions.invoke("migrate-sm-proposals", {
         body: DRY_RUN_PAYLOAD,
       });
-      if (fnError) throw fnError;
+      if (fnError) {
+        // Try to extract JSON error message from response
+        const msg = typeof data === "object" && data?.error ? data.error : fnError.message;
+        throw new Error(msg);
+      }
       setResult(data as DryRunResult);
     } catch (err: any) {
       setError(err?.message ?? "Erro desconhecido");
