@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log("[SM Migration] Handler invoked", req.method);
     // Auth
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -583,9 +584,9 @@ Deno.serve(async (req) => {
             report,
             dry_run,
           );
-        } catch (err: any) {
+        } catch (err) {
           report.aborted = true;
-          report.steps.cliente = report.steps.cliente || { status: "ERROR", reason: err.message };
+          report.steps.cliente = report.steps.cliente || { status: "ERROR", reason: (err as Error).message };
           summary.ERROR++;
           await logItem(adminClient, tenantId, smProp.sm_proposal_id, report.sm_client_name, "ERROR", report, dry_run);
         }
@@ -607,10 +608,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("[SM Migration] Fatal error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
