@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2 } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -37,14 +37,32 @@ import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectD
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
+import { Input } from "@/components/ui/input";
+import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from "@/components/ui/select";
+
+// ─── Pagination hook ────────────────────────────────────
+function usePagination(defaultSize = 100) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultSize);
+  const resetPage = useCallback(() => setPage(1), []);
+  return { page, setPage, pageSize, setPageSize, resetPage };
+}
+
+function paginate<T>(items: T[], page: number, pageSize: number): T[] {
+  const start = (page - 1) * pageSize;
+  return items.slice(start, start + pageSize);
+}
 
 // ─── Sub-components (tables) ────────────────────────────
 
-function ClientsTable({ clients, onSelect, onNavigateProjects }: {
+function ClientsTable({ clients, onSelect, onNavigateProjects, pagination }: {
   clients: SmClient[];
   onSelect: (c: SmClient) => void;
   onNavigateProjects: (id: number) => void;
+  pagination?: { page: number; pageSize: number; onPageChange: (p: number) => void; onPageSizeChange: (s: number) => void };
 }) {
+  const displayed = pagination ? paginate(clients, pagination.page, pagination.pageSize) : clients;
   return (
     <SectionCard icon={Users} title="Clientes" variant="neutral" noPadding>
       <Table>
@@ -58,7 +76,7 @@ function ClientsTable({ clients, onSelect, onNavigateProjects }: {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {clients.map(c => (
+          {displayed.map(c => (
             <TableRow key={c.id} className="cursor-pointer" onClick={() => onSelect(c)}>
               <TableCell>
                 <div>
@@ -92,15 +110,26 @@ function ClientsTable({ clients, onSelect, onNavigateProjects }: {
           ))}
         </TableBody>
       </Table>
+      {pagination && (
+        <TablePagination
+          totalItems={clients.length}
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.onPageChange}
+          onPageSizeChange={pagination.onPageSizeChange}
+        />
+      )}
     </SectionCard>
   );
 }
 
-function ProjectsTable({ projects, onSelect, onNavigateProposals }: {
+function ProjectsTable({ projects, onSelect, onNavigateProposals, pagination }: {
   projects: SmProject[];
   onSelect: (p: SmProject) => void;
   onNavigateProposals: (id: number) => void;
+  pagination?: { page: number; pageSize: number; onPageChange: (p: number) => void; onPageSizeChange: (s: number) => void };
 }) {
+  const displayed = pagination ? paginate(projects, pagination.page, pagination.pageSize) : projects;
   return (
     <SectionCard icon={FolderKanban} title="Projetos" variant="neutral" noPadding>
       <Table>
@@ -115,7 +144,7 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals }: {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {projects.map(p => {
+          {displayed.map(p => {
             const clientName = (p as any).raw_payload?.client?.name || "—";
             const city = (p as any).raw_payload?.client?.city || p.city;
             const state = (p as any).raw_payload?.client?.state || p.state;
@@ -165,14 +194,25 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals }: {
           })}
         </TableBody>
       </Table>
+      {pagination && (
+        <TablePagination
+          totalItems={projects.length}
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.onPageChange}
+          onPageSizeChange={pagination.onPageSizeChange}
+        />
+      )}
     </SectionCard>
   );
 }
 
-function ProposalsTable({ proposals, onSelect }: {
+function ProposalsTable({ proposals, onSelect, pagination }: {
   proposals: SmProposal[];
   onSelect: (p: SmProposal) => void;
+  pagination?: { page: number; pageSize: number; onPageChange: (p: number) => void; onPageSizeChange: (s: number) => void };
 }) {
+  const displayed = pagination ? paginate(proposals, pagination.page, pagination.pageSize) : proposals;
   return (
     <SectionCard icon={FileText} title="Propostas" variant="neutral" noPadding>
       <Table>
@@ -187,7 +227,7 @@ function ProposalsTable({ proposals, onSelect }: {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {proposals.map(pr => (
+          {displayed.map(pr => (
             <TableRow key={pr.id} className="cursor-pointer" onClick={() => onSelect(pr)}>
               <TableCell>
                 <p className="font-medium">{pr.titulo || "—"}</p>
@@ -224,6 +264,15 @@ function ProposalsTable({ proposals, onSelect }: {
           ))}
         </TableBody>
       </Table>
+      {pagination && (
+        <TablePagination
+          totalItems={proposals.length}
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.onPageChange}
+          onPageSizeChange={pagination.onPageSizeChange}
+        />
+      )}
     </SectionCard>
   );
 }
@@ -341,16 +390,28 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
 export default function SolarMarketPage() {
   const [tab, setTab] = useState("clientes");
   const [search, setSearch] = useState("");
+  const [filterCity, setFilterCity] = useState("");
+  const [filterResponsible, setFilterResponsible] = useState("");
   const [selectedClient, setSelectedClient] = useState<SmClient | null>(null);
   const [selectedProject, setSelectedProject] = useState<SmProject | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<SmProposal | null>(null);
   const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterProjectId, setFilterProjectId] = useState<number | null>(null);
 
+  // Pagination state per tab
+  const clientsPag = usePagination(100);
+  const projectsPag = usePagination(100);
+  const proposalsPag = usePagination(100);
+  const noProjectPag = usePagination(100);
+  const noProposalPag = usePagination(100);
+
   const navigateToProjects = (smClientId: number) => {
     setFilterClientId(smClientId);
     setFilterProjectId(null);
     setSearch("");
+    setFilterCity("");
+    setFilterResponsible("");
+    projectsPag.resetPage();
     setTab("projetos");
   };
 
@@ -358,12 +419,17 @@ export default function SolarMarketPage() {
     setFilterProjectId(smProjectId);
     setFilterClientId(null);
     setSearch("");
+    setFilterCity("");
+    setFilterResponsible("");
+    proposalsPag.resetPage();
     setTab("propostas");
   };
 
   const clearFilters = () => {
     setFilterClientId(null);
     setFilterProjectId(null);
+    setFilterCity("");
+    setFilterResponsible("");
   };
 
   const { syncAll, syncStage, progress } = useSolarMarketSync();
@@ -402,20 +468,53 @@ export default function SolarMarketPage() {
     return clients.filter(c => !clientIdsWithProposals.has(c.sm_client_id));
   }, [clients, proposals]);
 
+  // Extract unique cities and responsibles for filter dropdowns
+  const uniqueCities = useMemo(() => {
+    const cities = clients.map(c => [c.city, c.state].filter(Boolean).join("/")).filter(Boolean);
+    return [...new Set(cities)].sort();
+  }, [clients]);
+
+  const uniqueResponsibles = useMemo(() => {
+    const names = clients.map(c => c.responsible?.name).filter(Boolean) as string[];
+    return [...new Set(names)].sort();
+  }, [clients]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    const filteredClients = q ? clients.filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q)) : clients;
+    const cityFilter = filterCity.toLowerCase();
+    const respFilter = filterResponsible.toLowerCase();
+
+    let filteredClients = clients;
+    if (q) filteredClients = filteredClients.filter(c =>
+      c.name?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.phone?.includes(q) ||
+      c.document?.includes(q) ||
+      c.document_formatted?.includes(q)
+    );
+    if (cityFilter) filteredClients = filteredClients.filter(c =>
+      [c.city, c.state].filter(Boolean).join("/").toLowerCase().includes(cityFilter)
+    );
+    if (respFilter) filteredClients = filteredClients.filter(c =>
+      c.responsible?.name?.toLowerCase().includes(respFilter)
+    );
 
     let filteredProjects = projects;
     if (filterClientId) filteredProjects = filteredProjects.filter(p => p.sm_client_id === filterClientId);
-    if (q) filteredProjects = filteredProjects.filter(p => p.name?.toLowerCase().includes(q));
+    if (q) filteredProjects = filteredProjects.filter(p =>
+      p.name?.toLowerCase().includes(q) ||
+      (p as any).raw_payload?.client?.name?.toLowerCase().includes(q)
+    );
+    if (cityFilter) filteredProjects = filteredProjects.filter(p =>
+      [(p as any).raw_payload?.client?.city || p.city, (p as any).raw_payload?.client?.state || p.state].filter(Boolean).join("/").toLowerCase().includes(cityFilter)
+    );
 
     let filteredProposals = proposals;
     if (filterProjectId) filteredProposals = filteredProposals.filter(p => p.sm_project_id === filterProjectId);
     if (q) filteredProposals = filteredProposals.filter(p => p.titulo?.toLowerCase().includes(q));
 
     return { clients: filteredClients, projects: filteredProjects, proposals: filteredProposals };
-  }, [clients, projects, proposals, search, filterClientId, filterProjectId]);
+  }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible]);
 
   return (
     <div className="space-y-4">
@@ -461,7 +560,7 @@ export default function SolarMarketPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={tab} onValueChange={(v) => { setTab(v); clearFilters(); setSearch(""); }}>
+      <Tabs value={tab} onValueChange={(v) => { setTab(v); clearFilters(); setSearch(""); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); noProjectPag.resetPage(); noProposalPag.resetPage(); }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <TabsList className="h-8">
             <TabsTrigger value="clientes" className="text-xs px-2.5 h-7">
@@ -499,13 +598,33 @@ export default function SolarMarketPage() {
               Logs
             </TabsTrigger>
           </TabsList>
-          <div className="flex items-center gap-2">
-            {(filterClientId || filterProjectId) && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-[11px] h-7 px-2">
-                ✕ Limpar filtro
+          <div className="flex items-center gap-2 flex-wrap">
+            {(filterClientId || filterProjectId || filterCity || filterResponsible) && (
+              <Button variant="ghost" size="sm" onClick={() => { clearFilters(); clientsPag.resetPage(); projectsPag.resetPage(); }} className="text-[11px] h-7 px-2">
+                ✕ Limpar filtros
               </Button>
             )}
-            <SearchInput value={search} onChange={setSearch} placeholder="Buscar..." className="w-44 h-8" />
+            <SearchInput value={search} onChange={(v) => { setSearch(v); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); }} placeholder="Nome, telefone, doc..." className="w-48 h-8" />
+            {(tab === "clientes" || tab === "sem-projeto" || tab === "sem-proposta") && (
+              <>
+                <select
+                  value={filterCity}
+                  onChange={(e) => { setFilterCity(e.target.value); clientsPag.resetPage(); }}
+                  className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+                >
+                  <option value="">Todas cidades</option>
+                  {uniqueCities.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select
+                  value={filterResponsible}
+                  onChange={(e) => { setFilterResponsible(e.target.value); clientsPag.resetPage(); }}
+                  className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+                >
+                  <option value="">Todos responsáveis</option>
+                  {uniqueResponsibles.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </>
+            )}
           </div>
         </div>
 
@@ -521,7 +640,7 @@ export default function SolarMarketPage() {
             filtered.clients.length === 0 ? (
               <EmptyState icon={Users} title="Nenhum cliente" description="Sincronize para importar clientes." />
             ) : (
-              <ClientsTable clients={filtered.clients} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} />
+              <ClientsTable clients={filtered.clients} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: clientsPag.page, pageSize: clientsPag.pageSize, onPageChange: clientsPag.setPage, onPageSizeChange: clientsPag.setPageSize }} />
             )}
         </TabsContent>
 
@@ -537,7 +656,7 @@ export default function SolarMarketPage() {
             filtered.projects.length === 0 ? (
               <EmptyState icon={FolderKanban} title="Nenhum projeto" description="Sincronize para importar projetos." />
             ) : (
-              <ProjectsTable projects={filtered.projects} onSelect={setSelectedProject} onNavigateProposals={navigateToProposals} />
+              <ProjectsTable projects={filtered.projects} onSelect={setSelectedProject} onNavigateProposals={navigateToProposals} pagination={{ page: projectsPag.page, pageSize: projectsPag.pageSize, onPageChange: projectsPag.setPage, onPageSizeChange: projectsPag.setPageSize }} />
             )}
         </TabsContent>
 
@@ -553,7 +672,7 @@ export default function SolarMarketPage() {
             filtered.proposals.length === 0 ? (
               <EmptyState icon={FileText} title="Nenhuma proposta" description="Sincronize para importar propostas." />
             ) : (
-              <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} />
+              <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
             )}
         </TabsContent>
 
@@ -563,7 +682,7 @@ export default function SolarMarketPage() {
             clientsWithoutProjectsCount === 0 ? (
               <EmptyState icon={CheckCircle} title="Todos os clientes têm projetos" description="Nenhum cliente sem projeto encontrado." />
             ) : (
-              <ClientsTable clients={clientsWithoutProjects} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} />
+              <ClientsTable clients={clientsWithoutProjects} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: noProjectPag.page, pageSize: noProjectPag.pageSize, onPageChange: noProjectPag.setPage, onPageSizeChange: noProjectPag.setPageSize }} />
             )}
         </TabsContent>
 
@@ -573,7 +692,7 @@ export default function SolarMarketPage() {
             clientsWithoutProposalsCount === 0 ? (
               <EmptyState icon={CheckCircle} title="Todos os clientes têm propostas" description="Nenhum cliente sem proposta encontrado." />
             ) : (
-              <ClientsTable clients={clientsWithoutProposals} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} />
+              <ClientsTable clients={clientsWithoutProposals} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: noProposalPag.page, pageSize: noProposalPag.pageSize, onPageChange: noProposalPag.setPage, onPageSizeChange: noProposalPag.setPageSize }} />
             )}
         </TabsContent>
 
