@@ -618,7 +618,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
             <ProjetoChatTab customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
-            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} />
+            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} />
           )}
           {activeTab === "vinculo" && (
             <VariableMapperPanel
@@ -1739,7 +1739,7 @@ interface LinkedOrcamento {
   created_at: string;
 }
 
-function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean }) {
+function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string }) {
   const [propostas, setPropostas] = useState<PropostaNativa[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
@@ -1940,9 +1940,9 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
       {/* Header */}
       {isClosed && (
         <div className="flex items-center justify-end">
-          <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
+          <Badge variant="secondary" className={cn("text-xs", dealStatus === "won" ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
             <AlertCircle className="h-3 w-3 mr-1" />
-            Projeto fechado
+            {dealStatus === "won" ? "Projeto concluído" : "Projeto perdido"}
           </Badge>
         </div>
       )}
