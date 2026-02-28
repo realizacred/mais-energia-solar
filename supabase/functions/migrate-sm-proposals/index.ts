@@ -815,7 +815,7 @@ Deno.serve(async (req) => {
                   kwp: smProp.potencia_kwp || null,
                   status: "won",
                   legacy_key: legacyKey,
-                  deal_num: 0,
+                  deal_num: null,
                 })
                 .select("id")
                 .single();
@@ -910,7 +910,7 @@ Deno.serve(async (req) => {
                   uf_instalacao: smProp.estado || smClient.state || null,
                   status: "criado",
                   codigo: `PROJ-SM-${smProp.sm_proposal_id}`, // trigger will override if null
-                  projeto_num: 0, // trigger assigns
+                  projeto_num: null, // trigger assigns
                 })
                 .select("id")
                 .single();
@@ -961,7 +961,7 @@ Deno.serve(async (req) => {
                   sm_project_id: smProp.sm_project_id ? String(smProp.sm_project_id) : null,
                   sm_raw_payload: null, // raw_payload excluded from listing query for performance
                   aceita_at: smProp.acceptance_date || smProp.sm_created_at || new Date().toISOString(),
-                  proposta_num: 0, // trigger assigns
+                  proposta_num: null, // trigger assigns
                   codigo: `PROP-SM-${smProp.sm_proposal_id}`, // trigger may override
                 })
                 .select("id")
