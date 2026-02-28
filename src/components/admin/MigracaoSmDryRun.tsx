@@ -36,6 +36,7 @@ interface DryRunResult {
     steps?: {
       cliente?: { status: string };
       deal?: { status: string };
+      pipelines?: { status: string; reason?: string; details?: Array<{ funnel: string; stage: string }> };
       proposta_nativa?: { status: string };
     };
     error?: string;
@@ -195,6 +196,7 @@ ${errorDetails.body ?? "—"}`}
                 <TableHead>Status</TableHead>
                 <TableHead>Cliente Step</TableHead>
                 <TableHead>Deal Step</TableHead>
+                <TableHead>Pipelines</TableHead>
                 <TableHead>Proposta Step</TableHead>
               </TableRow>
             </TableHeader>
@@ -210,6 +212,13 @@ ${errorDetails.body ?? "—"}`}
                   </TableCell>
                   <TableCell className="text-xs">{item.steps?.cliente?.status ?? "—"}</TableCell>
                   <TableCell className="text-xs">{item.steps?.deal?.status ?? "—"}</TableCell>
+                  <TableCell className="text-xs">
+                    {item.steps?.pipelines?.details
+                      ? item.steps.pipelines.details.map((p, j) => (
+                          <span key={j} className="block">{p.funnel} → {p.stage}</span>
+                        ))
+                      : item.steps?.pipelines?.reason ?? "—"}
+                  </TableCell>
                   <TableCell className="text-xs">{item.steps?.proposta_nativa?.status ?? "—"}</TableCell>
                 </TableRow>
               ))}

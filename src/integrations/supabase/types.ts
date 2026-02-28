@@ -13569,6 +13569,7 @@ export type Database = {
       solar_market_projects: {
         Row: {
           address: string | null
+          all_funnels: Json | null
           city: string | null
           complement: string | null
           created_at: string
@@ -13605,6 +13606,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          all_funnels?: Json | null
           city?: string | null
           complement?: string | null
           created_at?: string
@@ -13641,6 +13643,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          all_funnels?: Json | null
           city?: string | null
           complement?: string | null
           created_at?: string

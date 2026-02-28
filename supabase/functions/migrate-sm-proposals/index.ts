@@ -44,6 +44,7 @@ interface ProposalReport {
   steps: {
     cliente?: StepResult;
     deal?: StepResult;
+    pipelines?: StepResult & { details?: Array<{ funnel: string; stage: string; pipeline_id?: string; stage_id?: string }> };
     projeto?: StepResult;
     proposta_nativa?: StepResult;
     proposta_versao?: StepResult;
@@ -308,20 +309,20 @@ Deno.serve(async (req) => {
 
     console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
 
-    // ─── 2b. Pre-fetch SM projects to resolve responsible (vendedor) ─
+    // ─── 2b. Pre-fetch SM projects to resolve responsible (vendedor) & funnels ─
     const smProjectIds = [...new Set(allProposals.map((p) => p.sm_project_id).filter(Boolean))];
-    const smProjectMap = new Map<number, { responsible_name: string | null; sm_funnel_name: string | null; sm_stage_name: string | null }>();
+    const smProjectMap = new Map<number, { responsible_name: string | null; sm_funnel_name: string | null; sm_stage_name: string | null; all_funnels: any[] | null }>();
 
     for (let i = 0; i < smProjectIds.length; i += 500) {
       const chunk = smProjectIds.slice(i, i + 500);
       const { data: projects } = await adminClient
         .from("solar_market_projects")
-        .select("sm_project_id, responsible, sm_funnel_name, sm_stage_name")
+        .select("sm_project_id, responsible, sm_funnel_name, sm_stage_name, all_funnels")
         .eq("tenant_id", tenantId)
         .in("sm_project_id", chunk);
       for (const p of projects || []) {
         const respName = p.responsible?.name || null;
-        smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name });
+        smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name, all_funnels: p.all_funnels || null });
       }
     }
     console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
@@ -382,7 +383,97 @@ Deno.serve(async (req) => {
       return { id, created: true };
     }
 
-    // ─── 3. Pre-fetch existing deals with legacy_key ─────
+    // ─── Helper: find or create canonical pipeline by name ──
+    const pipelineCache = new Map<string, string>(); // funnelName → pipeline_id
+    const stageCache = new Map<string, string>(); // "pipelineId::stageName" → stage_id
+
+    async function resolveOrCreatePipeline(funnelName: string): Promise<string> {
+      const key = funnelName.trim();
+      if (pipelineCache.has(key)) return pipelineCache.get(key)!;
+
+      // Look up existing pipeline by name
+      const { data: existing } = await adminClient
+        .from("pipelines")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("name", key)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        pipelineCache.set(key, existing[0].id);
+        return existing[0].id;
+      }
+
+      if (dry_run) {
+        const placeholder = `AUTO_CREATE_PIPELINE:${key}`;
+        pipelineCache.set(key, placeholder);
+        return placeholder;
+      }
+
+      // Create new pipeline
+      const { data: newPipe, error: pipeErr } = await adminClient
+        .from("pipelines")
+        .insert({
+          tenant_id: tenantId,
+          name: key,
+          kind: "process",
+          is_active: true,
+          version: 1,
+        })
+        .select("id")
+        .single();
+
+      if (pipeErr) throw new Error(`Falha ao criar pipeline "${key}": ${pipeErr.message}`);
+      pipelineCache.set(key, newPipe!.id);
+      console.log(`[SM Migration] Created pipeline "${key}" → ${newPipe!.id}`);
+      return newPipe!.id;
+    }
+
+    async function resolveOrCreateStage(pipelineId: string, stageName: string, position: number): Promise<string> {
+      const cacheKey = `${pipelineId}::${stageName.trim()}`;
+      if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
+
+      // Look up existing stage
+      const { data: existing } = await adminClient
+        .from("pipeline_stages")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("pipeline_id", pipelineId)
+        .eq("name", stageName.trim())
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        stageCache.set(cacheKey, existing[0].id);
+        return existing[0].id;
+      }
+
+      if (dry_run) {
+        const placeholder = `AUTO_CREATE_STAGE:${stageName}`;
+        stageCache.set(cacheKey, placeholder);
+        return placeholder;
+      }
+
+      // Create new stage
+      const { data: newStage, error: stageErr } = await adminClient
+        .from("pipeline_stages")
+        .insert({
+          tenant_id: tenantId,
+          pipeline_id: pipelineId,
+          name: stageName.trim(),
+          position,
+          probability: 50,
+          is_closed: false,
+          is_won: false,
+        })
+        .select("id")
+        .single();
+
+      if (stageErr) throw new Error(`Falha ao criar stage "${stageName}": ${stageErr.message}`);
+      stageCache.set(cacheKey, newStage!.id);
+      console.log(`[SM Migration] Created stage "${stageName}" in pipeline ${pipelineId} → ${newStage!.id}`);
+      return newStage!.id;
+    }
+
 
     const existingDeals = new Map<string, string>(); // legacy_key -> deal_id
     {
@@ -638,6 +729,53 @@ Deno.serve(async (req) => {
               dealId = newDeal!.id;
               existingDeals.set(legacyKey, dealId);
               report.steps.deal = { status: "WOULD_CREATE", id: dealId };
+            }
+          }
+
+          // ── C2. Assign Deal to Pipelines from SM funnels (exceto Vendedores) ──
+          if (dealId && smProp.sm_project_id) {
+            const smProj = smProjectMap.get(smProp.sm_project_id);
+            const funnels: any[] = smProj?.all_funnels || [];
+            const nonVendedores = funnels.filter((f: any) => f.funnelName && f.funnelName !== "Vendedores" && f.stageName);
+
+            if (nonVendedores.length > 0) {
+              const pipelineDetails: Array<{ funnel: string; stage: string; pipeline_id?: string; stage_id?: string }> = [];
+
+              for (let idx = 0; idx < nonVendedores.length; idx++) {
+                const f = nonVendedores[idx];
+                try {
+                  const pipeId = await resolveOrCreatePipeline(f.funnelName);
+                  const stgId = await resolveOrCreateStage(pipeId, f.stageName, idx);
+                  pipelineDetails.push({ funnel: f.funnelName, stage: f.stageName, pipeline_id: pipeId, stage_id: stgId });
+
+                  if (!dry_run && !pipeId.startsWith("AUTO_CREATE") && !stgId.startsWith("AUTO_CREATE")) {
+                    // Insert deal_pipeline_stages (idempotent — skip if exists)
+                    const { error: dpsErr } = await adminClient
+                      .from("deal_pipeline_stages")
+                      .upsert({
+                        deal_id: dealId,
+                        pipeline_id: pipeId,
+                        stage_id: stgId,
+                        tenant_id: tenantId,
+                      }, { onConflict: "deal_id,pipeline_id" });
+
+                    if (dpsErr) {
+                      console.warn(`[SM Migration] deal_pipeline_stages error: ${dpsErr.message}`);
+                    }
+                  }
+                } catch (e) {
+                  pipelineDetails.push({ funnel: f.funnelName, stage: f.stageName });
+                  console.warn(`[SM Migration] Pipeline resolution error for "${f.funnelName}/${f.stageName}": ${(e as Error).message}`);
+                }
+              }
+
+              report.steps.pipelines = {
+                status: dry_run ? "WOULD_CREATE" : "WOULD_CREATE",
+                reason: `${pipelineDetails.length} funis mapeados`,
+                details: pipelineDetails,
+              };
+            } else {
+              report.steps.pipelines = { status: "WOULD_SKIP", reason: "Nenhum funil não-Vendedores encontrado" };
             }
           }
 
