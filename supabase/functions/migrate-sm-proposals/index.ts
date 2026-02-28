@@ -275,8 +275,7 @@ Deno.serve(async (req) => {
     }
 
     // ─── 1. Fetch SM proposals ───────────────────────────
-
-    // Select only needed columns — exclude raw_payload to avoid statement timeout
+    // Also include custom_fields_raw for mapping
     const SM_PROPOSAL_COLUMNS = [
       "id", "tenant_id", "sm_proposal_id", "sm_project_id", "sm_client_id",
       "titulo", "description", "potencia_kwp", "valor_total", "status",
@@ -290,7 +289,7 @@ Deno.serve(async (req) => {
       "geracao_anual", "inflacao_energetica", "perda_eficiencia_anual",
       "sobredimensionamento", "custo_disponibilidade",
       "generated_at", "send_at", "viewed_at", "acceptance_date", "rejection_date",
-      "migrar_para_canonico",
+      "migrar_para_canonico", "custom_fields_raw",
     ].join(", ");
 
     let query = adminClient
@@ -411,7 +410,54 @@ Deno.serve(async (req) => {
     }
     console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
 
-    // ─── Helper: resolve or create consultor by name ─────
+    // ─── 2d. Pre-fetch custom field mappings ────────────
+    const cfMappings = new Map<string, { target_namespace: string; target_path: string; transform: string; priority: number }>();
+    {
+      const { data: mappings } = await adminClient
+        .from("custom_field_mappings")
+        .select("source_key, target_namespace, target_path, transform, priority")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .order("priority", { ascending: true });
+      for (const m of (mappings || [])) {
+        cfMappings.set(m.source_key, {
+          target_namespace: m.target_namespace,
+          target_path: m.target_path,
+          transform: m.transform,
+          priority: m.priority,
+        });
+      }
+    }
+    console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
+
+    /** Apply transform to a raw value */
+    function applyTransform(rawValue: any, transform: string): any {
+      if (rawValue == null || rawValue === "undefined") return null;
+      switch (transform) {
+        case "number_br": {
+          const s = String(rawValue).replace(/\./g, "").replace(",", ".");
+          const n = Number(s);
+          return isNaN(n) ? rawValue : n;
+        }
+        case "number": {
+          const n = Number(rawValue);
+          return isNaN(n) ? rawValue : n;
+        }
+        case "boolean":
+          return rawValue === true || rawValue === "true" || rawValue === "1" || rawValue === "sim" || rawValue === "Sim";
+        case "date_br": {
+          // DD/MM/YYYY → YYYY-MM-DD
+          const m = String(rawValue).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+          return m ? `${m[3]}-${m[2]}-${m[1]}` : rawValue;
+        }
+        case "json":
+          try { return JSON.parse(String(rawValue)); } catch { return rawValue; }
+        default: // "string" or enum
+          return String(rawValue);
+      }
+    }
+
+
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = stageName.toLowerCase().trim();
       const existing = consultoresMap.get(key);

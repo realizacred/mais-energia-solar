@@ -2228,6 +2228,53 @@ export type Database = {
           },
         ]
       }
+      custom_field_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          priority: number
+          source_key: string
+          target_namespace: string
+          target_path: string
+          tenant_id: string
+          transform: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          source_key: string
+          target_namespace?: string
+          target_path?: string
+          tenant_id: string
+          transform?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          source_key?: string
+          target_namespace?: string
+          target_path?: string
+          tenant_id?: string
+          transform?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dead_letter_queue: {
         Row: {
           created_at: string
@@ -13486,37 +13533,81 @@ export type Database = {
         Row: {
           field_type: string | null
           id: string
+          is_active: boolean
           key: string | null
           name: string | null
           options: Json | null
           raw_payload: Json | null
           sm_custom_field_id: number
+          source: string
           synced_at: string
           tenant_id: string
+          version_hash: string | null
         }
         Insert: {
           field_type?: string | null
           id?: string
+          is_active?: boolean
           key?: string | null
           name?: string | null
           options?: Json | null
           raw_payload?: Json | null
           sm_custom_field_id: number
+          source?: string
           synced_at?: string
           tenant_id: string
+          version_hash?: string | null
         }
         Update: {
           field_type?: string | null
           id?: string
+          is_active?: boolean
           key?: string | null
           name?: string | null
           options?: Json | null
           raw_payload?: Json | null
           sm_custom_field_id?: number
+          source?: string
           synced_at?: string
           tenant_id?: string
+          version_hash?: string | null
         }
         Relationships: []
+      }
+      solar_market_custom_fields_snapshots: {
+        Row: {
+          fetched_at: string
+          id: string
+          raw: Json
+          snapshot_hash: string
+          source: string
+          tenant_id: string
+        }
+        Insert: {
+          fetched_at?: string
+          id?: string
+          raw: Json
+          snapshot_hash: string
+          source?: string
+          tenant_id: string
+        }
+        Update: {
+          fetched_at?: string
+          id?: string
+          raw?: Json
+          snapshot_hash?: string
+          source?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_market_custom_fields_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       solar_market_funnel_stages: {
         Row: {
@@ -13720,6 +13811,7 @@ export type Database = {
           consumo_mensal: number | null
           created_at: string
           custo_disponibilidade: number | null
+          custom_fields_raw: Json | null
           description: string | null
           dis_energia: string | null
           discount: number | null
@@ -13771,6 +13863,7 @@ export type Database = {
           valor_total: number | null
           viewed_at: string | null
           vpl: number | null
+          warnings: string[] | null
           warranty: string | null
         }
         Insert: {
@@ -13779,6 +13872,7 @@ export type Database = {
           consumo_mensal?: number | null
           created_at?: string
           custo_disponibilidade?: number | null
+          custom_fields_raw?: Json | null
           description?: string | null
           dis_energia?: string | null
           discount?: number | null
@@ -13830,6 +13924,7 @@ export type Database = {
           valor_total?: number | null
           viewed_at?: string | null
           vpl?: number | null
+          warnings?: string[] | null
           warranty?: string | null
         }
         Update: {
@@ -13838,6 +13933,7 @@ export type Database = {
           consumo_mensal?: number | null
           created_at?: string
           custo_disponibilidade?: number | null
+          custom_fields_raw?: Json | null
           description?: string | null
           dis_energia?: string | null
           discount?: number | null
@@ -13889,6 +13985,7 @@ export type Database = {
           valor_total?: number | null
           viewed_at?: string | null
           vpl?: number | null
+          warnings?: string[] | null
           warranty?: string | null
         }
         Relationships: [

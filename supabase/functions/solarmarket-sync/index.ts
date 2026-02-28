@@ -646,40 +646,79 @@ Deno.serve(async (req) => {
     }
 
     // ─── Sync Custom Field Definitions (global endpoint) ──
-    // Try /custom-fields for field definitions; if it fails (HTML/404), skip silently
+    // Paginated fetch with version_hash + snapshot
     if (sync_type === "full" || sync_type === "custom_fields") {
       try {
-        const cfUrl = `${baseUrl}/custom-fields?limit=100&page=1`;
-        console.log(`[SM Sync] Trying global /custom-fields...`);
-        const res = await fetch(cfUrl, { headers: smHeaders });
-        const contentType = res.headers.get("content-type") || "";
+        console.log(`[SM Sync] Fetching global /custom-fields (paginated)...`);
+        const allCustomFields: any[] = [];
+        let cfPage = 1;
+        const cfLimit = 100;
 
-        if (res.ok && contentType.includes("application/json")) {
-          const json = await res.json();
-          const customFields = Array.isArray(json) ? json : json.data || [];
-          totalFetched += customFields.length;
-          console.log(`[SM Sync] Custom field definitions fetched: ${customFields.length}`);
+        while (true) {
+          const cfUrl = `${baseUrl}/custom-fields?limit=${cfLimit}&page=${cfPage}`;
+          const res = await fetch(cfUrl, { headers: smHeaders });
+          const contentType = res.headers.get("content-type") || "";
 
-          const rows = customFields.map((cf: any) => ({
-            tenant_id: tenantId,
-            sm_custom_field_id: cf.id,
-            key: cf.key || null,
-            name: cf.name || cf.label || null,
-            field_type: cf.type || cf.fieldType || cf.field_type || null,
-            options: cf.options || cf.choices || null,
-            raw_payload: cf,
-            synced_at: new Date().toISOString(),
-          }));
-
-          if (rows.length > 0) {
-            const result = await batchUpsert(supabase, "solar_market_custom_fields", rows, "tenant_id,sm_custom_field_id");
-            totalUpserted += result.upserted;
-            totalErrors += result.errors.length;
-            errors.push(...result.errors);
+          if (!res.ok || !contentType.includes("application/json")) {
+            if (cfPage === 1) {
+              const body = await res.text();
+              console.log(`[SM Sync] Global /custom-fields not available (${res.status}). Preview: ${body.slice(0, 100)}`);
+            } else {
+              await res.text();
+            }
+            break;
           }
-        } else {
-          const body = await res.text();
-          console.log(`[SM Sync] Global /custom-fields not available (${res.status}, type=${contentType}), will fetch per-project. Preview: ${body.slice(0, 100)}`);
+
+          const json = await res.json();
+          const items = Array.isArray(json) ? json : json.data || [];
+          allCustomFields.push(...items);
+          console.log(`[SM Sync] Custom fields page ${cfPage}: ${items.length} items, total: ${allCustomFields.length}`);
+
+          if (items.length < cfLimit) break;
+          cfPage++;
+          await delay(500);
+        }
+
+        totalFetched += allCustomFields.length;
+        console.log(`[SM Sync] Custom field definitions fetched: ${allCustomFields.length}`);
+
+        if (allCustomFields.length > 0) {
+          // Compute version_hash per field and build rows
+          const rows = allCustomFields.map((cf: any) => {
+            const rawStr = JSON.stringify(cf, Object.keys(cf).sort());
+            // Simple hash: first 16 chars of base64-encoded string
+            const hash = btoa(rawStr).slice(0, 32);
+            return {
+              tenant_id: tenantId,
+              sm_custom_field_id: cf.id,
+              key: cf.key || null,
+              name: cf.name || cf.label || null,
+              field_type: cf.type || cf.fieldType || cf.field_type || null,
+              options: cf.options || cf.choices || null,
+              raw_payload: cf,
+              source: "solarmarket",
+              is_active: true,
+              version_hash: hash,
+              synced_at: new Date().toISOString(),
+            };
+          });
+
+          const result = await batchUpsert(supabase, "solar_market_custom_fields", rows, "tenant_id,sm_custom_field_id");
+          totalUpserted += result.upserted;
+          totalErrors += result.errors.length;
+          errors.push(...result.errors);
+
+          // Save snapshot
+          const snapshotRaw = JSON.stringify(allCustomFields, null, 0);
+          const snapshotHash = btoa(snapshotRaw.slice(0, 200)).slice(0, 32);
+          await supabase.from("solar_market_custom_fields_snapshots").insert({
+            tenant_id: tenantId,
+            source: "solarmarket",
+            raw: allCustomFields,
+            snapshot_hash: snapshotHash,
+            fetched_at: new Date().toISOString(),
+          });
+          console.log(`[SM Sync] Custom fields snapshot saved (hash=${snapshotHash})`);
         }
       } catch (e) {
         console.warn("[SM Sync] Global custom-fields skipped:", (e as Error).message);
@@ -1040,7 +1079,95 @@ Deno.serve(async (req) => {
       console.log(`[SM Sync] Custom fields: ${cfDefsMap.size} definitions, ${cfValueRows.length} values for ${projectCfMap.size} projects`);
     }
 
-    // ─── Sync Proposals ───────────────────────────────────
+    // ─── Pre-load custom field definitions for custom_fields_raw enrichment ──
+    let cfDefsLookup = new Map<string, { label: string; type: string; external_field_id: number; version_hash: string | null }>();
+    {
+      const { data: cfDefs } = await supabase
+        .from("solar_market_custom_fields")
+        .select("key, name, field_type, sm_custom_field_id, version_hash")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true);
+      for (const d of (cfDefs || [])) {
+        if (d.key) {
+          cfDefsLookup.set(d.key, {
+            label: d.name || d.key,
+            type: d.field_type || "unknown",
+            external_field_id: d.sm_custom_field_id,
+            version_hash: d.version_hash,
+          });
+        }
+      }
+      console.log(`[SM Sync] Loaded ${cfDefsLookup.size} custom field definitions for enrichment`);
+    }
+
+    /** Build custom_fields_raw object from proposal payload */
+    function buildCustomFieldsRaw(pr: any): any {
+      const variables = Array.isArray(pr.variables) ? pr.variables : [];
+      const customFields = pr.customFields || pr.custom_fields || {};
+      const warnings: string[] = [];
+
+      const values: Record<string, any> = {};
+      const unmapped: Record<string, any> = {};
+      const definitionVersionHashes: Record<string, string> = {};
+
+      // Process variables (most custom field values come through here)
+      for (const v of variables) {
+        const key = v.key;
+        if (!key) continue;
+        const rawValue = v.value;
+        const def = cfDefsLookup.get(`[${key}]`) || cfDefsLookup.get(key);
+
+        if (rawValue === "undefined" || rawValue === undefined) {
+          warnings.push(`${key}: value is "undefined"`);
+        }
+
+        const entry: any = {
+          value: rawValue ?? null,
+          raw_value: rawValue ?? null,
+          source: "solarmarket",
+        };
+
+        if (def) {
+          entry.label = def.label;
+          entry.type = def.type;
+          entry.external_field_id = def.external_field_id;
+          values[key] = entry;
+          if (def.version_hash) definitionVersionHashes[key] = def.version_hash;
+        } else {
+          entry.note = "sem definicao no dicionario";
+          unmapped[key] = entry;
+        }
+      }
+
+      // Process explicit customFields object if present
+      if (typeof customFields === "object" && !Array.isArray(customFields)) {
+        for (const [key, val] of Object.entries(customFields)) {
+          if (values[key] || unmapped[key]) continue; // already processed
+          const def = cfDefsLookup.get(`[${key}]`) || cfDefsLookup.get(key);
+          const entry: any = { value: val, raw_value: val, source: "solarmarket" };
+          if (def) {
+            entry.label = def.label;
+            entry.type = def.type;
+            entry.external_field_id = def.external_field_id;
+            values[key] = entry;
+            if (def.version_hash) definitionVersionHashes[key] = def.version_hash;
+          } else {
+            entry.note = "sem definicao no dicionario";
+            unmapped[key] = entry;
+          }
+        }
+      }
+
+      if (Object.keys(values).length === 0 && Object.keys(unmapped).length === 0) return null;
+
+      return {
+        values,
+        unmapped: Object.keys(unmapped).length > 0 ? unmapped : undefined,
+        definition_version_hashes: Object.keys(definitionVersionHashes).length > 0 ? definitionVersionHashes : undefined,
+        _warnings: warnings.length > 0 ? warnings : undefined,
+      };
+    }
+
     if (sync_type === "full" || sync_type === "proposals") {
       try {
         // Try bulk endpoint first: GET /proposals
@@ -1090,6 +1217,9 @@ Deno.serve(async (req) => {
             if (!clientId || clientId === -1 || clientId === "-1") {
               clientId = projectId ? (projectClientMap.get(projectId) ?? null) : null;
             }
+            const cfRaw = buildCustomFieldsRaw(pr);
+            const cfWarnings = cfRaw?._warnings || null;
+            if (cfRaw) delete cfRaw._warnings;
             return {
               tenant_id: tenantId,
               sm_proposal_id: pr.id,
@@ -1097,6 +1227,8 @@ Deno.serve(async (req) => {
               sm_project_id: projectId,
               sm_client_id: clientId,
               raw_payload: pr,
+              custom_fields_raw: cfRaw,
+              warnings: cfWarnings,
               synced_at: new Date().toISOString(),
             };
           });
@@ -1183,14 +1315,19 @@ Deno.serve(async (req) => {
                   const retryRes = await fetch(url, { headers: smHeaders });
                   if (!retryRes.ok) { await retryRes.text(); return []; }
                   const retryData = await retryRes.json();
-                  return extractProposalArray(retryData).map((pr: any) => ({
-                    tenant_id: tenantId,
-                    sm_proposal_id: pr.id,
-                    ...extractProposalFields(pr),
-                    sm_project_id: projId,
-                    raw_payload: pr,
-                    synced_at: new Date().toISOString(),
-                  }));
+                  return extractProposalArray(retryData).map((pr: any) => {
+                    const cfRaw = buildCustomFieldsRaw(pr);
+                    if (cfRaw) delete cfRaw._warnings;
+                    return {
+                      tenant_id: tenantId,
+                      sm_proposal_id: pr.id,
+                      ...extractProposalFields(pr),
+                      sm_project_id: projId,
+                      raw_payload: pr,
+                      custom_fields_raw: cfRaw,
+                      synced_at: new Date().toISOString(),
+                    };
+                  });
                 }
                 // Log non-429 errors for first few projects
                 if (batchCount < 5) {
@@ -1210,14 +1347,19 @@ Deno.serve(async (req) => {
               }
 
               const proposals = extractProposalArray(propData);
-              return proposals.map((pr: any) => ({
-                tenant_id: tenantId,
-                sm_proposal_id: pr.id,
-                ...extractProposalFields(pr),
-                sm_project_id: projId,
-                raw_payload: pr,
-                synced_at: new Date().toISOString(),
-              }));
+              return proposals.map((pr: any) => {
+                const cfRaw = buildCustomFieldsRaw(pr);
+                if (cfRaw) delete cfRaw._warnings;
+                return {
+                  tenant_id: tenantId,
+                  sm_proposal_id: pr.id,
+                  ...extractProposalFields(pr),
+                  sm_project_id: projId,
+                  raw_payload: pr,
+                  custom_fields_raw: cfRaw,
+                  synced_at: new Date().toISOString(),
+                };
+              });
             })
           );
 
