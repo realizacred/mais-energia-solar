@@ -1,0 +1,646 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+// ─── Types ──────────────────────────────────────────────
+
+interface MigrationParams {
+  dry_run: boolean;
+  filters?: {
+    status?: string;        // e.g. "approved"
+    sm_proposal_ids?: number[];
+    date_from?: string;     // ISO date
+    date_to?: string;       // ISO date
+  };
+  batch_size?: number;
+  /** Required: pipeline_id to assign deals into */
+  pipeline_id?: string;
+  /** Required: stage_id for "won" deals */
+  stage_id?: string;
+  /** Required: owner_id (consultor_id) for deals */
+  owner_id?: string;
+}
+
+type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "CONFLICT" | "ERROR";
+
+interface StepResult {
+  status: StepStatus;
+  id?: string;
+  reason?: string;
+  matches?: number;
+}
+
+interface ProposalReport {
+  sm_proposal_id: number;
+  sm_client_name: string | null;
+  aborted: boolean;
+  steps: {
+    cliente?: StepResult;
+    deal?: StepResult;
+    projeto?: StepResult;
+    proposta_nativa?: StepResult;
+    proposta_versao?: StepResult;
+  };
+}
+
+// ─── Helpers ────────────────────────────────────────────
+
+function normalizePhone(raw: string | null): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  return digits.slice(-11) || null;
+}
+
+function parsePaybackMonths(payback: string | null): number | null {
+  if (!payback) return null;
+  // Parse "X anos e Y meses" or "X anos" or "Y meses"
+  const anos = payback.match(/(\d+)\s*ano/i);
+  const meses = payback.match(/(\d+)\s*m[eê]s/i);
+  const totalMonths = (anos ? parseInt(anos[1]) * 12 : 0) + (meses ? parseInt(meses[1]) : 0);
+  return totalMonths > 0 ? totalMonths : null;
+}
+
+// ─── Main Handler ───────────────────────────────────────
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Auth
+    const authHeader = req.headers.get("authorization") || "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Validate user auth
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get tenant_id + role
+    const adminClient = createClient(supabaseUrl, serviceKey);
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("tenant_id, role")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.tenant_id) {
+      return new Response(JSON.stringify({ error: "No tenant" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!["admin", "super_admin"].includes(profile.role)) {
+      return new Response(JSON.stringify({ error: "Admin only" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const tenantId = profile.tenant_id;
+    const params: MigrationParams = await req.json();
+    const { dry_run = true, filters = {}, batch_size = 50 } = params;
+
+    // Validate required params for real execution
+    if (!dry_run) {
+      if (!params.pipeline_id || !params.owner_id) {
+        return new Response(
+          JSON.stringify({ error: "pipeline_id and owner_id are required for real execution" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+    console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
+
+    // ─── 1. Fetch SM proposals ───────────────────────────
+
+    let query = adminClient
+      .from("solar_market_proposals")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .not("sm_client_id", "is", null)
+      .order("sm_proposal_id", { ascending: true });
+
+    if (filters.status) {
+      // SM status field: "approved", "sent", "draft" etc.
+      query = query.ilike("status", filters.status);
+    }
+    if (filters.sm_proposal_ids && filters.sm_proposal_ids.length > 0) {
+      query = query.in("sm_proposal_id", filters.sm_proposal_ids);
+    }
+    if (filters.date_from) {
+      query = query.gte("sm_created_at", filters.date_from);
+    }
+    if (filters.date_to) {
+      query = query.lte("sm_created_at", filters.date_to);
+    }
+
+    // Paginate SM proposals (max 1000 per page)
+    const allProposals: any[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: page, error: pageErr } = await query.range(offset, offset + pageSize - 1);
+      if (pageErr) throw new Error(`Fetch SM proposals: ${pageErr.message}`);
+      allProposals.push(...(page || []));
+      if ((page || []).length < pageSize) break;
+      offset += pageSize;
+    }
+
+    console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
+
+    if (allProposals.length === 0) {
+      return new Response(
+        JSON.stringify({ mode: dry_run ? "dry_run" : "execute", total_processed: 0, summary: {}, details: [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ─── 2. Pre-fetch SM clients for these proposals ─────
+
+    const clientIds = [...new Set(allProposals.map((p) => p.sm_client_id).filter(Boolean))];
+    const smClientMap = new Map<number, any>();
+
+    for (let i = 0; i < clientIds.length; i += 500) {
+      const chunk = clientIds.slice(i, i + 500);
+      const { data: clients } = await adminClient
+        .from("solar_market_clients")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .in("sm_client_id", chunk);
+      for (const c of clients || []) {
+        smClientMap.set(c.sm_client_id, c);
+      }
+    }
+
+    console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
+
+    // ─── 3. Pre-fetch existing deals with legacy_key ─────
+
+    const existingDeals = new Map<string, string>(); // legacy_key -> deal_id
+    {
+      const { data: deals } = await adminClient
+        .from("deals")
+        .select("id, legacy_key")
+        .eq("tenant_id", tenantId)
+        .not("legacy_key", "is", null);
+      for (const d of deals || []) {
+        if (d.legacy_key) existingDeals.set(d.legacy_key, d.id);
+      }
+    }
+
+    // ─── 4. Pre-fetch existing propostas_nativas with sm_id ─
+
+    const existingPropostas = new Map<string, string>(); // sm_id -> proposta_id
+    {
+      const { data: props } = await adminClient
+        .from("propostas_nativas")
+        .select("id, sm_id")
+        .eq("tenant_id", tenantId)
+        .not("sm_id", "is", null);
+      for (const p of props || []) {
+        if (p.sm_id) existingPropostas.set(p.sm_id, p.id);
+      }
+    }
+
+    // ─── 5. Process proposals ────────────────────────────
+
+    const reports: ProposalReport[] = [];
+    const summary: Record<string, number> = {
+      WOULD_CREATE: 0,
+      WOULD_LINK: 0,
+      WOULD_SKIP: 0,
+      CONFLICT: 0,
+      ERROR: 0,
+      SUCCESS: 0,
+    };
+
+    for (let i = 0; i < allProposals.length; i += batch_size) {
+      const batch = allProposals.slice(i, i + batch_size);
+
+      for (const smProp of batch) {
+        const report: ProposalReport = {
+          sm_proposal_id: smProp.sm_proposal_id,
+          sm_client_name: null,
+          aborted: false,
+          steps: {},
+        };
+
+        try {
+          // ── A. Resolve SM Client ──
+          const smClient = smClientMap.get(smProp.sm_client_id);
+          if (!smClient) {
+            report.aborted = true;
+            report.steps.cliente = { status: "ERROR", reason: "SM client not found for sm_client_id=" + smProp.sm_client_id };
+            summary.ERROR++;
+            reports.push(report);
+            continue;
+          }
+          report.sm_client_name = smClient.name;
+
+          // ── B. Dedupe client by phone_normalized (EXACT match) ──
+          const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
+          let clienteId: string | null = null;
+
+          if (phoneNorm) {
+            const { data: matches } = await adminClient
+              .from("clientes")
+              .select("id, nome")
+              .eq("tenant_id", tenantId)
+              .eq("telefone_normalized", phoneNorm);
+
+            const matchCount = (matches || []).length;
+
+            if (matchCount > 1) {
+              report.aborted = true;
+              report.steps.cliente = {
+                status: "CONFLICT",
+                reason: `${matchCount} clients match phone ${phoneNorm}`,
+                matches: matchCount,
+              };
+              summary.CONFLICT++;
+              reports.push(report);
+              await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "CONFLICT", report, dry_run);
+              continue;
+            }
+
+            if (matchCount === 1) {
+              clienteId = matches![0].id;
+              report.steps.cliente = { status: "WOULD_LINK", id: clienteId };
+            }
+          }
+
+          // Fallback: cpf_cnpj exact match
+          if (!clienteId && smClient.document) {
+            const docNorm = smClient.document.replace(/\D/g, "");
+            if (docNorm.length >= 11) {
+              const { data: docMatches } = await adminClient
+                .from("clientes")
+                .select("id")
+                .eq("tenant_id", tenantId)
+                .eq("cpf_cnpj", docNorm);
+
+              if ((docMatches || []).length === 1) {
+                clienteId = docMatches![0].id;
+                report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by cpf_cnpj" };
+              }
+            }
+          }
+
+          // No match → need to create
+          if (!clienteId) {
+            if (dry_run) {
+              report.steps.cliente = { status: "WOULD_CREATE" };
+            } else {
+              const { data: newClient, error: insErr } = await adminClient
+                .from("clientes")
+                .insert({
+                  tenant_id: tenantId,
+                  nome: smClient.name || "SM Import",
+                  telefone: smClient.phone_formatted || smClient.phone || "N/A",
+                  telefone_normalized: phoneNorm,
+                  email: smClient.email,
+                  cpf_cnpj: smClient.document ? smClient.document.replace(/\D/g, "") : null,
+                  cidade: smClient.city,
+                  estado: smClient.state,
+                  bairro: smClient.neighborhood,
+                  rua: smClient.address,
+                  numero: smClient.number,
+                  complemento: smClient.complement,
+                  cep: smClient.zip_code_formatted || smClient.zip_code,
+                  empresa: smClient.company,
+                  cliente_code: `SM-${smProp.sm_client_id}`,
+                })
+                .select("id")
+                .single();
+
+              if (insErr) {
+                report.aborted = true;
+                report.steps.cliente = { status: "ERROR", reason: insErr.message };
+                summary.ERROR++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+                continue;
+              }
+              clienteId = newClient!.id;
+              report.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
+            }
+          }
+
+          // ── C. Deal (idempotent via legacy_key) ──
+          const legacyKey = `sm:${smProp.sm_proposal_id}`;
+          let dealId: string | null = existingDeals.get(legacyKey) || null;
+
+          if (dealId) {
+            report.steps.deal = { status: "WOULD_SKIP", id: dealId };
+          } else {
+            if (dry_run) {
+              report.steps.deal = { status: "WOULD_CREATE" };
+            } else {
+              const { data: newDeal, error: dealErr } = await adminClient
+                .from("deals")
+                .insert({
+                  tenant_id: tenantId,
+                  pipeline_id: params.pipeline_id!,
+                  stage_id: params.stage_id || null,
+                  customer_id: clienteId!,
+                  owner_id: params.owner_id!,
+                  title: smProp.titulo || smClient.name || `SM Proposta ${smProp.sm_proposal_id}`,
+                  value: smProp.preco_total || smProp.valor_total || 0,
+                  kwp: smProp.potencia_kwp || null,
+                  status: "won",
+                  legacy_key: legacyKey,
+                  deal_num: 0, // trigger will assign
+                })
+                .select("id")
+                .single();
+
+              if (dealErr) {
+                report.aborted = true;
+                report.steps.deal = { status: "ERROR", reason: dealErr.message };
+                summary.ERROR++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+                continue;
+              }
+              dealId = newDeal!.id;
+              existingDeals.set(legacyKey, dealId);
+              report.steps.deal = { status: "WOULD_CREATE", id: dealId };
+            }
+          }
+
+          // ── D. Projeto ──
+          let projetoId: string | null = null;
+
+          if (dealId && !dry_run) {
+            // Check if projeto already exists for this deal
+            const { data: existingProjeto } = await adminClient
+              .from("projetos")
+              .select("id")
+              .eq("tenant_id", tenantId)
+              .eq("deal_id", dealId)
+              .limit(1);
+
+            if ((existingProjeto || []).length > 0) {
+              projetoId = existingProjeto![0].id;
+              report.steps.projeto = { status: "WOULD_LINK", id: projetoId };
+            } else {
+              const { data: newProj, error: projErr } = await adminClient
+                .from("projetos")
+                .insert({
+                  tenant_id: tenantId,
+                  cliente_id: clienteId!,
+                  deal_id: dealId,
+                  consultor_id: params.owner_id || null,
+                  potencia_kwp: smProp.potencia_kwp || null,
+                  valor_total: smProp.preco_total || smProp.valor_total || null,
+                  cidade_instalacao: smProp.cidade || smClient.city || null,
+                  uf_instalacao: smProp.estado || smClient.state || null,
+                  status: "em_andamento",
+                  codigo: `PROJ-SM-${smProp.sm_proposal_id}`, // trigger will override if null
+                  projeto_num: 0, // trigger assigns
+                })
+                .select("id")
+                .single();
+
+              if (projErr) {
+                report.steps.projeto = { status: "ERROR", reason: projErr.message };
+                // Non-fatal: continue without projeto
+              } else {
+                projetoId = newProj!.id;
+                report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
+              }
+            }
+          } else {
+            report.steps.projeto = { status: dry_run ? "WOULD_CREATE" : "ERROR", reason: dry_run ? undefined : "no deal_id" };
+          }
+
+          // ── E. Proposta Nativa ──
+          const smIdKey = String(smProp.sm_proposal_id);
+          let propostaId: string | null = existingPropostas.get(smIdKey) || null;
+
+          if (propostaId) {
+            report.steps.proposta_nativa = { status: "WOULD_SKIP", id: propostaId };
+          } else {
+            if (dry_run) {
+              report.steps.proposta_nativa = { status: "WOULD_CREATE" };
+            } else {
+              if (!projetoId) {
+                report.steps.proposta_nativa = { status: "ERROR", reason: "no projeto_id" };
+                report.aborted = true;
+                summary.ERROR++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+                continue;
+              }
+
+              const { data: newProp, error: propErr } = await adminClient
+                .from("propostas_nativas")
+                .insert({
+                  tenant_id: tenantId,
+                  projeto_id: projetoId,
+                  deal_id: dealId,
+                  cliente_id: clienteId,
+                  titulo: smProp.titulo || `Proposta SM #${smProp.sm_proposal_id}`,
+                  status: "aceita",
+                  origem: "legacy_import",
+                  versao_atual: 1,
+                  sm_id: smIdKey,
+                  sm_project_id: smProp.sm_project_id ? String(smProp.sm_project_id) : null,
+                  sm_raw_payload: smProp.raw_payload || null,
+                  aceita_at: smProp.acceptance_date || smProp.sm_created_at || new Date().toISOString(),
+                  proposta_num: 0, // trigger assigns
+                  codigo: `PROP-SM-${smProp.sm_proposal_id}`, // trigger may override
+                })
+                .select("id")
+                .single();
+
+              if (propErr) {
+                report.aborted = true;
+                report.steps.proposta_nativa = { status: "ERROR", reason: propErr.message };
+                summary.ERROR++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+                continue;
+              }
+              propostaId = newProp!.id;
+              existingPropostas.set(smIdKey, propostaId);
+              report.steps.proposta_nativa = { status: "WOULD_CREATE", id: propostaId };
+            }
+          }
+
+          // ── F. Proposta Versão ──
+          if (propostaId && !dry_run) {
+            // Check if version already exists
+            const { data: existingVer } = await adminClient
+              .from("proposta_versoes")
+              .select("id")
+              .eq("proposta_id", propostaId)
+              .eq("versao_numero", 1)
+              .limit(1);
+
+            if ((existingVer || []).length > 0) {
+              report.steps.proposta_versao = { status: "WOULD_SKIP", id: existingVer![0].id };
+            } else {
+              const paybackMeses = parsePaybackMonths(smProp.payback);
+
+              const finalSnapshot = {
+                source: "legacy_import",
+                sm_proposal_id: smProp.sm_proposal_id,
+                link_pdf: smProp.link_pdf,
+                tir: smProp.tir,
+                vpl: smProp.vpl,
+                consumo_mensal: smProp.consumo_mensal,
+                tarifa_distribuidora: smProp.tarifa_distribuidora,
+                economia_mensal_percent: smProp.economia_mensal_percent,
+                inflacao_energetica: smProp.inflacao_energetica,
+                perda_eficiencia_anual: smProp.perda_eficiencia_anual,
+                sobredimensionamento: smProp.sobredimensionamento,
+                custo_disponibilidade: smProp.custo_disponibilidade,
+                geracao_anual: smProp.geracao_anual,
+                payback_original: smProp.payback,
+                payment_conditions: smProp.payment_conditions,
+                panel_model: smProp.panel_model,
+                panel_quantity: smProp.panel_quantity,
+                inverter_model: smProp.inverter_model,
+                inverter_quantity: smProp.inverter_quantity,
+                equipment_cost: smProp.equipment_cost,
+                installation_cost: smProp.installation_cost,
+                roof_type: smProp.roof_type,
+                structure_type: smProp.structure_type,
+                warranty: smProp.warranty,
+                discount: smProp.discount,
+              };
+
+              const { data: newVer, error: verErr } = await adminClient
+                .from("proposta_versoes")
+                .insert({
+                  tenant_id: tenantId,
+                  proposta_id: propostaId,
+                  versao_numero: 1,
+                  valor_total: smProp.preco_total || smProp.valor_total || null,
+                  potencia_kwp: smProp.potencia_kwp || null,
+                  economia_mensal: smProp.economia_mensal || null,
+                  geracao_mensal: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
+                  payback_meses: paybackMeses,
+                  status: "approved",
+                  snapshot_locked: true,
+                  final_snapshot: finalSnapshot,
+                  snapshot: finalSnapshot,
+                  validade_dias: 30,
+                  aceito_em: smProp.acceptance_date || smProp.sm_created_at || null,
+                })
+                .select("id")
+                .single();
+
+              if (verErr) {
+                report.steps.proposta_versao = { status: "ERROR", reason: verErr.message };
+              } else {
+                report.steps.proposta_versao = { status: "WOULD_CREATE", id: newVer!.id };
+              }
+            }
+          } else if (dry_run) {
+            report.steps.proposta_versao = { status: "WOULD_CREATE" };
+          }
+
+          // Determine overall status for logging
+          const allSteps = Object.values(report.steps);
+          const hasError = allSteps.some((s) => s.status === "ERROR");
+          const allSkip = allSteps.every((s) => s.status === "WOULD_SKIP");
+          const overallStatus = hasError ? "ERROR" : allSkip ? "SKIP" : "SUCCESS";
+
+          if (!dry_run) {
+            summary[overallStatus === "SKIP" ? "WOULD_SKIP" : overallStatus === "SUCCESS" ? "SUCCESS" : "ERROR"]++;
+          } else {
+            // In dry-run: count creates vs links vs skips
+            for (const s of allSteps) {
+              summary[s.status] = (summary[s.status] || 0) + 1;
+            }
+          }
+
+          await logItem(
+            adminClient,
+            tenantId,
+            smProp.sm_proposal_id,
+            smClient.name,
+            overallStatus === "SUCCESS" ? "SUCCESS" : overallStatus === "SKIP" ? "SKIP" : "ERROR",
+            report,
+            dry_run,
+          );
+        } catch (err: any) {
+          report.aborted = true;
+          report.steps.cliente = report.steps.cliente || { status: "ERROR", reason: err.message };
+          summary.ERROR++;
+          await logItem(adminClient, tenantId, smProp.sm_proposal_id, report.sm_client_name, "ERROR", report, dry_run);
+        }
+
+        reports.push(report);
+      }
+    }
+
+    const result = {
+      mode: dry_run ? "dry_run" : "execute",
+      total_processed: allProposals.length,
+      summary,
+      details: reports.slice(0, 200), // Limit response size
+      filters_applied: filters,
+    };
+
+    console.log(`[SM Migration] Done. Summary: ${JSON.stringify(summary)}`);
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err: any) {
+    console.error("[SM Migration] Fatal error:", err);
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+});
+
+// ─── Log helper ─────────────────────────────────────────
+
+async function logItem(
+  client: any,
+  tenantId: string,
+  smProposalId: number,
+  smClientName: string | null,
+  status: string,
+  report: ProposalReport,
+  isDryRun: boolean,
+) {
+  try {
+    // Map status to allowed CHECK values
+    const validStatuses = ["SUCCESS", "SKIP", "CONFLICT", "ERROR", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP"];
+    const finalStatus = validStatuses.includes(status) ? status : "ERROR";
+
+    await client.from("sm_migration_log").insert({
+      tenant_id: tenantId,
+      sm_proposal_id: smProposalId,
+      sm_client_name: smClientName,
+      status: finalStatus,
+      payload: { steps: report.steps, aborted: report.aborted },
+      is_dry_run: isDryRun,
+    });
+  } catch (e) {
+    console.error(`[SM Migration] Log error for proposal ${smProposalId}:`, e);
+  }
+}
