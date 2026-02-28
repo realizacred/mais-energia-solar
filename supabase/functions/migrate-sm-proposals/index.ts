@@ -241,22 +241,23 @@ Deno.serve(async (req) => {
 
     console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
 
-    // ─── 2b. Pre-fetch SM projects to resolve funnel/stage (vendedor) ─
+    // ─── 2b. Pre-fetch SM projects to resolve responsible (vendedor) ─
     const smProjectIds = [...new Set(allProposals.map((p) => p.sm_project_id).filter(Boolean))];
-    const smProjectMap = new Map<number, { sm_funnel_name: string | null; sm_stage_name: string | null }>();
+    const smProjectMap = new Map<number, { responsible_name: string | null; sm_funnel_name: string | null; sm_stage_name: string | null }>();
 
     for (let i = 0; i < smProjectIds.length; i += 500) {
       const chunk = smProjectIds.slice(i, i + 500);
       const { data: projects } = await adminClient
         .from("solar_market_projects")
-        .select("sm_project_id, sm_funnel_name, sm_stage_name")
+        .select("sm_project_id, responsible, sm_funnel_name, sm_stage_name")
         .eq("tenant_id", tenantId)
         .in("sm_project_id", chunk);
       for (const p of projects || []) {
-        smProjectMap.set(p.sm_project_id, { sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name });
+        const respName = p.responsible?.name || null;
+        smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name });
       }
     }
-    console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for funnel resolution`);
+    console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
     const consultoresMap = new Map<string, string>(); // lowercase name → id
@@ -467,14 +468,28 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── B2. Resolve owner_id (auto from funnel, then fallback to params.owner_id) ──
+          // ── B2. Resolve owner_id (auto from project responsible.name) ──
           let resolvedOwnerId = params.owner_id || null;
           let ownerAutoCreated = false;
-          let ownerSource = resolvedOwnerId ? "manual" : "none";
+          let ownerSource = resolvedOwnerId ? "manual_fallback" : "none";
 
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
-            if (smProj?.sm_funnel_name?.toLowerCase() === "vendedores" && smProj.sm_stage_name) {
+            // Priority 1: project responsible.name (covers 100% of projects)
+            const respName = smProj?.responsible_name;
+            if (respName) {
+              try {
+                const { id, created } = await resolveOrCreateConsultor(respName);
+                resolvedOwnerId = id;
+                ownerAutoCreated = created;
+                ownerSource = `responsible:${respName}`;
+                (report as any).owner_resolved = { name: respName, id, created, source: "project_responsible" };
+              } catch (e) {
+                (report as any).owner_resolved = { error: (e as Error).message, fallback: params.owner_id };
+              }
+            }
+            // Priority 2: funnel Vendedores stage name (legacy fallback)
+            if (!resolvedOwnerId && smProj?.sm_funnel_name?.toLowerCase() === "vendedores" && smProj.sm_stage_name) {
               try {
                 const { id, created } = await resolveOrCreateConsultor(smProj.sm_stage_name);
                 resolvedOwnerId = id;
@@ -482,11 +497,9 @@ Deno.serve(async (req) => {
                 ownerSource = `funnel:${smProj.sm_stage_name}`;
                 (report as any).owner_resolved = { name: smProj.sm_stage_name, id, created, source: "vendedores_funnel" };
               } catch (e) {
-                // Keep params.owner_id as fallback
                 (report as any).owner_resolved = { error: (e as Error).message, fallback: params.owner_id };
               }
             }
-            // No funnel match — keep params.owner_id as fallback (already set above)
           }
 
           // If still no owner, abort
