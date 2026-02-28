@@ -123,10 +123,11 @@ function ClientsTable({ clients, onSelect, onNavigateProjects, pagination }: {
   );
 }
 
-function ProjectsTable({ projects, onSelect, onNavigateProposals, pagination }: {
+function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pagination }: {
   projects: SmProject[];
   onSelect: (p: SmProject) => void;
   onNavigateProposals: (id: number) => void;
+  clientsMap?: Map<number, SmClient>;
   pagination?: { page: number; pageSize: number; onPageChange: (p: number) => void; onPageSizeChange: (s: number) => void };
 }) {
   const displayed = pagination ? paginate(projects, pagination.page, pagination.pageSize) : projects;
@@ -145,10 +146,11 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, pagination }: 
         </TableHeader>
         <TableBody>
           {displayed.map(p => {
-            const clientName = (p as any).raw_payload?.client?.name || "—";
-            const city = (p as any).raw_payload?.client?.city || p.city;
-            const state = (p as any).raw_payload?.client?.state || p.state;
-            const createdAt = (p as any).sm_created_at || (p as any).raw_payload?.createdAt;
+            const client = clientsMap?.get(p.sm_client_id ?? 0);
+            const clientName = client?.name || "—";
+            const city = p.city || client?.city;
+            const state = p.state || client?.state;
+            const createdAt = (p as any).sm_created_at;
 
             return (
               <TableRow key={p.id} className="cursor-pointer" onClick={() => onSelect(p)}>
@@ -468,6 +470,13 @@ export default function SolarMarketPage() {
     return clients.filter(c => !clientIdsWithProposals.has(c.sm_client_id));
   }, [clients, proposals]);
 
+  // Build lookup map for client names (used by ProjectsTable and filters)
+  const clientsLookup = useMemo(() => {
+    const map = new Map<number, SmClient>();
+    clients.forEach(c => map.set(c.sm_client_id, c));
+    return map;
+  }, [clients]);
+
   // Extract unique cities and responsibles for filter dropdowns
   const uniqueCities = useMemo(() => {
     const cities = clients.map(c => [c.city, c.state].filter(Boolean).join("/")).filter(Boolean);
@@ -503,10 +512,10 @@ export default function SolarMarketPage() {
     if (filterClientId) filteredProjects = filteredProjects.filter(p => p.sm_client_id === filterClientId);
     if (q) filteredProjects = filteredProjects.filter(p =>
       p.name?.toLowerCase().includes(q) ||
-      (p as any).raw_payload?.client?.name?.toLowerCase().includes(q)
+      clientsLookup.get(p.sm_client_id ?? 0)?.name?.toLowerCase().includes(q)
     );
     if (cityFilter) filteredProjects = filteredProjects.filter(p =>
-      [(p as any).raw_payload?.client?.city || p.city, (p as any).raw_payload?.client?.state || p.state].filter(Boolean).join("/").toLowerCase().includes(cityFilter)
+      [p.city || clientsLookup.get(p.sm_client_id ?? 0)?.city, p.state || clientsLookup.get(p.sm_client_id ?? 0)?.state].filter(Boolean).join("/").toLowerCase().includes(cityFilter)
     );
 
     let filteredProposals = proposals;
@@ -656,7 +665,7 @@ export default function SolarMarketPage() {
             filtered.projects.length === 0 ? (
               <EmptyState icon={FolderKanban} title="Nenhum projeto" description="Sincronize para importar projetos." />
             ) : (
-              <ProjectsTable projects={filtered.projects} onSelect={setSelectedProject} onNavigateProposals={navigateToProposals} pagination={{ page: projectsPag.page, pageSize: projectsPag.pageSize, onPageChange: projectsPag.setPage, onPageSizeChange: projectsPag.setPageSize }} />
+              <ProjectsTable projects={filtered.projects} onSelect={setSelectedProject} onNavigateProposals={navigateToProposals} clientsMap={clientsLookup} pagination={{ page: projectsPag.page, pageSize: projectsPag.pageSize, onPageChange: projectsPag.setPage, onPageSizeChange: projectsPag.setPageSize }} />
             )}
         </TabsContent>
 
