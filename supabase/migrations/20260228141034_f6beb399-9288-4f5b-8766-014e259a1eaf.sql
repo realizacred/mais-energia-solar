@@ -1,0 +1,1 @@
+DELETE FROM sm_migration_log;
