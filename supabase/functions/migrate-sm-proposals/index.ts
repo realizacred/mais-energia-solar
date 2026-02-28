@@ -411,6 +411,10 @@ Deno.serve(async (req) => {
     console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
 
     // ─── 2d. Pre-fetch custom field mappings ────────────
+    // Normalize source_key on load: store as bareKey (no brackets) for consistent lookup
+    function normalizeCfKey(key: string): string {
+      return key.replace(/^\[|\]$/g, "").trim();
+    }
     const cfMappings = new Map<string, { target_namespace: string; target_path: string; transform: string; priority: number }>();
     {
       const { data: mappings } = await adminClient
@@ -420,7 +424,8 @@ Deno.serve(async (req) => {
         .eq("is_active", true)
         .order("priority", { ascending: true });
       for (const m of (mappings || [])) {
-        cfMappings.set(m.source_key, {
+        const bareKey = normalizeCfKey(m.source_key);
+        cfMappings.set(bareKey, {
           target_namespace: m.target_namespace,
           target_path: m.target_path,
           transform: m.transform,
@@ -1231,8 +1236,8 @@ Deno.serve(async (req) => {
 
             for (const [key, entry] of Object.entries(cfValues)) {
               // Normalize key for mapping lookup (bare key without brackets)
-              const bareKey = key.replace(/^\[|\]$/g, "").trim();
-              const mapping = cfMappings.get(bareKey) || cfMappings.get(`[${bareKey}]`) || cfMappings.get(key);
+              const bareKey = normalizeCfKey(key);
+              const mapping = cfMappings.get(bareKey);
               if (!mapping) {
                 unmappedCf[bareKey] = entry;
                 continue;
@@ -1289,9 +1294,18 @@ Deno.serve(async (req) => {
               if (Object.keys(unmappedCf).length > 0) metaPayload.custom_fields_unmapped = unmappedCf;
               if (Object.keys(transformErrors).length > 0) metaPayload.custom_fields_transform_errors = transformErrors;
 
+              // SAFE MERGE: read existing metadata, spread old + new
+              const { data: existingProp } = await adminClient
+                .from("propostas_nativas")
+                .select("metadata")
+                .eq("id", propostaId)
+                .maybeSingle();
+              const existingMeta = (existingProp?.metadata as Record<string, any>) || {};
+              const mergedMeta = { ...existingMeta, ...metaPayload };
+
               await adminClient
                 .from("propostas_nativas")
-                .update({ metadata: metaPayload })
+                .update({ metadata: mergedMeta })
                 .eq("id", propostaId);
 
               // SAFE MERGE into final_snapshot (read-then-merge, never overwrite)
@@ -1304,9 +1318,10 @@ Deno.serve(async (req) => {
 
               if (existingVer) {
                 const currentSnapshot = (existingVer.final_snapshot as Record<string, any>) || {};
+                const existingCfMeta = (currentSnapshot.custom_field_metadata as Record<string, any>) || {};
                 const mergedSnapshot = {
                   ...currentSnapshot,
-                  custom_field_metadata: metaPayload,
+                  custom_field_metadata: { ...existingCfMeta, ...metaPayload },
                 };
                 await adminClient
                   .from("proposta_versoes")

@@ -1100,18 +1100,18 @@ Deno.serve(async (req) => {
       console.log(`[SM Sync] Loaded ${cfDefsLookup.size} custom field definitions for enrichment`);
     }
 
-    /** Build custom_fields_raw object from proposal payload */
-    /** Prefixes that identify custom field keys vs system variables */
-    const CF_KEY_PREFIXES = ["capo_", "cap_", "cape_", "cli_", "pre_"];
-    function isCustomFieldKey(key: string): boolean {
-      const bare = key.replace(/^\[|\]$/g, "").trim();
-      return CF_KEY_PREFIXES.some((p) => bare.startsWith(p));
-    }
     /** Normalize key: remove brackets, trim */
     function normalizeKey(key: string): string {
       return key.replace(/^\[|\]$/g, "").trim();
     }
 
+    /** CF key prefixes — used ONLY as heuristic for unmapped_candidates, NOT as gatekeeper */
+    const CF_KEY_PREFIXES = ["capo_", "cap_", "cape_", "cli_", "pre_"];
+
+    /** Build custom_fields_raw: DICTIONARY-FIRST approach.
+     *  Rule: a variable is a custom field if and only if it exists in cfDefsLookup.
+     *  Prefix is only used as a heuristic for unmapped_candidates (keys that look
+     *  like custom fields but have no definition yet). */
     function buildCustomFieldsRaw(pr: any): any {
       const variables = Array.isArray(pr.variables) ? pr.variables : [];
       const customFields = pr.customFields || pr.custom_fields || {};
@@ -1121,36 +1121,40 @@ Deno.serve(async (req) => {
       const unmappedCandidates: Record<string, any> = {};
       const definitionVersionHashes: Record<string, string> = {};
 
-      // Process variables — only custom field keys
+      // Process variables — dictionary lookup is the SOLE rule
       for (const v of variables) {
         const key = v.key;
-        if (!key || !isCustomFieldKey(key)) continue;
+        if (!key) continue;
         const bareKey = normalizeKey(key);
         const rawValue = v.value;
-        // Lookup by bracketed key (how defs store them)
+        // Lookup by bracketed key (how defs are stored in DB) then bare
         const bracketedKey = `[${bareKey}]`;
         const def = cfDefsLookup.get(bracketedKey) || cfDefsLookup.get(bareKey);
 
-        if (rawValue === "undefined" || rawValue === undefined) {
-          warnings.push(`${bareKey}: value is "undefined"`);
-        }
-
-        const entry: any = {
-          value: rawValue ?? null,
-          raw_value: rawValue ?? null,
-          source: "solarmarket",
-        };
-
         if (def) {
-          entry.label = def.label;
-          entry.type = def.type;
-          entry.external_field_id = def.external_field_id;
-          values[bareKey] = entry;
+          // Found in dictionary → this IS a custom field
+          if (rawValue === "undefined" || rawValue === undefined) {
+            warnings.push(`${bareKey}: value is "undefined"`);
+          }
+          values[bareKey] = {
+            value: rawValue ?? null,
+            raw_value: rawValue ?? null,
+            label: def.label,
+            type: def.type,
+            external_field_id: def.external_field_id,
+            source: "solarmarket",
+          };
           if (def.version_hash) definitionVersionHashes[bareKey] = def.version_hash;
-        } else {
-          entry.note = "sem definicao no dicionario";
-          unmappedCandidates[bareKey] = entry;
+        } else if (CF_KEY_PREFIXES.some((p) => bareKey.startsWith(p))) {
+          // Not in dictionary but has CF-like prefix → unmapped candidate
+          unmappedCandidates[bareKey] = {
+            value: rawValue ?? null,
+            raw_value: rawValue ?? null,
+            note: "sem definicao no dicionario",
+            source: "solarmarket",
+          };
         }
+        // else: system variable → ignore completely
       }
 
       // Process explicit customFields object if present
@@ -1158,19 +1162,22 @@ Deno.serve(async (req) => {
         for (const [key, val] of Object.entries(customFields)) {
           const bareKey = normalizeKey(key);
           if (values[bareKey] || unmappedCandidates[bareKey]) continue;
-          if (!isCustomFieldKey(key)) continue;
           const bracketedKey = `[${bareKey}]`;
           const def = cfDefsLookup.get(bracketedKey) || cfDefsLookup.get(bareKey);
-          const entry: any = { value: val, raw_value: val, source: "solarmarket" };
           if (def) {
-            entry.label = def.label;
-            entry.type = def.type;
-            entry.external_field_id = def.external_field_id;
-            values[bareKey] = entry;
+            values[bareKey] = {
+              value: val, raw_value: val,
+              label: def.label, type: def.type,
+              external_field_id: def.external_field_id,
+              source: "solarmarket",
+            };
             if (def.version_hash) definitionVersionHashes[bareKey] = def.version_hash;
-          } else {
-            entry.note = "sem definicao no dicionario";
-            unmappedCandidates[bareKey] = entry;
+          } else if (CF_KEY_PREFIXES.some((p) => bareKey.startsWith(p))) {
+            unmappedCandidates[bareKey] = {
+              value: val, raw_value: val,
+              note: "sem definicao no dicionario",
+              source: "solarmarket",
+            };
           }
         }
       }
