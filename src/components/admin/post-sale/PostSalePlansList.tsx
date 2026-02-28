@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { usePostSalePlans } from "@/hooks/usePostSale";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { FileText } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
+import { PostSaleNewPlanDialog } from "./PostSaleNewPlanDialog";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-success/10 text-success border-success/30",
@@ -21,12 +24,22 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function PostSalePlansList() {
   const { data: plans = [], isLoading } = usePostSalePlans();
+  const [showNew, setShowNew] = useState(false);
+
+  const getClienteName = (p: any) => p.cliente?.nome ?? p.nome_avulso ?? "—";
 
   return (
     <div className="p-4 md:p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div />
+        <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
+          <Plus className="h-4 w-4" /> Novo Plano
+        </Button>
+      </div>
+
       <SectionCard title="Planos Pós-Venda" description={`${plans.length} planos cadastrados`}>
         {plans.length === 0 ? (
-          <EmptyState icon={FileText} title="Nenhum plano" description="Planos são criados automaticamente quando um projeto é marcado como instalado." />
+          <EmptyState icon={FileText} title="Nenhum plano" description="Clique em 'Novo Plano' para criar um plano de manutenção." />
         ) : (
           <Table>
             <TableHeader>
@@ -42,7 +55,7 @@ export function PostSalePlansList() {
             <TableBody>
               {plans.map(p => (
                 <TableRow key={p.id}>
-                  <TableCell className="text-sm font-medium">{p.cliente?.nome ?? "—"}</TableCell>
+                  <TableCell className="text-sm font-medium">{getClienteName(p)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{p.projeto?.codigo ?? p.projeto?.nome ?? "—"}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={`text-xs ${STATUS_COLORS[p.status] ?? ""}`}>
@@ -62,6 +75,8 @@ export function PostSalePlansList() {
           </Table>
         )}
       </SectionCard>
+
+      <PostSaleNewPlanDialog open={showNew} onOpenChange={setShowNew} />
     </div>
   );
 }

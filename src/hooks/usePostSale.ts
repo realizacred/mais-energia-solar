@@ -35,6 +35,8 @@ export interface PostSaleVisit {
   data_conclusao: string | null;
   tecnico_id: string | null;
   observacoes: string | null;
+  nome_avulso: string | null;
+  telefone_avulso: string | null;
   created_at: string;
   updated_at: string;
   // joined
@@ -218,5 +220,21 @@ export function useUpdateUpsellStatus() {
       toast.success("Oportunidade atualizada");
     },
     onError: () => toast.error("Erro ao atualizar"),
+  });
+}
+
+export function useCreatePlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, any>) => {
+      const { error } = await (supabase as any).from("post_sale_plans").insert(data);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["post-sale-plans"] });
+      qc.invalidateQueries({ queryKey: ["post-sale-dashboard"] });
+      toast.success("Plano criado");
+    },
+    onError: () => toast.error("Erro ao criar plano"),
   });
 }

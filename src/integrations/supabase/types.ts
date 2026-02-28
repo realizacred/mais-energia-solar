@@ -7934,47 +7934,53 @@ export type Database = {
       }
       post_sale_plans: {
         Row: {
-          cliente_id: string
+          cliente_id: string | null
           created_at: string
           data_inicio: string | null
           garantia_inversor_fim: string | null
           garantia_modulos_fim: string | null
           id: string
+          nome_avulso: string | null
           observacoes: string | null
           periodicidade_meses: number
-          projeto_id: string
+          projeto_id: string | null
           proxima_preventiva: string | null
           status: string
+          telefone_avulso: string | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          cliente_id: string
+          cliente_id?: string | null
           created_at?: string
           data_inicio?: string | null
           garantia_inversor_fim?: string | null
           garantia_modulos_fim?: string | null
           id?: string
+          nome_avulso?: string | null
           observacoes?: string | null
           periodicidade_meses?: number
-          projeto_id: string
+          projeto_id?: string | null
           proxima_preventiva?: string | null
           status?: string
+          telefone_avulso?: string | null
           tenant_id?: string
           updated_at?: string
         }
         Update: {
-          cliente_id?: string
+          cliente_id?: string | null
           created_at?: string
           data_inicio?: string | null
           garantia_inversor_fim?: string | null
           garantia_modulos_fim?: string | null
           id?: string
+          nome_avulso?: string | null
           observacoes?: string | null
           periodicidade_meses?: number
-          projeto_id?: string
+          projeto_id?: string | null
           proxima_preventiva?: string | null
           status?: string
+          telefone_avulso?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -8043,8 +8049,10 @@ export type Database = {
           created_at: string
           descricao: string | null
           id: string
+          nome_avulso: string | null
           projeto_id: string | null
           status: string
+          telefone_avulso: string | null
           tenant_id: string
           tipo: string
           updated_at: string
@@ -8054,8 +8062,10 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           id?: string
+          nome_avulso?: string | null
           projeto_id?: string | null
           status?: string
+          telefone_avulso?: string | null
           tenant_id?: string
           tipo?: string
           updated_at?: string
@@ -8065,8 +8075,10 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           id?: string
+          nome_avulso?: string | null
           projeto_id?: string | null
           status?: string
+          telefone_avulso?: string | null
           tenant_id?: string
           tipo?: string
           updated_at?: string
@@ -8158,11 +8170,13 @@ export type Database = {
           data_conclusao: string | null
           data_prevista: string | null
           id: string
+          nome_avulso: string | null
           observacoes: string | null
           plan_id: string | null
           projeto_id: string | null
           status: string
           tecnico_id: string | null
+          telefone_avulso: string | null
           tenant_id: string
           tipo: string
           updated_at: string
@@ -8174,11 +8188,13 @@ export type Database = {
           data_conclusao?: string | null
           data_prevista?: string | null
           id?: string
+          nome_avulso?: string | null
           observacoes?: string | null
           plan_id?: string | null
           projeto_id?: string | null
           status?: string
           tecnico_id?: string | null
+          telefone_avulso?: string | null
           tenant_id?: string
           tipo?: string
           updated_at?: string
@@ -8190,11 +8206,13 @@ export type Database = {
           data_conclusao?: string | null
           data_prevista?: string | null
           id?: string
+          nome_avulso?: string | null
           observacoes?: string | null
           plan_id?: string | null
           projeto_id?: string | null
           status?: string
           tecnico_id?: string | null
+          telefone_avulso?: string | null
           tenant_id?: string
           tipo?: string
           updated_at?: string
