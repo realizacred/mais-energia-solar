@@ -14,6 +14,7 @@ import {
   useUploadAttachment,
   useDeleteAttachment,
 } from "@/hooks/usePostSaleAttachments";
+import { useVisitReport, useGenerateReport } from "@/hooks/usePostSaleReports";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CheckCircle2, CalendarClock, XCircle, Upload, Trash2, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CalendarClock, XCircle, Upload, Trash2, Image as ImageIcon, FileDown, FileText } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 
 const TIPO_LABELS: Record<string, string> = {
@@ -79,6 +80,8 @@ export function PostSaleVisitDetail() {
   const { data: attachments = [] } = usePostSaleAttachments(id);
   const uploadAttachment = useUploadAttachment();
   const deleteAttachment = useDeleteAttachment();
+  const { data: report } = useVisitReport(id);
+  const generateReport = useGenerateReport();
 
   const canAct = visit && visit.status !== "concluido" && visit.status !== "cancelado";
 
@@ -86,7 +89,13 @@ export function PostSaleVisitDetail() {
     if (!visit) return;
     updateStatus.mutate(
       { id: visit.id, status: "concluido", observacoes: conclusionNotes || undefined },
-      { onSuccess: () => setConclusionOpen(false) }
+      {
+        onSuccess: () => {
+          setConclusionOpen(false);
+          // Auto-generate PDF report
+          generateReport.mutate(visit.id);
+        },
+      }
     );
   };
 
@@ -232,6 +241,52 @@ export function PostSaleVisitDetail() {
           </div>
         )}
         {attachments.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum anexo</p>}
+      </SectionCard>
+
+      {/* Report / PDF */}
+      <SectionCard title="Relatório" description="PDF gerado automaticamente na conclusão">
+        {report?.signedUrl ? (
+          <div className="flex items-center gap-3">
+            <FileText className="h-5 w-5 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">{report.file_name || "Relatório"}</p>
+              <p className="text-xs text-muted-foreground">
+                Gerado em {format(new Date(report.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+              </p>
+            </div>
+            <Button size="sm" variant="outline" className="gap-1" asChild>
+              <a href={report.signedUrl} target="_blank" rel="noopener noreferrer">
+                <FileDown className="h-3.5 w-3.5" /> Download
+              </a>
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1"
+              onClick={() => generateReport.mutate(visit.id)}
+              disabled={generateReport.isPending}
+            >
+              {generateReport.isPending ? "Gerando..." : "Regerar"}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 py-2">
+            <p className="text-sm text-muted-foreground flex-1">
+              {visit.status === "concluido" ? "Nenhum relatório encontrado." : "O relatório será gerado ao concluir a visita."}
+            </p>
+            {visit.status === "concluido" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1"
+                onClick={() => generateReport.mutate(visit.id)}
+                disabled={generateReport.isPending}
+              >
+                <FileText className="h-3.5 w-3.5" /> {generateReport.isPending ? "Gerando..." : "Gerar Relatório"}
+              </Button>
+            )}
+          </div>
+        )}
       </SectionCard>
 
       {/* Conclusion dialog */}
