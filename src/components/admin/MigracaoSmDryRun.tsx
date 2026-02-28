@@ -7,7 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, AlertTriangle, Users } from "lucide-react";
+import { Play, AlertTriangle, Users, Filter } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { Badge } from "@/components/ui/badge";
 
@@ -101,6 +101,7 @@ export function MigracaoSmDryRun() {
   const [pageSize, setPageSize] = useState(25);
   const [onlyMarked, setOnlyMarked] = useState(true);
   const [selectedVendedor, setSelectedVendedor] = useState<string>("__all__");
+  const [selectedLifecycle, setSelectedLifecycle] = useState<string>("__all__");
 
   const { data: vendedores = [], isLoading: loadingVendedores } = useSmVendedores();
 
@@ -119,6 +120,9 @@ export function MigracaoSmDryRun() {
       };
       if (selectedVendedor && selectedVendedor !== "__all__") {
         filters.vendedor_name = selectedVendedor;
+      }
+      if (selectedLifecycle && selectedLifecycle !== "__all__") {
+        filters.proposal_lifecycle = selectedLifecycle;
       }
 
       const payload = {
@@ -221,6 +225,30 @@ export function MigracaoSmDryRun() {
           <span className="text-xs text-muted-foreground">
             {vendedores.length} vendedor(es) encontrado(s) nos funis SM
           </span>
+        </div>
+      </SectionCard>
+
+      {/* Lifecycle filter */}
+      <SectionCard icon={Filter} title="Filtrar por Ciclo de Vida da Proposta" variant="neutral">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Select value={selectedLifecycle} onValueChange={setSelectedLifecycle}>
+            <SelectTrigger className="w-64 h-9">
+              <SelectValue placeholder="Selecione um status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos os status</SelectItem>
+              <SelectItem value="aceita">✅ Aceita</SelectItem>
+              <SelectItem value="enviada">📤 Enviada</SelectItem>
+              <SelectItem value="vista">👁 Vista</SelectItem>
+              <SelectItem value="gerada">📝 Gerada</SelectItem>
+              <SelectItem value="rejeitada">❌ Rejeitada</SelectItem>
+            </SelectContent>
+          </Select>
+          {selectedLifecycle && selectedLifecycle !== "__all__" && (
+            <Badge variant="secondary" className="text-xs">
+              Filtrando: {selectedLifecycle}
+            </Badge>
+          )}
         </div>
       </SectionCard>
 
