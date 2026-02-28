@@ -6,15 +6,16 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Play, AlertTriangle } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
 
-const DRY_RUN_PAYLOAD = {
+const BASE_PAYLOAD = {
   dry_run: true,
   filters: { status: "approved" },
   pipeline_id: "9b5cbcf3-a101-4950-b699-778e2e1219e6",
   stage_id: "bdad6238-90e1-4e12-b897-53ff61ece1b6",
   owner_id: "e0bd3d46-775e-45de-aabf-7fd70d52ef27",
   batch_size: 25,
-} as const;
+};
 
 type StatusVariant = "success" | "warning" | "destructive" | "info" | "muted";
 
@@ -56,6 +57,7 @@ export function MigracaoSmDryRun() {
   const [result, setResult] = useState<DryRunResult | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [onlyMarked, setOnlyMarked] = useState(true);
 
   const runDryRun = async () => {
     setLoading(true);
@@ -65,8 +67,15 @@ export function MigracaoSmDryRun() {
     try {
       await supabase.auth.getUser();
       
+      const payload = {
+        ...BASE_PAYLOAD,
+        filters: {
+          ...BASE_PAYLOAD.filters,
+          ...(onlyMarked ? { only_marked: true } : {}),
+        },
+      };
       const { data, error: fnError } = await supabase.functions.invoke("migrate-sm-proposals", {
-        body: DRY_RUN_PAYLOAD,
+        body: payload,
       });
       if (fnError) {
         const ctx = (fnError as any).context;
@@ -121,10 +130,21 @@ export function MigracaoSmDryRun() {
         title="Migração SolarMarket → Canônico"
         description="Simulação (dry-run) — nenhum dado será gravado."
         actions={
-          <Button onClick={runDryRun} disabled={loading}>
-            <Play className="h-4 w-4 mr-2" />
-            Rodar Dry-Run (approved)
-          </Button>
+          <div className="flex items-center gap-3">
+            <Toggle
+              pressed={onlyMarked}
+              onPressedChange={setOnlyMarked}
+              size="sm"
+              variant="outline"
+              aria-label="Somente marcadas"
+            >
+              {onlyMarked ? "✓ Somente marcadas" : "Todas aprovadas"}
+            </Toggle>
+            <Button onClick={runDryRun} disabled={loading}>
+              <Play className="h-4 w-4 mr-2" />
+              Rodar Dry-Run
+            </Button>
+          </div>
         }
       />
 

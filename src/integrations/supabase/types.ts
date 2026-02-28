@@ -13672,6 +13672,9 @@ export type Database = {
           inverter_model: string | null
           inverter_quantity: number | null
           link_pdf: string | null
+          migrar_para_canonico: boolean
+          migrar_requested_at: string | null
+          migrar_requested_by: string | null
           modulos: string | null
           panel_model: string | null
           panel_quantity: number | null
@@ -13728,6 +13731,9 @@ export type Database = {
           inverter_model?: string | null
           inverter_quantity?: number | null
           link_pdf?: string | null
+          migrar_para_canonico?: boolean
+          migrar_requested_at?: string | null
+          migrar_requested_by?: string | null
           modulos?: string | null
           panel_model?: string | null
           panel_quantity?: number | null
@@ -13784,6 +13790,9 @@ export type Database = {
           inverter_model?: string | null
           inverter_quantity?: number | null
           link_pdf?: string | null
+          migrar_para_canonico?: boolean
+          migrar_requested_at?: string | null
+          migrar_requested_by?: string | null
           modulos?: string | null
           panel_model?: string | null
           panel_quantity?: number | null

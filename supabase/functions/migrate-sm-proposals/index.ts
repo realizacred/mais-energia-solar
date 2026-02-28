@@ -15,6 +15,7 @@ interface MigrationParams {
     sm_proposal_ids?: number[];
     date_from?: string;     // ISO date
     date_to?: string;       // ISO date
+    only_marked?: boolean;  // only migrar_para_canonico=true
   };
   batch_size?: number;
   /** Required: pipeline_id to assign deals into */
@@ -161,6 +162,9 @@ Deno.serve(async (req) => {
     }
     if (filters.date_to) {
       query = query.lte("sm_created_at", filters.date_to);
+    }
+    if (filters.only_marked) {
+      query = query.eq("migrar_para_canonico", true);
     }
 
     // Paginate SM proposals (max 1000 per page)

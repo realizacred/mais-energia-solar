@@ -35,6 +35,7 @@ import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar"
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
+import { SmMigrationToggle } from "@/components/admin/solarmarket/SmMigrationToggle";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
@@ -224,8 +225,9 @@ function ProposalsTable({ proposals, onSelect, pagination }: {
             <TableHead>Potência</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Equipamento</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+             <TableHead>Status</TableHead>
+             <TableHead>Migração</TableHead>
+             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -256,6 +258,9 @@ function ProposalsTable({ proposals, onSelect, pagination }: {
               </TableCell>
               <TableCell>
                 <Badge variant="outline" className="text-[10px]">{pr.status || "—"}</Badge>
+              </TableCell>
+              <TableCell>
+                <SmMigrationToggle proposal={pr} />
               </TableCell>
               <TableCell className="text-right">
                 <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary" onClick={(e) => { e.stopPropagation(); onSelect(pr); }}>
