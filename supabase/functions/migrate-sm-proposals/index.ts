@@ -1211,62 +1211,116 @@ Deno.serve(async (req) => {
           }
 
           // ── G. Apply Custom Field Mappings to canonical entities ──
+          // WHITELIST: only these real columns can be written via target_path
+          const CLIENT_COLUMN_WHITELIST = new Set([
+            "observacoes", "localizacao", "empresa", "email",
+            "bairro", "cidade", "estado", "cep", "rua", "numero", "complemento",
+          ]);
+          const PROJECT_COLUMN_WHITELIST = new Set([
+            "observacoes", "tipo_instalacao", "cidade_instalacao", "uf_instalacao",
+            "bairro_instalacao", "rua_instalacao", "cep_instalacao",
+          ]);
+
           if (!dry_run && smProp.custom_fields_raw?.values && cfMappings.size > 0) {
             const cfValues = smProp.custom_fields_raw.values as Record<string, any>;
             const clientUpdates: Record<string, any> = {};
             const projetoUpdates: Record<string, any> = {};
-            const propostaMetaCf: Record<string, any> = {};
+            const mappedCf: Record<string, any> = {};
             const unmappedCf: Record<string, any> = {};
+            const transformErrors: Record<string, string> = {};
 
             for (const [key, entry] of Object.entries(cfValues)) {
-              const mapping = cfMappings.get(key) || cfMappings.get(`[${key}]`);
+              // Normalize key for mapping lookup (bare key without brackets)
+              const bareKey = key.replace(/^\[|\]$/g, "").trim();
+              const mapping = cfMappings.get(bareKey) || cfMappings.get(`[${bareKey}]`) || cfMappings.get(key);
               if (!mapping) {
-                unmappedCf[key] = entry;
+                unmappedCf[bareKey] = entry;
                 continue;
               }
-              const transformed = applyTransform(entry.value ?? entry.raw_value, mapping.transform);
+
+              let transformed: any;
+              try {
+                transformed = applyTransform(entry.value ?? entry.raw_value, mapping.transform);
+              } catch (e) {
+                transformErrors[bareKey] = (e as Error).message;
+                unmappedCf[bareKey] = entry;
+                continue;
+              }
+
+              const targetCol = mapping.target_path;
 
               switch (mapping.target_namespace) {
                 case "client":
-                  if (mapping.target_path && clienteId) clientUpdates[mapping.target_path] = transformed;
+                  if (targetCol && clienteId && CLIENT_COLUMN_WHITELIST.has(targetCol)) {
+                    clientUpdates[targetCol] = transformed;
+                  }
+                  mappedCf[bareKey] = { ...entry, mapped_to: `client.${targetCol}`, transformed_value: transformed };
                   break;
                 case "project":
-                  if (mapping.target_path && projetoId) projetoUpdates[mapping.target_path] = transformed;
+                  if (targetCol && projetoId && PROJECT_COLUMN_WHITELIST.has(targetCol)) {
+                    projetoUpdates[targetCol] = transformed;
+                  }
+                  mappedCf[bareKey] = { ...entry, mapped_to: `project.${targetCol}`, transformed_value: transformed };
                   break;
                 case "proposal":
                 case "finance":
                 case "tags":
                 case "metadata":
-                  propostaMetaCf[key] = { ...entry, mapped_to: `${mapping.target_namespace}.${mapping.target_path}`, transformed_value: transformed };
+                  mappedCf[bareKey] = { ...entry, mapped_to: `${mapping.target_namespace}.${targetCol}`, transformed_value: transformed };
                   break;
               }
             }
 
-            // Apply client updates
+            // Apply whitelisted client column updates
             if (Object.keys(clientUpdates).length > 0 && clienteId) {
               const { error: cuErr } = await adminClient.from("clientes").update(clientUpdates).eq("id", clienteId);
               if (cuErr) console.warn(`[SM Migration] Client CF update error: ${cuErr.message}`);
             }
-            // Apply project updates
+            // Apply whitelisted project column updates
             if (Object.keys(projetoUpdates).length > 0 && projetoId) {
               const { error: puErr } = await adminClient.from("projetos").update(projetoUpdates).eq("id", projetoId);
               if (puErr) console.warn(`[SM Migration] Project CF update error: ${puErr.message}`);
             }
-            // Save mapped + unmapped metadata on proposta
-            if (propostaId && (Object.keys(propostaMetaCf).length > 0 || Object.keys(unmappedCf).length > 0)) {
-              const metaPayload: any = {};
-              if (Object.keys(propostaMetaCf).length > 0) metaPayload.custom_fields_mapped = propostaMetaCf;
+
+            // Persist metadata on propostas_nativas (SAFE: dedicated metadata column)
+            if (propostaId && (Object.keys(mappedCf).length > 0 || Object.keys(unmappedCf).length > 0)) {
+              const metaPayload: Record<string, any> = {};
+              if (Object.keys(mappedCf).length > 0) metaPayload.custom_fields_mapped = mappedCf;
               if (Object.keys(unmappedCf).length > 0) metaPayload.custom_fields_unmapped = unmappedCf;
-              // Update proposta_versoes final_snapshot with CF metadata
+              if (Object.keys(transformErrors).length > 0) metaPayload.custom_fields_transform_errors = transformErrors;
+
               await adminClient
+                .from("propostas_nativas")
+                .update({ metadata: metaPayload })
+                .eq("id", propostaId);
+
+              // SAFE MERGE into final_snapshot (read-then-merge, never overwrite)
+              const { data: existingVer } = await adminClient
                 .from("proposta_versoes")
-                .update({ final_snapshot: { ...{}, custom_field_metadata: metaPayload } })
+                .select("id, final_snapshot")
                 .eq("proposta_id", propostaId)
-                .eq("versao_numero", 1);
+                .eq("versao_numero", 1)
+                .maybeSingle();
+
+              if (existingVer) {
+                const currentSnapshot = (existingVer.final_snapshot as Record<string, any>) || {};
+                const mergedSnapshot = {
+                  ...currentSnapshot,
+                  custom_field_metadata: metaPayload,
+                };
+                await adminClient
+                  .from("proposta_versoes")
+                  .update({ final_snapshot: mergedSnapshot })
+                  .eq("id", existingVer.id);
+              }
             }
+
             (report as any).custom_fields_applied = {
-              mapped: Object.keys(propostaMetaCf).length + Object.keys(clientUpdates).length + Object.keys(projetoUpdates).length,
+              mapped: Object.keys(mappedCf).length,
+              client_cols_written: Object.keys(clientUpdates).length,
+              project_cols_written: Object.keys(projetoUpdates).length,
               unmapped: Object.keys(unmappedCf).length,
+              transform_errors: Object.keys(transformErrors).length,
             };
           }
 

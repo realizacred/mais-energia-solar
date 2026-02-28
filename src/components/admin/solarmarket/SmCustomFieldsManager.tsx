@@ -91,6 +91,7 @@ export default function SmCustomFieldsManager() {
   const { data: definitions = [], isLoading: loadingDefs } = useCfDefinitions();
   const { data: mappings = [], isLoading: loadingMappings } = useCfMappings();
   const [syncing, setSyncing] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
 
   // ─── Sync mutation ──────────────────────────────────────
   const syncFields = async () => {
@@ -109,6 +110,23 @@ export default function SmCustomFieldsManager() {
     }
   };
 
+  // ─── Backfill mutation ─────────────────────────────────
+  const backfillCfRaw = async () => {
+    setBackfilling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("solarmarket-sync", {
+        body: { sync_type: "backfill_cf_raw" },
+      });
+      if (error) throw error;
+      const upserted = data?.total_upserted || 0;
+      toast({ title: `Backfill concluído: ${upserted} propostas enriquecidas` });
+    } catch (e: any) {
+      toast({ title: "Erro no backfill", description: e.message, variant: "destructive" });
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
   // ─── Mapping CRUD ──────────────────────────────────────
   const upsertMapping = useMutation({
     mutationFn: async (mapping: Partial<CfMapping> & { source_key: string }) => {
@@ -116,12 +134,13 @@ export default function SmCustomFieldsManager() {
         .from("custom_field_mappings")
         .upsert({
           ...mapping,
+          source_provider: "solarmarket",
           is_active: mapping.is_active ?? true,
           priority: mapping.priority ?? 100,
           transform: mapping.transform || "string",
           target_namespace: mapping.target_namespace || "metadata",
           target_path: mapping.target_path || "",
-        }, { onConflict: "tenant_id,source_key" });
+        }, { onConflict: "tenant_id,source_provider,source_key" });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -146,10 +165,16 @@ export default function SmCustomFieldsManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Campos Personalizados SolarMarket</h3>
-        <Button size="sm" variant="outline" onClick={syncFields} disabled={syncing}>
-          {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
-          Sincronizar Definições
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={syncFields} disabled={syncing || backfilling}>
+            {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+            Sincronizar Definições
+          </Button>
+          <Button size="sm" variant="outline" onClick={backfillCfRaw} disabled={backfilling || syncing}>
+            {backfilling ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+            Backfill CF Raw
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="definitions" className="w-full">

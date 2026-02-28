@@ -11337,6 +11337,7 @@ export type Database = {
           fio_b_percent_aplicado: number | null
           id: string
           lead_id: string | null
+          metadata: Json | null
           missing_variables: string[] | null
           origem: string
           origem_tarifa: string | null
@@ -11378,6 +11379,7 @@ export type Database = {
           fio_b_percent_aplicado?: number | null
           id?: string
           lead_id?: string | null
+          metadata?: Json | null
           missing_variables?: string[] | null
           origem?: string
           origem_tarifa?: string | null
@@ -11419,6 +11421,7 @@ export type Database = {
           fio_b_percent_aplicado?: number | null
           id?: string
           lead_id?: string | null
+          metadata?: Json | null
           missing_variables?: string[] | null
           origem?: string
           origem_tarifa?: string | null
