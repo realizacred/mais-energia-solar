@@ -409,6 +409,29 @@ Deno.serve(async (req) => {
 
     let sync_type = body.sync_type || "full";
 
+    // ─── Circuit Breaker: prevent concurrent executions ───
+    const CIRCUIT_BREAKER_MINUTES = 8; // Must be less than cron interval (10 min)
+    const { data: runningSync } = await supabase
+      .from("solar_market_sync_logs")
+      .select("id, started_at")
+      .eq("tenant_id", tenantId)
+      .eq("status", "running")
+      .gte("started_at", new Date(Date.now() - CIRCUIT_BREAKER_MINUTES * 60_000).toISOString())
+      .limit(1);
+
+    if (runningSync && runningSync.length > 0) {
+      const msg = `Sync already running (id=${runningSync[0].id}, started=${runningSync[0].started_at}). Skipping to prevent connection saturation.`;
+      console.log(`[SM Sync] CIRCUIT BREAKER: ${msg}`);
+      return new Response(JSON.stringify({ 
+        skipped: true, 
+        reason: "circuit_breaker", 
+        running_sync_id: runningSync[0].id,
+        message: msg,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── Cron auto-detection: pick what's still pending ──
     if (isCron && (!body.sync_type || body.sync_type === "auto")) {
       // Check pending proposals (projects without proposals)

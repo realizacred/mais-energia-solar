@@ -54,6 +54,7 @@ verify_jwt = false
 
 [functions.solarmarket-sync]
 verify_jwt = false
+wall_clock_limit = 120
 
 [functions.evolution-webhook]
 verify_jwt = false
