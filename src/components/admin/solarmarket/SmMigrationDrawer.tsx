@@ -97,6 +97,34 @@ function useCanonicalCheck(smProposalId: number | null) {
   });
 }
 
+// ─── Hook: resolve real client name via project → client ──
+
+function useSmRealClientName(smProjectId: number | null) {
+  return useQuery<string | null>({
+    queryKey: ["sm-real-client-name", smProjectId],
+    enabled: !!smProjectId,
+    queryFn: async () => {
+      // First get sm_client_id from project
+      const { data: proj } = await (supabase as any)
+        .from("solar_market_projects")
+        .select("sm_client_id, name")
+        .eq("sm_project_id", smProjectId)
+        .limit(1);
+      if (!proj?.[0]) return null;
+      const smClientId = proj[0].sm_client_id;
+      if (!smClientId || smClientId < 0) return proj[0].name || null;
+      // Then get client name
+      const { data: client } = await (supabase as any)
+        .from("solar_market_clients")
+        .select("name")
+        .eq("sm_client_id", smClientId)
+        .limit(1);
+      return client?.[0]?.name || proj[0].name || null;
+    },
+    staleTime: 60_000,
+  });
+}
+
 // ─── Hook: fetch all funnels from SM project ───────────
 
 interface SmFunnel {
@@ -150,6 +178,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
   const { data: existingCanonical } = useCanonicalCheck(proposal?.sm_proposal_id ?? null);
   const { data: projectFunnels = [] } = useSmProjectFunnels(proposal?.sm_project_id ?? null);
+  const { data: realClientName } = useSmRealClientName(proposal?.sm_project_id ?? null);
 
   const stageInfo = proposal ? (STAGE_MAP[proposal.status?.toLowerCase() ?? ""] ?? DEFAULT_STAGE) : DEFAULT_STAGE;
 
@@ -306,7 +335,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             <DrawerDescription>
               {isBulk
                 ? `Migração em lote de ${proposals.length} propostas SolarMarket para o sistema canônico.`
-                : `SM #${proposal.sm_proposal_id} — ${proposal.titulo || "Sem título"}`}
+                : `SM #${proposal.sm_proposal_id} — ${realClientName || proposal.titulo || "Sem título"}`}
             </DrawerDescription>
           </DrawerHeader>
 
@@ -317,7 +346,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                   <div>
                     <span className="text-muted-foreground text-xs">Cliente</span>
-                    <p className="font-medium truncate">{proposal.titulo || "—"}</p>
+                    <p className="font-medium truncate">{realClientName || proposal.titulo || "—"}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground text-xs">Status SM</span>
