@@ -88,7 +88,7 @@ export function SmProjectDetailDialog({ project, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+      <DialogContent className="sm:max-w-2xl max-h-[calc(100dvh-2rem)] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base">
