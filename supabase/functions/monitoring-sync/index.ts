@@ -18,7 +18,7 @@ const SYNC_IMPLEMENTED = new Set([
   "growatt", "hoymiles", "sungrow", "huawei", "goodwe", "fronius",
   "fox_ess", "solax", "saj", "shinemonitor", "apsystems", "enphase",
   "sunny_portal", "sofar", "kstar", "intelbras", "ecosolys",
-  "csi_cloudpro", "csi_smart_energy", "csi_cloud",
+  "csi_cloudpro", "csi_smart_energy", "csi_cloud", "livoltek", "livoltek_cf",
 ]);
 
 // ═══════════════════════════════════════════════════════════
@@ -1166,6 +1166,49 @@ async function syncPlantsByProvider(
 // ═══════════════════════════════════════════════════════════
 // Extracted dispatch: provider → sync logic
 // ═══════════════════════════════════════════════════════════
+// Livoltek API
+// ═══════════════════════════════════════════════════════════
+
+async function livoltekListPlants(token: string, baseUrl: string): Promise<NormalizedPlant[]> {
+  const plants: NormalizedPlant[] = [];
+  let page = 1;
+  const size = 30;
+  while (true) {
+    const res = await fetch(`${baseUrl}/hess/api/userSites/list?userToken=${encodeURIComponent(token)}&page=${page}&size=${size}`);
+    const json = await res.json();
+    if (json.code !== "0" && json.code !== 0) throw new Error(`Livoltek list error: ${json.message || json.code}`);
+    const list = json.data?.list || [];
+    for (const s of list) {
+      plants.push({
+        external_id: String(s.siteId || s.id),
+        name: s.siteName || s.name || `Site ${s.siteId}`,
+        capacity_kw: s.installedCapacity ? Number(s.installedCapacity) : null,
+        address: s.siteAddress || s.address || null,
+        latitude: s.latitude ? Number(s.latitude) : null,
+        longitude: s.longitude ? Number(s.longitude) : null,
+        status: s.connectStatus === 1 ? "normal" : s.connectStatus === 0 ? "offline" : "unknown",
+        metadata: s,
+      });
+    }
+    if (list.length < size) break;
+    page++;
+  }
+  return plants;
+}
+
+async function livoltekMetrics(token: string, baseUrl: string, siteId: string): Promise<DailyMetrics> {
+  const res = await fetch(`${baseUrl}/hess/api/site/${siteId}/overview?userToken=${encodeURIComponent(token)}`);
+  const json = await res.json();
+  const d = json.data || {};
+  return {
+    power_kw: d.currentPower != null ? Number(d.currentPower) / 1000 : null,
+    energy_kwh: d.dailyGeneration != null ? Number(d.dailyGeneration) : null,
+    total_energy_kwh: d.lifeTimeGeneration != null ? Number(d.lifeTimeGeneration) : null,
+    metadata: d,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
 
 async function dispatchSync(
   ctx: SyncContext,
@@ -1331,6 +1374,11 @@ async function dispatchSync(
     return await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
   } else if (p === "apsystems") {
     return { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."] };
+  } else if (p === "livoltek" || p === "livoltek_cf") {
+    const token = tokens.token as string || "";
+    const baseUrl = (tokens.baseUrl as string) || (credentials.baseUrl as string) || "https://api-eu.livoltek-portal.com:8081";
+    if (!token) throw new Error("No token. Reconnect Livoltek.");
+    return await syncPlantsByProvider(ctx, () => livoltekListPlants(token, baseUrl), (eid) => livoltekMetrics(token, baseUrl, eid), mode, selectedPlantIds);
   } else {
     throw new Error(`Provider sync not implemented yet: ${provider}. Connect via portal.`);
   }
