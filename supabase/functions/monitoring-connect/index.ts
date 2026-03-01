@@ -262,8 +262,8 @@ async function testGrowatt(creds: Record<string, string>) {
   if (!username || !password) throw new Error("Missing: username, password");
 
   // MD5 hash the password (Growatt ShineServer requires it)
-  const hashBuffer = await crypto.subtle.digest("MD5", new TextEncoder().encode(password));
-  const passwordMd5 = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const { createHash } = await import("node:crypto");
+  const passwordMd5 = createHash("md5").update(password).digest("hex");
 
   console.log(`[Growatt] Attempting ShineServer login for user: ${username}`);
 
@@ -562,6 +562,7 @@ const PROVIDER_HANDLERS: Record<string, TestFn> = {
   solaredge: (c) => testSolaredge(c),
   deye_cloud: (c) => testDeye(c),
   growatt: (c) => testGrowatt(c),
+  growatt_server: (c) => testGrowatt({ ...c, auth_mode: "portal" }),
   hoymiles: (c) => testHoymiles(c),
   sungrow: (c) => testSungrow(c),
   huawei: (c) => testHuawei(c),
@@ -586,7 +587,7 @@ const PROVIDER_HANDLERS: Record<string, TestFn> = {
 
 // Portal-based providers that use generic portal test
 const PORTAL_PROVIDERS = new Set([
-  "growatt_server", "solplanet", "elekeeper", "phb_solar", "sunweg", "renovigi",
+  "solplanet", "elekeeper", "phb_solar", "sunweg", "renovigi",
   "chint_flexom", "solarview", "livoltek", "solarman_smart", "kehua", "weg_iot",
   "refusol", "solarnex", "tsun_pro", "renac", "nep_viewer", "fimer", "byd",
   "auxsol", "sices", "ge_solar", "wdc_solar", "sunwave", "nansen",
