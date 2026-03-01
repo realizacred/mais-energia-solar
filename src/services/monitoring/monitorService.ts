@@ -49,20 +49,32 @@ function legacyStatusToHealth(sp: SolarPlant, m?: SolarPlantMetricsDaily): Monit
     no_communication: "offline",
     unknown: "unknown",
   };
+
+  // energy_kwh is the authoritative field; fallback: estimate from power_kw
+  // power_kw from Solis V2 is actually watts (e.g. 3808 = 3.808 kW)
+  // Estimate daily energy = power_kw_actual * AVG_SUN_HOURS (4.5h)
+  let energyToday = 0;
+  if (m?.energy_kwh != null && Number(m.energy_kwh) > 0) {
+    energyToday = Number(m.energy_kwh);
+  } else if (m?.power_kw != null && Number(m.power_kw) > 0) {
+    // power_kw stores watts for some providers; convert to kW then estimate daily kWh
+    const powerKw = Number(m.power_kw) > 100 ? Number(m.power_kw) / 1000 : Number(m.power_kw);
+    energyToday = powerKw * 4.5; // approximate daily generation
+  }
+
   return {
     id: sp.id,
     tenant_id: sp.tenant_id,
     plant_id: sp.id,
     status: statusMap[sp.status] || "unknown",
     last_seen_at: sp.updated_at,
-    energy_today_kwh: m?.energy_kwh != null ? Number(m.energy_kwh) : 0,
-    energy_month_kwh: 0, // not available from daily metrics
+    energy_today_kwh: energyToday,
+    energy_month_kwh: 0, // computed at dashboard level from readings
     performance_7d_pct: null,
     open_alerts_count: 0,
     updated_at: sp.updated_at,
   };
 }
-
 // ─── PLANTS + HEALTH (reads from legacy solar_plants) ─────────
 
 export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
@@ -122,6 +134,24 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 export async function getDashboardStats(): Promise<MonitorDashboardStats> {
   const plants = await listPlantsWithHealth();
 
+  // Compute monthly energy from readings (last 30 days)
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const readings = await listAllReadings(monthStart.toISOString().slice(0, 10), todayStr);
+
+  // Sum energy per plant, with power_kw fallback
+  const AVG_SUN_HOURS = 4.5;
+  let totalMonthKwh = 0;
+  readings.forEach((r) => {
+    if (r.energy_kwh > 0) {
+      totalMonthKwh += r.energy_kwh;
+    } else if (r.peak_power_kw && r.peak_power_kw > 0) {
+      const powerKw = r.peak_power_kw > 100 ? r.peak_power_kw / 1000 : r.peak_power_kw;
+      totalMonthKwh += powerKw * AVG_SUN_HOURS;
+    }
+  });
+
   return {
     plants_online: plants.filter((p) => p.health?.status === "online").length,
     plants_alert: plants.filter((p) => p.health?.status === "alert").length,
@@ -129,7 +159,7 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
     plants_unknown: plants.filter((p) => p.health?.status === "unknown").length,
     total_plants: plants.length,
     energy_today_kwh: plants.reduce((s, p) => s + (p.health?.energy_today_kwh || 0), 0),
-    energy_month_kwh: plants.reduce((s, p) => s + (p.health?.energy_month_kwh || 0), 0),
+    energy_month_kwh: totalMonthKwh,
   };
 }
 
@@ -195,14 +225,27 @@ export async function listAllReadings(
   startDate: string,
   endDate: string
 ): Promise<MonitorReadingDaily[]> {
-  const { data } = await supabase
-    .from("solar_plant_metrics_daily" as any)
-    .select("*")
-    .gte("date", startDate)
-    .lte("date", endDate)
-    .order("date", { ascending: true });
+  const allData: SolarPlantMetricsDaily[] = [];
+  const BATCH_SIZE = 1000;
+  let offset = 0;
+  let hasMore = true;
 
-  return ((data as unknown as SolarPlantMetricsDaily[]) || []).map((m) => ({
+  while (hasMore) {
+    const { data } = await supabase
+      .from("solar_plant_metrics_daily" as any)
+      .select("*")
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .order("date", { ascending: true })
+      .range(offset, offset + BATCH_SIZE - 1);
+
+    const rows = (data as unknown as SolarPlantMetricsDaily[]) || [];
+    allData.push(...rows);
+    offset += BATCH_SIZE;
+    hasMore = rows.length === BATCH_SIZE;
+  }
+
+  return allData.map((m) => ({
     id: m.id,
     tenant_id: m.tenant_id,
     plant_id: m.plant_id,

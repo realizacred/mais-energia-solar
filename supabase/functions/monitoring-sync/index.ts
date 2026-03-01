@@ -181,17 +181,39 @@ async function solisListPlants(apiId: string, apiSecret: string): Promise<Normal
 
 async function solisMetrics(apiId: string, apiSecret: string, stationId: string): Promise<DailyMetrics> {
   try {
-    const json = await solisFetch(apiId, apiSecret, "/v1/api/stationDay", { id: stationId, money: "CNY", time: today(), timeZone: 0 });
-    const d = json.data as any;
-    const eToday = d?.eToday ?? d?.dayEnergy ?? d?.e_today ?? null;
-    const eTotal = d?.eTotal ?? d?.allEnergy ?? d?.e_total ?? null;
+    // Try stationDetail first (has daily energy), fallback to stationDay
+    let d: any = null;
+    try {
+      const detailJson = await solisFetch(apiId, apiSecret, "/v1/api/stationDetail", { id: stationId });
+      d = detailJson.data as any;
+      console.log(`[Solis] stationDetail keys: ${d ? Object.keys(d).join(",") : "null"}`);
+    } catch (e) {
+      console.warn(`[Solis] stationDetail failed, trying stationDay: ${(e as Error).message}`);
+    }
+
+    if (!d) {
+      const json = await solisFetch(apiId, apiSecret, "/v1/api/stationDay", { id: stationId, money: "CNY", time: today(), timeZone: 0 });
+      d = json.data as any;
+      console.log(`[Solis] stationDay keys: ${d ? Object.keys(d).join(",") : "null"}`);
+    }
+
+    // Try multiple field names used across Solis API versions
+    const eToday = d?.dayEnergy ?? d?.eToday ?? d?.e_today ?? d?.todayEnergy ?? null;
+    const eTotal = d?.allEnergy ?? d?.eTotal ?? d?.e_total ?? d?.totalEnergy ?? null;
+    const pac = d?.pac ?? d?.power ?? d?.currentPower ?? d?.generationPower ?? null;
+
+    console.log(`[Solis] station=${stationId} eToday=${eToday} eTotal=${eTotal} pac=${pac}`);
+
     return {
-      power_kw: d?.pac != null ? Number(d.pac) / 1000 : null,
+      power_kw: pac != null ? (Number(pac) > 100 ? Number(pac) / 1000 : Number(pac)) : null,
       energy_kwh: eToday != null ? Number(eToday) : null,
       total_energy_kwh: eTotal != null ? Number(eTotal) : null,
       metadata: d || {},
     };
-  } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+  } catch (err) {
+    console.error(`[Solis] metrics error for station=${stationId}: ${(err as Error).message}`);
+    return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
+  }
 }
 
 // Solis inverter list → monitor_devices
