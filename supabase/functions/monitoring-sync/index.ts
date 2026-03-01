@@ -1128,7 +1128,7 @@ async function syncPlantsByProvider(
             tenant_id: ctx.tenantId, plant_id: plantId, provider_device_id: d.provider_device_id,
             type: d.type, model: d.model, serial: d.serial, status: d.status,
             metadata: d.metadata, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-          }, { onConflict: "tenant_id,provider_device_id" });
+          }, { onConflict: "plant_id,provider_device_id" });
           if (error) errors.push(`Device ${d.serial}: ${error.message}`); else devCount++;
         }
       }
@@ -1176,7 +1176,8 @@ async function livoltekListPlants(token: string, baseUrl: string): Promise<Norma
   while (true) {
     const res = await fetch(`${baseUrl}/hess/api/userSites/list?userToken=${encodeURIComponent(token)}&page=${page}&size=${size}`);
     const json = await res.json();
-    if (json.code !== "0" && json.code !== 0) throw new Error(`Livoltek list error: ${json.message || json.code}`);
+    const codeOk = json.code === "0" || json.code === 0 || json.code === 200 || json.code === "200" || json.message === "SUCCESS";
+    if (!codeOk) throw new Error(`Livoltek list error: ${json.message || json.code}`);
     const list = json.data?.list || [];
     for (const s of list) {
       plants.push({
@@ -1397,8 +1398,10 @@ async function dispatchSync(
             body: JSON.stringify(loginBody),
           });
           const json = await res.json();
-          console.log(`[Livoltek Sync] Re-auth response code=${json.code}, message=${json.message}`);
-          if ((json.code === "0" || json.code === 0) && json.data) {
+          console.log(`[Livoltek Sync] Re-auth response code=${json.code}, message=${json.message}, hasData=${!!json.data}`);
+          const codeOk = json.code === "0" || json.code === 0 || json.code === 200 || json.code === "200";
+          const msgOk = json.message === "SUCCESS" || json.message === "success";
+          if ((codeOk || msgOk) && json.data) {
             lvToken = json.data;
             // Persist refreshed token
             await admin.from("monitoring_integrations").update({
