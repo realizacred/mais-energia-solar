@@ -6784,6 +6784,8 @@ export type Database = {
           message: string | null
           plant_id: string
           provider_event_id: string | null
+          provider_id: string | null
+          provider_plant_id: string | null
           severity: string
           starts_at: string
           tenant_id: string
@@ -6800,6 +6802,8 @@ export type Database = {
           message?: string | null
           plant_id: string
           provider_event_id?: string | null
+          provider_id?: string | null
+          provider_plant_id?: string | null
           severity?: string
           starts_at?: string
           tenant_id: string
@@ -6816,6 +6820,8 @@ export type Database = {
           message?: string | null
           plant_id?: string
           provider_event_id?: string | null
+          provider_id?: string | null
+          provider_plant_id?: string | null
           severity?: string
           starts_at?: string
           tenant_id?: string
@@ -6856,6 +6862,8 @@ export type Database = {
           open_alerts_count: number
           performance_7d_pct: number | null
           plant_id: string
+          provider_id: string | null
+          provider_plant_id: string | null
           status: string
           tenant_id: string
           updated_at: string
@@ -6868,6 +6876,8 @@ export type Database = {
           open_alerts_count?: number
           performance_7d_pct?: number | null
           plant_id: string
+          provider_id?: string | null
+          provider_plant_id?: string | null
           status?: string
           tenant_id: string
           updated_at?: string
@@ -6880,6 +6890,8 @@ export type Database = {
           open_alerts_count?: number
           performance_7d_pct?: number | null
           plant_id?: string
+          provider_id?: string | null
+          provider_plant_id?: string | null
           status?: string
           tenant_id?: string
           updated_at?: string
@@ -6894,6 +6906,62 @@ export type Database = {
           },
           {
             foreignKeyName: "monitor_health_cache_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_integration_configs: {
+        Row: {
+          auth: Json
+          base_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean
+          last_error: string | null
+          last_events_sync_at: string | null
+          last_sync_at: string | null
+          meta: Json
+          provider_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth?: Json
+          base_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_events_sync_at?: string | null
+          last_sync_at?: string | null
+          meta?: Json
+          provider_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth?: Json
+          base_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_events_sync_at?: string | null
+          last_sync_at?: string | null
+          meta?: Json
+          provider_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_integration_configs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -7010,6 +7078,8 @@ export type Database = {
           metadata: Json | null
           peak_power_kw: number | null
           plant_id: string
+          provider_id: string | null
+          provider_plant_id: string | null
           tenant_id: string
         }
         Insert: {
@@ -7020,6 +7090,8 @@ export type Database = {
           metadata?: Json | null
           peak_power_kw?: number | null
           plant_id: string
+          provider_id?: string | null
+          provider_plant_id?: string | null
           tenant_id: string
         }
         Update: {
@@ -7030,6 +7102,8 @@ export type Database = {
           metadata?: Json | null
           peak_power_kw?: number | null
           plant_id?: string
+          provider_id?: string | null
+          provider_plant_id?: string | null
           tenant_id?: string
         }
         Relationships: [

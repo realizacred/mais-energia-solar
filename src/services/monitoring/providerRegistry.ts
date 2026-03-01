@@ -1,9 +1,9 @@
 /**
- * Provider Registry — SSOT for all monitoring providers.
- * Each provider defines its auth type, credential fields, and availability.
+ * Provider Registry — SSOT for ALL monitoring providers (80+).
+ * Each provider defines its auth type, credential fields, capabilities, and availability.
  */
 
-export type AuthType = "api_token" | "api_key" | "portal" | "token_app";
+export type AuthType = "api_token" | "api_key" | "portal" | "token_app" | "oauth2" | "basic";
 
 export interface CredentialField {
   key: string;
@@ -15,46 +15,89 @@ export interface CredentialField {
   helperText?: string;
 }
 
+export interface ProviderCapabilities {
+  sync_plants: boolean;
+  sync_health: boolean;
+  sync_events: boolean;
+  sync_readings: boolean;
+  realtime?: boolean;
+}
+
+export type ProviderStatus = "active" | "beta" | "stub" | "coming_soon" | "maintenance";
+
 export interface ProviderDefinition {
   id: string;
   label: string;
   description: string;
   icon: string;
-  available: boolean;
+  status: ProviderStatus;
   auth_type: AuthType;
   fields: CredentialField[];
-  /** Whether sync is fully implemented in the backend */
-  sync_implemented: boolean;
+  capabilities: ProviderCapabilities;
+  api_docs_url?: string;
+  /** Rate limit: max requests per minute */
+  rate_limit_rpm?: number;
 }
 
-/** Providers with sync implemented — used by UI to decide button state */
-export const SYNC_IMPLEMENTED_PROVIDERS = new Set(["solarman_business_api", "solaredge", "solis_cloud", "deye_cloud"]);
+// ─── Reusable field templates ────────────────────────────────────
+const F_EMAIL: CredentialField = { key: "email", label: "E-mail", type: "email", placeholder: "seu@email.com", required: true };
+const F_PASSWORD: CredentialField = { key: "password", label: "Senha", type: "password", placeholder: "Senha", required: true };
+const F_USER: CredentialField = { key: "username", label: "Usuário", type: "text", placeholder: "Seu usuário", required: true };
+const F_API_KEY: CredentialField = { key: "apiKey", label: "API Key", type: "text", placeholder: "Sua API Key", required: true };
+const F_API_SECRET: CredentialField = { key: "apiSecret", label: "API Secret", type: "password", placeholder: "Seu API Secret", required: true };
+const F_APP_ID: CredentialField = { key: "appId", label: "App ID", type: "text", placeholder: "Seu App ID", required: true };
+const F_APP_SECRET: CredentialField = { key: "appSecret", label: "App Secret", type: "password", placeholder: "Seu App Secret", required: true };
+const F_TOKEN: CredentialField = { key: "token", label: "Token de Acesso", type: "password", placeholder: "Seu token", required: true };
+
+const FULL_CAP: ProviderCapabilities = { sync_plants: true, sync_health: true, sync_events: true, sync_readings: true };
+const BASIC_CAP: ProviderCapabilities = { sync_plants: true, sync_health: true, sync_events: false, sync_readings: true };
+const STUB_CAP: ProviderCapabilities = { sync_plants: true, sync_health: true, sync_events: false, sync_readings: false };
+
+function portalProvider(id: string, label: string, desc: string, icon = "Sun"): ProviderDefinition {
+  return {
+    id, label, description: desc, icon, status: "stub", auth_type: "portal",
+    fields: [F_EMAIL, F_PASSWORD], capabilities: BASIC_CAP,
+  };
+}
+
+function apiKeyProvider(id: string, label: string, desc: string, icon = "Sun"): ProviderDefinition {
+  return {
+    id, label, description: desc, icon, status: "stub", auth_type: "api_key",
+    fields: [F_API_KEY], capabilities: BASIC_CAP,
+  };
+}
 
 export const PROVIDER_REGISTRY: ProviderDefinition[] = [
-  // ── Available now ──
+  // ══════════════════════════════════════════════════════════════
+  // ACTIVE — fully implemented sync adapters
+  // ══════════════════════════════════════════════════════════════
   {
-    id: "solarman_business_api",
+    id: "solarman_business",
     label: "Solarman Business",
     description: "Monitoramento via Solarman Business API — usinas, inversores e métricas em tempo real.",
     icon: "Sun",
-    available: true,
+    status: "active",
     auth_type: "api_token",
-    sync_implemented: true,
+    capabilities: FULL_CAP,
+    rate_limit_rpm: 60,
+    api_docs_url: "https://doc.solarmanpv.com/api/business-api",
     fields: [
-      { key: "appId", label: "App ID", type: "text", placeholder: "Ex: 201911067156002", required: true },
-      { key: "appSecret", label: "App Secret", type: "password", placeholder: "Seu App Secret", required: true },
-      { key: "email", label: "E-mail Solarman", type: "email", placeholder: "seu@email.com", required: true },
-      { key: "password", label: "Senha", type: "password", placeholder: "Senha do Solarman", required: true },
+      { ...F_APP_ID, placeholder: "Ex: 201911067156002" },
+      F_APP_SECRET,
+      { ...F_EMAIL, label: "E-mail Solarman" },
+      F_PASSWORD,
     ],
   },
   {
     id: "solis_cloud",
     label: "Solis Cloud",
-    description: "Monitoramento de inversores Solis via SolisCloud Platform API V2.0.",
+    description: "Inversores Solis via SolisCloud Platform API V2.0 (HMAC-SHA1).",
     icon: "CloudSun",
-    available: true,
+    status: "active",
     auth_type: "api_key",
-    sync_implemented: true,
+    capabilities: FULL_CAP,
+    rate_limit_rpm: 30,
+    api_docs_url: "https://solis-service.solisinverters.com/en/support",
     fields: [
       { key: "apiId", label: "API ID (KeyID)", type: "text", placeholder: "Seu API ID", required: true },
       { key: "apiSecret", label: "API Secret (KeySecret)", type: "password", placeholder: "Seu API Secret", required: true },
@@ -63,112 +106,228 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   {
     id: "solaredge",
     label: "SolarEdge",
-    description: "Monitoramento de inversores SolarEdge via API Key.",
+    description: "Inversores SolarEdge via API Key — sites, energia, potência.",
     icon: "Zap",
-    available: true,
+    status: "active",
     auth_type: "api_key",
-    sync_implemented: true,
-    fields: [
-      { key: "apiKey", label: "API Key", type: "text", placeholder: "Sua API Key do SolarEdge", required: true },
-    ],
+    capabilities: FULL_CAP,
+    rate_limit_rpm: 300,
+    api_docs_url: "https://monitoring.solaredge.com/solaredge-web/p/login",
+    fields: [F_API_KEY],
   },
   {
     id: "deye_cloud",
     label: "Deye Cloud",
-    description: "Monitoramento de inversores Deye via DeyeCloud Developer API — usinas e métricas em tempo real.",
+    description: "Inversores Deye via DeyeCloud Developer API.",
     icon: "Cloud",
-    available: true,
+    status: "active",
     auth_type: "token_app",
-    sync_implemented: true,
+    capabilities: FULL_CAP,
+    rate_limit_rpm: 60,
     fields: [
       {
-        key: "region",
-        label: "Região",
-        type: "select",
-        placeholder: "Selecione a região",
-        required: true,
-        options: [
-          { value: "EU", label: "Europa (EU)" },
-          { value: "US", label: "América (US)" },
-        ],
-        helperText: "A URL base da API muda conforme a região selecionada.",
+        key: "region", label: "Região", type: "select", placeholder: "Selecione a região", required: true,
+        options: [{ value: "EU", label: "Europa (EU)" }, { value: "US", label: "América (US)" }],
+        helperText: "A URL base da API muda conforme a região.",
       },
-      { key: "appId", label: "App ID", type: "text", placeholder: "Seu App ID do Developer Portal", required: true },
-      { key: "appSecret", label: "App Secret", type: "password", placeholder: "Seu App Secret", required: true },
-      { key: "email", label: "E-mail", type: "email", placeholder: "seu@email.com", required: true },
-      { key: "password", label: "Senha", type: "password", placeholder: "Senha da sua conta Deye Cloud", required: true },
+      F_APP_ID, F_APP_SECRET, F_EMAIL, F_PASSWORD,
     ],
   },
 
-  // ── Coming soon ──
+  // ══════════════════════════════════════════════════════════════
+  // BETA — adapter implemented, needs testing
+  // ══════════════════════════════════════════════════════════════
   {
     id: "growatt",
-    label: "Growatt ShineServer",
-    description: "Monitoramento de inversores Growatt via ShineServer.",
+    label: "Growatt OSS / ShineServer",
+    description: "Inversores Growatt via OSS API ou ShineServer.",
     icon: "Sprout",
-    available: false,
+    status: "beta",
     auth_type: "portal",
-    sync_implemented: false,
-    fields: [
-      { key: "login", label: "Usuário", type: "text", placeholder: "Seu usuário", required: true },
-      { key: "password", label: "Senha", type: "password", placeholder: "Sua senha", required: true },
-    ],
+    capabilities: FULL_CAP,
+    api_docs_url: "https://openapi.growatt.com",
+    fields: [F_USER, F_PASSWORD],
   },
   {
-    id: "huawei_fusionsolar",
-    label: "Huawei FusionSolar",
-    description: "Monitoramento de inversores Huawei via FusionSolar.",
-    icon: "Cpu",
-    available: false,
-    auth_type: "api_token",
-    sync_implemented: false,
-    fields: [
-      { key: "username", label: "Usuário", type: "text", placeholder: "Seu usuário", required: true },
-      { key: "password", label: "Senha", type: "password", placeholder: "Sua senha", required: true },
-      { key: "systemCode", label: "System Code", type: "text", placeholder: "Código do sistema", required: true },
-    ],
-  },
-  {
-    id: "goodwe_sems",
-    label: "GoodWe SEMS",
-    description: "Monitoramento de inversores GoodWe via SEMS Portal.",
-    icon: "Gauge",
-    available: false,
-    auth_type: "portal",
-    sync_implemented: false,
-    fields: [
-      { key: "email", label: "E-mail", type: "email", placeholder: "seu@email.com", required: true },
-      { key: "password", label: "Senha", type: "password", placeholder: "Sua senha", required: true },
-    ],
-  },
-  {
-    id: "sungrow_isolarcloud",
-    label: "Sungrow iSolarCloud",
-    description: "Monitoramento de inversores Sungrow via iSolarCloud.",
-    icon: "SunDim",
-    available: false,
-    auth_type: "api_key",
-    sync_implemented: false,
-    fields: [
-      { key: "email", label: "E-mail", type: "email", placeholder: "seu@email.com", required: true },
-      { key: "password", label: "Senha", type: "password", placeholder: "Sua senha", required: true },
-    ],
-  },
-  {
-    id: "hoymiles_s_miles",
+    id: "hoymiles",
     label: "Hoymiles S-Miles",
-    description: "Monitoramento de microinversores Hoymiles via S-Miles Cloud.",
+    description: "Microinversores Hoymiles via S-Miles Cloud API.",
     icon: "Radio",
-    available: false,
+    status: "beta",
     auth_type: "api_key",
-    sync_implemented: false,
-    fields: [
-      { key: "login", label: "Usuário", type: "text", placeholder: "Seu usuário S-Miles", required: true },
-      { key: "password", label: "Senha", type: "password", placeholder: "Sua senha", required: true },
-    ],
+    capabilities: BASIC_CAP,
+    fields: [F_USER, F_PASSWORD],
   },
+  {
+    id: "sungrow",
+    label: "Sungrow iSolarCloud",
+    description: "Inversores Sungrow via iSolarCloud API.",
+    icon: "SunDim",
+    status: "beta",
+    auth_type: "api_key",
+    capabilities: BASIC_CAP,
+    fields: [F_APP_ID, F_APP_SECRET, F_EMAIL, F_PASSWORD],
+  },
+  {
+    id: "huawei",
+    label: "Huawei FusionSolar",
+    description: "Inversores Huawei via FusionSolar Northbound API.",
+    icon: "Cpu",
+    status: "beta",
+    auth_type: "api_token",
+    capabilities: FULL_CAP,
+    api_docs_url: "https://support.huawei.com/enterprise/en/doc/EDOC1100261860",
+    fields: [F_USER, F_PASSWORD, { key: "systemCode", label: "System Code", type: "text", placeholder: "Código do sistema", required: true }],
+  },
+  {
+    id: "goodwe",
+    label: "GoodWe SEMS",
+    description: "Inversores GoodWe via SEMS Portal API.",
+    icon: "Gauge",
+    status: "beta",
+    auth_type: "portal",
+    capabilities: BASIC_CAP,
+    fields: [F_EMAIL, F_PASSWORD],
+  },
+  {
+    id: "fronius",
+    label: "Fronius Solar.web",
+    description: "Inversores Fronius via Solar.web API ou Fronius Solar API.",
+    icon: "Sun",
+    status: "beta",
+    auth_type: "api_key",
+    capabilities: FULL_CAP,
+    api_docs_url: "https://www.fronius.com/en/photovoltaics/products/all-products/system-monitoring/open-interfaces/fronius-solar-api",
+    fields: [F_API_KEY, { key: "systemId", label: "System ID", type: "text", placeholder: "ID do sistema", required: true }],
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // STUB — adapter file exists, API research pending
+  // ══════════════════════════════════════════════════════════════
+  portalProvider("growatt_server", "Growatt Server", "Monitoramento Growatt via servidor alternativo.", "Sprout"),
+  portalProvider("solplanet", "Solplanet", "Inversores Solplanet (AISWEI) via Solplanet Cloud."),
+  portalProvider("elekeeper", "Elekeeper", "Monitoramento Elekeeper para inversores com gateway RS485/WiFi."),
+  portalProvider("saj", "SAJ eSolar", "Inversores SAJ via eSolar Portal.", "Gauge"),
+  portalProvider("phb_solar", "PHB Solar", "Inversores PHB Solar via portal de monitoramento."),
+  portalProvider("sunweg", "SunWeg", "Inversores SunWeg via SunWeg Cloud."),
+  portalProvider("renovigi", "Renovigi", "Inversores/distribuidora Renovigi via portal."),
+  portalProvider("chint_flexom", "Chint FlexOM", "Inversores Chint/Astronergy via FlexOM Cloud."),
+  apiKeyProvider("csi_cloudpro", "CSI CloudPro", "Canadian Solar via CloudPro API."),
+  portalProvider("solarview", "SolarView", "Monitoramento SolarView para micro/string inversores."),
+  portalProvider("fox_ess", "Fox ESS", "Inversores Fox ESS via FoxCloud.", "Zap"),
+  portalProvider("livoltek", "Livoltek", "Inversores Livoltek/Axitec via portal."),
+  portalProvider("solarman_smart", "Solarman Smart", "Versão Smart do Solarman para instaladores individuais."),
+  portalProvider("apsystems", "APsystems", "Microinversores APsystems via EMA Cloud.", "Radio"),
+  portalProvider("kehua", "Kehua", "Inversores Kehua via portal de monitoramento."),
+  portalProvider("weg_iot", "WEG IoT", "Inversores WEG via plataforma IoT."),
+  portalProvider("refusol", "REFUlog (Refusol)", "Inversores REFUsol/REFU via REFUlog."),
+  portalProvider("solarnex", "Solarnex PRO", "Monitoramento Solarnex PRO para integradores."),
+  portalProvider("tsun_pro", "TSUN PRO", "Microinversores TSUN PRO via portal."),
+  portalProvider("renac", "RENAC", "Inversores RENAC via portal de monitoramento."),
+  portalProvider("nep_viewer", "NEP Viewer", "Microinversores NEP via NEP Viewer.", "Radio"),
+  portalProvider("intelbras", "Intelbras ISG", "Inversores Intelbras via ISG Web."),
+  portalProvider("fimer", "Fimer (ABB)", "Inversores Fimer/ABB via Aurora Vision."),
+  portalProvider("byd", "BYD", "Baterias/inversores BYD via BYD Connect."),
+  apiKeyProvider("solax", "Solax Power", "Inversores SolaX via SolaX Cloud API.", "Zap"),
+  portalProvider("auxsol", "AUXSOL", "Monitoramento AUXSOL para distribuidores."),
+  portalProvider("sices", "Sices", "Monitoramento Sices Solar para instaladores."),
+  {
+    id: "sunny_portal",
+    label: "Sunny Portal (SMA)",
+    description: "Inversores SMA via Sunny Portal / SMA API.",
+    icon: "Sun",
+    status: "stub",
+    auth_type: "api_key",
+    capabilities: FULL_CAP,
+    api_docs_url: "https://developer.sma.de",
+    fields: [F_API_KEY, { key: "plantId", label: "Plant ID", type: "text", placeholder: "ID da planta SMA", required: true }],
+  },
+  {
+    id: "enphase",
+    label: "Enphase",
+    description: "Microinversores Enphase via Enphase API (em manutenção pelo fabricante).",
+    icon: "Radio",
+    status: "maintenance",
+    auth_type: "oauth2",
+    capabilities: FULL_CAP,
+    api_docs_url: "https://developer-v4.enphase.com",
+    fields: [F_API_KEY, { key: "clientId", label: "Client ID", type: "text", placeholder: "OAuth Client ID", required: true }, F_API_SECRET],
+  },
+  portalProvider("ge_solar", "GE Solar", "Inversores GE Solar via portal."),
+  portalProvider("wdc_solar", "WDC Solar", "Inversores WDC Solar via portal."),
+  portalProvider("sunwave", "Sunwave", "Inversores Sunwave via portal."),
+  portalProvider("nansen", "NANSEN", "Medidores/inversores NANSEN via portal."),
+  portalProvider("shinemonitor", "ShineMonitor", "Monitoramento ShineMonitor multi-marca."),
+  portalProvider("intelbras_plus", "Intelbras Plus", "Inversores Intelbras via plataforma Plus."),
+  apiKeyProvider("csi_smart_energy", "CSI Smart Energy", "Canadian Solar Smart Energy API."),
+  portalProvider("smten", "SMTEN", "Inversores SMTEN via portal cloud."),
+  portalProvider("elgin", "Elgin", "Inversores Elgin via portal de monitoramento."),
+  portalProvider("hypon_cloud", "Hypon Cloud", "Inversores Hypon via cloud."),
+  apiKeyProvider("csi_cloud", "CSI Cloud", "Canadian Solar CSI Cloud.", "Sun"),
+  portalProvider("wdc_solar_cf", "WDC Solar Cliente Final", "Portal WDC para clientes finais."),
+  portalProvider("ecosolys", "EcoSolys", "Monitoramento EcoSolys para inversores string."),
+  portalProvider("intelbras_send", "Intelbras Send", "Inversores Intelbras via Send."),
+  portalProvider("hopewind", "Hopewind", "Inversores Hopewind via portal."),
+  portalProvider("kstar", "KSTAR", "Inversores KSTAR via portal cloud."),
+  portalProvider("intelbras_x", "Intelbras X", "Plataforma Intelbras X."),
+  portalProvider("renovigi_portal", "Renovigi Portal", "Portal Renovigi para distribuidores."),
+  portalProvider("elsys", "Elsys", "Inversores Elsys via portal."),
+  portalProvider("ingeteam", "Ingeteam", "Inversores Ingeteam via IngeManager."),
+  portalProvider("pvhub", "PV HUB", "Monitoramento PV HUB multi-marca."),
+  portalProvider("dessmonitor", "Dessmonitor", "Inversores DESS via Dessmonitor."),
+  portalProvider("smartess", "SmartESS", "Inversores SmartESS/Megarevo via portal."),
+  portalProvider("bedin_solar", "Bedin Solar", "Monitoramento Bedin Solar."),
+  portalProvider("ksolare", "Ksolare", "Monitoramento Ksolare."),
+  portalProvider("livoltek_cf", "Livoltek Cliente Final", "Portal Livoltek para clientes finais."),
+  portalProvider("tsun", "TSUN", "Microinversores TSUN via portal padrão.", "Radio"),
+  portalProvider("afore", "Afore", "Inversores Afore via portal."),
+  portalProvider("dah_solar", "DAH Solar", "Módulos/inversores DAH Solar via portal."),
+  portalProvider("empalux", "Empalux", "Inversores Empalux via portal."),
+  portalProvider("hopewind_shine", "Hopewind ShineMonitor", "Hopewind integrado via ShineMonitor."),
+  portalProvider("hypon_portal", "Hypon Portal", "Portal Hypon para instaladores."),
+  portalProvider("litto", "Litto", "Inversores Litto via portal."),
+  portalProvider("leveros", "Leveros", "Inversores Leveros via portal."),
+  portalProvider("moso", "Moso (B&B)", "Inversores Moso/B&B via portal."),
+  portalProvider("pv123", "PV123", "Monitoramento PV123 multi-marca."),
+  portalProvider("qcells", "QCELLS", "Inversores/módulos QCELLS via Q.Cloud."),
+  portalProvider("sacolar", "Sacolar", "Monitoramento Sacolar."),
+  {
+    id: "sofar",
+    label: "Sofar Solar",
+    description: "Inversores Sofar via SolarMAN/Sofar Cloud API.",
+    icon: "Sun",
+    status: "stub",
+    auth_type: "api_key",
+    capabilities: BASIC_CAP,
+    fields: [F_APP_ID, F_APP_SECRET, F_EMAIL, F_PASSWORD],
+  },
+  portalProvider("solar_must", "Solar Must", "Inversores Solar Must via portal."),
+  portalProvider("zevercloud", "ZeverCloud", "Inversores Zeversolar via ZeverCloud.", "Cloud"),
 ];
+
+// ─── Helpers ─────────────────────────────────────────────────────
 
 export function getProvider(id: string): ProviderDefinition | undefined {
   return PROVIDER_REGISTRY.find((p) => p.id === id);
+}
+
+export function getActiveProviders(): ProviderDefinition[] {
+  return PROVIDER_REGISTRY.filter((p) => p.status === "active");
+}
+
+export function getImplementedProviderIds(): Set<string> {
+  return new Set(PROVIDER_REGISTRY.filter((p) => p.status === "active" || p.status === "beta").map((p) => p.id));
+}
+
+/** Legacy ID mapping (old provider IDs → new canonical IDs) */
+export const LEGACY_ID_MAP: Record<string, string> = {
+  solarman_business_api: "solarman_business",
+  goodwe_sems: "goodwe",
+  huawei_fusionsolar: "huawei",
+  sungrow_isolarcloud: "sungrow",
+  hoymiles_s_miles: "hoymiles",
+};
+
+export function resolveProviderId(id: string): string {
+  return LEGACY_ID_MAP[id] || id;
 }
