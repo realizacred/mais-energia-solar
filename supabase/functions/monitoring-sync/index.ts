@@ -640,29 +640,64 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
 // GoodWe SEMS
 // ═══════════════════════════════════════════════════════════
 
-async function goodweListPlants(token: string, api: string): Promise<NormalizedPlant[]> {
+function goodweTokenHeader(token: string, uid: string): string {
+  return JSON.stringify({ version: "v2.1.0", client: "ios", language: "en", timestamp: String(Date.now()), uid: uid || "", token });
+}
+
+/** Re-authenticate GoodWe if token expired. Returns { token, uid, api }. */
+async function goodweReAuth(credentials: Record<string, any>): Promise<{ token: string; uid: string; api: string }> {
+  const email = credentials.email || "";
+  const password = credentials.password || "";
+  if (!email || !password) throw new Error("GoodWe re-auth: missing email/password in credentials");
+  const res = await fetch("https://www.semsportal.com/api/v2/Common/CrossLogin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Token: '{"version":"v2.1.0","client":"ios","language":"en"}' },
+    body: JSON.stringify({ account: email, pwd: password }),
+  });
+  const json = await res.json();
+  if (json.hasError || (json.code !== 0 && json.code !== "0")) throw new Error(json.msg || "GoodWe re-auth failed");
+  const newToken = json.data?.token || json.data?.uid || "";
+  const newUid = json.data?.uid || "";
+  const api = json.data?.api || "https://semsportal.com";
+  console.log(`[GoodWe] Re-auth OK, uid=${newUid}, api=${api}`);
+  return { token: newToken, uid: newUid, api };
+}
+
+async function goodweListPlants(token: string, api: string, uid: string): Promise<NormalizedPlant[]> {
   const baseApi = api || "https://semsportal.com";
+  console.log(`[GoodWe] ListPlants: api=${baseApi}, uid=${uid}, token=${token ? "present" : "EMPTY"}`);
   const res = await fetch(`${baseApi}/api/v2/PowerStation/GetPowerStationByUser`, {
-    method: "POST", headers: { "Content-Type": "application/json", Token: `{"version":"v2.1.0","client":"ios","language":"en","timestamp":"${Date.now()}","uid":"","token":"${token}"}` },
+    method: "POST",
+    headers: { "Content-Type": "application/json", Token: goodweTokenHeader(token, uid) },
     body: JSON.stringify({}),
   });
   const json = await res.json();
-  const list = (json.data?.list || []) as any[];
+  console.log(`[GoodWe] ListPlants response: code=${json.code}, hasError=${json.hasError}, dataKeys=${JSON.stringify(Object.keys(json.data || {}))}, listLen=${(json.data?.list || []).length}`);
+
+  // If token expired, throw to trigger re-auth
+  if (json.hasError || json.code === "100001" || json.code === 100001 || json.msg?.toLowerCase()?.includes("expire")) {
+    throw new Error("GOODWE_TOKEN_EXPIRED");
+  }
+
+  const list = (json.data?.list || json.data?.stationList || []) as any[];
   return list.map((r: any) => ({
-    external_id: String(r.powerstation_id || r.id || ""), name: String(r.stationname || r.name || ""),
-    capacity_kw: r.capacity != null ? Number(r.capacity) : null,
-    address: r.address || null,
-    latitude: r.latitude != null ? Number(r.latitude) : null, longitude: r.longitude != null ? Number(r.longitude) : null,
-    status: r.status === 1 || r.status === "1" ? "normal" : r.status === 0 ? "offline" : "unknown",
+    external_id: String(r.powerstation_id || r.id || r.stationId || ""),
+    name: String(r.stationname || r.name || r.stationName || ""),
+    capacity_kw: r.capacity != null ? Number(r.capacity) : (r.nominal_power != null ? Number(r.nominal_power) : null),
+    address: r.address || r.city || null,
+    latitude: r.latitude != null ? Number(r.latitude) : null,
+    longitude: r.longitude != null ? Number(r.longitude) : null,
+    status: r.status === 1 || r.status === "1" ? "normal" : r.status === 0 || r.status === "0" ? "offline" : "unknown",
     metadata: r,
   }));
 }
 
-async function goodweMetrics(token: string, api: string, psId: string): Promise<DailyMetrics> {
+async function goodweMetrics(token: string, api: string, uid: string, psId: string): Promise<DailyMetrics> {
   try {
     const baseApi = api || "https://semsportal.com";
     const res = await fetch(`${baseApi}/api/v2/PowerStation/GetPowerStationInfo`, {
-      method: "POST", headers: { "Content-Type": "application/json", Token: `{"version":"v2.1.0","client":"ios","language":"en","timestamp":"${Date.now()}","uid":"","token":"${token}"}` },
+      method: "POST",
+      headers: { "Content-Type": "application/json", Token: goodweTokenHeader(token, uid) },
       body: JSON.stringify({ powerStationId: psId }),
     });
     const json = await res.json();
@@ -1176,9 +1211,30 @@ serve(async (req) => {
       const cookies = tokens.cookies as string || "";
       result = await syncPlantsByProvider(ctx, () => huaweiListPlants(xsrf, cookies), (eid) => huaweiMetrics(xsrf, cookies, eid), mode, selectedPlantIds);
     } else if (p === "goodwe") {
-      const token = tokens.token as string || "";
-      const api = tokens.api as string || "https://semsportal.com";
-      result = await syncPlantsByProvider(ctx, () => goodweListPlants(token, api), (eid) => goodweMetrics(token, api, eid), mode, selectedPlantIds);
+      let gwToken = tokens.token as string || "";
+      let gwApi = tokens.api as string || "https://semsportal.com";
+      let gwUid = tokens.uid as string || "";
+
+      // Try listing; if token expired, re-auth and retry
+      const listFn = async () => {
+        try {
+          return await goodweListPlants(gwToken, gwApi, gwUid);
+        } catch (err: any) {
+          if (err.message === "GOODWE_TOKEN_EXPIRED") {
+            console.log("[GoodWe] Token expired, re-authenticating...");
+            const fresh = await goodweReAuth(credentials);
+            gwToken = fresh.token; gwUid = fresh.uid; gwApi = fresh.api;
+            // Persist new tokens
+            await ctx.supabaseAdmin.from("monitoring_integrations").update({
+              tokens: { token: gwToken, uid: gwUid, api: gwApi },
+              updated_at: new Date().toISOString(),
+            }).eq("id", int.id);
+            return await goodweListPlants(gwToken, gwApi, gwUid);
+          }
+          throw err;
+        }
+      };
+      result = await syncPlantsByProvider(ctx, listFn, (eid) => goodweMetrics(gwToken, gwApi, gwUid, eid), mode, selectedPlantIds);
     } else if (p === "fronius") {
       const ak = credentials.apiKey as string || "";
       result = await syncPlantsByProvider(ctx, () => froniusListPlants(ak), (eid) => froniusMetrics(ak, eid), mode, selectedPlantIds);
