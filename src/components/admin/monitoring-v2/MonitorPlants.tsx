@@ -7,18 +7,26 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Sun, Search, MapPin, List, Zap } from "lucide-react";
+import { Sun, Search, MapPin, List, Zap, Activity } from "lucide-react";
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import type { PlantWithHealth, MonitorPlantStatus } from "@/services/monitoring/monitorTypes";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MonitorPlantsMap } from "./MonitorPlantsMap";
+import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<MonitorPlantStatus, string> = {
   online: "Online",
   alert: "Alerta",
   offline: "Offline",
   unknown: "Sem dados",
+};
+
+const STATUS_DOT: Record<MonitorPlantStatus, string> = {
+  online: "bg-success",
+  alert: "bg-warning",
+  offline: "bg-destructive",
+  unknown: "bg-muted-foreground",
 };
 
 const FILTER_CHIPS: { key: MonitorPlantStatus | "all"; label: string }[] = [
@@ -67,19 +75,26 @@ export default function MonitorPlants() {
         description={`${plants.length} usinas cadastradas`}
         icon={Sun}
         actions={
-          <div className="flex gap-1">
-            <Button size="sm" variant={viewMode === "split" ? "default" : "outline"} onClick={() => setViewMode("split")}>
-              <MapPin className="h-3.5 w-3.5 mr-1" />
-              Split
-            </Button>
-            <Button size="sm" variant={viewMode === "list" ? "default" : "outline"} onClick={() => setViewMode("list")}>
-              <List className="h-3.5 w-3.5 mr-1" />
-              Lista
-            </Button>
-            <Button size="sm" variant={viewMode === "map" ? "default" : "outline"} onClick={() => setViewMode("map")}>
-              <MapPin className="h-3.5 w-3.5 mr-1" />
-              Mapa
-            </Button>
+          <div className="flex gap-1 p-0.5 rounded-lg bg-muted/50 border border-border/60">
+            {([
+              { mode: "split" as const, icon: MapPin, label: "Split" },
+              { mode: "list" as const, icon: List, label: "Lista" },
+              { mode: "map" as const, icon: MapPin, label: "Mapa" },
+            ]).map(({ mode, icon: Icon, label }) => (
+              <Button
+                key={mode}
+                size="sm"
+                variant="ghost"
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "text-xs gap-1.5 h-7",
+                  viewMode === mode && "bg-card shadow-sm text-foreground"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{label}</span>
+              </Button>
+            ))}
           </div>
         }
       />
@@ -100,9 +115,14 @@ export default function MonitorPlants() {
             <Button
               key={chip.key}
               size="sm"
-              variant={statusFilter === chip.key ? "default" : "outline"}
+              variant="ghost"
               onClick={() => setStatusFilter(chip.key)}
-              className="text-xs"
+              className={cn(
+                "text-xs h-8 rounded-full border",
+                statusFilter === chip.key
+                  ? "bg-primary/10 text-primary border-primary/30"
+                  : "border-border/60 text-muted-foreground hover:text-foreground"
+              )}
             >
               {chip.label}
             </Button>
@@ -120,7 +140,7 @@ export default function MonitorPlants() {
         <div className={viewMode === "split" ? "grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4" : ""}>
           {/* Plant list */}
           {(viewMode === "split" || viewMode === "list") && (
-            <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-1 scrollbar-thin">
               {filtered.map((plant) => (
                 <PlantListItem
                   key={plant.id}
@@ -133,7 +153,7 @@ export default function MonitorPlants() {
 
           {/* Map */}
           {(viewMode === "split" || viewMode === "map") && plantsWithCoords.length > 0 && (
-            <div className="rounded-lg border border-border overflow-hidden" style={{ minHeight: 400 }}>
+            <div className="rounded-xl border border-border/60 overflow-hidden shadow-sm" style={{ minHeight: 400 }}>
               <MonitorPlantsMap
                 plants={plantsWithCoords}
                 onSelectPlant={(id) => navigate(`/admin/monitoramento/usinas/${id}`)}
@@ -152,29 +172,35 @@ function PlantListItem({ plant, onClick }: { plant: PlantWithHealth; onClick: ()
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors space-y-1.5"
+      className="w-full text-left p-3.5 rounded-xl border border-border/60 bg-card hover:shadow-md transition-all duration-200 space-y-2 group"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-foreground truncate">{plant.name}</span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", STATUS_DOT[status])} />
+          <span className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{plant.name}</span>
+        </div>
         <StatusBadge status={STATUS_LABELS[status]} size="sm" />
       </div>
-      <div className="flex items-center gap-3 text-2xs text-muted-foreground">
+      <div className="flex items-center gap-3 text-xs text-muted-foreground pl-5">
         {plant.city && (
           <span className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
+            <MapPin className="h-3 w-3 shrink-0" />
             {plant.city}/{plant.state}
           </span>
         )}
         {plant.installed_power_kwp && (
           <span className="flex items-center gap-1">
-            <Zap className="h-3 w-3" />
+            <Zap className="h-3 w-3 shrink-0" />
             {plant.installed_power_kwp} kWp
           </span>
         )}
       </div>
       {plant.health && (
-        <div className="flex items-center gap-4 text-2xs text-muted-foreground">
-          <span>Hoje: {plant.health.energy_today_kwh.toFixed(0)} kWh</span>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground pl-5">
+          <span className="flex items-center gap-1">
+            <Activity className="h-3 w-3 shrink-0" />
+            Hoje: {plant.health.energy_today_kwh.toFixed(0)} kWh
+          </span>
           {plant.health.last_seen_at && (
             <span>
               Visto {formatDistanceToNow(new Date(plant.health.last_seen_at), { addSuffix: true, locale: ptBR })}

@@ -6,11 +6,11 @@ interface Props {
   stats: MonitorDashboardStats;
 }
 
-const COLORS = [
-  "hsl(var(--success))",
-  "hsl(var(--warning))",
-  "hsl(var(--destructive))",
-  "hsl(var(--muted-foreground))",
+const STATUS_CONFIG = [
+  { key: "Online", color: "hsl(var(--success))" },
+  { key: "Alerta", color: "hsl(var(--warning))" },
+  { key: "Offline", color: "hsl(var(--destructive))" },
+  { key: "Sem dados", color: "hsl(var(--muted-foreground))" },
 ];
 
 export function MonitorStatusDonut({ stats }: Props) {
@@ -32,25 +32,32 @@ export function MonitorStatusDonut({ stats }: Props) {
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={50}
-          outerRadius={80}
+          innerRadius={55}
+          outerRadius={85}
           paddingAngle={3}
           dataKey="value"
-          stroke="none"
+          stroke="hsl(var(--card))"
+          strokeWidth={2}
         >
-          {data.map((_, i) => (
-            <Cell key={i} fill={COLORS[i % COLORS.length]} />
-          ))}
+          {data.map((entry) => {
+            const cfg = STATUS_CONFIG.find((c) => c.key === entry.name);
+            return <Cell key={entry.name} fill={cfg?.color || "hsl(var(--muted-foreground))"} />;
+          })}
         </Pie>
         <Tooltip
           contentStyle={{
             background: "hsl(var(--card))",
             border: "1px solid hsl(var(--border))",
-            borderRadius: "8px",
+            borderRadius: "10px",
             fontSize: "12px",
+            boxShadow: "var(--shadow-md)",
           }}
         />
-        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
+        <Legend
+          iconType="circle"
+          iconSize={8}
+          wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
