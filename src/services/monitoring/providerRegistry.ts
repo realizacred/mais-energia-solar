@@ -106,7 +106,7 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
           { value: "INDIA", label: "India" },
         ],
         helperText: "Mesmo data center escolhido ao criar sua conta no DeyeCloud." },
-      F_EMAIL, F_APP_ID, F_APP_SECRET, F_PASSWORD,
+      F_APP_ID, F_APP_SECRET, F_EMAIL, F_PASSWORD,
     ],
   },
   {
