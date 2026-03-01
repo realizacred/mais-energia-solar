@@ -99,9 +99,13 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
     description: "Inversores Deye via DeyeCloud Developer API.",
     icon: "Cloud", status: "active", auth_type: "token_app", capabilities: FULL_CAP, rate_limit_rpm: 60,
     fields: [
-      { key: "region", label: "Região", type: "select", placeholder: "Selecione a região", required: true,
-        options: [{ value: "EU", label: "Europa (EU)" }, { value: "US", label: "América (US)" }],
-        helperText: "A URL base da API muda conforme a região." },
+      { key: "region", label: "Data Center", type: "select", placeholder: "Selecione o data center", required: true,
+        options: [
+          { value: "EU", label: "EMEA (Europa / África / Ásia-Pacífico)" },
+          { value: "US", label: "AMEA (Américas)" },
+          { value: "INDIA", label: "India" },
+        ],
+        helperText: "Mesmo data center escolhido ao criar sua conta no DeyeCloud." },
       F_EMAIL, F_APP_ID, F_APP_SECRET, F_PASSWORD,
     ],
   },
