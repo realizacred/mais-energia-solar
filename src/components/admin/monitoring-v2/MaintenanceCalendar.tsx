@@ -43,6 +43,9 @@ function analyzeMaintenanceNeeds(
   const items: MaintenanceItem[] = [];
 
   prData.forEach((pr) => {
+    // Skip plants with no generation data (actual_month_kwh = 0 means no readings, not low PR)
+    if (pr.actual_month_kwh <= 0) return;
+
     if (pr.pr_percent < 50) {
       items.push({
         plantId: pr.plant_id,

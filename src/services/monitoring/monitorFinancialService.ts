@@ -72,9 +72,10 @@ export async function getPerformanceRatios(
   monthReadings.forEach((r) => {
     let dailyEnergy = r.energy_kwh;
     // If energy_kwh is 0/null but we have power_kw, estimate daily energy
-    // power_kw is instantaneous; approximate daily = power_kw * AVG_SUN_HOURS
+    // power_kw may store watts for some providers (e.g. Deye, Solis V2)
     if ((!dailyEnergy || dailyEnergy <= 0) && r.peak_power_kw && r.peak_power_kw > 0) {
-      dailyEnergy = r.peak_power_kw * AVG_SUN_HOURS;
+      const powerKw = r.peak_power_kw > 100 ? r.peak_power_kw / 1000 : r.peak_power_kw;
+      dailyEnergy = powerKw * AVG_SUN_HOURS;
     }
     if (dailyEnergy && dailyEnergy > 0) {
       actualMap.set(r.plant_id, (actualMap.get(r.plant_id) || 0) + dailyEnergy);
