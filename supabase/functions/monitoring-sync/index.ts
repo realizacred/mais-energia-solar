@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { getAdapter, hasCanonicalAdapter } from "../_shared/providers/registry.ts";
+import { normalizeError } from "../_shared/provider-core/index.ts";
+import type { AuthResult, NormalizedPlant } from "../_shared/provider-core/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1337,6 +1340,76 @@ async function dispatchSync(
 ): Promise<{ plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] }> {
   const p = provider;
   const admin = adminClient || ctx.supabaseAdmin;
+
+  // ═══ CANONICAL ADAPTER PATH ═══
+  const canonicalAdapter = getAdapter(p);
+  if (canonicalAdapter) {
+    console.log(`[monitoring-sync] Using canonical adapter for ${p}`);
+
+    // Build AuthResult from stored tokens/credentials
+    const authResult: AuthResult = { credentials, tokens };
+
+    // Token expiration check + refresh attempt
+    if (tokens.expires_at) {
+      const expiresAt = new Date(tokens.expires_at);
+      if (expiresAt < new Date()) {
+        console.log(`[monitoring-sync] Token expired for ${p}, attempting refresh...`);
+        if (canonicalAdapter.refreshToken) {
+          try {
+            const refreshed = await canonicalAdapter.refreshToken(tokens, credentials);
+            authResult.tokens = refreshed.tokens;
+            authResult.credentials = refreshed.credentials;
+            // Persist refreshed tokens
+            await admin.from("monitoring_integrations").update({
+              tokens: refreshed.tokens,
+              updated_at: new Date().toISOString(),
+            }).eq("id", int?.id || ctx.integrationId);
+            console.log(`[monitoring-sync] Token refreshed for ${p}`);
+          } catch (refreshErr) {
+            const normalized = normalizeError(refreshErr, p);
+            console.error(`[monitoring-sync] Token refresh failed for ${p}: [${normalized.category}] ${normalized.message}`);
+            // Mark as AUTH failure, user must reconnect
+            await admin.from("monitoring_integrations").update({
+              status: "error",
+              sync_error: `[AUTH] Token expired, refresh failed: ${normalized.message}. Reconnect required.`,
+              updated_at: new Date().toISOString(),
+            }).eq("id", int?.id || ctx.integrationId);
+            throw normalized;
+          }
+        } else {
+          // No refresh method — mark AUTH FAIL
+          const errMsg = `Token expired. Provider ${p} has no refresh mechanism. User must reconnect.`;
+          console.error(`[monitoring-sync] ${errMsg}`);
+          await admin.from("monitoring_integrations").update({
+            status: "error",
+            sync_error: `[AUTH] ${errMsg}`,
+            updated_at: new Date().toISOString(),
+          }).eq("id", int?.id || ctx.integrationId);
+          throw normalizeError(new Error(errMsg), p, { statusCode: 401 });
+        }
+      }
+    }
+
+    // Use canonical adapter for sync
+    const listFn = () => canonicalAdapter.fetchPlants(authResult);
+    const metricsFn = (extId: string) => canonicalAdapter.fetchMetrics(authResult, extId);
+    const extras: {
+      devicesFn?: () => Promise<{ stationId: string; devices: NormalizedDevice[] }[]>;
+      alarmsFn?: () => Promise<NormalizedAlarm[]>;
+    } = {};
+
+    if (canonicalAdapter.fetchDevices) {
+      extras.devicesFn = () => canonicalAdapter.fetchDevices!(authResult);
+    }
+    if (canonicalAdapter.fetchAlarms) {
+      extras.alarmsFn = () => canonicalAdapter.fetchAlarms!(authResult);
+    }
+
+    return await syncPlantsByProvider(ctx, listFn, metricsFn, mode, selectedPlantIds, extras);
+  }
+
+  // ═══ LEGACY FALLBACK PATH ═══
+  console.log(`[monitoring-sync] Using LEGACY handler for ${p}`);
 
   if (p === "solarman_business" || p === "solarman_business_api") {
     const at = tokens.access_token as string;

@@ -151,6 +151,12 @@ export class ProviderHttpClient {
           throw this.createError("NOT_FOUND", 404, null, `Not found: ${path}`, false);
         }
 
+        // Any other 4xx → non-retryable client error
+        if (res.status >= 400 && res.status < 500) {
+          const text = await res.text().catch(() => "");
+          throw this.createError("UNKNOWN", res.status, null, `Client error ${res.status}: ${text.slice(0, 200)}`, false);
+        }
+
         // Parse response
         const responseText = await res.text();
         if (!responseText.trim()) {
