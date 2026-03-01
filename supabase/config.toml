@@ -238,3 +238,6 @@ verify_jwt = false
 
 [functions.billing-webhook-stripe]
 verify_jwt = false
+
+[functions.growatt-api]
+verify_jwt = false

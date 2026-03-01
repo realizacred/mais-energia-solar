@@ -4361,6 +4361,159 @@ export type Database = {
           },
         ]
       }
+      growatt_health_cache: {
+        Row: {
+          checked_at: string
+          last_error_code: string | null
+          last_fail_at: string | null
+          last_http_status: number | null
+          last_ok_at: string | null
+          reason: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          checked_at?: string
+          last_error_code?: string | null
+          last_fail_at?: string | null
+          last_http_status?: number | null
+          last_ok_at?: string | null
+          reason?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          checked_at?: string
+          last_error_code?: string | null
+          last_fail_at?: string | null
+          last_http_status?: number | null
+          last_ok_at?: string | null
+          reason?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growatt_health_cache_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growatt_inverter_rt: {
+        Row: {
+          datalogger_sn: string | null
+          energy_today: number | null
+          energy_total: number | null
+          freq_hz: number | null
+          inverter_sn: string
+          power_w: number | null
+          pv_i1: number | null
+          pv_i2: number | null
+          pv_i3: number | null
+          pv_v1: number | null
+          pv_v2: number | null
+          pv_v3: number | null
+          raw_payload: Json | null
+          status_code: string | null
+          status_text: string | null
+          temperature_c: number | null
+          tenant_id: string
+          ts_device: string | null
+          updated_at: string
+        }
+        Insert: {
+          datalogger_sn?: string | null
+          energy_today?: number | null
+          energy_total?: number | null
+          freq_hz?: number | null
+          inverter_sn: string
+          power_w?: number | null
+          pv_i1?: number | null
+          pv_i2?: number | null
+          pv_i3?: number | null
+          pv_v1?: number | null
+          pv_v2?: number | null
+          pv_v3?: number | null
+          raw_payload?: Json | null
+          status_code?: string | null
+          status_text?: string | null
+          temperature_c?: number | null
+          tenant_id: string
+          ts_device?: string | null
+          updated_at?: string
+        }
+        Update: {
+          datalogger_sn?: string | null
+          energy_today?: number | null
+          energy_total?: number | null
+          freq_hz?: number | null
+          inverter_sn?: string
+          power_w?: number | null
+          pv_i1?: number | null
+          pv_i2?: number | null
+          pv_i3?: number | null
+          pv_v1?: number | null
+          pv_v2?: number | null
+          pv_v3?: number | null
+          raw_payload?: Json | null
+          status_code?: string | null
+          status_text?: string | null
+          temperature_c?: number | null
+          tenant_id?: string
+          ts_device?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growatt_inverter_rt_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growatt_raw_events: {
+        Row: {
+          created_at: string
+          id: string
+          inverter_sn: string
+          payload_hash: string
+          raw_payload: Json | null
+          tenant_id: string
+          ts_device: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inverter_sn: string
+          payload_hash: string
+          raw_payload?: Json | null
+          tenant_id: string
+          ts_device?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inverter_sn?: string
+          payload_hash?: string
+          raw_payload?: Json | null
+          tenant_id?: string
+          ts_device?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growatt_raw_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_config: {
         Row: {
           access_token: string | null
