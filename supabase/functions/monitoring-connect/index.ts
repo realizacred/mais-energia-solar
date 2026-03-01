@@ -15,7 +15,7 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 }
 
 /** Solarman Business API — obtain access token using platform credentials */
-async function solarmanAuthenticate(login: string, password: string) {
+async function solarmanAuthenticate(email: string, password: string) {
   const appId = Deno.env.get("SOLARMAN_APP_ID");
   const appSecret = Deno.env.get("SOLARMAN_APP_SECRET");
 
@@ -36,7 +36,7 @@ async function solarmanAuthenticate(login: string, password: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       appSecret,
-      email: login,
+      email,
       password: hashHex,
     }),
   });
@@ -96,90 +96,132 @@ serve(async (req) => {
     }
     const tenantId = profile.tenant_id;
 
-    // Parse body — GDASH pattern: only login + password from user
+    // Parse body
     const body = await req.json();
-    const { provider, login, password } = body;
+    const { provider, credentials, mode } = body;
 
-    if (provider !== "solarman_business") {
-      return jsonResponse({ error: "Unsupported provider" }, 400);
+    if (!provider) {
+      return jsonResponse({ error: "Missing provider" }, 400);
     }
 
-    if (!login || !password) {
-      return jsonResponse({ error: "Missing credentials: login, password" }, 400);
+    // Extract email/login and password from credentials object
+    const email = credentials?.email || credentials?.login || "";
+    const password = credentials?.password || "";
+
+    if (!email || !password) {
+      return jsonResponse({ error: "Missing credentials: email/login and password" }, 400);
     }
 
-    // Authenticate with Solarman using platform AppId/AppSecret from env
-    let tokenResult: Awaited<ReturnType<typeof solarmanAuthenticate>>;
-    try {
-      tokenResult = await solarmanAuthenticate(login, password);
-    } catch (err) {
-      // Save error status — NEVER store password
-      await supabaseAdmin.from("monitoring_integrations").upsert(
-        {
+    // ── Solarman Business API mode ──
+    if (provider === "solarman_business" && (!mode || mode === "api")) {
+      let tokenResult: Awaited<ReturnType<typeof solarmanAuthenticate>>;
+      try {
+        tokenResult = await solarmanAuthenticate(email, password);
+      } catch (err) {
+        await supabaseAdmin.from("monitoring_integrations").upsert(
+          {
+            tenant_id: tenantId,
+            provider,
+            status: "error",
+            sync_error: (err as Error).message?.slice(0, 500) || "Authentication failed",
+            credentials: { email },
+            tokens: {},
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "tenant_id,provider" },
+        );
+
+        await supabaseAdmin.from("audit_logs").insert({
           tenant_id: tenantId,
-          provider,
-          status: "error",
-          sync_error: (err as Error).message?.slice(0, 500) || "Authentication failed",
-          credentials: { login },
-          tokens: {},
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "tenant_id,provider" },
-      );
+          user_id: userId,
+          acao: "monitoring.integration.error",
+          tabela: "monitoring_integrations",
+          dados_novos: { provider, error: (err as Error).message },
+        });
+
+        return jsonResponse({ error: `Authentication failed: ${(err as Error).message}` }, 400);
+      }
+
+      const expiresAt = new Date(Date.now() + tokenResult.expires_in * 1000).toISOString();
+      const { data: integration, error: upsertErr } = await supabaseAdmin
+        .from("monitoring_integrations")
+        .upsert(
+          {
+            tenant_id: tenantId,
+            provider,
+            status: "connected",
+            sync_error: null,
+            credentials: { email },
+            tokens: {
+              access_token: tokenResult.access_token,
+              token_type: tokenResult.token_type,
+              expires_at: expiresAt,
+              uid: tokenResult.uid,
+              orgId: tokenResult.orgId,
+            },
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "tenant_id,provider" },
+        )
+        .select("id, status")
+        .single();
+
+      if (upsertErr) throw upsertErr;
 
       await supabaseAdmin.from("audit_logs").insert({
         tenant_id: tenantId,
         user_id: userId,
-        acao: "monitoring.integration.error",
+        acao: "monitoring.integration.connected",
         tabela: "monitoring_integrations",
-        dados_novos: { provider, error: (err as Error).message },
+        registro_id: integration?.id,
+        dados_novos: { provider, status: "connected", mode: mode || "api" },
       });
 
-      return jsonResponse({ error: `Authentication failed: ${(err as Error).message}` }, 400);
+      return jsonResponse({
+        success: true,
+        integration_id: integration?.id,
+        status: "connected",
+      });
     }
 
-    // Upsert integration — connected
-    const expiresAt = new Date(Date.now() + tokenResult.expires_in * 1000).toISOString();
-    const { data: integration, error: upsertErr } = await supabaseAdmin
-      .from("monitoring_integrations")
-      .upsert(
-        {
-          tenant_id: tenantId,
-          provider,
-          status: "connected",
-          sync_error: null,
-          credentials: { login },
-          tokens: {
-            access_token: tokenResult.access_token,
-            token_type: tokenResult.token_type,
-            expires_at: expiresAt,
-            uid: tokenResult.uid,
-            orgId: tokenResult.orgId,
+    // ── Portal mode (any provider) — save as connected_pending ──
+    if (mode === "portal") {
+      const { data: integration, error: upsertErr } = await supabaseAdmin
+        .from("monitoring_integrations")
+        .upsert(
+          {
+            tenant_id: tenantId,
+            provider,
+            status: "connected_pending",
+            sync_error: null,
+            credentials: { email },
+            tokens: {},
+            updated_at: new Date().toISOString(),
           },
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "tenant_id,provider" },
-      )
-      .select("id, status")
-      .single();
+          { onConflict: "tenant_id,provider" },
+        )
+        .select("id, status")
+        .single();
 
-    if (upsertErr) throw upsertErr;
+      if (upsertErr) throw upsertErr;
 
-    // Audit
-    await supabaseAdmin.from("audit_logs").insert({
-      tenant_id: tenantId,
-      user_id: userId,
-      acao: "monitoring.integration.connected",
-      tabela: "monitoring_integrations",
-      registro_id: integration?.id,
-      dados_novos: { provider, status: "connected" },
-    });
+      await supabaseAdmin.from("audit_logs").insert({
+        tenant_id: tenantId,
+        user_id: userId,
+        acao: "monitoring.integration.connected",
+        tabela: "monitoring_integrations",
+        registro_id: integration?.id,
+        dados_novos: { provider, status: "connected_pending", mode: "portal" },
+      });
 
-    return jsonResponse({
-      success: true,
-      integration_id: integration?.id,
-      status: "connected",
-    });
+      return jsonResponse({
+        success: true,
+        integration_id: integration?.id,
+        status: "connected_pending",
+      });
+    }
+
+    return jsonResponse({ error: "Unsupported provider or mode" }, 400);
   } catch (err) {
     console.error("monitoring-connect error:", err);
     return jsonResponse({ error: (err as Error).message || "Internal server error" }, 500);

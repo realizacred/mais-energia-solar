@@ -1,15 +1,15 @@
 /** Canonical types for the Solar Monitoring module */
 
-export type MonitoringProvider = "solarman_business";
+export type MonitoringProvider = string; // flexible for multi-provider
 
-export type IntegrationStatus = "disconnected" | "connected" | "error";
+export type IntegrationStatus = "disconnected" | "connected" | "connected_pending" | "error";
 
 export type PlantStatus = "normal" | "offline" | "alarm" | "no_communication" | "unknown";
 
 export interface MonitoringIntegration {
   id: string;
   tenant_id: string;
-  provider: MonitoringProvider;
+  provider: string;
   status: IntegrationStatus;
   credentials: Record<string, unknown>;
   tokens: Record<string, unknown>;
@@ -47,27 +47,3 @@ export interface SolarPlantMetricsDaily {
   metadata: Record<string, unknown>;
   created_at: string;
 }
-
-/** GDASH pattern: user provides only login + password */
-export interface ConnectCredentials {
-  login: string;
-  password: string;
-}
-
-export interface ProviderConfig {
-  id: MonitoringProvider;
-  label: string;
-  description: string;
-  icon: string; // lucide icon name
-  available: boolean;
-}
-
-export const PROVIDER_REGISTRY: ProviderConfig[] = [
-  {
-    id: "solarman_business",
-    label: "Solarman Business",
-    description: "Monitoramento via Solarman Business API (plantas, inversores, métricas)",
-    icon: "Sun",
-    available: true,
-  },
-];
