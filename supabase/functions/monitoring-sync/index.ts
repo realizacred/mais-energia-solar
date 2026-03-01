@@ -696,13 +696,29 @@ async function syncPlantsByProvider(
   listFn: () => Promise<NormalizedPlant[]>,
   metricsFn: ((extId: string) => Promise<DailyMetrics>) | null,
   mode: string,
+  selectedPlantIds?: string[] | null,
 ) {
   let plantsUpserted = 0, metricsUpserted = 0;
   const errors: string[] = [];
 
-  if (mode === "plants" || mode === "full") {
+  // "discover" mode: return plants without saving
+  if (mode === "discover") {
     try {
       const plants = await listFn();
+      return { plantsUpserted: 0, metricsUpserted: 0, errors: [], discoveredPlants: plants };
+    } catch (err) {
+      errors.push(`listPlants: ${(err as Error).message}`);
+      return { plantsUpserted: 0, metricsUpserted: 0, errors, discoveredPlants: [] };
+    }
+  }
+
+  if (mode === "plants" || mode === "full") {
+    try {
+      let plants = await listFn();
+      // If selectedPlantIds provided, only upsert those
+      if (selectedPlantIds && selectedPlantIds.length > 0) {
+        plants = plants.filter((p) => selectedPlantIds.includes(p.external_id));
+      }
       const result = await upsertPlants(ctx, plants);
       plantsUpserted = result.count;
       errors.push(...result.errors);
@@ -745,7 +761,8 @@ serve(async (req) => {
 
     const body = await req.json();
     const provider = body.provider || "solarman_business_api";
-    const mode = body.mode || "full";
+    const mode = body.mode || "full"; // "full" | "plants" | "metrics" | "discover"
+    const selectedPlantIds: string[] | null = body.selected_plant_ids || null;
 
     // Legacy ID normalization
     const LEGACY_MAP: Record<string, string> = { solarman_business_api: "solarman_business" };
@@ -779,7 +796,7 @@ serve(async (req) => {
       }
     }
 
-    let result: { plantsUpserted: number; metricsUpserted: number; errors: string[] };
+    let result: { plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] };
 
     // ═══ Provider dispatch ═══
     const p = normalizedProvider;
@@ -787,76 +804,86 @@ serve(async (req) => {
     if (p === "solarman_business" || provider === "solarman_business_api") {
       const at = tokens.access_token as string;
       if (!at) return jsonResponse({ error: "No access token. Reconnect." }, 400);
-      result = await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
     } else if (p === "solaredge") {
       const ak = credentials.apiKey as string;
       if (!ak) return jsonResponse({ error: "No API key." }, 400);
-      result = await syncPlantsByProvider(ctx, () => solaredgeListSites(ak), (eid) => solaredgeMetrics(ak, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => solaredgeListSites(ak), (eid) => solaredgeMetrics(ak, eid), mode, selectedPlantIds);
     } else if (p === "solis_cloud") {
       const { apiId } = credentials; const apiSecret = tokens.apiSecret as string;
       if (!apiId || !apiSecret) return jsonResponse({ error: "Missing credentials." }, 400);
-      result = await syncPlantsByProvider(ctx, () => solisListPlants(apiId, apiSecret), (eid) => solisMetrics(apiId, apiSecret, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => solisListPlants(apiId, apiSecret), (eid) => solisMetrics(apiId, apiSecret, eid), mode, selectedPlantIds);
     } else if (p === "deye_cloud") {
       const at = tokens.access_token as string;
       const baseUrl = (credentials.baseUrl as string) || "https://eu1-developer.deyecloud.com/v1.0";
       if (!at) return jsonResponse({ error: "No access token." }, 400);
-      result = await syncPlantsByProvider(ctx, () => deyeListPlants(baseUrl, at), (eid) => deyeMetrics(baseUrl, at, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => deyeListPlants(baseUrl, at), (eid) => deyeMetrics(baseUrl, at, eid), mode, selectedPlantIds);
     } else if (p === "growatt") {
       const cookies = tokens.cookies as string || "";
-      result = await syncPlantsByProvider(ctx, () => growattListPlants(cookies), (eid) => growattMetrics(cookies, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => growattListPlants(cookies), (eid) => growattMetrics(cookies, eid), mode, selectedPlantIds);
     } else if (p === "hoymiles") {
       const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => hoymilesListPlants(token), (eid) => hoymilesMetrics(token, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => hoymilesListPlants(token), (eid) => hoymilesMetrics(token, eid), mode, selectedPlantIds);
     } else if (p === "sungrow") {
       const token = tokens.token as string || "";
       const appKey = credentials.appKey as string || credentials.appId as string || "";
-      result = await syncPlantsByProvider(ctx, () => sungrowListPlants(token, appKey), (eid) => sungrowMetrics(token, appKey, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => sungrowListPlants(token, appKey), (eid) => sungrowMetrics(token, appKey, eid), mode, selectedPlantIds);
     } else if (p === "huawei") {
       const xsrf = tokens.xsrfToken as string || "";
       const cookies = tokens.cookies as string || "";
-      result = await syncPlantsByProvider(ctx, () => huaweiListPlants(xsrf, cookies), (eid) => huaweiMetrics(xsrf, cookies, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => huaweiListPlants(xsrf, cookies), (eid) => huaweiMetrics(xsrf, cookies, eid), mode, selectedPlantIds);
     } else if (p === "goodwe") {
       const token = tokens.token as string || "";
       const api = tokens.api as string || "https://semsportal.com";
-      result = await syncPlantsByProvider(ctx, () => goodweListPlants(token, api), (eid) => goodweMetrics(token, api, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => goodweListPlants(token, api), (eid) => goodweMetrics(token, api, eid), mode, selectedPlantIds);
     } else if (p === "fronius") {
       const ak = credentials.apiKey as string || "";
-      result = await syncPlantsByProvider(ctx, () => froniusListPlants(ak), (eid) => froniusMetrics(ak, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => froniusListPlants(ak), (eid) => froniusMetrics(ak, eid), mode, selectedPlantIds);
     } else if (p === "fox_ess") {
       const ak = credentials.apiKey as string || "";
-      result = await syncPlantsByProvider(ctx, () => foxessListPlants(ak), (eid) => foxessMetrics(ak, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => foxessListPlants(ak), (eid) => foxessMetrics(ak, eid), mode, selectedPlantIds);
     } else if (p === "solax") {
       const ak = credentials.apiKey as string || "";
-      result = await syncPlantsByProvider(ctx, () => solaxListPlants(ak), (eid) => solaxMetrics(ak, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => solaxListPlants(ak), (eid) => solaxMetrics(ak, eid), mode, selectedPlantIds);
     } else if (p === "saj") {
       const cookies = tokens.cookies as string || "";
-      result = await syncPlantsByProvider(ctx, () => sajListPlants(cookies), (eid) => sajMetrics(cookies, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => sajListPlants(cookies), (eid) => sajMetrics(cookies, eid), mode, selectedPlantIds);
     } else if (p === "shinemonitor") {
       const secret = tokens.secret as string || "";
       const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => shinemonitorListPlants(secret, token), null, mode);
+      result = await syncPlantsByProvider(ctx, () => shinemonitorListPlants(secret, token), null, mode, selectedPlantIds);
     } else if (p === "enphase") {
       const ak = credentials.apiKey as string || "";
-      result = await syncPlantsByProvider(ctx, () => enphaseListPlants(ak), null, mode);
+      result = await syncPlantsByProvider(ctx, () => enphaseListPlants(ak), null, mode, selectedPlantIds);
     } else if (p === "kstar") {
       const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => kstarListPlants(token), null, mode);
+      result = await syncPlantsByProvider(ctx, () => kstarListPlants(token), null, mode, selectedPlantIds);
     } else if (p === "intelbras") {
       const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => intelbrasListPlants(token), null, mode);
+      result = await syncPlantsByProvider(ctx, () => intelbrasListPlants(token), null, mode, selectedPlantIds);
     } else if (p === "ecosolys") {
       const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => ecosolysListPlants(token), null, mode);
+      result = await syncPlantsByProvider(ctx, () => ecosolysListPlants(token), null, mode, selectedPlantIds);
     } else if (p === "sofar") {
-      // Sofar uses Solarman platform
       const at = tokens.access_token as string || "";
       if (!at) return jsonResponse({ error: "No access token." }, 400);
-      result = await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode);
+      result = await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
     } else if (p === "apsystems") {
-      // APsystems - portal-based, limited sync
       result = { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."] };
     } else {
       return jsonResponse({ error: `Provider sync not implemented yet: ${provider}. Connect via portal.` }, 501);
+    }
+
+    // Discover mode: return plant list without saving
+    if (mode === "discover") {
+      return jsonResponse({
+        success: true,
+        plants: (result.discoveredPlants || []).map((p) => ({
+          external_id: p.external_id, name: p.name, capacity_kw: p.capacity_kw,
+          address: p.address, status: p.status,
+        })),
+        errors: result.errors,
+      });
     }
 
     // Update integration status
