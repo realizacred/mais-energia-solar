@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sun, Plug, RefreshCw, Zap, Activity, Battery, MapPin, Search, Info, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { PROVIDER_REGISTRY, type ProviderDefinition } from "@/services/monitoring/providerRegistry";
+import { PROVIDER_REGISTRY, resolveProviderId, type ProviderDefinition } from "@/services/monitoring/providerRegistry";
 import {
   listIntegrations,
   listSolarPlants as listPlants,
@@ -128,7 +128,7 @@ export default function MonitoringPage() {
   const filteredProviders = PROVIDER_REGISTRY.filter((prov) => {
     const matchSearch = !search || prov.label.toLowerCase().includes(search.toLowerCase()) || prov.description.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
-    const integration = integrations.find((i) => i.provider === prov.id);
+    const integration = integrations.find((i) => resolveProviderId(i.provider) === prov.id);
     const isActive = integration && (integration.status === "connected" || integration.status === "connected_pending");
     switch (tab) {
       case "active": return isActive;
@@ -138,7 +138,7 @@ export default function MonitoringPage() {
   });
 
   const activeProviders = filteredProviders.filter((prov) => {
-    const integration = integrations.find((i) => i.provider === prov.id);
+    const integration = integrations.find((i) => resolveProviderId(i.provider) === prov.id);
     return integration && (integration.status === "connected" || integration.status === "connected_pending");
   });
   const inactiveProviders = filteredProviders.filter((prov) => !activeProviders.includes(prov));
@@ -200,9 +200,9 @@ export default function MonitoringPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activeProviders.map((prov) => {
-                  const integration = integrations.find((i) => i.provider === prov.id);
-                  const isDiscovering = discoverMutation.isPending && discoverMutation.variables === prov.id;
-                  const provPlants = plants.filter((p) => p.provider === prov.id);
+                  const integration = integrations.find((i) => resolveProviderId(i.provider) === prov.id);
+                   const isDiscovering = discoverMutation.isPending && discoverMutation.variables === prov.id;
+                   const provPlants = plants.filter((p) => resolveProviderId(p.provider) === prov.id);
 
                   return (
                     <div key={prov.id} className="relative border border-border rounded-xl bg-card p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow">
