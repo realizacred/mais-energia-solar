@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import type { IntegrationProvider, IntegrationConnection } from "./types";
 
 /** Fetch all providers from catalog */
@@ -29,7 +30,10 @@ export async function connectProvider(
   const { data, error } = await supabase.functions.invoke("monitoring-connect", {
     body: { provider: providerId, credentials },
   });
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    const parsed = await parseInvokeError(error);
+    return { success: false, error: parsed.message };
+  }
   if (data?.error) return { success: false, error: data.error };
   return { success: true };
 }
@@ -42,7 +46,10 @@ export async function syncProvider(
   const { data, error } = await supabase.functions.invoke("monitoring-sync", {
     body: { provider: providerId, mode },
   });
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    const parsed = await parseInvokeError(error);
+    return { success: false, error: parsed.message };
+  }
   if (data?.error) return { success: false, error: data.error };
   return { success: true, plants_synced: data?.plants_synced, metrics_synced: data?.metrics_synced };
 }
