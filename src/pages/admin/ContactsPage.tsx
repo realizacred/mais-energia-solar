@@ -46,12 +46,9 @@ interface Contact {
   created_at: string;
 }
 
+import { formatPhoneBR } from "@/lib/formatters/index";
 function formatPhone(e164: string) {
-  if (!e164 || e164.length < 12) return e164;
-  const ddd = e164.substring(2, 4);
-  const num = e164.substring(4);
-  if (num.length === 9) return `(${ddd}) ${num.substring(0, 5)}-${num.substring(5)}`;
-  return `(${ddd}) ${num.substring(0, 4)}-${num.substring(4)}`;
+  return formatPhoneBR(e164);
 }
 
 function canonicalizePreview(raw: string): string | null {
