@@ -20,6 +20,14 @@ import type {
 } from "./monitorTypes";
 import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "./types";
 
+/**
+ * POWER_KW_TO_ENERGY_ESTIMATE_HOURS: Used ONLY as a rough multiplier
+ * when energy_kwh is null but power_kw is available.
+ * NOT the same as HSP for PR calculation (which comes from irradiationService).
+ * This is a conservative estimate for dashboard display purposes only.
+ */
+const POWER_KW_TO_ENERGY_ESTIMATE_HOURS = 4.5;
+
 // ─── HELPERS: map legacy → v2 types ──────────────────────────
 
 function mapSolarPlantToMonitorPlant(sp: SolarPlant): MonitorPlant {
@@ -60,7 +68,7 @@ function legacyStatusToHealth(sp: SolarPlant, m?: SolarPlantMetricsDaily, monthK
   } else if (m?.power_kw != null && Number(m.power_kw) > 0) {
     // power_kw stores watts for some providers; convert to kW then estimate daily kWh
     const powerKw = Number(m.power_kw) > 100 ? Number(m.power_kw) / 1000 : Number(m.power_kw);
-    energyToday = powerKw * 4.5; // approximate daily generation
+    energyToday = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // approximate daily generation (NOT HSP for PR)
   }
 
   return {
@@ -103,7 +111,7 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
       energy = Number(r.energy_kwh);
     } else if (r.power_kw != null && Number(r.power_kw) > 0) {
       const powerKw = Number(r.power_kw) > 100 ? Number(r.power_kw) / 1000 : Number(r.power_kw);
-      energy = powerKw * 4.5;
+      energy = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // NOT HSP for PR
     }
     monthMap.set(r.plant_id, (monthMap.get(r.plant_id) || 0) + energy);
   });
@@ -158,7 +166,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
       monthKwh += Number(r.energy_kwh);
     } else if (r.power_kw != null && Number(r.power_kw) > 0) {
       const powerKw = Number(r.power_kw) > 100 ? Number(r.power_kw) / 1000 : Number(r.power_kw);
-      monthKwh += powerKw * 4.5;
+      monthKwh += powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // NOT HSP for PR
     }
   });
 
@@ -180,14 +188,13 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
   const readings = await listAllReadings(monthStart.toISOString().slice(0, 10), todayStr);
 
   // Sum energy per plant, with power_kw fallback
-  const AVG_SUN_HOURS = 4.5;
   let totalMonthKwh = 0;
   readings.forEach((r) => {
     if (r.energy_kwh > 0) {
       totalMonthKwh += r.energy_kwh;
     } else if (r.peak_power_kw && r.peak_power_kw > 0) {
       const powerKw = r.peak_power_kw > 100 ? r.peak_power_kw / 1000 : r.peak_power_kw;
-      totalMonthKwh += powerKw * AVG_SUN_HOURS;
+      totalMonthKwh += powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // NOT HSP for PR
     }
   });
 
