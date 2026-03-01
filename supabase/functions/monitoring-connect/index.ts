@@ -331,8 +331,9 @@ async function testGrowatt(creds: Record<string, string>) {
 
 // ── Hoymiles S-Miles ──
 async function testHoymiles(creds: Record<string, string>) {
-  const { username, password } = creds;
-  if (!username || !password) throw new Error("Missing: username, password");
+  const username = creds.username || creds.login || creds.email || "";
+  const password = creds.password || "";
+  if (!username || !password) throw new Error("Missing: username/login, password");
 
   // Hoymiles API requires MD5 hash of password
   const { createHash } = await import("node:crypto");
@@ -626,6 +627,7 @@ const PROVIDER_HANDLERS: Record<string, TestFn> = {
   growatt: (c) => testGrowatt(c),
   growatt_server: (c) => testGrowatt({ ...c, auth_mode: "portal" }),
   hoymiles: (c) => testHoymiles(c),
+  hoymiles_s_miles: (c) => testHoymiles(c),
   sungrow: (c) => testSungrow(c),
   huawei: (c) => testHuawei(c),
   huawei_fusionsolar: (c) => testHuawei(c),
