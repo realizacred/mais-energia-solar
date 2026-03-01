@@ -110,6 +110,7 @@ async function testDeye(creds: Record<string, string>) {
 
   // SHA256 hash + lowercase (as per Deye docs)
   const hashHex = await sha256Hex(password);
+  console.log(`[Deye] Password hash (first 10 chars): ${hashHex.slice(0, 10)}... length=${hashHex.length}`);
 
   const tokenUrl = `${baseUrl}/account/token?appId=${encodeURIComponent(appId)}`;
   console.log(`[Deye] Requesting token from: ${tokenUrl}`);
