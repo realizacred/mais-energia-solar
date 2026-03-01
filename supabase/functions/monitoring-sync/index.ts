@@ -1231,16 +1231,35 @@ async function syncPlantsByProvider(
   if (mode === "full" && extras?.devicesFn) {
     try {
       const deviceGroups = await extras.devicesFn();
-      const { data: dbPlants } = await ctx.supabaseAdmin.from("solar_plants").select("id, external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
-      const plantMap = new Map((dbPlants || []).map((p: any) => [String(p.external_id), p.id]));
+
+      // monitor_devices.plant_id FK → monitor_plants.id, NOT solar_plants.id
+      // Build mapping: external_id → monitor_plants.id (auto-create if missing)
+      const { data: dbSolarPlants } = await ctx.supabaseAdmin.from("solar_plants").select("id, external_id, name").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
+      const { data: dbMonitorPlants } = await ctx.supabaseAdmin.from("monitor_plants").select("id, provider_plant_id").eq("tenant_id", ctx.tenantId).eq("provider_id", ctx.provider);
+      const monitorMap = new Map((dbMonitorPlants || []).map((p: any) => [String(p.provider_plant_id), p.id]));
+      const solarMap = new Map((dbSolarPlants || []).map((p: any) => [String(p.external_id), p]));
 
       let devCount = 0;
       for (const group of deviceGroups) {
-        const plantId = plantMap.get(group.stationId);
-        if (!plantId) continue;
+        let monitorPlantId = monitorMap.get(group.stationId);
+
+        // Auto-create monitor_plants record if missing (from solar_plants data)
+        if (!monitorPlantId) {
+          const solarPlant = solarMap.get(group.stationId);
+          if (!solarPlant) { console.log(`[Sync] Skipping devices for unknown station ${group.stationId}`); continue; }
+          const { data: created, error: createErr } = await ctx.supabaseAdmin.from("monitor_plants").upsert({
+            tenant_id: ctx.tenantId, provider_id: ctx.provider, provider_plant_id: group.stationId,
+            name: solarPlant.name || `Plant ${group.stationId}`, legacy_plant_id: solarPlant.id,
+            is_active: true, updated_at: new Date().toISOString(),
+          }, { onConflict: "tenant_id,provider_id,provider_plant_id" }).select("id").single();
+          if (createErr || !created) { console.error(`[Sync] Failed to create monitor_plant for ${group.stationId}: ${createErr?.message}`); continue; }
+          monitorPlantId = created.id;
+          monitorMap.set(group.stationId, monitorPlantId);
+        }
+
         for (const d of group.devices) {
           const { error } = await ctx.supabaseAdmin.from("monitor_devices").upsert({
-            tenant_id: ctx.tenantId, plant_id: plantId, provider_device_id: d.provider_device_id,
+            tenant_id: ctx.tenantId, plant_id: monitorPlantId, provider_device_id: d.provider_device_id,
             type: d.type, model: d.model, serial: d.serial, status: d.status,
             metadata: d.metadata, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString(),
           }, { onConflict: "plant_id,provider_device_id" });
