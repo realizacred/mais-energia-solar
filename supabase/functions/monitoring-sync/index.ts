@@ -1132,6 +1132,204 @@ async function syncPlantsByProvider(
 }
 
 // ═══════════════════════════════════════════════════════════
+// Extracted dispatch: provider → sync logic
+// ═══════════════════════════════════════════════════════════
+
+async function dispatchSync(
+  ctx: SyncContext,
+  provider: string,
+  tokens: Record<string, any>,
+  credentials: Record<string, any>,
+  selectedPlantIds: string[] | null,
+  mode: string = "full",
+  int?: any,
+  adminClient?: any,
+): Promise<{ plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] }> {
+  const p = provider;
+  const admin = adminClient || ctx.supabaseAdmin;
+
+  if (p === "solarman_business" || p === "solarman_business_api") {
+    const at = tokens.access_token as string;
+    if (!at) throw new Error("No access token. Reconnect.");
+    return await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
+  } else if (p === "solaredge") {
+    const ak = credentials.apiKey as string;
+    if (!ak) throw new Error("No API key.");
+    return await syncPlantsByProvider(ctx, () => solaredgeListSites(ak), (eid) => solaredgeMetrics(ak, eid), mode, selectedPlantIds);
+  } else if (p === "solis_cloud") {
+    const { apiId } = credentials; const apiSecret = tokens.apiSecret as string;
+    if (!apiId || !apiSecret) throw new Error("Missing credentials.");
+    return await syncPlantsByProvider(ctx, () => solisListPlants(apiId, apiSecret), (eid) => solisMetrics(apiId, apiSecret, eid), mode, selectedPlantIds, {
+      devicesFn: () => solisListInverters(apiId, apiSecret),
+      alarmsFn: () => solisListAlarms(apiId, apiSecret),
+    });
+  } else if (p === "deye_cloud") {
+    const at = tokens.access_token as string;
+    const baseUrl = (credentials.baseUrl as string) || "https://eu1-developer.deyecloud.com/v1.0";
+    if (!at) throw new Error("No access token. Reconnect.");
+    return await syncPlantsByProvider(ctx, () => deyeListPlants(baseUrl, at), (eid) => deyeMetrics(baseUrl, at, eid), mode, selectedPlantIds);
+  } else if (p === "growatt") {
+    const authMode = credentials.auth_mode as string || (tokens.apiKey ? "api_key" : "portal");
+    if (authMode === "api_key") {
+      const apiKey = tokens.apiKey as string || "";
+      if (!apiKey) throw new Error("No API key (token) stored for Growatt.");
+      return await syncPlantsByProvider(ctx, () => growattApiListPlants(apiKey), (eid) => growattApiMetrics(apiKey, eid), mode, selectedPlantIds);
+    } else {
+      const cookies = tokens.cookies as string || "";
+      return await syncPlantsByProvider(ctx, () => growattListPlants(cookies), (eid) => growattMetrics(cookies, eid), mode, selectedPlantIds);
+    }
+  } else if (p === "hoymiles") {
+    const token = tokens.token as string || "";
+    return await syncPlantsByProvider(ctx, () => hoymilesListPlants(token), (eid) => hoymilesMetrics(token, eid), mode, selectedPlantIds);
+  } else if (p === "sungrow") {
+    const token = tokens.token as string || "";
+    const appKey = credentials.appKey as string || credentials.appId as string || "";
+    return await syncPlantsByProvider(ctx, () => sungrowListPlants(token, appKey), (eid) => sungrowMetrics(token, appKey, eid), mode, selectedPlantIds);
+  } else if (p === "huawei" || p === "huawei_fusionsolar") {
+    let xsrf = tokens.xsrfToken as string || "";
+    let hwCookies = tokens.cookies as string || "";
+    const hwRegion = (tokens.region as string) || (credentials.region as string) || "la5";
+    const listFnHw = async () => {
+      try {
+        return await huaweiListPlants(xsrf, hwCookies, hwRegion);
+      } catch (e: any) {
+        if (e.message === "TOKEN_EXPIRED" && credentials.username && credentials.password) {
+          console.log("[Huawei] Token expirado, re-autenticando...");
+          const reauth = await huaweiReAuth(credentials);
+          xsrf = reauth.xsrfToken;
+          hwCookies = reauth.cookies;
+          await admin.from("monitoring_integrations").update({ tokens: { xsrfToken: xsrf, cookies: hwCookies, region: hwRegion } }).eq("id", ctx.integrationId);
+          return await huaweiListPlants(xsrf, hwCookies, hwRegion);
+        }
+        throw e;
+      }
+    };
+    return await syncPlantsByProvider(ctx, listFnHw, (eid) => huaweiMetrics(xsrf, hwCookies, eid, hwRegion), mode, selectedPlantIds);
+  } else if (p === "goodwe") {
+    let gwToken = tokens.token as string || "";
+    let gwApi = tokens.api as string || "https://semsportal.com";
+    let gwUid = tokens.uid as string || "";
+    const listFn = async () => {
+      try {
+        return await goodweListPlants(gwToken, gwApi, gwUid);
+      } catch (err: any) {
+        if (err.message === "GOODWE_TOKEN_EXPIRED") {
+          console.log("[GoodWe] Token expired, re-authenticating...");
+          const fresh = await goodweReAuth(credentials);
+          gwToken = fresh.token; gwUid = fresh.uid; gwApi = fresh.api;
+          await admin.from("monitoring_integrations").update({
+            tokens: { token: gwToken, uid: gwUid, api: gwApi },
+            updated_at: new Date().toISOString(),
+          }).eq("id", int?.id || ctx.integrationId);
+          return await goodweListPlants(gwToken, gwApi, gwUid);
+        }
+        throw err;
+      }
+    };
+    return await syncPlantsByProvider(ctx, listFn, (eid) => goodweMetrics(gwToken, gwApi, gwUid, eid), mode, selectedPlantIds);
+  } else if (p === "fronius") {
+    const ak = credentials.apiKey as string || "";
+    return await syncPlantsByProvider(ctx, () => froniusListPlants(ak), (eid) => froniusMetrics(ak, eid), mode, selectedPlantIds);
+  } else if (p === "fox_ess") {
+    const ak = credentials.apiKey as string || "";
+    return await syncPlantsByProvider(ctx, () => foxessListPlants(ak), (eid) => foxessMetrics(ak, eid), mode, selectedPlantIds);
+  } else if (p === "solax") {
+    const ak = credentials.apiKey as string || "";
+    return await syncPlantsByProvider(ctx, () => solaxListPlants(ak), (eid) => solaxMetrics(ak, eid), mode, selectedPlantIds);
+  } else if (p === "saj") {
+    const cookies = tokens.cookies as string || "";
+    return await syncPlantsByProvider(ctx, () => sajListPlants(cookies), (eid) => sajMetrics(cookies, eid), mode, selectedPlantIds);
+  } else if (p === "shinemonitor") {
+    const secret = tokens.secret as string || "";
+    const token = tokens.token as string || "";
+    return await syncPlantsByProvider(ctx, () => shinemonitorListPlants(secret, token), null, mode, selectedPlantIds);
+  } else if (p === "enphase") {
+    const ak = credentials.apiKey as string || "";
+    return await syncPlantsByProvider(ctx, () => enphaseListPlants(ak), null, mode, selectedPlantIds);
+  } else if (p === "kstar") {
+    const token = tokens.token as string || "";
+    return await syncPlantsByProvider(ctx, () => kstarListPlants(token), null, mode, selectedPlantIds);
+  } else if (p === "intelbras") {
+    const token = tokens.token as string || "";
+    return await syncPlantsByProvider(ctx, () => intelbrasListPlants(token), null, mode, selectedPlantIds);
+  } else if (p === "ecosolys") {
+    const token = tokens.token as string || "";
+    return await syncPlantsByProvider(ctx, () => ecosolysListPlants(token), null, mode, selectedPlantIds);
+  } else if (p === "sofar") {
+    const at = tokens.access_token as string || "";
+    if (!at) throw new Error("No access token.");
+    return await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
+  } else if (p === "apsystems") {
+    return { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."] };
+  } else {
+    throw new Error(`Provider sync not implemented yet: ${provider}. Connect via portal.`);
+  }
+}
+
+
+
+const CRON_SECRET = "7fK29sLmQx9!pR8zT2vW4yA6cD";
+
+async function handleCron(supabaseAdmin: ReturnType<typeof createClient>): Promise<Response> {
+  console.log("[monitoring-sync] CRON mode: syncing all connected integrations");
+
+  const { data: integrations } = await supabaseAdmin
+    .from("monitoring_integrations")
+    .select("id, provider, tokens, credentials, tenant_id, status")
+    .in("status", ["connected", "error"]);
+
+  if (!integrations?.length) {
+    return jsonResponse({ success: true, message: "No connected integrations", results: [] });
+  }
+
+  const results: { provider: string; plants_synced: number; metrics_synced: number; errors: string[] }[] = [];
+
+  for (const int of integrations) {
+    const provider = int.provider;
+    if (!SYNC_IMPLEMENTED.has(provider)) continue;
+
+    try {
+      console.log(`[monitoring-sync] CRON syncing provider=${provider} integration=${int.id}`);
+
+      const tokens = (int.tokens || {}) as Record<string, any>;
+      const credentials = (int.credentials || {}) as Record<string, any>;
+      const ctx: SyncContext = {
+        supabaseAdmin,
+        tenantId: int.tenant_id,
+        userId: "cron",
+        provider,
+        integrationId: int.id,
+      };
+
+      let result: { plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] };
+      result = await dispatchSync(ctx, provider, tokens, credentials, null, "full", int, supabaseAdmin);
+
+      // Update integration status
+      const newStatus = result.errors.length > 0 ? "error" : "connected";
+      await supabaseAdmin.from("monitoring_integrations").update({
+        last_sync_at: new Date().toISOString(),
+        status: newStatus,
+        sync_error: result.errors.length > 0 ? result.errors.join("; ").slice(0, 500) : null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", int.id);
+
+      results.push({ provider, plants_synced: result.plantsUpserted, metrics_synced: result.metricsUpserted, errors: result.errors });
+    } catch (err) {
+      console.error(`[monitoring-sync] CRON error for ${provider}:`, err);
+      results.push({ provider, plants_synced: 0, metrics_synced: 0, errors: [(err as Error).message] });
+      await supabaseAdmin.from("monitoring_integrations").update({
+        status: "error",
+        sync_error: (err as Error).message?.slice(0, 500),
+        updated_at: new Date().toISOString(),
+      }).eq("id", int.id);
+    }
+  }
+
+  console.log(`[monitoring-sync] CRON done: ${results.length} providers synced`);
+  return jsonResponse({ success: true, results });
+}
+
+// ═══════════════════════════════════════════════════════════
 // Main Handler
 // ═══════════════════════════════════════════════════════════
 
@@ -1139,10 +1337,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // ── CRON MODE: x-cron-secret header bypasses user auth ──
+    const cronSecret = req.headers.get("x-cron-secret");
+    if (cronSecret === CRON_SECRET) {
+      return await handleCron(supabaseAdmin);
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return jsonResponse({ error: "Unauthorized" }, 401);
 
-    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const supabaseUser = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
 
     const { data: userData, error: userErr } = await supabaseUser.auth.getUser();
@@ -1192,137 +1397,10 @@ serve(async (req) => {
 
     let result: { plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] };
 
-    // ═══ Provider dispatch ═══
-    const p = normalizedProvider;
-
-    if (p === "solarman_business" || provider === "solarman_business_api") {
-      const at = tokens.access_token as string;
-      if (!at) return jsonResponse({ error: "No access token. Reconnect." }, 400);
-      result = await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
-    } else if (p === "solaredge") {
-      const ak = credentials.apiKey as string;
-      if (!ak) return jsonResponse({ error: "No API key." }, 400);
-      result = await syncPlantsByProvider(ctx, () => solaredgeListSites(ak), (eid) => solaredgeMetrics(ak, eid), mode, selectedPlantIds);
-    } else if (p === "solis_cloud") {
-      const { apiId } = credentials; const apiSecret = tokens.apiSecret as string;
-      if (!apiId || !apiSecret) return jsonResponse({ error: "Missing credentials." }, 400);
-      result = await syncPlantsByProvider(
-        ctx,
-        () => solisListPlants(apiId, apiSecret),
-        (eid) => solisMetrics(apiId, apiSecret, eid),
-        mode,
-        selectedPlantIds,
-        {
-          devicesFn: () => solisListInverters(apiId, apiSecret),
-          alarmsFn: () => solisListAlarms(apiId, apiSecret),
-        },
-      );
-    } else if (p === "deye_cloud") {
-      const at = tokens.access_token as string;
-      const baseUrl = (credentials.baseUrl as string) || "https://eu1-developer.deyecloud.com/v1.0";
-      if (!at) return jsonResponse({ error: "No access token." }, 400);
-      result = await syncPlantsByProvider(ctx, () => deyeListPlants(baseUrl, at), (eid) => deyeMetrics(baseUrl, at, eid), mode, selectedPlantIds);
-    } else if (p === "growatt") {
-      const authMode = credentials.auth_mode as string || (tokens.apiKey ? "api_key" : "portal");
-      if (authMode === "api_key") {
-        const apiKey = tokens.apiKey as string || "";
-        if (!apiKey) return jsonResponse({ error: "No API key (token) stored for Growatt." }, 400);
-        result = await syncPlantsByProvider(ctx, () => growattApiListPlants(apiKey), (eid) => growattApiMetrics(apiKey, eid), mode, selectedPlantIds);
-      } else {
-        const cookies = tokens.cookies as string || "";
-        result = await syncPlantsByProvider(ctx, () => growattListPlants(cookies), (eid) => growattMetrics(cookies, eid), mode, selectedPlantIds);
-      }
-    } else if (p === "hoymiles") {
-      const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => hoymilesListPlants(token), (eid) => hoymilesMetrics(token, eid), mode, selectedPlantIds);
-    } else if (p === "sungrow") {
-      const token = tokens.token as string || "";
-      const appKey = credentials.appKey as string || credentials.appId as string || "";
-      result = await syncPlantsByProvider(ctx, () => sungrowListPlants(token, appKey), (eid) => sungrowMetrics(token, appKey, eid), mode, selectedPlantIds);
-    } else if (p === "huawei" || p === "huawei_fusionsolar") {
-      let xsrf = tokens.xsrfToken as string || "";
-      let hwCookies = tokens.cookies as string || "";
-      const hwRegion = (tokens.region as string) || (credentials.region as string) || "la5";
-
-      const listFnHw = async () => {
-        try {
-          return await huaweiListPlants(xsrf, hwCookies, hwRegion);
-        } catch (e: any) {
-          if (e.message === "TOKEN_EXPIRED" && credentials.username && credentials.password) {
-            console.log("[Huawei] Token expirado, re-autenticando...");
-            const reauth = await huaweiReAuth(credentials);
-            xsrf = reauth.xsrfToken;
-            hwCookies = reauth.cookies;
-            // Persist new tokens
-            await adminClient.from("monitoring_integrations").update({ tokens: { xsrfToken: xsrf, cookies: hwCookies, region: hwRegion } }).eq("id", ctx.integrationId);
-            return await huaweiListPlants(xsrf, hwCookies, hwRegion);
-          }
-          throw e;
-        }
-      };
-
-      result = await syncPlantsByProvider(ctx, listFnHw, (eid) => huaweiMetrics(xsrf, hwCookies, eid, hwRegion), mode, selectedPlantIds);
-    } else if (p === "goodwe") {
-      let gwToken = tokens.token as string || "";
-      let gwApi = tokens.api as string || "https://semsportal.com";
-      let gwUid = tokens.uid as string || "";
-
-      // Try listing; if token expired, re-auth and retry
-      const listFn = async () => {
-        try {
-          return await goodweListPlants(gwToken, gwApi, gwUid);
-        } catch (err: any) {
-          if (err.message === "GOODWE_TOKEN_EXPIRED") {
-            console.log("[GoodWe] Token expired, re-authenticating...");
-            const fresh = await goodweReAuth(credentials);
-            gwToken = fresh.token; gwUid = fresh.uid; gwApi = fresh.api;
-            // Persist new tokens
-            await ctx.supabaseAdmin.from("monitoring_integrations").update({
-              tokens: { token: gwToken, uid: gwUid, api: gwApi },
-              updated_at: new Date().toISOString(),
-            }).eq("id", int.id);
-            return await goodweListPlants(gwToken, gwApi, gwUid);
-          }
-          throw err;
-        }
-      };
-      result = await syncPlantsByProvider(ctx, listFn, (eid) => goodweMetrics(gwToken, gwApi, gwUid, eid), mode, selectedPlantIds);
-    } else if (p === "fronius") {
-      const ak = credentials.apiKey as string || "";
-      result = await syncPlantsByProvider(ctx, () => froniusListPlants(ak), (eid) => froniusMetrics(ak, eid), mode, selectedPlantIds);
-    } else if (p === "fox_ess") {
-      const ak = credentials.apiKey as string || "";
-      result = await syncPlantsByProvider(ctx, () => foxessListPlants(ak), (eid) => foxessMetrics(ak, eid), mode, selectedPlantIds);
-    } else if (p === "solax") {
-      const ak = credentials.apiKey as string || "";
-      result = await syncPlantsByProvider(ctx, () => solaxListPlants(ak), (eid) => solaxMetrics(ak, eid), mode, selectedPlantIds);
-    } else if (p === "saj") {
-      const cookies = tokens.cookies as string || "";
-      result = await syncPlantsByProvider(ctx, () => sajListPlants(cookies), (eid) => sajMetrics(cookies, eid), mode, selectedPlantIds);
-    } else if (p === "shinemonitor") {
-      const secret = tokens.secret as string || "";
-      const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => shinemonitorListPlants(secret, token), null, mode, selectedPlantIds);
-    } else if (p === "enphase") {
-      const ak = credentials.apiKey as string || "";
-      result = await syncPlantsByProvider(ctx, () => enphaseListPlants(ak), null, mode, selectedPlantIds);
-    } else if (p === "kstar") {
-      const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => kstarListPlants(token), null, mode, selectedPlantIds);
-    } else if (p === "intelbras") {
-      const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => intelbrasListPlants(token), null, mode, selectedPlantIds);
-    } else if (p === "ecosolys") {
-      const token = tokens.token as string || "";
-      result = await syncPlantsByProvider(ctx, () => ecosolysListPlants(token), null, mode, selectedPlantIds);
-    } else if (p === "sofar") {
-      const at = tokens.access_token as string || "";
-      if (!at) return jsonResponse({ error: "No access token." }, 400);
-      result = await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
-    } else if (p === "apsystems") {
-      result = { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."] };
-    } else {
-      return jsonResponse({ error: `Provider sync not implemented yet: ${provider}. Connect via portal.` }, 501);
+    try {
+      result = await dispatchSync(ctx, normalizedProvider, tokens, credentials, selectedPlantIds, mode, int, supabaseAdmin);
+    } catch (dispatchErr: any) {
+      return jsonResponse({ error: dispatchErr.message || "Dispatch error" }, 400);
     }
 
     // Discover mode: return plant list without saving
