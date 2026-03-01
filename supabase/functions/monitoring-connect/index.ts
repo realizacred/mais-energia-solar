@@ -666,10 +666,17 @@ serve(async (req) => {
         ? await testGenericPortal(provider, credentials)
         : await handler!(credentials);
 
+      // SECURITY: Strip sensitive fields before persisting credentials
+      const SENSITIVE_KEYS = new Set(["password", "userPassword", "senha", "secret_key"]);
+      const safeCredentials: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(result.credentials)) {
+        if (!SENSITIVE_KEYS.has(k)) safeCredentials[k] = v;
+      }
+
       const integration = await upsertIntegration(ctx, {
         status: "connected",
         sync_error: null,
-        credentials: result.credentials,
+        credentials: safeCredentials,
         tokens: result.tokens,
       });
 
