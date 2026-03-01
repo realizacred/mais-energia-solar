@@ -269,8 +269,9 @@ async function testGrowatt(creds: Record<string, string>) {
   }
 
   // ── Portal/ShineServer mode (username + password) ──
-  const { username, password } = creds;
-  if (!username || !password) throw new Error("Missing: username, password");
+  const username = creds.username || creds.email || "";
+  const password = creds.password || "";
+  if (!username || !password) throw new Error("Missing: username/email, password");
 
   // MD5 hash the password (Growatt ShineServer requires it)
   const { createHash } = await import("node:crypto");
