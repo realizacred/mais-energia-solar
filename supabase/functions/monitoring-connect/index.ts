@@ -56,7 +56,7 @@ async function testSolarman(creds: Record<string, string>) {
   if (!json.access_token) throw new Error(json.msg || "Solarman auth failed");
   const expiresAt = new Date(Date.now() + (json.expires_in || 7200) * 1000).toISOString();
   return {
-    credentials: { appId, email },
+    credentials: { appId, appSecret, email, password },
     tokens: { access_token: json.access_token, token_type: json.token_type || "bearer", expires_at: expiresAt, uid: json.uid, orgId: json.orgId },
   };
 }
@@ -78,7 +78,7 @@ async function testSolis(creds: Record<string, string>) {
   });
   const json = await res.json();
   if (!json.success && json.code !== "0") throw new Error(json.msg || `SolisCloud error (code=${json.code})`);
-  return { credentials: { apiId }, tokens: { apiSecret } };
+  return { credentials: { apiId, apiSecret }, tokens: { apiSecret } };
 }
 
 // ── SolarEdge ──
@@ -179,7 +179,7 @@ async function testDeye(creds: Record<string, string>) {
           const expiresIn = bizJson.expiresIn || bizJson.expires_in || 5183999;
           const expiresAt = new Date(Date.now() + Number(expiresIn) * 1000).toISOString();
           return {
-            credentials: { region, baseUrl, appId, email, companyId: detectedCompanyId },
+            credentials: { region, baseUrl, appId, appSecret, email, password, companyId: detectedCompanyId },
             tokens: {
               access_token: bizToken,
               token_type: bizJson.tokenType || "bearer",
@@ -200,7 +200,7 @@ async function testDeye(creds: Record<string, string>) {
   const expiresIn = json.expiresIn || json.expires_in || 5183999;
   const expiresAt = new Date(Date.now() + Number(expiresIn) * 1000).toISOString();
   return {
-    credentials: { region, baseUrl, appId, email, companyId: detectedCompanyId },
+    credentials: { region, baseUrl, appId, appSecret, email, password, companyId: detectedCompanyId },
     tokens: {
       access_token: accessToken,
       token_type: json.tokenType || json.token_type || "bearer",
@@ -251,7 +251,7 @@ async function testGrowatt(creds: Record<string, string>) {
     }
 
     return {
-      credentials: { auth_mode: "api_key" },
+      credentials: { auth_mode: "api_key", apiKey },
       tokens: { apiKey },
     };
   }
@@ -300,7 +300,7 @@ async function testGrowatt(creds: Record<string, string>) {
 
         console.log(`[Growatt] Login OK! userId=${userId}`);
         return {
-          credentials: { auth_mode: "portal", username },
+          credentials: { auth_mode: "portal", username, password },
           tokens: { userId: String(userId), cookies },
         };
       }
@@ -328,23 +328,30 @@ async function testHoymiles(creds: Record<string, string>) {
   if (json.status !== "0" && json.code !== 0) throw new Error(json.message || "Hoymiles login failed");
   const token = json.data?.token || json.token || "";
   if (!token) throw new Error("Hoymiles: no token returned");
-  return { credentials: { username }, tokens: { token } };
+  return { credentials: { username, password }, tokens: { token } };
 }
 
 // ── Sungrow iSolarCloud ──
+// V2 API: https://developer-api.isolarcloud.com
+// Password must be sent as-is (API handles hashing server-side)
 async function testSungrow(creds: Record<string, string>) {
   const appKey = creds.appId || creds.appKey || "";
   const userAccount = creds.email || creds.username || "";
   const userPassword = creds.password || "";
   if (!appKey || !userAccount || !userPassword) throw new Error("Missing: appKey, account, password");
+
+  console.log(`[Sungrow] Attempting login for account: ${userAccount}`);
+
   const res = await fetch("https://gateway.isolarcloud.com/v1/userService/login", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ appkey: appKey, user_account: userAccount, user_password: userPassword, login_type: "1" }),
   });
   const json = await res.json();
+  console.log(`[Sungrow] Response code: ${json.result_code}, msg: ${json.result_msg}`);
+
   if (json.result_code !== "1" && json.result_code !== 1) throw new Error(json.result_msg || "Sungrow login failed");
   const token = json.result_data?.token || "";
-  return { credentials: { appKey, userAccount }, tokens: { token, userId: json.result_data?.user_id || "" } };
+  return { credentials: { appKey, userAccount, userPassword }, tokens: { token, userId: json.result_data?.user_id || "" } };
 }
 
 // ── Huawei FusionSolar ──
@@ -358,7 +365,7 @@ async function testHuawei(creds: Record<string, string>) {
   const json = await res.json();
   if (!json.success && json.failCode !== 0) throw new Error(json.message || "Huawei login failed");
   const xsrfToken = res.headers.get("xsrf-token") || res.headers.get("set-cookie")?.match(/XSRF-TOKEN=([^;]+)/)?.[1] || "";
-  return { credentials: { username, systemCode: systemCode || "" }, tokens: { xsrfToken, cookies: res.headers.get("set-cookie") || "" } };
+  return { credentials: { username, password, systemCode: systemCode || "" }, tokens: { xsrfToken, cookies: res.headers.get("set-cookie") || "" } };
 }
 
 // ── GoodWe SEMS ──
@@ -372,7 +379,7 @@ async function testGoodwe(creds: Record<string, string>) {
   const json = await res.json();
   if (json.code !== 0 && json.hasError) throw new Error(json.msg || "GoodWe login failed");
   const token = json.data?.token || json.data?.uid || "";
-  return { credentials: { email }, tokens: { token, api: json.data?.api || "https://semsportal.com", uid: json.data?.uid || "" } };
+  return { credentials: { email, password }, tokens: { token, api: json.data?.api || "https://semsportal.com", uid: json.data?.uid || "" } };
 }
 
 // ── Fronius Solar.web ──
@@ -385,7 +392,7 @@ async function testFronius(creds: Record<string, string>) {
   const res = await fetch(url, { headers: { AccessKeyId: apiKey } });
   if (!res.ok) { const t = await res.text(); throw new Error(`Fronius ${res.status}: ${t.slice(0, 200)}`); }
   await res.json();
-  return { credentials: { apiKey, systemId: systemId || "" }, tokens: {} };
+  return { credentials: { apiKey, systemId: systemId || "" }, tokens: { apiKey } };
 }
 
 // ── Fox ESS ──
@@ -398,7 +405,7 @@ async function testFoxEss(creds: Record<string, string>) {
   });
   const json = await res.json();
   if (json.errno !== 0) throw new Error(json.msg || "Fox ESS auth failed");
-  return { credentials: { apiKey }, tokens: {} };
+  return { credentials: { apiKey }, tokens: { apiKey } };
 }
 
 // ── SolaX Cloud ──
@@ -409,7 +416,7 @@ async function testSolax(creds: Record<string, string>) {
   // Even with invalid SN, valid key returns specific error code vs auth error
   const json = await res.json();
   if (json.exception && /token/i.test(json.exception)) throw new Error("SolaX: invalid API token");
-  return { credentials: { apiKey }, tokens: {} };
+  return { credentials: { apiKey }, tokens: { apiKey } };
 }
 
 // ── SAJ eSolar ──
@@ -422,7 +429,7 @@ async function testSaj(creds: Record<string, string>) {
   });
   if (!res.ok && res.status !== 302) { const t = await res.text(); throw new Error(`SAJ ${res.status}: ${t.slice(0, 200)}`); }
   const cookies = res.headers.get("set-cookie") || "";
-  return { credentials: { email }, tokens: { cookies } };
+  return { credentials: { email, password }, tokens: { cookies } };
 }
 
 // ── ShineMonitor ──
@@ -437,7 +444,7 @@ async function testShinemonitor(creds: Record<string, string>) {
   });
   const json = await res.json();
   if (json.err !== 0 && !json.dat?.secret) throw new Error(json.desc || "ShineMonitor login failed");
-  return { credentials: { username }, tokens: { secret: json.dat?.secret || "", token: json.dat?.token || "" } };
+  return { credentials: { username, password }, tokens: { secret: json.dat?.secret || "", token: json.dat?.token || "" } };
 }
 
 // ── APsystems EMA ──
@@ -450,7 +457,7 @@ async function testApsystems(creds: Record<string, string>) {
   });
   const cookies = res.headers.get("set-cookie") || "";
   if (!cookies && !res.ok) throw new Error("APsystems login failed");
-  return { credentials: { email }, tokens: { cookies } };
+  return { credentials: { email, password }, tokens: { cookies } };
 }
 
 // ── Enphase Enlighten ──
@@ -461,7 +468,7 @@ async function testEnphase(creds: Record<string, string>) {
     headers: clientId ? { Authorization: `Bearer ${apiKey}` } : {},
   });
   if (!res.ok) { const t = await res.text(); throw new Error(`Enphase ${res.status}: ${t.slice(0, 200)}`); }
-  return { credentials: { apiKey, clientId: clientId || "" }, tokens: { apiSecret: apiSecret || "" } };
+  return { credentials: { apiKey, clientId: clientId || "", apiSecret: apiSecret || "" }, tokens: { apiSecret: apiSecret || "" } };
 }
 
 // ── SMA Sunny Portal ──
@@ -486,7 +493,7 @@ async function testKstar(creds: Record<string, string>) {
   });
   const json = await res.json();
   if (!json.token && !json.data?.token) throw new Error(json.message || "KSTAR login failed");
-  return { credentials: { email }, tokens: { token: json.token || json.data?.token || "" } };
+  return { credentials: { email, password }, tokens: { token: json.token || json.data?.token || "" } };
 }
 
 // ── Intelbras ISG ──
@@ -499,7 +506,7 @@ async function testIntelbras(creds: Record<string, string>) {
   });
   const json = await res.json();
   if (!json.token && !json.access_token) throw new Error(json.message || "Intelbras login failed");
-  return { credentials: { email }, tokens: { token: json.token || json.access_token || "" } };
+  return { credentials: { email, password }, tokens: { token: json.token || json.access_token || "" } };
 }
 
 // ── EcoSolys ──
@@ -512,7 +519,7 @@ async function testEcosolys(creds: Record<string, string>) {
   });
   const json = await res.json();
   if (!json.token) throw new Error(json.message || "EcoSolys login failed");
-  return { credentials: { email }, tokens: { token: json.token } };
+  return { credentials: { email, password }, tokens: { token: json.token } };
 }
 
 // ── CSI CloudPro / CSI Smart Energy / CSI Cloud ──
@@ -527,8 +534,8 @@ async function testGenericPortal(provider: string, creds: Record<string, string>
   const email = creds.email || creds.username || "";
   const password = creds.password || "";
   if (!email || !password) throw new Error("Missing: email/username, password");
-  // For portal providers without official API, we store credentials for future implementation
-  return { credentials: { email: email }, tokens: { password_hash: await sha256Hex(password) } };
+  // Store full credentials for re-authentication when tokens expire
+  return { credentials: { email, password }, tokens: { password_hash: await sha256Hex(password) } };
 }
 
 // ═══════════════════════════════════════════════════════════
