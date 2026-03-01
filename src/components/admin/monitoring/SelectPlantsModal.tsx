@@ -70,7 +70,7 @@ export function SelectPlantsModal({ open, onOpenChange, plants, providerLabel, s
       </div>
 
       {/* Plant list */}
-      <div className="max-h-80 overflow-y-auto space-y-1">
+      <div className="space-y-1">
         {plants.map((plant) => (
           <label
             key={plant.external_id}

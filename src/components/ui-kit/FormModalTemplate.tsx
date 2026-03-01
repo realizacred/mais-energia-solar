@@ -83,11 +83,7 @@ export function FormModalTemplate({
     onSubmit();
   };
 
-  const body = (
-    <div className="space-y-4 py-2">
-      {children}
-    </div>
-  );
+  // body is now rendered inline in the return
 
   const footer = (
     <DialogFooter>
@@ -107,18 +103,22 @@ export function FormModalTemplate({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={className}>
+      <DialogContent className={`overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] ${className || ""}`}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {asForm ? (
-          <form onSubmit={handleSubmit} className="space-y-0">
-            {body}
+          <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+            <div className="space-y-4 py-2 overflow-y-auto min-h-0 flex-1">
+              {children}
+            </div>
             {footer}
           </form>
         ) : (
           <>
-            {body}
+            <div className="space-y-4 py-2 overflow-y-auto min-h-0 flex-1">
+              {children}
+            </div>
             {footer}
           </>
         )}
