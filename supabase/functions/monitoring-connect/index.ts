@@ -919,9 +919,22 @@ serve(async (req) => {
         canonicalAdapter.validateCredentials(credentials);
         const authResult = await canonicalAdapter.authenticate(credentials);
 
-        // Run health check
+        // Detect BLOCKED providers (e.g. Enphase OAuth2 not implemented)
+        const isBlocked = authResult.tokens?._blocked === true;
+
+        // Run health check (will FAIL for blocked providers)
         const health = await runHealthCheck(canonicalAdapter, authResult);
         console.log(`[monitoring-connect] Health check: ${health.status} (${health.latencyMs}ms)`);
+
+        // Determine canonical status
+        let integrationStatus: string;
+        if (isBlocked) {
+          integrationStatus = "blocked";
+        } else if (health.status === "FAIL") {
+          integrationStatus = "error";
+        } else {
+          integrationStatus = "connected";
+        }
 
         // SECURITY: Strip sensitive fields before persisting credentials
         const SENSITIVE_KEYS = new Set(["password", "userPassword", "senha", "secret_key"]);
@@ -929,16 +942,25 @@ serve(async (req) => {
         for (const [k, v] of Object.entries(authResult.credentials)) {
           if (!SENSITIVE_KEYS.has(k)) safeCredentials[k] = v;
         }
+        // Also strip sensitive fields from tokens
+        const safeTokens: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(authResult.tokens)) {
+          if (!SENSITIVE_KEYS.has(k) && k !== "password_for_reauth") safeTokens[k] = v;
+        }
+
+        const syncError = isBlocked
+          ? `[BLOCKED] Provider ${provider} requires additional setup. Sync disabled.`
+          : health.error || null;
 
         const integration = await upsertIntegration(ctx, {
-          status: health.status === "FAIL" ? "error" : "connected",
-          sync_error: health.error || null,
+          status: integrationStatus,
+          sync_error: syncError,
           credentials: safeCredentials,
-          tokens: authResult.tokens,
+          tokens: safeTokens,
         });
 
-        await auditLog(ctx, "monitoring.integration.connected", integration?.id, { provider, status: "connected", adapter: "canonical", health: health.status });
-        return jsonResponse({ success: true, integration_id: integration?.id, status: "connected", health: health.status });
+        await auditLog(ctx, "monitoring.integration.connected", integration?.id, { provider, status: integrationStatus, adapter: "canonical", health: health.status });
+        return jsonResponse({ success: true, integration_id: integration?.id, status: integrationStatus, health: health.status });
       } catch (err) {
         const normalized = normalizeError(err, provider);
         const errorMsg = normalized.message?.slice(0, 500) || "Connection failed";

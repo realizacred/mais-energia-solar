@@ -7,10 +7,11 @@
  * Metrics: GET /saj/monitor/site/getPlantDetailInfo?plantuid=X
  *
  * NOTE: SAJ uses cookie-based auth with session expiration.
- * refreshToken re-authenticates using stored email/password.
- * Password is required for re-auth and persisted in tokens (encrypted at rest).
+ * There is NO official token refresh mechanism.
+ * When cookies expire, status is set to reconnect_required.
+ * Password is NEVER persisted — re-auth requires user reconnection.
  *
- * STATUS: PRODUCTION — cookie auth with auto re-auth
+ * STATUS: PRODUCTION — cookie auth, no auto-refresh
  */
 import {
   ProviderHttpClient,
@@ -70,33 +71,16 @@ export class SajAdapter implements ProviderAdapter {
       );
     }
 
+    // SECURITY: Only persist cookies (session token), NEVER password.
     return {
       credentials: { email },
-      tokens: { cookies, password_for_reauth: password },
+      tokens: { cookies },
     };
   }
 
-  /**
-   * SAJ cookie sessions expire. Re-authenticate using stored password.
-   */
-  async refreshToken(
-    tokens: Record<string, unknown>,
-    credentials: Record<string, unknown>,
-  ): Promise<AuthResult> {
-    const email = (credentials.email as string) || "";
-    const password = (tokens.password_for_reauth as string) || "";
-
-    if (!email || !password) {
-      throw normalizeError(
-        new Error("SAJ re-auth requires email/password. User must reconnect."),
-        this.providerId,
-        { statusCode: 401 },
-      );
-    }
-
-    console.log(`[SAJ] Re-authenticating for ${email}...`);
-    return this.authenticate({ email, password });
-  }
+  // NO refreshToken — SAJ has no official refresh mechanism.
+  // When cookies expire, the adapter throws AUTH error and
+  // the monolith sets status=reconnect_required.
 
   async fetchPlants(auth: AuthResult): Promise<NormalizedPlant[]> {
     const cookies = auth.tokens.cookies as string;

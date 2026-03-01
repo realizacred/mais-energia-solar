@@ -7,11 +7,11 @@
  *
  * IMPORTANT: The official SolaX API is SN-based (inverter serial number).
  * There is NO official site/plant listing endpoint.
- * The "getMpptSiteLists.do" endpoint used in legacy code is UNOFFICIAL and unreliable.
  *
- * For discovery, we attempt getUserSiteList and fall back to requiring SNs.
+ * fetchPlants returns [] with explicit NOT_SUPPORTED reason.
+ * Plants must be registered manually with their inverter SNs.
  *
- * STATUS: PRODUCTION (limited — SN-only data retrieval)
+ * STATUS: PRODUCTION (SN-only data retrieval)
  */
 import {
   ProviderHttpClient,
@@ -46,7 +46,6 @@ export class SolaXAdapter implements ProviderAdapter {
     const { apiKey } = creds;
 
     // Verify token validity with a test SN call
-    // A valid token returns specific error for invalid SN vs auth error
     const json = await this.client.get<Record<string, unknown>>(
       `/proxyApp/proxy/api/getRealtimeInfo.do?tokenId=${encodeURIComponent(apiKey)}&sn=VALIDATION_TEST`,
     );
@@ -68,32 +67,16 @@ export class SolaXAdapter implements ProviderAdapter {
 
   // SolaX uses non-expiring API tokens — no refresh needed
 
-  async fetchPlants(auth: AuthResult): Promise<NormalizedPlant[]> {
-    const apiKey = (auth.tokens.apiKey || auth.credentials.apiKey) as string;
-
-    // Attempt unofficial site list (best-effort, may return empty)
-    try {
-      const json = await this.client.get<Record<string, unknown>>(
-        `/proxyApp/proxy/api/getMpptSiteLists.do?tokenId=${encodeURIComponent(apiKey)}`,
-      );
-      const list = ((json as any).result || []) as Record<string, unknown>[];
-      if (list.length > 0) {
-        return list.map((r) => ({
-          external_id: String(r.siteId || r.id || ""),
-          name: String(r.siteName || r.name || ""),
-          capacity_kw: r.capacity != null ? Number(r.capacity) : null,
-          address: (r.address as string) || null,
-          latitude: r.latitude != null ? Number(r.latitude) : null,
-          longitude: r.longitude != null ? Number(r.longitude) : null,
-          status: "normal",
-          metadata: { ...r, _source: "getMpptSiteLists_unofficial" },
-        }));
-      }
-    } catch {
-      // Expected: unofficial endpoint may not work
-    }
-
-    console.log(`[SolaX] No plants from site list. SolaX requires inverter SNs for data retrieval.`);
+  /**
+   * SolaX has NO official plant listing endpoint.
+   * Returns empty array with explicit NOT_SUPPORTED status.
+   * Plants must be registered manually with inverter SNs.
+   */
+  async fetchPlants(_auth: AuthResult): Promise<NormalizedPlant[]> {
+    console.log(
+      `[SolaX] fetchPlants: NOT_SUPPORTED — SolaX official API is SN-only. ` +
+      `No plant listing endpoint exists. Plants must be registered manually with inverter serial numbers.`,
+    );
     return [];
   }
 

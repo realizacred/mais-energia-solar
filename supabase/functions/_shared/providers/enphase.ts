@@ -3,7 +3,6 @@
  * Doc: https://developer-v4.enphase.com/docs
  *
  * Auth: OAuth2 required for v4 API (client_id + client_secret + authorization_code)
- * Current implementation uses API Key only (legacy v4 key-based, limited access).
  *
  * STATUS: BLOCKED — Full OAuth2 flow not implemented.
  * PRE-REQUISITES for full implementation:
@@ -13,8 +12,8 @@
  * 4) Store access_token + refresh_token
  * 5) Implement token refresh (expires in 1 day, refresh token in 30 days)
  *
- * Current: API key mode works for systems listing only (read-only, limited fields).
- * Sync is DISABLED until OAuth2 is implemented.
+ * ALL methods throw PERMISSION errors with retryable=false.
+ * Connect sets status=blocked. Sync is disabled.
  */
 import {
   normalizeError,
@@ -22,12 +21,29 @@ import {
   type AuthResult,
   type NormalizedPlant,
   type DailyMetrics,
+  type ProviderError,
 } from "../provider-core/index.ts";
+
+function blockedError(method: string): ProviderError {
+  return {
+    category: "PERMISSION",
+    provider: "enphase",
+    statusCode: null,
+    providerErrorCode: "OAUTH2_REQUIRED",
+    message: `Enphase ${method} BLOCKED: OAuth2 v4 flow not implemented. ` +
+      `Pre-requisites: 1) Register app at developer-v4.enphase.com, ` +
+      `2) Implement OAuth2 authorization code flow, ` +
+      `3) Store access_token + refresh_token.`,
+    retryable: false,
+  };
+}
 
 export class EnphaseAdapter implements ProviderAdapter {
   readonly providerId = "enphase";
 
   validateCredentials(creds: Record<string, string>): void {
+    // Enphase requires OAuth2, not just an API key.
+    // We accept apiKey for legacy compatibility but it cannot unlock full API.
     if (!creds.apiKey) throw new Error("Missing: apiKey (Enphase API Key)");
   }
 
@@ -35,7 +51,7 @@ export class EnphaseAdapter implements ProviderAdapter {
     this.validateCredentials(creds);
     const { apiKey } = creds;
 
-    // Verify key works by listing systems
+    // Verify key works by listing systems (limited read-only access)
     const res = await fetch(
       `https://api.enphaseenergy.com/api/v4/systems?key=${encodeURIComponent(apiKey)}&size=1`,
       { headers: { Authorization: `Bearer ${apiKey}` } },
@@ -50,54 +66,19 @@ export class EnphaseAdapter implements ProviderAdapter {
       );
     }
 
+    // Auth succeeds but integration is BLOCKED for sync.
+    // The monolith connect handler checks for BLOCKED status via health check.
     return {
       credentials: { apiKey },
-      tokens: {},
+      tokens: { _blocked: true, _reason: "oauth2_required" },
     };
   }
 
-  // OAuth2 refresh not implemented — BLOCKED
-  // async refreshToken() { ... }
-
-  async fetchPlants(auth: AuthResult): Promise<NormalizedPlant[]> {
-    const apiKey = auth.credentials.apiKey as string;
-
-    const res = await fetch(
-      `https://api.enphaseenergy.com/api/v4/systems?key=${encodeURIComponent(apiKey)}&size=100`,
-      { headers: { Authorization: `Bearer ${apiKey}` } },
-    );
-
-    if (!res.ok) {
-      throw normalizeError(
-        new Error(`Enphase systems list failed (${res.status})`),
-        this.providerId,
-        { statusCode: res.status },
-      );
-    }
-
-    const json = await res.json();
-    const list = (json.systems || []) as Record<string, unknown>[];
-
-    return list.map((r) => ({
-      external_id: String(r.system_id || ""),
-      name: String(r.system_name || ""),
-      capacity_kw: r.system_size != null ? Number(r.system_size) / 1000 : null,
-      address: (r.city as string) || null,
-      latitude: null,
-      longitude: null,
-      status: (r.status as string) === "normal" ? "normal" : "offline",
-      metadata: r,
-    }));
+  async fetchPlants(_auth: AuthResult): Promise<NormalizedPlant[]> {
+    throw blockedError("fetchPlants");
   }
 
   async fetchMetrics(_auth: AuthResult, _externalPlantId: string): Promise<DailyMetrics> {
-    // BLOCKED: Metrics require OAuth2 token with telemetry scope
-    console.warn(`[Enphase] fetchMetrics BLOCKED — OAuth2 not implemented. Returning empty.`);
-    return {
-      power_kw: null,
-      energy_kwh: null,
-      total_energy_kwh: null,
-      metadata: { reason: "blocked_oauth2_required" },
-    };
+    throw blockedError("fetchMetrics");
   }
 }

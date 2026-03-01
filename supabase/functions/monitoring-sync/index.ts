@@ -1368,20 +1368,20 @@ async function dispatchSync(
           } catch (refreshErr) {
             const normalized = normalizeError(refreshErr, p);
             console.error(`[monitoring-sync] Token refresh failed for ${p}: [${normalized.category}] ${normalized.message}`);
-            // Mark as AUTH failure, user must reconnect
+            // Mark as reconnect_required — user must re-authenticate
             await admin.from("monitoring_integrations").update({
-              status: "error",
+              status: "reconnect_required",
               sync_error: `[AUTH] Token expired, refresh failed: ${normalized.message}. Reconnect required.`,
               updated_at: new Date().toISOString(),
             }).eq("id", int?.id || ctx.integrationId);
             throw normalized;
           }
         } else {
-          // No refresh method — mark AUTH FAIL
+          // No refresh method — mark reconnect_required
           const errMsg = `Token expired. Provider ${p} has no refresh mechanism. User must reconnect.`;
           console.error(`[monitoring-sync] ${errMsg}`);
           await admin.from("monitoring_integrations").update({
-            status: "error",
+            status: "reconnect_required",
             sync_error: `[AUTH] ${errMsg}`,
             updated_at: new Date().toISOString(),
           }).eq("id", int?.id || ctx.integrationId);
@@ -1727,6 +1727,14 @@ serve(async (req) => {
 
     if (!int) return jsonResponse({ error: "Integration not found. Connect first." }, 404);
 
+    // ── Block sync for blocked/reconnect_required integrations ──
+    if (int.status === "blocked") {
+      return jsonResponse({ error: "Integration is BLOCKED. Additional setup required before sync." }, 403);
+    }
+    if (int.status === "reconnect_required") {
+      return jsonResponse({ error: "Session expired. Please reconnect this integration." }, 401);
+    }
+
     const tokens = (int.tokens || {}) as Record<string, any>;
     const credentials = (int.credentials || {}) as Record<string, any>;
     const ctx: SyncContext = { supabaseAdmin, tenantId, userId, provider: int.id ? provider : normalizedProvider, integrationId: int.id };
@@ -1735,7 +1743,7 @@ serve(async (req) => {
     if (tokens.expires_at) {
       const expiresAt = new Date(tokens.expires_at);
       if (expiresAt < new Date()) {
-        await supabaseAdmin.from("monitoring_integrations").update({ status: "error", sync_error: "Token expired. Reconnect.", updated_at: new Date().toISOString() }).eq("id", int.id);
+        await supabaseAdmin.from("monitoring_integrations").update({ status: "reconnect_required", sync_error: "Token expired. Reconnect required.", updated_at: new Date().toISOString() }).eq("id", int.id);
         return jsonResponse({ error: "Token expired. Please reconnect." }, 401);
       }
     }
@@ -1761,7 +1769,16 @@ serve(async (req) => {
     }
 
     // Update integration status
-    const newStatus = result.errors.length > 0 ? "error" : "connected";
+    let newStatus: string;
+    if (result.errors.some((e) => /\[PERMISSION\]|\[BLOCKED\]/i.test(e))) {
+      newStatus = "blocked";
+    } else if (result.errors.some((e) => /\[AUTH\].*reconnect/i.test(e))) {
+      newStatus = "reconnect_required";
+    } else if (result.errors.length > 0) {
+      newStatus = "error";
+    } else {
+      newStatus = "connected";
+    }
     await supabaseAdmin.from("monitoring_integrations").update({
       last_sync_at: new Date().toISOString(), status: newStatus,
       sync_error: result.errors.length > 0 ? result.errors.join("; ").slice(0, 500) : null,
