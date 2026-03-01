@@ -152,7 +152,7 @@ export default function MonitoringPage() {
                       <span className="font-semibold text-sm">{prov.label}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      {!prov.available && (
+                      {(prov.status === "coming_soon" || prov.status === "stub") && (
                         <Badge variant="outline" className="text-2xs">Em breve</Badge>
                       )}
                       <StatusBadge
@@ -177,7 +177,7 @@ export default function MonitoringPage() {
                   )}
 
                   <div className="flex gap-2 flex-wrap">
-                    {!prov.available ? (
+                    {(prov.status === "coming_soon" || prov.status === "stub") ? (
                       <Button size="sm" variant="outline" onClick={() => setConnectProvider(prov)}>
                         <Info className="h-3.5 w-3.5 mr-1" />
                         Ver tutorial
@@ -189,7 +189,7 @@ export default function MonitoringPage() {
                       </Button>
                     ) : (
                       <>
-                        {prov.sync_implemented ? (
+                        {(prov.status === "active" || prov.status === "beta") ? (
                           <Button
                             size="sm"
                             variant="outline"
