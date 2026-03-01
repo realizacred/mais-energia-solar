@@ -41,14 +41,14 @@
     --accent: 222 20% 90%;
     --accent-foreground: 216 75% 13%;
 
-    /* --- Semantic (solid, high-contrast) --- */
-    --destructive: 0 84% 40%;
+    /* --- Semantic (vivid, high-contrast) --- */
+    --destructive: 0 84% 50%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 82% 30%;
+    --success: 152 72% 40%;
     --success-foreground: 0 0% 100%;
-    --warning: 35 95% 48%;
+    --warning: 38 100% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 218 72% 28%;
+    --info: 215 90% 52%;
     --info-foreground: 0 0% 100%;
 
     /* --- Edges --- */
