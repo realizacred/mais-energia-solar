@@ -4,23 +4,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
-  Search, Plug, RefreshCw, Info, Settings, Power, Sun, Users, HardDrive,
+  Search, Plug, RefreshCw, Info, Power, Sun, Users, HardDrive,
   Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText, Globe,
   Workflow, FileSignature, Zap, CloudSun, Sprout, Cpu, Gauge, Radio,
   Building2, Calculator, QrCode, Webhook, Instagram, Facebook, Bot,
-  LayoutGrid,
+  LayoutGrid, CheckCircle2, AlertCircle, Clock,
 } from "lucide-react";
 import {
   listProviders,
   listConnections,
-  connectProvider,
   syncProvider,
   disconnectProvider,
 } from "@/services/integrations/integrationService";
@@ -32,19 +30,18 @@ import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/services/integrations/types";
 import { IntegrationConnectModal } from "./IntegrationConnectModal";
 import { cn } from "@/lib/utils";
 
-// Icon resolver
 const ICON_MAP: Record<string, React.ElementType> = {
   Sun, Zap, CloudSun, Sprout, Cpu, Gauge, Radio, Users, Building2,
   HardDrive, Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText,
   Globe, Workflow, FileSignature, Calculator, QrCode, Webhook, Instagram,
-  Facebook, Bot, Settings, Plug, Info, SunDim: Sun, LayoutGrid,
+  Facebook, Bot, Plug, Info, SunDim: Sun, LayoutGrid,
 };
 
 function getIcon(key: string | null): React.ElementType {
   return (key && ICON_MAP[key]) || Plug;
 }
 
-type TabFilter = "all" | "active" | "inactive" | "popular";
+type TabFilter = "all" | "active" | "inactive";
 
 const CATEGORY_ORDER: IntegrationCategory[] = [
   "monitoring", "crm", "billing", "messaging", "calendar", "email",
@@ -73,13 +70,10 @@ export default function IntegrationsCatalogPage() {
     queryFn: listLegacyIntegrations,
   });
 
-  // Fetch plant counts per integration
   const { data: plantCounts = {} } = useQuery({
     queryKey: ["integration-plant-counts"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("solar_plants" as any)
-        .select("integration_id");
+      const { data } = await supabase.from("solar_plants" as any).select("integration_id");
       const counts: Record<string, number> = {};
       ((data as any[]) || []).forEach((p) => {
         if (p.integration_id) counts[p.integration_id] = (counts[p.integration_id] || 0) + 1;
@@ -89,11 +83,7 @@ export default function IntegrationsCatalogPage() {
   });
 
   const getPlantCount = (providerId: string): number => {
-    const legacyMap: Record<string, string> = {
-      solarman_business: "solarman_business_api",
-      solaredge: "solaredge",
-      solis_cloud: "solis_cloud",
-    };
+    const legacyMap: Record<string, string> = { solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" };
     const legacyId = legacyMap[providerId] || providerId;
     const integration = legacyIntegrations.find((i) => i.provider === legacyId || i.provider === providerId);
     if (integration) return plantCounts[integration.id] || 0;
@@ -130,11 +120,7 @@ export default function IntegrationsCatalogPage() {
   const getConnectionStatus = (providerId: string): ConnectionStatus => {
     const conn = connections.find((c) => c.provider_id === providerId);
     if (conn) return conn.status as ConnectionStatus;
-    const legacyMap: Record<string, string> = {
-      solarman_business: "solarman_business_api",
-      solaredge: "solaredge",
-      solis_cloud: "solis_cloud",
-    };
+    const legacyMap: Record<string, string> = { solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" };
     const legacyId = legacyMap[providerId];
     if (legacyId) {
       const legacy = legacyIntegrations.find((i) => i.provider === legacyId);
@@ -146,11 +132,7 @@ export default function IntegrationsCatalogPage() {
   const getLastSync = (providerId: string): string | null => {
     const conn = connections.find((c) => c.provider_id === providerId);
     if (conn?.last_sync_at) return conn.last_sync_at;
-    const legacyMap: Record<string, string> = {
-      solarman_business: "solarman_business_api",
-      solaredge: "solaredge",
-      solis_cloud: "solis_cloud",
-    };
+    const legacyMap: Record<string, string> = { solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" };
     const legacyId = legacyMap[providerId];
     if (legacyId) {
       const legacy = legacyIntegrations.find((i) => i.provider === legacyId);
@@ -175,24 +157,11 @@ export default function IntegrationsCatalogPage() {
       switch (tab) {
         case "active": return isActive;
         case "inactive": return !isActive;
-        case "popular": return p.popularity >= 70;
         default: return true;
       }
     });
   }, [providers, search, tab, selectedCategory, connections, legacyIntegrations]);
 
-  // Group by category for display
-  const grouped = useMemo(() => {
-    const map = new Map<string, IntegrationProvider[]>();
-    for (const p of filtered) {
-      const list = map.get(p.category) || [];
-      list.push(p);
-      map.set(p.category, list);
-    }
-    return map;
-  }, [filtered]);
-
-  // Count per category (unfiltered by category, but filtered by search/tab)
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     providers.forEach((p) => {
@@ -205,7 +174,6 @@ export default function IntegrationsCatalogPage() {
       switch (tab) {
         case "active": passTab = isActive; break;
         case "inactive": passTab = !isActive; break;
-        case "popular": passTab = p.popularity >= 70; break;
       }
       if (passTab) {
         counts[p.category] = (counts[p.category] || 0) + 1;
@@ -214,43 +182,75 @@ export default function IntegrationsCatalogPage() {
     return counts;
   }, [providers, search, tab, connections, legacyIntegrations]);
 
+  const activeProviders = filtered.filter((p) => getConnectionStatus(p.id) === "connected");
+  const inactiveProviders = filtered.filter((p) => getConnectionStatus(p.id) !== "connected");
+
   if (loadingProviders) return <LoadingState message="Carregando integrações..." />;
+
+  const renderCard = (provider: IntegrationProvider) => {
+    const connStatus = getConnectionStatus(provider.id);
+    return (
+      <ProviderCard
+        key={provider.id}
+        provider={provider}
+        connStatus={connStatus}
+        plantCount={getPlantCount(provider.id)}
+        lastSync={getLastSync(provider.id)}
+        onConnect={() => setConnectModal(provider)}
+        onSync={() => {
+          setSyncingProviderId(provider.id);
+          const mapped = ({ solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" } as Record<string, string>)[provider.id] || provider.id;
+          syncMut.mutate(mapped);
+        }}
+        onDisconnect={() => disconnectMut.mutate(provider.id)}
+        syncing={syncingProviderId === provider.id}
+      />
+    );
+  };
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Todas as Integrações"
-        description="Conecte suas ferramentas e serviços ao sistema"
+        title="Integrações"
+        description="Conecte suas ferramentas e serviços"
         icon={Plug}
         actions={
-          <div className="flex gap-3 items-center">
-            <div className="relative w-56">
+          <div className="flex gap-2 items-center">
+            <div className="relative w-52">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Pesquisar integração…"
+                placeholder="Pesquisar…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-9 text-sm"
               />
             </div>
-            <div className="flex gap-1">
-              {([["all", "Todas"], ["active", "Ativas"], ["inactive", "Inativas"], ["popular", "Mais populares"]] as [TabFilter, string][]).map(([key, label]) => (
-                <Button key={key} size="sm" variant={tab === key ? "default" : "outline"} onClick={() => setTab(key)} className="text-xs">
+            <div className="flex bg-muted rounded-lg p-0.5">
+              {([["all", "Todas"], ["active", "Ativas"], ["inactive", "Disponíveis"]] as [TabFilter, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+                    tab === key
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
                   {label}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
         }
       />
 
-      {/* GDASH-style layout: sidebar + grid */}
       <div className="flex gap-6">
-        {/* Category sidebar */}
-        <aside className="hidden md:block w-56 shrink-0">
-          <div className="sticky top-24 space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">Categorias</p>
-            <CategoryItem
+        {/* Sidebar */}
+        <aside className="hidden md:block w-52 shrink-0">
+          <nav className="sticky top-24 space-y-0.5">
+            <p className="text-2xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">Categorias</p>
+            <SidebarItem
               icon={LayoutGrid}
               label="Todas"
               count={Object.values(categoryCounts).reduce((a, b) => a + b, 0)}
@@ -260,7 +260,7 @@ export default function IntegrationsCatalogPage() {
             {categories.map((cat) => {
               const CatIcon = getIcon(CATEGORY_ICONS[cat]);
               return (
-                <CategoryItem
+                <SidebarItem
                   key={cat}
                   icon={CatIcon}
                   label={CATEGORY_LABELS[cat]}
@@ -270,29 +270,18 @@ export default function IntegrationsCatalogPage() {
                 />
               );
             })}
-          </div>
+          </nav>
         </aside>
 
-        {/* Mobile category selector */}
+        {/* Mobile categories */}
         <div className="md:hidden w-full">
           <ScrollArea className="w-full">
-            <div className="flex gap-1.5 pb-2">
-              <Button
-                size="sm"
-                variant={selectedCategory === "all" ? "default" : "outline"}
-                onClick={() => setSelectedCategory("all")}
-                className="text-xs shrink-0"
-              >
+            <div className="flex gap-1.5 pb-3">
+              <Button size="sm" variant={selectedCategory === "all" ? "default" : "outline"} onClick={() => setSelectedCategory("all")} className="text-xs shrink-0">
                 Todas
               </Button>
               {categories.map((cat) => (
-                <Button
-                  key={cat}
-                  size="sm"
-                  variant={selectedCategory === cat ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(cat)}
-                  className="text-xs shrink-0"
-                >
+                <Button key={cat} size="sm" variant={selectedCategory === cat ? "default" : "outline"} onClick={() => setSelectedCategory(cat)} className="text-xs shrink-0">
                   {CATEGORY_LABELS[cat]}
                 </Button>
               ))}
@@ -300,74 +289,50 @@ export default function IntegrationsCatalogPage() {
           </ScrollArea>
         </div>
 
-        {/* Main content — split active vs available */}
+        {/* Main content */}
         <div className="flex-1 min-w-0 space-y-8">
-          {(() => {
-            const activeProviders = filtered.filter((p) => getConnectionStatus(p.id) === "connected");
-            const inactiveProviders = filtered.filter((p) => getConnectionStatus(p.id) !== "connected");
+          {/* Active section */}
+          {activeProviders.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-success/15">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                </div>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Conectadas
+                </h2>
+                <Badge variant="secondary" className="text-2xs">{activeProviders.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {activeProviders.map(renderCard)}
+              </div>
+            </section>
+          )}
 
-            const renderCard = (provider: IntegrationProvider) => (
-              <ProviderCard
-                key={provider.id}
-                provider={provider}
-                connStatus={getConnectionStatus(provider.id)}
-                plantCount={getPlantCount(provider.id)}
-                lastSync={getLastSync(provider.id)}
-                onConnect={() => setConnectModal(provider)}
-                onSync={() => {
-                  setSyncingProviderId(provider.id);
-                  const mapped = ({ solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" } as Record<string, string>)[provider.id] || provider.id;
-                  syncMut.mutate(mapped);
-                }}
-                onDisconnect={() => disconnectMut.mutate(provider.id)}
-                syncing={syncingProviderId === provider.id}
-              />
-            );
+          {/* Inactive section */}
+          {inactiveProviders.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-muted">
+                  <Plug className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <h2 className="text-sm font-semibold text-muted-foreground">
+                  Disponíveis
+                </h2>
+                <Badge variant="outline" className="text-2xs">{inactiveProviders.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {inactiveProviders.map(renderCard)}
+              </div>
+            </section>
+          )}
 
-            return (
-              <>
-                {activeProviders.length > 0 && (
-                  <section>
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="h-2 w-2 rounded-full bg-success" />
-                      <h2 className="text-base font-semibold text-foreground">
-                        Ativas ({activeProviders.length})
-                      </h2>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {activeProviders.map(renderCard)}
-                    </div>
-                  </section>
-                )}
-
-                {inactiveProviders.length > 0 && (
-                  <section>
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-                      <h2 className="text-base font-semibold text-muted-foreground">
-                        Disponíveis ({inactiveProviders.length})
-                      </h2>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                      {inactiveProviders.map(renderCard)}
-                    </div>
-                  </section>
-                )}
-
-                {filtered.length === 0 && (
-                  <EmptyState
-                    icon={Search}
-                    title="Nenhuma integração encontrada"
-                    description="Tente outro termo de busca ou filtro."
-                  />
-                )}
-              </>
-            );
-          })()}
+          {filtered.length === 0 && (
+            <EmptyState icon={Search} title="Nenhuma integração encontrada" description="Tente outro termo de busca ou filtro." />
+          )}
         </div>
       </div>
 
-      {/* Connect Modal */}
       {connectModal && (
         <IntegrationConnectModal
           key={connectModal.id}
@@ -385,63 +350,34 @@ export default function IntegrationsCatalogPage() {
   );
 }
 
-/* ─── Category sidebar item ─── */
-
-function CategoryItem({
-  icon: Icon,
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  icon: React.ElementType;
-  label: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
+/* ─── Sidebar Item ─── */
+function SidebarItem({ icon: Icon, label, count, active, onClick }: {
+  icon: React.ElementType; label: string; count: number; active: boolean; onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left",
+        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left",
         active
-          ? "bg-primary text-primary-foreground font-medium"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          ? "bg-secondary text-secondary-foreground font-medium shadow-sm"
+          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate flex-1">{label}</span>
-      <span className={cn(
-        "text-xs tabular-nums",
-        active ? "text-primary-foreground/70" : "text-muted-foreground/60"
-      )}>
+      <span className={cn("text-2xs tabular-nums font-medium", active ? "text-secondary-foreground/70" : "text-muted-foreground/50")}>
         {count}
       </span>
     </button>
   );
 }
 
-/* ─── Provider card ─── */
-
-function ProviderCard({
-  provider,
-  connStatus,
-  plantCount,
-  lastSync,
-  onConnect,
-  onSync,
-  onDisconnect,
-  syncing,
-}: {
-  provider: IntegrationProvider;
-  connStatus: ConnectionStatus;
-  plantCount: number;
-  lastSync: string | null;
-  onConnect: () => void;
-  onSync: () => void;
-  onDisconnect: () => void;
-  syncing: boolean;
+/* ─── Provider Card ─── */
+function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, onSync, onDisconnect, syncing }: {
+  provider: IntegrationProvider; connStatus: ConnectionStatus; plantCount: number;
+  lastSync: string | null; onConnect: () => void; onSync: () => void;
+  onDisconnect: () => void; syncing: boolean;
 }) {
   const Icon = getIcon(provider.logo_key);
   const isConnected = connStatus === "connected";
@@ -449,72 +385,94 @@ function ProviderCard({
   const isComingSoon = provider.status === "coming_soon";
   const isMaintenance = provider.status === "maintenance";
 
+  if (isConnected) {
+    return (
+      <div className="relative border border-border rounded-xl bg-card p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+        {/* Status dot */}
+        <div className="absolute top-3 right-3">
+          <div className="h-2.5 w-2.5 rounded-full bg-success ring-2 ring-success/20" />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+            <Icon className="h-5 w-5 text-secondary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground truncate">{provider.label}</p>
+            <p className="text-2xs text-muted-foreground truncate">{CATEGORY_LABELS[provider.category]}</p>
+          </div>
+        </div>
+
+        {/* Metrics */}
+        <div className="flex items-center gap-4 text-xs">
+          {plantCount > 0 && (
+            <div className="flex items-center gap-1.5 text-foreground font-medium">
+              <Sun className="h-3.5 w-3.5 text-warning" />
+              <span>{plantCount} usina{plantCount !== 1 ? "s" : ""}</span>
+            </div>
+          )}
+          {lastSync && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>{new Date(lastSync).toLocaleDateString("pt-BR")} {new Date(lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          {hasSyncCapability && (
+            <Button size="sm" variant="outline" onClick={onSync} disabled={syncing} className="flex-1 h-8">
+              <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", syncing && "animate-spin")} />
+              Sincronizar
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" onClick={onConnect} className="h-8 text-muted-foreground hover:text-foreground">
+            Reconectar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Inactive / Disconnected card
   return (
     <div className={cn(
-      "group border rounded-xl p-4 transition-all space-y-3",
-      isConnected
-        ? "border-success/30 bg-success/5 hover:shadow-md hover:border-success/50"
-        : "border-border/40 bg-muted/30 hover:bg-card hover:shadow-sm hover:border-border",
+      "border rounded-xl p-4 space-y-3 transition-all",
+      isComingSoon || isMaintenance
+        ? "border-border/30 bg-muted/20"
+        : "border-border/50 bg-card/50 hover:bg-card hover:border-border hover:shadow-sm",
     )}>
-      {/* Header: icon + name + status */}
-      <div className="flex items-start gap-3">
-        <div className={cn(
-          "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
-          isConnected ? "bg-success/15" : "bg-muted",
-        )}>
-          <Icon className={cn("h-4.5 w-4.5", isConnected ? "text-success" : "text-muted-foreground")} />
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 rounded-lg bg-muted/60 flex items-center justify-center">
+          <Icon className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className={cn("text-sm font-semibold truncate", isConnected ? "text-foreground" : "text-foreground/80")}>{provider.label}</p>
-            {isComingSoon && <Badge variant="outline" className="text-2xs shrink-0">Em breve</Badge>}
-            {isMaintenance && <Badge variant="destructive" className="text-2xs shrink-0">Manutenção</Badge>}
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-foreground/80 truncate">{provider.label}</p>
+            {isComingSoon && <Badge variant="outline" className="text-2xs border-border/50 text-muted-foreground">Em breve</Badge>}
+            {isMaintenance && (
+              <Badge variant="outline" className="text-2xs border-warning/30 text-warning">
+                <AlertCircle className="h-3 w-3 mr-0.5" />
+                Manutenção
+              </Badge>
+            )}
           </div>
           <p className="text-2xs text-muted-foreground line-clamp-1 mt-0.5">{provider.description}</p>
         </div>
       </div>
 
-      {/* Info row: plant count + last sync */}
-      {isConnected && (
-        <div className="flex items-center gap-3 text-2xs text-muted-foreground">
-          {plantCount > 0 && (
-            <span className="flex items-center gap-1 font-medium text-foreground">
-              <Sun className="h-3 w-3 text-warning" />
-              {plantCount} usina{plantCount !== 1 ? "s" : ""}
-            </span>
-          )}
-          {lastSync && (
-            <span>
-              Sync: {new Date(lastSync).toLocaleDateString("pt-BR")}, {new Date(lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-2 flex-wrap pt-1">
+      <div>
         {isComingSoon ? (
-          <Button size="sm" variant="outline" onClick={onConnect} className="w-full">
-            <Info className="h-3.5 w-3.5 mr-1" />
+          <Button size="sm" variant="ghost" onClick={onConnect} className="w-full h-8 text-muted-foreground hover:text-foreground">
+            <Info className="h-3.5 w-3.5 mr-1.5" />
             Ver tutorial
           </Button>
-        ) : connStatus === "disconnected" || connStatus === "error" ? (
-          <Button size="sm" onClick={onConnect} className="w-full">
-            <Plug className="h-3.5 w-3.5 mr-1" />
+        ) : (
+          <Button size="sm" variant="outline" onClick={onConnect} className="w-full h-8">
+            <Plug className="h-3.5 w-3.5 mr-1.5" />
             Conectar
           </Button>
-        ) : (
-          <>
-            {hasSyncCapability && (
-              <Button size="sm" variant="outline" onClick={onSync} disabled={syncing} className="flex-1">
-                <RefreshCw className={cn("h-3.5 w-3.5 mr-1", syncing && "animate-spin")} />
-                Sincronizar
-              </Button>
-            )}
-            <Button size="sm" variant="outline" onClick={onConnect}>
-              Reconectar
-            </Button>
-          </>
         )}
       </div>
     </div>
