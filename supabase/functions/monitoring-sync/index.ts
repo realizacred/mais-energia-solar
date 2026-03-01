@@ -1204,11 +1204,11 @@ async function dispatchSync(
       // Portal/ShineServer mode — login with stored credentials to get fresh cookies
       let cookies = tokens.cookies as string || "";
       const email = credentials.email as string || credentials.username as string || "";
-      const pwd = credentials.password as string || "";
-      if (!cookies && email && pwd) {
-        // Re-authenticate via ShineServer to get cookies
-        const { createHash: ch } = await import("node:crypto");
-        const md5Hash = ch("md5").update(pwd).digest("hex");
+      // Use stored MD5 hash from tokens (password is stripped from credentials by security policy)
+      const storedMd5 = tokens.passwordMd5 as string || "";
+      
+      if ((!cookies || cookies.length < 10) && email && storedMd5) {
+        // Re-authenticate via ShineServer using stored MD5 hash
         const endpoints = [
           "https://openapi.growatt.com/newTwoLoginAPI.do",
           "https://server.growatt.com/newTwoLoginAPI.do",
@@ -1216,10 +1216,11 @@ async function dispatchSync(
         ];
         for (const ep of endpoints) {
           try {
+            console.log(`[Growatt Server] Re-auth attempt: ${ep}, user=${email}`);
             const res = await fetch(ep, {
               method: "POST",
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: `userName=${encodeURIComponent(email)}&password=${encodeURIComponent(md5Hash)}`,
+              body: `userName=${encodeURIComponent(email)}&password=${encodeURIComponent(storedMd5)}`,
               redirect: "follow",
             });
             const text = await res.text();
@@ -1227,15 +1228,17 @@ async function dispatchSync(
             try { json = JSON.parse(text); } catch { continue; }
             if (json.result === 1 || json.back?.success === true) {
               cookies = res.headers.get("set-cookie") || "";
-              console.log(`[Growatt Server] Login OK via ${ep}`);
+              console.log(`[Growatt Server] Login OK via ${ep}, cookies=${cookies.length} chars`);
               // Update tokens with fresh cookies
               await admin.from("monitoring_integrations").update({ tokens: { ...tokens, cookies } }).eq("id", int?.id || ctx.integrationId);
               break;
+            } else {
+              console.log(`[Growatt Server] Login rejected at ${ep}: ${json.back?.msg || json.msg || "unknown"}`);
             }
-          } catch { continue; }
+          } catch (e) { console.log(`[Growatt Server] ${ep} error: ${(e as Error).message}`); continue; }
         }
       }
-      if (!cookies) throw new Error("No cookies available. Reconnect with username/password.");
+      if (!cookies || cookies.length < 10) throw new Error("No cookies available. Please reconnect Growatt Server with username/password.");
       return await syncPlantsByProvider(ctx, () => growattListPlants(cookies), (eid) => growattMetrics(cookies, eid), mode, selectedPlantIds);
     }
   } else if (p === "hoymiles") {
