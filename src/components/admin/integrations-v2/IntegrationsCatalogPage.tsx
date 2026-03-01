@@ -321,6 +321,7 @@ export default function IntegrationsCatalogPage() {
       {/* Connect Modal */}
       {connectModal && (
         <IntegrationConnectModal
+          key={connectModal.id}
           open={!!connectModal}
           onOpenChange={(open) => { if (!open) setConnectModal(null); }}
           provider={connectModal}
