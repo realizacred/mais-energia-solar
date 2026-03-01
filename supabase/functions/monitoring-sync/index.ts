@@ -283,8 +283,9 @@ async function growattMetrics(cookies: string, plantId: string): Promise<DailyMe
 }
 
 // ── OpenAPI Business (token header) ──
-// Docs: Growatt Server Open API — token is a 32-char key in "token" HTTP header
-// Flow: GET /v1/user/c_user_list → for each user GET /v1/plant/list?C_user_id=X
+// Docs: token is a non-expiring key sent in "token" HTTP header
+// v1 API: GET endpoints for plant listing
+// v4 API: POST /v4/new-api/queryLastData with x-www-form-urlencoded body
 async function growattApiListPlants(apiKey: string): Promise<NormalizedPlant[]> {
   const hdr = { "token": apiKey };
 
@@ -323,7 +324,7 @@ async function growattApiListPlants(apiKey: string): Promise<NormalizedPlant[]> 
     }
   }
 
-  // If no users found, try listing plants directly (some tokens work without user context)
+  // If no users found, try listing plants directly
   if (allPlants.length === 0 && users.length === 0) {
     console.log("[Growatt API] No users found, trying direct plant list...");
     const directRes = await fetch("https://openapi.growatt.com/v1/plant/list?page=1&perpage=100", { headers: hdr });
@@ -351,9 +352,48 @@ async function growattApiListPlants(apiKey: string): Promise<NormalizedPlant[]> 
   return allPlants;
 }
 
+// Growatt v4 API: POST /v4/new-api/queryLastData
+// Content-Type: application/x-www-form-urlencoded
+// Header: token
+// Body: deviceType=min&deviceSn=XXXX
+// Response: { code: 0, data: { min: [{ ppv, pac, eacToday, eacTotal, status, ... }] } }
+async function growattApiQueryLastData(apiKey: string, deviceSn: string, deviceType: string): Promise<DailyMetrics> {
+  try {
+    const res = await fetch("https://openapi.growatt.com/v4/new-api/queryLastData", {
+      method: "POST",
+      headers: {
+        "token": apiKey,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: `deviceType=${encodeURIComponent(deviceType)}&deviceSn=${encodeURIComponent(deviceSn)}`,
+    });
+    const text = await res.text();
+    let json: any;
+    try { json = JSON.parse(text); } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+
+    console.log(`[Growatt v4] queryLastData response code=${json.code}, message=${json.message}`);
+
+    if (json.code !== 0) {
+      console.warn(`[Growatt v4] Error: ${json.message}`);
+      return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: json };
+    }
+
+    // Data is nested under data.<deviceType>[0]
+    const deviceData = json.data?.[deviceType]?.[0] || json.data || {};
+    return {
+      power_kw: deviceData.pac != null ? Number(deviceData.pac) / 1000 : (deviceData.ppv != null ? Number(deviceData.ppv) / 1000 : null),
+      energy_kwh: deviceData.eacToday != null ? Number(deviceData.eacToday) : (deviceData.eToday != null ? Number(deviceData.eToday) : null),
+      total_energy_kwh: deviceData.eacTotal != null ? Number(deviceData.eacTotal) : (deviceData.eTotal != null ? Number(deviceData.eTotal) : null),
+      metadata: deviceData,
+    };
+  } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+}
+
 async function growattApiMetrics(apiKey: string, plantId: string): Promise<DailyMetrics> {
   try {
     const hdr = { "token": apiKey };
+
+    // First try v1 plant data for aggregate metrics
     const res = await fetch(`https://openapi.growatt.com/v1/plant/data?plant_id=${plantId}`, { headers: hdr });
     const text = await res.text();
     let json: any;
