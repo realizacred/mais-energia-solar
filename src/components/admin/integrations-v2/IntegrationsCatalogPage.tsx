@@ -236,6 +236,33 @@ export default function IntegrationsCatalogPage() {
         </div>
       </div>
 
+      {/* ─── Mobile category chips ─── */}
+      <div className="lg:hidden">
+        <ScrollArea className="w-full">
+          <div className="flex gap-2 pb-4">
+            <Button
+              size="sm"
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              onClick={() => setSelectedCategory("all")}
+              className="text-xs shrink-0 h-8"
+            >
+              Todas
+            </Button>
+            {categories.map((cat) => (
+              <Button
+                key={cat}
+                size="sm"
+                variant={selectedCategory === cat ? "default" : "outline"}
+                onClick={() => setSelectedCategory(cat)}
+                className="text-xs shrink-0 h-8"
+              >
+                {CATEGORY_LABELS[cat]}
+              </Button>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+
       <div className="flex gap-6">
         {/* ─── Sidebar ─── */}
         <aside className="hidden lg:block w-56 shrink-0">
@@ -265,33 +292,6 @@ export default function IntegrationsCatalogPage() {
             })}
           </nav>
         </aside>
-
-        {/* ─── Mobile category chips ─── */}
-        <div className="lg:hidden w-full">
-          <ScrollArea className="w-full">
-            <div className="flex gap-2 pb-4">
-              <Button
-                size="sm"
-                variant={selectedCategory === "all" ? "default" : "outline"}
-                onClick={() => setSelectedCategory("all")}
-                className="text-xs shrink-0 h-8"
-              >
-                Todas
-              </Button>
-              {categories.map((cat) => (
-                <Button
-                  key={cat}
-                  size="sm"
-                  variant={selectedCategory === cat ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(cat)}
-                  className="text-xs shrink-0 h-8"
-                >
-                  {CATEGORY_LABELS[cat]}
-                </Button>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
 
         {/* ─── Main Grid ─── */}
         <div className="flex-1 min-w-0">
