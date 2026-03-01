@@ -152,27 +152,24 @@ async function testDeye(creds: Record<string, string>) {
 // ── Growatt ──
 // Supports two auth modes:
 // 1) api_key: OpenAPI token (https://openapi.growatt.com) — token passed in HTTP header
-// 2) portal: ShineServer username/password (legacy)
+//    Docs: POST /v4/new-api/queryLastData with token header, x-www-form-urlencoded body
+// 2) portal: ShineServer username/password (legacy cookie auth)
 async function testGrowatt(creds: Record<string, string>) {
   const authMode = creds.auth_mode || (creds.apiKey ? "api_key" : "portal");
 
   if (authMode === "api_key") {
     // ── OpenAPI Token mode ──
-    // Docs: https://openapi.growatt.com — token is a single non-expiring key
-    // Sent as HTTP header "token: <key>"
     const apiKey = creds.apiKey;
     if (!apiKey) throw new Error("Missing: apiKey (token do OpenAPI Growatt)");
 
     console.log(`[Growatt] Testing OpenAPI token auth...`);
 
-    // Test the token by listing plants — GET /v1/plant/list?page=1&perpage=1
-    // Docs: Growatt Server Open API protocol — requires page + perpage params
+    // Test with v1 plant list (business API) first
     const res = await fetch("https://openapi.growatt.com/v1/plant/list?page=1&perpage=1", {
       method: "GET",
       headers: { "token": apiKey },
     });
 
-    // Growatt may return JSON without proper content-type header — try JSON parse first
     const responseText = await res.text();
     let json: Record<string, any>;
     try {
@@ -184,7 +181,6 @@ async function testGrowatt(creds: Record<string, string>) {
 
     console.log(`[Growatt] OpenAPI response:`, JSON.stringify(json).slice(0, 300));
 
-    // Check for auth errors — Growatt returns error_code or result
     if (json.error_code && json.error_code !== 0) {
       throw new Error(json.error_msg || `Growatt OpenAPI error (code=${json.error_code})`);
     }
@@ -198,44 +194,64 @@ async function testGrowatt(creds: Record<string, string>) {
     };
   }
 
-  // ── Portal/ShineServer mode (username + MD5 password) ──
+  // ── Portal/ShineServer mode (username + password) ──
   const { username, password } = creds;
   if (!username || !password) throw new Error("Missing: username, password");
 
+  // MD5 hash the password (Growatt ShineServer requires it)
   const hashBuffer = await crypto.subtle.digest("MD5", new TextEncoder().encode(password));
   const passwordMd5 = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
 
   console.log(`[Growatt] Attempting ShineServer login for user: ${username}`);
 
-  const res = await fetch("https://openapi.growatt.com/newTwoLoginAPI.do", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `userName=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}`,
-  });
+  // Try multiple ShineServer endpoints (Growatt has changed these over time)
+  const endpoints = [
+    "https://openapi.growatt.com/newTwoLoginAPI.do",
+    "https://server.growatt.com/newTwoLoginAPI.do",
+    "https://server-api.growatt.com/newTwoLoginAPI.do",
+  ];
 
-  const ct = res.headers.get("content-type") || "";
-  let json: Record<string, any>;
-  if (ct.includes("json")) {
-    json = await res.json();
-  } else {
-    const text = await res.text();
-    console.error(`[Growatt] Non-JSON response (${res.status}):`, text.slice(0, 500));
-    try { json = JSON.parse(text); } catch { throw new Error(`Growatt returned non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`); }
+  let lastError = "";
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`[Growatt] Trying endpoint: ${endpoint}`);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `userName=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}`,
+        redirect: "follow",
+      });
+
+      const text = await res.text();
+      console.log(`[Growatt] Response (${res.status}):`, text.slice(0, 500));
+
+      let json: Record<string, any>;
+      try { json = JSON.parse(text); } catch {
+        // Some endpoints return HTML on error — skip
+        lastError = `Non-JSON from ${endpoint} (HTTP ${res.status})`;
+        continue;
+      }
+
+      if (json.result === 1 || json.back?.success === true) {
+        const userId = json.back?.userId || json.user?.id || json.userId || "";
+        const cookies = res.headers.get("set-cookie") || "";
+
+        console.log(`[Growatt] Login OK! userId=${userId}`);
+        return {
+          credentials: { auth_mode: "portal", username },
+          tokens: { userId: String(userId), cookies },
+        };
+      }
+
+      lastError = json.back?.msg || json.msg || json.error || `Login failed (result=${json.result})`;
+      console.log(`[Growatt] Login rejected: ${lastError}`);
+    } catch (e) {
+      lastError = (e as Error).message;
+      console.error(`[Growatt] Endpoint ${endpoint} error:`, lastError);
+    }
   }
 
-  console.log(`[Growatt] ShineServer result: ${json.result}, back.success: ${json.back?.success}`);
-
-  if (json.result !== 1 && json.back?.success !== true) {
-    throw new Error(json.back?.msg || json.msg || "Growatt login failed");
-  }
-
-  const userId = json.back?.userId || json.user?.id || json.userId || "";
-  const cookies = res.headers.get("set-cookie") || "";
-
-  return {
-    credentials: { auth_mode: "portal", username },
-    tokens: { userId: String(userId), cookies },
-  };
+  throw new Error(`Growatt login failed: ${lastError}`);
 }
 
 // ── Hoymiles S-Miles ──
