@@ -290,54 +290,63 @@ async function testGrowatt(creds: Record<string, string>) {
 
   const growattUA = "Dalvik/2.1.0 (Linux; U; Android 12; SM-G975F Build/SP1A.210812.016)";
 
-  // ── Strategy A: server.growatt.com/login with PLAIN password (like .NET GrowattApi library) ──
-  // Reference: https://github.com/ealse/GrowattApi — uses account + plain password + cookie auth
-  const plainLoginServers = [
+  // ── Strategy A: server.growatt.com/login with MD5-hashed password (standard Growatt API) ──
+  // Reference: PyPI growattServer library — uses account + MD5(password)
+  const loginServers = [
+    "https://openapi.growatt.com",
+    "https://openapi-us.growatt.com",
     "https://server.growatt.com",
     "https://server-api.growatt.com",
-    "https://openapi.growatt.com",
     "https://openapi-cn.growatt.com",
-    "https://openapi-us.growatt.com",
+  ];
+
+  // Password variants to try on /login endpoint: MD5 hash (standard), custom hash, and plain
+  const loginPasswordVariants = [
+    { label: "md5", value: rawMd5 },
+    { label: "customMd5", value: customMd5 },
+    { label: "plain", value: password },
   ];
 
   let lastError = "";
-  for (const server of plainLoginServers) {
-    try {
-      console.log(`[Growatt] Trying plain login @ ${server}/login`);
-      const res = await fetch(`${server}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": growattUA,
-        },
-        body: `account=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&validateCode=`,
-        redirect: "follow",
-      });
+  for (const server of loginServers) {
+    for (const pwVariant of loginPasswordVariants) {
+      try {
+        console.log(`[Growatt] Trying /login (${pwVariant.label}) @ ${server}`);
+        const res = await fetch(`${server}/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": growattUA,
+          },
+          body: `account=${encodeURIComponent(username)}&password=${encodeURIComponent(pwVariant.value)}&validateCode=`,
+          redirect: "follow",
+        });
 
-      const text = await res.text();
-      console.log(`[Growatt] Plain login response (${res.status}):`, text.slice(0, 500));
+        const text = await res.text();
+        console.log(`[Growatt] /login response (${res.status}, ${pwVariant.label}):`, text.slice(0, 500));
 
-      let json: Record<string, any>;
-      try { json = JSON.parse(text); } catch {
-        lastError = `Non-JSON from ${server}/login (HTTP ${res.status})`;
-        continue;
+        let json: Record<string, any>;
+        try { json = JSON.parse(text); } catch {
+          lastError = `Non-JSON from ${server}/login (HTTP ${res.status})`;
+          continue;
+        }
+
+        if (json.result === 1 || json.result === "1") {
+          const cookies = res.headers.get("set-cookie") || "";
+          console.log(`[Growatt] Login OK @ ${server} via ${pwVariant.label}! cookies=${cookies.length > 0}`);
+          return {
+            credentials: { auth_mode: "portal", username, server },
+            tokens: { cookies, server, loginMethod: pwVariant.label },
+          };
+        }
+
+        const errMsg = json.back?.error || json.back?.msg || json.msg || json.error || `result=${json.result}`;
+        lastError = errMsg;
+        console.log(`[Growatt] /login rejected (${pwVariant.label}) @ ${server}: ${errMsg}`);
+      } catch (e) {
+        lastError = (e as Error).message;
+        console.error(`[Growatt] ${server}/login error:`, lastError);
       }
-
-      if (json.result === 1 || json.result === "1") {
-        const cookies = res.headers.get("set-cookie") || "";
-        console.log(`[Growatt] Plain login OK @ ${server}! cookies=${cookies.length > 0}`);
-        return {
-          credentials: { auth_mode: "portal", username, server },
-          tokens: { cookies, server, loginMethod: "plain" },
-        };
-      }
-
-      const errMsg = json.back?.error || json.back?.msg || json.msg || json.error || `result=${json.result}`;
-      lastError = errMsg;
-      console.log(`[Growatt] Plain login rejected @ ${server}: ${errMsg}`);
-    } catch (e) {
-      lastError = (e as Error).message;
-      console.error(`[Growatt] ${server}/login error:`, lastError);
     }
   }
 
