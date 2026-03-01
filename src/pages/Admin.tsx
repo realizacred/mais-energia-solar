@@ -90,6 +90,7 @@ const LeadsTrashPage = lazy(() => import("@/components/admin/leads/LeadsTrashPag
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
 const MonitoringPage = lazy(() => import("@/components/admin/monitoring/MonitoringPage"));
+const IntegrationsCatalogPage = lazy(() => import("@/components/admin/integrations-v2/IntegrationsCatalogPage"));
 const AneelIntegrationPage = lazy(() => import("@/components/admin/integrations/AneelIntegrationPage").then(m => ({ default: m.AneelIntegrationPage })));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const OpenAIConfigPage = lazy(() => import("@/pages/admin/OpenAIConfigPage"));
@@ -586,6 +587,7 @@ export default function Admin() {
                 <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
                 <Route path="saude-integracoes" element={<IntegrationHealthPage />} />
                 <Route path="monitoramento-solar" element={<MonitoringPage />} />
+                <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
