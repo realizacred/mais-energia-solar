@@ -92,10 +92,12 @@ async function testSolaredge(creds: Record<string, string>) {
 }
 
 // ── Deye Cloud ──
-// Docs: https://developer.deyecloud.com/api#/Account%20Operation/getAccountTokenUsingPOST
-// Sample: https://github.com/DeyeCloudDevelopers/deye-openapi-client-sample-code
+// Supports both Personal User and Business Member flows.
+// Business Members must provide companyId (or it's auto-detected).
+// Docs: https://developer-eu.deyecloud.com/
 async function testDeye(creds: Record<string, string>) {
   const { region, appId, appSecret, email, password } = creds;
+  const companyId = creds.companyId || "";
   if (!region || !appId || !appSecret || !email || !password) throw new Error("Missing: region, appId, appSecret, email, password");
   const REGIONS: Record<string, string> = {
     EU: "https://eu1-developer.deyecloud.com/v1.0",
@@ -106,16 +108,23 @@ async function testDeye(creds: Record<string, string>) {
   const baseUrl = REGIONS[region.toUpperCase()];
   if (!baseUrl) throw new Error(`Invalid region: ${region}. Use EU, US, AMEA, or INDIA.`);
 
+  // SHA256 hash + lowercase (as per Deye docs)
   const hashHex = await sha256Hex(password);
 
-  // Correct endpoint: /v1.0/account/token?appId=XXX (appId as query param)
-  const url = `${baseUrl}/account/token?appId=${encodeURIComponent(appId)}`;
-  console.log(`[Deye] Requesting token from: ${url}`);
+  const tokenUrl = `${baseUrl}/account/token?appId=${encodeURIComponent(appId)}`;
+  console.log(`[Deye] Requesting token from: ${tokenUrl}`);
 
-  const res = await fetch(url, {
+  // Build request body — include companyId for Business Members
+  const tokenBody: Record<string, unknown> = { appSecret, email, password: hashHex };
+  if (companyId) {
+    tokenBody.companyId = companyId;
+    console.log(`[Deye] Business Member mode with companyId: ${companyId}`);
+  }
+
+  const res = await fetch(tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ appSecret, email, password: hashHex }),
+    body: JSON.stringify(tokenBody),
   });
 
   const ct = res.headers.get("content-type") || "";
@@ -127,18 +136,69 @@ async function testDeye(creds: Record<string, string>) {
 
   const json = await res.json();
   console.log(`[Deye] Response success: ${json.success}, code: ${json.code}, msg: ${json.msg}`);
-  console.log(`[Deye] Top-level keys: ${Object.keys(json).join(", ")}`);
 
-  // Deye v2 API returns token fields at top level (not nested in .data)
-  const accessToken = json.accessToken || json.access_token || (json.data && (json.data.accessToken || json.data.access_token)) || "";
+  const accessToken = json.accessToken || json.access_token || "";
   if (!accessToken) {
-    throw new Error(json.msg || `Deye auth failed (code=${json.code})`);
+    // Parse nested error message if msg is JSON
+    let errMsg = json.msg || `Deye auth failed (code=${json.code})`;
+    try {
+      const parsed = typeof errMsg === "string" ? JSON.parse(errMsg) : errMsg;
+      errMsg = parsed.error || parsed.error_description || errMsg;
+    } catch { /* not JSON, use as-is */ }
+    throw new Error(errMsg);
   }
 
-  const expiresIn = json.expiresIn || json.expires_in || 7200;
+  // If personal user (no companyId), try to detect if they're actually a business member
+  let detectedCompanyId = companyId;
+  if (!companyId) {
+    try {
+      console.log(`[Deye] Checking if user is a Business Member...`);
+      const infoRes = await fetch(`${baseUrl}/account/info`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `bearer ${accessToken}` },
+        body: "{}",
+      });
+      const infoJson = await infoRes.json();
+      const orgs = infoJson.orgInfoList || [];
+      if (orgs.length > 0) {
+        detectedCompanyId = String(orgs[0].companyId);
+        console.log(`[Deye] Business Member detected! companyId=${detectedCompanyId}, company=${orgs[0].companyName}`);
+
+        // Re-authenticate with companyId for proper business access
+        const bizRes = await fetch(tokenUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appSecret, email, password: hashHex, companyId: detectedCompanyId }),
+        });
+        const bizJson = await bizRes.json();
+        const bizToken = bizJson.accessToken || bizJson.access_token || "";
+        if (bizToken) {
+          console.log(`[Deye] Business Member token obtained successfully`);
+          const expiresIn = bizJson.expiresIn || bizJson.expires_in || 5183999;
+          const expiresAt = new Date(Date.now() + Number(expiresIn) * 1000).toISOString();
+          return {
+            credentials: { region, baseUrl, appId, email, companyId: detectedCompanyId },
+            tokens: {
+              access_token: bizToken,
+              token_type: bizJson.tokenType || "bearer",
+              expires_at: expiresAt,
+              refresh_token: bizJson.refreshToken || null,
+              appSecret,
+            },
+          };
+        }
+      } else {
+        console.log(`[Deye] Personal User confirmed (no organizations found)`);
+      }
+    } catch (e) {
+      console.log(`[Deye] Could not check business member status: ${(e as Error).message}`);
+    }
+  }
+
+  const expiresIn = json.expiresIn || json.expires_in || 5183999;
   const expiresAt = new Date(Date.now() + Number(expiresIn) * 1000).toISOString();
   return {
-    credentials: { region, baseUrl, appId, email },
+    credentials: { region, baseUrl, appId, email, companyId: detectedCompanyId },
     tokens: {
       access_token: accessToken,
       token_type: json.tokenType || json.token_type || "bearer",
