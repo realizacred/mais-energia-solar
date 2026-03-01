@@ -166,14 +166,11 @@ async function testGrowatt(creds: Record<string, string>) {
 
     console.log(`[Growatt] Testing OpenAPI token auth...`);
 
-    // Test the token by listing plants
+    // Test the token by listing plants — GET /v1/plant/list
+    // Docs: https://growatt.pl/wp-content/uploads/2020/01/Growatt-Server-Open-API-protocol-standards.pdf
     const res = await fetch("https://openapi.growatt.com/v1/plant/list", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "token": apiKey,
-      },
-      body: "",
+      method: "GET",
+      headers: { "token": apiKey },
     });
 
     const ct = res.headers.get("content-type") || "";
