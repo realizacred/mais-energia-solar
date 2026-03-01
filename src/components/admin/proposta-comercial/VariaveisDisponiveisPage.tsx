@@ -203,7 +203,7 @@ export function VariaveisDisponiveisPage() {
     : filtered.length;
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">

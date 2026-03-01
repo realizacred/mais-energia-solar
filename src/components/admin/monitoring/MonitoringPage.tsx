@@ -93,7 +93,7 @@ export default function MonitoringPage() {
   if (loadingInt) return <LoadingState message="Carregando integrações..." />;
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         title="Monitoramento Solar"
         description="Monitore suas usinas fotovoltaicas em tempo real"

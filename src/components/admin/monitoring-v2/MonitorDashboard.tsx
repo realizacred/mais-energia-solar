@@ -58,7 +58,7 @@ export default function MonitorDashboard() {
   const isEmpty = !stats || stats.total_plants === 0;
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         title="Monitoramento Solar"
         description="Visão geral das usinas fotovoltaicas"

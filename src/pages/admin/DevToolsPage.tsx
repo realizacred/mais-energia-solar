@@ -8,7 +8,7 @@ const DevResetSeedTab = lazy(() => import("./DevResetSeedPage"));
 
 export default function DevToolsPage() {
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">🛠️ Ferramentas de Desenvolvimento</h1>
         <p className="text-sm text-muted-foreground mt-1">

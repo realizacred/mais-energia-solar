@@ -103,7 +103,7 @@ export function PropostaConfigPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-foreground">Configurações de Proposta</h1>
         <p className="text-sm text-muted-foreground">

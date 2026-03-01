@@ -186,7 +186,7 @@ export default function IntegrationsCatalogPage() {
   if (loadingProviders) return <LoadingState message="Carregando integrações..." />;
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
+    <div className="space-y-5">
       <PageHeader
         title="Todas as Integrações"
         description="Conecte suas ferramentas e serviços ao sistema"

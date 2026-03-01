@@ -25,7 +25,7 @@ export function PostSaleDashboard() {
     .slice(0, 10);
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard icon={CalendarClock} label="Próximas 30 dias" value={stats?.preventivas_proximas_30d ?? 0} color="info" />

@@ -55,7 +55,7 @@ export function PostSaleVisitsList() {
     v.cliente?.nome ?? (v as any).nome_avulso ?? "—";
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="space-y-4">
       {/* Filters + New button */}
       <div className="flex flex-wrap items-center gap-3">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
