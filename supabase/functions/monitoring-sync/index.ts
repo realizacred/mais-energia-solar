@@ -37,13 +37,14 @@ interface DailyMetrics {
 }
 
 async function md5Base64(text: string): Promise<string> {
-  const hash = await crypto.subtle.digest("MD5", new TextEncoder().encode(text));
+  const { createHash } = await import("node:crypto");
+  const hash = createHash("md5").update(text).digest();
   return base64Encode(new Uint8Array(hash));
 }
 
 async function hmacSha1Base64(secret: string, data: string): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  const { createHmac } = await import("node:crypto");
+  const sig = createHmac("sha1", secret).update(data).digest();
   return base64Encode(new Uint8Array(sig));
 }
 
