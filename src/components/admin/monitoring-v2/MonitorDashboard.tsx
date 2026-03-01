@@ -5,15 +5,18 @@ import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
-import { Sun, Zap, AlertTriangle, WifiOff, Activity, Database, Gauge, BatteryCharging, TrendingUp, Leaf } from "lucide-react";
+import { Sun, Zap, AlertTriangle, WifiOff, Activity, Database, Gauge, BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth } from "@/services/monitoring/monitorService";
+import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
 import { seedMonitorData, clearMonitorData } from "@/services/monitoring/mockSeedService";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
+import { MonitorPRChart } from "./charts/MonitorPRChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
 import { cn } from "@/lib/utils";
+import { formatBRL } from "@/lib/formatters/index";
 
 export default function MonitorDashboard() {
   const navigate = useNavigate();
@@ -38,6 +41,31 @@ export default function MonitorDashboard() {
   const { data: readings = [] } = useQuery({
     queryKey: ["monitor-readings-30d"],
     queryFn: () => listAllReadings(thirtyDaysAgo.toISOString().slice(0, 10), new Date().toISOString().slice(0, 10)),
+  });
+
+  // Financial data
+  const { data: financials } = useQuery({
+    queryKey: ["monitor-financials", stats?.energy_today_kwh, stats?.energy_month_kwh],
+    queryFn: () => getFinancials(stats?.energy_today_kwh || 0, stats?.energy_month_kwh || 0),
+    enabled: !!stats,
+  });
+
+  // Monthly readings for PR calculation
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const { data: monthReadings = [] } = useQuery({
+    queryKey: ["monitor-readings-month"],
+    queryFn: () => listAllReadings(monthStart.toISOString().slice(0, 10), new Date().toISOString().slice(0, 10)),
+  });
+
+  // Performance Ratio
+  const { data: prData = [] } = useQuery({
+    queryKey: ["monitor-pr", plants.length, monthReadings.length],
+    queryFn: () => getPerformanceRatios(
+      plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp })),
+      monthReadings
+    ),
+    enabled: plants.length > 0 && monthReadings.length > 0,
   });
 
   const seedMutation = useMutation({
@@ -67,6 +95,11 @@ export default function MonitorDashboard() {
   const totalEnergyTodayMwh = (stats?.energy_today_kwh || 0) / 1000;
   const totalEnergyMonthMwh = (stats?.energy_month_kwh || 0) / 1000;
   const onlinePerc = stats?.total_plants ? ((stats.plants_online / stats.total_plants) * 100).toFixed(0) : "0";
+
+  // PR average
+  const avgPR = prData.length > 0
+    ? Math.round(prData.reduce((s, p) => s + p.pr_percent, 0) / prData.length * 10) / 10
+    : null;
 
   return (
     <div className="space-y-6">
@@ -149,27 +182,35 @@ export default function MonitorDashboard() {
             />
           </div>
 
-          {/* Energy summary row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Financial + Environmental + PR summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <SummaryCard
-              label="Energia Mês"
-              value={totalEnergyMonthMwh >= 1 ? `${totalEnergyMonthMwh.toFixed(1)} MWh` : `${(stats.energy_month_kwh || 0).toFixed(0)} kWh`}
+              label="Economia Hoje"
+              value={financials ? formatBRL(financials.savings_today_brl) : "—"}
+              icon={DollarSign}
+              color="success"
+              subtitle={financials ? `Tarifa: ${formatBRL(financials.tarifa_kwh)}/kWh` : undefined}
+            />
+            <SummaryCard
+              label="Economia Mês"
+              value={financials ? formatBRL(financials.savings_month_brl) : "—"}
               icon={TrendingUp}
               color="info"
+              subtitle={totalEnergyMonthMwh >= 1 ? `${totalEnergyMonthMwh.toFixed(1)} MWh gerados` : `${(stats.energy_month_kwh || 0).toFixed(0)} kWh gerados`}
             />
             <SummaryCard
-              label="Alertas Abertos"
-              value={String(openAlerts.filter(a => a.is_open).length)}
-              icon={AlertTriangle}
-              color="warning"
-              subtitle={`${openAlerts.filter(a => a.severity === "critical").length} críticos`}
-            />
-            <SummaryCard
-              label="Benefício Ambiental"
-              value={`${((stats.energy_month_kwh || 0) * 0.084).toFixed(0)} kg CO₂`}
+              label="CO₂ Evitado (Mês)"
+              value={financials ? `${financials.co2_avoided_month_kg.toFixed(0)} kg` : "—"}
               icon={Leaf}
               color="success"
-              subtitle="evitados este mês"
+              subtitle={financials ? `≈ ${Math.ceil(financials.co2_avoided_month_kg / 22)} árvores/ano` : undefined}
+            />
+            <SummaryCard
+              label="Performance Ratio"
+              value={avgPR !== null ? `${avgPR}%` : "—"}
+              icon={BarChart3}
+              color={avgPR !== null && avgPR >= 75 ? "success" : avgPR !== null && avgPR >= 60 ? "warning" : "destructive"}
+              subtitle={avgPR !== null ? (avgPR >= 80 ? "Excelente" : avgPR >= 70 ? "Bom" : avgPR >= 60 ? "Regular" : "Atenção") : undefined}
             />
           </div>
 
@@ -192,6 +233,13 @@ export default function MonitorDashboard() {
           <SectionCard title="Geração — Últimos 30 dias" icon={BatteryCharging} variant="blue">
             <MonitorGenerationChart readings={readings} />
           </SectionCard>
+
+          {/* Performance Ratio chart */}
+          {prData.length > 0 && (
+            <SectionCard title="Performance Ratio por Usina (PR)" icon={BarChart3} variant="blue">
+              <MonitorPRChart data={prData} />
+            </SectionCard>
+          )}
         </>
       )}
     </div>
