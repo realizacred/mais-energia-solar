@@ -312,8 +312,8 @@ async function testGrowatt(creds: Record<string, string>) {
 
         console.log(`[Growatt] Login OK! userId=${userId}`);
         return {
-          credentials: { auth_mode: "portal", username, password },
-          tokens: { userId: String(userId), cookies },
+          credentials: { auth_mode: "portal", username },
+          tokens: { userId: String(userId), cookies, passwordMd5 },
         };
       }
 
