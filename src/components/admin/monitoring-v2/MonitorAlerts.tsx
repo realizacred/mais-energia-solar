@@ -7,6 +7,7 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Eye, BookOpen, ShieldCheck, ShieldAlert } from "lucide-react";
 import { listAlerts, listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import { calcConfidenceScore, classifyAlert } from "@/services/monitoring/confidenceService";
@@ -56,6 +57,25 @@ export default function MonitorAlerts() {
     queryFn: listPlantsWithHealth,
   });
 
+  // LEGACY JOIN: monitor_events.plant_id = monitor_plants.id
+  // but listPlantsWithHealth returns solar_plants.id as the id.
+  // We need to map monitor_plants.id → solar_plants.id via legacy_plant_id.
+  const { data: monitorPlantMapping = new Map<string, string>() } = useQuery({
+    queryKey: ["monitor-plant-id-mapping"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("monitor_plants" as any)
+        .select("id, legacy_plant_id")
+        .not("legacy_plant_id", "is", null);
+      const map = new Map<string, string>();
+      ((data as any[]) || []).forEach((row: any) => {
+        // map monitor_plants.id → solar_plants.id (legacy_plant_id)
+        map.set(row.id, row.legacy_plant_id);
+      });
+      return map;
+    },
+  });
+
   // Pre-fetch HSP for unique plant locations
   const uniqueLocations = useMemo(() => {
     const seen = new Map<string, { lat: number | null; lng: number | null }>();
@@ -82,8 +102,10 @@ export default function MonitorAlerts() {
   const plantMap = new Map(plants.map((p) => [p.id, p]));
 
   // Enrich alerts with REAL confidence score and layer
+  // LEGACY JOIN: alert.plant_id may be monitor_plants.id, so resolve to solar_plants.id
   const enrichedAlerts = alerts.map((alert) => {
-    const plant = plantMap.get(alert.plant_id);
+    const resolvedPlantId = monitorPlantMapping.get(alert.plant_id) ?? alert.plant_id;
+    const plant = plantMap.get(resolvedPlantId);
     const locKey = `${plant?.lat ?? "null"}_${plant?.lng ?? "null"}`;
     const hspResult = hspMap.get(locKey);
     const hspValue = hspResult?.hsp_kwh_m2 ?? null;
