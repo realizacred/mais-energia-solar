@@ -102,18 +102,26 @@ export default function MonitoringPage() {
     discoverMutation.mutate(providerId);
   };
 
-  const handlePlantSelectionConfirm = async (selectedIds: string[]) => {
+  const handlePlantSelectionConfirm = (selectedIds: string[]) => {
     if (!selectPlantsData) return;
-    setSyncingSelection(true);
-    try {
-      await syncMutation.mutateAsync({
-        provider: selectPlantsData.provider.id,
-        selectedIds,
-      });
-      setSelectPlantsData(null);
-    } finally {
-      setSyncingSelection(false);
-    }
+    const providerId = selectPlantsData.provider.id;
+    const providerLabel = selectPlantsData.provider.label;
+
+    // Close modal immediately
+    setSelectPlantsData(null);
+
+    // Show background toast and sync
+    toast.promise(
+      syncMutation.mutateAsync({ provider: providerId, selectedIds }),
+      {
+        loading: `Importando ${selectedIds.length} usina(s) de ${providerLabel}…`,
+        success: (result) =>
+          result.success
+            ? `${result.plants_synced} usinas e ${result.metrics_synced} métricas importadas!`
+            : result.error || "Erro na importação",
+        error: (err: Error) => err.message,
+      }
+    );
   };
 
   const handleSyncClick = (providerId: string) => {
