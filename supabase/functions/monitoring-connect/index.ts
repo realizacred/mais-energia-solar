@@ -173,14 +173,14 @@ async function testGrowatt(creds: Record<string, string>) {
       headers: { "token": apiKey },
     });
 
-    const ct = res.headers.get("content-type") || "";
+    // Growatt may return JSON without proper content-type header — try JSON parse first
+    const responseText = await res.text();
     let json: Record<string, any>;
-    if (ct.includes("json")) {
-      json = await res.json();
-    } else {
-      const text = await res.text();
-      console.error(`[Growatt] Non-JSON response (${res.status}):`, text.slice(0, 500));
-      try { json = JSON.parse(text); } catch { throw new Error(`Growatt returned non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`); }
+    try {
+      json = JSON.parse(responseText);
+    } catch {
+      console.error(`[Growatt] Non-JSON response (${res.status}):`, responseText.slice(0, 500));
+      throw new Error(`Growatt returned non-JSON (HTTP ${res.status}): ${responseText.slice(0, 200)}`);
     }
 
     console.log(`[Growatt] OpenAPI response:`, JSON.stringify(json).slice(0, 300));
