@@ -166,9 +166,9 @@ async function testGrowatt(creds: Record<string, string>) {
 
     console.log(`[Growatt] Testing OpenAPI token auth...`);
 
-    // Test the token by listing plants — GET /v1/plant/list
-    // Docs: https://growatt.pl/wp-content/uploads/2020/01/Growatt-Server-Open-API-protocol-standards.pdf
-    const res = await fetch("https://openapi.growatt.com/v1/plant/list", {
+    // Test the token by listing plants — GET /v1/plant/list?page=1&perpage=1
+    // Docs: Growatt Server Open API protocol — requires page + perpage params
+    const res = await fetch("https://openapi.growatt.com/v1/plant/list?page=1&perpage=1", {
       method: "GET",
       headers: { "token": apiKey },
     });
