@@ -26,7 +26,7 @@ export interface ProviderDefinition {
 }
 
 /** Providers with sync implemented — used by UI to decide button state */
-export const SYNC_IMPLEMENTED_PROVIDERS = new Set(["solarman_business_api"]);
+export const SYNC_IMPLEMENTED_PROVIDERS = new Set(["solarman_business_api", "solaredge", "solis_cloud"]);
 
 export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   // ── Available now ──
@@ -48,13 +48,13 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   {
     id: "solis_cloud",
     label: "Solis Cloud",
-    description: "Monitoramento de inversores Solis via SolisCloud API.",
+    description: "Monitoramento de inversores Solis via SolisCloud Platform API V2.0.",
     icon: "CloudSun",
     available: true,
     auth_type: "api_key",
-    sync_implemented: false,
+    sync_implemented: true,
     fields: [
-      { key: "apiKey", label: "API Key (KeyID)", type: "text", placeholder: "Sua API Key", required: true },
+      { key: "apiId", label: "API ID (KeyID)", type: "text", placeholder: "Seu API ID", required: true },
       { key: "apiSecret", label: "API Secret (KeySecret)", type: "password", placeholder: "Seu API Secret", required: true },
     ],
   },
@@ -65,10 +65,9 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
     icon: "Zap",
     available: true,
     auth_type: "api_key",
-    sync_implemented: false,
+    sync_implemented: true,
     fields: [
       { key: "apiKey", label: "API Key", type: "text", placeholder: "Sua API Key do SolarEdge", required: true },
-      { key: "siteId", label: "Site ID (opcional)", type: "text", placeholder: "ID do site (ex: 123456)", required: false },
     ],
   },
 
