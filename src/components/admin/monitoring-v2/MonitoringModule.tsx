@@ -2,7 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { LayoutDashboard, Sun, AlertTriangle, FileText, Plug } from "lucide-react";
+import { LayoutDashboard, Sun, AlertTriangle, FileText, Plug, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MonitorDashboard = lazy(() => import("./MonitorDashboard"));
@@ -11,12 +11,14 @@ const MonitorPlantDetail = lazy(() => import("./MonitorPlantDetail"));
 const MonitorAlerts = lazy(() => import("./MonitorAlerts"));
 const MonitorReports = lazy(() => import("./MonitorReports"));
 const MonitorSettings = lazy(() => import("./MonitorSettings"));
+const MonitorBilling = lazy(() => import("./MonitorBilling"));
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "" },
   { key: "usinas", label: "Usinas", icon: Sun, path: "usinas" },
   { key: "alertas", label: "Alertas", icon: AlertTriangle, path: "alertas" },
   { key: "relatorios", label: "Relatórios", icon: FileText, path: "relatorios" },
+  { key: "cobrancas", label: "Cobranças", icon: DollarSign, path: "cobrancas" },
   { key: "integracoes", label: "Integrações", icon: Plug, path: "integracoes" },
 ] as const;
 
@@ -69,6 +71,7 @@ export default function MonitoringModule() {
           <Route path="usinas/:plantId" element={<MonitorPlantDetail />} />
           <Route path="alertas" element={<MonitorAlerts />} />
           <Route path="relatorios" element={<MonitorReports />} />
+          <Route path="cobrancas" element={<MonitorBilling />} />
           <Route path="integracoes" element={<MonitorSettings />} />
           <Route path="*" element={<Navigate to="/admin/monitoramento" replace />} />
         </Routes>

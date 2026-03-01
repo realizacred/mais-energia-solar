@@ -6714,6 +6714,63 @@ export type Database = {
           },
         ]
       }
+      monitor_billing_records: {
+        Row: {
+          amount_brl: number
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          paid_at: string | null
+          reference_month: number
+          reference_year: number
+          status: string
+          subscription_id: string
+          tenant_id: string
+        }
+        Insert: {
+          amount_brl: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          reference_month: number
+          reference_year: number
+          status?: string
+          subscription_id: string
+          tenant_id?: string
+        }
+        Update: {
+          amount_brl?: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          reference_month?: number
+          reference_year?: number
+          status?: string
+          subscription_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_billing_records_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_billing_records_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monitor_devices: {
         Row: {
           created_at: string
@@ -7116,6 +7173,75 @@ export type Database = {
           },
           {
             foreignKeyName: "monitor_readings_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_subscriptions: {
+        Row: {
+          billing_cycle: string
+          cancelled_at: string | null
+          client_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          max_plants: number | null
+          notes: string | null
+          plan_name: string
+          plant_ids: string[] | null
+          price_brl: number
+          started_at: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          cancelled_at?: string | null
+          client_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_plants?: number | null
+          notes?: string | null
+          plan_name?: string
+          plant_ids?: string[] | null
+          price_brl?: number
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          cancelled_at?: string | null
+          client_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_plants?: number | null
+          notes?: string | null
+          plan_name?: string
+          plant_ids?: string[] | null
+          price_brl?: number
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
