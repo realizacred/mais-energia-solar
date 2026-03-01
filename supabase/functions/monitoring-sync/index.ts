@@ -32,7 +32,6 @@ async function solarmanFetch(
 
   const json = await res.json();
 
-  // Fail on HTTP error OR explicit success=false
   if (!res.ok || json.success === false) {
     throw new Error(json.msg || json.message || `Solarman API error ${res.status}`);
   }
@@ -115,6 +114,9 @@ async function fetchPlantRealtime(token: string, externalId: string) {
   }
 }
 
+// ─── Providers with sync implemented ────────────────────────
+const SYNC_IMPLEMENTED = new Set(["solarman_business_api"]);
+
 // ─── Main handler ───────────────────────────────────────────
 
 serve(async (req) => {
@@ -157,8 +159,13 @@ serve(async (req) => {
     const tenantId = profile.tenant_id;
 
     const body = await req.json();
-    const provider = body.provider || "solarman_business";
+    const provider = body.provider || "solarman_business_api";
     const mode = body.mode || "full";
+
+    // ── Check if sync is implemented for this provider ──
+    if (!SYNC_IMPLEMENTED.has(provider)) {
+      return jsonResponse({ error: `Provider sync not implemented yet: ${provider}` }, 501);
+    }
 
     // Load integration
     const { data: integration, error: intErr } = await supabaseAdmin

@@ -1,221 +1,53 @@
 /**
- * Provider Tutorials — step-by-step guides shown inside the connection modal.
+ * Provider Tutorials — text guides shown inside the connection modal.
+ * Each key maps to a provider ID from providerRegistry.
  */
 
-export interface TutorialStep {
-  title: string;
-  content: string;
-}
+export const PROVIDER_TUTORIALS: Record<string, string> = {
+  solarman_business_api:
+    `Para conectar Solarman Business via API:
+1) Você precisa de App ID e App Secret (modo Developer/OpenAPI).
+2) Acesse o portal Solarman Pro/Developer e gere o App (App ID / App Secret).
+3) No nosso sistema, preencha App ID, App Secret, Email e Senha (a senha é usada só para autenticar; NÃO armazenamos senha).
+Obs: a senha é enviada como SHA-256 para autenticação.`,
 
-export interface ProviderTutorial {
-  providerId: string;
-  modeId: string;
-  title: string;
-  steps: TutorialStep[];
-  notes?: string[];
-}
+  solis_cloud:
+    `Para conectar SolisCloud:
+1) Faça login no SolisCloud (navegador).
+2) Vá em Configurações básicas (Basic Settings).
+3) Procure 'Gerenciamento de API / API Management'.
+4) Ative e copie KeyID (API Key) e KeySecret (API Secret).
+Se NÃO aparecer 'API Management', sua conta não tem permissão (geralmente precisa ser Instalador/Proprietário).`,
 
-export const PROVIDER_TUTORIALS: ProviderTutorial[] = [
-  // ── Solarman Business — API mode ──
-  {
-    providerId: "solarman_business",
-    modeId: "api",
-    title: "Como conectar via API",
-    steps: [
-      {
-        title: "Acesse o Solarman Business",
-        content: "Entre em home.solarmanpv.com com sua conta de instalador/administrador.",
-      },
-      {
-        title: "Informe suas credenciais",
-        content: "Digite o e-mail e senha da sua conta Solarman. A senha é usada apenas para obter um token de acesso e NÃO é armazenada no sistema.",
-      },
-      {
-        title: "Clique em Conectar",
-        content: "O sistema vai autenticar na API do Solarman usando credenciais seguras da plataforma (App ID/Secret) e salvar apenas o token de acesso.",
-      },
-      {
-        title: "Sincronize as usinas",
-        content: 'Após conectar, clique em "Sincronizar" para importar suas usinas e métricas de produção.',
-      },
-    ],
-    notes: [
-      "O App ID e App Secret são gerenciados pela plataforma — você não precisa fornecê-los.",
-      "O token de acesso expira periodicamente. Se expirar, basta reconectar.",
-    ],
-  },
+  solaredge:
+    `Para conectar SolarEdge:
+1) Acesse monitoring.solaredge.com e faça login.
+2) Clique no seu nome → Minha conta → Dados da Empresa.
+3) No painel 'Acesso à API', marque que concorda com os termos (API T&C) e salve.
+4) Copie a API KEY.
+Opcional: Site ID pode ser necessário dependendo do endpoint/relatórios.`,
 
-  // ── Solarman Business — Portal mode ──
-  {
-    providerId: "solarman_business",
-    modeId: "portal",
-    title: "Como conectar via Portal",
-    steps: [
-      {
-        title: "Acesse o Solarman",
-        content: "Entre em home.solarmanpv.com e faça login normalmente.",
-      },
-      {
-        title: "Informe login e senha",
-        content: "Use as mesmas credenciais do portal. A senha é usada apenas para autenticação e não é armazenada.",
-      },
-      {
-        title: "Limitações",
-        content: "O modo Portal pode ter funcionalidades limitadas dependendo das permissões da sua conta. O modo API é recomendado para acesso completo.",
-      },
-    ],
-    notes: [
-      "Se você tem acesso ao App ID e App Secret, prefira o modo API para maior estabilidade.",
-    ],
-  },
+  growatt:
+    `Growatt (Em breve):
+Em muitos cenários é possível gerar um API token no portal Growatt (Settings → Account Management → API Key). Use esse token para acesso a plantas e dados.`,
 
-  // ── Solis Cloud ──
-  {
-    providerId: "solis_cloud",
-    modeId: "api",
-    title: "Como conectar Solis Cloud",
-    steps: [
-      {
-        title: "Acesse o Solis Cloud",
-        content: "Entre em m.ginlong.com ou soliscloud.com com sua conta.",
-      },
-      {
-        title: "Vá em API Management",
-        content: 'No menu, procure "API Management" ou "Gerenciamento de API". Se não aparecer, sua conta pode não ter permissão.',
-      },
-      {
-        title: "Gere ou copie suas chaves",
-        content: "Copie o API Key e API Secret. Se não houver, clique em gerar.",
-      },
-      {
-        title: "Cole aqui e conecte",
-        content: "Informe as chaves no formulário e clique em Conectar.",
-      },
-    ],
-    notes: [
-      "Se 'Gerenciamento de API' não aparece, sua conta pode não ter permissão. Peça ao proprietário da conta ou instalador para habilitar.",
-      "Em alguns países, é necessário solicitar acesso à API por e-mail para apiservice@ginlong.com.",
-    ],
-  },
+  huawei_fusionsolar:
+    `Huawei FusionSolar (Em breve):
+Integração via OpenAPI/OAuth. Requer app/credenciais e fluxo de token. Prepare usuário, senha e dados do portal FusionSolar; o acesso pode exigir habilitação.`,
 
-  // ── Growatt ──
-  {
-    providerId: "growatt",
-    modeId: "portal",
-    title: "Como conectar Growatt",
-    steps: [
-      {
-        title: "Acesse o ShineServer",
-        content: "Entre em server.growatt.com com sua conta.",
-      },
-      {
-        title: "Informe login e senha",
-        content: "Use as mesmas credenciais do portal ShineServer.",
-      },
-    ],
-    notes: [
-      "A Growatt limita o acesso à API para alguns parceiros. O modo Portal pode ter restrições.",
-    ],
-  },
+  goodwe_sems:
+    `GoodWe SEMS (Em breve):
+Normalmente usa autenticação via portal SEMS e token. Prepare usuário e senha do SEMS; algumas integrações exigem Plant ID.`,
 
-  // ── Huawei ──
-  {
-    providerId: "huawei_fusionsolar",
-    modeId: "api",
-    title: "Como conectar Huawei FusionSolar",
-    steps: [
-      {
-        title: "Acesse o FusionSolar",
-        content: "Entre em intl.fusionsolar.huawei.com com sua conta.",
-      },
-      {
-        title: "Obtenha o System Code",
-        content: "No menu, vá em System > Northbound Management e gere um System Code.",
-      },
-      {
-        title: "Informe as credenciais",
-        content: "Preencha usuário, senha e o System Code gerado.",
-      },
-    ],
-    notes: [
-      "O Northbound Interface precisa ser habilitado pela Huawei. Contate o suporte se não estiver disponível.",
-    ],
-  },
+  sungrow_isolarcloud:
+    `Sungrow iSolarCloud (Em breve):
+Geralmente requer App Key/Access Key via portal de desenvolvedor e/ou solicitação de credenciais. Prepare login do iSolarCloud e Plant ID.`,
 
-  // ── GoodWe ──
-  {
-    providerId: "goodwe_sems",
-    modeId: "portal",
-    title: "Como conectar GoodWe SEMS",
-    steps: [
-      {
-        title: "Acesse o SEMS Portal",
-        content: "Entre em semsportal.com com sua conta.",
-      },
-      {
-        title: "Informe e-mail e senha",
-        content: "Use as mesmas credenciais do SEMS Portal.",
-      },
-    ],
-    notes: [
-      "O acesso pode variar conforme a região. Em caso de erro, verifique se sua conta está ativa.",
-    ],
-  },
+  hoymiles_s_miles:
+    `Hoymiles (Em breve):
+Com frequência a API oficial não é pública para clientes finais; pode exigir contrato/documentação específica. Prepare dados do S-Miles Cloud e permissões do instalador.`,
+};
 
-  // ── Sungrow ──
-  {
-    providerId: "sungrow",
-    modeId: "portal",
-    title: "Como conectar Sungrow iSolarCloud",
-    steps: [
-      {
-        title: "Acesse o iSolarCloud",
-        content: "Entre em isolarcloud.com com sua conta.",
-      },
-      {
-        title: "Informe e-mail e senha",
-        content: "Use as mesmas credenciais do iSolarCloud.",
-      },
-    ],
-    notes: [
-      "A API do Sungrow pode exigir aprovação. Contate o suporte da Sungrow se necessário.",
-    ],
-  },
-
-  // ── SolarEdge ──
-  {
-    providerId: "solaredge",
-    modeId: "api_key",
-    title: "Como conectar SolarEdge",
-    steps: [
-      {
-        title: "Acesse o portal SolarEdge",
-        content: "Entre em monitoring.solaredge.com e faça login com sua conta.",
-      },
-      {
-        title: "Abra sua conta",
-        content: 'Clique no nome do usuário no canto superior direito e selecione "Minha Conta".',
-      },
-      {
-        title: "Vá em Dados da empresa",
-        content: 'Dentro de "Minha Conta", clique em "Dados da empresa".',
-      },
-      {
-        title: "Habilite o Acesso à API",
-        content: 'Role a página até a seção "Acesso à API". Marque "I have read and agree SolarEdge API T&C" e clique em Salvar.',
-      },
-      {
-        title: "Copie a API Key",
-        content: "Após salvar, a API Key será exibida. Copie e cole no campo abaixo.",
-      },
-    ],
-    notes: [
-      'Se a seção "Acesso à API" não aparece, sua conta não tem permissão de Administrador. Peça acesso ao instalador ou proprietário do sistema.',
-      "O Site ID é opcional — se não informado, o sistema tentará listar todos os sites da conta.",
-    ],
-  },
-];
-
-export function getTutorial(providerId: string, modeId: string): ProviderTutorial | undefined {
-  return PROVIDER_TUTORIALS.find((t) => t.providerId === providerId && t.modeId === modeId);
+export function getTutorial(providerId: string): string | undefined {
+  return PROVIDER_TUTORIALS[providerId];
 }

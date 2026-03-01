@@ -4,11 +4,10 @@ import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "
 /** Connect a monitoring provider */
 export async function connectProvider(
   provider: string,
-  credentials: Record<string, string>,
-  mode?: string
+  credentials: Record<string, string>
 ): Promise<{ success: boolean; integration_id?: string; error?: string }> {
   const { data, error } = await supabase.functions.invoke("monitoring-connect", {
-    body: { provider, credentials, mode },
+    body: { provider, credentials },
   });
   if (error) return { success: false, error: error.message };
   if (data?.error) return { success: false, error: data.error };

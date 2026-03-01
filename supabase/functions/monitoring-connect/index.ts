@@ -14,29 +14,26 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-/** Solarman Business API — obtain access token using platform credentials */
-async function solarmanAuthenticate(email: string, password: string) {
-  const appId = Deno.env.get("SOLARMAN_APP_ID");
-  const appSecret = Deno.env.get("SOLARMAN_APP_SECRET");
-
-  if (!appId || !appSecret) {
-    throw new Error("Platform credentials (SOLARMAN_APP_ID/SECRET) not configured");
-  }
-
-  // SHA-256 hex of password
+/** Solarman Business API — obtain access token */
+async function solarmanAuthenticate(creds: {
+  appId: string;
+  appSecret: string;
+  email: string;
+  password: string;
+}) {
   const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(creds.password));
   const hashHex = Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  const url = `https://api.solarmanpv.com/account/v1.0/token?appId=${encodeURIComponent(appId)}&language=en`;
+  const url = `https://api.solarmanpv.com/account/v1.0/token?appId=${encodeURIComponent(creds.appId)}&language=en`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      appSecret,
-      email,
+      appSecret: creds.appSecret,
+      email: creds.email,
       password: hashHex,
     }),
   });
@@ -84,7 +81,6 @@ serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    // Resolve tenant
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("tenant_id")
@@ -96,27 +92,23 @@ serve(async (req) => {
     }
     const tenantId = profile.tenant_id;
 
-    // Parse body
     const body = await req.json();
-    const { provider, credentials, mode } = body;
+    const { provider, credentials } = body;
 
-    if (!provider) {
-      return jsonResponse({ error: "Missing provider" }, 400);
+    if (!provider || !credentials) {
+      return jsonResponse({ error: "Missing provider or credentials" }, 400);
     }
 
-    // Extract email/login and password from credentials object
-    const email = credentials?.email || credentials?.login || "";
-    const password = credentials?.password || "";
+    // ── Solarman Business API ──
+    if (provider === "solarman_business_api") {
+      const { appId, appSecret, email, password } = credentials;
+      if (!appId || !appSecret || !email || !password) {
+        return jsonResponse({ error: "Missing credentials: appId, appSecret, email, password" }, 400);
+      }
 
-    if (!email || !password) {
-      return jsonResponse({ error: "Missing credentials: email/login and password" }, 400);
-    }
-
-    // ── Solarman Business API mode ──
-    if (provider === "solarman_business" && (!mode || mode === "api")) {
       let tokenResult: Awaited<ReturnType<typeof solarmanAuthenticate>>;
       try {
-        tokenResult = await solarmanAuthenticate(email, password);
+        tokenResult = await solarmanAuthenticate({ appId, appSecret, email, password });
       } catch (err) {
         await supabaseAdmin.from("monitoring_integrations").upsert(
           {
@@ -124,7 +116,7 @@ serve(async (req) => {
             provider,
             status: "error",
             sync_error: (err as Error).message?.slice(0, 500) || "Authentication failed",
-            credentials: { email },
+            credentials: { appId, email },
             tokens: {},
             updated_at: new Date().toISOString(),
           },
@@ -151,7 +143,7 @@ serve(async (req) => {
             provider,
             status: "connected",
             sync_error: null,
-            credentials: { email },
+            credentials: { appId, email },
             tokens: {
               access_token: tokenResult.access_token,
               token_type: tokenResult.token_type,
@@ -174,27 +166,70 @@ serve(async (req) => {
         acao: "monitoring.integration.connected",
         tabela: "monitoring_integrations",
         registro_id: integration?.id,
-        dados_novos: { provider, status: "connected", mode: mode || "api" },
+        dados_novos: { provider, status: "connected" },
       });
 
-      return jsonResponse({
-        success: true,
-        integration_id: integration?.id,
-        status: "connected",
-      });
+      return jsonResponse({ success: true, integration_id: integration?.id, status: "connected" });
     }
 
-    // ── Portal mode (any provider) — save as connected_pending ──
-    if (mode === "portal") {
+    // ── Solis Cloud (API Key) ──
+    if (provider === "solis_cloud") {
+      const { apiKey, apiSecret } = credentials;
+      if (!apiKey || !apiSecret) {
+        return jsonResponse({ error: "Missing credentials: apiKey, apiSecret" }, 400);
+      }
+
+      // TODO: When KMS/encryption is available, encrypt apiSecret before storing
       const { data: integration, error: upsertErr } = await supabaseAdmin
         .from("monitoring_integrations")
         .upsert(
           {
             tenant_id: tenantId,
             provider,
-            status: "connected_pending",
+            status: "connected",
             sync_error: null,
-            credentials: { email },
+            credentials: { apiKey },
+            tokens: { apiSecret },
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "tenant_id,provider" },
+        )
+        .select("id, status")
+        .single();
+
+      if (upsertErr) throw upsertErr;
+
+      await supabaseAdmin.from("audit_logs").insert({
+        tenant_id: tenantId,
+        user_id: userId,
+        acao: "monitoring.integration.connected",
+        tabela: "monitoring_integrations",
+        registro_id: integration?.id,
+        dados_novos: { provider, status: "connected" },
+      });
+
+      return jsonResponse({ success: true, integration_id: integration?.id, status: "connected" });
+    }
+
+    // ── SolarEdge (API Key) ──
+    if (provider === "solaredge") {
+      const { apiKey, siteId } = credentials;
+      if (!apiKey) {
+        return jsonResponse({ error: "Missing credentials: apiKey" }, 400);
+      }
+
+      const creds: Record<string, string> = { apiKey };
+      if (siteId) creds.siteId = siteId;
+
+      const { data: integration, error: upsertErr } = await supabaseAdmin
+        .from("monitoring_integrations")
+        .upsert(
+          {
+            tenant_id: tenantId,
+            provider,
+            status: "connected",
+            sync_error: null,
+            credentials: creds,
             tokens: {},
             updated_at: new Date().toISOString(),
           },
@@ -211,17 +246,13 @@ serve(async (req) => {
         acao: "monitoring.integration.connected",
         tabela: "monitoring_integrations",
         registro_id: integration?.id,
-        dados_novos: { provider, status: "connected_pending", mode: "portal" },
+        dados_novos: { provider, status: "connected" },
       });
 
-      return jsonResponse({
-        success: true,
-        integration_id: integration?.id,
-        status: "connected_pending",
-      });
+      return jsonResponse({ success: true, integration_id: integration?.id, status: "connected" });
     }
 
-    return jsonResponse({ error: "Unsupported provider or mode" }, 400);
+    return jsonResponse({ error: `Unsupported provider: ${provider}` }, 400);
   } catch (err) {
     console.error("monitoring-connect error:", err);
     return jsonResponse({ error: (err as Error).message || "Internal server error" }, 500);
