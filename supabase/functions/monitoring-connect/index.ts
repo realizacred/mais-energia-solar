@@ -330,44 +330,73 @@ async function testGrowatt(creds: Record<string, string>) {
 }
 
 // ── Hoymiles S-Miles ──
+// Updated API flow (2025): region_c → login_c with MD5.SHA256Base64 password
 async function testHoymiles(creds: Record<string, string>) {
   const username = creds.username || creds.login || creds.email || "";
   const password = creds.password || "";
   if (!username || !password) throw new Error("Missing: username/login, password");
 
-  // Hoymiles API requires MD5 hash of password
   const { createHash } = await import("node:crypto");
-  const passwordMd5 = createHash("md5").update(password).digest("hex");
-  const uniqueId = crypto.randomUUID();
 
-  // Try multiple known Hoymiles API base URLs
-  const baseUrls = [
-    "https://global.hoymiles.com/platform/api/gateway",
-    "https://neapi.hoymiles.com/pvm-api/api/0",
+  // Hoymiles V3 password encoding: MD5(hex) + "." + SHA256(base64)
+  const md5Hex = createHash("md5").update(password).digest("hex");
+  const sha256Base64 = createHash("sha256").update(password).digest("base64");
+  const encodedPassword = `${md5Hex}.${sha256Base64}`;
+
+  // Step 1: Discover region-specific login URL
+  const regionUrls = [
+    "https://euapi.hoymiles.com",
+    "https://neapi.hoymiles.com",
+    "https://global.hoymiles.com",
   ];
 
-  let lastError = "Hoymiles login failed";
-  for (const baseUrl of baseUrls) {
+  let loginBaseUrl = "";
+  for (const regionBase of regionUrls) {
     try {
-      const loginUrl = baseUrl.includes("neapi")
-        ? `${baseUrl}/admin/login`
-        : `${baseUrl}/iam/auth_login`;
-
-      const bodyPayload = baseUrl.includes("neapi")
-        ? { userName: username, password: passwordMd5, uniqueId }
-        : { user_name: username, password: passwordMd5, mi_type: "en" };
-
-      console.log(`[Hoymiles] Trying login at ${loginUrl}`);
-      const res = await fetch(loginUrl, {
+      console.log(`[Hoymiles] Trying region discovery at ${regionBase}/iam/pub/0/c/region_c`);
+      const regionRes = await fetch(`${regionBase}/iam/pub/0/c/region_c`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({ email: username }),
+      });
+      const regionText = await regionRes.text();
+      console.log(`[Hoymiles] Region response status=${regionRes.status}, body=${regionText.substring(0, 300)}`);
+      if (regionText.startsWith("<")) continue;
+      const regionJson = JSON.parse(regionText);
+      if (regionJson.status === "0" || regionJson.status === 0) {
+        loginBaseUrl = regionJson.data?.login_url || "";
+        if (loginBaseUrl) {
+          console.log(`[Hoymiles] Region resolved login_url=${loginBaseUrl}`);
+          break;
+        }
+      }
+    } catch (e) {
+      console.log(`[Hoymiles] Region ${regionBase} error: ${(e as Error).message}`);
+    }
+  }
+
+  // Fallback: try known base URLs directly
+  const loginUrls = loginBaseUrl
+    ? [loginBaseUrl]
+    : ["https://euapi.hoymiles.com", "https://neapi.hoymiles.com", "https://global.hoymiles.com"];
+
+  let lastError = "Hoymiles login failed";
+  for (const baseUrl of loginUrls) {
+    try {
+      const loginEndpoint = `${baseUrl}/iam/pub/0/c/login_c`;
+      const bodyPayload = { user_name: username, password: encodedPassword };
+
+      console.log(`[Hoymiles] Trying login at ${loginEndpoint}`);
+      const res = await fetch(loginEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
         body: JSON.stringify(bodyPayload),
       });
 
       const text = await res.text();
-      console.log(`[Hoymiles] Response status=${res.status}, body=${text.substring(0, 300)}`);
+      console.log(`[Hoymiles] Login response status=${res.status}, body=${text.substring(0, 300)}`);
 
-      if (text.startsWith("<")) continue; // HTML error page, try next
+      if (text.startsWith("<")) continue;
 
       const json = JSON.parse(text);
       if (json.status !== "0" && json.status !== 0) {
@@ -381,10 +410,10 @@ async function testHoymiles(creds: Record<string, string>) {
         continue;
       }
 
-      console.log(`[Hoymiles] Login OK via ${loginUrl}, userId=${json.data?.userId}`);
+      console.log(`[Hoymiles] Login OK via ${loginEndpoint}, userId=${json.data?.userId}`);
       return {
         credentials: { username },
-        tokens: { token, userId: json.data?.userId || "", passwordMd5, baseUrl },
+        tokens: { token, userId: json.data?.userId || "", encodedPassword, baseUrl },
       };
     } catch (e) {
       console.log(`[Hoymiles] ${baseUrl} error: ${(e as Error).message}`);
