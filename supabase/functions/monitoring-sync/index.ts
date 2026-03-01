@@ -492,11 +492,13 @@ async function growattMetrics(cookies: string, plantId: string, server?: string)
 
 // ── OpenAPI Business (token header) ──
 // Docs: token is a non-expiring key sent in "token" HTTP header
-// v1 API: GET endpoints for plant listing
-// v4 API: POST /v4/new-api/queryLastData with x-www-form-urlencoded body
+// Growatt OpenAPI v1: plant listing with correct HTTP methods per official docs
+// Doc: https://growatt.pl/wp-content/uploads/2020/01/Growatt-Server-Open-API-protocol-standards.pdf
+// Rules: c_user_list=GET, plant/list=GET, perpage max=100, rate delay between calls
 async function growattApiListPlants(apiKey: string): Promise<NormalizedPlant[]> {
-  const hdr = { "token": apiKey, "Content-Type": "application/x-www-form-urlencoded" };
+  const tokenHdr = { "token": apiKey };
   const allPlants: NormalizedPlant[] = [];
+  const rateDelay = () => new Promise<void>((r) => setTimeout(r, 2500));
 
   function parsePlants(plants: any[], source: string): NormalizedPlant[] {
     return plants.map((r: any) => ({
@@ -511,50 +513,39 @@ async function growattApiListPlants(apiKey: string): Promise<NormalizedPlant[]> 
     }));
   }
 
-  // Strategy 1: POST /v1/user/c_user_list (business accounts)
-  console.log("[Growatt API] Strategy 1: POST c_user_list...");
+  // Strategy 1: GET /v1/user/c_user_list (business accounts — doc says GET)
+  console.log("[Growatt API] Strategy 1: GET c_user_list...");
   try {
-    const usersRes = await fetch("https://openapi.growatt.com/v1/user/c_user_list", {
-      method: "POST", headers: hdr, body: "page=1&perpage=200",
+    const usersRes = await fetch("https://openapi.growatt.com/v1/user/c_user_list?page=1&perpage=100", {
+      headers: tokenHdr,
     });
     const usersJson = await usersRes.json().catch(() => ({}));
     console.log("[Growatt API] c_user_list:", JSON.stringify(usersJson).slice(0, 500));
-    const users = (usersJson.data?.c_user || []) as any[];
+    const users = (usersJson.data?.c_user || usersJson.data?.c_users || []) as any[];
 
     for (const user of users) {
       const userId = user.c_user_id;
       if (!userId) continue;
+      await rateDelay();
       try {
-        const pRes = await fetch("https://openapi.growatt.com/v1/plant/list", {
-          method: "POST", headers: hdr, body: `c_user_id=${userId}&page=1&perpage=200`,
+        const pRes = await fetch(`https://openapi.growatt.com/v1/plant/list?c_user_id=${userId}&page=1&perpage=100`, {
+          headers: tokenHdr,
         });
         const pJson = await pRes.json().catch(() => ({}));
+        console.log(`[Growatt API] plants for c_user ${userId}:`, JSON.stringify(pJson).slice(0, 300));
         const plants = pJson.data?.plants || [];
         allPlants.push(...parsePlants(plants, `c_user_${userId}`));
       } catch {}
     }
   } catch (e) { console.warn("[Growatt API] c_user_list failed:", (e as Error).message); }
 
-  // Strategy 2: POST /v1/plant/list direct (personal / simple company accounts)
+  // Strategy 2: GET /v1/plant/list (personal/company accounts — doc says GET)
   if (allPlants.length === 0) {
-    console.log("[Growatt API] Strategy 2: POST plant/list...");
+    await rateDelay();
+    console.log("[Growatt API] Strategy 2: GET plant/list...");
     try {
-      const res = await fetch("https://openapi.growatt.com/v1/plant/list", {
-        method: "POST", headers: hdr, body: "page=1&perpage=200",
-      });
-      const json = await res.json().catch(() => ({}));
-      console.log("[Growatt API] plant/list POST:", JSON.stringify(json).slice(0, 500));
-      const plants = json.data?.plants || [];
-      allPlants.push(...parsePlants(plants, "direct_post"));
-    } catch (e) { console.warn("[Growatt API] plant/list POST failed:", (e as Error).message); }
-  }
-
-  // Strategy 3: GET /v1/plant/list (legacy fallback)
-  if (allPlants.length === 0) {
-    console.log("[Growatt API] Strategy 3: GET plant/list...");
-    try {
-      const res = await fetch("https://openapi.growatt.com/v1/plant/list?page=1&perpage=200", {
-        headers: { "token": apiKey },
+      const res = await fetch("https://openapi.growatt.com/v1/plant/list?page=1&perpage=100", {
+        headers: tokenHdr,
       });
       const json = await res.json().catch(() => ({}));
       console.log("[Growatt API] plant/list GET:", JSON.stringify(json).slice(0, 500));
@@ -563,13 +554,31 @@ async function growattApiListPlants(apiKey: string): Promise<NormalizedPlant[]> 
     } catch (e) { console.warn("[Growatt API] plant/list GET failed:", (e as Error).message); }
   }
 
-  // Strategy 4: ShineServer newPlantAPI.do with token (some Growatt versions support this)
+  // Strategy 3: POST /v1/plant/list (fallback — some API versions accept POST)
+  if (allPlants.length === 0) {
+    await rateDelay();
+    console.log("[Growatt API] Strategy 3: POST plant/list...");
+    try {
+      const res = await fetch("https://openapi.growatt.com/v1/plant/list", {
+        method: "POST",
+        headers: { ...tokenHdr, "Content-Type": "application/x-www-form-urlencoded" },
+        body: "page=1&perpage=100",
+      });
+      const json = await res.json().catch(() => ({}));
+      console.log("[Growatt API] plant/list POST:", JSON.stringify(json).slice(0, 500));
+      const plants = json.data?.plants || [];
+      allPlants.push(...parsePlants(plants, "direct_post"));
+    } catch (e) { console.warn("[Growatt API] plant/list POST failed:", (e as Error).message); }
+  }
+
+  // Strategy 4: ShineServer newPlantAPI.do with token
   if (allPlants.length === 0) {
     console.log("[Growatt API] Strategy 4: ShineServer getAllPlantList...");
     for (const baseUrl of ["https://openapi.growatt.com", "https://server.growatt.com", "https://server-api.growatt.com"]) {
+      await rateDelay();
       try {
-        const res = await fetch(`${baseUrl}/newPlantAPI.do?op=getAllPlantList&currPage=1&pageSize=200`, {
-          headers: { "token": apiKey, Cookie: `onePlantId=0; token=${apiKey}` },
+        const res = await fetch(`${baseUrl}/newPlantAPI.do?op=getAllPlantList&currPage=1&pageSize=100`, {
+          headers: { ...tokenHdr, Cookie: `onePlantId=0; token=${apiKey}` },
         });
         const text = await res.text();
         let json: any;
@@ -582,22 +591,6 @@ async function growattApiListPlants(apiKey: string): Promise<NormalizedPlant[]> 
         }
       } catch {}
     }
-  }
-
-  // Strategy 5: Try /v1/plant/user_plant_list (some API versions)
-  if (allPlants.length === 0) {
-    console.log("[Growatt API] Strategy 5: user_plant_list...");
-    try {
-      const res = await fetch("https://openapi.growatt.com/v1/plant/user_plant_list", {
-        method: "POST", headers: hdr, body: "page=1&perpage=200",
-      });
-      const json = await res.json().catch(() => ({}));
-      console.log("[Growatt API] user_plant_list:", JSON.stringify(json).slice(0, 500));
-      const plants = json.data?.plants || json.data || [];
-      if (Array.isArray(plants) && plants.length > 0) {
-        allPlants.push(...parsePlants(plants, "user_plant_list"));
-      }
-    } catch {}
   }
 
   console.log(`[Growatt API] Total plants discovered: ${allPlants.length}`);
