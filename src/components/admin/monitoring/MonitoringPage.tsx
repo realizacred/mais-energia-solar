@@ -214,7 +214,15 @@ export default function MonitoringPage() {
                           <Sun className="h-5 w-5 text-secondary" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-foreground truncate">{prov.label}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground truncate">{prov.label}</p>
+                            {prov.status === "active" && (
+                              <Badge className="text-2xs bg-success/15 text-success border-success/30">Produção</Badge>
+                            )}
+                            {prov.status === "beta" && (
+                              <Badge className="text-2xs bg-warning/15 text-warning border-warning/30">Beta</Badge>
+                            )}
+                          </div>
                           <p className="text-2xs text-muted-foreground truncate">{prov.description}</p>
                         </div>
                       </div>
@@ -285,20 +293,26 @@ export default function MonitoringPage() {
                         <Sun className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                     <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-foreground/80 truncate">{prov.label}</p>
-                          {(prov.status === "coming_soon" || prov.status === "stub") && (
-                            <Badge variant="outline" className="text-2xs border-border/50 text-muted-foreground">Em breve</Badge>
+                          {prov.status === "active" && (
+                            <Badge className="text-2xs bg-success/15 text-success border-success/30">Produção</Badge>
+                          )}
+                          {prov.status === "beta" && (
+                            <Badge className="text-2xs bg-warning/15 text-warning border-warning/30">Beta</Badge>
+                          )}
+                          {(prov.status === "stub" || prov.status === "coming_soon") && (
+                            <Badge variant="outline" className="text-2xs border-border/50 text-muted-foreground">Planejado</Badge>
                           )}
                         </div>
                         <p className="text-2xs text-muted-foreground line-clamp-1 mt-0.5">{prov.description}</p>
                       </div>
                     </div>
                     <div>
-                      {(prov.status === "coming_soon" || prov.status === "stub") ? (
-                        <Button size="sm" variant="ghost" onClick={() => setConnectProvider(prov)} className="w-full h-8 text-muted-foreground hover:text-foreground">
+                      {(prov.status === "stub" || prov.status === "coming_soon") ? (
+                        <Button size="sm" variant="ghost" disabled className="w-full h-8 text-muted-foreground cursor-not-allowed opacity-60">
                           <Info className="h-3.5 w-3.5 mr-1.5" />
-                          Ver tutorial
+                          API ainda não implementada
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" onClick={() => setConnectProvider(prov)} className="w-full h-8">
