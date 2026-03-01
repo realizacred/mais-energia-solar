@@ -222,3 +222,6 @@ verify_jwt = false
 
 [functions.monitoring-sync]
 verify_jwt = false
+
+[functions.monitor-alert-engine]
+verify_jwt = false

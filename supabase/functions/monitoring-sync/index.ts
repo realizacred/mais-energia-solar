@@ -983,6 +983,32 @@ async function syncPlantsByProvider(
       const metrics = await metricsFn(p.external_id);
       const err = await upsertMetrics(ctx, p.id, metrics);
       if (err) errors.push(`Metrics ${p.external_id}: ${err}`); else metricsUpserted++;
+
+      // ── APPEND-ONLY: Save raw payload for audit trail ──
+      try {
+        await ctx.supabaseAdmin.from("monitor_provider_payloads").insert({
+          tenant_id: ctx.tenantId,
+          provider_id: ctx.provider,
+          entity: "metrics",
+          entity_id: p.external_id,
+          raw: metrics.metadata || {},
+        });
+      } catch (_) { /* non-blocking: audit insert failure is tolerable */ }
+
+      // ── APPEND-ONLY: Save realtime reading snapshot ──
+      try {
+        if (metrics.power_kw != null || metrics.energy_kwh != null) {
+          await ctx.supabaseAdmin.from("monitor_readings_realtime").insert({
+            tenant_id: ctx.tenantId,
+            plant_id: p.id,
+            ts: new Date().toISOString(),
+            power_w: metrics.power_kw != null ? metrics.power_kw * 1000 : null,
+            energy_kwh: metrics.energy_kwh,
+            status: "synced",
+            metadata: { source: "monitoring-sync", provider: ctx.provider },
+          });
+        }
+      } catch (_) { /* non-blocking */ }
     }
   }
 

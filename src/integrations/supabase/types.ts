@@ -6718,10 +6718,14 @@ export type Database = {
         Row: {
           amount_brl: number
           created_at: string
+          currency: string | null
           due_date: string | null
           id: string
+          metadata: Json | null
           notes: string | null
           paid_at: string | null
+          provider: string | null
+          provider_invoice_id: string | null
           reference_month: number
           reference_year: number
           status: string
@@ -6731,10 +6735,14 @@ export type Database = {
         Insert: {
           amount_brl: number
           created_at?: string
+          currency?: string | null
           due_date?: string | null
           id?: string
+          metadata?: Json | null
           notes?: string | null
           paid_at?: string | null
+          provider?: string | null
+          provider_invoice_id?: string | null
           reference_month: number
           reference_year: number
           status?: string
@@ -6744,10 +6752,14 @@ export type Database = {
         Update: {
           amount_brl?: number
           created_at?: string
+          currency?: string | null
           due_date?: string | null
           id?: string
+          metadata?: Json | null
           notes?: string | null
           paid_at?: string | null
+          provider?: string | null
+          provider_invoice_id?: string | null
           reference_month?: number
           reference_year?: number
           status?: string
@@ -6764,6 +6776,70 @@ export type Database = {
           },
           {
             foreignKeyName: "monitor_billing_records_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_channels: {
+        Row: {
+          channel_type: string
+          created_at: string
+          device_id: string | null
+          id: string
+          installed_power_wp: number | null
+          is_active: boolean
+          metadata: Json | null
+          name: string
+          plant_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel_type?: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          installed_power_wp?: number | null
+          is_active?: boolean
+          metadata?: Json | null
+          name?: string
+          plant_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel_type?: string
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          installed_power_wp?: number | null
+          is_active?: boolean
+          metadata?: Json | null
+          name?: string
+          plant_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_channels_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_channels_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_channels_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6833,9 +6909,11 @@ export type Database = {
       }
       monitor_events: {
         Row: {
+          channel_id: string | null
           created_at: string
           device_id: string | null
           ends_at: string | null
+          fingerprint: string | null
           id: string
           is_open: boolean
           message: string | null
@@ -6843,6 +6921,7 @@ export type Database = {
           provider_event_id: string | null
           provider_id: string | null
           provider_plant_id: string | null
+          resolved_at: string | null
           severity: string
           starts_at: string
           tenant_id: string
@@ -6851,9 +6930,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          channel_id?: string | null
           created_at?: string
           device_id?: string | null
           ends_at?: string | null
+          fingerprint?: string | null
           id?: string
           is_open?: boolean
           message?: string | null
@@ -6861,6 +6942,7 @@ export type Database = {
           provider_event_id?: string | null
           provider_id?: string | null
           provider_plant_id?: string | null
+          resolved_at?: string | null
           severity?: string
           starts_at?: string
           tenant_id: string
@@ -6869,9 +6951,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          channel_id?: string | null
           created_at?: string
           device_id?: string | null
           ends_at?: string | null
+          fingerprint?: string | null
           id?: string
           is_open?: boolean
           message?: string | null
@@ -6879,6 +6963,7 @@ export type Database = {
           provider_event_id?: string | null
           provider_id?: string | null
           provider_plant_id?: string | null
+          resolved_at?: string | null
           severity?: string
           starts_at?: string
           tenant_id?: string
@@ -7026,6 +7111,51 @@ export type Database = {
           },
         ]
       }
+      monitor_plans: {
+        Row: {
+          created_at: string
+          currency: string
+          display_order: number
+          features: Json
+          id: string
+          interval: string
+          is_active: boolean
+          max_plants: number | null
+          name: string
+          price_cents: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          display_order?: number
+          features?: Json
+          id?: string
+          interval?: string
+          is_active?: boolean
+          max_plants?: number | null
+          name: string
+          price_cents?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          display_order?: number
+          features?: Json
+          id?: string
+          interval?: string
+          is_active?: boolean
+          max_plants?: number | null
+          name?: string
+          price_cents?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       monitor_plants: {
         Row: {
           city: string | null
@@ -7034,7 +7164,9 @@ export type Database = {
           id: string
           installed_power_kwp: number | null
           is_active: boolean
+          last_seen_at: string | null
           lat: number | null
+          legacy_plant_id: string | null
           lng: number | null
           metadata: Json | null
           name: string
@@ -7051,7 +7183,9 @@ export type Database = {
           id?: string
           installed_power_kwp?: number | null
           is_active?: boolean
+          last_seen_at?: string | null
           lat?: number | null
+          legacy_plant_id?: string | null
           lng?: number | null
           metadata?: Json | null
           name: string
@@ -7068,7 +7202,9 @@ export type Database = {
           id?: string
           installed_power_kwp?: number | null
           is_active?: boolean
+          last_seen_at?: string | null
           lat?: number | null
+          legacy_plant_id?: string | null
           lng?: number | null
           metadata?: Json | null
           name?: string
@@ -7180,19 +7316,80 @@ export type Database = {
           },
         ]
       }
+      monitor_readings_realtime: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          current_a: number | null
+          device_id: string | null
+          energy_kwh: number | null
+          id: string
+          metadata: Json | null
+          plant_id: string
+          power_w: number | null
+          raw_payload_id: string | null
+          status: string | null
+          temperature_c: number | null
+          tenant_id: string
+          ts: string
+          voltage_v: number | null
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          current_a?: number | null
+          device_id?: string | null
+          energy_kwh?: number | null
+          id?: string
+          metadata?: Json | null
+          plant_id: string
+          power_w?: number | null
+          raw_payload_id?: string | null
+          status?: string | null
+          temperature_c?: number | null
+          tenant_id: string
+          ts?: string
+          voltage_v?: number | null
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          current_a?: number | null
+          device_id?: string | null
+          energy_kwh?: number | null
+          id?: string
+          metadata?: Json | null
+          plant_id?: string
+          power_w?: number | null
+          raw_payload_id?: string | null
+          status?: string | null
+          temperature_c?: number | null
+          tenant_id?: string
+          ts?: string
+          voltage_v?: number | null
+        }
+        Relationships: []
+      }
       monitor_subscriptions: {
         Row: {
           billing_cycle: string
+          cancel_at_period_end: boolean | null
           cancelled_at: string | null
           client_id: string | null
           created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
           expires_at: string | null
           id: string
           max_plants: number | null
           notes: string | null
+          plan_id: string | null
           plan_name: string
           plant_ids: string[] | null
           price_brl: number
+          provider: string | null
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
           started_at: string
           status: string
           tenant_id: string
@@ -7200,16 +7397,23 @@ export type Database = {
         }
         Insert: {
           billing_cycle?: string
+          cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           client_id?: string | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           expires_at?: string | null
           id?: string
           max_plants?: number | null
           notes?: string | null
+          plan_id?: string | null
           plan_name?: string
           plant_ids?: string[] | null
           price_brl?: number
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
           started_at?: string
           status?: string
           tenant_id?: string
@@ -7217,16 +7421,23 @@ export type Database = {
         }
         Update: {
           billing_cycle?: string
+          cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           client_id?: string | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           expires_at?: string | null
           id?: string
           max_plants?: number | null
           notes?: string | null
+          plan_id?: string | null
           plan_name?: string
           plant_ids?: string[] | null
           price_brl?: number
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
           started_at?: string
           status?: string
           tenant_id?: string
@@ -7238,6 +7449,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plans"
             referencedColumns: ["id"]
           },
           {
@@ -18634,6 +18852,7 @@ export type Database = {
         Returns: string
       }
       auto_mark_missed_appointments: { Args: never; Returns: undefined }
+      bridge_solar_to_monitor_plants: { Args: never; Returns: Json }
       can_access_wa_conversation: {
         Args: { _conversation_id: string; _user_id?: string }
         Returns: boolean
