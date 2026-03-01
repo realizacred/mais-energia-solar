@@ -192,6 +192,76 @@ async function solisMetrics(apiId: string, apiSecret: string, stationId: string)
   } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
 }
 
+// Solis inverter list → monitor_devices
+interface NormalizedDevice {
+  provider_device_id: string; type: string; model: string | null;
+  serial: string | null; status: string; metadata: Record<string, unknown>;
+}
+
+async function solisListInverters(apiId: string, apiSecret: string): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
+  const result: { stationId: string; devices: NormalizedDevice[] }[] = [];
+  let pageNo = 1;
+  while (true) {
+    const json = await solisFetch(apiId, apiSecret, "/v1/api/inverterList", { pageNo, pageSize: 100 });
+    const data = json.data as any;
+    const records = data?.page?.records || data?.records || [];
+    if (!records.length) break;
+    for (const r of records) {
+      const stationId = String(r.stationId || r.plantId || "");
+      const device: NormalizedDevice = {
+        provider_device_id: String(r.id || r.sn || ""),
+        type: "inverter",
+        model: r.inverterType || r.model || r.machineName || null,
+        serial: r.sn || r.inverterSn || null,
+        status: r.state === 1 ? "online" : r.state === 2 ? "offline" : r.state === 3 ? "alarm" : "unknown",
+        metadata: r,
+      };
+      const existing = result.find((x) => x.stationId === stationId);
+      if (existing) existing.devices.push(device); else result.push({ stationId, devices: [device] });
+    }
+    if (pageNo * 100 >= Number(data?.page?.total || 0)) break;
+    pageNo++;
+  }
+  return result;
+}
+
+// Solis alarm list → monitor_events
+interface NormalizedAlarm {
+  provider_event_id: string; provider_plant_id: string; provider_device_id: string | null;
+  severity: string; type: string; title: string; message: string | null;
+  starts_at: string; ends_at: string | null; is_open: boolean;
+}
+
+async function solisListAlarms(apiId: string, apiSecret: string): Promise<NormalizedAlarm[]> {
+  const alarms: NormalizedAlarm[] = [];
+  let pageNo = 1;
+  while (true) {
+    const json = await solisFetch(apiId, apiSecret, "/v1/api/alarmList", { pageNo, pageSize: 100 });
+    const data = json.data as any;
+    const records = data?.page?.records || data?.records || [];
+    if (!records.length) break;
+    for (const r of records) {
+      const level = String(r.alarmLevel || r.level || "").toLowerCase();
+      const severity = level === "1" || level === "critical" ? "critical" : level === "2" || level === "major" ? "warn" : "info";
+      alarms.push({
+        provider_event_id: String(r.id || r.alarmId || `${r.sn}_${r.alarmBeginTime}`),
+        provider_plant_id: String(r.stationId || r.plantId || ""),
+        provider_device_id: r.sn || r.inverterSn || null,
+        severity,
+        type: r.alarmCode ? "inverter_fault" : "other",
+        title: r.alarmMsg || r.alarmMessage || r.alarmCode || "Alarme Solis",
+        message: [r.alarmMsg, r.alarmCode, r.sn].filter(Boolean).join(" | "),
+        starts_at: r.alarmBeginTime ? new Date(Number(r.alarmBeginTime)).toISOString() : new Date().toISOString(),
+        ends_at: r.alarmEndTime ? new Date(Number(r.alarmEndTime)).toISOString() : null,
+        is_open: !r.alarmEndTime,
+      });
+    }
+    if (pageNo * 100 >= Number(data?.page?.total || 0)) break;
+    pageNo++;
+  }
+  return alarms;
+}
+
 // ═══════════════════════════════════════════════════════════
 // Deye Cloud
 // ═══════════════════════════════════════════════════════════
@@ -875,6 +945,10 @@ async function syncPlantsByProvider(
   metricsFn: ((extId: string) => Promise<DailyMetrics>) | null,
   mode: string,
   selectedPlantIds?: string[] | null,
+  extras?: {
+    devicesFn?: () => Promise<{ stationId: string; devices: NormalizedDevice[] }[]>;
+    alarmsFn?: () => Promise<NormalizedAlarm[]>;
+  },
 ) {
   let plantsUpserted = 0, metricsUpserted = 0;
   const errors: string[] = [];
@@ -910,6 +984,54 @@ async function syncPlantsByProvider(
       const err = await upsertMetrics(ctx, p.id, metrics);
       if (err) errors.push(`Metrics ${p.external_id}: ${err}`); else metricsUpserted++;
     }
+  }
+
+  // ── Devices (inversores/coletores) ──
+  if (mode === "full" && extras?.devicesFn) {
+    try {
+      const deviceGroups = await extras.devicesFn();
+      const { data: dbPlants } = await ctx.supabaseAdmin.from("solar_plants").select("id, external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
+      const plantMap = new Map((dbPlants || []).map((p: any) => [String(p.external_id), p.id]));
+
+      let devCount = 0;
+      for (const group of deviceGroups) {
+        const plantId = plantMap.get(group.stationId);
+        if (!plantId) continue;
+        for (const d of group.devices) {
+          const { error } = await ctx.supabaseAdmin.from("monitor_devices").upsert({
+            tenant_id: ctx.tenantId, plant_id: plantId, provider_device_id: d.provider_device_id,
+            type: d.type, model: d.model, serial: d.serial, status: d.status,
+            metadata: d.metadata, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+          }, { onConflict: "tenant_id,provider_device_id" });
+          if (error) errors.push(`Device ${d.serial}: ${error.message}`); else devCount++;
+        }
+      }
+      console.log(`[Sync] Upserted ${devCount} devices`);
+    } catch (err) { errors.push(`Devices: ${(err as Error).message}`); }
+  }
+
+  // ── Alarms / Events ──
+  if (mode === "full" && extras?.alarmsFn) {
+    try {
+      const alarms = await extras.alarmsFn();
+      const { data: dbPlants } = await ctx.supabaseAdmin.from("solar_plants").select("id, external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
+      const plantMap = new Map((dbPlants || []).map((p: any) => [String(p.external_id), p.id]));
+
+      let almCount = 0;
+      for (const a of alarms) {
+        const plantId = plantMap.get(a.provider_plant_id);
+        if (!plantId) continue;
+        const { error } = await ctx.supabaseAdmin.from("monitor_events").upsert({
+          tenant_id: ctx.tenantId, plant_id: plantId, provider_event_id: a.provider_event_id,
+          provider_id: ctx.provider, provider_plant_id: a.provider_plant_id,
+          severity: a.severity, type: a.type, title: a.title, message: a.message,
+          starts_at: a.starts_at, ends_at: a.ends_at, is_open: a.is_open,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "tenant_id,provider_event_id" });
+        if (error) errors.push(`Alarm ${a.provider_event_id}: ${error.message}`); else almCount++;
+      }
+      console.log(`[Sync] Upserted ${almCount} alarms`);
+    } catch (err) { errors.push(`Alarms: ${(err as Error).message}`); }
   }
 
   return { plantsUpserted, metricsUpserted, errors };
@@ -990,7 +1112,17 @@ serve(async (req) => {
     } else if (p === "solis_cloud") {
       const { apiId } = credentials; const apiSecret = tokens.apiSecret as string;
       if (!apiId || !apiSecret) return jsonResponse({ error: "Missing credentials." }, 400);
-      result = await syncPlantsByProvider(ctx, () => solisListPlants(apiId, apiSecret), (eid) => solisMetrics(apiId, apiSecret, eid), mode, selectedPlantIds);
+      result = await syncPlantsByProvider(
+        ctx,
+        () => solisListPlants(apiId, apiSecret),
+        (eid) => solisMetrics(apiId, apiSecret, eid),
+        mode,
+        selectedPlantIds,
+        {
+          devicesFn: () => solisListInverters(apiId, apiSecret),
+          alarmsFn: () => solisListAlarms(apiId, apiSecret),
+        },
+      );
     } else if (p === "deye_cloud") {
       const at = tokens.access_token as string;
       const baseUrl = (credentials.baseUrl as string) || "https://eu1-developer.deyecloud.com/v1.0";
