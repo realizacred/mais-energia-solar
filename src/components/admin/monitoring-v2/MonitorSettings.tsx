@@ -71,7 +71,7 @@ export default function MonitorSettings() {
         description="Gerencie conexões com provedores de monitoramento solar"
         icon={Plug}
         actions={
-          <Button size="sm" onClick={() => navigate("/admin/integracoes")}>
+          <Button size="sm" onClick={() => navigate("/admin/catalogo-integracoes")}>
             <Plus className="h-3.5 w-3.5 mr-1" />
             Conectar Provedor
           </Button>
@@ -85,7 +85,7 @@ export default function MonitorSettings() {
           description="Conecte um provedor de monitoramento (Solarman, Deye, Solis, etc.) para importar usinas automaticamente."
           action={{
             label: "Conectar Provedor",
-            onClick: () => navigate("/admin/integracoes"),
+            onClick: () => navigate("/admin/catalogo-integracoes"),
             icon: Plus,
           }}
         />

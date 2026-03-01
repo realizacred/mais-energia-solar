@@ -77,7 +77,7 @@ export default function MonitorPlants() {
         actions={
           <div className="flex gap-1 p-0.5 rounded-lg bg-muted/50 border border-border/60">
             {([
-              { mode: "split" as const, icon: MapPin, label: "Split" },
+              { mode: "split" as const, icon: MapPin, label: "Dividido" },
               { mode: "list" as const, icon: List, label: "Lista" },
               { mode: "map" as const, icon: MapPin, label: "Mapa" },
             ]).map(({ mode, icon: Icon, label }) => (
