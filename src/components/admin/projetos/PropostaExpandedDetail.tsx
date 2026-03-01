@@ -1132,7 +1132,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                           {auditLogs.map((log) => {
                             const actionLabel = getAuditLabel(log.acao, log.tabela);
-                            const userName = log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
+                            const userName = log.user_email === "sistema"
+                              ? "SISTEMA"
+                              : log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
                             const dateStr = new Date(log.created_at).toLocaleDateString("pt-BR");
                             const timeStr = new Date(log.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
