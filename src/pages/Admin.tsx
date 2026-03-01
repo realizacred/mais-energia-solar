@@ -595,7 +595,7 @@ export default function Admin() {
                 <Route path="integracoes" element={<IntegrationsPage />} />
                 <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
                 <Route path="saude-integracoes" element={<IntegrationHealthPage />} />
-                <Route path="monitoramento-solar" element={<MonitoringPage />} />
+                <Route path="monitoramento-solar" element={<Navigate to="/admin/monitoramento/integracoes" replace />} />
                 <Route path="monitoramento/*" element={<MonitoringModule />} />
                 <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
