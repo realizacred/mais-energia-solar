@@ -216,3 +216,9 @@ verify_jwt = false
 
 [functions.migrate-sm-proposals]
 verify_jwt = false
+
+[functions.monitoring-connect]
+verify_jwt = false
+
+[functions.monitoring-sync]
+verify_jwt = false
