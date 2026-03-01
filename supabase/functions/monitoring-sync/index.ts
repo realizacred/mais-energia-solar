@@ -145,7 +145,7 @@ async function solaredgeMetrics(apiKey: string, siteId: string): Promise<DailyMe
 async function solisFetch(apiId: string, apiSecret: string, path: string, body: Record<string, unknown>) {
   const bodyStr = JSON.stringify(body);
   const contentMd5 = await md5Base64(bodyStr);
-  const ct = "application/json;charset=UTF-8";
+  const ct = "application/json";
   const dateStr = new Date().toUTCString();
   const sign = await hmacSha1Base64(apiSecret, `POST\n${contentMd5}\n${ct}\n${dateStr}\n${path}`);
   const res = await fetch(`https://www.soliscloud.com:13333${path}`, {
@@ -153,7 +153,8 @@ async function solisFetch(apiId: string, apiSecret: string, path: string, body: 
     body: bodyStr,
   });
   const json = await res.json();
-  if (!json.success && json.code !== "0") throw new Error(json.msg || `Solis error`);
+  const isOk = json.success === true || json.code === "0" || json.code === 0;
+  if (!isOk) throw new Error(json.msg || `Solis error (code=${json.code})`);
   return json;
 }
 
