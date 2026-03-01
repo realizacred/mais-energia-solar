@@ -59,17 +59,27 @@ export async function getFinancials(
  */
 export async function getPerformanceRatios(
   plants: Array<{ id: string; name: string; installed_power_kwp: number | null }>,
-  monthReadings: Array<{ plant_id: string; energy_kwh: number }>
+  monthReadings: Array<{ plant_id: string; energy_kwh: number; peak_power_kw?: number | null }>
 ): Promise<PlantPerformanceRatio[]> {
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysSoFar = now.getDate();
   const AVG_SUN_HOURS = 4.5;
 
-  // Sum actual generation per plant
+  // Sum actual generation per plant, using energy_kwh or estimating from power_kw
   const actualMap = new Map<string, number>();
+  const countMap = new Map<string, number>();
   monthReadings.forEach((r) => {
-    actualMap.set(r.plant_id, (actualMap.get(r.plant_id) || 0) + r.energy_kwh);
+    let dailyEnergy = r.energy_kwh;
+    // If energy_kwh is 0/null but we have power_kw, estimate daily energy
+    // power_kw is instantaneous; approximate daily = power_kw * AVG_SUN_HOURS
+    if ((!dailyEnergy || dailyEnergy <= 0) && r.peak_power_kw && r.peak_power_kw > 0) {
+      dailyEnergy = r.peak_power_kw * AVG_SUN_HOURS;
+    }
+    if (dailyEnergy && dailyEnergy > 0) {
+      actualMap.set(r.plant_id, (actualMap.get(r.plant_id) || 0) + dailyEnergy);
+      countMap.set(r.plant_id, (countMap.get(r.plant_id) || 0) + 1);
+    }
   });
 
   return plants
