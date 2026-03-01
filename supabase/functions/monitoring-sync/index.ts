@@ -552,9 +552,12 @@ async function growattApiMetrics(apiKey: string, plantId: string): Promise<Daily
 // Hoymiles S-Miles
 // ═══════════════════════════════════════════════════════════
 
-async function hoymilesListPlants(token: string): Promise<NormalizedPlant[]> {
-  const res = await fetch("https://global.hoymiles.com/platform/api/gateway/iam/station_list", {
-    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+async function hoymilesListPlants(token: string, baseUrl?: string): Promise<NormalizedPlant[]> {
+  // V3 API: station list
+  const url = `${baseUrl || "https://neapi.hoymiles.com"}/pvmc/api/0/station/select_by_page_c`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8", Authorization: token },
     body: JSON.stringify({ page: 1, page_size: 100 }),
   });
   const json = await res.json();
@@ -569,18 +572,21 @@ async function hoymilesListPlants(token: string): Promise<NormalizedPlant[]> {
   }));
 }
 
-async function hoymilesMetrics(token: string, sid: string): Promise<DailyMetrics> {
+async function hoymilesMetrics(token: string, sid: string, baseUrl?: string): Promise<DailyMetrics> {
   try {
-    const res = await fetch("https://global.hoymiles.com/platform/api/gateway/iam/station_data/real", {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ sid }),
+    // V3 API: station real-time data
+    const url = `${baseUrl || "https://neapi.hoymiles.com"}/pvmc/api/0/station_ctl/read_c`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8", Authorization: token },
+      body: JSON.stringify({ action: 1513, data: { sid: Number(sid) || sid } }),
     });
     const json = await res.json();
     const d = json.data || {};
     return {
       power_kw: d.real_power != null ? Number(d.real_power) / 1000 : null,
-      energy_kwh: d.today_eq != null ? Number(d.today_eq) / 1000 : null,
-      total_energy_kwh: d.total_eq != null ? Number(d.total_eq) / 1000 : null,
+      energy_kwh: d.today_eq != null ? Number(d.today_eq) : null,
+      total_energy_kwh: d.total_eq != null ? Number(d.total_eq) : null,
       metadata: d,
     };
   } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
@@ -1243,7 +1249,8 @@ async function dispatchSync(
     }
   } else if (p === "hoymiles") {
     const token = tokens.token as string || "";
-    return await syncPlantsByProvider(ctx, () => hoymilesListPlants(token), (eid) => hoymilesMetrics(token, eid), mode, selectedPlantIds);
+    const hmBaseUrl = tokens.baseUrl as string || "";
+    return await syncPlantsByProvider(ctx, () => hoymilesListPlants(token, hmBaseUrl), (eid) => hoymilesMetrics(token, eid, hmBaseUrl), mode, selectedPlantIds);
   } else if (p === "sungrow") {
     const token = tokens.token as string || "";
     const appKey = credentials.appKey as string || credentials.appId as string || "";
