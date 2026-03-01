@@ -14,10 +14,10 @@ import { toast } from "sonner";
 import { PROVIDER_REGISTRY, type ProviderDefinition } from "@/services/monitoring/providerRegistry";
 import {
   listIntegrations,
-  listPlants,
+  listSolarPlants as listPlants,
   getTodayMetrics,
   syncProvider,
-} from "@/services/monitoring/monitoringService";
+} from "@/services/monitoring/monitorService";
 import { ConnectProviderModal } from "./ConnectProviderModal";
 import { PlantsTable } from "./PlantsTable";
 import { PlantsMap } from "./PlantsMap";

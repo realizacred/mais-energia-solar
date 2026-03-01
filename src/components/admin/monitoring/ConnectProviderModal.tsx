@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { connectProvider } from "@/services/monitoring/monitoringService";
+import { connectProvider } from "@/services/monitoring/monitorService";
 import { getTutorial } from "@/services/monitoring/providerTutorials";
 import type { ProviderDefinition } from "@/services/monitoring/providerRegistry";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";

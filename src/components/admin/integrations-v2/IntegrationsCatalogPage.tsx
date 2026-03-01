@@ -25,7 +25,7 @@ import {
 } from "@/services/integrations/integrationService";
 import {
   listIntegrations as listLegacyIntegrations,
-} from "@/services/monitoring/monitoringService";
+} from "@/services/monitoring/monitorService";
 import type { IntegrationProvider, IntegrationCategory, ConnectionStatus } from "@/services/integrations/types";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/services/integrations/types";
 import { IntegrationConnectModal } from "./IntegrationConnectModal";
