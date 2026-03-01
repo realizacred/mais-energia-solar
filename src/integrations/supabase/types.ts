@@ -382,6 +382,53 @@ export type Database = {
           },
         ]
       }
+      billing_webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: string
+          provider_event_id: string
+          received_at: string
+          status: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider: string
+          provider_event_id: string
+          received_at?: string
+          status?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string
+          received_at?: string
+          status?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_webhook_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_settings: {
         Row: {
           allow_theme_switch: boolean
@@ -6717,6 +6764,7 @@ export type Database = {
       monitor_billing_records: {
         Row: {
           amount_brl: number
+          amount_cents: number | null
           created_at: string
           currency: string | null
           due_date: string | null
@@ -6734,6 +6782,7 @@ export type Database = {
         }
         Insert: {
           amount_brl: number
+          amount_cents?: number | null
           created_at?: string
           currency?: string | null
           due_date?: string | null
@@ -6751,6 +6800,7 @@ export type Database = {
         }
         Update: {
           amount_brl?: number
+          amount_cents?: number | null
           created_at?: string
           currency?: string | null
           due_date?: string | null
@@ -6917,6 +6967,7 @@ export type Database = {
           id: string
           is_open: boolean
           message: string | null
+          opened_at: string | null
           plant_id: string
           provider_event_id: string | null
           provider_id: string | null
@@ -6938,6 +6989,7 @@ export type Database = {
           id?: string
           is_open?: boolean
           message?: string | null
+          opened_at?: string | null
           plant_id: string
           provider_event_id?: string | null
           provider_id?: string | null
@@ -6959,6 +7011,7 @@ export type Database = {
           id?: string
           is_open?: boolean
           message?: string | null
+          opened_at?: string | null
           plant_id?: string
           provider_event_id?: string | null
           provider_id?: string | null
@@ -7385,6 +7438,7 @@ export type Database = {
           notes: string | null
           plan_id: string | null
           plan_name: string
+          plant_id: string | null
           plant_ids: string[] | null
           price_brl: number
           provider: string | null
@@ -7409,6 +7463,7 @@ export type Database = {
           notes?: string | null
           plan_id?: string | null
           plan_name?: string
+          plant_id?: string | null
           plant_ids?: string[] | null
           price_brl?: number
           provider?: string | null
@@ -7433,6 +7488,7 @@ export type Database = {
           notes?: string | null
           plan_id?: string | null
           plan_name?: string
+          plant_id?: string | null
           plant_ids?: string[] | null
           price_brl?: number
           provider?: string | null
@@ -7456,6 +7512,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "monitor_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_subscriptions_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "solar_plants"
             referencedColumns: ["id"]
           },
           {

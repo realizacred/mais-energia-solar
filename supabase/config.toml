@@ -225,3 +225,16 @@ verify_jwt = false
 
 [functions.monitor-alert-engine]
 verify_jwt = false
+wall_clock_limit = 120
+
+[functions.billing-create-checkout]
+verify_jwt = false
+
+[functions.billing-webhook-asaas]
+verify_jwt = false
+
+[functions.billing-webhook-mercadopago]
+verify_jwt = false
+
+[functions.billing-webhook-stripe]
+verify_jwt = false
