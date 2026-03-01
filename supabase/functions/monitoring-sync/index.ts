@@ -1772,11 +1772,14 @@ serve(async (req) => {
     }
 
     // Update integration status — determined by structured error categories
+    // Solis uses per-request HMAC signing (no session/token), so AUTH errors
+    // should NOT trigger reconnect_required — credentials don't expire.
+    const SESSIONLESS_PROVIDERS = ["solis_cloud"];
     const cats = result.errorCategories || [];
     let newStatus: string;
     if (cats.includes("PERMISSION")) {
       newStatus = "blocked";
-    } else if (cats.includes("AUTH")) {
+    } else if (cats.includes("AUTH") && !SESSIONLESS_PROVIDERS.includes(provider)) {
       newStatus = "reconnect_required";
     } else if (result.errors.length > 0) {
       newStatus = "error";

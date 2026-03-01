@@ -55,6 +55,7 @@ export class SolisAdapter implements ProviderAdapter {
     let pageNo = 1;
 
     while (true) {
+      if (pageNo > 1) await this.rateDelay();
       const json = await this.solisFetch(apiId, apiSecret, "/v1/api/userStationList", { pageNo, pageSize: 100 });
       const data = json.data as any;
       const records = data?.page?.records || data?.records || [];
@@ -117,6 +118,7 @@ export class SolisAdapter implements ProviderAdapter {
     let pageNo = 1;
 
     while (true) {
+      if (pageNo > 1) await this.rateDelay();
       const json = await this.solisFetch(apiId, apiSecret, "/v1/api/inverterList", { pageNo, pageSize: 100 });
       const data = json.data as any;
       const records = data?.page?.records || data?.records || [];
@@ -150,6 +152,7 @@ export class SolisAdapter implements ProviderAdapter {
     let pageNo = 1;
 
     while (true) {
+      if (pageNo > 1) await this.rateDelay();
       const json = await this.solisFetch(apiId, apiSecret, "/v1/api/alarmList", { pageNo, pageSize: 100 });
       const data = json.data as any;
       const records = data?.page?.records || data?.records || [];
@@ -201,5 +204,10 @@ export class SolisAdapter implements ProviderAdapter {
     const isOk = json.success === true || json.code === "0" || json.code === 0;
     if (!isOk) throw new Error(json.msg || `Solis error (code=${json.code})`);
     return json;
+  }
+
+  /** Rate limit: minimum 2s between Solis API calls */
+  private rateDelay(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, 2000));
   }
 }
