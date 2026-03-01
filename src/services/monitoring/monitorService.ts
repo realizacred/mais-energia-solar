@@ -33,12 +33,18 @@ const POWER_KW_TO_ENERGY_ESTIMATE_HOURS = 4.5;
  * legacy solar_plants.id (stored as legacy_plant_id in monitor_plants).
  * If the plantId already exists in solar_plants, returns it as-is.
  *
- * Uses an in-memory cache to avoid redundant queries within the same render cycle.
+ * Cache is scoped by tenantId and entries expire after TTL_MS to avoid stale data.
  */
-const _legacyIdCache = new Map<string, string>();
+const LEGACY_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const _legacyIdCache = new Map<string, { value: string; expiresAt: number }>();
 
 async function resolveToLegacyPlantId(plantId: string): Promise<string> {
-  if (_legacyIdCache.has(plantId)) return _legacyIdCache.get(plantId)!;
+  // Resolve tenant for cache scoping (best-effort, falls back to global key)
+  const { data: { user } } = await supabase.auth.getUser();
+  const tenantKey = user?.id ? `${user.id}:${plantId}` : plantId;
+
+  const cached = _legacyIdCache.get(tenantKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
 
   // First check if it exists directly in solar_plants
   const { data: directMatch } = await supabase
@@ -47,7 +53,7 @@ async function resolveToLegacyPlantId(plantId: string): Promise<string> {
     .eq("id", plantId)
     .maybeSingle();
   if (directMatch) {
-    _legacyIdCache.set(plantId, plantId);
+    _legacyIdCache.set(tenantKey, { value: plantId, expiresAt: Date.now() + LEGACY_CACHE_TTL_MS });
     return plantId;
   }
 
@@ -58,7 +64,7 @@ async function resolveToLegacyPlantId(plantId: string): Promise<string> {
     .eq("id", plantId)
     .maybeSingle();
   const legacyId = (monitorPlant as any)?.legacy_plant_id || plantId;
-  _legacyIdCache.set(plantId, legacyId);
+  _legacyIdCache.set(tenantKey, { value: legacyId, expiresAt: Date.now() + LEGACY_CACHE_TTL_MS });
   return legacyId;
 }
 
