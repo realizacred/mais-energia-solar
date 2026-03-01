@@ -351,12 +351,19 @@ export function getImplementedProviderIds(): Set<string> {
 
 /** Legacy ID mapping (old DB/provider IDs → canonical registry IDs) */
 export const LEGACY_ID_MAP: Record<string, string> = {
+  // DB integration_providers IDs → canonical PROVIDER_REGISTRY IDs
   solarman_business_api: "solarman_business",
   goodwe_sems: "goodwe",
   huawei_fusionsolar: "huawei",
   sungrow_isolarcloud: "sungrow",
   hoymiles_s_miles: "hoymiles",
   foxess: "fox_ess",
+  sofar_solar: "sofar",
+  sma: "sunny_portal",
+  abb_fimer: "fimer",
+  must_solar: "solar_must",
+  canadian_solar: "csi_cloud",
+  kstar: "kstar",
 };
 
 export function resolveProviderId(id: string): string {
