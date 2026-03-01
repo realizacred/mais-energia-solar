@@ -17,8 +17,11 @@ import {
   listSolarPlants as listPlants,
   getTodayMetrics,
   syncProvider,
+  discoverPlants,
+  type DiscoveredPlant,
 } from "@/services/monitoring/monitorService";
 import { ConnectProviderModal } from "./ConnectProviderModal";
+import { SelectPlantsModal } from "./SelectPlantsModal";
 import { PlantsTable } from "./PlantsTable";
 import { PlantsMap } from "./PlantsMap";
 
@@ -32,6 +35,13 @@ export default function MonitoringPage() {
   const [showMap, setShowMap] = useState(false);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabFilter>("all");
+
+  // Plant selection modal state
+  const [selectPlantsData, setSelectPlantsData] = useState<{
+    provider: ProviderDefinition;
+    plants: DiscoveredPlant[];
+  } | null>(null);
+  const [syncingSelection, setSyncingSelection] = useState(false);
 
   const { data: integrations = [], isLoading: loadingInt } = useQuery({
     queryKey: ["monitoring-integrations"],
@@ -48,8 +58,28 @@ export default function MonitoringPage() {
     queryFn: getTodayMetrics,
   });
 
+  // Discover plants mutation (fetches list without saving)
+  const discoverMutation = useMutation({
+    mutationFn: (provider: string) => discoverPlants(provider),
+    onSuccess: (result, providerId) => {
+      if (result.success && result.plants && result.plants.length > 0) {
+        const prov = PROVIDER_REGISTRY.find((p) => p.id === providerId);
+        if (prov) {
+          setSelectPlantsData({ provider: prov, plants: result.plants });
+        }
+      } else if (result.success && (!result.plants || result.plants.length === 0)) {
+        toast.info("Nenhuma usina encontrada nesta conta.");
+      } else {
+        toast.error(result.error || "Erro ao buscar usinas");
+      }
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  // Full sync mutation (used after plant selection or for re-sync)
   const syncMutation = useMutation({
-    mutationFn: (provider: string) => syncProvider(provider, "full"),
+    mutationFn: ({ provider, selectedIds }: { provider: string; selectedIds?: string[] }) =>
+      syncProvider(provider, "full", selectedIds),
     onSuccess: (result) => {
       if (result.success) {
         toast.success(
@@ -64,6 +94,39 @@ export default function MonitoringPage() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  const handleConnectSuccess = (providerId: string) => {
+    queryClient.invalidateQueries({ queryKey: ["monitoring-integrations"] });
+    setConnectProvider(null);
+    // After connecting, discover plants for selection
+    discoverMutation.mutate(providerId);
+  };
+
+  const handlePlantSelectionConfirm = async (selectedIds: string[]) => {
+    if (!selectPlantsData) return;
+    setSyncingSelection(true);
+    try {
+      await syncMutation.mutateAsync({
+        provider: selectPlantsData.provider.id,
+        selectedIds,
+      });
+      setSelectPlantsData(null);
+    } finally {
+      setSyncingSelection(false);
+    }
+  };
+
+  const handleSyncClick = (providerId: string) => {
+    // Check if provider already has plants synced - if so, just re-sync existing
+    const providerPlants = plants.filter((p) => p.provider === providerId);
+    if (providerPlants.length > 0) {
+      // Re-sync existing plants (no selection needed)
+      syncMutation.mutate({ provider: providerId });
+    } else {
+      // First sync: discover plants for selection
+      discoverMutation.mutate(providerId);
+    }
+  };
 
   const hasConnected = integrations.some((i) => i.status === "connected");
 
@@ -143,6 +206,7 @@ export default function MonitoringPage() {
             {filteredProviders.map((prov) => {
               const integration = integrations.find((i) => i.provider === prov.id);
               const status = integration?.status || "disconnected";
+              const isDiscovering = discoverMutation.isPending && discoverMutation.variables === prov.id;
 
               return (
                 <div key={prov.id} className="border border-border rounded-lg p-4 space-y-3 bg-card">
@@ -193,11 +257,11 @@ export default function MonitoringPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => syncMutation.mutate(prov.id)}
-                            disabled={syncMutation.isPending}
+                            onClick={() => handleSyncClick(prov.id)}
+                            disabled={syncMutation.isPending || isDiscovering}
                           >
-                            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-                            Sincronizar
+                            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${(syncMutation.isPending || isDiscovering) ? "animate-spin" : ""}`} />
+                            {isDiscovering ? "Buscando usinas…" : "Sincronizar"}
                           </Button>
                         ) : (
                           <Badge variant="secondary" className="text-2xs py-1">Sync em breve</Badge>
@@ -244,7 +308,7 @@ export default function MonitoringPage() {
           <EmptyState
             icon={Sun}
             title="Nenhuma usina importada"
-            description='Clique em "Sincronizar" no provedor conectado para importar as usinas.'
+            description='Clique em "Sincronizar" no provedor conectado para selecionar e importar as usinas.'
           />
         ) : (
           <SectionCard title={`Usinas (${plants.length})`} icon={Sun}>
@@ -265,10 +329,19 @@ export default function MonitoringPage() {
           open={!!connectProvider}
           onOpenChange={(open) => { if (!open) setConnectProvider(null); }}
           provider={connectProvider}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["monitoring-integrations"] });
-            setConnectProvider(null);
-          }}
+          onSuccess={() => handleConnectSuccess(connectProvider.id)}
+        />
+      )}
+
+      {/* Plant selection modal */}
+      {selectPlantsData && (
+        <SelectPlantsModal
+          open={!!selectPlantsData}
+          onOpenChange={(open) => { if (!open) setSelectPlantsData(null); }}
+          plants={selectPlantsData.plants}
+          providerLabel={selectPlantsData.provider.label}
+          saving={syncingSelection}
+          onConfirm={handlePlantSelectionConfirm}
         />
       )}
     </div>

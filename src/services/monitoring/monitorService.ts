@@ -165,10 +165,11 @@ export async function connectProvider(
 /** Trigger a sync via Edge Function */
 export async function syncProvider(
   provider: string,
-  mode: "plants" | "metrics" | "full" = "full"
+  mode: "plants" | "metrics" | "full" = "full",
+  selectedPlantIds?: string[]
 ): Promise<{ success: boolean; plants_synced?: number; metrics_synced?: number; errors?: string[]; error?: string }> {
   const { data, error } = await supabase.functions.invoke("monitoring-sync", {
-    body: { provider, mode },
+    body: { provider, mode, selected_plant_ids: selectedPlantIds || null },
   });
   if (error) return { success: false, error: error.message };
   if (data?.error) return { success: false, error: data.error };
@@ -178,6 +179,24 @@ export async function syncProvider(
     metrics_synced: data.metrics_synced,
     errors: data.errors,
   };
+}
+
+/** Discover plants from provider API without saving */
+export interface DiscoveredPlant {
+  external_id: string;
+  name: string;
+  capacity_kw: number | null;
+  address: string | null;
+  status: string;
+}
+
+export async function discoverPlants(provider: string): Promise<{ success: boolean; plants?: DiscoveredPlant[]; error?: string }> {
+  const { data, error } = await supabase.functions.invoke("monitoring-sync", {
+    body: { provider, mode: "discover" },
+  });
+  if (error) return { success: false, error: error.message };
+  if (data?.error) return { success: false, error: data.error };
+  return { success: true, plants: data.plants || [] };
 }
 
 /** Disconnect a monitoring integration */
