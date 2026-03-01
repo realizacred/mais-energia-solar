@@ -16,8 +16,10 @@ Obs: a senha é enviada como SHA-256 para autenticação.`,
 1) Faça login no SolisCloud (navegador).
 2) Vá em Configurações básicas (Basic Settings).
 3) Procure 'Gerenciamento de API / API Management'.
-4) Ative e copie KeyID (API Key) e KeySecret (API Secret).
-Se NÃO aparecer 'API Management', sua conta não tem permissão (geralmente precisa ser Instalador/Proprietário).`,
+4) Ative e copie o API ID (KeyID) e API Secret (KeySecret).
+Se NÃO aparecer 'API Management', sua conta não tem permissão.
+Nesse caso, solicite a habilitação de API junto ao Solis (é requisito do fornecedor).
+Geralmente a conta precisa ser de Instalador ou Proprietário.`,
 
   solaredge:
     `Para conectar SolarEdge:
