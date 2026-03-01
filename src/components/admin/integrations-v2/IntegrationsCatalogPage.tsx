@@ -75,10 +75,7 @@ export default function IntegrationsCatalogPage() {
   const [syncingProviderId, setSyncingProviderId] = useState<string | null>(null);
 
   const syncMut = useMutation({
-    mutationFn: (providerId: string) => {
-      setSyncingProviderId(providerId);
-      return syncProvider(providerId);
-    },
+    mutationFn: (providerId: string) => syncProvider(providerId),
     onSuccess: (result) => {
       if (result.success) {
         toast.success(`Sincronizado: ${result.plants_synced ?? 0} usinas, ${result.metrics_synced ?? 0} métricas`);
@@ -298,6 +295,7 @@ export default function IntegrationsCatalogPage() {
                       lastSync={getLastSync(provider.id)}
                       onConnect={() => setConnectModal(provider)}
                       onSync={() => {
+                        setSyncingProviderId(provider.id);
                         const mapped = ({ solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" } as Record<string, string>)[provider.id] || provider.id;
                         syncMut.mutate(mapped);
                       }}
