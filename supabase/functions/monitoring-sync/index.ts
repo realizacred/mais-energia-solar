@@ -345,37 +345,146 @@ async function deyeMetrics(baseUrl: string, token: string, extId: string): Promi
 // Growatt — ShineServer (cookies) + OpenAPI Business (token)
 // ═══════════════════════════════════════════════════════════
 
-// ── ShineServer (legacy cookie auth) ──
-async function growattListPlants(cookies: string): Promise<NormalizedPlant[]> {
-  const res = await fetch("https://openapi.growatt.com/newPlantAPI.do?op=getAllPlantList&currPage=1&pageSize=100", {
-    headers: { Cookie: cookies },
-  });
-  const json = await res.json();
-  const list = (json.back?.data || json.data || []) as any[];
-  return list.map((r: any) => ({
-    external_id: String(r.plantId || r.id || ""), name: String(r.plantName || r.name || ""),
-    capacity_kw: r.nominalPower != null ? Number(r.nominalPower) : null,
-    address: r.city || r.plantAddress || null,
-    latitude: r.latitude != null ? Number(r.latitude) : null, longitude: r.longitude != null ? Number(r.longitude) : null,
-    status: r.status === "1" || r.status === 1 ? "normal" : r.status === "0" ? "offline" : "unknown",
-    metadata: r,
-  }));
+const GROWATT_UA = "Dalvik/2.1.0 (Linux; U; Android 12; SM-G975F Build/SP1A.210812.016)";
+
+// Re-authenticate Growatt portal session and return fresh cookies
+async function refreshGrowattSession(integration: any, supabaseAdmin: any): Promise<string> {
+  const creds = integration.credentials || {};
+  const tokens = integration.tokens || {};
+  const username = creds.username || creds.email || "";
+  const server = tokens.server || creds.server || "https://server.growatt.com";
+  const passwordMd5 = tokens.passwordMd5;
+
+  if (passwordMd5 && username) {
+    const endpoints = [
+      `${server}/newTwoLoginAPI.do`,
+      "https://openapi.growatt.com/newTwoLoginAPI.do",
+      "https://server.growatt.com/newTwoLoginAPI.do",
+    ];
+    for (const ep of endpoints) {
+      try {
+        const res = await fetch(ep, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": GROWATT_UA },
+          body: `userName=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}`,
+        });
+        const text = await res.text();
+        let json: any;
+        try { json = JSON.parse(text); } catch { continue; }
+        if (json.result === 1 || json.back?.success === true) {
+          const newCookies = res.headers.get("set-cookie") || "";
+          console.log(`[Growatt] Re-auth OK via ${ep}`);
+          await supabaseAdmin.from("monitoring_integrations")
+            .update({ tokens: { ...tokens, cookies: newCookies }, updated_at: new Date().toISOString() })
+            .eq("id", integration.id);
+          return newCookies;
+        }
+      } catch {}
+    }
+  }
+  return tokens.cookies || "";
 }
 
-async function growattMetrics(cookies: string, plantId: string): Promise<DailyMetrics> {
-  try {
-    const res = await fetch(`https://openapi.growatt.com/newPlantAPI.do?op=getPlantData&plantId=${plantId}&type=1&date=${today()}`, {
-      headers: { Cookie: cookies },
-    });
-    const json = await res.json();
-    const d = json.back || json;
-    return {
-      power_kw: d.currentPower != null ? Number(d.currentPower) : null,
-      energy_kwh: d.todayEnergy != null ? Number(d.todayEnergy) : null,
-      total_energy_kwh: d.totalEnergy != null ? Number(d.totalEnergy) : null,
-      metadata: d,
-    };
-  } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+// ── ShineServer (legacy cookie auth) — tries multiple endpoints ──
+async function growattListPlants(cookies: string, server?: string): Promise<NormalizedPlant[]> {
+  const baseUrls = server
+    ? [server, "https://server.growatt.com", "https://openapi.growatt.com"]
+    : ["https://server.growatt.com", "https://openapi.growatt.com", "https://server-api.growatt.com"];
+
+  function parsePlantList(list: any[]): NormalizedPlant[] {
+    return list.map((r: any) => ({
+      external_id: String(r.plantId || r.id || ""), name: String(r.plantName || r.name || ""),
+      capacity_kw: r.nominalPower != null ? Number(r.nominalPower) : null,
+      address: r.city || r.plantAddress || null,
+      latitude: r.latitude != null ? Number(r.latitude) : null, longitude: r.longitude != null ? Number(r.longitude) : null,
+      status: r.status === "1" || r.status === 1 ? "normal" : r.status === "0" ? "offline" : "unknown",
+      metadata: r,
+    }));
+  }
+
+  for (const base of baseUrls) {
+    // Endpoint 1: index/getPlantListTitle (from .NET GrowattApi library)
+    try {
+      console.log(`[Growatt] Trying getPlantListTitle @ ${base}`);
+      const res = await fetch(`${base}/index/getPlantListTitle`, {
+        method: "POST",
+        headers: { Cookie: cookies, "Content-Type": "application/x-www-form-urlencoded", "User-Agent": GROWATT_UA },
+        body: "currPage=1&pageSize=100",
+      });
+      const text = await res.text();
+      let json: any;
+      try { json = JSON.parse(text); } catch { /* skip */ }
+      if (json) {
+        const list = (json.data || json.back?.data || []) as any[];
+        if (list.length > 0) {
+          console.log(`[Growatt] getPlantListTitle @ ${base}: ${list.length} plants`);
+          return parsePlantList(list);
+        }
+      }
+    } catch (e) { console.warn(`[Growatt] getPlantListTitle @ ${base} error:`, (e as Error).message); }
+
+    // Endpoint 2: newPlantAPI.do (ShinePhone API)
+    try {
+      console.log(`[Growatt] Trying newPlantAPI.do @ ${base}`);
+      const res = await fetch(`${base}/newPlantAPI.do?op=getAllPlantList&currPage=1&pageSize=100`, {
+        headers: { Cookie: cookies, "User-Agent": GROWATT_UA },
+      });
+      const text = await res.text();
+      let json: any;
+      try { json = JSON.parse(text); } catch { continue; }
+      const list = (json.back?.data || json.data || []) as any[];
+      if (list.length > 0) {
+        console.log(`[Growatt] newPlantAPI.do @ ${base}: ${list.length} plants`);
+        return parsePlantList(list);
+      }
+    } catch (e) { console.warn(`[Growatt] newPlantAPI.do @ ${base} error:`, (e as Error).message); }
+  }
+
+  console.warn(`[Growatt] No plants found on any endpoint`);
+  return [];
+}
+
+async function growattMetrics(cookies: string, plantId: string, server?: string): Promise<DailyMetrics> {
+  const baseUrls = server
+    ? [server, "https://server.growatt.com", "https://openapi.growatt.com"]
+    : ["https://server.growatt.com", "https://openapi.growatt.com"];
+
+  for (const base of baseUrls) {
+    try {
+      const res = await fetch(`${base}/panel/getPlantData`, {
+        method: "POST",
+        headers: { Cookie: cookies, "Content-Type": "application/x-www-form-urlencoded", "User-Agent": GROWATT_UA },
+        body: `plantId=${encodeURIComponent(plantId)}`,
+      });
+      const text = await res.text();
+      let json: any;
+      try { json = JSON.parse(text); } catch { continue; }
+      const d = json.data || json.obj || json;
+      if (d.todayEnergy != null || d.currentPower != null || d.totalEnergy != null) {
+        return {
+          power_kw: d.currentPower != null ? Number(d.currentPower) : null,
+          energy_kwh: d.todayEnergy != null ? Number(d.todayEnergy) : null,
+          total_energy_kwh: d.totalEnergy != null ? Number(d.totalEnergy) : null,
+          metadata: d,
+        };
+      }
+    } catch {}
+
+    try {
+      const res = await fetch(`${base}/newPlantAPI.do?op=getPlantData&plantId=${plantId}&type=1&date=${today()}`, {
+        headers: { Cookie: cookies, "User-Agent": GROWATT_UA },
+      });
+      const json = await res.json();
+      const d = json.back || json;
+      return {
+        power_kw: d.currentPower != null ? Number(d.currentPower) : null,
+        energy_kwh: d.todayEnergy != null ? Number(d.todayEnergy) : null,
+        total_energy_kwh: d.totalEnergy != null ? Number(d.totalEnergy) : null,
+        metadata: d,
+      };
+    } catch {}
+  }
+  return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
 }
 
 // ── OpenAPI Business (token header) ──
@@ -1256,45 +1365,17 @@ async function dispatchSync(
       if (!apiKey) throw new Error("No API key (token) stored for Growatt.");
       return await syncPlantsByProvider(ctx, () => growattApiListPlants(apiKey), (eid) => growattApiMetrics(apiKey, eid), mode, selectedPlantIds);
     } else {
-      // Portal/ShineServer mode — login with stored credentials to get fresh cookies
+      // Portal/ShineServer mode — use stored cookies or re-authenticate
       let cookies = tokens.cookies as string || "";
-      const email = credentials.email as string || credentials.username as string || "";
-      // Use stored MD5 hash from tokens (password is stripped from credentials by security policy)
-      const storedMd5 = tokens.passwordMd5 as string || "";
-      
-      if ((!cookies || cookies.length < 10) && email && storedMd5) {
-        // Re-authenticate via ShineServer using stored MD5 hash
-        const endpoints = [
-          "https://openapi.growatt.com/newTwoLoginAPI.do",
-          "https://server.growatt.com/newTwoLoginAPI.do",
-          "https://server-api.growatt.com/newTwoLoginAPI.do",
-        ];
-        for (const ep of endpoints) {
-          try {
-            console.log(`[Growatt Server] Re-auth attempt: ${ep}, user=${email}`);
-            const res = await fetch(ep, {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: `userName=${encodeURIComponent(email)}&password=${encodeURIComponent(storedMd5)}`,
-              redirect: "follow",
-            });
-            const text = await res.text();
-            let json: any;
-            try { json = JSON.parse(text); } catch { continue; }
-            if (json.result === 1 || json.back?.success === true) {
-              cookies = res.headers.get("set-cookie") || "";
-              console.log(`[Growatt Server] Login OK via ${ep}, cookies=${cookies.length} chars`);
-              // Update tokens with fresh cookies
-              await admin.from("monitoring_integrations").update({ tokens: { ...tokens, cookies } }).eq("id", int?.id || ctx.integrationId);
-              break;
-            } else {
-              console.log(`[Growatt Server] Login rejected at ${ep}: ${json.back?.msg || json.msg || "unknown"}`);
-            }
-          } catch (e) { console.log(`[Growatt Server] ${ep} error: ${(e as Error).message}`); continue; }
-        }
+      const server = tokens.server as string || credentials.server as string || "";
+
+      // If cookies are missing/expired, try re-auth
+      if (!cookies || cookies.length < 10) {
+        cookies = await refreshGrowattSession(int || { id: ctx.integrationId, credentials, tokens }, admin);
       }
-      if (!cookies || cookies.length < 10) throw new Error("No cookies available. Please reconnect Growatt Server with username/password.");
-      return await syncPlantsByProvider(ctx, () => growattListPlants(cookies), (eid) => growattMetrics(cookies, eid), mode, selectedPlantIds);
+
+      if (!cookies || cookies.length < 10) throw new Error("No cookies available. Please reconnect Growatt with username/password.");
+      return await syncPlantsByProvider(ctx, () => growattListPlants(cookies, server), (eid) => growattMetrics(cookies, eid, server), mode, selectedPlantIds);
     }
   } else if (p === "hoymiles") {
     const token = tokens.token as string || "";
