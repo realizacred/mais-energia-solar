@@ -102,7 +102,7 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
       { key: "region", label: "Região", type: "select", placeholder: "Selecione a região", required: true,
         options: [{ value: "EU", label: "Europa (EU)" }, { value: "US", label: "América (US)" }],
         helperText: "A URL base da API muda conforme a região." },
-      F_APP_ID, F_APP_SECRET, F_EMAIL, F_PASSWORD,
+      F_EMAIL, F_APP_ID, F_APP_SECRET, F_PASSWORD,
     ],
   },
   {
