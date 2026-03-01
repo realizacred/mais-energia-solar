@@ -1375,10 +1375,68 @@ async function dispatchSync(
   } else if (p === "apsystems") {
     return { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."] };
   } else if (p === "livoltek" || p === "livoltek_cf") {
-    const token = tokens.token as string || "";
-    const baseUrl = (tokens.baseUrl as string) || (credentials.baseUrl as string) || "https://api-eu.livoltek-portal.com:8081";
-    if (!token) throw new Error("No token. Reconnect Livoltek.");
-    return await syncPlantsByProvider(ctx, () => livoltekListPlants(token, baseUrl), (eid) => livoltekMetrics(token, baseUrl, eid), mode, selectedPlantIds);
+    let lvToken = tokens.token as string || "";
+    const lvBaseUrl = (tokens.baseUrl as string) || (credentials.baseUrl as string) || "https://api-eu.livoltek-portal.com:8081";
+    const lvApiKey = credentials.apiKey as string || "";
+    const lvAppSecret = credentials.appSecret as string || "";
+
+    // Re-authenticate if token is missing or expired
+    const refreshLivoltekToken = async () => {
+      if (!lvApiKey || !lvAppSecret) throw new Error("No apiKey/appSecret stored. Reconnect Livoltek.");
+      const SERVERS = [lvBaseUrl, "https://api-eu.livoltek-portal.com:8081", "https://api.livoltek-portal.com:8081"];
+      const uniqueServers = [...new Set(SERVERS)];
+      for (const server of uniqueServers) {
+        try {
+          console.log(`[Livoltek Sync] Re-auth at ${server}`);
+          const loginBody: Record<string, string> = { secuid: lvAppSecret, key: lvApiKey };
+          const username = credentials.username as string || "";
+          if (username) loginBody.username = username;
+          const res = await fetch(`${server}/hess/api/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(loginBody),
+          });
+          const json = await res.json();
+          console.log(`[Livoltek Sync] Re-auth response code=${json.code}, message=${json.message}`);
+          if ((json.code === "0" || json.code === 0) && json.data) {
+            lvToken = json.data;
+            // Persist refreshed token
+            await admin.from("monitoring_integrations").update({
+              tokens: { ...tokens, token: lvToken, userToken: lvToken, baseUrl: server },
+              updated_at: new Date().toISOString(),
+            }).eq("id", int?.id || ctx.integrationId);
+            console.log(`[Livoltek Sync] Token refreshed successfully from ${server}`);
+            return;
+          }
+        } catch (e) {
+          console.log(`[Livoltek Sync] ${server} re-auth error: ${(e as Error).message}`);
+        }
+      }
+      throw new Error("Livoltek re-auth failed on all servers. Reconnect with valid apiKey and appSecret.");
+    };
+
+    // Always try to refresh token before sync (Livoltek tokens expire quickly)
+    try {
+      await refreshLivoltekToken();
+    } catch (e) {
+      console.warn(`[Livoltek Sync] Pre-sync refresh failed: ${(e as Error).message}`);
+      if (!lvToken) throw e;
+    }
+
+    const listFnLv = async () => {
+      try {
+        return await livoltekListPlants(lvToken, lvBaseUrl);
+      } catch (err: any) {
+        if (err.message?.includes("Please login") || err.message?.includes("token")) {
+          console.log("[Livoltek Sync] Token expired during list, re-authenticating...");
+          await refreshLivoltekToken();
+          return await livoltekListPlants(lvToken, lvBaseUrl);
+        }
+        throw err;
+      }
+    };
+
+    return await syncPlantsByProvider(ctx, listFnLv, (eid) => livoltekMetrics(lvToken, lvBaseUrl, eid), mode, selectedPlantIds);
   } else {
     throw new Error(`Provider sync not implemented yet: ${provider}. Connect via portal.`);
   }
