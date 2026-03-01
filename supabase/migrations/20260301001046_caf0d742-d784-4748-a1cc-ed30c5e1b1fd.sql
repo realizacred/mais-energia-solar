@@ -1,0 +1,18 @@
+INSERT INTO custom_field_mappings (tenant_id, source_key, target_namespace, target_path, transform, priority, is_active, source_provider) VALUES
+('00000000-0000-0000-0000-000000000001', 'cap_localizacao', 'client', 'localizacao', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'cap_obs', 'project', 'observacoes', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'cap_disjuntor', 'metadata', 'disjuntor', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'cap_transformador', 'metadata', 'transformador', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'cap_wifi', 'metadata', 'wifi', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'cap_equipamento', 'metadata', 'equipamento', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'cap_identidade', 'metadata', 'identidade_url', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'cap_comprovante_endereco', 'metadata', 'comprovante_endereco_url', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'cape_telhado', 'metadata', 'tipo_telhado', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'capo_desconto', 'metadata', 'desconto_percent', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'capo_seguro', 'metadata', 'incluir_seguro', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'capo_string_box', 'metadata', 'incluir_string_box', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'capo_overlord', 'metadata', 'overlord', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'capo_observacoes', 'metadata', 'observacoes_oferta', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'capo_i', 'metadata', 'garantia_inversores_anos', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'capo_mi', 'metadata', 'garantia_microinversores_anos', 'as_is', 10, true, 'solarmarket'),
+('00000000-0000-0000-0000-000000000001', 'capo_m', 'metadata', 'garantia_modulos_anos', 'as_is', 10, true, 'solarmarket');
