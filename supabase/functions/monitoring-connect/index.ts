@@ -204,9 +204,12 @@ serve(async (req) => {
 
     // ── Solarman Business API ──
     if (provider === "solarman_business_api") {
-      const { appId, appSecret, email, password } = credentials;
+      // Platform-managed keys: fall back to ENV when user doesn't supply appId/appSecret
+      const appId = credentials.appId || Deno.env.get("SOLARMAN_APP_ID") || "";
+      const appSecret = credentials.appSecret || Deno.env.get("SOLARMAN_APP_SECRET") || "";
+      const { email, password } = credentials;
       if (!appId || !appSecret || !email || !password) {
-        return jsonResponse({ error: "Missing credentials: appId, appSecret, email, password" }, 400);
+        return jsonResponse({ error: "Missing credentials: email and password are required" }, 400);
       }
 
       try {
