@@ -1442,16 +1442,7 @@ Deno.serve(async (req) => {
 
       // ── Enrich proposals with sm_client_id from projects ──
       try {
-        const { data: enrichCount, error: enrichErr } = await supabase.rpc("exec_sql", {});
-        // Use direct update join instead
-        const { error: updateErr } = await supabase
-          .from("solar_market_proposals")
-          .update({ sm_client_id: -1 }) // placeholder, we do it via raw query below
-          .eq("tenant_id", tenantId)
-          .is("sm_client_id", null)
-          .limit(0); // don't actually run this
-
-        // Enrich sm_client_id via batch: fetch projects with their client IDs
+        // Build project→client lookup
         const projectClientMap = new Map<number, number>();
         let offset = 0;
         const pageSize = 1000;
@@ -1469,12 +1460,12 @@ Deno.serve(async (req) => {
           offset += pageSize;
         }
 
-        // Get proposals without sm_client_id
+        // Get proposals without valid sm_client_id (NULL or -1)
         const { data: nullClientProposals } = await supabase
           .from("solar_market_proposals")
-          .select("id, sm_project_id")
+          .select("id, sm_project_id, sm_client_id")
           .eq("tenant_id", tenantId)
-          .is("sm_client_id", null);
+          .or("sm_client_id.is.null,sm_client_id.eq.-1");
 
         let enriched = 0;
         for (const prop of (nullClientProposals || [])) {
