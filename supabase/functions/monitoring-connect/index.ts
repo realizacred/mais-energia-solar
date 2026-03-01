@@ -92,26 +92,56 @@ async function testSolaredge(creds: Record<string, string>) {
 }
 
 // ── Deye Cloud ──
+// Docs: https://developer.deyecloud.com/api#/Account%20Operation/getAccountTokenUsingPOST
+// Sample: https://github.com/DeyeCloudDevelopers/deye-openapi-client-sample-code
 async function testDeye(creds: Record<string, string>) {
   const { region, appId, appSecret, email, password } = creds;
   if (!region || !appId || !appSecret || !email || !password) throw new Error("Missing: region, appId, appSecret, email, password");
-  const REGIONS: Record<string, string> = { EU: "https://eu1-developer.deyecloud.com/v1.0", US: "https://us1-developer.deyecloud.com/v1.0" };
+  const REGIONS: Record<string, string> = {
+    EU: "https://eu1-developer.deyecloud.com/v1.0",
+    US: "https://us1-developer.deyecloud.com/v1.0",
+  };
   const baseUrl = REGIONS[region.toUpperCase()];
-  if (!baseUrl) throw new Error(`Invalid region: ${region}`);
+  if (!baseUrl) throw new Error(`Invalid region: ${region}. Use EU or US.`);
+
   const hashHex = await sha256Hex(password);
-  const res = await fetch(`${baseUrl}/token`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
+
+  // Correct endpoint: /v1.0/account/token?appId=XXX (appId as query param)
+  const url = `${baseUrl}/account/token?appId=${encodeURIComponent(appId)}`;
+  console.log(`[Deye] Requesting token from: ${url}`);
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ appSecret, email, password: hashHex }),
   });
+
   const ct = res.headers.get("content-type") || "";
-  if (!ct.includes("json")) { const t = await res.text(); throw new Error(`Deye non-JSON (${res.status}): ${t.slice(0, 200)}`); }
+  if (!ct.includes("json")) {
+    const t = await res.text();
+    console.error(`[Deye] Non-JSON response (${res.status}):`, t.slice(0, 500));
+    throw new Error(`Deye returned non-JSON (HTTP ${res.status}): ${t.slice(0, 200)}`);
+  }
+
   const json = await res.json();
+  console.log(`[Deye] Response code: ${json.code}, msg: ${json.msg}`);
+
+  // Deye API wraps token data in json.data
   const tokenData = json.data || json;
-  if (!tokenData.access_token) throw new Error(json.msg || "Deye auth failed");
+  if (!tokenData.access_token) {
+    throw new Error(json.msg || `Deye auth failed (code=${json.code})`);
+  }
+
   const expiresAt = new Date(Date.now() + (tokenData.expires_in || 7200) * 1000).toISOString();
   return {
     credentials: { region, baseUrl, appId, email },
-    tokens: { access_token: tokenData.access_token, token_type: tokenData.token_type || "bearer", expires_at: expiresAt, refresh_token: tokenData.refresh_token || null, appSecret },
+    tokens: {
+      access_token: tokenData.access_token,
+      token_type: tokenData.token_type || "bearer",
+      expires_at: expiresAt,
+      refresh_token: tokenData.refresh_token || null,
+      appSecret,
+    },
   };
 }
 
