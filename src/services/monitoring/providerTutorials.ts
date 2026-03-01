@@ -57,12 +57,31 @@ Opcional: Site ID pode ser necessário dependendo do endpoint/relatórios.`,
 Privacidade: a senha é convertida em hash MD5 antes do envio e NÃO é armazenada.`,
 
   huawei_fusionsolar:
-    `Huawei FusionSolar (Em breve):
-Integração via OpenAPI/OAuth. Requer app/credenciais e fluxo de token. Prepare usuário, senha e dados do portal FusionSolar; o acesso pode exigir habilitação.`,
+    `Para conectar Huawei FusionSolar:
+1) Acesse o portal: https://la5.fusionsolar.huawei.com e faça login.
+2) Clique em "Mais" no menu superior → "Gerenciamento de empresa".
+3) Selecione a aba "Gestão de API" (disponível apenas para o usuário master).
+4) Clique em "Adicionar" para criar um novo usuário de API.
+5) Preencha os campos:
+   • Nome de usuário: ex. "SolarZAPI" ou "IntegradorAPI"
+   • Tempo de vencimento: coloque uma data distante
+   • Usuário e senha: crie novos (NÃO use os mesmos do login)
+   • A senha precisa ter maiúsculas, minúsculas, caracteres especiais e números
+6) Marque a opção "API básica".
+7) Escolha as plantas que deseja monitorar (apenas as selecionadas serão liberadas).
+8) Confirme clicando OK.
+
+No nosso sistema, preencha o Usuário de API e a Senha de API criados acima.
+Obs: cada usuário de Gestão de API suporta no máximo 100 usinas.
+Privacidade: a senha é usada apenas para gerar o token e NÃO é armazenada.`,
 
   goodwe_sems:
-    `GoodWe SEMS (Em breve):
-Normalmente usa autenticação via portal SEMS e token. Prepare usuário e senha do SEMS; algumas integrações exigem Plant ID.`,
+    `Para conectar GoodWe SEMS:
+1) Use o mesmo e-mail e senha do portal SEMS (https://semsportal.com).
+2) No nosso sistema, preencha o e-mail e a senha da sua conta SEMS.
+3) As usinas serão detectadas automaticamente após a conexão.
+
+Privacidade: a senha é usada apenas para gerar o token de acesso e NÃO é armazenada.`,
 
   sungrow_isolarcloud:
     `Sungrow iSolarCloud (Em breve):
