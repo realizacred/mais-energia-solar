@@ -273,67 +273,79 @@ async function testGrowatt(creds: Record<string, string>) {
   const password = creds.password || "";
   if (!username || !password) throw new Error("Missing: username/email, password");
 
-  // Growatt custom password hash: MD5 hex with '0' nibbles at even positions replaced by 'c'
   const { createHash } = await import("node:crypto");
-  let passwordMd5 = createHash("md5").update(password, "utf8").digest("hex");
-  for (let i = 0; i < passwordMd5.length; i += 2) {
-    if (passwordMd5[i] === "0") {
-      passwordMd5 = passwordMd5.substring(0, i) + "c" + passwordMd5.substring(i + 1);
+
+  // Growatt custom password hash: MD5 hex with '0' nibbles at even positions replaced by 'c'
+  const rawMd5 = createHash("md5").update(password, "utf8").digest("hex");
+  let customMd5 = rawMd5;
+  for (let i = 0; i < customMd5.length; i += 2) {
+    if (customMd5[i] === "0") {
+      customMd5 = customMd5.substring(0, i) + "c" + customMd5.substring(i + 1);
     }
   }
 
-  console.log(`[Growatt] Attempting ShineServer login for user: ${username}, hashLen=${passwordMd5.length}`);
+  console.log(`[Growatt] user=${username}, rawMd5Prefix=${rawMd5.substring(0,8)}, customMd5Prefix=${customMd5.substring(0,8)}`);
 
   // Growatt requires an Android-like User-Agent
-  const growattUserAgent = "Dalvik/2.1.0 (Linux; U; Android 12; SM-G975F Build/SP1A.210812.016)";
+  const growattUA = "Dalvik/2.1.0 (Linux; U; Android 12; SM-G975F Build/SP1A.210812.016)";
 
-  // Try multiple ShineServer endpoints (Growatt has changed these over time)
+  // Try multiple ShineServer endpoints including regional servers
   const endpoints = [
     "https://openapi.growatt.com/newTwoLoginAPI.do",
     "https://server.growatt.com/newTwoLoginAPI.do",
     "https://server-api.growatt.com/newTwoLoginAPI.do",
+    "https://openapi-cn.growatt.com/newTwoLoginAPI.do",
+    "https://openapi-us.growatt.com/newTwoLoginAPI.do",
+  ];
+
+  // Try both hash variants: custom hash first, then raw MD5 as fallback
+  const hashVariants = [
+    { label: "customHash", hash: customMd5 },
+    { label: "rawMD5", hash: rawMd5 },
   ];
 
   let lastError = "";
-  for (const endpoint of endpoints) {
-    try {
-      console.log(`[Growatt] Trying endpoint: ${endpoint}`);
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": growattUserAgent,
-        },
-        body: `userName=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}`,
-        redirect: "follow",
-      });
+  for (const variant of hashVariants) {
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`[Growatt] Trying ${variant.label} @ ${endpoint}`);
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": growattUA,
+          },
+          body: `userName=${encodeURIComponent(username)}&password=${encodeURIComponent(variant.hash)}`,
+          redirect: "follow",
+        });
 
-      const text = await res.text();
-      console.log(`[Growatt] Response (${res.status}):`, text.slice(0, 500));
+        const text = await res.text();
+        console.log(`[Growatt] Response (${res.status}):`, text.slice(0, 500));
 
-      let json: Record<string, any>;
-      try { json = JSON.parse(text); } catch {
-        // Some endpoints return HTML on error — skip
-        lastError = `Non-JSON from ${endpoint} (HTTP ${res.status})`;
-        continue;
+        let json: Record<string, any>;
+        try { json = JSON.parse(text); } catch {
+          lastError = `Non-JSON from ${endpoint} (HTTP ${res.status})`;
+          continue;
+        }
+
+        if (json.result === 1 || json.back?.success === true) {
+          const userId = json.back?.userId || json.user?.id || json.userId || "";
+          const cookies = res.headers.get("set-cookie") || "";
+
+          console.log(`[Growatt] Login OK via ${variant.label}! userId=${userId}`);
+          return {
+            credentials: { auth_mode: "portal", username },
+            tokens: { userId: String(userId), cookies, passwordMd5: variant.hash },
+          };
+        }
+
+        const errMsg = json.back?.error || json.back?.msg || json.msg || json.error || `result=${json.result}`;
+        lastError = errMsg;
+        console.log(`[Growatt] Rejected: ${errMsg}`);
+      } catch (e) {
+        lastError = (e as Error).message;
+        console.error(`[Growatt] ${endpoint} error:`, lastError);
       }
-
-      if (json.result === 1 || json.back?.success === true) {
-        const userId = json.back?.userId || json.user?.id || json.userId || "";
-        const cookies = res.headers.get("set-cookie") || "";
-
-        console.log(`[Growatt] Login OK! userId=${userId}`);
-        return {
-          credentials: { auth_mode: "portal", username },
-          tokens: { userId: String(userId), cookies, passwordMd5 },
-        };
-      }
-
-      lastError = json.back?.msg || json.msg || json.error || `Login failed (result=${json.result})`;
-      console.log(`[Growatt] Login rejected: ${lastError}`);
-    } catch (e) {
-      lastError = (e as Error).message;
-      console.error(`[Growatt] Endpoint ${endpoint} error:`, lastError);
     }
   }
 
