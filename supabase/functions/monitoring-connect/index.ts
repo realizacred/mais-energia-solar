@@ -684,11 +684,24 @@ serve(async (req) => {
       return jsonResponse({ success: true, integration_id: integration?.id, status: "connected" });
     } catch (err) {
       const errorMsg = (err as Error).message?.slice(0, 500) || "Connection failed";
+      console.error(`[monitoring-connect] ${provider} handshake failed:`, errorMsg);
+      // Preserve existing credentials on error so user doesn't lose them
+      const { data: existing } = await ctx.supabaseAdmin
+        .from("monitoring_integrations")
+        .select("credentials, tokens")
+        .eq("tenant_id", ctx.tenantId)
+        .eq("provider", provider)
+        .maybeSingle();
+
       const integration = await upsertIntegration(ctx, {
         status: "error",
         sync_error: errorMsg,
-        credentials: { provider },
-        tokens: {},
+        credentials: (existing as any)?.credentials && Object.keys((existing as any).credentials).length > 1
+          ? (existing as any).credentials
+          : { provider },
+        tokens: (existing as any)?.tokens && Object.keys((existing as any).tokens).length > 0
+          ? (existing as any).tokens
+          : {},
       });
       await auditLog(ctx, "monitoring.integration.error", integration?.id, { provider, error: errorMsg });
       return jsonResponse({ error: errorMsg }, 400);
