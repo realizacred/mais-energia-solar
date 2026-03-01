@@ -111,10 +111,22 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   },
   {
     id: "growatt", label: "Growatt OSS / ShineServer",
-    description: "Inversores Growatt via OSS API ou ShineServer.",
-    icon: "Sprout", status: "active", auth_type: "portal", capabilities: FULL_CAP, rate_limit_rpm: 30,
+    description: "Inversores Growatt via OSS API, OpenAPI (Key) ou ShineServer (usuário/senha).",
+    icon: "Sprout", status: "active", auth_type: "api_key", capabilities: FULL_CAP, rate_limit_rpm: 30,
     api_docs_url: "https://openapi.growatt.com",
-    fields: [F_USER, F_PASSWORD],
+    fields: [
+      {
+        key: "auth_mode", label: "Modo de Autenticação", type: "select", placeholder: "Selecione",
+        required: true,
+        options: [
+          { value: "api_key", label: "API Key (OpenAPI)" },
+          { value: "portal", label: "Usuário e Senha (ShineServer)" },
+        ],
+      },
+      { ...F_API_KEY, required: false, helperText: "Obrigatório se modo = API Key" },
+      { ...F_USER, required: false, helperText: "Obrigatório se modo = Usuário/Senha" },
+      { ...F_PASSWORD, required: false, helperText: "Obrigatório se modo = Usuário/Senha" },
+    ],
   },
   {
     id: "hoymiles", label: "Hoymiles S-Miles",

@@ -28,8 +28,27 @@ export function ConnectProviderModal({ open, onOpenChange, provider, onSuccess }
     setFormValues((prev) => ({ ...prev, [key]: e.target.value }));
   };
 
-  const isValid = provider.fields.every(
+  // Conditional visibility: hide fields based on auth_mode selection
+  const isFieldVisible = (field: ProviderDefinition["fields"][number]) => {
+    const authMode = formValues["auth_mode"];
+    if (!authMode) return true; // no auth_mode selector → show all
+    if (field.key === "auth_mode") return true;
+    if (authMode === "api_key" && (field.key === "username" || field.key === "password")) return false;
+    if (authMode === "portal" && field.key === "apiKey") return false;
+    return true;
+  };
+
+  const visibleFields = provider.fields.filter(isFieldVisible);
+
+  const isValid = visibleFields.every(
     (f) => !f.required || (formValues[f.key] && formValues[f.key].trim() !== "")
+  ) && (
+    // Extra validation for auth_mode providers
+    !formValues["auth_mode"] || (
+      formValues["auth_mode"] === "api_key"
+        ? !!(formValues["apiKey"]?.trim())
+        : !!(formValues["username"]?.trim()) && !!(formValues["password"]?.trim())
+    )
   );
 
   const handleSubmit = async () => {
@@ -95,7 +114,7 @@ export function ConnectProviderModal({ open, onOpenChange, provider, onSuccess }
 
       {/* Dynamic credential fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {provider.fields.map((field) => (
+        {visibleFields.map((field) => (
           <div key={field.key} className="space-y-1.5">
             <Label htmlFor={`field-${field.key}`}>{field.label}</Label>
             {field.type === "select" && field.options ? (
