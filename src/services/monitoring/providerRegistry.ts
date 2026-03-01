@@ -1,6 +1,12 @@
 /**
- * Provider Registry — SSOT for ALL monitoring providers (80+).
+ * Provider Registry — SSOT for ALL monitoring providers.
  * Each provider defines its auth type, credential fields, capabilities, and availability.
+ *
+ * STATUS KEY:
+ * - "active"      → connect + sync plants + sync metrics (PRODUCTION)
+ * - "beta"        → connect + sync plants, partial metrics or credential-only
+ * - "stub"        → generic portal login, NO real API adapter
+ * - "coming_soon" → listed for visibility, not functional
  */
 
 export type AuthType = "api_token" | "api_key" | "portal" | "token_app" | "oauth2" | "basic";
@@ -46,29 +52,22 @@ const F_API_KEY: CredentialField = { key: "apiKey", label: "API Key", type: "tex
 const F_API_SECRET: CredentialField = { key: "apiSecret", label: "API Secret", type: "password", placeholder: "Seu API Secret", required: true };
 const F_APP_ID: CredentialField = { key: "appId", label: "App ID", type: "text", placeholder: "Seu App ID", required: true };
 const F_APP_SECRET: CredentialField = { key: "appSecret", label: "App Secret", type: "password", placeholder: "Seu App Secret", required: true };
-const F_TOKEN: CredentialField = { key: "token", label: "Token de Acesso", type: "password", placeholder: "Seu token", required: true };
 
 const FULL_CAP: ProviderCapabilities = { sync_plants: true, sync_health: true, sync_events: true, sync_readings: true };
 const BASIC_CAP: ProviderCapabilities = { sync_plants: true, sync_health: true, sync_events: false, sync_readings: true };
-const STUB_CAP: ProviderCapabilities = { sync_plants: true, sync_health: true, sync_events: false, sync_readings: false };
+const PLANTS_ONLY_CAP: ProviderCapabilities = { sync_plants: true, sync_health: false, sync_events: false, sync_readings: false };
+const STUB_CAP: ProviderCapabilities = { sync_plants: false, sync_health: false, sync_events: false, sync_readings: false };
 
-function portalProvider(id: string, label: string, desc: string, icon = "Sun", status: ProviderStatus = "active"): ProviderDefinition {
+function stubProvider(id: string, label: string, desc: string, icon = "Sun"): ProviderDefinition {
   return {
-    id, label, description: desc, icon, status, auth_type: "portal",
-    fields: [F_EMAIL, F_PASSWORD], capabilities: BASIC_CAP,
-  };
-}
-
-function apiKeyProvider(id: string, label: string, desc: string, icon = "Sun", status: ProviderStatus = "active"): ProviderDefinition {
-  return {
-    id, label, description: desc, icon, status, auth_type: "api_key",
-    fields: [F_API_KEY], capabilities: BASIC_CAP,
+    id, label, description: desc, icon, status: "stub", auth_type: "portal",
+    fields: [F_EMAIL, F_PASSWORD], capabilities: STUB_CAP,
   };
 }
 
 export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   // ══════════════════════════════════════════════════════════════
-  // ACTIVE — fully implemented sync adapters with real API calls
+  // PRODUCTION — connect + listPlants + metrics implemented
   // ══════════════════════════════════════════════════════════════
   {
     id: "solarman_business", label: "Solarman Business",
@@ -157,7 +156,7 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
         helperText: "Selecione a região do seu portal FusionSolar",
       },
       { key: "username", label: "Usuário de API", type: "text", placeholder: "Ex: SolarZAPI", required: true, helperText: "Usuário criado em Gestão de API (NÃO é o login do portal)" },
-      { key: "password", label: "Senha de API", type: "password", placeholder: "Senha do usuário de API", required: true, helperText: "Usada apenas para gerar token — NÃO é armazenada" },
+      { key: "password", label: "Senha de API", type: "password", placeholder: "Senha do usuário de API", required: true },
     ],
   },
   {
@@ -168,7 +167,7 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   },
   {
     id: "fronius", label: "Fronius Solar.web",
-    description: "Inversores Fronius via Solar.web API ou Fronius Solar API.",
+    description: "Inversores Fronius via Solar.web API.",
     icon: "Sun", status: "active", auth_type: "api_key", capabilities: FULL_CAP,
     api_docs_url: "https://www.fronius.com/en/photovoltaics/products/all-products/system-monitoring/open-interfaces/fronius-solar-api",
     fields: [F_API_KEY, { key: "systemId", label: "System ID", type: "text", placeholder: "ID do sistema", required: false }],
@@ -191,119 +190,138 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
     icon: "Gauge", status: "active", auth_type: "portal", capabilities: FULL_CAP,
     fields: [F_EMAIL, F_PASSWORD],
   },
+
+  // ══════════════════════════════════════════════════════════════
+  // BETA — connect + listPlants works, metrics partial or missing
+  // ══════════════════════════════════════════════════════════════
   {
     id: "shinemonitor", label: "ShineMonitor",
-    description: "Monitoramento ShineMonitor multi-marca.",
-    icon: "Sun", status: "active", auth_type: "portal", capabilities: BASIC_CAP,
+    description: "Monitoramento ShineMonitor multi-marca. Sincroniza usinas, sem métricas detalhadas.",
+    icon: "Sun", status: "beta", auth_type: "portal", capabilities: PLANTS_ONLY_CAP,
     fields: [F_USER, F_PASSWORD],
   },
   {
-    id: "apsystems", label: "APsystems",
-    description: "Microinversores APsystems via EMA Cloud.",
-    icon: "Radio", status: "active", auth_type: "portal", capabilities: BASIC_CAP,
-    fields: [F_EMAIL, F_PASSWORD],
-  },
-  {
     id: "enphase", label: "Enphase",
-    description: "Microinversores Enphase via Enlighten API v4.",
-    icon: "Radio", status: "active", auth_type: "api_key", capabilities: FULL_CAP,
+    description: "Microinversores Enphase via Enlighten API v4. Listagem de usinas funcional.",
+    icon: "Radio", status: "beta", auth_type: "api_key", capabilities: PLANTS_ONLY_CAP,
     api_docs_url: "https://developer-v4.enphase.com",
     fields: [F_API_KEY, { key: "clientId", label: "Client ID", type: "text", placeholder: "OAuth Client ID", required: false }, F_API_SECRET],
   },
   {
-    id: "sunny_portal", label: "Sunny Portal (SMA)",
-    description: "Inversores SMA via Sunny Portal / SMA API.",
-    icon: "Sun", status: "active", auth_type: "api_key", capabilities: FULL_CAP,
-    api_docs_url: "https://developer.sma.de",
-    fields: [F_API_KEY, { key: "plantId", label: "Plant ID", type: "text", placeholder: "ID da planta SMA", required: false }],
-  },
-  {
     id: "sofar", label: "Sofar Solar",
-    description: "Inversores Sofar via SolarMAN/Sofar Cloud API.",
-    icon: "Sun", status: "active", auth_type: "api_token", capabilities: FULL_CAP,
+    description: "Inversores Sofar via Solarman API (mesma plataforma). Sync funcional.",
+    icon: "Sun", status: "beta", auth_type: "api_token", capabilities: BASIC_CAP,
     fields: [F_APP_ID, F_APP_SECRET, F_EMAIL, F_PASSWORD],
   },
   {
     id: "kstar", label: "KSTAR",
-    description: "Inversores KSTAR via KSTAR Cloud API.",
-    icon: "Sun", status: "active", auth_type: "portal", capabilities: BASIC_CAP,
+    description: "Inversores KSTAR via KSTAR Cloud. Listagem de usinas funcional.",
+    icon: "Sun", status: "beta", auth_type: "portal", capabilities: PLANTS_ONLY_CAP,
     fields: [F_EMAIL, F_PASSWORD],
   },
   {
     id: "intelbras", label: "Intelbras ISG",
-    description: "Inversores Intelbras via ISG Web API.",
-    icon: "Sun", status: "active", auth_type: "portal", capabilities: BASIC_CAP,
+    description: "Inversores Intelbras via ISG Web. Listagem de usinas funcional.",
+    icon: "Sun", status: "beta", auth_type: "portal", capabilities: PLANTS_ONLY_CAP,
     fields: [F_EMAIL, F_PASSWORD],
   },
   {
     id: "ecosolys", label: "EcoSolys",
-    description: "Monitoramento EcoSolys para inversores string.",
-    icon: "Sun", status: "active", auth_type: "portal", capabilities: BASIC_CAP,
+    description: "Monitoramento EcoSolys. Listagem de usinas funcional.",
+    icon: "Sun", status: "beta", auth_type: "portal", capabilities: PLANTS_ONLY_CAP,
     fields: [F_EMAIL, F_PASSWORD],
+  },
+  {
+    id: "apsystems", label: "APsystems",
+    description: "Microinversores APsystems via EMA Cloud. Conexão funcional, sync limitado.",
+    icon: "Radio", status: "beta", auth_type: "portal", capabilities: PLANTS_ONLY_CAP,
+    fields: [F_EMAIL, F_PASSWORD],
+  },
+  {
+    id: "sunny_portal", label: "Sunny Portal (SMA)",
+    description: "Inversores SMA — armazena credenciais, sync em desenvolvimento.",
+    icon: "Sun", status: "beta", auth_type: "api_key", capabilities: STUB_CAP,
+    api_docs_url: "https://developer.sma.de",
+    fields: [F_API_KEY, { key: "plantId", label: "Plant ID", type: "text", placeholder: "ID da planta SMA", required: false }],
+  },
+  {
+    id: "csi_cloudpro", label: "CSI CloudPro",
+    description: "Canadian Solar via CloudPro — armazena credenciais, sync em desenvolvimento.",
+    icon: "Sun", status: "beta", auth_type: "api_key", capabilities: STUB_CAP,
+    fields: [F_API_KEY],
+  },
+  {
+    id: "csi_smart_energy", label: "CSI Smart Energy",
+    description: "Canadian Solar Smart Energy — armazena credenciais, sync em desenvolvimento.",
+    icon: "Sun", status: "beta", auth_type: "api_key", capabilities: STUB_CAP,
+    fields: [F_API_KEY],
+  },
+  {
+    id: "csi_cloud", label: "CSI Cloud",
+    description: "Canadian Solar CSI Cloud — armazena credenciais, sync em desenvolvimento.",
+    icon: "Sun", status: "beta", auth_type: "api_key", capabilities: STUB_CAP,
+    fields: [F_API_KEY],
   },
 
   // ══════════════════════════════════════════════════════════════
-  // ACTIVE — Portal-based providers (credential storage + future API)
+  // STUB — Sem API real implementada. Apenas armazena credenciais.
   // ══════════════════════════════════════════════════════════════
-  portalProvider("growatt_server", "Growatt Server", "Monitoramento Growatt via servidor alternativo.", "Sprout"),
-  portalProvider("solplanet", "Solplanet", "Inversores Solplanet (AISWEI) via Solplanet Cloud."),
-  portalProvider("elekeeper", "Elekeeper", "Monitoramento Elekeeper para inversores com gateway RS485/WiFi."),
-  portalProvider("phb_solar", "PHB Solar", "Inversores PHB Solar via portal de monitoramento."),
-  portalProvider("sunweg", "SunWeg", "Inversores SunWeg via SunWeg Cloud."),
-  portalProvider("renovigi", "Renovigi", "Inversores/distribuidora Renovigi via portal."),
-  portalProvider("chint_flexom", "Chint FlexOM", "Inversores Chint/Astronergy via FlexOM Cloud."),
-  apiKeyProvider("csi_cloudpro", "CSI CloudPro", "Canadian Solar via CloudPro API."),
-  portalProvider("solarview", "SolarView", "Monitoramento SolarView para micro/string inversores."),
-  portalProvider("livoltek", "Livoltek", "Inversores Livoltek/Axitec via portal."),
-  portalProvider("solarman_smart", "Solarman Smart", "Versão Smart do Solarman para instaladores individuais."),
-  portalProvider("kehua", "Kehua", "Inversores Kehua via portal de monitoramento."),
-  portalProvider("weg_iot", "WEG IoT", "Inversores WEG via plataforma IoT."),
-  portalProvider("refusol", "REFUlog (Refusol)", "Inversores REFUsol/REFU via REFUlog."),
-  portalProvider("solarnex", "Solarnex PRO", "Monitoramento Solarnex PRO para integradores."),
-  portalProvider("tsun_pro", "TSUN PRO", "Microinversores TSUN PRO via portal."),
-  portalProvider("renac", "RENAC", "Inversores RENAC via portal de monitoramento."),
-  portalProvider("nep_viewer", "NEP Viewer", "Microinversores NEP via NEP Viewer.", "Radio"),
-  portalProvider("intelbras_plus", "Intelbras Plus", "Inversores Intelbras via plataforma Plus."),
-  portalProvider("fimer", "Fimer (ABB)", "Inversores Fimer/ABB via Aurora Vision."),
-  portalProvider("byd", "BYD", "Baterias/inversores BYD via BYD Connect."),
-  portalProvider("auxsol", "AUXSOL", "Monitoramento AUXSOL para distribuidores."),
-  portalProvider("sices", "Sices", "Monitoramento Sices Solar para instaladores."),
-  portalProvider("ge_solar", "GE Solar", "Inversores GE Solar via portal."),
-  portalProvider("wdc_solar", "WDC Solar", "Inversores WDC Solar via portal."),
-  portalProvider("sunwave", "Sunwave", "Inversores Sunwave via portal."),
-  portalProvider("nansen", "NANSEN", "Medidores/inversores NANSEN via portal."),
-  apiKeyProvider("csi_smart_energy", "CSI Smart Energy", "Canadian Solar Smart Energy API."),
-  portalProvider("smten", "SMTEN", "Inversores SMTEN via portal cloud."),
-  portalProvider("elgin", "Elgin", "Inversores Elgin via portal de monitoramento."),
-  portalProvider("hypon_cloud", "Hypon Cloud", "Inversores Hypon via cloud."),
-  apiKeyProvider("csi_cloud", "CSI Cloud", "Canadian Solar CSI Cloud."),
-  portalProvider("wdc_solar_cf", "WDC Solar Cliente Final", "Portal WDC para clientes finais."),
-  portalProvider("intelbras_send", "Intelbras Send", "Inversores Intelbras via Send."),
-  portalProvider("hopewind", "Hopewind", "Inversores Hopewind via portal."),
-  portalProvider("intelbras_x", "Intelbras X", "Plataforma Intelbras X."),
-  portalProvider("renovigi_portal", "Renovigi Portal", "Portal Renovigi para distribuidores."),
-  portalProvider("elsys", "Elsys", "Inversores Elsys via portal."),
-  portalProvider("ingeteam", "Ingeteam", "Inversores Ingeteam via IngeManager."),
-  portalProvider("pvhub", "PV HUB", "Monitoramento PV HUB multi-marca."),
-  portalProvider("dessmonitor", "Dessmonitor", "Inversores DESS via Dessmonitor."),
-  portalProvider("smartess", "SmartESS", "Inversores SmartESS/Megarevo via portal."),
-  portalProvider("bedin_solar", "Bedin Solar", "Monitoramento Bedin Solar."),
-  portalProvider("ksolare", "Ksolare", "Monitoramento Ksolare."),
-  portalProvider("livoltek_cf", "Livoltek Cliente Final", "Portal Livoltek para clientes finais."),
-  portalProvider("tsun", "TSUN", "Microinversores TSUN via portal padrão.", "Radio"),
-  portalProvider("afore", "Afore", "Inversores Afore via portal."),
-  portalProvider("dah_solar", "DAH Solar", "Módulos/inversores DAH Solar via portal."),
-  portalProvider("empalux", "Empalux", "Inversores Empalux via portal."),
-  portalProvider("hopewind_shine", "Hopewind ShineMonitor", "Hopewind integrado via ShineMonitor."),
-  portalProvider("hypon_portal", "Hypon Portal", "Portal Hypon para instaladores."),
-  portalProvider("litto", "Litto", "Inversores Litto via portal."),
-  portalProvider("leveros", "Leveros", "Inversores Leveros via portal."),
-  portalProvider("moso", "Moso (B&B)", "Inversores Moso/B&B via portal."),
-  portalProvider("pv123", "PV123", "Monitoramento PV123 multi-marca."),
-  portalProvider("qcells", "QCELLS", "Inversores/módulos QCELLS via Q.Cloud."),
-  portalProvider("sacolar", "Sacolar", "Monitoramento Sacolar."),
-  portalProvider("solar_must", "Solar Must", "Inversores Solar Must via portal."),
-  portalProvider("zevercloud", "ZeverCloud", "Inversores Zeversolar via ZeverCloud.", "Cloud"),
+  stubProvider("growatt_server", "Growatt Server", "Monitoramento Growatt via servidor alternativo.", "Sprout"),
+  stubProvider("solplanet", "Solplanet", "Inversores Solplanet (AISWEI) via Solplanet Cloud."),
+  stubProvider("elekeeper", "Elekeeper", "Monitoramento Elekeeper para inversores com gateway RS485/WiFi."),
+  stubProvider("phb_solar", "PHB Solar", "Inversores PHB Solar via portal de monitoramento."),
+  stubProvider("sunweg", "SunWeg", "Inversores SunWeg via SunWeg Cloud."),
+  stubProvider("renovigi", "Renovigi", "Inversores/distribuidora Renovigi via portal."),
+  stubProvider("chint_flexom", "Chint FlexOM", "Inversores Chint/Astronergy via FlexOM Cloud."),
+  stubProvider("solarview", "SolarView", "Monitoramento SolarView para micro/string inversores."),
+  stubProvider("livoltek", "Livoltek", "Inversores Livoltek/Axitec via portal."),
+  stubProvider("solarman_smart", "Solarman Smart", "Versão Smart do Solarman para instaladores individuais."),
+  stubProvider("kehua", "Kehua", "Inversores Kehua via portal de monitoramento."),
+  stubProvider("weg_iot", "WEG IoT", "Inversores WEG via plataforma IoT."),
+  stubProvider("refusol", "REFUlog (Refusol)", "Inversores REFUsol/REFU via REFUlog."),
+  stubProvider("solarnex", "Solarnex PRO", "Monitoramento Solarnex PRO para integradores."),
+  stubProvider("tsun_pro", "TSUN PRO", "Microinversores TSUN PRO via portal."),
+  stubProvider("renac", "RENAC", "Inversores RENAC via portal de monitoramento."),
+  stubProvider("nep_viewer", "NEP Viewer", "Microinversores NEP via NEP Viewer.", "Radio"),
+  stubProvider("intelbras_plus", "Intelbras Plus", "Inversores Intelbras via plataforma Plus."),
+  stubProvider("fimer", "Fimer (ABB)", "Inversores Fimer/ABB via Aurora Vision."),
+  stubProvider("byd", "BYD", "Baterias/inversores BYD via BYD Connect."),
+  stubProvider("auxsol", "AUXSOL", "Monitoramento AUXSOL para distribuidores."),
+  stubProvider("sices", "Sices", "Monitoramento Sices Solar para instaladores."),
+  stubProvider("ge_solar", "GE Solar", "Inversores GE Solar via portal."),
+  stubProvider("wdc_solar", "WDC Solar", "Inversores WDC Solar via portal."),
+  stubProvider("sunwave", "Sunwave", "Inversores Sunwave via portal."),
+  stubProvider("nansen", "NANSEN", "Medidores/inversores NANSEN via portal."),
+  stubProvider("smten", "SMTEN", "Inversores SMTEN via portal cloud."),
+  stubProvider("elgin", "Elgin", "Inversores Elgin via portal de monitoramento."),
+  stubProvider("hypon_cloud", "Hypon Cloud", "Inversores Hypon via cloud."),
+  stubProvider("wdc_solar_cf", "WDC Solar Cliente Final", "Portal WDC para clientes finais."),
+  stubProvider("intelbras_send", "Intelbras Send", "Inversores Intelbras via Send."),
+  stubProvider("hopewind", "Hopewind", "Inversores Hopewind via portal."),
+  stubProvider("intelbras_x", "Intelbras X", "Plataforma Intelbras X."),
+  stubProvider("renovigi_portal", "Renovigi Portal", "Portal Renovigi para distribuidores."),
+  stubProvider("elsys", "Elsys", "Inversores Elsys via portal."),
+  stubProvider("ingeteam", "Ingeteam", "Inversores Ingeteam via IngeManager."),
+  stubProvider("pvhub", "PV HUB", "Monitoramento PV HUB multi-marca."),
+  stubProvider("dessmonitor", "Dessmonitor", "Inversores DESS via Dessmonitor."),
+  stubProvider("smartess", "SmartESS", "Inversores SmartESS/Megarevo via portal."),
+  stubProvider("bedin_solar", "Bedin Solar", "Monitoramento Bedin Solar."),
+  stubProvider("ksolare", "Ksolare", "Monitoramento Ksolare."),
+  stubProvider("livoltek_cf", "Livoltek Cliente Final", "Portal Livoltek para clientes finais."),
+  stubProvider("tsun", "TSUN", "Microinversores TSUN via portal padrão.", "Radio"),
+  stubProvider("afore", "Afore", "Inversores Afore via portal."),
+  stubProvider("dah_solar", "DAH Solar", "Módulos/inversores DAH Solar via portal."),
+  stubProvider("empalux", "Empalux", "Inversores Empalux via portal."),
+  stubProvider("hopewind_shine", "Hopewind ShineMonitor", "Hopewind integrado via ShineMonitor."),
+  stubProvider("hypon_portal", "Hypon Portal", "Portal Hypon para instaladores."),
+  stubProvider("litto", "Litto", "Inversores Litto via portal."),
+  stubProvider("leveros", "Leveros", "Inversores Leveros via portal."),
+  stubProvider("moso", "Moso (B&B)", "Inversores Moso/B&B via portal."),
+  stubProvider("pv123", "PV123", "Monitoramento PV123 multi-marca."),
+  stubProvider("qcells", "QCELLS", "Inversores/módulos QCELLS via Q.Cloud."),
+  stubProvider("sacolar", "Sacolar", "Monitoramento Sacolar."),
+  stubProvider("solar_must", "Solar Must", "Inversores Solar Must via portal."),
+  stubProvider("zevercloud", "ZeverCloud", "Inversores Zeversolar via ZeverCloud.", "Cloud"),
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────
