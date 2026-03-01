@@ -13,18 +13,13 @@ interface Props {
 
 export function ConnectSolarmanModal({ open, onOpenChange, onSuccess }: Props) {
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    appId: "",
-    appSecret: "",
-    email: "",
-    password: "",
-  });
+  const [form, setForm] = useState({ login: "", password: "" });
 
   const handleChange = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const isValid = form.appId && form.appSecret && form.email && form.password;
+  const isValid = form.login && form.password;
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -34,12 +29,12 @@ export function ConnectSolarmanModal({ open, onOpenChange, onSuccess }: Props) {
         toast.success("Solarman Business conectado com sucesso!");
         onOpenChange(false);
         onSuccess();
-        setForm({ appId: "", appSecret: "", email: "", password: "" });
+        setForm({ login: "", password: "" });
       } else {
         toast.error(result.error || "Falha na conexão");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Erro inesperado");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
       setSaving(false);
     }
@@ -58,34 +53,13 @@ export function ConnectSolarmanModal({ open, onOpenChange, onSuccess }: Props) {
     >
       <FormGrid>
         <div className="space-y-1.5">
-          <Label htmlFor="sm-appId">App ID</Label>
+          <Label htmlFor="sm-login">Login (e-mail Solarman)</Label>
           <Input
-            id="sm-appId"
-            placeholder="Ex: 201911067156002"
-            value={form.appId}
-            onChange={handleChange("appId")}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="sm-appSecret">App Secret</Label>
-          <Input
-            id="sm-appSecret"
-            type="password"
-            placeholder="Seu App Secret"
-            value={form.appSecret}
-            onChange={handleChange("appSecret")}
-          />
-        </div>
-      </FormGrid>
-      <FormGrid>
-        <div className="space-y-1.5">
-          <Label htmlFor="sm-email">Email</Label>
-          <Input
-            id="sm-email"
+            id="sm-login"
             type="email"
             placeholder="seu@email.com"
-            value={form.email}
-            onChange={handleChange("email")}
+            value={form.login}
+            onChange={handleChange("login")}
           />
         </div>
         <div className="space-y-1.5">

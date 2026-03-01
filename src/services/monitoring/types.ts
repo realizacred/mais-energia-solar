@@ -48,10 +48,9 @@ export interface SolarPlantMetricsDaily {
   created_at: string;
 }
 
+/** GDASH pattern: user provides only login + password */
 export interface ConnectCredentials {
-  appId: string;
-  appSecret: string;
-  email: string;
+  login: string;
   password: string;
 }
 

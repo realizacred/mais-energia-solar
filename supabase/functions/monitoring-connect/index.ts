@@ -14,34 +14,35 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-/** Solarman Business API — obtain access token */
-async function solarmanAuthenticate(creds: {
-  appId: string;
-  appSecret: string;
-  email: string;
-  password: string;
-}) {
+/** Solarman Business API — obtain access token using platform credentials */
+async function solarmanAuthenticate(login: string, password: string) {
+  const appId = Deno.env.get("SOLARMAN_APP_ID");
+  const appSecret = Deno.env.get("SOLARMAN_APP_SECRET");
+
+  if (!appId || !appSecret) {
+    throw new Error("Platform credentials (SOLARMAN_APP_ID/SECRET) not configured");
+  }
+
   // SHA-256 hex of password
   const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(creds.password));
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
   const hashHex = Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  const url = `https://api.solarmanpv.com/account/v1.0/token?appId=${encodeURIComponent(creds.appId)}&language=en`;
+  const url = `https://api.solarmanpv.com/account/v1.0/token?appId=${encodeURIComponent(appId)}&language=en`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      appSecret: creds.appSecret,
-      email: creds.email,
+      appSecret,
+      email: login,
       password: hashHex,
     }),
   });
 
   const json = await res.json();
 
-  // CRITICAL: validate access_token exists regardless of HTTP status
   if (!json.access_token) {
     throw new Error(json.msg || json.message || "Solarman authentication failed — no access_token returned");
   }
@@ -61,7 +62,6 @@ serve(async (req) => {
   }
 
   try {
-    // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonResponse({ error: "Unauthorized" }, 401);
@@ -96,23 +96,22 @@ serve(async (req) => {
     }
     const tenantId = profile.tenant_id;
 
-    // Parse body
+    // Parse body — GDASH pattern: only login + password from user
     const body = await req.json();
-    const { provider, credentials } = body;
+    const { provider, login, password } = body;
 
     if (provider !== "solarman_business") {
       return jsonResponse({ error: "Unsupported provider" }, 400);
     }
 
-    const { appId, appSecret, email, password } = credentials || {};
-    if (!appId || !appSecret || !email || !password) {
-      return jsonResponse({ error: "Missing credentials: appId, appSecret, email, password" }, 400);
+    if (!login || !password) {
+      return jsonResponse({ error: "Missing credentials: login, password" }, 400);
     }
 
-    // Authenticate with Solarman
+    // Authenticate with Solarman using platform AppId/AppSecret from env
     let tokenResult: Awaited<ReturnType<typeof solarmanAuthenticate>>;
     try {
-      tokenResult = await solarmanAuthenticate({ appId, appSecret, email, password });
+      tokenResult = await solarmanAuthenticate(login, password);
     } catch (err) {
       // Save error status — NEVER store password
       await supabaseAdmin.from("monitoring_integrations").upsert(
@@ -121,7 +120,7 @@ serve(async (req) => {
           provider,
           status: "error",
           sync_error: (err as Error).message?.slice(0, 500) || "Authentication failed",
-          credentials: { appId, email },
+          credentials: { login },
           tokens: {},
           updated_at: new Date().toISOString(),
         },
@@ -149,7 +148,7 @@ serve(async (req) => {
           provider,
           status: "connected",
           sync_error: null,
-          credentials: { appId, email },
+          credentials: { login },
           tokens: {
             access_token: tokenResult.access_token,
             token_type: tokenResult.token_type,

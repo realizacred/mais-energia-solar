@@ -7,7 +7,7 @@ export async function connectProvider(
   credentials: ConnectCredentials
 ): Promise<{ success: boolean; integration_id?: string; error?: string }> {
   const { data, error } = await supabase.functions.invoke("monitoring-connect", {
-    body: { provider, credentials },
+    body: { provider, login: credentials.login, password: credentials.password },
   });
   if (error) return { success: false, error: error.message };
   if (data?.error) return { success: false, error: data.error };
