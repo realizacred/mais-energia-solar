@@ -147,19 +147,46 @@ async function testDeye(creds: Record<string, string>) {
 }
 
 // ── Growatt ShineServer ──
+// Docs: https://growatt.pl/wp-content/uploads/2020/01/Growatt-Server-API-Guide.pdf
+// Password must be sent as MD5 hex hash (lowercase)
 async function testGrowatt(creds: Record<string, string>) {
   const { username, password } = creds;
   if (!username || !password) throw new Error("Missing: username, password");
+
+  // Growatt API requires MD5-hashed password
+  const hashBuffer = await crypto.subtle.digest("MD5", new TextEncoder().encode(password));
+  const passwordMd5 = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  console.log(`[Growatt] Attempting login for user: ${username}`);
+
   const res = await fetch("https://openapi.growatt.com/newTwoLoginAPI.do", {
-    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `userName=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `userName=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}`,
   });
-  const json = await res.json();
-  if (json.result !== 1 && json.back?.success !== true) throw new Error(json.back?.msg || json.msg || "Growatt login failed");
+
+  const ct = res.headers.get("content-type") || "";
+  let json: Record<string, any>;
+  if (ct.includes("json")) {
+    json = await res.json();
+  } else {
+    const text = await res.text();
+    console.error(`[Growatt] Non-JSON response (${res.status}):`, text.slice(0, 500));
+    try { json = JSON.parse(text); } catch { throw new Error(`Growatt returned non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`); }
+  }
+
+  console.log(`[Growatt] Response result: ${json.result}, back.success: ${json.back?.success}`);
+
+  if (json.result !== 1 && json.back?.success !== true) {
+    throw new Error(json.back?.msg || json.msg || "Growatt login failed");
+  }
+
   const userId = json.back?.userId || json.user?.id || json.userId || "";
+  const cookies = res.headers.get("set-cookie") || "";
+
   return {
     credentials: { username },
-    tokens: { userId: String(userId), cookies: res.headers.get("set-cookie") || "" },
+    tokens: { userId: String(userId), cookies },
   };
 }
 

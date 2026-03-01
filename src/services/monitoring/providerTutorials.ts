@@ -43,8 +43,12 @@ Privacidade: a senha é usada apenas para gerar o token de acesso e NÃO é arma
 Opcional: Site ID pode ser necessário dependendo do endpoint/relatórios.`,
 
   growatt:
-    `Growatt (Em breve):
-Em muitos cenários é possível gerar um API token no portal Growatt (Settings → Account Management → API Key). Use esse token para acesso a plantas e dados.`,
+    `Para conectar Growatt:
+1) Use o mesmo usuário e senha do portal ShineServer / Growatt Cloud.
+2) Acesse https://server.growatt.com e faça login para confirmar suas credenciais.
+3) No nosso sistema, preencha Usuário e Senha.
+
+Privacidade: a senha é convertida em hash MD5 antes do envio e NÃO é armazenada em texto puro.`,
 
   huawei_fusionsolar:
     `Huawei FusionSolar (Em breve):
