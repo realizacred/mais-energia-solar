@@ -239,9 +239,10 @@ async function deyeMetrics(baseUrl: string, token: string, extId: string): Promi
 }
 
 // ═══════════════════════════════════════════════════════════
-// Growatt ShineServer
+// Growatt — ShineServer (cookies) + OpenAPI Business (token)
 // ═══════════════════════════════════════════════════════════
 
+// ── ShineServer (legacy cookie auth) ──
 async function growattListPlants(cookies: string): Promise<NormalizedPlant[]> {
   const res = await fetch("https://openapi.growatt.com/newPlantAPI.do?op=getAllPlantList&currPage=1&pageSize=100", {
     headers: { Cookie: cookies },
@@ -269,6 +270,92 @@ async function growattMetrics(cookies: string, plantId: string): Promise<DailyMe
       power_kw: d.currentPower != null ? Number(d.currentPower) : null,
       energy_kwh: d.todayEnergy != null ? Number(d.todayEnergy) : null,
       total_energy_kwh: d.totalEnergy != null ? Number(d.totalEnergy) : null,
+      metadata: d,
+    };
+  } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+}
+
+// ── OpenAPI Business (token header) ──
+// Docs: Growatt Server Open API — token is a 32-char key in "token" HTTP header
+// Flow: GET /v1/user/c_user_list → for each user GET /v1/plant/list?C_user_id=X
+async function growattApiListPlants(apiKey: string): Promise<NormalizedPlant[]> {
+  const hdr = { "token": apiKey };
+
+  // Step 1: get all end-users under this business account
+  console.log("[Growatt API] Fetching end-user list...");
+  const usersRes = await fetch("https://openapi.growatt.com/v1/user/c_user_list?page=1&perpage=100", { headers: hdr });
+  const usersText = await usersRes.text();
+  let usersJson: any;
+  try { usersJson = JSON.parse(usersText); } catch { usersJson = {}; }
+  console.log("[Growatt API] c_user_list response:", JSON.stringify(usersJson).slice(0, 400));
+
+  const users = (usersJson.data?.c_user || []) as any[];
+  const allPlants: NormalizedPlant[] = [];
+
+  // Step 2: for each user, list their plants
+  for (const user of users) {
+    const userId = user.c_user_id;
+    if (!userId) continue;
+    const plantsRes = await fetch(`https://openapi.growatt.com/v1/plant/list?C_user_id=${userId}&page=1&perpage=100`, { headers: hdr });
+    const plantsText = await plantsRes.text();
+    let plantsJson: any;
+    try { plantsJson = JSON.parse(plantsText); } catch { continue; }
+
+    const plants = (plantsJson.data?.plants || []) as any[];
+    for (const r of plants) {
+      allPlants.push({
+        external_id: String(r.plant_id || r.id || ""),
+        name: String(r.name || ""),
+        capacity_kw: r.peak_power != null ? Number(r.peak_power) : null,
+        address: r.city || r.address || null,
+        latitude: r.latitude != null ? Number(r.latitude) : null,
+        longitude: r.longitude != null ? Number(r.longitude) : null,
+        status: "normal",
+        metadata: { ...r, c_user_id: userId },
+      });
+    }
+  }
+
+  // If no users found, try listing plants directly (some tokens work without user context)
+  if (allPlants.length === 0 && users.length === 0) {
+    console.log("[Growatt API] No users found, trying direct plant list...");
+    const directRes = await fetch("https://openapi.growatt.com/v1/plant/list?page=1&perpage=100", { headers: hdr });
+    const directText = await directRes.text();
+    let directJson: any;
+    try { directJson = JSON.parse(directText); } catch { directJson = {}; }
+    console.log("[Growatt API] Direct plant/list response:", JSON.stringify(directJson).slice(0, 400));
+
+    const plants = (directJson.data?.plants || []) as any[];
+    for (const r of plants) {
+      allPlants.push({
+        external_id: String(r.plant_id || r.id || ""),
+        name: String(r.name || ""),
+        capacity_kw: r.peak_power != null ? Number(r.peak_power) : null,
+        address: r.city || r.address || null,
+        latitude: r.latitude != null ? Number(r.latitude) : null,
+        longitude: r.longitude != null ? Number(r.longitude) : null,
+        status: "normal",
+        metadata: r,
+      });
+    }
+  }
+
+  console.log(`[Growatt API] Total plants discovered: ${allPlants.length}`);
+  return allPlants;
+}
+
+async function growattApiMetrics(apiKey: string, plantId: string): Promise<DailyMetrics> {
+  try {
+    const hdr = { "token": apiKey };
+    const res = await fetch(`https://openapi.growatt.com/v1/plant/data?plant_id=${plantId}`, { headers: hdr });
+    const text = await res.text();
+    let json: any;
+    try { json = JSON.parse(text); } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+    const d = json.data || {};
+    return {
+      power_kw: d.current_power != null ? Number(d.current_power) : null,
+      energy_kwh: d.today_energy != null ? Number(d.today_energy) : null,
+      total_energy_kwh: d.total_energy != null ? Number(d.total_energy) : null,
       metadata: d,
     };
   } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
@@ -819,8 +906,15 @@ serve(async (req) => {
       if (!at) return jsonResponse({ error: "No access token." }, 400);
       result = await syncPlantsByProvider(ctx, () => deyeListPlants(baseUrl, at), (eid) => deyeMetrics(baseUrl, at, eid), mode, selectedPlantIds);
     } else if (p === "growatt") {
-      const cookies = tokens.cookies as string || "";
-      result = await syncPlantsByProvider(ctx, () => growattListPlants(cookies), (eid) => growattMetrics(cookies, eid), mode, selectedPlantIds);
+      const authMode = credentials.auth_mode as string || (tokens.apiKey ? "api_key" : "portal");
+      if (authMode === "api_key") {
+        const apiKey = tokens.apiKey as string || "";
+        if (!apiKey) return jsonResponse({ error: "No API key (token) stored for Growatt." }, 400);
+        result = await syncPlantsByProvider(ctx, () => growattApiListPlants(apiKey), (eid) => growattApiMetrics(apiKey, eid), mode, selectedPlantIds);
+      } else {
+        const cookies = tokens.cookies as string || "";
+        result = await syncPlantsByProvider(ctx, () => growattListPlants(cookies), (eid) => growattMetrics(cookies, eid), mode, selectedPlantIds);
+      }
     } else if (p === "hoymiles") {
       const token = tokens.token as string || "";
       result = await syncPlantsByProvider(ctx, () => hoymilesListPlants(token), (eid) => hoymilesMetrics(token, eid), mode, selectedPlantIds);
