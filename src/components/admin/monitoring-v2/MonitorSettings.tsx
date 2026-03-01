@@ -39,8 +39,13 @@ export default function MonitorSettings() {
     queryFn: listIntegrations,
   });
 
+  const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
+
   const syncMutation = useMutation({
-    mutationFn: (provider: string) => syncProvider(provider, "full"),
+    mutationFn: (provider: string) => {
+      setSyncingProvider(provider);
+      return syncProvider(provider, "full");
+    },
     onSuccess: (res) => {
       if (res.success) {
         toast.success(`Sincronizado: ${res.plants_synced || 0} usinas, ${res.metrics_synced || 0} métricas`);
@@ -50,6 +55,7 @@ export default function MonitorSettings() {
       }
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setSyncingProvider(null),
   });
 
   const disconnectMutation = useMutation({
@@ -102,7 +108,7 @@ export default function MonitorSettings() {
                     integration={integration}
                     onSync={() => syncMutation.mutate(integration.provider)}
                     onDisconnect={() => disconnectMutation.mutate(integration.id)}
-                    isSyncing={syncMutation.isPending}
+                    isSyncing={syncingProvider === integration.provider}
                   />
                 ))}
               </div>
@@ -118,7 +124,7 @@ export default function MonitorSettings() {
                     integration={integration}
                     onSync={() => syncMutation.mutate(integration.provider)}
                     onDisconnect={() => disconnectMutation.mutate(integration.id)}
-                    isSyncing={syncMutation.isPending}
+                    isSyncing={syncingProvider === integration.provider}
                   />
                 ))}
               </div>
