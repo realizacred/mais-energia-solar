@@ -5,10 +5,9 @@ import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sun, Plug, RefreshCw, Zap, Activity, Battery, MapPin, Search, Info } from "lucide-react";
+import { Sun, Plug, RefreshCw, Zap, Activity, Battery, MapPin, Search, Info, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PROVIDER_REGISTRY, type ProviderDefinition } from "@/services/monitoring/providerRegistry";
@@ -24,8 +23,9 @@ import { ConnectProviderModal } from "./ConnectProviderModal";
 import { SelectPlantsModal } from "./SelectPlantsModal";
 import { PlantsTable } from "./PlantsTable";
 import { PlantsMap } from "./PlantsMap";
+import { cn } from "@/lib/utils";
 
-type TabFilter = "all" | "active" | "inactive" | "popular";
+type TabFilter = "all" | "active" | "inactive";
 
 const POPULAR_IDS = ["solarman_business_api", "solaredge", "solis_cloud", "growatt"];
 
@@ -36,7 +36,6 @@ export default function MonitoringPage() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabFilter>("all");
 
-  // Plant selection modal state
   const [selectPlantsData, setSelectPlantsData] = useState<{
     provider: ProviderDefinition;
     plants: DiscoveredPlant[];
@@ -58,15 +57,12 @@ export default function MonitoringPage() {
     queryFn: getTodayMetrics,
   });
 
-  // Discover plants mutation (fetches list without saving)
   const discoverMutation = useMutation({
     mutationFn: (provider: string) => discoverPlants(provider),
     onSuccess: (result, providerId) => {
       if (result.success && result.plants && result.plants.length > 0) {
         const prov = PROVIDER_REGISTRY.find((p) => p.id === providerId);
-        if (prov) {
-          setSelectPlantsData({ provider: prov, plants: result.plants });
-        }
+        if (prov) setSelectPlantsData({ provider: prov, plants: result.plants });
       } else if (result.success && (!result.plants || result.plants.length === 0)) {
         toast.info("Nenhuma usina encontrada nesta conta.");
       } else {
@@ -76,15 +72,12 @@ export default function MonitoringPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Full sync mutation (used after plant selection or for re-sync)
   const syncMutation = useMutation({
     mutationFn: ({ provider, selectedIds }: { provider: string; selectedIds?: string[] }) =>
       syncProvider(provider, "full", selectedIds),
     onSuccess: (result) => {
       if (result.success) {
-        toast.success(
-          `Sincronização concluída: ${result.plants_synced} usinas, ${result.metrics_synced} métricas`
-        );
+        toast.success(`Sincronização concluída: ${result.plants_synced} usinas, ${result.metrics_synced} métricas`);
       } else {
         toast.error(result.error || "Erro na sincronização");
       }
@@ -98,7 +91,6 @@ export default function MonitoringPage() {
   const handleConnectSuccess = (providerId: string) => {
     queryClient.invalidateQueries({ queryKey: ["monitoring-integrations"] });
     setConnectProvider(null);
-    // After connecting, discover plants for selection
     discoverMutation.mutate(providerId);
   };
 
@@ -106,60 +98,50 @@ export default function MonitoringPage() {
     if (!selectPlantsData) return;
     const providerId = selectPlantsData.provider.id;
     const providerLabel = selectPlantsData.provider.label;
-
-    // Close modal immediately
     setSelectPlantsData(null);
-
-    // Show background toast and sync
     toast.promise(
       syncMutation.mutateAsync({ provider: providerId, selectedIds }),
       {
         loading: `Importando ${selectedIds.length} usina(s) de ${providerLabel}…`,
-        success: (result) =>
-          result.success
-            ? `${result.plants_synced} usinas e ${result.metrics_synced} métricas importadas!`
-            : result.error || "Erro na importação",
+        success: (result) => result.success ? `${result.plants_synced} usinas e ${result.metrics_synced} métricas importadas!` : result.error || "Erro na importação",
         error: (err: Error) => err.message,
       }
     );
   };
 
   const handleSyncClick = (providerId: string) => {
-    // Check if provider already has plants synced - if so, just re-sync existing
     const providerPlants = plants.filter((p) => p.provider === providerId);
     if (providerPlants.length > 0) {
-      // Re-sync existing plants (no selection needed)
       syncMutation.mutate({ provider: providerId });
     } else {
-      // First sync: discover plants for selection
       discoverMutation.mutate(providerId);
     }
   };
 
   const hasConnected = integrations.some((i) => i.status === "connected");
-
-  // Aggregate stats
   const totalCapacity = plants.reduce((sum, p) => sum + (p.capacity_kw || 0), 0);
   const totalEnergyToday = metrics.reduce((sum, m) => sum + (m.energy_kwh || 0), 0);
   const totalEnergyAll = metrics.reduce((sum, m) => sum + (m.total_energy_kwh || 0), 0);
   const onlinePlants = plants.filter((p) => p.status === "normal").length;
   const plantsWithCoords = plants.filter((p) => p.latitude != null && p.longitude != null);
 
-  // Filter providers
   const filteredProviders = PROVIDER_REGISTRY.filter((prov) => {
     const matchSearch = !search || prov.label.toLowerCase().includes(search.toLowerCase()) || prov.description.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
-
     const integration = integrations.find((i) => i.provider === prov.id);
     const isActive = integration && (integration.status === "connected" || integration.status === "connected_pending");
-
     switch (tab) {
       case "active": return isActive;
       case "inactive": return !isActive;
-      case "popular": return POPULAR_IDS.includes(prov.id);
       default: return true;
     }
   });
+
+  const activeProviders = filteredProviders.filter((prov) => {
+    const integration = integrations.find((i) => i.provider === prov.id);
+    return integration && (integration.status === "connected" || integration.status === "connected_pending");
+  });
+  const inactiveProviders = filteredProviders.filter((prov) => !activeProviders.includes(prov));
 
   if (loadingInt) return <LoadingState message="Carregando integrações..." />;
 
@@ -181,118 +163,163 @@ export default function MonitoringPage() {
         </div>
       )}
 
-      {/* Search + Tabs */}
+      {/* Providers */}
       <SectionCard title="Provedores" icon={Plug}>
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* Search + Tabs */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Pesquisar integração…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+              <Input placeholder="Pesquisar provedor…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
             </div>
-            <div className="flex gap-1">
-              {([["all", "Todas"], ["active", "Ativas"], ["inactive", "Inativas"], ["popular", "Mais populares"]] as [TabFilter, string][]).map(([key, label]) => (
-                <Button
+            <div className="flex bg-muted rounded-lg p-0.5">
+              {([["all", "Todas"], ["active", "Ativas"], ["inactive", "Disponíveis"]] as [TabFilter, string][]).map(([key, label]) => (
+                <button
                   key={key}
-                  size="sm"
-                  variant={tab === key ? "default" : "outline"}
                   onClick={() => setTab(key)}
-                  className="text-xs"
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+                    tab === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
                   {label}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Provider cards grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProviders.map((prov) => {
-              const integration = integrations.find((i) => i.provider === prov.id);
-              const status = integration?.status || "disconnected";
-              const isDiscovering = discoverMutation.isPending && discoverMutation.variables === prov.id;
+          {/* Active providers */}
+          {activeProviders.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center h-5 w-5 rounded-full bg-success/15">
+                  <CheckCircle2 className="h-3 w-3 text-success" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">Conectadas</span>
+                <Badge variant="secondary" className="text-2xs">{activeProviders.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activeProviders.map((prov) => {
+                  const integration = integrations.find((i) => i.provider === prov.id);
+                  const isDiscovering = discoverMutation.isPending && discoverMutation.variables === prov.id;
+                  const provPlants = plants.filter((p) => p.provider === prov.id);
 
-              return (
-                <div key={prov.id} className="border border-border rounded-lg p-4 space-y-3 bg-card">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sun className="h-5 w-5 text-warning" />
-                      <span className="font-semibold text-sm">{prov.label}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {(prov.status === "coming_soon" || prov.status === "stub") && (
-                        <Badge variant="outline" className="text-2xs">Em breve</Badge>
-                      )}
-                      <StatusBadge
-                        status={
-                          status === "connected" ? "Conectado"
-                            : status === "connected_pending" ? "Pendente"
-                            : status === "error" ? "Erro"
-                            : "Desconectado"
-                        }
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{prov.description}</p>
+                  return (
+                    <div key={prov.id} className="relative border border-border rounded-xl bg-card p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="absolute top-3 right-3">
+                        <div className="h-2.5 w-2.5 rounded-full bg-success ring-2 ring-success/20" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+                          <Sun className="h-5 w-5 text-secondary" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground truncate">{prov.label}</p>
+                          <p className="text-2xs text-muted-foreground truncate">{prov.description}</p>
+                        </div>
+                      </div>
 
-                  {integration?.last_sync_at && (
-                    <p className="text-2xs text-muted-foreground">
-                      Última sync: {new Date(integration.last_sync_at).toLocaleString("pt-BR")}
-                    </p>
-                  )}
-                  {integration?.sync_error && (
-                    <p className="text-2xs text-destructive truncate">{integration.sync_error}</p>
-                  )}
-
-                  <div className="flex gap-2 flex-wrap">
-                    {(prov.status === "coming_soon" || prov.status === "stub") ? (
-                      <Button size="sm" variant="outline" onClick={() => setConnectProvider(prov)}>
-                        <Info className="h-3.5 w-3.5 mr-1" />
-                        Ver tutorial
-                      </Button>
-                    ) : status === "disconnected" || status === "error" ? (
-                      <Button size="sm" onClick={() => setConnectProvider(prov)}>
-                        <Plug className="h-3.5 w-3.5 mr-1" />
-                        Conectar
-                      </Button>
-                    ) : (
-                      <>
-                        {(prov.status === "active" || prov.status === "beta") ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSyncClick(prov.id)}
-                            disabled={syncMutation.isPending || isDiscovering}
-                          >
-                            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${(syncMutation.isPending || isDiscovering) ? "animate-spin" : ""}`} />
-                            {isDiscovering ? "Buscando usinas…" : "Sincronizar"}
-                          </Button>
-                        ) : (
-                          <Badge variant="secondary" className="text-2xs py-1">Sync em breve</Badge>
+                      <div className="flex items-center gap-4 text-xs">
+                        {provPlants.length > 0 && (
+                          <div className="flex items-center gap-1.5 text-foreground font-medium">
+                            <Sun className="h-3.5 w-3.5 text-warning" />
+                            <span>{provPlants.length} usina{provPlants.length !== 1 ? "s" : ""}</span>
+                          </div>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => setConnectProvider(prov)}>
+                        {integration?.last_sync_at && (
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>{new Date(integration.last_sync_at).toLocaleDateString("pt-BR")}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {integration?.sync_error && (
+                        <p className="text-2xs text-destructive flex items-center gap-1 truncate">
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          {integration.sync_error}
+                        </p>
+                      )}
+
+                      <div className="flex gap-2 pt-1">
+                        {(prov.status === "active" || prov.status === "beta") && (
+                          <Button size="sm" variant="outline" onClick={() => handleSyncClick(prov.id)} disabled={syncMutation.isPending || isDiscovering} className="flex-1 h-8">
+                            <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", (syncMutation.isPending || isDiscovering) && "animate-spin")} />
+                            {isDiscovering ? "Buscando…" : "Sincronizar"}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => setConnectProvider(prov)} className="h-8 text-muted-foreground hover:text-foreground">
                           Reconectar
                         </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {filteredProviders.length === 0 && (
-              <div className="col-span-full text-center py-8 text-sm text-muted-foreground">
-                Nenhuma integração encontrada.
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Inactive providers */}
+          {inactiveProviders.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center h-5 w-5 rounded-full bg-muted">
+                  <Plug className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground">Disponíveis</span>
+                <Badge variant="outline" className="text-2xs">{inactiveProviders.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {inactiveProviders.map((prov) => (
+                  <div
+                    key={prov.id}
+                    className={cn(
+                      "border rounded-xl p-4 space-y-3 transition-all",
+                      (prov.status === "coming_soon" || prov.status === "stub")
+                        ? "border-border/30 bg-muted/20"
+                        : "border-border/50 bg-card/50 hover:bg-card hover:border-border hover:shadow-sm",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-muted/60 flex items-center justify-center">
+                        <Sun className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground/80 truncate">{prov.label}</p>
+                          {(prov.status === "coming_soon" || prov.status === "stub") && (
+                            <Badge variant="outline" className="text-2xs border-border/50 text-muted-foreground">Em breve</Badge>
+                          )}
+                        </div>
+                        <p className="text-2xs text-muted-foreground line-clamp-1 mt-0.5">{prov.description}</p>
+                      </div>
+                    </div>
+                    <div>
+                      {(prov.status === "coming_soon" || prov.status === "stub") ? (
+                        <Button size="sm" variant="ghost" onClick={() => setConnectProvider(prov)} className="w-full h-8 text-muted-foreground hover:text-foreground">
+                          <Info className="h-3.5 w-3.5 mr-1.5" />
+                          Ver tutorial
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => setConnectProvider(prov)} className="w-full h-8">
+                          <Plug className="h-3.5 w-3.5 mr-1.5" />
+                          Conectar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filteredProviders.length === 0 && (
+            <div className="text-center py-8 text-sm text-muted-foreground">Nenhuma integração encontrada.</div>
+          )}
         </div>
       </SectionCard>
 
-      {/* Map toggle */}
+      {/* Map */}
       {hasConnected && plantsWithCoords.length > 0 && (
         <div className="flex justify-end">
           <Button size="sm" variant={showMap ? "default" : "outline"} onClick={() => setShowMap(!showMap)}>
@@ -308,30 +335,21 @@ export default function MonitoringPage() {
         </SectionCard>
       )}
 
-      {/* Plants table or empty state */}
+      {/* Plants */}
       {hasConnected ? (
         loadingPlants ? (
           <LoadingState message="Carregando usinas..." />
         ) : plants.length === 0 ? (
-          <EmptyState
-            icon={Sun}
-            title="Nenhuma usina importada"
-            description='Clique em "Sincronizar" no provedor conectado para selecionar e importar as usinas.'
-          />
+          <EmptyState icon={Sun} title="Nenhuma usina importada" description='Clique em "Sincronizar" no provedor conectado para selecionar e importar as usinas.' />
         ) : (
           <SectionCard title={`Usinas (${plants.length})`} icon={Sun}>
             <PlantsTable plants={plants} metrics={metrics} />
           </SectionCard>
         )
       ) : (
-        <EmptyState
-          icon={Plug}
-          title="Conecte um provedor"
-          description="Conecte sua conta de monitoramento para importar e acompanhar suas usinas solares."
-        />
+        <EmptyState icon={Plug} title="Conecte um provedor" description="Conecte sua conta de monitoramento para importar e acompanhar suas usinas solares." />
       )}
 
-      {/* Dynamic connect modal */}
       {connectProvider && (
         <ConnectProviderModal
           open={!!connectProvider}
@@ -341,7 +359,6 @@ export default function MonitoringPage() {
         />
       )}
 
-      {/* Plant selection modal */}
       {selectPlantsData && (
         <SelectPlantsModal
           open={!!selectPlantsData}
