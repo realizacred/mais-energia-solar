@@ -3,6 +3,7 @@ import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { connectProvider } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField } from "@/services/integrations/types";
@@ -142,13 +143,29 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
                 {field.label}
                 {!field.required && <span className="text-muted-foreground ml-1">(opcional)</span>}
               </Label>
-              <Input
-                id={`field-${field.key}`}
-                type={field.type}
-                placeholder={field.placeholder || ""}
-                value={formValues[field.key] || ""}
-                onChange={handleFieldChange(field.key)}
-              />
+              {field.type === "select" && field.options ? (
+                <Select
+                  value={formValues[field.key] || ""}
+                  onValueChange={(val) => setFormValues((prev) => ({ ...prev, [field.key]: val }))}
+                >
+                  <SelectTrigger id={`field-${field.key}`}>
+                    <SelectValue placeholder={field.placeholder || "Selecione..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {field.options.map((opt: { value: string; label: string }) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id={`field-${field.key}`}
+                  type={field.type}
+                  placeholder={field.placeholder || ""}
+                  value={formValues[field.key] || ""}
+                  onChange={handleFieldChange(field.key)}
+                />
+              )}
             </div>
           ))}
         </div>

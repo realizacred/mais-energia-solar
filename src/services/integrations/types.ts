@@ -3,9 +3,11 @@
 export interface CredentialField {
   key: string;
   label: string;
-  type: "text" | "email" | "password";
+  type: "text" | "email" | "password" | "select";
   required: boolean;
   placeholder?: string;
+  options?: { value: string; label: string }[];
+  helperText?: string;
 }
 
 export interface TutorialData {

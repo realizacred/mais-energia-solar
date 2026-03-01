@@ -305,6 +305,82 @@ serve(async (req) => {
       return jsonResponse({ success: true, integration_id: integration?.id, status: "connected" });
     }
 
+    // ── Deye Cloud (token_app — region-based base URL) ──
+    if (provider === "deye_cloud") {
+      const { region, appId, appSecret, email, password } = credentials;
+      if (!region || !appId || !appSecret || !email || !password) {
+        return jsonResponse({ error: "Missing credentials: region, appId, appSecret, email, password" }, 400);
+      }
+
+      const DEYE_REGIONS: Record<string, string> = {
+        EU: "https://eu1-developer.deyecloud.com/v1.0",
+        US: "https://us1-developer.deyecloud.com/v1.0",
+      };
+      const baseUrl = DEYE_REGIONS[region.toUpperCase()];
+      if (!baseUrl) {
+        return jsonResponse({ error: `Invalid region: ${region}. Use EU or US.` }, 400);
+      }
+
+      try {
+        // Hash password with SHA-256 before sending to Deye
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
+        const hashHex = Array.from(new Uint8Array(hashBuffer))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+
+        const tokenRes = await fetch(`${baseUrl}/token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            appSecret,
+            email,
+            password: hashHex,
+          }),
+        });
+
+        const contentType = tokenRes.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          const text = await tokenRes.text();
+          throw new Error(`Deye API returned non-JSON (${tokenRes.status}): ${text.slice(0, 200)}`);
+        }
+
+        const tokenJson = await tokenRes.json();
+        if (!tokenJson.access_token && !tokenJson.data?.access_token) {
+          throw new Error(tokenJson.msg || tokenJson.message || "Deye Cloud authentication failed — no access_token");
+        }
+
+        const tokenData = tokenJson.data || tokenJson;
+        const accessToken = tokenData.access_token as string;
+        const expiresIn = (tokenData.expires_in as number) || 7200;
+        const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+        const integration = await upsertIntegration(ctx, {
+          status: "connected",
+          sync_error: null,
+          credentials: { region, baseUrl, appId, email },
+          tokens: {
+            access_token: accessToken,
+            token_type: tokenData.token_type || "bearer",
+            expires_at: expiresAt,
+            refresh_token: tokenData.refresh_token || null,
+            appSecret, // Stored in tokens (not credentials) — TODO: encrypt with KMS
+          },
+        });
+        await auditLog(ctx, "monitoring.integration.connected", integration?.id, { provider, status: "connected", region });
+        return jsonResponse({ success: true, integration_id: integration?.id, status: "connected" });
+      } catch (err) {
+        const integration = await upsertIntegration(ctx, {
+          status: "error",
+          sync_error: (err as Error).message?.slice(0, 500) || "Authentication failed",
+          credentials: { region, baseUrl, appId, email },
+          tokens: {},
+        });
+        await auditLog(ctx, "monitoring.integration.error", integration?.id, { provider, error: (err as Error).message });
+        return jsonResponse({ error: `Deye Cloud authentication failed: ${(err as Error).message}` }, 400);
+      }
+    }
+
     return jsonResponse({ error: `Unsupported provider: ${provider}` }, 400);
   } catch (err) {
     console.error("monitoring-connect error:", err);

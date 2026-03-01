@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { connectProvider } from "@/services/monitoring/monitoringService";
 import { getTutorial } from "@/services/monitoring/providerTutorials";
@@ -96,13 +97,32 @@ export function ConnectProviderModal({ open, onOpenChange, provider, onSuccess }
         {provider.fields.map((field) => (
           <div key={field.key} className="space-y-1.5">
             <Label htmlFor={`field-${field.key}`}>{field.label}</Label>
-            <Input
-              id={`field-${field.key}`}
-              type={field.type}
-              placeholder={field.placeholder}
-              value={formValues[field.key] || ""}
-              onChange={handleFieldChange(field.key)}
-            />
+            {field.type === "select" && field.options ? (
+              <Select
+                value={formValues[field.key] || ""}
+                onValueChange={(val) => setFormValues((prev) => ({ ...prev, [field.key]: val }))}
+              >
+                <SelectTrigger id={`field-${field.key}`}>
+                  <SelectValue placeholder={field.placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  {field.options.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id={`field-${field.key}`}
+                type={field.type}
+                placeholder={field.placeholder}
+                value={formValues[field.key] || ""}
+                onChange={handleFieldChange(field.key)}
+              />
+            )}
+            {field.helperText && (
+              <p className="text-2xs text-muted-foreground">{field.helperText}</p>
+            )}
           </div>
         ))}
       </div>
