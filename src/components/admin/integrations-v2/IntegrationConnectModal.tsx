@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { connectProvider } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField } from "@/services/integrations/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Info, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
 
@@ -27,6 +27,7 @@ const LEGACY_PROVIDER_MAP: Record<string, string> = Object.fromEntries(
 export function IntegrationConnectModal({ open, onOpenChange, provider, onSuccess }: Props) {
   const [saving, setSaving] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
 
   // Pre-fill form with saved credentials when opening for an existing connection
@@ -208,13 +209,25 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
                   </SelectContent>
                 </Select>
               ) : (
-                <Input
-                  id={`field-${field.key}`}
-                  type={field.type}
-                  placeholder={field.placeholder || ""}
-                  value={formValues[field.key] || ""}
-                  onChange={handleFieldChange(field.key)}
-                />
+                <div className="relative">
+                  <Input
+                    id={`field-${field.key}`}
+                    type={field.type === "password" && showPassword[field.key] ? "text" : field.type}
+                    placeholder={field.placeholder || ""}
+                    value={formValues[field.key] || ""}
+                    onChange={handleFieldChange(field.key)}
+                  />
+                  {field.type === "password" && (
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => setShowPassword((prev) => ({ ...prev, [field.key]: !prev[field.key] }))}
+                      tabIndex={-1}
+                    >
+                      {showPassword[field.key] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           ))}
