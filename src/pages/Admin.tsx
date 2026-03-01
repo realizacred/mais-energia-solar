@@ -89,6 +89,7 @@ const DataResetManager = lazy(() => import("@/components/admin/DataResetManager"
 const LeadsTrashPage = lazy(() => import("@/components/admin/leads/LeadsTrashPage"));
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
+const MonitoringPage = lazy(() => import("@/components/admin/monitoring/MonitoringPage"));
 const AneelIntegrationPage = lazy(() => import("@/components/admin/integrations/AneelIntegrationPage").then(m => ({ default: m.AneelIntegrationPage })));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const OpenAIConfigPage = lazy(() => import("@/pages/admin/OpenAIConfigPage"));
@@ -308,6 +309,7 @@ const TAB_TITLES: Record<string, string> = {
   "notificacoes-config": "Notificações",
   "loading-config": "Personalização visual",
   "tenant-settings": "Dados da empresa",
+  "monitoramento-solar": "Monitoramento Solar",
   "conf-solar": "Premissas solar",
   "pricing-policy": "Política de precificação",
   "custom-fields": "Opções customizáveis",
@@ -583,6 +585,7 @@ export default function Admin() {
                 <Route path="integracoes" element={<IntegrationsPage />} />
                 <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
                 <Route path="saude-integracoes" element={<IntegrationHealthPage />} />
+                <Route path="monitoramento-solar" element={<MonitoringPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
                 <Route path="gemini-config" element={<GeminiConfigPage />} />

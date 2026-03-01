@@ -6542,6 +6542,53 @@ export type Database = {
           },
         ]
       }
+      monitoring_integrations: {
+        Row: {
+          created_at: string
+          credentials: Json | null
+          id: string
+          last_sync_at: string | null
+          provider: string
+          status: string
+          sync_error: string | null
+          tenant_id: string
+          tokens: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credentials?: Json | null
+          id?: string
+          last_sync_at?: string | null
+          provider?: string
+          status?: string
+          sync_error?: string | null
+          tenant_id: string
+          tokens?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credentials?: Json | null
+          id?: string
+          last_sync_at?: string | null
+          provider?: string
+          status?: string
+          sync_error?: string | null
+          tenant_id?: string
+          tokens?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitoring_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motivos_perda: {
         Row: {
           ativo: boolean | null
@@ -14047,6 +14094,123 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "solar_market_sync_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solar_plant_metrics_daily: {
+        Row: {
+          created_at: string
+          date: string
+          energy_kwh: number | null
+          id: string
+          metadata: Json | null
+          plant_id: string
+          power_kw: number | null
+          tenant_id: string
+          total_energy_kwh: number | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          energy_kwh?: number | null
+          id?: string
+          metadata?: Json | null
+          plant_id: string
+          power_kw?: number | null
+          tenant_id: string
+          total_energy_kwh?: number | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          energy_kwh?: number | null
+          id?: string
+          metadata?: Json | null
+          plant_id?: string
+          power_kw?: number | null
+          tenant_id?: string
+          total_energy_kwh?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_plant_metrics_daily_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "solar_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solar_plant_metrics_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solar_plants: {
+        Row: {
+          address: string | null
+          capacity_kw: number | null
+          created_at: string
+          external_id: string
+          id: string
+          integration_id: string
+          latitude: number | null
+          longitude: number | null
+          metadata: Json | null
+          name: string | null
+          provider: string
+          status: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          capacity_kw?: number | null
+          created_at?: string
+          external_id: string
+          id?: string
+          integration_id: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          name?: string | null
+          provider: string
+          status?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          capacity_kw?: number | null
+          created_at?: string
+          external_id?: string
+          id?: string
+          integration_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          name?: string | null
+          provider?: string
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_plants_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solar_plants_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
