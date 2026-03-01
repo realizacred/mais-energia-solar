@@ -726,19 +726,21 @@ function isValidLivoltekToken(data: unknown): data is string {
 async function testLivoltek(creds: Record<string, string>) {
   const apiKey = creds.apiKey || creds.key || "";
   const appSecret = creds.appSecret || creds.secuid || "";
+  const username = creds.username || creds.email || "";
+  const password = creds.password || "";
   const userToken = creds.userToken || "";
 
   if (!apiKey || !appSecret) throw new Error("Missing: apiKey (Chave Api) and appSecret (Segredo da Aplicação)");
+  if (!username || !password) throw new Error("Missing: username (Usuário) and password (Senha)");
 
   let token = userToken;
   let baseUrl = "";
 
-  // Login uses ONLY secuid + key per official API spec (no username/password)
   if (!token) {
     for (const server of LIVOLTEK_SERVERS) {
       try {
         console.log(`[Livoltek] Trying login at ${server}`);
-        const loginBody = { secuid: appSecret, key: apiKey };
+        const loginBody: Record<string, string> = { secuid: appSecret, key: apiKey, username, password };
         const res = await fetch(`${server}/hess/api/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -763,7 +765,7 @@ async function testLivoltek(creds: Record<string, string>) {
     baseUrl = LIVOLTEK_SERVERS[0];
   }
 
-  if (!token) throw new Error("Livoltek login failed. Verifique apiKey e appSecret. A API retornou dados inválidos.");
+  if (!token) throw new Error("Livoltek login failed. Verifique todos os 4 campos (username, password, apiKey, appSecret).");
 
   // Verify token by listing sites
   const serversToTry = baseUrl ? [baseUrl] : LIVOLTEK_SERVERS;
@@ -772,7 +774,6 @@ async function testLivoltek(creds: Record<string, string>) {
       const sitesRes = await fetch(`${server}/hess/api/userSites/list?userToken=${encodeURIComponent(token)}&page=1&size=5`);
       const sitesJson = await sitesRes.json();
       console.log(`[Livoltek] Sites check @ ${server}: code=${sitesJson.code}, msg=${sitesJson.message}, msg_code=${sitesJson.msg_code}, count=${sitesJson.data?.count || sitesJson.data?.list?.length || 0}`);
-      // Accept any successful-looking response
       const ok = sitesJson.msg_code === "operate.success" || sitesJson.code === "0" || sitesJson.code === 0 || sitesJson.message === "SUCCESS";
       if (ok) {
         baseUrl = server;
@@ -784,8 +785,8 @@ async function testLivoltek(creds: Record<string, string>) {
   }
 
   return {
-    credentials: { apiKey, appSecret, baseUrl },
-    tokens: { token, baseUrl, userToken: token },
+    credentials: { apiKey, appSecret, username, baseUrl },
+    tokens: { token, baseUrl, userToken: token, password },
   };
 }
 
