@@ -632,9 +632,15 @@ async function huaweiListPlants(xsrfToken: string, cookies: string, region: stri
     body: JSON.stringify({ pageNo: 1, pageSize: 100 }),
   });
   const json = await res.json();
-  console.log(`[Huawei] getStationList: success=${json.success}, failCode=${json.failCode}, count=${(json.data || []).length}`);
+  // Huawei returns { data: { list: [...], total: N } } OR { data: [...] } depending on version
+  const rawData = json.data;
+  const list = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.list) ? rawData.list : [];
+  console.log(`[Huawei] getStationList: success=${json.success}, failCode=${json.failCode}, count=${list.length}, rawDataType=${typeof rawData}, hasListProp=${!!rawData?.list}`);
   if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
-  const list = (json.data || []) as any[];
+  if (list.length === 0 && json.success) {
+    console.warn(`[Huawei] API retornou sucesso mas 0 usinas. Verifique se as plantas foram selecionadas no portal FusionSolar > Gestão de API.`);
+    console.log(`[Huawei] Raw data keys: ${rawData ? Object.keys(rawData) : "null"}`);
+  }
   return list.map((r: any) => ({
     external_id: String(r.stationCode || ""), name: String(r.stationName || ""),
     capacity_kw: r.capacity != null ? Number(r.capacity) : null,
