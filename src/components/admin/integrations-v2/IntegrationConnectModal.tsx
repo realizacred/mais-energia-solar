@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { connectProvider } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField } from "@/services/integrations/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -17,9 +18,60 @@ interface Props {
   onSuccess: () => void;
 }
 
+// Map new provider IDs to legacy IDs used in monitoring_integrations
+const LEGACY_PROVIDER_MAP: Record<string, string> = {
+  solarman_business: "solarman_business_api",
+  solaredge: "solaredge",
+  solis_cloud: "solis_cloud",
+};
+
 export function IntegrationConnectModal({ open, onOpenChange, provider, onSuccess }: Props) {
   const [saving, setSaving] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [loaded, setLoaded] = useState(false);
+
+  // Pre-fill form with saved credentials when opening for an existing connection
+  useEffect(() => {
+    if (!open || loaded) return;
+    const legacyId = LEGACY_PROVIDER_MAP[provider.id] || provider.id;
+    
+    (async () => {
+      try {
+        const { data } = await (supabase
+          .from("monitoring_integrations" as any)
+          .select("credentials, tokens")
+          .eq("provider", legacyId)
+          .maybeSingle() as any);
+        
+        if (data) {
+          const creds = (data.credentials as Record<string, any>) || {};
+          const tokens = (data.tokens as Record<string, any>) || {};
+          const merged = { ...creds, ...tokens };
+          const fields = (provider.credential_schema || []) as CredentialField[];
+          const prefilled: Record<string, string> = {};
+          for (const field of fields) {
+            const val = merged[field.key];
+            if (val && typeof val === "string" && !isSecretValue(field, val)) {
+              prefilled[field.key] = val;
+            }
+          }
+          if (Object.keys(prefilled).length > 0) {
+            setFormValues(prefilled);
+          }
+        }
+      } catch {
+        // Silently fail — user can still fill manually
+      }
+      setLoaded(true);
+    })();
+  }, [open, provider.id, loaded]);
+
+  // Don't pre-fill password/secret fields with actual values
+  function isSecretValue(field: CredentialField, value: string): boolean {
+    if (field.type === "password") return true;
+    const secretKeys = ["secret", "password", "token", "apiSecret", "appSecret"];
+    return secretKeys.some((k) => field.key.toLowerCase().includes(k.toLowerCase()));
+  }
 
   const fields = (provider.credential_schema || []) as CredentialField[];
   const tutorial = provider.tutorial;
@@ -33,11 +85,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
   const isValid = fields.every((f) => !f.required || (formValues[f.key] && formValues[f.key].trim() !== ""));
 
   // Map new provider IDs to legacy IDs used by edge functions
-  const LEGACY_MAP: Record<string, string> = {
-    solarman_business: "solarman_business_api",
-    solaredge: "solaredge",
-    solis_cloud: "solis_cloud",
-  };
+  const LEGACY_MAP: Record<string, string> = LEGACY_PROVIDER_MAP;
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -64,7 +112,10 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
   };
 
   const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) setFormValues({});
+    if (!isOpen) {
+      setFormValues({});
+      setLoaded(false);
+    }
     onOpenChange(isOpen);
   };
 
