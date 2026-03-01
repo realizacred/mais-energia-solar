@@ -100,9 +100,10 @@ async function testDeye(creds: Record<string, string>) {
   const REGIONS: Record<string, string> = {
     EU: "https://eu1-developer.deyecloud.com/v1.0",
     US: "https://us1-developer.deyecloud.com/v1.0",
+    INDIA: "https://india-developer.deyecloud.com/v1.0",
   };
   const baseUrl = REGIONS[region.toUpperCase()];
-  if (!baseUrl) throw new Error(`Invalid region: ${region}. Use EU or US.`);
+  if (!baseUrl) throw new Error(`Invalid region: ${region}. Use EU, US, or INDIA.`);
 
   const hashHex = await sha256Hex(password);
 
