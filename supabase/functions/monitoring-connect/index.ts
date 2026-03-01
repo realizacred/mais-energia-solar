@@ -108,9 +108,10 @@ async function testDeye(creds: Record<string, string>) {
   const baseUrl = REGIONS[region.toUpperCase()];
   if (!baseUrl) throw new Error(`Invalid region: ${region}. Use EU, US, AMEA, or INDIA.`);
 
-  // SHA256 hash + lowercase (as per Deye docs)
+  // SHA256 hash + lowercase (as per Deye docs: "password should be in SHA256 encrypted and in lowercase")
   const hashHex = await sha256Hex(password);
   console.log(`[Deye] Password hash (first 10 chars): ${hashHex.slice(0, 10)}... length=${hashHex.length}`);
+  console.log(`[Deye] Password length: ${password.length}, email: ${email}`);
 
   const tokenUrl = `${baseUrl}/account/token?appId=${encodeURIComponent(appId)}`;
   console.log(`[Deye] Requesting token from: ${tokenUrl}`);
