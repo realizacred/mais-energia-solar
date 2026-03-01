@@ -145,7 +145,20 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
     description: "Inversores Huawei via FusionSolar Northbound API.",
     icon: "Cpu", status: "active", auth_type: "api_token", capabilities: FULL_CAP,
     api_docs_url: "https://support.huawei.com/enterprise/en/doc/EDOC1100261860",
-    fields: [F_USER, F_PASSWORD, { key: "systemCode", label: "System Code", type: "text", placeholder: "Código do sistema", required: true }],
+    fields: [
+      {
+        key: "region", label: "Região do Portal", type: "select", placeholder: "Selecione a região", required: true,
+        options: [
+          { value: "la5", label: "América Latina (la5)" },
+          { value: "eu5", label: "Europa (eu5)" },
+          { value: "sg5", label: "Ásia-Pacífico (sg5)" },
+          { value: "au5", label: "Austrália (au5)" },
+        ],
+        helperText: "Selecione a região do seu portal FusionSolar",
+      },
+      { key: "username", label: "Usuário de API", type: "text", placeholder: "Ex: SolarZAPI", required: true, helperText: "Usuário criado em Gestão de API (NÃO é o login do portal)" },
+      { key: "password", label: "Senha de API", type: "password", placeholder: "Senha do usuário de API", required: true, helperText: "Usada apenas para gerar token — NÃO é armazenada" },
+    ],
   },
   {
     id: "goodwe", label: "GoodWe SEMS",
