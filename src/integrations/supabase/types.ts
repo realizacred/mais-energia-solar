@@ -4653,6 +4653,63 @@ export type Database = {
           },
         ]
       }
+      integration_connections: {
+        Row: {
+          config: Json
+          created_at: string
+          credentials: Json
+          id: string
+          last_sync_at: string | null
+          provider_id: string
+          status: string
+          sync_error: string | null
+          tenant_id: string
+          tokens: Json
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          credentials?: Json
+          id?: string
+          last_sync_at?: string | null
+          provider_id: string
+          status?: string
+          sync_error?: string | null
+          tenant_id: string
+          tokens?: Json
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          credentials?: Json
+          id?: string
+          last_sync_at?: string | null
+          provider_id?: string
+          status?: string
+          sync_error?: string | null
+          tenant_id?: string
+          tokens?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_connections_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "integration_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_credentials: {
         Row: {
           access_token_encrypted: string | null
@@ -4753,6 +4810,121 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      integration_jobs: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          job_type: string
+          provider_id: string
+          started_at: string | null
+          stats: Json
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          job_type?: string
+          provider_id: string
+          started_at?: string | null
+          stats?: Json
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          job_type?: string
+          provider_id?: string
+          started_at?: string | null
+          stats?: Json
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_jobs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_jobs_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "integration_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_providers: {
+        Row: {
+          auth_type: string
+          capabilities: Json
+          category: string
+          created_at: string
+          credential_schema: Json
+          description: string
+          id: string
+          label: string
+          logo_key: string | null
+          platform_managed_keys: boolean
+          popularity: number
+          status: string
+          tutorial: Json
+          updated_at: string
+        }
+        Insert: {
+          auth_type?: string
+          capabilities?: Json
+          category: string
+          created_at?: string
+          credential_schema?: Json
+          description?: string
+          id: string
+          label: string
+          logo_key?: string | null
+          platform_managed_keys?: boolean
+          popularity?: number
+          status?: string
+          tutorial?: Json
+          updated_at?: string
+        }
+        Update: {
+          auth_type?: string
+          capabilities?: Json
+          category?: string
+          created_at?: string
+          credential_schema?: Json
+          description?: string
+          id?: string
+          label?: string
+          logo_key?: string | null
+          platform_managed_keys?: boolean
+          popularity?: number
+          status?: string
+          tutorial?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       integration_webhook_endpoints: {
         Row: {
