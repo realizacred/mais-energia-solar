@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { formatKwh, formatEnergyAutoScale, formatNumber } from "@/lib/formatters/index";
 import type { SolarPlant, SolarPlantMetricsDaily } from "@/services/monitoring/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -44,7 +45,7 @@ export function PlantsTable({ plants, metrics }: Props) {
           return (
             <TableRow key={plant.id}>
               <TableCell className="font-medium">{plant.name || "—"}</TableCell>
-              <TableCell>{plant.capacity_kw?.toFixed(1) ?? "—"}</TableCell>
+              <TableCell>{plant.capacity_kw != null ? formatNumber(plant.capacity_kw, 1) : "—"}</TableCell>
               <TableCell>
                 <StatusBadge
                   status={STATUS_LABELS[plant.status] || "Desconhecido"}
@@ -52,11 +53,11 @@ export function PlantsTable({ plants, metrics }: Props) {
                 />
               </TableCell>
               <TableCell>
-                {m?.energy_kwh != null ? `${Number(m.energy_kwh).toFixed(1)} kWh` : "—"}
+                {m?.energy_kwh != null ? formatKwh(Number(m.energy_kwh)) : "—"}
               </TableCell>
               <TableCell>
                 {m?.total_energy_kwh != null
-                  ? `${(Number(m.total_energy_kwh) / 1000).toFixed(1)} MWh`
+                  ? formatEnergyAutoScale(Number(m.total_energy_kwh))
                   : "—"}
               </TableCell>
               <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs">

@@ -1,3 +1,4 @@
+import { formatKwhValue } from "@/lib/formatters/index";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Settings2, Zap, Sun, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -104,7 +105,7 @@ export function StepTechnicalConfig({ ucs, onUcsChange, grupo, onGrupoChange, po
         <div className="grid grid-cols-3 gap-2">
           <div className="p-2.5 rounded-md border border-border/50 bg-card">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Geração Estimada</p>
-            <p className="text-base font-bold font-mono text-primary">{estimatedGeneration.toLocaleString("pt-BR")} <span className="text-[10px] font-normal">kWh/mês</span></p>
+            <p className="text-base font-bold font-mono text-primary">{formatKwhValue(estimatedGeneration)} <span className="text-[10px] font-normal">kWh/mês</span></p>
           </div>
           <div className="p-2.5 rounded-md border border-border/50 bg-card">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Cobertura</p>

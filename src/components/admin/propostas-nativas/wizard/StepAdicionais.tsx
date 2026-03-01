@@ -1,3 +1,4 @@
+import { formatKwp, formatPowerKw } from "@/lib/formatters/index";
 import { useState, useEffect } from "react";
 import { Sun, Cpu, Pencil, LayoutGrid, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -131,7 +132,7 @@ export function StepAdicionais({
                           {moduloQtd}x {moduloDesc}
                         </p>
                         <p className="text-[11px] text-muted-foreground">
-                          Total: {totalKwp.toFixed(2)} kWp
+                          Total: {formatKwp(totalKwp)}
                         </p>
                       </div>
                     </div>
@@ -148,7 +149,7 @@ export function StepAdicionais({
                           {inversorQtd}x {inversorDesc}
                         </p>
                         <p className="text-[11px] text-muted-foreground">
-                          Total: {totalKw.toFixed(2)} kW
+                          Total: {formatPowerKw(totalKw)}
                         </p>
                       </div>
                     </div>

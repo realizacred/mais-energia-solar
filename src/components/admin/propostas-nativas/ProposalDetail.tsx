@@ -1,4 +1,5 @@
 import { formatBRL } from "@/lib/formatters";
+import { formatKwp, formatKwhValue } from "@/lib/formatters/index";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -643,8 +644,8 @@ export function ProposalDetail() {
 
       {/* ══════════ KPI STRIP ══════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <InfoPill icon={Zap} label="Potência" value={`${potenciaKwp.toFixed(2)} kWp`} />
-        <InfoPill icon={SunMedium} label="Geração Mensal" value={geracaoMensal > 0 ? `${geracaoMensal.toLocaleString("pt-BR")} kWh` : "—"} />
+        <InfoPill icon={Zap} label="Potência" value={formatKwp(potenciaKwp)} />
+        <InfoPill icon={SunMedium} label="Geração Mensal" value={geracaoMensal > 0 ? `${formatKwhValue(geracaoMensal)} kWh` : "—"} />
         <InfoPill icon={DollarSign} label="Valor Total" value={formatBRL(totalFinal)} />
         <InfoPill icon={TrendingUp} label="R$/Wp" value={wpPrice ? `R$ ${wpPrice}` : "—"} />
       </div>
@@ -784,9 +785,9 @@ export function ProposalDetail() {
                 <Zap className="h-4 w-4" />
                 <p className="text-sm font-medium">Potência</p>
               </div>
-              <p className="text-xl font-bold">{potenciaKwp.toFixed(2)} kWp</p>
+              <p className="text-xl font-bold">{formatKwp(potenciaKwp)}</p>
               <p className="text-xs text-muted-foreground">
-                {geracaoMensal > 0 ? `${geracaoMensal.toLocaleString("pt-BR")} kWh/mês` : "—"}
+                {geracaoMensal > 0 ? `${formatKwhValue(geracaoMensal)} kWh/mês` : "—"}
               </p>
             </CardContent>
           </Card>

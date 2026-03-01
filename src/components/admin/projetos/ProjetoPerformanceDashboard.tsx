@@ -1,4 +1,5 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
+import { formatKwp, formatPercent, formatNumber } from "@/lib/formatters/index";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, TrendingUp, Target, DollarSign, Zap, Calendar } from "lucide-react";
@@ -133,7 +134,7 @@ export function ProjetoPerformanceDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">kWp Total Instalado</p>
-              <p className="text-lg font-bold font-mono text-foreground">{totalKwp.toFixed(1).replace(".", ",")} kWp</p>
+              <p className="text-lg font-bold font-mono text-foreground">{formatKwp(totalKwp, 1)}</p>
             </div>
           </CardContent>
         </Card>
@@ -191,10 +192,10 @@ export function ProjetoPerformanceDashboard() {
                           "bg-destructive/10 text-destructive border-destructive/20"
                         )}
                       >
-                        {c.taxa_conversao.toFixed(0)}%
+                        {formatPercent(c.taxa_conversao, 0)}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">{c.kwp_total.toFixed(1)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">{formatNumber(c.kwp_total, 1)}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">{c.total_deals}</td>
                   </tr>
                 ))}

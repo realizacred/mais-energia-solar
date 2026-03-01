@@ -1,3 +1,4 @@
+import { formatBRL, formatInteger } from "@/lib/formatters/index";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -90,11 +91,11 @@ export default function MetaCampaignsPage() {
                     return (
                       <tr key={c.campaign_id} className="border-b last:border-0">
                         <td className="py-2.5 max-w-[200px] truncate">{c.campaign_name}</td>
-                        <td className="py-2.5 text-right">R$ {c.spend.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-                        <td className="py-2.5 text-right">{c.clicks.toLocaleString("pt-BR")}</td>
-                        <td className="py-2.5 text-right">{c.impressions.toLocaleString("pt-BR")}</td>
+                        <td className="py-2.5 text-right">{formatBRL(c.spend)}</td>
+                        <td className="py-2.5 text-right">{formatInteger(c.clicks)}</td>
+                        <td className="py-2.5 text-right">{formatInteger(c.impressions)}</td>
                         <td className="py-2.5 text-right">{c.leads_count}</td>
-                        <td className="py-2.5 text-right">R$ {cpl.toFixed(2)}</td>
+                        <td className="py-2.5 text-right">{formatBRL(cpl)}</td>
                       </tr>
                     );
                   })}

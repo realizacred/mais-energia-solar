@@ -34,9 +34,10 @@ function getInitials(name: string) {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join("");
 }
 
+import { formatKwp as _formatKwp } from "@/lib/formatters/index";
 const formatKwp = (v: number) => {
   if (!v) return null;
-  return `${v.toFixed(1).replace(".", ",")} kWp`;
+  return _formatKwp(v, 1);
 };
 
 export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, onNewProject, onMoveDealToOwner, dynamicEtiquetas = [] }: Props) {
