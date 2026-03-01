@@ -183,10 +183,12 @@ async function solisMetrics(apiId: string, apiSecret: string, stationId: string)
   try {
     const json = await solisFetch(apiId, apiSecret, "/v1/api/stationDay", { id: stationId, money: "CNY", time: today(), timeZone: 0 });
     const d = json.data as any;
+    const eToday = d?.eToday ?? d?.dayEnergy ?? d?.e_today ?? null;
+    const eTotal = d?.eTotal ?? d?.allEnergy ?? d?.e_total ?? null;
     return {
       power_kw: d?.pac != null ? Number(d.pac) / 1000 : null,
-      energy_kwh: d?.eToday ?? d?.dayEnergy != null ? Number(d.eToday ?? d.dayEnergy) : null,
-      total_energy_kwh: d?.eTotal ?? d?.allEnergy != null ? Number(d.eTotal ?? d.allEnergy) : null,
+      energy_kwh: eToday != null ? Number(eToday) : null,
+      total_energy_kwh: eTotal != null ? Number(eTotal) : null,
       metadata: d || {},
     };
   } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
