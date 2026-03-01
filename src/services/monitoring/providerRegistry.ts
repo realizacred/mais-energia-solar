@@ -209,8 +209,8 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   },
   {
     id: "sofar", label: "Sofar Solar",
-    description: "Inversores Sofar via Solarman API (mesma plataforma). Sync funcional.",
-    icon: "Sun", status: "beta", auth_type: "api_token", capabilities: BASIC_CAP,
+    description: "Inversores Sofar via Solarman API (mesma plataforma). Sync completo.",
+    icon: "Sun", status: "active", auth_type: "api_token", capabilities: FULL_CAP,
     fields: [F_APP_ID, F_APP_SECRET, F_EMAIL, F_PASSWORD],
   },
   {
@@ -239,34 +239,43 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   },
   {
     id: "sunny_portal", label: "Sunny Portal (SMA)",
-    description: "Inversores SMA — armazena credenciais, sync em desenvolvimento.",
-    icon: "Sun", status: "beta", auth_type: "api_key", capabilities: STUB_CAP,
+    description: "Inversores SMA — armazena credenciais, API não implementada.",
+    icon: "Sun", status: "stub", auth_type: "api_key", capabilities: STUB_CAP,
     api_docs_url: "https://developer.sma.de",
     fields: [F_API_KEY, { key: "plantId", label: "Plant ID", type: "text", placeholder: "ID da planta SMA", required: false }],
   },
   {
     id: "csi_cloudpro", label: "CSI CloudPro",
-    description: "Canadian Solar via CloudPro — armazena credenciais, sync em desenvolvimento.",
-    icon: "Sun", status: "beta", auth_type: "api_key", capabilities: STUB_CAP,
+    description: "Canadian Solar via CloudPro — armazena credenciais, API não implementada.",
+    icon: "Sun", status: "stub", auth_type: "api_key", capabilities: STUB_CAP,
     fields: [F_API_KEY],
   },
   {
     id: "csi_smart_energy", label: "CSI Smart Energy",
-    description: "Canadian Solar Smart Energy — armazena credenciais, sync em desenvolvimento.",
-    icon: "Sun", status: "beta", auth_type: "api_key", capabilities: STUB_CAP,
+    description: "Canadian Solar Smart Energy — armazena credenciais, API não implementada.",
+    icon: "Sun", status: "stub", auth_type: "api_key", capabilities: STUB_CAP,
     fields: [F_API_KEY],
   },
   {
     id: "csi_cloud", label: "CSI Cloud",
-    description: "Canadian Solar CSI Cloud — armazena credenciais, sync em desenvolvimento.",
-    icon: "Sun", status: "beta", auth_type: "api_key", capabilities: STUB_CAP,
+    description: "Canadian Solar CSI Cloud — armazena credenciais, API não implementada.",
+    icon: "Sun", status: "stub", auth_type: "api_key", capabilities: STUB_CAP,
     fields: [F_API_KEY],
   },
 
   // ══════════════════════════════════════════════════════════════
   // STUB — Sem API real implementada. Apenas armazena credenciais.
   // ══════════════════════════════════════════════════════════════
-  stubProvider("growatt_server", "Growatt Server", "Monitoramento Growatt via servidor alternativo.", "Sprout"),
+  // growatt_server: has real handler in monitoring-connect (testGrowatt portal mode) + monitoring-sync (growattListPlants/growattMetrics)
+  {
+    id: "growatt_server", label: "Growatt Server",
+    description: "Monitoramento Growatt via ShineServer (login por código/senha).",
+    icon: "Sprout", status: "active", auth_type: "portal", capabilities: FULL_CAP,
+    fields: [
+      { ...F_USER, label: "Código / Usuário", placeholder: "Ex: BXYV3001" },
+      F_PASSWORD,
+    ],
+  },
   stubProvider("solplanet", "Solplanet", "Inversores Solplanet (AISWEI) via Solplanet Cloud."),
   stubProvider("elekeeper", "Elekeeper", "Monitoramento Elekeeper para inversores com gateway RS485/WiFi."),
   stubProvider("phb_solar", "PHB Solar", "Inversores PHB Solar via portal de monitoramento."),
