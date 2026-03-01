@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
@@ -71,6 +72,33 @@ export default function IntegrationsCatalogPage() {
     queryKey: ["monitoring-integrations"],
     queryFn: listLegacyIntegrations,
   });
+
+  // Fetch plant counts per integration
+  const { data: plantCounts = {} } = useQuery({
+    queryKey: ["integration-plant-counts"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("solar_plants" as any)
+        .select("integration_id");
+      const counts: Record<string, number> = {};
+      ((data as any[]) || []).forEach((p) => {
+        if (p.integration_id) counts[p.integration_id] = (counts[p.integration_id] || 0) + 1;
+      });
+      return counts;
+    },
+  });
+
+  const getPlantCount = (providerId: string): number => {
+    const legacyMap: Record<string, string> = {
+      solarman_business: "solarman_business_api",
+      solaredge: "solaredge",
+      solis_cloud: "solis_cloud",
+    };
+    const legacyId = legacyMap[providerId] || providerId;
+    const integration = legacyIntegrations.find((i) => i.provider === legacyId || i.provider === providerId);
+    if (integration) return plantCounts[integration.id] || 0;
+    return 0;
+  };
 
   const [syncingProviderId, setSyncingProviderId] = useState<string | null>(null);
 
@@ -292,6 +320,7 @@ export default function IntegrationsCatalogPage() {
                       key={provider.id}
                       provider={provider}
                       connStatus={getConnectionStatus(provider.id)}
+                      plantCount={getPlantCount(provider.id)}
                       lastSync={getLastSync(provider.id)}
                       onConnect={() => setConnectModal(provider)}
                       onSync={() => {
@@ -378,6 +407,7 @@ function CategoryItem({
 function ProviderCard({
   provider,
   connStatus,
+  plantCount,
   lastSync,
   onConnect,
   onSync,
@@ -386,6 +416,7 @@ function ProviderCard({
 }: {
   provider: IntegrationProvider;
   connStatus: ConnectionStatus;
+  plantCount: number;
   lastSync: string | null;
   onConnect: () => void;
   onSync: () => void;
@@ -399,40 +430,56 @@ function ProviderCard({
   const isMaintenance = provider.status === "maintenance";
 
   return (
-    <div className="group border border-border rounded-xl p-4 bg-card hover:shadow-md hover:border-primary/20 transition-all space-y-3">
-      {/* Header: icon + name */}
+    <div className={cn(
+      "group border rounded-xl p-4 transition-all space-y-3",
+      isConnected
+        ? "border-success/30 bg-success/5 hover:shadow-md hover:border-success/50"
+        : "border-border/60 bg-card hover:shadow-md hover:border-primary/20",
+    )}>
+      {/* Header: icon + name + status */}
       <div className="flex items-start gap-3">
-        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-          <Icon className="h-5 w-5 text-foreground" />
+        <div className={cn(
+          "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+          isConnected ? "bg-success/15" : "bg-muted",
+        )}>
+          <Icon className={cn("h-5 w-5", isConnected ? "text-success" : "text-muted-foreground")} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground truncate">{provider.label}</p>
-          <p className="text-2xs text-muted-foreground line-clamp-2 mt-0.5">{provider.description}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-foreground truncate">{provider.label}</p>
+            {isComingSoon && <Badge variant="outline" className="text-2xs shrink-0">Em breve</Badge>}
+            {isMaintenance && <Badge variant="destructive" className="text-2xs shrink-0">Manutenção</Badge>}
+            {!isComingSoon && !isMaintenance && (
+              <StatusBadge
+                status={
+                  connStatus === "connected" ? "Conectado"
+                    : connStatus === "error" ? "Erro"
+                    : "Desconectado"
+                }
+                size="sm"
+              />
+            )}
+          </div>
+          <p className="text-2xs text-muted-foreground line-clamp-1 mt-0.5">{provider.description}</p>
         </div>
       </div>
 
-      {/* Status + last sync */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          {isComingSoon && <Badge variant="outline" className="text-2xs">Em breve</Badge>}
-          {isMaintenance && <Badge variant="destructive" className="text-2xs">Manutenção</Badge>}
-          {!isComingSoon && !isMaintenance && (
-            <StatusBadge
-              status={
-                connStatus === "connected" ? "Conectado"
-                  : connStatus === "error" ? "Erro"
-                  : "Desconectado"
-              }
-              size="sm"
-            />
+      {/* Info row: plant count + last sync */}
+      {isConnected && (
+        <div className="flex items-center gap-3 text-2xs text-muted-foreground">
+          {plantCount > 0 && (
+            <span className="flex items-center gap-1 font-medium text-foreground">
+              <Sun className="h-3 w-3 text-warning" />
+              {plantCount} usina{plantCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          {lastSync && (
+            <span>
+              Sync: {new Date(lastSync).toLocaleDateString("pt-BR")}, {new Date(lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
           )}
         </div>
-        {lastSync && (
-          <span className="text-2xs text-muted-foreground">
-            {new Date(lastSync).toLocaleDateString("pt-BR")}
-          </span>
-        )}
-      </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2 flex-wrap pt-1">
@@ -451,14 +498,11 @@ function ProviderCard({
             {hasSyncCapability && (
               <Button size="sm" variant="outline" onClick={onSync} disabled={syncing} className="flex-1">
                 <RefreshCw className={cn("h-3.5 w-3.5 mr-1", syncing && "animate-spin")} />
-                Sync
+                Sincronizar
               </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={onConnect}>
-              <Settings className="h-3.5 w-3.5" />
-            </Button>
-            <Button size="sm" variant="ghost" className="text-destructive" onClick={onDisconnect}>
-              <Power className="h-3.5 w-3.5" />
+            <Button size="sm" variant="outline" onClick={onConnect}>
+              Reconectar
             </Button>
           </>
         )}
