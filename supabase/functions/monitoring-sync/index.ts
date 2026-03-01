@@ -1176,8 +1176,13 @@ async function livoltekListPlants(token: string, baseUrl: string): Promise<Norma
   while (true) {
     const res = await fetch(`${baseUrl}/hess/api/userSites/list?userToken=${encodeURIComponent(token)}&page=${page}&size=${size}`);
     const json = await res.json();
-    const codeOk = json.code === "0" || json.code === 0 || json.code === 200 || json.code === "200" || json.message === "SUCCESS";
-    if (!codeOk) throw new Error(`Livoltek list error: ${json.message || json.code}`);
+    console.log(`[Livoltek] List plants page=${page}: code=${json.code}, msg=${json.message}, msg_code=${json.msg_code}, dataType=${typeof json.data}`);
+    const codeOk = json.msg_code === "operate.success" || json.code === "0" || json.code === 0 || json.code === 200 || json.code === "200" || json.message === "SUCCESS";
+    if (!codeOk) {
+      // Check for "Please login" or similar token errors
+      const errMsg = json.message || json.data || json.code;
+      throw new Error(`Livoltek list error: ${errMsg}`);
+    }
     const list = json.data?.list || [];
     for (const s of list) {
       plants.push({
@@ -1389,33 +1394,37 @@ async function dispatchSync(
       for (const server of uniqueServers) {
         try {
           console.log(`[Livoltek Sync] Re-auth at ${server}`);
-          const loginBody: Record<string, string> = { secuid: lvAppSecret, key: lvApiKey };
-          const username = credentials.username as string || "";
-          if (username) loginBody.username = username;
+          // Official API: only secuid + key (no username/password)
+          const loginBody = { secuid: lvAppSecret, key: lvApiKey };
           const res = await fetch(`${server}/hess/api/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(loginBody),
           });
           const json = await res.json();
-          console.log(`[Livoltek Sync] Re-auth response code=${json.code}, message=${json.message}, hasData=${!!json.data}`);
-          const codeOk = json.code === "0" || json.code === 0 || json.code === 200 || json.code === "200";
-          const msgOk = json.message === "SUCCESS" || json.message === "success";
-          if ((codeOk || msgOk) && json.data) {
+          const dataStr = typeof json.data === "string" ? json.data : JSON.stringify(json.data);
+          console.log(`[Livoltek Sync] Re-auth response code=${json.code}, message=${json.message}, data=${dataStr.substring(0, 50)}`);
+          
+          // Validate token is a real JWT/token, not an error message
+          const isValidToken = typeof json.data === "string" && json.data.length >= 20 &&
+            !["not exit", "not exist", "error", "fail", "invalid"].some(p => json.data.toLowerCase().includes(p));
+          
+          if (isValidToken) {
             lvToken = json.data;
-            // Persist refreshed token
             await admin.from("monitoring_integrations").update({
               tokens: { ...tokens, token: lvToken, userToken: lvToken, baseUrl: server },
               updated_at: new Date().toISOString(),
             }).eq("id", int?.id || ctx.integrationId);
-            console.log(`[Livoltek Sync] Token refreshed successfully from ${server}`);
+            console.log(`[Livoltek Sync] Token refreshed successfully (len=${lvToken.length})`);
             return;
+          } else {
+            console.log(`[Livoltek Sync] Rejected data as invalid token: "${dataStr.substring(0, 80)}"`);
           }
         } catch (e) {
           console.log(`[Livoltek Sync] ${server} re-auth error: ${(e as Error).message}`);
         }
       }
-      throw new Error("Livoltek re-auth failed on all servers. Reconnect with valid apiKey and appSecret.");
+      throw new Error("Livoltek re-auth failed. API returned invalid data. Check apiKey and appSecret.");
     };
 
     // Always try to refresh token before sync (Livoltek tokens expire quickly)
