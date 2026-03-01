@@ -87,6 +87,7 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     return {
       ...mapSolarPlantToMonitorPlant(sp),
       health: legacyStatusToHealth(sp, m),
+      provider_name: sp.provider || undefined,
     };
   });
 }

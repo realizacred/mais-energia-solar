@@ -7,7 +7,8 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Sun, Search, MapPin, List, Zap, Activity } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sun, Search, MapPin, List, Zap, Activity, Filter } from "lucide-react";
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import type { PlantWithHealth, MonitorPlantStatus } from "@/services/monitoring/monitorTypes";
 import { formatDistanceToNow } from "date-fns";
@@ -43,12 +44,21 @@ export default function MonitorPlants() {
   const initialFilter = (searchParams.get("status") || "all") as MonitorPlantStatus | "all";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<MonitorPlantStatus | "all">(initialFilter);
+  const [brandFilter, setBrandFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"split" | "list" | "map">("split");
 
   const { data: plants = [], isLoading } = useQuery({
     queryKey: ["monitor-plants-health"],
     queryFn: listPlantsWithHealth,
   });
+
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    plants.forEach((p) => {
+      if (p.provider_name) set.add(p.provider_name);
+    });
+    return Array.from(set).sort();
+  }, [plants]);
 
   const filtered = useMemo(() => {
     return plants.filter((p) => {
@@ -59,9 +69,11 @@ export default function MonitorPlants() {
         p.state?.toLowerCase().includes(search.toLowerCase());
       const matchStatus =
         statusFilter === "all" || (p.health?.status || "unknown") === statusFilter;
-      return matchSearch && matchStatus;
+      const matchBrand =
+        brandFilter === "all" || p.provider_name === brandFilter;
+      return matchSearch && matchStatus && matchBrand;
     });
-  }, [plants, search, statusFilter]);
+  }, [plants, search, statusFilter, brandFilter]);
 
   const plantsWithCoords = useMemo(
     () => filtered.filter((p) => p.lat != null && p.lng != null),
@@ -112,6 +124,22 @@ export default function MonitorPlants() {
             className="pl-9"
           />
         </div>
+        {brands.length > 1 && (
+          <Select value={brandFilter} onValueChange={setBrandFilter}>
+            <SelectTrigger className="w-auto min-w-[140px] h-9 text-xs">
+              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="Marca" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as marcas</SelectItem>
+              {brands.map((b) => (
+                <SelectItem key={b} value={b} className="capitalize">
+                  {b.charAt(0).toUpperCase() + b.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <div className="flex gap-1 flex-wrap">
           {FILTER_CHIPS.map((chip) => (
             <Button
@@ -188,6 +216,11 @@ function PlantListItem({ plant, onClick }: { plant: PlantWithHealth; onClick: ()
           <span className="flex items-center gap-1">
             <MapPin className="h-3 w-3 shrink-0" />
             {plant.city}/{plant.state}
+          </span>
+        )}
+        {plant.provider_name && (
+          <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground capitalize">
+            {plant.provider_name}
           </span>
         )}
         {plant.installed_power_kwp && (
