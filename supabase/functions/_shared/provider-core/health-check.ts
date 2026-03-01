@@ -20,8 +20,15 @@ export async function runHealthCheck(
     endpointOk = plants.length >= 0; // even 0 plants is OK if no error
   } catch (err) {
     const normalized = normalizeError(err, adapter.providerId);
-    authOk = normalized.category !== "AUTH";
-    error = `[${normalized.category}] ${normalized.message}`;
+    // PERMISSION/BLOCKED = auth OK but endpoint blocked
+    if (normalized.category === "PERMISSION") {
+      authOk = true;
+      endpointOk = false;
+      error = `[BLOCKED] ${normalized.message}`;
+    } else {
+      authOk = normalized.category !== "AUTH";
+      error = `[${normalized.category}] ${normalized.message}`;
+    }
   }
 
   const latencyMs = Math.round(performance.now() - t0);
