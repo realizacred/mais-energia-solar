@@ -82,6 +82,7 @@ export interface MonitorReadingDaily {
 /** Enriched plant with health data for list/map */
 export interface PlantWithHealth extends MonitorPlant {
   health?: MonitorHealthCache;
+  provider_name?: string;
 }
 
 /** Dashboard aggregated stats */
