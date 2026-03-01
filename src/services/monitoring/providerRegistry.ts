@@ -3,14 +3,16 @@
  * Each provider defines its auth type, credential fields, and availability.
  */
 
-export type AuthType = "api_token" | "api_key" | "portal";
+export type AuthType = "api_token" | "api_key" | "portal" | "token_app";
 
 export interface CredentialField {
   key: string;
   label: string;
-  type: "text" | "email" | "password";
+  type: "text" | "email" | "password" | "select";
   placeholder: string;
   required: boolean;
+  options?: { value: string; label: string }[];
+  helperText?: string;
 }
 
 export interface ProviderDefinition {
@@ -26,7 +28,7 @@ export interface ProviderDefinition {
 }
 
 /** Providers with sync implemented — used by UI to decide button state */
-export const SYNC_IMPLEMENTED_PROVIDERS = new Set(["solarman_business_api", "solaredge", "solis_cloud"]);
+export const SYNC_IMPLEMENTED_PROVIDERS = new Set(["solarman_business_api", "solaredge", "solis_cloud", "deye_cloud"]);
 
 export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   // ── Available now ──
@@ -68,6 +70,33 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
     sync_implemented: true,
     fields: [
       { key: "apiKey", label: "API Key", type: "text", placeholder: "Sua API Key do SolarEdge", required: true },
+    ],
+  },
+  {
+    id: "deye_cloud",
+    label: "Deye Cloud",
+    description: "Monitoramento de inversores Deye via DeyeCloud Developer API — usinas e métricas em tempo real.",
+    icon: "Cloud",
+    available: true,
+    auth_type: "token_app",
+    sync_implemented: true,
+    fields: [
+      {
+        key: "region",
+        label: "Região",
+        type: "select",
+        placeholder: "Selecione a região",
+        required: true,
+        options: [
+          { value: "EU", label: "Europa (EU)" },
+          { value: "US", label: "América (US)" },
+        ],
+        helperText: "A URL base da API muda conforme a região selecionada.",
+      },
+      { key: "appId", label: "App ID", type: "text", placeholder: "Seu App ID do Developer Portal", required: true },
+      { key: "appSecret", label: "App Secret", type: "password", placeholder: "Seu App Secret", required: true },
+      { key: "email", label: "E-mail", type: "email", placeholder: "seu@email.com", required: true },
+      { key: "password", label: "Senha", type: "password", placeholder: "Senha da sua conta Deye Cloud", required: true },
     ],
   },
 

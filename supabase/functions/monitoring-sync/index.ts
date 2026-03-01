@@ -15,7 +15,7 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-const SYNC_IMPLEMENTED = new Set(["solarman_business_api", "solaredge", "solis_cloud"]);
+const SYNC_IMPLEMENTED = new Set(["solarman_business_api", "solaredge", "solis_cloud", "deye_cloud"]);
 
 // ═══════════════════════════════════════════════════════════
 // Shared types
@@ -263,6 +263,82 @@ async function solisFetchDayMetrics(apiId: string, apiSecret: string, stationId:
 }
 
 // ═══════════════════════════════════════════════════════════
+// Deye Cloud Developer API
+// ═══════════════════════════════════════════════════════════
+
+function deyeNormalizeStatus(raw: number | string | undefined): string {
+  const s = String(raw).toLowerCase();
+  if (s === "1" || s === "normal" || s === "online") return "normal";
+  if (s === "2" || s === "offline") return "offline";
+  if (s === "3" || s === "alarm" || s === "fault") return "alarm";
+  return "unknown";
+}
+
+async function deyeFetch(baseUrl: string, token: string, endpoint: string, body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  const res = await fetch(`${baseUrl}${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    const text = await res.text();
+    throw new Error(`Deye API returned non-JSON (${res.status}): ${text.slice(0, 200)}`);
+  }
+  const json = await res.json();
+  if (json.code && json.code !== "0" && json.code !== 0 && !json.success) {
+    throw new Error(json.msg || `Deye API error (code=${json.code})`);
+  }
+  return json;
+}
+
+async function deyeListPlants(baseUrl: string, token: string): Promise<NormalizedPlant[]> {
+  const plants: NormalizedPlant[] = [];
+  let page = 1;
+  const size = 100;
+  while (true) {
+    const json = await deyeFetch(baseUrl, token, "/station/list", { page, size });
+    const data = json.data as Record<string, unknown> | undefined;
+    const list = (data?.stationList || data?.records || json.data || []) as Record<string, unknown>[];
+    if (!Array.isArray(list) || !list.length) break;
+    for (const raw of list) {
+      plants.push({
+        external_id: String(raw.id || raw.stationId || ""),
+        name: String(raw.name || raw.stationName || ""),
+        capacity_kw: raw.installedCapacity != null ? Number(raw.installedCapacity) : raw.capacity != null ? Number(raw.capacity) : null,
+        address: raw.locationAddress ? String(raw.locationAddress) : raw.address ? String(raw.address) : null,
+        latitude: raw.latitude != null ? Number(raw.latitude) : null,
+        longitude: raw.longitude != null ? Number(raw.longitude) : null,
+        status: deyeNormalizeStatus(raw.status as number),
+        metadata: raw,
+      });
+    }
+    const total = Number((data as Record<string, unknown>)?.total || 0);
+    if (page * size >= total) break;
+    page++;
+  }
+  return plants;
+}
+
+async function deyeFetchMetrics(baseUrl: string, token: string, externalId: string): Promise<DailyMetrics> {
+  try {
+    const json = await deyeFetch(baseUrl, token, "/station/latest", { stationId: externalId });
+    const data = (json.data || {}) as Record<string, unknown>;
+    return {
+      power_kw: data.generationPower != null ? Number(data.generationPower) / 1000 : data.pac != null ? Number(data.pac) / 1000 : null,
+      energy_kwh: data.eToday != null ? Number(data.eToday) : data.generationValue != null ? Number(data.generationValue) : null,
+      total_energy_kwh: data.eTotal != null ? Number(data.eTotal) : data.totalGenerationValue != null ? Number(data.totalGenerationValue) : null,
+      metadata: data,
+    };
+  } catch {
+    return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // Generic sync orchestrator
 // ═══════════════════════════════════════════════════════════
 
@@ -455,6 +531,48 @@ serve(async (req) => {
         const { data: dbPlants } = await supabaseAdmin.from("solar_plants").select("id, external_id").eq("tenant_id", tenantId).eq("integration_id", integration.id);
         for (const p of dbPlants || []) {
           const metrics = await solisFetchDayMetrics(apiId, apiSecret, p.external_id);
+          const err = await upsertMetrics(ctx, p.id, metrics);
+          if (err) errors.push(`Metrics ${p.external_id}: ${err}`);
+          else metricsUpserted++;
+        }
+      }
+    }
+
+    // ── Deye Cloud ──
+    if (provider === "deye_cloud") {
+      const accessToken = tokens.access_token as string;
+      const baseUrl = (credentials.baseUrl as string) || "https://eu1-developer.deyecloud.com/v1.0";
+      if (!accessToken) return jsonResponse({ error: "No access token. Reconnect." }, 400);
+
+      const expiresAt = tokens.expires_at ? new Date(tokens.expires_at as string) : null;
+      if (expiresAt && expiresAt < new Date()) {
+        await supabaseAdmin.from("monitoring_integrations").update({
+          status: "error",
+          sync_error: "Token expired. Reconnect.",
+          updated_at: new Date().toISOString(),
+        }).eq("id", integration.id);
+        return jsonResponse({ error: "Token expired. Please reconnect." }, 401);
+      }
+
+      if (mode === "plants" || mode === "full") {
+        try {
+          const plants = await deyeListPlants(baseUrl, accessToken);
+          const result = await upsertPlants(ctx, plants);
+          plantsUpserted = result.count;
+          errors.push(...result.errors);
+        } catch (err) {
+          errors.push(`listPlants: ${(err as Error).message}`);
+        }
+      }
+
+      if (mode === "metrics" || mode === "full") {
+        const { data: dbPlants } = await supabaseAdmin
+          .from("solar_plants")
+          .select("id, external_id")
+          .eq("tenant_id", tenantId)
+          .eq("integration_id", integration.id);
+        for (const p of dbPlants || []) {
+          const metrics = await deyeFetchMetrics(baseUrl, accessToken, p.external_id);
           const err = await upsertMetrics(ctx, p.id, metrics);
           if (err) errors.push(`Metrics ${p.external_id}: ${err}`);
           else metricsUpserted++;

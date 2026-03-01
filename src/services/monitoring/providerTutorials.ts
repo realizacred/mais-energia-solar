@@ -21,6 +21,19 @@ Se NÃO aparecer 'API Management', sua conta não tem permissão.
 Nesse caso, solicite a habilitação de API junto ao Solis (é requisito do fornecedor).
 Geralmente a conta precisa ser de Instalador ou Proprietário.`,
 
+  deye_cloud:
+    `Como obter credenciais do Deye Cloud:
+1) Acesse o portal de desenvolvedor: https://developer.deyecloud.com/
+2) Faça login ou crie uma conta.
+3) Vá em "Apps" e clique em "Create App".
+4) Copie o App ID e o App Secret gerados.
+5) Escolha a região correta:
+   • Europa (EU): https://eu1-developer.deyecloud.com/v1.0
+   • América (US): https://us1-developer.deyecloud.com/v1.0
+6) No nosso sistema, selecione a região, preencha App ID, App Secret, Email e Senha.
+
+Privacidade: a senha é usada apenas para gerar o token de acesso e NÃO é armazenada.`,
+
   solaredge:
     `Para conectar SolarEdge:
 1) Acesse monitoring.solaredge.com e faça login.
