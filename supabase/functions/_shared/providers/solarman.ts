@@ -6,6 +6,10 @@
  * Plants: POST /station/v1.0/list — paginated (page/size)
  * Metrics: POST /station/v1.0/realTime — by stationId
  * Token expires in ~7200s (returned in response).
+ *
+ * NOTE: Solarman has NO refresh token endpoint.
+ * Re-authentication requires the original password, which is NOT persisted.
+ * If token expires, user must reconnect.
  */
 import {
   ProviderHttpClient,
@@ -84,18 +88,21 @@ export class SolarmanAdapter implements ProviderAdapter {
     };
   }
 
+  /**
+   * Solarman has NO refresh token mechanism.
+   * Re-authentication requires the original password, which is stripped
+   * from storage for security. If the token is expired, the user MUST
+   * reconnect via the UI.
+   */
   async refreshToken(
-    tokens: Record<string, unknown>,
-    credentials: Record<string, unknown>,
+    _tokens: Record<string, unknown>,
+    _credentials: Record<string, unknown>,
   ): Promise<AuthResult> {
-    // Solarman doesn't have a refresh endpoint; re-authenticate.
-    // Password was stripped for security — need platform-managed appSecret
-    return this.authenticate({
-      appId: String(credentials.appId || ""),
-      appSecret: String(credentials.appSecret || Deno.env.get("SOLARMAN_APP_SECRET") || ""),
-      email: String(credentials.email || ""),
-      password: String(credentials.password || ""),
-    });
+    throw normalizeError(
+      new Error("Solarman tokens cannot be refreshed. Password not stored. User must reconnect."),
+      this.providerId,
+      { statusCode: 401 },
+    );
   }
 
   async fetchPlants(auth: AuthResult): Promise<NormalizedPlant[]> {
@@ -136,25 +143,34 @@ export class SolarmanAdapter implements ProviderAdapter {
   async fetchMetrics(auth: AuthResult, externalPlantId: string): Promise<DailyMetrics> {
     const token = auth.tokens.access_token as string;
 
-    try {
-      const json = await this.authedPost<Record<string, unknown>>(
-        "/station/v1.0/realTime",
-        token,
-        { stationId: Number(externalPlantId) },
-      );
+    const json = await this.authedPost<Record<string, unknown>>(
+      "/station/v1.0/realTime",
+      token,
+      { stationId: Number(externalPlantId) },
+    );
 
+    // Check if data is genuinely empty (no generation fields at all)
+    const hasData = json.generationPower != null || json.generationValue != null ||
+      json.totalGenerationValue != null || json.generationTotal != null;
+
+    if (!hasData) {
       return {
-        power_kw: json.generationPower != null ? Number(json.generationPower) / 1000 : null,
-        energy_kwh: json.generationValue != null ? Number(json.generationValue) : null,
-        total_energy_kwh:
-          (json.totalGenerationValue ?? json.generationTotal) != null
-            ? Number(json.totalGenerationValue ?? json.generationTotal)
-            : null,
-        metadata: json,
+        power_kw: null,
+        energy_kwh: null,
+        total_energy_kwh: null,
+        metadata: { ...json, reason: "no_data" },
       };
-    } catch {
-      return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
     }
+
+    return {
+      power_kw: json.generationPower != null ? Number(json.generationPower) / 1000 : null,
+      energy_kwh: json.generationValue != null ? Number(json.generationValue) : null,
+      total_energy_kwh:
+        (json.totalGenerationValue ?? json.generationTotal) != null
+          ? Number(json.totalGenerationValue ?? json.generationTotal)
+          : null,
+      metadata: json,
+    };
   }
 
   // ─── Internal ──────────────────────────────────────────

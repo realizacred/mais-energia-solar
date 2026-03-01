@@ -5,12 +5,20 @@
 import type { ProviderAdapter } from "../provider-core/index.ts";
 import { SolarmanAdapter } from "./solarman.ts";
 import { SolisAdapter } from "./solis.ts";
+import { FoxEssAdapter } from "./foxess.ts";
+import { SolaXAdapter } from "./solax.ts";
+import { SajAdapter } from "./saj.ts";
+import { EnphaseAdapter } from "./enphase.ts";
 
 const adapters: Record<string, () => ProviderAdapter> = {
   solarman_business: () => new SolarmanAdapter(),
   solarman_business_api: () => new SolarmanAdapter(), // legacy alias
   sofar: () => new SolarmanAdapter(), // Sofar uses Solarman platform
   solis_cloud: () => new SolisAdapter(),
+  fox_ess: () => new FoxEssAdapter(),
+  solax: () => new SolaXAdapter(),
+  saj: () => new SajAdapter(),
+  enphase: () => new EnphaseAdapter(),
 };
 
 /**

@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { getAdapter } from "../_shared/providers/registry.ts";
+import { runHealthCheck, normalizeError } from "../_shared/provider-core/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -908,7 +910,62 @@ serve(async (req) => {
 
     const ctx: ConnectContext = { supabaseAdmin, tenantId, userId, provider };
 
-    // Resolve handler
+    // ═══ CANONICAL ADAPTER PATH (preferred) ═══
+    const canonicalAdapter = getAdapter(provider);
+
+    if (canonicalAdapter) {
+      try {
+        console.log(`[monitoring-connect] Using canonical adapter for ${provider}`);
+        canonicalAdapter.validateCredentials(credentials);
+        const authResult = await canonicalAdapter.authenticate(credentials);
+
+        // Run health check
+        const health = await runHealthCheck(canonicalAdapter, authResult);
+        console.log(`[monitoring-connect] Health check: ${health.status} (${health.latencyMs}ms)`);
+
+        // SECURITY: Strip sensitive fields before persisting credentials
+        const SENSITIVE_KEYS = new Set(["password", "userPassword", "senha", "secret_key"]);
+        const safeCredentials: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(authResult.credentials)) {
+          if (!SENSITIVE_KEYS.has(k)) safeCredentials[k] = v;
+        }
+
+        const integration = await upsertIntegration(ctx, {
+          status: health.status === "FAIL" ? "error" : "connected",
+          sync_error: health.error || null,
+          credentials: safeCredentials,
+          tokens: authResult.tokens,
+        });
+
+        await auditLog(ctx, "monitoring.integration.connected", integration?.id, { provider, status: "connected", adapter: "canonical", health: health.status });
+        return jsonResponse({ success: true, integration_id: integration?.id, status: "connected", health: health.status });
+      } catch (err) {
+        const normalized = normalizeError(err, provider);
+        const errorMsg = normalized.message?.slice(0, 500) || "Connection failed";
+        console.error(`[monitoring-connect] ${provider} canonical adapter failed: [${normalized.category}] ${errorMsg}`);
+
+        // Preserve existing credentials on error
+        const { data: existing } = await ctx.supabaseAdmin
+          .from("monitoring_integrations")
+          .select("credentials, tokens")
+          .eq("tenant_id", ctx.tenantId)
+          .eq("provider", provider)
+          .maybeSingle();
+
+        const integration = await upsertIntegration(ctx, {
+          status: "error",
+          sync_error: `[${normalized.category}] ${errorMsg}`,
+          credentials: (existing as any)?.credentials && Object.keys((existing as any).credentials).length > 1
+            ? (existing as any).credentials : { provider },
+          tokens: (existing as any)?.tokens && Object.keys((existing as any).tokens).length > 0
+            ? (existing as any).tokens : {},
+        });
+        await auditLog(ctx, "monitoring.integration.error", integration?.id, { provider, error: errorMsg, category: normalized.category });
+        return jsonResponse({ error: errorMsg, category: normalized.category }, 400);
+      }
+    }
+
+    // ═══ LEGACY FALLBACK PATH ═══
     const handler = PROVIDER_HANDLERS[provider];
     const isPortal = PORTAL_PROVIDERS.has(provider);
 
@@ -917,6 +974,7 @@ serve(async (req) => {
     }
 
     try {
+      console.log(`[monitoring-connect] Using LEGACY handler for ${provider}`);
       const result = isPortal && !handler
         ? await testGenericPortal(provider, credentials)
         : await handler!(credentials);
@@ -935,12 +993,12 @@ serve(async (req) => {
         tokens: result.tokens,
       });
 
-      await auditLog(ctx, "monitoring.integration.connected", integration?.id, { provider, status: "connected" });
+      await auditLog(ctx, "monitoring.integration.connected", integration?.id, { provider, status: "connected", adapter: "legacy" });
       return jsonResponse({ success: true, integration_id: integration?.id, status: "connected" });
     } catch (err) {
       const errorMsg = (err as Error).message?.slice(0, 500) || "Connection failed";
-      console.error(`[monitoring-connect] ${provider} handshake failed:`, errorMsg);
-      // Preserve existing credentials on error so user doesn't lose them
+      console.error(`[monitoring-connect] ${provider} legacy handshake failed:`, errorMsg);
+      // Preserve existing credentials on error
       const { data: existing } = await ctx.supabaseAdmin
         .from("monitoring_integrations")
         .select("credentials, tokens")
