@@ -273,11 +273,19 @@ async function testGrowatt(creds: Record<string, string>) {
   const password = creds.password || "";
   if (!username || !password) throw new Error("Missing: username/email, password");
 
-  // MD5 hash the password (Growatt ShineServer requires it)
+  // Growatt custom password hash: MD5 hex with '0' nibbles at even positions replaced by 'c'
   const { createHash } = await import("node:crypto");
-  const passwordMd5 = createHash("md5").update(password).digest("hex");
+  let passwordMd5 = createHash("md5").update(password, "utf8").digest("hex");
+  for (let i = 0; i < passwordMd5.length; i += 2) {
+    if (passwordMd5[i] === "0") {
+      passwordMd5 = passwordMd5.substring(0, i) + "c" + passwordMd5.substring(i + 1);
+    }
+  }
 
-  console.log(`[Growatt] Attempting ShineServer login for user: ${username}`);
+  console.log(`[Growatt] Attempting ShineServer login for user: ${username}, hashLen=${passwordMd5.length}`);
+
+  // Growatt requires an Android-like User-Agent
+  const growattUserAgent = "Dalvik/2.1.0 (Linux; U; Android 12; SM-G975F Build/SP1A.210812.016)";
 
   // Try multiple ShineServer endpoints (Growatt has changed these over time)
   const endpoints = [
@@ -292,7 +300,10 @@ async function testGrowatt(creds: Record<string, string>) {
       console.log(`[Growatt] Trying endpoint: ${endpoint}`);
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": growattUserAgent,
+        },
         body: `userName=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}`,
         redirect: "follow",
       });
