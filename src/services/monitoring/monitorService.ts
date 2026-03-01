@@ -28,6 +28,30 @@ import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "
  */
 const POWER_KW_TO_ENERGY_ESTIMATE_HOURS = 4.5;
 
+/**
+ * LEGACY JOIN: Resolve a plantId that may be monitor_plants.id to its
+ * legacy solar_plants.id (stored as legacy_plant_id in monitor_plants).
+ * If the plantId already exists in solar_plants, returns it as-is.
+ */
+async function resolveToLegacyPlantId(plantId: string): Promise<string> {
+  // First check if it exists directly in solar_plants
+  const { data: directMatch } = await supabase
+    .from("solar_plants" as any)
+    .select("id")
+    .eq("id", plantId)
+    .maybeSingle();
+  if (directMatch) return plantId;
+
+  // Otherwise, look up monitor_plants.legacy_plant_id
+  const { data: monitorPlant } = await supabase
+    .from("monitor_plants" as any)
+    .select("legacy_plant_id")
+    .eq("id", plantId)
+    .maybeSingle();
+  const legacyId = (monitorPlant as any)?.legacy_plant_id;
+  return legacyId || plantId;
+}
+
 // ─── HELPERS: map legacy → v2 types ──────────────────────────
 
 function mapSolarPlantToMonitorPlant(sp: SolarPlant): MonitorPlant {
@@ -127,10 +151,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
 }
 
 export async function getPlantDetail(plantId: string): Promise<PlantWithHealth | null> {
+  // LEGACY JOIN: resolve monitor_plants.id → solar_plants.id if needed
+  const resolvedId = await resolveToLegacyPlantId(plantId);
   const { data: plant } = await supabase
     .from("solar_plants" as any)
     .select("*")
-    .eq("id", plantId)
+    .eq("id", resolvedId)
     .maybeSingle();
 
   if (!plant) return null;
@@ -141,18 +167,18 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
   monthStart.setDate(1);
   const monthStartStr = monthStart.toISOString().slice(0, 10);
 
-  // Fetch today's metric + month readings in parallel
+  // Fetch today's metric + month readings in parallel (using resolvedId for legacy table)
   const [{ data: metric }, { data: monthMetrics }] = await Promise.all([
     supabase
       .from("solar_plant_metrics_daily" as any)
       .select("*")
-      .eq("plant_id", plantId)
+      .eq("plant_id", resolvedId)
       .eq("date", today)
       .maybeSingle(),
     supabase
       .from("solar_plant_metrics_daily" as any)
       .select("energy_kwh, power_kw")
-      .eq("plant_id", plantId)
+      .eq("plant_id", resolvedId)
       .gte("date", monthStartStr)
       .lte("date", today),
   ]);
@@ -247,10 +273,12 @@ export async function listDailyReadings(
   startDate: string,
   endDate: string
 ): Promise<MonitorReadingDaily[]> {
+  // LEGACY JOIN: resolve monitor_plants.id → solar_plants.id if needed
+  const resolvedId = await resolveToLegacyPlantId(plantId);
   const { data } = await supabase
     .from("solar_plant_metrics_daily" as any)
     .select("*")
-    .eq("plant_id", plantId)
+    .eq("plant_id", resolvedId)
     .gte("date", startDate)
     .lte("date", endDate)
     .order("date", { ascending: true });
