@@ -5,7 +5,7 @@ import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
-import { Sun, Zap, AlertTriangle, WifiOff, Activity, Database, Gauge, BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3 } from "lucide-react";
+import { Sun, Zap, AlertTriangle, WifiOff, Activity, Database, Gauge, BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3, CloudSun, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
@@ -13,8 +13,12 @@ import { seedMonitorData, clearMonitorData } from "@/services/monitoring/mockSee
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
+import { MonitorGenerationVsEstimateChart } from "./charts/MonitorGenerationVsEstimateChart";
 import { MonitorPRChart } from "./charts/MonitorPRChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
+import { EnergyFlowAnimation } from "./EnergyFlowAnimation";
+import { WeatherWidget } from "./WeatherWidget";
+import { MaintenanceCalendar } from "./MaintenanceCalendar";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/formatters/index";
 
@@ -100,6 +104,23 @@ export default function MonitorDashboard() {
   const avgPR = prData.length > 0
     ? Math.round(prData.reduce((s, p) => s + p.pr_percent, 0) / prData.length * 10) / 10
     : null;
+
+  // Average lat/lng for weather widget
+  const plantsWithCoords = plants.filter((p) => p.lat != null && p.lng != null);
+  const avgLat = plantsWithCoords.length > 0
+    ? plantsWithCoords.reduce((s, p) => s + (p.lat || 0), 0) / plantsWithCoords.length
+    : null;
+  const avgLng = plantsWithCoords.length > 0
+    ? plantsWithCoords.reduce((s, p) => s + (p.lng || 0), 0) / plantsWithCoords.length
+    : null;
+
+  // Current power estimate (if generating today)
+  const isGenerating = (stats?.energy_today_kwh || 0) > 0;
+  const currentHour = new Date().getHours();
+  const isDaylight = currentHour >= 6 && currentHour <= 18;
+  const estimatedCurrentPower = isDaylight && isGenerating
+    ? (plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) * 0.7)
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -234,10 +255,40 @@ export default function MonitorDashboard() {
             <MonitorGenerationChart readings={readings} />
           </SectionCard>
 
-          {/* Performance Ratio chart */}
+          {/* Energy Flow Animation + Weather */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SectionCard title="Fluxo de Energia" icon={Zap} variant="blue">
+              <EnergyFlowAnimation
+                currentPowerKw={estimatedCurrentPower}
+                isGenerating={isDaylight && isGenerating}
+              />
+            </SectionCard>
+
+            {avgLat && avgLng ? (
+              <SectionCard title="Previsão do Tempo" icon={CloudSun}>
+                <WeatherWidget lat={avgLat} lng={avgLng} />
+              </SectionCard>
+            ) : (
+              <SectionCard title="Previsão do Tempo" icon={CloudSun}>
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Adicione coordenadas às usinas para ver o clima.
+                </p>
+              </SectionCard>
+            )}
+          </div>
+
+          {/* Generation vs Estimate chart */}
+          <SectionCard title="Geração Real vs Projetada — Últimos 30 dias" icon={BarChart3} variant="blue">
+            <MonitorGenerationVsEstimateChart
+              readings={readings}
+              plants={plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp }))}
+            />
+          </SectionCard>
+
+          {/* Maintenance / Cleaning Calendar */}
           {prData.length > 0 && (
-            <SectionCard title="Performance Ratio por Usina (PR)" icon={BarChart3} variant="blue">
-              <MonitorPRChart data={prData} />
+            <SectionCard title="Manutenção & Limpeza" icon={Wrench} variant="warning">
+              <MaintenanceCalendar prData={prData} plants={plants} />
             </SectionCard>
           )}
         </>
