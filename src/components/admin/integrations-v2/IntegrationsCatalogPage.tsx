@@ -72,8 +72,13 @@ export default function IntegrationsCatalogPage() {
     queryFn: listLegacyIntegrations,
   });
 
+  const [syncingProviderId, setSyncingProviderId] = useState<string | null>(null);
+
   const syncMut = useMutation({
-    mutationFn: (providerId: string) => syncProvider(providerId),
+    mutationFn: (providerId: string) => {
+      setSyncingProviderId(providerId);
+      return syncProvider(providerId);
+    },
     onSuccess: (result) => {
       if (result.success) {
         toast.success(`Sincronizado: ${result.plants_synced ?? 0} usinas, ${result.metrics_synced ?? 0} métricas`);
@@ -85,6 +90,7 @@ export default function IntegrationsCatalogPage() {
       queryClient.invalidateQueries({ queryKey: ["monitoring-plants"] });
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setSyncingProviderId(null),
   });
 
   const disconnectMut = useMutation({
@@ -292,15 +298,11 @@ export default function IntegrationsCatalogPage() {
                       lastSync={getLastSync(provider.id)}
                       onConnect={() => setConnectModal(provider)}
                       onSync={() => {
-                        const legacySyncMap: Record<string, string> = {
-                          solarman_business: "solarman_business_api",
-                          solaredge: "solaredge",
-                          solis_cloud: "solis_cloud",
-                        };
-                        syncMut.mutate(legacySyncMap[provider.id] || provider.id);
+                        const mapped = ({ solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" } as Record<string, string>)[provider.id] || provider.id;
+                        syncMut.mutate(mapped);
                       }}
                       onDisconnect={() => disconnectMut.mutate(provider.id)}
-                      syncing={syncMut.isPending}
+                      syncing={syncingProviderId === provider.id}
                     />
                   ))}
                 </div>
