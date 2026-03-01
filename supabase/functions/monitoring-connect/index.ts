@@ -355,17 +355,27 @@ async function testSungrow(creds: Record<string, string>) {
 }
 
 // ── Huawei FusionSolar ──
+function huaweiBaseUrl(region: string): string {
+  const r = (region || "la5").toLowerCase();
+  return `https://${r}.fusionsolar.huawei.com`;
+}
+
 async function testHuawei(creds: Record<string, string>) {
-  const { username, password, systemCode } = creds;
-  if (!username || !password) throw new Error("Missing: username, password");
-  const res = await fetch("https://eu5.fusionsolar.huawei.com/thirdData/login", {
+  const { username, password, region } = creds;
+  if (!username || !password) throw new Error("Preencha Usuário de API e Senha de API.");
+  const base = huaweiBaseUrl(region);
+  console.log(`[Huawei] Tentando login em ${base} com user=${username}`);
+  const res = await fetch(`${base}/thirdData/login`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userName: username, systemCode: systemCode || password }),
+    body: JSON.stringify({ userName: username, systemCode: password }),
   });
   const json = await res.json();
+  console.log(`[Huawei] Response: success=${json.success}, failCode=${json.failCode}, message=${json.message}`);
   if (!json.success && json.failCode !== 0) throw new Error(json.message || "Huawei login failed");
   const xsrfToken = res.headers.get("xsrf-token") || res.headers.get("set-cookie")?.match(/XSRF-TOKEN=([^;]+)/)?.[1] || "";
-  return { credentials: { username, password, systemCode: systemCode || "" }, tokens: { xsrfToken, cookies: res.headers.get("set-cookie") || "" } };
+  const cookies = res.headers.get("set-cookie") || "";
+  if (!xsrfToken) console.warn("[Huawei] XSRF-TOKEN não encontrado nos headers!");
+  return { credentials: { username, password, region: region || "la5" }, tokens: { xsrfToken, cookies, region: region || "la5" } };
 }
 
 // ── GoodWe SEMS ──
@@ -554,6 +564,7 @@ const PROVIDER_HANDLERS: Record<string, TestFn> = {
   hoymiles: (c) => testHoymiles(c),
   sungrow: (c) => testSungrow(c),
   huawei: (c) => testHuawei(c),
+  huawei_fusionsolar: (c) => testHuawei(c),
   goodwe: (c) => testGoodwe(c),
   fronius: (c) => testFronius(c),
   fox_ess: (c) => testFoxEss(c),

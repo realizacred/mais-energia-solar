@@ -602,12 +602,38 @@ async function sungrowMetrics(token: string, appKey: string, psId: string): Prom
 // Huawei FusionSolar
 // ═══════════════════════════════════════════════════════════
 
-async function huaweiListPlants(xsrfToken: string, cookies: string): Promise<NormalizedPlant[]> {
-  const res = await fetch("https://eu5.fusionsolar.huawei.com/thirdData/getStationList", {
+function huaweiBaseUrl(region: string): string {
+  const r = (region || "la5").toLowerCase();
+  return `https://${r}.fusionsolar.huawei.com`;
+}
+
+async function huaweiReAuth(credentials: Record<string, any>): Promise<{ xsrfToken: string; cookies: string; region: string }> {
+  const username = credentials.username || "";
+  const password = credentials.password || "";
+  const region = credentials.region || "la5";
+  const base = huaweiBaseUrl(region);
+  console.log(`[Huawei] Re-auth em ${base} user=${username}`);
+  const res = await fetch(`${base}/thirdData/login`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userName: username, systemCode: password }),
+  });
+  const json = await res.json();
+  if (!json.success && json.failCode !== 0) throw new Error(json.message || "Huawei re-auth failed");
+  const xsrfToken = res.headers.get("xsrf-token") || res.headers.get("set-cookie")?.match(/XSRF-TOKEN=([^;]+)/)?.[1] || "";
+  const cookies = res.headers.get("set-cookie") || "";
+  console.log(`[Huawei] Re-auth OK, xsrf=${xsrfToken ? "present" : "MISSING"}`);
+  return { xsrfToken, cookies, region };
+}
+
+async function huaweiListPlants(xsrfToken: string, cookies: string, region: string): Promise<NormalizedPlant[]> {
+  const base = huaweiBaseUrl(region);
+  const res = await fetch(`${base}/thirdData/getStationList`, {
     method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
     body: JSON.stringify({ pageNo: 1, pageSize: 100 }),
   });
   const json = await res.json();
+  console.log(`[Huawei] getStationList: success=${json.success}, failCode=${json.failCode}, count=${(json.data || []).length}`);
+  if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
   const list = (json.data || []) as any[];
   return list.map((r: any) => ({
     external_id: String(r.stationCode || ""), name: String(r.stationName || ""),
@@ -619,9 +645,10 @@ async function huaweiListPlants(xsrfToken: string, cookies: string): Promise<Nor
   }));
 }
 
-async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: string): Promise<DailyMetrics> {
+async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: string, region: string): Promise<DailyMetrics> {
   try {
-    const res = await fetch("https://eu5.fusionsolar.huawei.com/thirdData/getStationRealKpi", {
+    const base = huaweiBaseUrl(region);
+    const res = await fetch(`${base}/thirdData/getStationRealKpi`, {
       method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
       body: JSON.stringify({ stationCodes: stationCode }),
     });
@@ -1206,10 +1233,29 @@ serve(async (req) => {
       const token = tokens.token as string || "";
       const appKey = credentials.appKey as string || credentials.appId as string || "";
       result = await syncPlantsByProvider(ctx, () => sungrowListPlants(token, appKey), (eid) => sungrowMetrics(token, appKey, eid), mode, selectedPlantIds);
-    } else if (p === "huawei") {
-      const xsrf = tokens.xsrfToken as string || "";
-      const cookies = tokens.cookies as string || "";
-      result = await syncPlantsByProvider(ctx, () => huaweiListPlants(xsrf, cookies), (eid) => huaweiMetrics(xsrf, cookies, eid), mode, selectedPlantIds);
+    } else if (p === "huawei" || p === "huawei_fusionsolar") {
+      let xsrf = tokens.xsrfToken as string || "";
+      let hwCookies = tokens.cookies as string || "";
+      const hwRegion = (tokens.region as string) || (credentials.region as string) || "la5";
+
+      const listFnHw = async () => {
+        try {
+          return await huaweiListPlants(xsrf, hwCookies, hwRegion);
+        } catch (e: any) {
+          if (e.message === "TOKEN_EXPIRED" && credentials.username && credentials.password) {
+            console.log("[Huawei] Token expirado, re-autenticando...");
+            const reauth = await huaweiReAuth(credentials);
+            xsrf = reauth.xsrfToken;
+            hwCookies = reauth.cookies;
+            // Persist new tokens
+            await adminClient.from("monitoring_integrations").update({ tokens: { xsrfToken: xsrf, cookies: hwCookies, region: hwRegion } }).eq("id", ctx.integrationId);
+            return await huaweiListPlants(xsrf, hwCookies, hwRegion);
+          }
+          throw e;
+        }
+      };
+
+      result = await syncPlantsByProvider(ctx, listFnHw, (eid) => huaweiMetrics(xsrf, hwCookies, eid, hwRegion), mode, selectedPlantIds);
     } else if (p === "goodwe") {
       let gwToken = tokens.token as string || "";
       let gwApi = tokens.api as string || "https://semsportal.com";
