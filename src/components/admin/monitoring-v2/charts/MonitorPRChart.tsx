@@ -12,11 +12,11 @@ export function MonitorPRChart({ data }: Props) {
   }
 
   const chartData = data
-    .filter((d) => d.pr_status === "ok")
+    .filter((d) => d.pr_status === "ok" && d.pr_percent != null)
     .slice(0, 15)
     .map((d) => ({
       name: d.plant_name.length > 18 ? d.plant_name.slice(0, 16) + "…" : d.plant_name,
-      pr: d.pr_percent,
+      pr: d.pr_percent ?? 0,
       fullName: d.plant_name,
       hspSource: d.hsp_source,
     }));

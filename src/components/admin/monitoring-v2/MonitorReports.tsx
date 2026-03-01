@@ -95,7 +95,7 @@ export default function MonitorReports() {
     });
     prData.forEach((pr) => {
       const entry = map.get(pr.plant_id);
-      if (entry) entry.pr = pr.pr_percent;
+      if (entry) entry.pr = pr.pr_percent ?? 0;
     });
     return Array.from(map.values()).sort((a, b) => b.kwh - a.kwh);
   }, [plants, readings, prData]);
