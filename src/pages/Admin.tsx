@@ -90,6 +90,7 @@ const LeadsTrashPage = lazy(() => import("@/components/admin/leads/LeadsTrashPag
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
 const MonitoringPage = lazy(() => import("@/components/admin/monitoring/MonitoringPage"));
+const MonitoringModule = lazy(() => import("@/components/admin/monitoring-v2/MonitoringModule"));
 const IntegrationsCatalogPage = lazy(() => import("@/components/admin/integrations-v2/IntegrationsCatalogPage"));
 const AneelIntegrationPage = lazy(() => import("@/components/admin/integrations/AneelIntegrationPage").then(m => ({ default: m.AneelIntegrationPage })));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
@@ -353,7 +354,15 @@ export default function Admin() {
 
   // Derive active tab from URL path
   const activeTab = useMemo(() => {
-    const segments = location.pathname.replace("/admin", "").split("/").filter(Boolean);
+    const path = location.pathname.replace("/admin/", "").replace("/admin", "");
+    const segments = path.split("/").filter(Boolean);
+    // For nested modules (e.g. monitoramento/usinas), try 2-segment match first
+    if (segments.length >= 2) {
+      const twoSegment = `${segments[0]}/${segments[1]}`;
+      // Check if this is a registered nav_key (e.g. monitoramento/usinas)
+      const knownTwoSegments = ["monitoramento/usinas", "monitoramento/alertas", "monitoramento/relatorios"];
+      if (knownTwoSegments.includes(twoSegment)) return twoSegment;
+    }
     return segments[0] || "leads";
   }, [location.pathname]);
 
@@ -587,6 +596,7 @@ export default function Admin() {
                 <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
                 <Route path="saude-integracoes" element={<IntegrationHealthPage />} />
                 <Route path="monitoramento-solar" element={<MonitoringPage />} />
+                <Route path="monitoramento/*" element={<MonitoringModule />} />
                 <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />

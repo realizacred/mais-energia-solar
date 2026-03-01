@@ -198,7 +198,7 @@ function SidebarSectionGroup({
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const LabelIcon = section.labelIcon;
-  const hasActiveItem = section.items.some((item) => item.id === activeTab);
+  const hasActiveItem = section.items.some((item) => item.id === activeTab || activeTab.startsWith(item.id + "/"));
   const shouldBeOpen = hasActiveItem || section.defaultOpen !== false;
 
   // Drag state
@@ -281,7 +281,7 @@ function SidebarSectionGroup({
           <SidebarGroupContent>
             <SidebarMenu className="gap-0 mt-1 ml-1 pl-2 border-l border-sidebar-border/40">
               {orderedItems.map((item, idx) => {
-                const isActive = activeTab === item.id;
+                const isActive = activeTab === item.id || (item.id === "monitoramento" && activeTab.startsWith("monitoramento") && !activeTab.includes("/"));
                 const badgeCount = badgeCounts?.[item.id] || 0;
                 const isDragging = dragId === item.id;
                 const isOver = overId === item.id && dragId !== item.id;
