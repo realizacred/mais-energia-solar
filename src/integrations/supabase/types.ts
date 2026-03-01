@@ -5962,6 +5962,69 @@ export type Database = {
           },
         ]
       }
+      irradiation_daily_cache: {
+        Row: {
+          confidence: string
+          created_at: string
+          date: string
+          hsp_kwh_m2: number
+          id: string
+          latitude: number
+          longitude: number
+          raw_payload: Json | null
+          source: string
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          date: string
+          hsp_kwh_m2: number
+          id?: string
+          latitude: number
+          longitude: number
+          raw_payload?: Json | null
+          source?: string
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          date?: string
+          hsp_kwh_m2?: number
+          id?: string
+          latitude?: number
+          longitude?: number
+          raw_payload?: Json | null
+          source?: string
+        }
+        Relationships: []
+      }
+      irradiation_regional_premises: {
+        Row: {
+          created_at: string
+          hsp_kwh_m2: number
+          id: string
+          month: number
+          region: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          hsp_kwh_m2: number
+          id?: string
+          month: number
+          region: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          hsp_kwh_m2?: number
+          id?: string
+          month?: number
+          region?: string
+          source?: string
+        }
+        Relationships: []
+      }
       layouts_solares: {
         Row: {
           cliente_id: string | null

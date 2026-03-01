@@ -11,11 +11,15 @@ export function MonitorPRChart({ data }: Props) {
     return <p className="text-sm text-muted-foreground text-center py-8">Sem dados de performance</p>;
   }
 
-  const chartData = data.slice(0, 15).map((d) => ({
-    name: d.plant_name.length > 18 ? d.plant_name.slice(0, 16) + "…" : d.plant_name,
-    pr: d.pr_percent,
-    fullName: d.plant_name,
-  }));
+  const chartData = data
+    .filter((d) => d.pr_status === "ok")
+    .slice(0, 15)
+    .map((d) => ({
+      name: d.plant_name.length > 18 ? d.plant_name.slice(0, 16) + "…" : d.plant_name,
+      pr: d.pr_percent,
+      fullName: d.plant_name,
+      hspSource: d.hsp_source,
+    }));
 
   return (
     <ResponsiveContainer width="100%" height={280}>
