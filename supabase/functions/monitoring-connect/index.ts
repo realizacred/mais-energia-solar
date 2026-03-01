@@ -331,6 +331,7 @@ async function testGrowatt(creds: Record<string, string>) {
 
 // ── Hoymiles S-Miles ──
 // Updated API flow (2025): region_c → login_c with MD5.SHA256Base64 password
+// Reference: https://github.com/krikk/hoymiles-ms-a2-to-mqtt
 async function testHoymiles(creds: Record<string, string>) {
   const username = creds.username || creds.login || creds.email || "";
   const password = creds.password || "";
@@ -338,20 +339,25 @@ async function testHoymiles(creds: Record<string, string>) {
 
   const { createHash } = await import("node:crypto");
 
-  // Hoymiles V3 password encoding: MD5(hex) + "." + SHA256(base64)
-  const md5Hex = createHash("md5").update(password).digest("hex");
-  const sha256Base64 = createHash("sha256").update(password).digest("base64");
-  const encodedPassword = `${md5Hex}.${sha256Base64}`;
+  // Hoymiles password encoding: MD5(hex) + "." + base64(SHA256(raw digest))
+  const md5Hex = createHash("md5").update(password, "utf8").digest("hex");
+  const sha256Digest = createHash("sha256").update(password, "utf8").digest();
+  // Convert raw digest bytes to base64 (matching Python's base64.b64encode)
+  const sha256B64 = btoa(String.fromCharCode(...new Uint8Array(sha256Digest)));
+  const encodedPassword = `${md5Hex}.${sha256B64}`;
+
+  console.log(`[Hoymiles] Encoded password length=${encodedPassword.length}, md5Len=${md5Hex.length}, b64Len=${sha256B64.length}`);
 
   // Step 1: Discover region-specific login URL
-  const regionUrls = [
+  // Try all region endpoints; some accounts are region-specific
+  const regionBases = [
     "https://euapi.hoymiles.com",
     "https://neapi.hoymiles.com",
     "https://global.hoymiles.com",
   ];
 
   let loginBaseUrl = "";
-  for (const regionBase of regionUrls) {
+  for (const regionBase of regionBases) {
     try {
       console.log(`[Hoymiles] Trying region discovery at ${regionBase}/iam/pub/0/c/region_c`);
       const regionRes = await fetch(`${regionBase}/iam/pub/0/c/region_c`, {
@@ -363,22 +369,20 @@ async function testHoymiles(creds: Record<string, string>) {
       console.log(`[Hoymiles] Region response status=${regionRes.status}, body=${regionText.substring(0, 300)}`);
       if (regionText.startsWith("<")) continue;
       const regionJson = JSON.parse(regionText);
-      if (regionJson.status === "0" || regionJson.status === 0) {
-        loginBaseUrl = regionJson.data?.login_url || "";
-        if (loginBaseUrl) {
-          console.log(`[Hoymiles] Region resolved login_url=${loginBaseUrl}`);
-          break;
-        }
+      if ((regionJson.status === "0" || regionJson.status === 0) && regionJson.data?.login_url) {
+        loginBaseUrl = regionJson.data.login_url;
+        console.log(`[Hoymiles] Region resolved login_url=${loginBaseUrl}`);
+        break;
       }
     } catch (e) {
       console.log(`[Hoymiles] Region ${regionBase} error: ${(e as Error).message}`);
     }
   }
 
-  // Fallback: try known base URLs directly
+  // Fallback: try all known base URLs directly (some accounts have dc=-1)
   const loginUrls = loginBaseUrl
     ? [loginBaseUrl]
-    : ["https://euapi.hoymiles.com", "https://neapi.hoymiles.com", "https://global.hoymiles.com"];
+    : ["https://neapi.hoymiles.com", "https://euapi.hoymiles.com", "https://global.hoymiles.com"];
 
   let lastError = "Hoymiles login failed";
   for (const baseUrl of loginUrls) {
@@ -413,7 +417,7 @@ async function testHoymiles(creds: Record<string, string>) {
       console.log(`[Hoymiles] Login OK via ${loginEndpoint}, userId=${json.data?.userId}`);
       return {
         credentials: { username },
-        tokens: { token, userId: json.data?.userId || "", encodedPassword, baseUrl },
+        tokens: { token, userId: json.data?.userId || "", baseUrl },
       };
     } catch (e) {
       console.log(`[Hoymiles] ${baseUrl} error: ${(e as Error).message}`);
