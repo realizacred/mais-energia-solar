@@ -350,11 +350,18 @@ export async function discoverPlants(provider: string): Promise<{ success: boole
   return { success: true, plants: data.plants || [] };
 }
 
-/** Disconnect a monitoring integration */
+/** Delete a monitoring integration */
 export async function disconnectProvider(integrationId: string): Promise<void> {
+  // First delete related solar_plants
+  await (supabase
+    .from("solar_plants" as any)
+    .delete()
+    .eq("integration_id", integrationId) as any);
+
+  // Then delete the integration itself
   await (supabase
     .from("monitoring_integrations" as any)
-    .update({ status: "disconnected", tokens: {}, credentials: {} } as any)
+    .delete()
     .eq("id", integrationId) as any);
 }
 
