@@ -1470,13 +1470,16 @@ async function dispatchSync(
     // Re-authenticate if token is missing or expired
     const refreshLivoltekToken = async () => {
       if (!lvApiKey || !lvAppSecret) throw new Error("No apiKey/appSecret stored. Reconnect Livoltek.");
+      const lvUsername = credentials.username as string || "";
+      const lvPassword = (tokens.password as string) || (credentials.password as string) || "";
       const SERVERS = [lvBaseUrl, "https://api-eu.livoltek-portal.com:8081", "https://api.livoltek-portal.com:8081"];
       const uniqueServers = [...new Set(SERVERS)];
       for (const server of uniqueServers) {
         try {
           console.log(`[Livoltek Sync] Re-auth at ${server}`);
-          // Official API: only secuid + key (no username/password)
-          const loginBody = { secuid: lvAppSecret, key: lvApiKey };
+          const loginBody: Record<string, string> = { secuid: lvAppSecret, key: lvApiKey };
+          if (lvUsername) loginBody.username = lvUsername;
+          if (lvPassword) loginBody.password = lvPassword;
           const res = await fetch(`${server}/hess/api/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
