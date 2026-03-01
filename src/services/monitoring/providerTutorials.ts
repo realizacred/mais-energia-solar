@@ -181,6 +181,39 @@ export const PROVIDER_TUTORIALS: ProviderTutorial[] = [
       "A API do Sungrow pode exigir aprovação. Contate o suporte da Sungrow se necessário.",
     ],
   },
+
+  // ── SolarEdge ──
+  {
+    providerId: "solaredge",
+    modeId: "api_key",
+    title: "Como conectar SolarEdge",
+    steps: [
+      {
+        title: "Acesse o portal SolarEdge",
+        content: "Entre em monitoring.solaredge.com e faça login com sua conta.",
+      },
+      {
+        title: "Abra sua conta",
+        content: 'Clique no nome do usuário no canto superior direito e selecione "Minha Conta".',
+      },
+      {
+        title: "Vá em Dados da empresa",
+        content: 'Dentro de "Minha Conta", clique em "Dados da empresa".',
+      },
+      {
+        title: "Habilite o Acesso à API",
+        content: 'Role a página até a seção "Acesso à API". Marque "I have read and agree SolarEdge API T&C" e clique em Salvar.',
+      },
+      {
+        title: "Copie a API Key",
+        content: "Após salvar, a API Key será exibida. Copie e cole no campo abaixo.",
+      },
+    ],
+    notes: [
+      'Se a seção "Acesso à API" não aparece, sua conta não tem permissão de Administrador. Peça acesso ao instalador ou proprietário do sistema.',
+      "O Site ID é opcional — se não informado, o sistema tentará listar todos os sites da conta.",
+    ],
+  },
 ];
 
 export function getTutorial(providerId: string, modeId: string): ProviderTutorial | undefined {
