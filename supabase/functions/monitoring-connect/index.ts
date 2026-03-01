@@ -125,26 +125,24 @@ async function testDeye(creds: Record<string, string>) {
   }
 
   const json = await res.json();
-  console.log(`[Deye] Response code: ${json.code}, msg: ${json.msg}`);
-  console.log(`[Deye] Data keys: ${json.data ? Object.keys(json.data).join(", ") : "no data"}`);
+  console.log(`[Deye] Response success: ${json.success}, code: ${json.code}, msg: ${json.msg}`);
+  console.log(`[Deye] Top-level keys: ${Object.keys(json).join(", ")}`);
 
-  // Deye API wraps token data in json.data
-  // Token field may be "accessToken" (camelCase) or "access_token" (snake_case)
-  const tokenData = json.data || json;
-  const accessToken = tokenData.accessToken || tokenData.access_token || "";
+  // Deye v2 API returns token fields at top level (not nested in .data)
+  const accessToken = json.accessToken || json.access_token || (json.data && (json.data.accessToken || json.data.access_token)) || "";
   if (!accessToken) {
     throw new Error(json.msg || `Deye auth failed (code=${json.code})`);
   }
 
-  const expiresIn = tokenData.expiresIn || tokenData.expires_in || 7200;
-  const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+  const expiresIn = json.expiresIn || json.expires_in || 7200;
+  const expiresAt = new Date(Date.now() + Number(expiresIn) * 1000).toISOString();
   return {
     credentials: { region, baseUrl, appId, email },
     tokens: {
       access_token: accessToken,
-      token_type: tokenData.tokenType || tokenData.token_type || "bearer",
+      token_type: json.tokenType || json.token_type || "bearer",
       expires_at: expiresAt,
-      refresh_token: tokenData.refreshToken || tokenData.refresh_token || null,
+      refresh_token: json.refreshToken || json.refresh_token || null,
       appSecret,
     },
   };
