@@ -69,15 +69,17 @@ export class SolaXAdapter implements ProviderAdapter {
 
   /**
    * SolaX has NO official plant listing endpoint.
-   * Returns empty array with explicit NOT_SUPPORTED status.
-   * Plants must be registered manually with inverter SNs.
+   * Throws PERMISSION error — plants must be registered manually with inverter SNs.
    */
   async fetchPlants(_auth: AuthResult): Promise<NormalizedPlant[]> {
-    console.log(
-      `[SolaX] fetchPlants: NOT_SUPPORTED — SolaX official API is SN-only. ` +
-      `No plant listing endpoint exists. Plants must be registered manually with inverter serial numbers.`,
-    );
-    return [];
+    throw {
+      category: "PERMISSION" as const,
+      provider: this.providerId,
+      statusCode: null,
+      providerErrorCode: "SN_ONLY",
+      message: "SN-only: plant listing not supported. Register inverter serial numbers manually.",
+      retryable: false,
+    };
   }
 
   async fetchMetrics(auth: AuthResult, snOrSiteId: string): Promise<DailyMetrics> {

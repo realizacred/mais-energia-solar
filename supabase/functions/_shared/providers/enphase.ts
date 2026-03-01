@@ -67,10 +67,10 @@ export class EnphaseAdapter implements ProviderAdapter {
     }
 
     // Auth succeeds but integration is BLOCKED for sync.
-    // The monolith connect handler checks for BLOCKED status via health check.
+    // Health check will detect PERMISSION error from fetchPlants and set status=blocked.
     return {
       credentials: { apiKey },
-      tokens: { _blocked: true, _reason: "oauth2_required" },
+      tokens: {},
     };
   }
 
