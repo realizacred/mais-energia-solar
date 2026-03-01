@@ -1,6 +1,10 @@
 /**
- * Monitor Service — canonical data access layer for monitor_* tables.
- * Never access tables directly from components.
+ * Monitor Service — SSOT data access layer for ALL monitoring tables.
+ * Never access monitoring tables directly from components.
+ *
+ * Consolidates both:
+ *   - monitor_* tables (plants, health_cache, events, readings, devices)
+ *   - monitoring_integrations / solar_plants / solar_plant_metrics_daily (legacy)
  */
 import { supabase } from "@/integrations/supabase/client";
 import type {
@@ -12,6 +16,7 @@ import type {
   PlantWithHealth,
   MonitorDashboardStats,
 } from "./monitorTypes";
+import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "./types";
 
 // ─── PLANTS + HEALTH ──────────────────────────────────────────
 
@@ -137,4 +142,86 @@ export async function listAllReadings(
     .lte("date", endDate)
     .order("date", { ascending: true });
   return (data as unknown as MonitorReadingDaily[]) || [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEGACY TABLES: monitoring_integrations + solar_plants + metrics
+// (used by MonitoringPage v1 and IntegrationsCatalog)
+// ═══════════════════════════════════════════════════════════════
+
+/** Connect a monitoring provider via Edge Function */
+export async function connectProvider(
+  provider: string,
+  credentials: Record<string, string>
+): Promise<{ success: boolean; integration_id?: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke("monitoring-connect", {
+    body: { provider, credentials },
+  });
+  if (error) return { success: false, error: error.message };
+  if (data?.error) return { success: false, error: data.error };
+  return { success: true, integration_id: data.integration_id };
+}
+
+/** Trigger a sync via Edge Function */
+export async function syncProvider(
+  provider: string,
+  mode: "plants" | "metrics" | "full" = "full"
+): Promise<{ success: boolean; plants_synced?: number; metrics_synced?: number; errors?: string[]; error?: string }> {
+  const { data, error } = await supabase.functions.invoke("monitoring-sync", {
+    body: { provider, mode },
+  });
+  if (error) return { success: false, error: error.message };
+  if (data?.error) return { success: false, error: data.error };
+  return {
+    success: true,
+    plants_synced: data.plants_synced,
+    metrics_synced: data.metrics_synced,
+    errors: data.errors,
+  };
+}
+
+/** Disconnect a monitoring integration */
+export async function disconnectProvider(integrationId: string): Promise<void> {
+  await (supabase
+    .from("monitoring_integrations" as any)
+    .update({ status: "disconnected", tokens: {}, credentials: {} } as any)
+    .eq("id", integrationId) as any);
+}
+
+/** Fetch integration for current tenant by provider key */
+export async function getIntegration(provider: string): Promise<MonitoringIntegration | null> {
+  const { data } = await supabase
+    .from("monitoring_integrations" as any)
+    .select("*")
+    .eq("provider", provider)
+    .maybeSingle();
+  return (data as unknown as MonitoringIntegration) ?? null;
+}
+
+/** Fetch all integrations for current tenant */
+export async function listIntegrations(): Promise<MonitoringIntegration[]> {
+  const { data } = await supabase
+    .from("monitoring_integrations" as any)
+    .select("*")
+    .order("created_at", { ascending: false });
+  return (data as unknown as MonitoringIntegration[]) || [];
+}
+
+/** Fetch solar plants (legacy table) for current tenant */
+export async function listSolarPlants(): Promise<SolarPlant[]> {
+  const { data } = await supabase
+    .from("solar_plants" as any)
+    .select("*")
+    .order("name", { ascending: true });
+  return (data as unknown as SolarPlant[]) || [];
+}
+
+/** Fetch today's metrics for all solar plants (legacy table) */
+export async function getTodayMetrics(): Promise<SolarPlantMetricsDaily[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("solar_plant_metrics_daily" as any)
+    .select("*")
+    .eq("date", today);
+  return (data as unknown as SolarPlantMetricsDaily[]) || [];
 }
