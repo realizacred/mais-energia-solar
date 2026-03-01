@@ -302,7 +302,7 @@ export default function IntegrationsCatalogPage() {
               description="Tente outro termo de busca ou filtro."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {filtered.map((provider) => (
                 <ProviderCard
                   key={provider.id}
@@ -378,20 +378,20 @@ function StatusBadgeTag({ provider }: { provider: IntegrationProvider }) {
   const isMaintenance = provider.status === "maintenance";
 
   if (isMonitoringActive) {
-    return <Badge className="text-[10px] font-semibold bg-success/15 text-success border-success/25 px-2 py-0.5">Produção</Badge>;
+    return <Badge className="text-[10px] font-medium bg-success/15 text-success border-success/25 px-2 py-0.5 rounded-full">Produção</Badge>;
   }
   if (isMonitoringBeta) {
-    return <Badge className="text-[10px] font-semibold bg-warning/15 text-warning border-warning/25 px-2 py-0.5">Beta</Badge>;
+    return <Badge className="text-[10px] font-medium bg-warning/15 text-warning border-warning/25 px-2 py-0.5 rounded-full">Beta</Badge>;
   }
   if (isMonitoringStub) {
-    return <Badge variant="outline" className="text-[10px] font-semibold border-border/60 text-muted-foreground px-2 py-0.5">Planejado</Badge>;
+    return <Badge variant="outline" className="text-[10px] font-medium border-border/60 text-muted-foreground px-2 py-0.5 rounded-full">Planejado</Badge>;
   }
   if (!isMonitoring && isComingSoon) {
-    return <Badge variant="outline" className="text-[10px] font-semibold border-border/60 text-muted-foreground px-2 py-0.5">Em breve</Badge>;
+    return <Badge variant="outline" className="text-[10px] font-medium border-border/60 text-muted-foreground px-2 py-0.5 rounded-full">Em breve</Badge>;
   }
   if (isMaintenance) {
     return (
-      <Badge variant="outline" className="text-[10px] font-semibold border-warning/40 text-warning px-2 py-0.5">
+      <Badge variant="outline" className="text-[10px] font-medium border-warning/40 text-warning px-2 py-0.5 rounded-full">
         <AlertCircle className="h-3 w-3 mr-0.5" />
         Manutenção
       </Badge>
@@ -414,10 +414,14 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
   const hasSyncCapability = provider.capabilities?.sync_plants || provider.capabilities?.sync_deals;
   const isDisabled = isMonitoringStub || isComingSoon;
 
+  // Try real logo from /integrations/{id}.svg
+  const logoSrc = `/integrations/${provider.id}.svg`;
+  const [logoError, setLogoError] = React.useState(false);
+
   return (
     <div
       className={cn(
-        "relative flex flex-col items-center text-center rounded-2xl border p-6 min-h-[220px] transition-all duration-200",
+        "relative flex flex-col items-center text-center rounded-2xl border p-5 min-h-[170px] max-h-[190px] transition-all duration-200",
         isConnected
           ? "border-success/30 bg-card shadow-sm hover:shadow-md"
           : isDisabled
@@ -428,45 +432,43 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
       {/* Status badge — top right */}
       <div className="absolute top-3 right-3">
         {isConnected ? (
-          <div className="flex items-center gap-1.5 bg-success/10 text-success rounded-full px-2.5 py-1">
-            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <span className="text-[10px] font-semibold">Conectado</span>
+          <div className="flex items-center gap-1 bg-success/10 text-success rounded-full px-2 py-0.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+            <span className="text-[10px] font-medium">Conectado</span>
           </div>
         ) : (
           <StatusBadgeTag provider={provider} />
         )}
       </div>
 
-      {/* Icon */}
-      <div className={cn(
-        "flex items-center justify-center h-14 w-14 rounded-2xl mb-4 mt-2",
-        isConnected
-          ? "bg-primary/10"
-          : isDisabled
-            ? "bg-muted/60"
-            : "bg-secondary/10"
-      )}>
-        <Icon className={cn(
-          "h-7 w-7",
-          isConnected
-            ? "text-primary"
-            : isDisabled
-              ? "text-muted-foreground/50"
-              : "text-secondary-foreground/70"
-        )} />
+      {/* Logo box */}
+      <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted/40 mx-auto mb-3">
+        {!logoError ? (
+          <img
+            src={logoSrc}
+            alt={provider.label}
+            className="max-h-10 max-w-10 object-contain"
+            onError={() => setLogoError(true)}
+          />
+        ) : (
+          <Icon className={cn(
+            "h-6 w-6",
+            isConnected ? "text-primary" : isDisabled ? "text-muted-foreground/50" : "text-muted-foreground"
+          )} />
+        )}
       </div>
 
       {/* Name */}
-      <h3 className="text-base font-semibold text-foreground mb-1 leading-tight">{provider.label}</h3>
+      <h3 className="text-base font-semibold text-foreground leading-tight">{provider.label}</h3>
 
-      {/* Description — single line */}
-      <p className="text-xs text-muted-foreground line-clamp-1 mb-auto px-1">
-        {provider.description.length > 60 ? provider.description.substring(0, 57) + "…" : provider.description}
+      {/* Description — 2 lines max */}
+      <p className="text-sm text-muted-foreground line-clamp-2 mt-1 mb-auto px-1 leading-snug">
+        {provider.description}
       </p>
 
       {/* Connected metrics */}
       {isConnected && (plantCount > 0 || lastSync) && (
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-3 mb-1">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
           {plantCount > 0 && (
             <span className="flex items-center gap-1">
               <Sun className="h-3 w-3 text-warning" />
@@ -483,7 +485,7 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
       )}
 
       {/* Action button */}
-      <div className="w-full mt-4">
+      <div className="w-full mt-3">
         {isConnected ? (
           <div className="flex gap-2 w-full">
             {hasSyncCapability && (
@@ -492,7 +494,7 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
                 variant="outline"
                 onClick={onSync}
                 disabled={syncing}
-                className="flex-1 h-9 rounded-xl text-xs"
+                className="flex-1 h-10 rounded-xl text-sm font-medium px-4"
               >
                 <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", syncing && "animate-spin")} />
                 Sync
@@ -502,7 +504,7 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
               size="sm"
               variant="ghost"
               onClick={onDisconnect}
-              className="h-9 rounded-xl text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="h-10 rounded-xl text-sm text-destructive hover:text-destructive hover:bg-destructive/10 px-3"
             >
               <Power className="h-3.5 w-3.5" />
             </Button>
@@ -512,7 +514,7 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
             size="sm"
             variant="ghost"
             disabled
-            className="w-full h-9 rounded-xl text-xs text-muted-foreground cursor-not-allowed"
+            className="w-full h-10 rounded-xl text-sm font-medium text-muted-foreground cursor-not-allowed px-4"
           >
             {isMonitoringStub ? "Em desenvolvimento" : "Em breve"}
           </Button>
@@ -520,7 +522,7 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
           <Button
             size="sm"
             onClick={onConnect}
-            className="w-full h-9 rounded-xl text-xs"
+            className="w-full h-10 rounded-xl text-sm font-medium px-4"
           >
             <Plug className="h-3.5 w-3.5 mr-1.5" />
             Conectar
