@@ -7,21 +7,23 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Sun, Plug, RefreshCw, Zap, Activity, Battery } from "lucide-react";
+import { Sun, Plug, RefreshCw, Zap, Activity, Battery, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import { PROVIDER_REGISTRY, type MonitoringProvider } from "@/services/monitoring/types";
+import { PROVIDER_REGISTRY, type ProviderDefinition } from "@/services/monitoring/providerRegistry";
 import {
   listIntegrations,
   listPlants,
   getTodayMetrics,
   syncProvider,
 } from "@/services/monitoring/monitoringService";
-import { ConnectSolarmanModal } from "./ConnectSolarmanModal";
+import { ConnectProviderModal } from "./ConnectProviderModal";
 import { PlantsTable } from "./PlantsTable";
+import { PlantsMap } from "./PlantsMap";
 
 export default function MonitoringPage() {
   const queryClient = useQueryClient();
-  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [connectProvider, setConnectProvider] = useState<ProviderDefinition | null>(null);
+  const [showMap, setShowMap] = useState(false);
 
   const { data: integrations = [], isLoading: loadingInt } = useQuery({
     queryKey: ["monitoring-integrations"],
@@ -39,7 +41,7 @@ export default function MonitoringPage() {
   });
 
   const syncMutation = useMutation({
-    mutationFn: (provider: MonitoringProvider) => syncProvider(provider, "full"),
+    mutationFn: (provider: string) => syncProvider(provider, "full"),
     onSuccess: (result) => {
       if (result.success) {
         toast.success(
@@ -55,14 +57,15 @@ export default function MonitoringPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const solarmanIntegration = integrations.find((i) => i.provider === "solarman_business");
-  const isConnected = solarmanIntegration?.status === "connected";
+  const hasConnected = integrations.some((i) => i.status === "connected");
 
   // Aggregate stats
   const totalCapacity = plants.reduce((sum, p) => sum + (p.capacity_kw || 0), 0);
   const totalEnergyToday = metrics.reduce((sum, m) => sum + (m.energy_kwh || 0), 0);
   const totalEnergyAll = metrics.reduce((sum, m) => sum + (m.total_energy_kwh || 0), 0);
   const onlinePlants = plants.filter((p) => p.status === "normal").length;
+
+  const plantsWithCoords = plants.filter((p) => p.latitude != null && p.longitude != null);
 
   if (loadingInt) return <LoadingState message="Carregando integrações..." />;
 
@@ -95,6 +98,8 @@ export default function MonitoringPage() {
                     status={
                       status === "connected"
                         ? "Conectado"
+                        : status === "connected_pending"
+                        ? "Pendente"
                         : status === "error"
                         ? "Erro"
                         : "Desconectado"
@@ -118,7 +123,7 @@ export default function MonitoringPage() {
                       Em breve
                     </Button>
                   ) : status === "disconnected" ? (
-                    <Button size="sm" onClick={() => setConnectModalOpen(true)}>
+                    <Button size="sm" onClick={() => setConnectProvider(prov)}>
                       <Plug className="h-3.5 w-3.5 mr-1" />
                       Conectar
                     </Button>
@@ -138,9 +143,9 @@ export default function MonitoringPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setConnectModalOpen(true)}
+                        onClick={() => setConnectProvider(prov)}
                       >
-                        Gerenciar
+                        Reconectar
                       </Button>
                     </>
                   )}
@@ -152,40 +157,64 @@ export default function MonitoringPage() {
       </SectionCard>
 
       {/* Dashboard stats */}
-      {isConnected && plants.length > 0 && (
+      {hasConnected && plants.length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Potência Instalada"
             value={`${totalCapacity.toFixed(1)} kW`}
             icon={Zap}
+            color="warning"
           />
           <StatCard
             label="Produção Hoje"
             value={`${totalEnergyToday.toFixed(1)} kWh`}
             icon={Activity}
+            color="success"
           />
           <StatCard
             label="Produção Total"
             value={`${(totalEnergyAll / 1000).toFixed(1)} MWh`}
             icon={Battery}
+            color="info"
           />
           <StatCard
             label="Usinas Online"
             value={`${onlinePlants}/${plants.length}`}
             icon={Sun}
+            color="primary"
           />
         </div>
       )}
 
+      {/* Map toggle */}
+      {hasConnected && plantsWithCoords.length > 0 && (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant={showMap ? "default" : "outline"}
+            onClick={() => setShowMap(!showMap)}
+          >
+            <MapPin className="h-3.5 w-3.5 mr-1" />
+            {showMap ? "Ocultar Mapa" : "Ver Mapa"}
+          </Button>
+        </div>
+      )}
+
+      {showMap && plantsWithCoords.length > 0 && (
+        <SectionCard title="Localização das Usinas" icon={MapPin}>
+          <PlantsMap plants={plantsWithCoords} />
+        </SectionCard>
+      )}
+
       {/* Plants table or empty state */}
-      {isConnected ? (
+      {hasConnected ? (
         loadingPlants ? (
           <LoadingState message="Carregando usinas..." />
         ) : plants.length === 0 ? (
           <EmptyState
             icon={Sun}
             title="Nenhuma usina importada"
-            description='Clique em "Sincronizar" para importar as usinas do Solarman.'
+            description='Clique em "Sincronizar" para importar as usinas do provedor conectado.'
           />
         ) : (
           <SectionCard title={`Usinas (${plants.length})`} icon={Sun}>
@@ -196,17 +225,22 @@ export default function MonitoringPage() {
         <EmptyState
           icon={Plug}
           title="Conecte um provedor"
-          description="Conecte sua conta Solarman Business para importar e monitorar suas usinas."
+          description="Conecte sua conta de monitoramento para importar e acompanhar suas usinas solares."
         />
       )}
 
-      <ConnectSolarmanModal
-        open={connectModalOpen}
-        onOpenChange={setConnectModalOpen}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["monitoring-integrations"] });
-        }}
-      />
+      {/* Dynamic connect modal */}
+      {connectProvider && (
+        <ConnectProviderModal
+          open={!!connectProvider}
+          onOpenChange={(open) => { if (!open) setConnectProvider(null); }}
+          provider={connectProvider}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["monitoring-integrations"] });
+            setConnectProvider(null);
+          }}
+        />
+      )}
     </div>
   );
 }

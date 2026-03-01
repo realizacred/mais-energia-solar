@@ -1,13 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { ConnectCredentials, MonitoringIntegration, MonitoringProvider, SolarPlant, SolarPlantMetricsDaily } from "./types";
+import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "./types";
 
 /** Connect a monitoring provider */
 export async function connectProvider(
-  provider: MonitoringProvider,
-  credentials: ConnectCredentials
+  provider: string,
+  credentials: Record<string, string>,
+  mode?: string
 ): Promise<{ success: boolean; integration_id?: string; error?: string }> {
   const { data, error } = await supabase.functions.invoke("monitoring-connect", {
-    body: { provider, login: credentials.login, password: credentials.password },
+    body: { provider, credentials, mode },
   });
   if (error) return { success: false, error: error.message };
   if (data?.error) return { success: false, error: data.error };
@@ -16,7 +17,7 @@ export async function connectProvider(
 
 /** Trigger a sync */
 export async function syncProvider(
-  provider: MonitoringProvider,
+  provider: string,
   mode: "plants" | "metrics" | "full" = "full"
 ): Promise<{ success: boolean; plants_synced?: number; metrics_synced?: number; errors?: string[]; error?: string }> {
   const { data, error } = await supabase.functions.invoke("monitoring-sync", {
@@ -41,9 +42,7 @@ export async function disconnectProvider(integrationId: string): Promise<void> {
 }
 
 /** Fetch integration for current tenant */
-export async function getIntegration(
-  provider: MonitoringProvider
-): Promise<MonitoringIntegration | null> {
+export async function getIntegration(provider: string): Promise<MonitoringIntegration | null> {
   const { data } = await supabase
     .from("monitoring_integrations" as any)
     .select("*")
