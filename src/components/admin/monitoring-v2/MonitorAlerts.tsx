@@ -142,7 +142,7 @@ export default function MonitorAlerts() {
       isZeroGenWithHighHsp: isZeroGen && hasHsp,
     });
 
-    return { ...alert, plant, confidence, classification };
+    return { ...alert, resolvedPlantId, plant, confidence, classification };
   });
 
   // Apply layer filter
@@ -282,7 +282,7 @@ export default function MonitorAlerts() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigate(`/admin/monitoramento/usinas/${alert.plant_id}`)}
+                          onClick={() => navigate(`/admin/monitoramento/usinas/${alert.resolvedPlantId}`)}
                           className="h-7 w-7 p-0"
                         >
                           <Eye className="h-3.5 w-3.5" />
