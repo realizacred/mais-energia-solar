@@ -69,7 +69,7 @@ export default function MonitorPlantDetail() {
   const status = plant.health?.status || "unknown";
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Back + Header */}
       <div className="flex items-center gap-3">
         <Button size="sm" variant="ghost" onClick={() => navigate("/admin/monitoramento/usinas")}>

@@ -272,7 +272,7 @@ export function BaseMeteorologicaPage() {
   }
   if (auth === "denied") {
     return (
-      <Card className="max-w-md mx-auto mt-20 border-destructive/20">
+      <Card className="max-w-md mt-20 border-destructive/20">
         <CardContent className="flex flex-col items-center gap-3 py-8">
           <ShieldAlert className="h-8 w-8 text-destructive" />
           <p className="text-sm font-medium">Acesso restrito</p>

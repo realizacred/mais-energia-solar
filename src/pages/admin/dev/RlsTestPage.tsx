@@ -106,7 +106,7 @@ export default function RlsTestPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8 space-y-6">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">

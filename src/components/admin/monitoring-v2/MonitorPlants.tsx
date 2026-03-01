@@ -61,7 +61,7 @@ export default function MonitorPlants() {
   if (isLoading) return <LoadingState message="Carregando usinas..." />;
 
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
+    <div className="space-y-4">
       <PageHeader
         title="Usinas"
         description={`${plants.length} usinas cadastradas`}
