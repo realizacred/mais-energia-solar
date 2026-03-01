@@ -15394,7 +15394,10 @@ export type Database = {
           longitude: number | null
           metadata: Json | null
           name: string | null
+          other_losses_percent: number | null
           provider: string
+          shading_loss_percent: number | null
+          soiling_loss_percent: number | null
           status: string | null
           tenant_id: string
           updated_at: string
@@ -15410,7 +15413,10 @@ export type Database = {
           longitude?: number | null
           metadata?: Json | null
           name?: string | null
+          other_losses_percent?: number | null
           provider: string
+          shading_loss_percent?: number | null
+          soiling_loss_percent?: number | null
           status?: string | null
           tenant_id: string
           updated_at?: string
@@ -15426,7 +15432,10 @@ export type Database = {
           longitude?: number | null
           metadata?: Json | null
           name?: string | null
+          other_losses_percent?: number | null
           provider?: string
+          shading_loss_percent?: number | null
+          soiling_loss_percent?: number | null
           status?: string | null
           tenant_id?: string
           updated_at?: string
