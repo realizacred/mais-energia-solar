@@ -109,6 +109,7 @@ export default function MonitorDashboard() {
               value={String(stats.total_plants)}
               icon={Sun}
               color="primary"
+              onClick={() => navigate("/admin/monitoramento/usinas")}
             />
             <KpiCard
               label="Online"
@@ -116,30 +117,35 @@ export default function MonitorDashboard() {
               subtitle={`${onlinePerc}%`}
               icon={Activity}
               color="success"
+              onClick={() => navigate("/admin/monitoramento/usinas?status=online")}
             />
             <KpiCard
               label="Com Alerta"
               value={String(stats.plants_alert)}
               icon={AlertTriangle}
               color="warning"
+              onClick={() => navigate("/admin/monitoramento/usinas?status=alert")}
             />
             <KpiCard
               label="Offline"
               value={String(stats.plants_offline)}
               icon={WifiOff}
               color="destructive"
+              onClick={() => navigate("/admin/monitoramento/usinas?status=offline")}
             />
             <KpiCard
               label="Potência Total"
               value={totalPowerMwp >= 1 ? `${totalPowerMwp.toFixed(1)} MWp` : `${(totalPowerMwp * 1000).toFixed(0)} kWp`}
               icon={Gauge}
               color="info"
+              onClick={() => navigate("/admin/monitoramento/usinas")}
             />
             <KpiCard
               label="Energia Hoje"
               value={totalEnergyTodayMwh >= 1 ? `${totalEnergyTodayMwh.toFixed(1)} MWh` : `${(stats.energy_today_kwh || 0).toFixed(0)} kWh`}
               icon={Zap}
               color="secondary"
+              onClick={() => navigate("/admin/monitoramento/usinas")}
             />
           </div>
 
@@ -205,19 +211,24 @@ const KPI_STYLES: Record<KpiColor, { ring: string; iconBg: string; iconText: str
   muted:       { ring: "ring-muted/30",       iconBg: "bg-muted",          iconText: "text-muted-foreground" },
 };
 
-function KpiCard({ label, value, subtitle, icon: Icon, color }: {
+function KpiCard({ label, value, subtitle, icon: Icon, color, onClick }: {
   label: string;
   value: string;
   subtitle?: string;
   icon: React.ComponentType<{ className?: string }>;
   color: KpiColor;
+  onClick?: () => void;
 }) {
   const s = KPI_STYLES[color];
   return (
-    <div className={cn(
-      "relative rounded-xl border border-border/60 bg-card p-4 ring-1 card-stat-elevated",
-      s.ring
-    )}>
+    <div
+      onClick={onClick}
+      className={cn(
+        "relative rounded-xl border border-border/60 bg-card p-4 ring-1 card-stat-elevated",
+        s.ring,
+        onClick && "cursor-pointer"
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground font-medium truncate">{label}</p>

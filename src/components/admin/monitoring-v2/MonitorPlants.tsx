@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
@@ -39,8 +39,10 @@ const FILTER_CHIPS: { key: MonitorPlantStatus | "all"; label: string }[] = [
 
 export default function MonitorPlants() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialFilter = (searchParams.get("status") || "all") as MonitorPlantStatus | "all";
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<MonitorPlantStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<MonitorPlantStatus | "all">(initialFilter);
   const [viewMode, setViewMode] = useState<"split" | "list" | "map">("split");
 
   const { data: plants = [], isLoading } = useQuery({
