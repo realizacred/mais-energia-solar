@@ -668,45 +668,66 @@ const LIVOLTEK_SERVERS = [
 async function testLivoltek(creds: Record<string, string>) {
   const apiKey = creds.apiKey || creds.key || "";
   const appSecret = creds.appSecret || creds.secuid || "";
-  if (!apiKey || !appSecret) throw new Error("Missing: apiKey (Security Key) and appSecret (Security ID)");
+  const username = creds.username || "";
+  const userToken = creds.userToken || "";
+  const password = creds.password || "";
 
-  let token = "";
+  if (!apiKey || !appSecret) throw new Error("Missing: apiKey (Chave Api) and appSecret (Segredo da Aplicação)");
+
+  let token = userToken; // Use provided userToken if available
   let baseUrl = "";
 
-  for (const server of LIVOLTEK_SERVERS) {
+  // If no userToken provided, try to get one via login
+  if (!token) {
+    for (const server of LIVOLTEK_SERVERS) {
+      try {
+        console.log(`[Livoltek] Trying login at ${server}`);
+        const loginBody: Record<string, string> = { secuid: appSecret, key: apiKey };
+        if (username) loginBody.username = username;
+        if (password) loginBody.password = password;
+
+        const res = await fetch(`${server}/hess/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(loginBody),
+        });
+        const json = await res.json();
+        console.log(`[Livoltek] Response code=${json.code}, message=${json.message}`);
+        if (json.code === "0" || json.code === 0 || (res.ok && json.data)) {
+          token = json.data;
+          baseUrl = server;
+          break;
+        }
+      } catch (e) {
+        console.log(`[Livoltek] ${server} error: ${(e as Error).message}`);
+      }
+    }
+  } else {
+    // Verify the provided token works
+    baseUrl = LIVOLTEK_SERVERS[0];
+  }
+
+  if (!token) throw new Error("Livoltek login failed on all servers. Verifique apiKey, appSecret, usuário e senha.");
+
+  // Verify token by listing sites — try all servers if baseUrl not set
+  const serversToTry = baseUrl ? [baseUrl] : LIVOLTEK_SERVERS;
+  for (const server of serversToTry) {
     try {
-      console.log(`[Livoltek] Trying login at ${server}`);
-      const res = await fetch(`${server}/hess/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secuid: appSecret, key: apiKey }),
-      });
-      const json = await res.json();
-      console.log(`[Livoltek] Response code=${json.code}, message=${json.message}`);
-      if (json.code === "0" || json.code === 0 || res.ok && json.data) {
-        token = json.data;
+      const sitesRes = await fetch(`${server}/hess/api/userSites/list?userToken=${encodeURIComponent(token)}&page=1&size=5`);
+      const sitesJson = await sitesRes.json();
+      console.log(`[Livoltek] Sites check @ ${server}: code=${sitesJson.code}, count=${sitesJson.data?.count || 0}`);
+      if (sitesJson.code === "0" || sitesJson.code === 0) {
         baseUrl = server;
         break;
       }
     } catch (e) {
-      console.log(`[Livoltek] ${server} error: ${(e as Error).message}`);
+      console.warn(`[Livoltek] Sites verification @ ${server} failed:`, (e as Error).message);
     }
   }
 
-  if (!token) throw new Error("Livoltek login failed on all servers. Check apiKey and appSecret.");
-
-  // Verify token by listing sites
-  try {
-    const sitesRes = await fetch(`${baseUrl}/hess/api/userSites/list?userToken=${encodeURIComponent(token)}&page=1&size=5`);
-    const sitesJson = await sitesRes.json();
-    console.log(`[Livoltek] Sites check: code=${sitesJson.code}, count=${sitesJson.data?.count || 0}`);
-  } catch (e) {
-    console.warn("[Livoltek] Sites verification failed:", (e as Error).message);
-  }
-
   return {
-    credentials: { apiKey, appSecret, baseUrl },
-    tokens: { token, baseUrl },
+    credentials: { apiKey, appSecret, username, baseUrl },
+    tokens: { token, baseUrl, userToken: token },
   };
 }
 
