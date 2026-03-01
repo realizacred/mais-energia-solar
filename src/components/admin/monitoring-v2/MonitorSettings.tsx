@@ -70,8 +70,13 @@ export default function MonitorSettings() {
 
   if (isLoading) return <LoadingState message="Carregando integrações..." />;
 
-  const activeIntegrations = integrations.filter((i: any) => i.status === "active" || i.status === "connected");
-  const inactiveIntegrations = integrations.filter((i: any) => i.status !== "active" && i.status !== "connected");
+  const sortAlpha = (a: any, b: any) => {
+    const labelA = PROVIDER_LABELS[a.provider] || a.provider;
+    const labelB = PROVIDER_LABELS[b.provider] || b.provider;
+    return labelA.localeCompare(labelB, "pt-BR");
+  };
+  const activeIntegrations = integrations.filter((i: any) => i.status === "active" || i.status === "connected").sort(sortAlpha);
+  const inactiveIntegrations = integrations.filter((i: any) => i.status !== "active" && i.status !== "connected").sort(sortAlpha);
 
   return (
     <div className="space-y-6">
