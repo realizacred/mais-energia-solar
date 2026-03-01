@@ -43,25 +43,26 @@ function analyzeMaintenanceNeeds(
   const items: MaintenanceItem[] = [];
 
   prData.forEach((pr) => {
-    // Skip plants with non-ok status (no data, config required, etc.)
-    if (pr.pr_status !== "ok" || pr.actual_month_kwh <= 0) return;
+    // Skip plants with non-ok status or null PR
+    if (pr.pr_status !== "ok" || pr.pr_percent == null || pr.actual_month_kwh <= 0) return;
 
-    if (pr.pr_percent < 50) {
+    const prVal = pr.pr_percent!;
+    if (prVal < 50) {
       items.push({
         plantId: pr.plant_id,
         plantName: pr.plant_name,
-        reason: `PR muito baixo (${pr.pr_percent}%)`,
+        reason: `PR muito baixo (${prVal}%)`,
         urgency: "high",
-        prPercent: pr.pr_percent,
+        prPercent: prVal,
         suggestedAction: "Verificar inversores, sujeira nos painéis e sombreamento",
       });
-    } else if (pr.pr_percent < 70) {
+    } else if (prVal < 70) {
       items.push({
         plantId: pr.plant_id,
         plantName: pr.plant_name,
-        reason: `PR abaixo do ideal (${pr.pr_percent}%)`,
+        reason: `PR abaixo do ideal (${prVal}%)`,
         urgency: "medium",
-        prPercent: pr.pr_percent,
+        prPercent: prVal,
         suggestedAction: "Agendar limpeza dos painéis solares",
       });
     }
@@ -92,7 +93,7 @@ function analyzeMaintenanceNeeds(
 
   // Add preventive maintenance for plants with decent PR (>= 70) but no recent cleaning
   const plantsWithGoodPR = prData.filter(
-    (pr) => pr.pr_percent >= 70 && pr.pr_percent < 85
+    (pr) => pr.pr_percent != null && pr.pr_percent >= 70 && pr.pr_percent < 85
   );
   plantsWithGoodPR.forEach((pr) => {
     if (!items.some((i) => i.plantId === pr.plant_id)) {
@@ -101,7 +102,7 @@ function analyzeMaintenanceNeeds(
         plantName: pr.plant_name,
         reason: `PR ${pr.pr_percent}% — limpeza preventiva recomendada`,
         urgency: "low",
-        prPercent: pr.pr_percent,
+        prPercent: pr.pr_percent ?? 0,
         suggestedAction: "Limpeza preventiva para manter eficiência ideal",
       });
     }

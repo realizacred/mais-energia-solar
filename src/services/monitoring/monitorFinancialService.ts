@@ -4,7 +4,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { getMonthlyAvgHsp, type HspResult } from "./irradiationService";
-
+import { calcExpectedFactor, type PlantLosses } from "./expectedYieldService";
+import { calcConfidenceScore } from "./confidenceService";
 export interface MonitorFinancials {
   tarifa_kwh: number;
   kg_co2_per_kwh: number;
@@ -13,7 +14,13 @@ export interface MonitorFinancials {
   co2_avoided_month_kg: number;
 }
 
-export type PrStatus = "ok" | "no_data" | "config_required" | "irradiation_unavailable";
+export type PrStatus =
+  | "ok"
+  | "no_data"
+  | "config_required"
+  | "irradiation_unavailable"
+  | "timezone_open"
+  | "unit_untrusted";
 
 export interface PlantPerformanceRatio {
   plant_id: string;
@@ -21,11 +28,14 @@ export interface PlantPerformanceRatio {
   installed_kwp: number;
   expected_month_kwh: number;
   actual_month_kwh: number;
-  pr_percent: number;
+  pr_percent: number | null;
   pr_status: PrStatus;
-  hsp_used: number;
+  hsp_used: number | null;
   hsp_source: string;
   hsp_confidence: string;
+  expected_factor: number;
+  deviation_percent: number;
+  confidence_score: number;
 }
 
 /** Fetch tenant tariff from calculadora_config */
@@ -80,6 +90,9 @@ export async function getPerformanceRatios(
     installed_power_kwp: number | null;
     latitude?: number | null;
     longitude?: number | null;
+    shading_loss_percent?: number | null;
+    soiling_loss_percent?: number | null;
+    other_losses_percent?: number | null;
   }>,
   monthReadings: Array<{
     plant_id: string;
@@ -108,9 +121,8 @@ export async function getPerformanceRatios(
   // Sum actual generation per plant
   const actualMap = new Map<string, number>();
   monthReadings.forEach((r) => {
-    const dailyEnergy = r.energy_kwh;
-    if (dailyEnergy && dailyEnergy > 0) {
-      actualMap.set(r.plant_id, (actualMap.get(r.plant_id) || 0) + dailyEnergy);
+    if (r.energy_kwh > 0) {
+      actualMap.set(r.plant_id, (actualMap.get(r.plant_id) || 0) + r.energy_kwh);
     }
   });
 
@@ -123,40 +135,69 @@ export async function getPerformanceRatios(
     const hspResult = hspCache.get(hspKey)!;
     const hsp = hspResult.hsp_kwh_m2;
 
-    // Determine PR status
+    // Calculate expected factor from plant-specific losses
+    const losses: Partial<PlantLosses> = {
+      shading_loss_percent: p.shading_loss_percent ?? undefined,
+      soiling_loss_percent: p.soiling_loss_percent ?? undefined,
+      other_losses_percent: p.other_losses_percent ?? undefined,
+    };
+    const expectedFactor = calcExpectedFactor(losses);
+
+    // Determine PR status (strict — never fallback to fake data)
     let prStatus: PrStatus = "ok";
     if (!kwp || kwp <= 0) {
       prStatus = "config_required";
+    } else if (hsp == null || hsp <= 0) {
+      prStatus = "irradiation_unavailable";
     } else if (actual <= 0) {
       prStatus = "no_data";
-    } else if (!hsp || hsp <= 0) {
-      prStatus = "irradiation_unavailable";
     }
 
-    const expectedSoFar = (kwp && kwp > 0 && hsp > 0) ? kwp * hsp * daysSoFar : 0;
-    const expectedFull = (kwp && kwp > 0 && hsp > 0) ? kwp * hsp * daysInMonth : 0;
-    const pr = (prStatus === "ok" && expectedSoFar > 0)
-      ? Math.min((actual / expectedSoFar) * 100, 120) // Cap at 120% to flag anomalies
+    // Expected energy with losses applied
+    const canCalc = prStatus === "ok" && kwp && kwp > 0 && hsp && hsp > 0;
+    const expectedSoFar = canCalc ? kwp * hsp * daysSoFar * expectedFactor : 0;
+    const expectedFull = canCalc ? kwp * hsp * daysInMonth * expectedFactor : 0;
+
+    // PR = actual / expected * 100 (capped at 120% to flag anomalies)
+    const prValue = (canCalc && expectedSoFar > 0)
+      ? Math.min((actual / expectedSoFar) * 100, 120)
+      : null;
+
+    // Deviation: how much below expected (positive = underperforming)
+    const deviationPercent = (canCalc && expectedSoFar > 0)
+      ? Math.max(0, ((expectedSoFar - actual) / expectedSoFar) * 100)
       : 0;
+
+    // Confidence score
+    const confidence = calcConfidenceScore({
+      energyKwh: actual > 0 ? actual : null,
+      capacityKwp: kwp,
+      hspValue: hsp,
+      hspSource: hspResult.source,
+      dayIsClosed: true, // monthly aggregation = closed days
+      unitIsKwh: true,   // provider adapters normalize to kWh
+    });
 
     results.push({
       plant_id: p.id,
       plant_name: p.name,
       installed_kwp: kwp || 0,
-      expected_month_kwh: expectedFull,
+      expected_month_kwh: Math.round(expectedFull * 10) / 10,
       actual_month_kwh: actual,
-      pr_percent: Math.round(pr * 10) / 10,
+      pr_percent: prValue != null ? Math.round(prValue * 10) / 10 : null,
       pr_status: prStatus,
       hsp_used: hsp,
       hsp_source: hspResult.source,
       hsp_confidence: hspResult.confidence,
+      expected_factor: Math.round(expectedFactor * 1000) / 1000,
+      deviation_percent: Math.round(deviationPercent * 10) / 10,
+      confidence_score: confidence.total,
     });
   }
 
   return results.sort((a, b) => {
-    // Sort: ok status first, then by PR ascending
     if (a.pr_status === "ok" && b.pr_status !== "ok") return -1;
     if (a.pr_status !== "ok" && b.pr_status === "ok") return 1;
-    return a.pr_percent - b.pr_percent;
+    return (a.pr_percent ?? 0) - (b.pr_percent ?? 0);
   });
 }

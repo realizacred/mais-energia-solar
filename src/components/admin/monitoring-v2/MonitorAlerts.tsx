@@ -63,19 +63,22 @@ export default function MonitorAlerts() {
     const confidence = calcConfidenceScore({
       energyKwh: plant?.health?.energy_today_kwh ?? null,
       capacityKwp: plant?.installed_power_kwp ?? null,
-      hspValue: 4.5, // will be replaced by real HSP when available in context
-      hspSource: "premise",
+      hspValue: null, // Real HSP requires lat/lon lookup — null triggers low confidence
+      hspSource: "unavailable",
       dayIsClosed: true,
       unitIsKwh: true,
     });
 
+    const isOffline = alert.type === "offline";
+    const isZeroGen = (plant?.health?.energy_today_kwh ?? 0) <= 0;
+
     const classification = classifyAlert({
       confidenceScore: confidence.total,
-      prStatus: "ok",
+      prStatus: confidence.total < 55 ? "config_required" : "ok",
       deviationPercent: 0,
       consecutiveDays: 1,
-      isOffline: alert.type === "offline",
-      isZeroGenWithHighHsp: false,
+      isOffline,
+      isZeroGenWithHighHsp: isZeroGen && confidence.hsp_available,
     });
 
     return { ...alert, plant, confidence, classification };

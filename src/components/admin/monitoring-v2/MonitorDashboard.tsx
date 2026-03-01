@@ -66,7 +66,13 @@ export default function MonitorDashboard() {
   const { data: prData = [] } = useQuery({
     queryKey: ["monitor-pr", plants.length, monthReadings.length],
     queryFn: () => getPerformanceRatios(
-      plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp })),
+      plants.map((p) => ({
+        id: p.id,
+        name: p.name,
+        installed_power_kwp: p.installed_power_kwp,
+        latitude: p.lat,
+        longitude: p.lng,
+      })),
       monthReadings
     ),
     enabled: plants.length > 0 && monthReadings.length > 0,
@@ -100,9 +106,10 @@ export default function MonitorDashboard() {
   const totalEnergyMonthMwh = (stats?.energy_month_kwh || 0) / 1000;
   const onlinePerc = stats?.total_plants ? ((stats.plants_online / stats.total_plants) * 100).toFixed(0) : "0";
 
-  // PR average
-  const avgPR = prData.length > 0
-    ? Math.round(prData.reduce((s, p) => s + p.pr_percent, 0) / prData.length * 10) / 10
+  // PR average (only plants with valid PR)
+  const validPr = prData.filter((p) => p.pr_status === "ok" && p.pr_percent != null);
+  const avgPR = validPr.length > 0
+    ? Math.round(validPr.reduce((s, p) => s + (p.pr_percent ?? 0), 0) / validPr.length * 10) / 10
     : null;
 
   // Average lat/lng for weather widget

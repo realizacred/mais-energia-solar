@@ -6,9 +6,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface HspResult {
-  hsp_kwh_m2: number;
-  source: "cache" | "regional_premise" | "national_fallback";
-  confidence: "high" | "medium" | "low";
+  hsp_kwh_m2: number | null;
+  source: "cache" | "regional_premise" | "national_fallback" | "unavailable";
+  confidence: "high" | "medium" | "low" | "none";
 }
 
 /** Map latitude to Brazilian region for fallback premises */
@@ -100,8 +100,8 @@ export async function getDailyHsp(params: {
     };
   }
 
-  // Ultimate fallback (should never happen if seed data exists)
-  return { hsp_kwh_m2: 4.5, source: "national_fallback", confidence: "low" };
+  // No HSP data available — never use hardcoded 4.5
+  return { hsp_kwh_m2: null, source: "unavailable", confidence: "none" };
 }
 
 /**
@@ -140,9 +140,14 @@ export async function getMonthlyAvgHsp(params: {
     .eq("month", month)
     .maybeSingle();
 
-  return {
-    hsp_kwh_m2: national ? Number((national as any).hsp_kwh_m2) : 4.5,
-    source: "national_fallback",
-    confidence: "low",
-  };
+  if (national && (national as any).hsp_kwh_m2) {
+    return {
+      hsp_kwh_m2: Number((national as any).hsp_kwh_m2),
+      source: "national_fallback",
+      confidence: "low",
+    };
+  }
+
+  // No HSP data available — never use hardcoded fallback
+  return { hsp_kwh_m2: null, source: "unavailable", confidence: "none" };
 }
