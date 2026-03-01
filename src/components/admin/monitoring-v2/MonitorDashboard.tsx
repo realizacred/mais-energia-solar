@@ -6,9 +6,9 @@ import { StatCard } from "@/components/ui-kit/StatCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
-import { Sun, Zap, AlertTriangle, WifiOff, Activity, Battery, Database } from "lucide-react";
+import { Sun, Zap, AlertTriangle, WifiOff, Activity, Battery, Database, Gauge, BarChart3, BatteryCharging } from "lucide-react";
 import { toast } from "sonner";
-import { getDashboardStats, listAlerts, listAllReadings } from "@/services/monitoring/monitorService";
+import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import { seedMonitorData, clearMonitorData } from "@/services/monitoring/mockSeedService";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
@@ -21,6 +21,11 @@ export default function MonitorDashboard() {
   const { data: stats, isLoading, refetch } = useQuery({
     queryKey: ["monitor-dashboard-stats"],
     queryFn: getDashboardStats,
+  });
+
+  const { data: plants = [] } = useQuery({
+    queryKey: ["monitor-plants-health"],
+    queryFn: listPlantsWithHealth,
   });
 
   const { data: openAlerts = [] } = useQuery({
@@ -57,6 +62,11 @@ export default function MonitorDashboard() {
 
   const isEmpty = !stats || stats.total_plants === 0;
 
+  // Compute aggregate KPIs
+  const totalPowerMwp = plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) / 1000;
+  const totalEnergyTodayMwh = (stats?.energy_today_kwh || 0) / 1000;
+  const totalEnergyMonthMwh = (stats?.energy_month_kwh || 0) / 1000;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -91,14 +101,20 @@ export default function MonitorDashboard() {
         />
       ) : (
         <>
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Hero KPIs — inspired by SolarZ/SolarView */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <StatCard
+              label="Total de Usinas"
+              value={stats.total_plants}
+              icon={Sun}
+              color="primary"
+            />
             <StatCard
               label="Usinas Online"
               value={stats.plants_online}
-              icon={Sun}
+              icon={Activity}
               color="success"
-              subtitle={`de ${stats.total_plants}`}
+              subtitle={`${stats.total_plants ? ((stats.plants_online / stats.total_plants) * 100).toFixed(0) : 0}%`}
             />
             <StatCard
               label="Com Alerta"
@@ -113,12 +129,48 @@ export default function MonitorDashboard() {
               color="destructive"
             />
             <StatCard
-              label="Energia Hoje"
-              value={`${stats.energy_today_kwh.toFixed(0)} kWh`}
-              icon={Zap}
+              label="Potência Instalada"
+              value={totalPowerMwp >= 1 ? `${totalPowerMwp.toFixed(2)} MWp` : `${(totalPowerMwp * 1000).toFixed(0)} kWp`}
+              icon={Gauge}
               color="info"
             />
+            <StatCard
+              label="Energia Hoje"
+              value={totalEnergyTodayMwh >= 1 ? `${totalEnergyTodayMwh.toFixed(1)} MWh` : `${(stats.energy_today_kwh || 0).toFixed(0)} kWh`}
+              icon={Zap}
+              color="secondary"
+            />
           </div>
+
+          {/* Tickets / Alertas resumo — inspired by SolarZ */}
+          {openAlerts.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <StatCard
+                label="Alertas Abertos"
+                value={openAlerts.filter(a => a.is_open).length}
+                icon={AlertTriangle}
+                color="warning"
+              />
+              <StatCard
+                label="Críticos"
+                value={openAlerts.filter(a => a.severity === "critical").length}
+                icon={AlertTriangle}
+                color="destructive"
+              />
+              <StatCard
+                label="Avisos"
+                value={openAlerts.filter(a => a.severity === "warn").length}
+                icon={AlertTriangle}
+                color="warning"
+              />
+              <StatCard
+                label="Informativos"
+                value={openAlerts.filter(a => a.severity === "info").length}
+                icon={AlertTriangle}
+                color="muted"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Attention list */}
@@ -136,7 +188,7 @@ export default function MonitorDashboard() {
           </div>
 
           {/* Generation chart */}
-          <SectionCard title="Geração — Últimos 30 dias" icon={Battery} variant="blue">
+          <SectionCard title="Geração — Últimos 30 dias" icon={BatteryCharging} variant="blue">
             <MonitorGenerationChart readings={readings} />
           </SectionCard>
         </>
