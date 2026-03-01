@@ -32,15 +32,24 @@ const POWER_KW_TO_ENERGY_ESTIMATE_HOURS = 4.5;
  * LEGACY JOIN: Resolve a plantId that may be monitor_plants.id to its
  * legacy solar_plants.id (stored as legacy_plant_id in monitor_plants).
  * If the plantId already exists in solar_plants, returns it as-is.
+ *
+ * Uses an in-memory cache to avoid redundant queries within the same render cycle.
  */
+const _legacyIdCache = new Map<string, string>();
+
 async function resolveToLegacyPlantId(plantId: string): Promise<string> {
+  if (_legacyIdCache.has(plantId)) return _legacyIdCache.get(plantId)!;
+
   // First check if it exists directly in solar_plants
   const { data: directMatch } = await supabase
     .from("solar_plants" as any)
     .select("id")
     .eq("id", plantId)
     .maybeSingle();
-  if (directMatch) return plantId;
+  if (directMatch) {
+    _legacyIdCache.set(plantId, plantId);
+    return plantId;
+  }
 
   // Otherwise, look up monitor_plants.legacy_plant_id
   const { data: monitorPlant } = await supabase
@@ -48,8 +57,9 @@ async function resolveToLegacyPlantId(plantId: string): Promise<string> {
     .select("legacy_plant_id")
     .eq("id", plantId)
     .maybeSingle();
-  const legacyId = (monitorPlant as any)?.legacy_plant_id;
-  return legacyId || plantId;
+  const legacyId = (monitorPlant as any)?.legacy_plant_id || plantId;
+  _legacyIdCache.set(plantId, legacyId);
+  return legacyId;
 }
 
 // ─── HELPERS: map legacy → v2 types ──────────────────────────
