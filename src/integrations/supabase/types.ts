@@ -6714,6 +6714,341 @@ export type Database = {
           },
         ]
       }
+      monitor_devices: {
+        Row: {
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          metadata: Json | null
+          model: string | null
+          plant_id: string
+          provider_device_id: string | null
+          serial: string | null
+          status: string
+          tenant_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          metadata?: Json | null
+          model?: string | null
+          plant_id: string
+          provider_device_id?: string | null
+          serial?: string | null
+          status?: string
+          tenant_id: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          metadata?: Json | null
+          model?: string | null
+          plant_id?: string
+          provider_device_id?: string | null
+          serial?: string | null
+          status?: string
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_devices_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_events: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          ends_at: string | null
+          id: string
+          is_open: boolean
+          message: string | null
+          plant_id: string
+          provider_event_id: string | null
+          severity: string
+          starts_at: string
+          tenant_id: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          ends_at?: string | null
+          id?: string
+          is_open?: boolean
+          message?: string | null
+          plant_id: string
+          provider_event_id?: string | null
+          severity?: string
+          starts_at?: string
+          tenant_id: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          ends_at?: string | null
+          id?: string
+          is_open?: boolean
+          message?: string | null
+          plant_id?: string
+          provider_event_id?: string | null
+          severity?: string
+          starts_at?: string
+          tenant_id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_events_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_health_cache: {
+        Row: {
+          energy_month_kwh: number | null
+          energy_today_kwh: number | null
+          id: string
+          last_seen_at: string | null
+          open_alerts_count: number
+          performance_7d_pct: number | null
+          plant_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          energy_month_kwh?: number | null
+          energy_today_kwh?: number | null
+          id?: string
+          last_seen_at?: string | null
+          open_alerts_count?: number
+          performance_7d_pct?: number | null
+          plant_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          energy_month_kwh?: number | null
+          energy_today_kwh?: number | null
+          id?: string
+          last_seen_at?: string | null
+          open_alerts_count?: number
+          performance_7d_pct?: number | null
+          plant_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_health_cache_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_health_cache_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_plants: {
+        Row: {
+          city: string | null
+          client_id: string | null
+          created_at: string
+          id: string
+          installed_power_kwp: number | null
+          is_active: boolean
+          lat: number | null
+          lng: number | null
+          metadata: Json | null
+          name: string
+          provider_id: string | null
+          provider_plant_id: string | null
+          state: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          installed_power_kwp?: number | null
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          metadata?: Json | null
+          name: string
+          provider_id?: string | null
+          provider_plant_id?: string | null
+          state?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          installed_power_kwp?: number | null
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          metadata?: Json | null
+          name?: string
+          provider_id?: string | null
+          provider_plant_id?: string | null
+          state?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_plants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_provider_payloads: {
+        Row: {
+          entity: string
+          entity_id: string | null
+          id: string
+          provider_id: string
+          raw: Json
+          received_at: string
+          tenant_id: string
+        }
+        Insert: {
+          entity: string
+          entity_id?: string | null
+          id?: string
+          provider_id: string
+          raw?: Json
+          received_at?: string
+          tenant_id: string
+        }
+        Update: {
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          provider_id?: string
+          raw?: Json
+          received_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_provider_payloads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_readings_daily: {
+        Row: {
+          created_at: string
+          date: string
+          energy_kwh: number | null
+          id: string
+          metadata: Json | null
+          peak_power_kw: number | null
+          plant_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          energy_kwh?: number | null
+          id?: string
+          metadata?: Json | null
+          peak_power_kw?: number | null
+          plant_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          energy_kwh?: number | null
+          id?: string
+          metadata?: Json | null
+          peak_power_kw?: number | null
+          plant_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_readings_daily_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_readings_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monitoring_integrations: {
         Row: {
           created_at: string
