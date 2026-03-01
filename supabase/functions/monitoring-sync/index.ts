@@ -4,12 +4,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 // ─── Solarman API helpers ───────────────────────────────────
 
-async function solarmanFetch(endpoint: string, token: string, body: Record<string, unknown> = {}) {
+async function solarmanFetch(
+  endpoint: string,
+  token: string,
+  body: Record<string, unknown> = {},
+) {
   const res = await fetch(`https://api.solarmanpv.com${endpoint}`, {
     method: "POST",
     headers: {
@@ -18,10 +29,14 @@ async function solarmanFetch(endpoint: string, token: string, body: Record<strin
     },
     body: JSON.stringify(body),
   });
+
   const json = await res.json();
-  if (!res.ok && !json.success) {
+
+  // Fail on HTTP error OR explicit success=false
+  if (!res.ok || json.success === false) {
     throw new Error(json.msg || json.message || `Solarman API error ${res.status}`);
   }
+
   return json;
 }
 
@@ -37,7 +52,6 @@ interface NormalizedPlant {
 }
 
 function normalizePlantStatus(raw: number | string | undefined): string {
-  // Solarman: 1=normal, 2=offline, 3=alarm, 4=no connection
   const map: Record<string, string> = {
     "1": "normal",
     "2": "offline",
@@ -51,28 +65,28 @@ function normalizePlant(raw: Record<string, unknown>): NormalizedPlant {
   return {
     external_id: String(raw.stationId || raw.id || ""),
     name: String(raw.stationName || raw.name || ""),
-    capacity_kw: raw.installedCapacity ? Number(raw.installedCapacity) : null,
+    capacity_kw: raw.installedCapacity != null ? Number(raw.installedCapacity) : null,
     address: raw.locationAddress ? String(raw.locationAddress) : null,
-    latitude: raw.latitude ? Number(raw.latitude) : null,
-    longitude: raw.longitude ? Number(raw.longitude) : null,
+    latitude: raw.latitude != null ? Number(raw.latitude) : null,
+    longitude: raw.longitude != null ? Number(raw.longitude) : null,
     status: normalizePlantStatus(raw.status as number),
     metadata: raw,
   };
 }
 
-async function listPlants(token: string): Promise<NormalizedPlant[]> {
+async function listSolarmanPlants(token: string): Promise<NormalizedPlant[]> {
   const plants: NormalizedPlant[] = [];
   let page = 1;
   const size = 100;
 
   while (true) {
     const json = await solarmanFetch("/station/v1.0/list", token, { page, size });
-    const stationList = json.stationList || json.data || [];
+    const stationList = (json.stationList || json.data || []) as Record<string, unknown>[];
     if (!stationList.length) break;
     for (const raw of stationList) {
       plants.push(normalizePlant(raw));
     }
-    const total = json.total || 0;
+    const total = (json.total as number) || 0;
     if (page * size >= total) break;
     page++;
   }
@@ -80,15 +94,20 @@ async function listPlants(token: string): Promise<NormalizedPlant[]> {
   return plants;
 }
 
-async function fetchPlantRealtime(token: string, stationId: string) {
+async function fetchPlantRealtime(token: string, externalId: string) {
   try {
     const json = await solarmanFetch("/station/v1.0/realTime", token, {
-      stationId: Number(stationId),
+      stationId: Number(externalId),
     });
+
     return {
-      power_kw: json.generationPower ? Number(json.generationPower) / 1000 : null,
-      energy_kwh: json.lastUpdateTime ? (json.generationValue || null) : null,
-      total_energy_kwh: json.totalGenerationValue || json.generationTotal || null,
+      power_kw: json.generationPower != null ? Number(json.generationPower) / 1000 : null,
+      energy_kwh: json.generationValue != null ? Number(json.generationValue) : null,
+      total_energy_kwh: json.totalGenerationValue != null
+        ? Number(json.totalGenerationValue)
+        : json.generationTotal != null
+          ? Number(json.generationTotal)
+          : null,
       metadata: json,
     };
   } catch {
@@ -106,32 +125,25 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
-    const { data: claims, error: claimsErr } = await supabaseUser.auth.getUser();
-    if (claimsErr || !claims?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const { data: userData, error: userErr } = await supabaseUser.auth.getUser();
+    if (userErr || !userData?.user) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
-
-    const userId = claims.user.id;
+    const userId = userData.user.id;
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -140,16 +152,13 @@ serve(async (req) => {
       .single();
 
     if (!profile?.tenant_id) {
-      return new Response(JSON.stringify({ error: "Tenant not found" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Tenant not found" }, 403);
     }
-
     const tenantId = profile.tenant_id;
+
     const body = await req.json();
     const provider = body.provider || "solarman_business";
-    const mode = body.mode || "full"; // plants | metrics | full
+    const mode = body.mode || "full";
 
     // Load integration
     const { data: integration, error: intErr } = await supabaseAdmin
@@ -160,19 +169,14 @@ serve(async (req) => {
       .single();
 
     if (intErr || !integration) {
-      return new Response(
-        JSON.stringify({ error: "Integration not found. Connect first." }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Integration not found. Connect first." }, 404);
     }
 
     const tokens = integration.tokens as Record<string, unknown>;
     const accessToken = tokens?.access_token as string;
+
     if (!accessToken) {
-      return new Response(
-        JSON.stringify({ error: "No access token. Reconnect integration." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "No access token. Reconnect integration." }, 400);
     }
 
     // Check token expiration
@@ -180,13 +184,14 @@ serve(async (req) => {
     if (expiresAt && expiresAt < new Date()) {
       await supabaseAdmin
         .from("monitoring_integrations")
-        .update({ status: "error", sync_error: "Token expired. Reconnect." })
+        .update({
+          status: "error",
+          sync_error: "Token expired. Reconnect.",
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", integration.id);
 
-      return new Response(
-        JSON.stringify({ error: "Token expired. Please reconnect." }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Token expired. Please reconnect." }, 401);
     }
 
     let plantsUpserted = 0;
@@ -196,7 +201,7 @@ serve(async (req) => {
     // ── Sync plants ──
     if (mode === "plants" || mode === "full") {
       try {
-        const plants = await listPlants(accessToken);
+        const plants = await listSolarmanPlants(accessToken);
 
         for (const plant of plants) {
           const { error: plantErr } = await supabaseAdmin
@@ -216,7 +221,7 @@ serve(async (req) => {
                 metadata: plant.metadata,
                 updated_at: new Date().toISOString(),
               },
-              { onConflict: "tenant_id,provider,external_id" }
+              { onConflict: "tenant_id,provider,external_id" },
             );
 
           if (plantErr) {
@@ -226,7 +231,7 @@ serve(async (req) => {
           }
         }
       } catch (err) {
-        errors.push(`listPlants: ${err.message}`);
+        errors.push(`listPlants: ${(err as Error).message}`);
       }
     }
 
@@ -255,7 +260,7 @@ serve(async (req) => {
                 total_energy_kwh: metrics.total_energy_kwh,
                 metadata: metrics.metadata,
               },
-              { onConflict: "tenant_id,plant_id,date" }
+              { onConflict: "tenant_id,plant_id,date" },
             );
 
           if (metricErr) {
@@ -264,7 +269,7 @@ serve(async (req) => {
             metricsUpserted++;
           }
         } catch (err) {
-          errors.push(`Metrics ${dbPlant.external_id}: ${err.message}`);
+          errors.push(`Metrics ${dbPlant.external_id}: ${(err as Error).message}`);
         }
       }
     }
@@ -277,6 +282,7 @@ serve(async (req) => {
         last_sync_at: new Date().toISOString(),
         status: newStatus,
         sync_error: errors.length > 0 ? errors.join("; ").slice(0, 500) : null,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", integration.id);
 
@@ -290,20 +296,14 @@ serve(async (req) => {
       dados_novos: { provider, mode, plantsUpserted, metricsUpserted, errors: errors.length },
     });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        plants_synced: plantsUpserted,
-        metrics_synced: metricsUpserted,
-        errors,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({
+      success: true,
+      plants_synced: plantsUpserted,
+      metrics_synced: metricsUpserted,
+      errors,
+    });
   } catch (err) {
     console.error("monitoring-sync error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ error: (err as Error).message || "Internal server error" }, 500);
   }
 });

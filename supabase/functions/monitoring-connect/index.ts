@@ -4,8 +4,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 /** Solarman Business API — obtain access token */
 async function solarmanAuthenticate(creds: {
@@ -13,11 +20,10 @@ async function solarmanAuthenticate(creds: {
   appSecret: string;
   email: string;
   password: string;
-}): Promise<{ access_token: string; token_type: string; expires_in: number; uid: number; orgId?: number }> {
-  // Solarman expects password as SHA-256 hex
+}) {
+  // SHA-256 hex of password
   const encoder = new TextEncoder();
-  const data = encoder.encode(creds.password);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(creds.password));
   const hashHex = Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -34,16 +40,18 @@ async function solarmanAuthenticate(creds: {
   });
 
   const json = await res.json();
-  if (!json.success && !json.access_token) {
-    throw new Error(json.msg || json.message || "Solarman authentication failed");
+
+  // CRITICAL: validate access_token exists regardless of HTTP status
+  if (!json.access_token) {
+    throw new Error(json.msg || json.message || "Solarman authentication failed — no access_token returned");
   }
 
   return {
-    access_token: json.access_token,
-    token_type: json.token_type || "bearer",
-    expires_in: json.expires_in || 7200,
-    uid: json.uid,
-    orgId: json.orgId,
+    access_token: json.access_token as string,
+    token_type: (json.token_type as string) || "bearer",
+    expires_in: (json.expires_in as number) || 7200,
+    uid: json.uid as number,
+    orgId: json.orgId as number | undefined,
   };
 }
 
@@ -53,34 +61,28 @@ serve(async (req) => {
   }
 
   try {
+    // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
-    const { data: claims, error: claimsErr } = await supabaseUser.auth.getUser();
-    if (claimsErr || !claims?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const { data: userData, error: userErr } = await supabaseUser.auth.getUser();
+    if (userErr || !userData?.user) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
-
-    const userId = claims.user.id;
+    const userId = userData.user.id;
 
     // Resolve tenant
     const { data: profile } = await supabaseAdmin
@@ -90,65 +92,54 @@ serve(async (req) => {
       .single();
 
     if (!profile?.tenant_id) {
-      return new Response(JSON.stringify({ error: "Tenant not found" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Tenant not found" }, 403);
     }
-
     const tenantId = profile.tenant_id;
+
+    // Parse body
     const body = await req.json();
     const { provider, credentials } = body;
 
     if (provider !== "solarman_business") {
-      return new Response(JSON.stringify({ error: "Unsupported provider" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Unsupported provider" }, 400);
     }
 
     const { appId, appSecret, email, password } = credentials || {};
     if (!appId || !appSecret || !email || !password) {
-      return new Response(
-        JSON.stringify({ error: "Missing credentials: appId, appSecret, email, password" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Missing credentials: appId, appSecret, email, password" }, 400);
     }
 
     // Authenticate with Solarman
-    let tokenResult;
+    let tokenResult: Awaited<ReturnType<typeof solarmanAuthenticate>>;
     try {
       tokenResult = await solarmanAuthenticate({ appId, appSecret, email, password });
     } catch (err) {
-      // Save error status
+      // Save error status — NEVER store password
       await supabaseAdmin.from("monitoring_integrations").upsert(
         {
           tenant_id: tenantId,
           provider,
           status: "error",
-          sync_error: err.message,
-          credentials: { appId, email }, // never store password
+          sync_error: (err as Error).message?.slice(0, 500) || "Authentication failed",
+          credentials: { appId, email },
+          tokens: {},
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "tenant_id,provider" }
+        { onConflict: "tenant_id,provider" },
       );
 
-      // Audit
       await supabaseAdmin.from("audit_logs").insert({
         tenant_id: tenantId,
         user_id: userId,
         acao: "monitoring.integration.error",
         tabela: "monitoring_integrations",
-        dados_novos: { provider, error: err.message },
+        dados_novos: { provider, error: (err as Error).message },
       });
 
-      return new Response(
-        JSON.stringify({ error: `Authentication failed: ${err.message}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: `Authentication failed: ${(err as Error).message}` }, 400);
     }
 
-    // Upsert integration
+    // Upsert integration — connected
     const expiresAt = new Date(Date.now() + tokenResult.expires_in * 1000).toISOString();
     const { data: integration, error: upsertErr } = await supabaseAdmin
       .from("monitoring_integrations")
@@ -158,7 +149,7 @@ serve(async (req) => {
           provider,
           status: "connected",
           sync_error: null,
-          credentials: { appId, email }, // never store raw password
+          credentials: { appId, email },
           tokens: {
             access_token: tokenResult.access_token,
             token_type: tokenResult.token_type,
@@ -168,7 +159,7 @@ serve(async (req) => {
           },
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "tenant_id,provider" }
+        { onConflict: "tenant_id,provider" },
       )
       .select("id, status")
       .single();
@@ -185,19 +176,13 @@ serve(async (req) => {
       dados_novos: { provider, status: "connected" },
     });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        integration_id: integration?.id,
-        status: "connected",
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({
+      success: true,
+      integration_id: integration?.id,
+      status: "connected",
+    });
   } catch (err) {
     console.error("monitoring-connect error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ error: (err as Error).message || "Internal server error" }, 500);
   }
 });
