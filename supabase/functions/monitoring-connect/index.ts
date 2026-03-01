@@ -692,8 +692,10 @@ async function testLivoltek(creds: Record<string, string>) {
           body: JSON.stringify(loginBody),
         });
         const json = await res.json();
-        console.log(`[Livoltek] Response code=${json.code}, message=${json.message}`);
-        if (json.code === "0" || json.code === 0 || (res.ok && json.data)) {
+        console.log(`[Livoltek] Response code=${json.code}, message=${json.message}, hasData=${!!json.data}`);
+        const codeOk = json.code === "0" || json.code === 0 || json.code === 200 || json.code === "200";
+        const msgOk = json.message === "SUCCESS" || json.message === "success";
+        if ((codeOk || msgOk || (res.ok && json.data)) && json.data) {
           token = json.data;
           baseUrl = server;
           break;
@@ -716,7 +718,7 @@ async function testLivoltek(creds: Record<string, string>) {
       const sitesRes = await fetch(`${server}/hess/api/userSites/list?userToken=${encodeURIComponent(token)}&page=1&size=5`);
       const sitesJson = await sitesRes.json();
       console.log(`[Livoltek] Sites check @ ${server}: code=${sitesJson.code}, count=${sitesJson.data?.count || 0}`);
-      if (sitesJson.code === "0" || sitesJson.code === 0) {
+      if (sitesJson.code === "0" || sitesJson.code === 0 || sitesJson.code === 200 || sitesJson.code === "200" || sitesJson.message === "SUCCESS") {
         baseUrl = server;
         break;
       }
