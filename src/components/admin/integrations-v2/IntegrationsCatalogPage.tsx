@@ -300,50 +300,70 @@ export default function IntegrationsCatalogPage() {
           </ScrollArea>
         </div>
 
-        {/* Main content — provider grid */}
+        {/* Main content — split active vs available */}
         <div className="flex-1 min-w-0 space-y-8">
-          {CATEGORY_ORDER.filter((cat) => grouped.has(cat)).map((cat) => {
-            const CatIcon = getIcon(CATEGORY_ICONS[cat]);
-            return (
-              <section key={cat}>
-                <div className="flex items-center gap-2 mb-4">
-                  <CatIcon className="h-5 w-5 text-primary" />
-                  <h2 className="text-base font-semibold text-foreground">{CATEGORY_LABELS[cat]}</h2>
-                  <span className="text-xs text-muted-foreground">
-                    {grouped.get(cat)!.length} {grouped.get(cat)!.length === 1 ? "integração" : "integrações"}
-                  </span>
-                </div>
+          {(() => {
+            const activeProviders = filtered.filter((p) => getConnectionStatus(p.id) === "connected");
+            const inactiveProviders = filtered.filter((p) => getConnectionStatus(p.id) !== "connected");
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {grouped.get(cat)!.map((provider) => (
-                    <ProviderCard
-                      key={provider.id}
-                      provider={provider}
-                      connStatus={getConnectionStatus(provider.id)}
-                      plantCount={getPlantCount(provider.id)}
-                      lastSync={getLastSync(provider.id)}
-                      onConnect={() => setConnectModal(provider)}
-                      onSync={() => {
-                        setSyncingProviderId(provider.id);
-                        const mapped = ({ solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" } as Record<string, string>)[provider.id] || provider.id;
-                        syncMut.mutate(mapped);
-                      }}
-                      onDisconnect={() => disconnectMut.mutate(provider.id)}
-                      syncing={syncingProviderId === provider.id}
-                    />
-                  ))}
-                </div>
-              </section>
+            const renderCard = (provider: IntegrationProvider) => (
+              <ProviderCard
+                key={provider.id}
+                provider={provider}
+                connStatus={getConnectionStatus(provider.id)}
+                plantCount={getPlantCount(provider.id)}
+                lastSync={getLastSync(provider.id)}
+                onConnect={() => setConnectModal(provider)}
+                onSync={() => {
+                  setSyncingProviderId(provider.id);
+                  const mapped = ({ solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" } as Record<string, string>)[provider.id] || provider.id;
+                  syncMut.mutate(mapped);
+                }}
+                onDisconnect={() => disconnectMut.mutate(provider.id)}
+                syncing={syncingProviderId === provider.id}
+              />
             );
-          })}
 
-          {filtered.length === 0 && (
-            <EmptyState
-              icon={Search}
-              title="Nenhuma integração encontrada"
-              description="Tente outro termo de busca ou filtro."
-            />
-          )}
+            return (
+              <>
+                {activeProviders.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-2 w-2 rounded-full bg-success" />
+                      <h2 className="text-base font-semibold text-foreground">
+                        Ativas ({activeProviders.length})
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {activeProviders.map(renderCard)}
+                    </div>
+                  </section>
+                )}
+
+                {inactiveProviders.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+                      <h2 className="text-base font-semibold text-muted-foreground">
+                        Disponíveis ({inactiveProviders.length})
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {inactiveProviders.map(renderCard)}
+                    </div>
+                  </section>
+                )}
+
+                {filtered.length === 0 && (
+                  <EmptyState
+                    icon={Search}
+                    title="Nenhuma integração encontrada"
+                    description="Tente outro termo de busca ou filtro."
+                  />
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -434,31 +454,21 @@ function ProviderCard({
       "group border rounded-xl p-4 transition-all space-y-3",
       isConnected
         ? "border-success/30 bg-success/5 hover:shadow-md hover:border-success/50"
-        : "border-border/60 bg-card hover:shadow-md hover:border-primary/20",
+        : "border-border/40 bg-muted/30 hover:bg-card hover:shadow-sm hover:border-border",
     )}>
       {/* Header: icon + name + status */}
       <div className="flex items-start gap-3">
         <div className={cn(
-          "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+          "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
           isConnected ? "bg-success/15" : "bg-muted",
         )}>
-          <Icon className={cn("h-5 w-5", isConnected ? "text-success" : "text-muted-foreground")} />
+          <Icon className={cn("h-4.5 w-4.5", isConnected ? "text-success" : "text-muted-foreground")} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-foreground truncate">{provider.label}</p>
+            <p className={cn("text-sm font-semibold truncate", isConnected ? "text-foreground" : "text-foreground/80")}>{provider.label}</p>
             {isComingSoon && <Badge variant="outline" className="text-2xs shrink-0">Em breve</Badge>}
             {isMaintenance && <Badge variant="destructive" className="text-2xs shrink-0">Manutenção</Badge>}
-            {!isComingSoon && !isMaintenance && (
-              <StatusBadge
-                status={
-                  connStatus === "connected" ? "Conectado"
-                    : connStatus === "error" ? "Erro"
-                    : "Desconectado"
-                }
-                size="sm"
-              />
-            )}
           </div>
           <p className="text-2xs text-muted-foreground line-clamp-1 mt-0.5">{provider.description}</p>
         </div>
