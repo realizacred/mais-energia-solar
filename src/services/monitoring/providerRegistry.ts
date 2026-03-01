@@ -115,18 +115,26 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = ([
     description: "Inversores Growatt via OSS API, OpenAPI (Key) ou ShineServer (usuário/senha).",
     icon: "Sprout", status: "active", auth_type: "api_key", capabilities: FULL_CAP, rate_limit_rpm: 30,
     api_docs_url: "https://openapi.growatt.com",
+    tutorial: {
+      steps: [
+        "Modo API Key (recomendado): Abra o app ShinePhone → 'Eu' → seu nome → 'Token de API'. Ou acesse openapi.growatt.com → login → canto superior → 'Gestão de Conta' → 'Token de API'.",
+        "Modo Usuário/Senha: Use o e-mail ou nome de usuário do ShinePhone/Growatt (NÃO o código do datalogger como BXYV3001).",
+        "A senha é a mesma do app ShinePhone ou portal Growatt.",
+      ],
+      notes: "⚠️ O código do datalogger (ex: BXYV3001) NÃO é o usuário. Use o e-mail ou login do app ShinePhone.",
+    },
     fields: [
       {
         key: "auth_mode", label: "Modo de Autenticação", type: "select", placeholder: "Selecione",
         required: true,
         options: [
-          { value: "api_key", label: "API Key (OpenAPI)" },
+          { value: "api_key", label: "API Key / Token (Recomendado)" },
           { value: "portal", label: "Usuário e Senha (ShineServer)" },
         ],
       },
-      { ...F_API_KEY, required: false, helperText: "Obrigatório se modo = API Key" },
-      { ...F_USER, required: false, helperText: "Obrigatório se modo = Usuário/Senha" },
-      { ...F_PASSWORD, required: false, helperText: "Obrigatório se modo = Usuário/Senha" },
+      { ...F_API_KEY, required: false, placeholder: "Token do ShinePhone ou openapi.growatt.com", helperText: "Obrigatório se modo = API Key" },
+      { ...F_USER, required: false, placeholder: "E-mail ou login do ShinePhone", helperText: "Obrigatório se modo = Usuário/Senha. NÃO use o código do datalogger." },
+      { ...F_PASSWORD, required: false, helperText: "Senha do app ShinePhone / portal Growatt" },
     ],
   },
   {
@@ -271,10 +279,17 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = ([
   // growatt_server: has real handler in monitoring-connect (testGrowatt portal mode) + monitoring-sync (growattListPlants/growattMetrics)
   {
     id: "growatt_server", label: "Growatt Server",
-    description: "Monitoramento Growatt via ShineServer (login por código/senha).",
+    description: "Monitoramento Growatt via ShineServer (login do app ShinePhone).",
     icon: "Sprout", status: "active", auth_type: "portal", capabilities: FULL_CAP,
+    tutorial: {
+      steps: [
+        "Use o e-mail ou nome de usuário do app ShinePhone (NÃO o código do datalogger).",
+        "A senha é a mesma do app ShinePhone.",
+      ],
+      notes: "⚠️ O código do datalogger (ex: BXYV3001) NÃO é o usuário. Use seu login do ShinePhone.",
+    },
     fields: [
-      { ...F_USER, label: "Código / Usuário", placeholder: "Ex: BXYV3001" },
+      { ...F_USER, label: "Usuário / E-mail", placeholder: "E-mail ou login do ShinePhone" },
       F_PASSWORD,
     ],
   },
