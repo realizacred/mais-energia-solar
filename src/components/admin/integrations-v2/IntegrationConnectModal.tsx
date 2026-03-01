@@ -10,6 +10,7 @@ import type { IntegrationProvider, CredentialField } from "@/services/integratio
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
 
 interface Props {
   open: boolean;
@@ -18,12 +19,10 @@ interface Props {
   onSuccess: () => void;
 }
 
-// Map new provider IDs to legacy IDs used in monitoring_integrations
-const LEGACY_PROVIDER_MAP: Record<string, string> = {
-  solarman_business: "solarman_business_api",
-  solaredge: "solaredge",
-  solis_cloud: "solis_cloud",
-};
+// Reverse mapping: canonical → legacy (for edge functions / monitoring_integrations)
+const LEGACY_PROVIDER_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(LEGACY_ID_MAP).map(([legacy, canonical]) => [canonical, legacy])
+);
 
 export function IntegrationConnectModal({ open, onOpenChange, provider, onSuccess }: Props) {
   const [saving, setSaving] = useState(false);

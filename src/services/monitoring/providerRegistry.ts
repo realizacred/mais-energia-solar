@@ -36,12 +36,14 @@ export interface ProviderDefinition {
   label: string;
   description: string;
   icon: string;
+  category: "monitoring";
   status: ProviderStatus;
   auth_type: AuthType;
   fields: CredentialField[];
   capabilities: ProviderCapabilities;
   api_docs_url?: string;
   rate_limit_rpm?: number;
+  legacy_ids?: string[];
 }
 
 // ─── Reusable field templates ────────────────────────────────────
@@ -60,13 +62,13 @@ const STUB_CAP: ProviderCapabilities = { sync_plants: false, sync_health: false,
 
 function stubProvider(id: string, label: string, desc: string, icon = "Sun"): ProviderDefinition {
   return {
-    id, label, description: desc, icon, status: "stub", auth_type: "portal",
+    id, label, description: desc, icon, category: "monitoring", status: "stub", auth_type: "portal",
     fields: [F_EMAIL, F_PASSWORD], capabilities: STUB_CAP,
   };
 }
 
-export const PROVIDER_REGISTRY: ProviderDefinition[] = [
-  // ══════════════════════════════════════════════════════════════
+export const PROVIDER_REGISTRY: ProviderDefinition[] = ([
+  // All entries below are monitoring providers; category is injected automatically at the end
   // PRODUCTION — connect + listPlants + metrics implemented
   // ══════════════════════════════════════════════════════════════
   {
@@ -331,7 +333,7 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   stubProvider("sacolar", "Sacolar", "Monitoramento Sacolar."),
   stubProvider("solar_must", "Solar Must", "Inversores Solar Must via portal."),
   stubProvider("zevercloud", "ZeverCloud", "Inversores Zeversolar via ZeverCloud.", "Cloud"),
-];
+] as Omit<ProviderDefinition, "category">[]).map(p => ({ ...p, category: "monitoring" as const }));
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -347,15 +349,41 @@ export function getImplementedProviderIds(): Set<string> {
   return new Set(PROVIDER_REGISTRY.filter((p) => p.status === "active" || p.status === "beta").map((p) => p.id));
 }
 
-/** Legacy ID mapping (old provider IDs → new canonical IDs) */
+/** Legacy ID mapping (old DB/provider IDs → canonical registry IDs) */
 export const LEGACY_ID_MAP: Record<string, string> = {
   solarman_business_api: "solarman_business",
   goodwe_sems: "goodwe",
   huawei_fusionsolar: "huawei",
   sungrow_isolarcloud: "sungrow",
   hoymiles_s_miles: "hoymiles",
+  foxess: "fox_ess",
 };
 
 export function resolveProviderId(id: string): string {
   return LEGACY_ID_MAP[id] || id;
+}
+
+/** Convert a registry ProviderDefinition → IntegrationProvider shape used by CatalogPage */
+export function toIntegrationProvider(p: ProviderDefinition): import("@/services/integrations/types").IntegrationProvider {
+  return {
+    id: p.id,
+    category: "monitoring",
+    label: p.label,
+    description: p.description,
+    logo_key: p.icon,
+    status: p.status === "active" ? "available" : p.status === "beta" ? "available" : "coming_soon",
+    auth_type: p.auth_type,
+    credential_schema: p.fields,
+    tutorial: { steps: [] },
+    capabilities: {
+      sync_plants: p.capabilities.sync_plants,
+      sync_health: p.capabilities.sync_health,
+      sync_events: p.capabilities.sync_events,
+      sync_readings: p.capabilities.sync_readings,
+    },
+    platform_managed_keys: false,
+    popularity: p.status === "active" ? 100 : p.status === "beta" ? 50 : 10,
+    created_at: "",
+    updated_at: "",
+  };
 }

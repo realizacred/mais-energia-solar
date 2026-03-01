@@ -27,8 +27,14 @@ import {
 } from "@/services/monitoring/monitorService";
 import type { IntegrationProvider, IntegrationCategory, ConnectionStatus } from "@/services/integrations/types";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/services/integrations/types";
+import { PROVIDER_REGISTRY, toIntegrationProvider, LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
 import { IntegrationConnectModal } from "./IntegrationConnectModal";
 import { cn } from "@/lib/utils";
+
+// Reverse LEGACY_ID_MAP: canonical → legacy (for looking up legacy monitoring_integrations)
+const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
+  Object.entries(LEGACY_ID_MAP).map(([legacy, canonical]) => [canonical, legacy])
+);
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Sun, Zap, CloudSun, Sprout, Cpu, Gauge, Radio, Users, Building2,
@@ -55,10 +61,17 @@ export default function IntegrationsCatalogPage() {
   const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory | "all">("all");
   const [connectModal, setConnectModal] = useState<IntegrationProvider | null>(null);
 
-  const { data: providers = [], isLoading: loadingProviders } = useQuery({
+  const { data: dbProviders = [], isLoading: loadingProviders } = useQuery({
     queryKey: ["integration-providers"],
     queryFn: listProviders,
   });
+
+  // SSOT: DB providers (non-monitoring) + PROVIDER_REGISTRY (monitoring)
+  const providers = useMemo(() => {
+    const nonMonitoring = dbProviders.filter((p) => p.category !== "monitoring");
+    const monitoringFromRegistry = PROVIDER_REGISTRY.map(toIntegrationProvider);
+    return [...nonMonitoring, ...monitoringFromRegistry];
+  }, [dbProviders]);
 
   const { data: connections = [] } = useQuery({
     queryKey: ["integration-connections"],
@@ -83,8 +96,7 @@ export default function IntegrationsCatalogPage() {
   });
 
   const getPlantCount = (providerId: string): number => {
-    const legacyMap: Record<string, string> = { solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" };
-    const legacyId = legacyMap[providerId] || providerId;
+    const legacyId = CANONICAL_TO_LEGACY[providerId] || providerId;
     const integration = legacyIntegrations.find((i) => i.provider === legacyId || i.provider === providerId);
     if (integration) return plantCounts[integration.id] || 0;
     return 0;
@@ -120,24 +132,27 @@ export default function IntegrationsCatalogPage() {
   const getConnectionStatus = (providerId: string): ConnectionStatus => {
     const conn = connections.find((c) => c.provider_id === providerId);
     if (conn) return conn.status as ConnectionStatus;
-    const legacyMap: Record<string, string> = { solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" };
-    const legacyId = legacyMap[providerId];
+    const legacyId = CANONICAL_TO_LEGACY[providerId];
     if (legacyId) {
       const legacy = legacyIntegrations.find((i) => i.provider === legacyId);
       if (legacy) return legacy.status as ConnectionStatus;
     }
+    // Also check by providerId directly in legacy integrations
+    const directLegacy = legacyIntegrations.find((i) => i.provider === providerId);
+    if (directLegacy) return directLegacy.status as ConnectionStatus;
     return "disconnected";
   };
 
   const getLastSync = (providerId: string): string | null => {
     const conn = connections.find((c) => c.provider_id === providerId);
     if (conn?.last_sync_at) return conn.last_sync_at;
-    const legacyMap: Record<string, string> = { solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" };
-    const legacyId = legacyMap[providerId];
+    const legacyId = CANONICAL_TO_LEGACY[providerId];
     if (legacyId) {
       const legacy = legacyIntegrations.find((i) => i.provider === legacyId);
       if (legacy?.last_sync_at) return legacy.last_sync_at;
     }
+    const directLegacy = legacyIntegrations.find((i) => i.provider === providerId);
+    if (directLegacy?.last_sync_at) return directLegacy.last_sync_at;
     return null;
   };
 
@@ -199,7 +214,7 @@ export default function IntegrationsCatalogPage() {
         onConnect={() => setConnectModal(provider)}
         onSync={() => {
           setSyncingProviderId(provider.id);
-          const mapped = ({ solarman_business: "solarman_business_api", solaredge: "solaredge", solis_cloud: "solis_cloud" } as Record<string, string>)[provider.id] || provider.id;
+          const mapped = CANONICAL_TO_LEGACY[provider.id] || provider.id;
           syncMut.mutate(mapped);
         }}
         onDisconnect={() => disconnectMut.mutate(provider.id)}
@@ -384,6 +399,11 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
   const hasSyncCapability = provider.capabilities?.sync_plants || provider.capabilities?.sync_deals;
   const isComingSoon = provider.status === "coming_soon";
   const isMaintenance = provider.status === "maintenance";
+  // For monitoring providers from the registry: detect real status via capabilities
+  const isMonitoring = provider.category === "monitoring";
+  const isMonitoringStub = isMonitoring && !provider.capabilities?.sync_plants;
+  const isMonitoringActive = isMonitoring && provider.capabilities?.sync_plants && provider.capabilities?.sync_health;
+  const isMonitoringBeta = isMonitoring && provider.capabilities?.sync_plants && !provider.capabilities?.sync_health;
 
   if (isConnected) {
     return (
@@ -439,7 +459,7 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
   return (
     <div className={cn(
       "border rounded-xl p-4 space-y-3 transition-all",
-      isComingSoon || isMaintenance
+      isComingSoon || isMaintenance || isMonitoringStub
         ? "border-border/30 bg-muted/20"
         : "border-border/50 bg-card/50 hover:bg-card hover:border-border hover:shadow-sm",
     )}>
@@ -450,7 +470,16 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium text-foreground/80 truncate">{provider.label}</p>
-            {isComingSoon && <Badge variant="outline" className="text-2xs border-border/50 text-muted-foreground">Em breve</Badge>}
+            {isMonitoringActive && (
+              <Badge className="text-2xs bg-success/15 text-success border-success/30">Produção</Badge>
+            )}
+            {isMonitoringBeta && (
+              <Badge className="text-2xs bg-warning/15 text-warning border-warning/30">Beta</Badge>
+            )}
+            {isMonitoringStub && (
+              <Badge variant="outline" className="text-2xs border-border/50 text-muted-foreground">Planejado</Badge>
+            )}
+            {!isMonitoring && isComingSoon && <Badge variant="outline" className="text-2xs border-border/50 text-muted-foreground">Em breve</Badge>}
             {isMaintenance && (
               <Badge variant="outline" className="text-2xs border-warning/30 text-warning">
                 <AlertCircle className="h-3 w-3 mr-0.5" />
@@ -463,7 +492,12 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
       </div>
 
       <div>
-        {isComingSoon ? (
+        {isMonitoringStub ? (
+          <Button size="sm" variant="ghost" disabled className="w-full h-8 text-muted-foreground cursor-not-allowed opacity-60">
+            <Info className="h-3.5 w-3.5 mr-1.5" />
+            API ainda não implementada
+          </Button>
+        ) : isComingSoon ? (
           <Button size="sm" variant="ghost" onClick={onConnect} className="w-full h-8 text-muted-foreground hover:text-foreground">
             <Info className="h-3.5 w-3.5 mr-1.5" />
             Ver tutorial
