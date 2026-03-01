@@ -7,6 +7,7 @@
  *   - monitoring_integrations / solar_plants / solar_plant_metrics_daily (legacy)
  */
 import { supabase } from "@/integrations/supabase/client";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import type {
   MonitorPlant,
   MonitorPlantStatus,
@@ -308,7 +309,10 @@ export async function connectProvider(
   const { data, error } = await supabase.functions.invoke("monitoring-connect", {
     body: { provider, credentials },
   });
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    const parsed = await parseInvokeError(error);
+    return { success: false, error: parsed.message };
+  }
   if (data?.error) return { success: false, error: data.error };
   return { success: true, integration_id: data.integration_id };
 }
@@ -322,7 +326,10 @@ export async function syncProvider(
   const { data, error } = await supabase.functions.invoke("monitoring-sync", {
     body: { provider, mode, selected_plant_ids: selectedPlantIds || null },
   });
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    const parsed = await parseInvokeError(error);
+    return { success: false, error: parsed.message };
+  }
   if (data?.error) return { success: false, error: data.error };
   return {
     success: true,
@@ -345,7 +352,10 @@ export async function discoverPlants(provider: string): Promise<{ success: boole
   const { data, error } = await supabase.functions.invoke("monitoring-sync", {
     body: { provider, mode: "discover" },
   });
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    const parsed = await parseInvokeError(error);
+    return { success: false, error: parsed.message };
+  }
   if (data?.error) return { success: false, error: data.error };
   return { success: true, plants: data.plants || [] };
 }
