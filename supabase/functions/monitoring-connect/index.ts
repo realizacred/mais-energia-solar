@@ -69,16 +69,27 @@ async function testSolis(creds: Record<string, string>) {
   const path = "/v1/api/userStationList";
   const bodyStr = JSON.stringify({ pageNo: 1, pageSize: 1 });
   const contentMd5 = await md5Base64(bodyStr);
-  const contentType = "application/json;charset=UTF-8";
+  const contentType = "application/json";
   const dateStr = new Date().toUTCString();
-  const sign = await hmacSha1Base64(apiSecret, `POST\n${contentMd5}\n${contentType}\n${dateStr}\n${path}`);
+  const signStr = `POST\n${contentMd5}\n${contentType}\n${dateStr}\n${path}`;
+  const sign = await hmacSha1Base64(apiSecret, signStr);
+  console.log(`[Solis] Request: POST ${path}, Date: ${dateStr}`);
   const res = await fetch(`https://www.soliscloud.com:13333${path}`, {
     method: "POST",
-    headers: { "Content-Type": contentType, "Content-MD5": contentMd5, Date: dateStr, Authorization: `API ${apiId}:${sign}` },
+    headers: {
+      "Content-Type": contentType,
+      "Content-MD5": contentMd5,
+      Date: dateStr,
+      Authorization: `API ${apiId}:${sign}`,
+    },
     body: bodyStr,
   });
-  const json = await res.json();
-  if (!json.success && json.code !== "0") throw new Error(json.msg || `SolisCloud error (code=${json.code})`);
+  const text = await res.text();
+  console.log(`[Solis] Response status=${res.status}, body=${text.slice(0, 500)}`);
+  let json: any;
+  try { json = JSON.parse(text); } catch { throw new Error(`SolisCloud returned non-JSON: ${text.slice(0, 200)}`); }
+  const isOk = json.success === true || json.code === "0" || json.code === 0;
+  if (!isOk) throw new Error(json.msg || `SolisCloud error (code=${json.code}, success=${json.success})`);
   return { credentials: { apiId, apiSecret }, tokens: { apiSecret } };
 }
 
