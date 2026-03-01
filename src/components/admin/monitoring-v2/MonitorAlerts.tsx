@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Eye, BookOpen, ShieldCheck, ShieldAlert } from "lucide-react";
 import { listAlerts, listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import { calcConfidenceScore, classifyAlert } from "@/services/monitoring/confidenceService";
+import { getMonthlyAvgHsp, type HspResult } from "@/services/monitoring/irradiationService";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -55,30 +56,68 @@ export default function MonitorAlerts() {
     queryFn: listPlantsWithHealth,
   });
 
+  // Pre-fetch HSP for unique plant locations
+  const uniqueLocations = useMemo(() => {
+    const seen = new Map<string, { lat: number | null; lng: number | null }>();
+    plants.forEach((p) => {
+      const key = `${p.lat ?? "null"}_${p.lng ?? "null"}`;
+      if (!seen.has(key)) seen.set(key, { lat: p.lat ?? null, lng: p.lng ?? null });
+    });
+    return seen;
+  }, [plants]);
+
+  const { data: hspMap = new Map<string, HspResult>() } = useQuery({
+    queryKey: ["monitor-hsp-alerts", Array.from(uniqueLocations.keys()).join(",")],
+    queryFn: async () => {
+      const result = new Map<string, HspResult>();
+      for (const [key, loc] of uniqueLocations.entries()) {
+        const hsp = await getMonthlyAvgHsp({ lat: loc.lat, lon: loc.lng, month: new Date().getMonth() + 1 });
+        result.set(key, hsp);
+      }
+      return result;
+    },
+    enabled: uniqueLocations.size > 0,
+  });
+
   const plantMap = new Map(plants.map((p) => [p.id, p]));
 
-  // Enrich alerts with confidence score and layer
+  // Enrich alerts with REAL confidence score and layer
   const enrichedAlerts = alerts.map((alert) => {
     const plant = plantMap.get(alert.plant_id);
+    const locKey = `${plant?.lat ?? "null"}_${plant?.lng ?? "null"}`;
+    const hspResult = hspMap.get(locKey);
+    const hspValue = hspResult?.hsp_kwh_m2 ?? null;
+    const hspSource = hspResult?.source ?? "unavailable";
+
+    const hasEnergy = (plant?.health?.energy_today_kwh ?? 0) > 0;
+    const hasCapacity = (plant?.installed_power_kwp ?? 0) > 0;
+    const hasHsp = hspValue != null && hspValue > 0;
+
+    // Determine real pr_status
+    let prStatus: string = "ok";
+    if (!hasCapacity) prStatus = "config_required";
+    else if (!hasHsp) prStatus = "irradiation_unavailable";
+    else if (!hasEnergy) prStatus = "no_data";
+
     const confidence = calcConfidenceScore({
-      energyKwh: plant?.health?.energy_today_kwh ?? null,
+      energyKwh: hasEnergy ? plant!.health!.energy_today_kwh : null,
       capacityKwp: plant?.installed_power_kwp ?? null,
-      hspValue: null, // Real HSP requires lat/lon lookup — null triggers low confidence
-      hspSource: "unavailable",
+      hspValue,
+      hspSource,
       dayIsClosed: true,
       unitIsKwh: true,
     });
 
     const isOffline = alert.type === "offline";
-    const isZeroGen = (plant?.health?.energy_today_kwh ?? 0) <= 0;
+    const isZeroGen = !hasEnergy;
 
     const classification = classifyAlert({
       confidenceScore: confidence.total,
-      prStatus: confidence.total < 55 ? "config_required" : "ok",
+      prStatus,
       deviationPercent: 0,
       consecutiveDays: 1,
       isOffline,
-      isZeroGenWithHighHsp: isZeroGen && confidence.hsp_available,
+      isZeroGenWithHighHsp: isZeroGen && hasHsp,
     });
 
     return { ...alert, plant, confidence, classification };
