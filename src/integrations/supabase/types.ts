@@ -4922,6 +4922,32 @@ export type Database = {
           },
         ]
       }
+      integration_provider_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          provider_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          provider_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_provider_aliases_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "integration_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_providers: {
         Row: {
           auth_type: string
