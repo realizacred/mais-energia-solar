@@ -286,10 +286,60 @@ async function testGrowatt(creds: Record<string, string>) {
 
   console.log(`[Growatt] user=${username}, rawMd5Prefix=${rawMd5.substring(0,8)}, customMd5Prefix=${customMd5.substring(0,8)}`);
 
-  // Growatt requires an Android-like User-Agent
   const growattUA = "Dalvik/2.1.0 (Linux; U; Android 12; SM-G975F Build/SP1A.210812.016)";
 
-  // Try multiple ShineServer endpoints including regional servers
+  // ── Strategy A: server.growatt.com/login with PLAIN password (like .NET GrowattApi library) ──
+  // Reference: https://github.com/ealse/GrowattApi — uses account + plain password + cookie auth
+  const plainLoginServers = [
+    "https://server.growatt.com",
+    "https://server-api.growatt.com",
+    "https://openapi.growatt.com",
+    "https://openapi-cn.growatt.com",
+    "https://openapi-us.growatt.com",
+  ];
+
+  let lastError = "";
+  for (const server of plainLoginServers) {
+    try {
+      console.log(`[Growatt] Trying plain login @ ${server}/login`);
+      const res = await fetch(`${server}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": growattUA,
+        },
+        body: `account=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&validateCode=`,
+        redirect: "follow",
+      });
+
+      const text = await res.text();
+      console.log(`[Growatt] Plain login response (${res.status}):`, text.slice(0, 500));
+
+      let json: Record<string, any>;
+      try { json = JSON.parse(text); } catch {
+        lastError = `Non-JSON from ${server}/login (HTTP ${res.status})`;
+        continue;
+      }
+
+      if (json.result === 1 || json.result === "1") {
+        const cookies = res.headers.get("set-cookie") || "";
+        console.log(`[Growatt] Plain login OK @ ${server}! cookies=${cookies.length > 0}`);
+        return {
+          credentials: { auth_mode: "portal", username, server },
+          tokens: { cookies, server, loginMethod: "plain" },
+        };
+      }
+
+      const errMsg = json.back?.error || json.back?.msg || json.msg || json.error || `result=${json.result}`;
+      lastError = errMsg;
+      console.log(`[Growatt] Plain login rejected @ ${server}: ${errMsg}`);
+    } catch (e) {
+      lastError = (e as Error).message;
+      console.error(`[Growatt] ${server}/login error:`, lastError);
+    }
+  }
+
+  // ── Strategy B: newTwoLoginAPI.do with MD5 hashed password (ShinePhone API) ──
   const endpoints = [
     "https://openapi.growatt.com/newTwoLoginAPI.do",
     "https://server.growatt.com/newTwoLoginAPI.do",
@@ -298,13 +348,11 @@ async function testGrowatt(creds: Record<string, string>) {
     "https://openapi-us.growatt.com/newTwoLoginAPI.do",
   ];
 
-  // Try both hash variants: custom hash first, then raw MD5 as fallback
   const hashVariants = [
     { label: "customHash", hash: customMd5 },
     { label: "rawMD5", hash: rawMd5 },
   ];
 
-  let lastError = "";
   for (const variant of hashVariants) {
     for (const endpoint of endpoints) {
       try {
@@ -335,7 +383,7 @@ async function testGrowatt(creds: Record<string, string>) {
           console.log(`[Growatt] Login OK via ${variant.label}! userId=${userId}`);
           return {
             credentials: { auth_mode: "portal", username },
-            tokens: { userId: String(userId), cookies, passwordMd5: variant.hash },
+            tokens: { userId: String(userId), cookies, passwordMd5: variant.hash, loginMethod: "md5" },
           };
         }
 
