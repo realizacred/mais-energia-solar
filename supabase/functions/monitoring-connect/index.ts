@@ -919,16 +919,13 @@ serve(async (req) => {
         canonicalAdapter.validateCredentials(credentials);
         const authResult = await canonicalAdapter.authenticate(credentials);
 
-        // Detect BLOCKED providers (e.g. Enphase OAuth2 not implemented)
-        const isBlocked = authResult.tokens?._blocked === true;
-
-        // Run health check (will FAIL for blocked providers)
+        // Run health check (PERMISSION errors → blocked)
         const health = await runHealthCheck(canonicalAdapter, authResult);
         console.log(`[monitoring-connect] Health check: ${health.status} (${health.latencyMs}ms)`);
 
-        // Determine canonical status
+        // Determine canonical status from health check behavior
         let integrationStatus: string;
-        if (isBlocked) {
+        if (health.error && health.error.startsWith("[BLOCKED]")) {
           integrationStatus = "blocked";
         } else if (health.status === "FAIL") {
           integrationStatus = "error";
@@ -948,8 +945,8 @@ serve(async (req) => {
           if (!SENSITIVE_KEYS.has(k) && k !== "password_for_reauth") safeTokens[k] = v;
         }
 
-        const syncError = isBlocked
-          ? `[BLOCKED] Provider ${provider} requires additional setup. Sync disabled.`
+        const syncError = integrationStatus === "blocked"
+          ? health.error || `Provider ${provider} requires additional setup. Sync disabled.`
           : health.error || null;
 
         const integration = await upsertIntegration(ctx, {

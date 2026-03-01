@@ -1164,15 +1164,18 @@ async function syncPlantsByProvider(
 ) {
   let plantsUpserted = 0, metricsUpserted = 0;
   const errors: string[] = [];
+  const errorCategories: string[] = [];
 
   // "discover" mode: return plants without saving
   if (mode === "discover") {
     try {
       const plants = await listFn();
-      return { plantsUpserted: 0, metricsUpserted: 0, errors: [], discoveredPlants: plants };
+      return { plantsUpserted: 0, metricsUpserted: 0, errors: [], errorCategories: [], discoveredPlants: plants };
     } catch (err) {
+      const cat = (err as any)?.category || "UNKNOWN";
       errors.push(`listPlants: ${(err as Error).message}`);
-      return { plantsUpserted: 0, metricsUpserted: 0, errors, discoveredPlants: [] };
+      errorCategories.push(cat);
+      return { plantsUpserted: 0, metricsUpserted: 0, errors, errorCategories, discoveredPlants: [] };
     }
   }
 
@@ -1186,7 +1189,7 @@ async function syncPlantsByProvider(
       const result = await upsertPlants(ctx, plants);
       plantsUpserted = result.count;
       errors.push(...result.errors);
-    } catch (err) { errors.push(`listPlants: ${(err as Error).message}`); }
+    } catch (err) { const cat = (err as any)?.category || "UNKNOWN"; errors.push(`listPlants: ${(err as Error).message}`); errorCategories.push(cat); }
   }
 
   if ((mode === "metrics" || mode === "full") && metricsFn) {
@@ -1272,7 +1275,7 @@ async function syncPlantsByProvider(
     } catch (err) { errors.push(`Alarms: ${(err as Error).message}`); }
   }
 
-  return { plantsUpserted, metricsUpserted, errors };
+  return { plantsUpserted, metricsUpserted, errors, errorCategories };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1337,7 +1340,7 @@ async function dispatchSync(
   mode: string = "full",
   int?: any,
   adminClient?: any,
-): Promise<{ plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] }> {
+): Promise<{ plantsUpserted: number; metricsUpserted: number; errors: string[]; errorCategories: string[]; discoveredPlants?: NormalizedPlant[] }> {
   const p = provider;
   const admin = adminClient || ctx.supabaseAdmin;
 
@@ -1748,7 +1751,7 @@ serve(async (req) => {
       }
     }
 
-    let result: { plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] };
+    let result: { plantsUpserted: number; metricsUpserted: number; errors: string[]; errorCategories: string[]; discoveredPlants?: NormalizedPlant[] };
 
     try {
       result = await dispatchSync(ctx, normalizedProvider, tokens, credentials, selectedPlantIds, mode, int, supabaseAdmin);
@@ -1768,11 +1771,12 @@ serve(async (req) => {
       });
     }
 
-    // Update integration status
+    // Update integration status — determined by structured error categories
+    const cats = result.errorCategories || [];
     let newStatus: string;
-    if (result.errors.some((e) => /\[PERMISSION\]|\[BLOCKED\]/i.test(e))) {
+    if (cats.includes("PERMISSION")) {
       newStatus = "blocked";
-    } else if (result.errors.some((e) => /\[AUTH\].*reconnect/i.test(e))) {
+    } else if (cats.includes("AUTH")) {
       newStatus = "reconnect_required";
     } else if (result.errors.length > 0) {
       newStatus = "error";
