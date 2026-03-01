@@ -198,28 +198,35 @@ async function solisMetrics(apiId: string, apiSecret: string, stationId: string)
 
 async function deyeFetch(baseUrl: string, token: string, ep: string, body: Record<string, unknown> = {}) {
   const res = await fetch(`${baseUrl}${ep}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-  const json = await res.json();
-  return json;
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { throw new Error(`Deye non-JSON (${res.status}): ${text.slice(0, 200)}`); }
 }
 
 async function deyeListPlants(baseUrl: string, token: string): Promise<NormalizedPlant[]> {
   const plants: NormalizedPlant[] = [];
   let page = 1;
   while (true) {
-    const json = await deyeFetch(baseUrl, token, "/station/list", { page, size: 100 });
-    const data = json.data as any;
-    const list = data?.stationList || data?.records || [];
+    const json = await deyeFetch(baseUrl, token, "/station/list", { page, size: 200 });
+    // Deye v2: stationList and total are at top level
+    const list = json.stationList || json.data?.stationList || [];
     if (!Array.isArray(list) || !list.length) break;
     for (const r of list) {
+      const connStatus = r.connectionStatus as string || "";
+      let status = "unknown";
+      if (connStatus === "NORMAL") status = "normal";
+      else if (connStatus === "ALL_OFFLINE" || connStatus === "NO_DEVICE") status = "offline";
+      else if (connStatus === "PARTIAL_OFFLINE") status = "alarm";
       plants.push({
-        external_id: String(r.id || r.stationId || ""), name: String(r.name || r.stationName || ""),
-        capacity_kw: r.installedCapacity ?? r.capacity != null ? Number(r.installedCapacity ?? r.capacity) : null,
-        address: r.locationAddress || r.address || null,
-        latitude: r.latitude != null ? Number(r.latitude) : null, longitude: r.longitude != null ? Number(r.longitude) : null,
-        status: normStatus(r.status, { "1": "normal", "2": "offline", "3": "alarm" }), metadata: r,
+        external_id: String(r.id || ""), name: String(r.name || ""),
+        capacity_kw: r.installedCapacity != null ? Number(r.installedCapacity) : null,
+        address: r.locationAddress || null,
+        latitude: r.locationLat != null ? Number(r.locationLat) : null,
+        longitude: r.locationLng != null ? Number(r.locationLng) : null,
+        status, metadata: r,
       });
     }
-    if (page * 100 >= Number(data?.total || 0)) break;
+    const total = json.total || json.data?.total || 0;
+    if (page * 200 >= Number(total)) break;
     page++;
   }
   return plants;
@@ -227,13 +234,13 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
 
 async function deyeMetrics(baseUrl: string, token: string, extId: string): Promise<DailyMetrics> {
   try {
-    const json = await deyeFetch(baseUrl, token, "/station/latest", { stationId: extId });
-    const d = (json.data || {}) as any;
+    const json = await deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) });
+    // Deye v2: fields are at top level (generationPower, batterySOC, etc.)
     return {
-      power_kw: d.generationPower ?? d.pac != null ? Number(d.generationPower ?? d.pac) / 1000 : null,
-      energy_kwh: d.eToday ?? d.generationValue != null ? Number(d.eToday ?? d.generationValue) : null,
-      total_energy_kwh: d.eTotal ?? d.totalGenerationValue != null ? Number(d.eTotal ?? d.totalGenerationValue) : null,
-      metadata: d,
+      power_kw: json.generationPower != null ? Number(json.generationPower) : null,
+      energy_kwh: null, // station/latest doesn't return daily energy directly
+      total_energy_kwh: null,
+      metadata: json,
     };
   } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
 }
