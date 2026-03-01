@@ -332,15 +332,65 @@ async function testGrowatt(creds: Record<string, string>) {
 async function testHoymiles(creds: Record<string, string>) {
   const { username, password } = creds;
   if (!username || !password) throw new Error("Missing: username, password");
-  const res = await fetch("https://global.hoymiles.com/platform/api/gateway/iam/auth_login", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_name: username, password, mi_type: "en" }),
-  });
-  const json = await res.json();
-  if (json.status !== "0" && json.code !== 0) throw new Error(json.message || "Hoymiles login failed");
-  const token = json.data?.token || json.token || "";
-  if (!token) throw new Error("Hoymiles: no token returned");
-  return { credentials: { username, password }, tokens: { token } };
+
+  // Hoymiles API requires MD5 hash of password
+  const { createHash } = await import("node:crypto");
+  const passwordMd5 = createHash("md5").update(password).digest("hex");
+  const uniqueId = crypto.randomUUID();
+
+  // Try multiple known Hoymiles API base URLs
+  const baseUrls = [
+    "https://global.hoymiles.com/platform/api/gateway",
+    "https://neapi.hoymiles.com/pvm-api/api/0",
+  ];
+
+  let lastError = "Hoymiles login failed";
+  for (const baseUrl of baseUrls) {
+    try {
+      const loginUrl = baseUrl.includes("neapi")
+        ? `${baseUrl}/admin/login`
+        : `${baseUrl}/iam/auth_login`;
+
+      const bodyPayload = baseUrl.includes("neapi")
+        ? { userName: username, password: passwordMd5, uniqueId }
+        : { user_name: username, password: passwordMd5, mi_type: "en" };
+
+      console.log(`[Hoymiles] Trying login at ${loginUrl}`);
+      const res = await fetch(loginUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyPayload),
+      });
+
+      const text = await res.text();
+      console.log(`[Hoymiles] Response status=${res.status}, body=${text.substring(0, 300)}`);
+
+      if (text.startsWith("<")) continue; // HTML error page, try next
+
+      const json = JSON.parse(text);
+      if (json.status !== "0" && json.status !== 0) {
+        lastError = json.message || json.msg || "Hoymiles login failed";
+        continue;
+      }
+
+      const token = json.data?.token || json.token || "";
+      if (!token) {
+        lastError = "Hoymiles: no token returned";
+        continue;
+      }
+
+      console.log(`[Hoymiles] Login OK via ${loginUrl}, userId=${json.data?.userId}`);
+      return {
+        credentials: { username },
+        tokens: { token, userId: json.data?.userId || "", passwordMd5, baseUrl },
+      };
+    } catch (e) {
+      console.log(`[Hoymiles] ${baseUrl} error: ${(e as Error).message}`);
+      lastError = (e as Error).message;
+      continue;
+    }
+  }
+  throw new Error(lastError);
 }
 
 // ── Sungrow iSolarCloud ──
