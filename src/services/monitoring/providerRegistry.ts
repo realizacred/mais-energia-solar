@@ -3,7 +3,7 @@
  * Each provider defines its modes, credential fields, and availability.
  */
 
-export type ConnectionMode = "api" | "portal";
+export type ConnectionMode = "api" | "portal" | "api_key";
 
 export interface CredentialField {
   key: string;
@@ -144,6 +144,26 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
         fields: [
           { key: "email", label: "E-mail", type: "email", placeholder: "seu@email.com", required: true },
           { key: "password", label: "Senha", type: "password", placeholder: "Sua senha", required: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: "solaredge",
+    label: "SolarEdge",
+    description: "Monitoramento de inversores SolarEdge via API Key.",
+    icon: "Zap",
+    available: true,
+    modes: [
+      {
+        id: "api_key",
+        label: "API Key",
+        description: "Integração via API Key gerada no portal SolarEdge Monitoring.",
+        fields: [
+          { key: "apiKey", label: "API Key", type: "text", placeholder: "Sua API Key do SolarEdge", required: true },
+          { key: "siteId", label: "Site ID (opcional)", type: "text", placeholder: "ID do site (ex: 123456)", required: false },
+          { key: "email", label: "E-mail (opcional)", type: "email", placeholder: "seu@email.com", required: false },
+          { key: "password", label: "Senha (opcional)", type: "password", placeholder: "Senha do portal", required: false },
         ],
       },
     ],
