@@ -7,11 +7,13 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Eye } from "lucide-react";
+import { AlertTriangle, Eye, BookOpen, ShieldCheck, ShieldAlert } from "lucide-react";
 import { listAlerts, listPlantsWithHealth } from "@/services/monitoring/monitorService";
+import { calcConfidenceScore, classifyAlert } from "@/services/monitoring/confidenceService";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const SEVERITY_LABELS: Record<string, string> = {
   critical: "Crítico",
@@ -27,10 +29,17 @@ const TYPE_LABELS: Record<string, string> = {
   other: "Outro",
 };
 
+const LAYER_LABELS: Record<string, { label: string; color: string }> = {
+  internal: { label: "Interno", color: "text-muted-foreground" },
+  preventive: { label: "Preventivo", color: "text-warning" },
+  urgent: { label: "Urgente", color: "text-destructive" },
+};
+
 export default function MonitorAlerts() {
   const navigate = useNavigate();
   const [filterOpen, setFilterOpen] = useState<boolean | undefined>(true);
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
+  const [filterLayer, setFilterLayer] = useState<string>("all");
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["monitor-alerts", filterOpen, filterSeverity],
@@ -48,6 +57,35 @@ export default function MonitorAlerts() {
 
   const plantMap = new Map(plants.map((p) => [p.id, p]));
 
+  // Enrich alerts with confidence score and layer
+  const enrichedAlerts = alerts.map((alert) => {
+    const plant = plantMap.get(alert.plant_id);
+    const confidence = calcConfidenceScore({
+      energyKwh: plant?.health?.energy_today_kwh ?? null,
+      capacityKwp: plant?.installed_power_kwp ?? null,
+      hspValue: 4.5, // will be replaced by real HSP when available in context
+      hspSource: "premise",
+      dayIsClosed: true,
+      unitIsKwh: true,
+    });
+
+    const classification = classifyAlert({
+      confidenceScore: confidence.total,
+      prStatus: "ok",
+      deviationPercent: 0,
+      consecutiveDays: 1,
+      isOffline: alert.type === "offline",
+      isZeroGenWithHighHsp: false,
+    });
+
+    return { ...alert, plant, confidence, classification };
+  });
+
+  // Apply layer filter
+  const filteredAlerts = filterLayer === "all"
+    ? enrichedAlerts
+    : enrichedAlerts.filter((a) => a.classification.layer === filterLayer);
+
   if (isLoading) return <LoadingState message="Carregando alertas..." />;
 
   return (
@@ -56,61 +94,119 @@ export default function MonitorAlerts() {
         title="Central de Alertas"
         description="Monitore e gerencie alertas das usinas"
         icon={AlertTriangle}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/admin/monitoramento/entenda-alertas")}
+            className="gap-2"
+          >
+            <BookOpen className="h-4 w-4" />
+            Entenda os alertas
+          </Button>
+        }
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-muted/30 border border-border/50 w-fit">
-        <FilterPill active={filterOpen === true} onClick={() => setFilterOpen(filterOpen === true ? undefined : true)}>
-          Abertos
-        </FilterPill>
-        <FilterPill active={filterOpen === false} onClick={() => setFilterOpen(filterOpen === false ? undefined : false)}>
-          Fechados
-        </FilterPill>
-        <div className="w-px h-6 bg-border/60 self-center mx-1" />
-        {(["all", "critical", "warn", "info"] as const).map((sev) => (
-          <FilterPill key={sev} active={filterSeverity === sev} onClick={() => setFilterSeverity(sev)}>
-            {sev === "all" ? "Todas" : SEVERITY_LABELS[sev] || sev}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-muted/30 border border-border/50 w-fit">
+          <FilterPill active={filterOpen === true} onClick={() => setFilterOpen(filterOpen === true ? undefined : true)}>
+            Abertos
           </FilterPill>
-        ))}
+          <FilterPill active={filterOpen === false} onClick={() => setFilterOpen(filterOpen === false ? undefined : false)}>
+            Fechados
+          </FilterPill>
+          <div className="w-px h-6 bg-border/60 self-center mx-1" />
+          {(["all", "critical", "warn", "info"] as const).map((sev) => (
+            <FilterPill key={sev} active={filterSeverity === sev} onClick={() => setFilterSeverity(sev)}>
+              {sev === "all" ? "Todas" : SEVERITY_LABELS[sev] || sev}
+            </FilterPill>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-muted/30 border border-border/50 w-fit">
+          {(["all", "internal", "preventive", "urgent"] as const).map((layer) => (
+            <FilterPill key={layer} active={filterLayer === layer} onClick={() => setFilterLayer(layer)}>
+              {layer === "all" ? "Todas camadas" : LAYER_LABELS[layer]?.label || layer}
+            </FilterPill>
+          ))}
+        </div>
       </div>
 
-      {alerts.length === 0 ? (
+      {filteredAlerts.length === 0 ? (
         <EmptyState
           icon={AlertTriangle}
           title="Nenhum alerta encontrado"
           description="Ajuste os filtros ou aguarde a próxima sincronização."
         />
       ) : (
-        <SectionCard title={`${alerts.length} alertas`} icon={AlertTriangle} variant="warning" noPadding>
+        <SectionCard title={`${filteredAlerts.length} alertas`} icon={AlertTriangle} variant="warning" noPadding>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60 text-muted-foreground text-xs">
                   <th className="text-left px-4 py-3 font-medium">Severidade</th>
+                  <th className="text-left px-4 py-3 font-medium">Camada</th>
                   <th className="text-left px-4 py-3 font-medium">Tipo</th>
                   <th className="text-left px-4 py-3 font-medium">Usina</th>
                   <th className="text-left px-4 py-3 font-medium">Título</th>
+                  <th className="text-left px-4 py-3 font-medium">Confiança</th>
                   <th className="text-left px-4 py-3 font-medium">Tempo aberto</th>
                   <th className="text-left px-4 py-3 font-medium">Status</th>
                   <th className="text-right px-4 py-3 font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {alerts.map((alert) => {
-                  const plant = plantMap.get(alert.plant_id);
+                {filteredAlerts.map((alert) => {
+                  const layerInfo = LAYER_LABELS[alert.classification.layer];
                   return (
                     <tr key={alert.id} className="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3">
                         <StatusBadge status={SEVERITY_LABELS[alert.severity] || alert.severity} size="sm" />
                       </td>
+                      <td className="px-4 py-3">
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <span className={cn("text-xs font-medium", layerInfo?.color)}>
+                              {layerInfo?.label}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs max-w-[200px]">{alert.classification.reason}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {TYPE_LABELS[alert.type] || alert.type}
                       </td>
                       <td className="px-4 py-3 text-xs font-medium text-foreground">
-                        {plant?.name || "—"}
+                        {alert.plant?.name || "—"}
                       </td>
                       <td className="px-4 py-3 text-xs text-foreground max-w-[200px] truncate">
                         {alert.title}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <div className="flex items-center gap-1.5">
+                              {alert.confidence.total >= 80 ? (
+                                <ShieldCheck className="h-3.5 w-3.5 text-success" />
+                              ) : (
+                                <ShieldAlert className="h-3.5 w-3.5 text-warning" />
+                              )}
+                              <span className="text-xs font-mono">{alert.confidence.total}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs space-y-1">
+                              <p>Energia: {alert.confidence.energy_valid ? "✅" : "❌"} (+30)</p>
+                              <p>Capacidade: {alert.confidence.capacity_valid ? "✅" : "❌"} (+25)</p>
+                              <p>HSP: {alert.confidence.hsp_available ? "✅" : "❌"} (+25)</p>
+                              <p>Timezone: {alert.confidence.timezone_ok ? "✅" : "❌"} (+10)</p>
+                              <p>Unidade: {alert.confidence.unit_validated ? "✅" : "❌"} (+10)</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(alert.starts_at), { locale: ptBR })}
