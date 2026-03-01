@@ -632,6 +632,57 @@ async function testCsi(creds: Record<string, string>) {
   return { credentials: { apiKey }, tokens: {} };
 }
 
+// ── Livoltek API ──
+const LIVOLTEK_SERVERS = [
+  "https://api-eu.livoltek-portal.com:8081",
+  "https://api.livoltek-portal.com:8081",
+];
+
+async function testLivoltek(creds: Record<string, string>) {
+  const apiKey = creds.apiKey || creds.key || "";
+  const appSecret = creds.appSecret || creds.secuid || "";
+  if (!apiKey || !appSecret) throw new Error("Missing: apiKey (Security Key) and appSecret (Security ID)");
+
+  let token = "";
+  let baseUrl = "";
+
+  for (const server of LIVOLTEK_SERVERS) {
+    try {
+      console.log(`[Livoltek] Trying login at ${server}`);
+      const res = await fetch(`${server}/hess/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secuid: appSecret, key: apiKey }),
+      });
+      const json = await res.json();
+      console.log(`[Livoltek] Response code=${json.code}, message=${json.message}`);
+      if (json.code === "0" || json.code === 0 || res.ok && json.data) {
+        token = json.data;
+        baseUrl = server;
+        break;
+      }
+    } catch (e) {
+      console.log(`[Livoltek] ${server} error: ${(e as Error).message}`);
+    }
+  }
+
+  if (!token) throw new Error("Livoltek login failed on all servers. Check apiKey and appSecret.");
+
+  // Verify token by listing sites
+  try {
+    const sitesRes = await fetch(`${baseUrl}/hess/api/userSites/list?userToken=${encodeURIComponent(token)}&page=1&size=5`);
+    const sitesJson = await sitesRes.json();
+    console.log(`[Livoltek] Sites check: code=${sitesJson.code}, count=${sitesJson.data?.count || 0}`);
+  } catch (e) {
+    console.warn("[Livoltek] Sites verification failed:", (e as Error).message);
+  }
+
+  return {
+    credentials: { apiKey, appSecret, baseUrl },
+    tokens: { token, baseUrl },
+  };
+}
+
 // ── Generic Portal Login (for all portal-based providers) ──
 async function testGenericPortal(provider: string, creds: Record<string, string>) {
   const email = creds.email || creds.username || "";
@@ -676,18 +727,20 @@ const PROVIDER_HANDLERS: Record<string, TestFn> = {
   csi_cloudpro: (c) => testCsi(c),
   csi_smart_energy: (c) => testCsi(c),
   csi_cloud: (c) => testCsi(c),
+  livoltek: (c) => testLivoltek(c),
+  livoltek_cf: (c) => testLivoltek(c),
 };
 
 // Portal-based providers that use generic portal test
 const PORTAL_PROVIDERS = new Set([
   "solplanet", "elekeeper", "phb_solar", "sunweg", "renovigi",
-  "chint_flexom", "solarview", "livoltek", "solarman_smart", "kehua", "weg_iot",
+  "chint_flexom", "solarview", "solarman_smart", "kehua", "weg_iot",
   "refusol", "solarnex", "tsun_pro", "renac", "nep_viewer", "fimer", "byd",
   "auxsol", "sices", "ge_solar", "wdc_solar", "sunwave", "nansen",
   "intelbras_plus", "smten", "elgin", "hypon_cloud", "wdc_solar_cf",
   "intelbras_send", "hopewind", "intelbras_x", "renovigi_portal", "elsys",
   "ingeteam", "pvhub", "dessmonitor", "smartess", "bedin_solar", "ksolare",
-  "livoltek_cf", "tsun", "afore", "dah_solar", "empalux", "hopewind_shine",
+  "tsun", "afore", "dah_solar", "empalux", "hopewind_shine",
   "hypon_portal", "litto", "leveros", "moso", "pv123", "qcells", "sacolar",
   "solar_must", "zevercloud",
 ]);
