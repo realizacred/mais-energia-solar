@@ -2,8 +2,7 @@ import React from "react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { FileText, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FileText, Download, BarChart3 } from "lucide-react";
 
 export default function MonitorReports() {
   return (
@@ -15,7 +14,7 @@ export default function MonitorReports() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SectionCard title="Geração por Período" icon={FileText} variant="blue">
+        <SectionCard title="Geração por Período" icon={BarChart3} variant="blue">
           <EmptyState
             icon={FileText}
             title="Em breve"

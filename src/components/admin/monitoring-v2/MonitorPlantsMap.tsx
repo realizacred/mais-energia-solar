@@ -8,18 +8,19 @@ interface Props {
   onSelectPlant: (id: string) => void;
 }
 
+/* Use semantic CSS variable colors for map pins */
 const STATUS_COLORS: Record<MonitorPlantStatus, string> = {
-  online: "#22c55e",
-  alert: "#f59e0b",
-  offline: "#ef4444",
-  unknown: "#9ca3af",
+  online: "hsl(152, 82%, 30%)",
+  alert: "hsl(35, 95%, 48%)",
+  offline: "hsl(0, 84%, 40%)",
+  unknown: "hsl(218, 22%, 38%)",
 };
 
 function createIcon(status: MonitorPlantStatus) {
   const color = STATUS_COLORS[status] || STATUS_COLORS.unknown;
   return L.divIcon({
     className: "monitor-map-pin",
-    html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`,
+    html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2.5px solid hsl(0,0%,100%);box-shadow:0 2px 6px rgba(0,0,0,0.25);"></div>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
   });
@@ -32,7 +33,6 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
   useEffect(() => {
     if (!mapRef.current || plants.length === 0) return;
 
-    // Clean up previous map
     if (mapInstance.current) {
       mapInstance.current.remove();
       mapInstance.current = null;
@@ -55,7 +55,7 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
       const marker = L.marker([plant.lat, plant.lng], { icon: createIcon(status) })
         .addTo(map)
         .bindPopup(
-          `<div style="font-size:12px;">
+          `<div style="font-size:12px;font-family:Inter,sans-serif;">
             <strong>${plant.name}</strong><br/>
             ${plant.city || ""}${plant.state ? ` - ${plant.state}` : ""}<br/>
             ${plant.installed_power_kwp ? `${plant.installed_power_kwp} kWp` : ""}

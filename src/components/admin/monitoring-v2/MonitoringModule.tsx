@@ -2,8 +2,8 @@ import React from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Sun, AlertTriangle, FileText, Settings, Plug } from "lucide-react";
+import { LayoutDashboard, Sun, AlertTriangle, FileText, Plug } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const MonitorDashboard = lazy(() => import("./MonitorDashboard"));
 const MonitorPlants = lazy(() => import("./MonitorPlants"));
@@ -37,28 +37,29 @@ export default function MonitoringModule() {
   const isDetailPage = /\/usinas\/[^/]+/.test(location.pathname.replace("/admin/monitoramento", ""));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {!isDetailPage && (
-        <Tabs value={activeTab} onValueChange={(v) => {
-          const item = NAV_ITEMS.find((n) => n.key === v);
-          if (item) navigate(`/admin/monitoramento${item.path ? `/${item.path}` : ""}`);
-        }}>
-          <TabsList className="bg-muted/50 border border-border p-1 h-auto flex-wrap">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <TabsTrigger
-                  key={item.key}
-                  value={item.key}
-                  className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm"
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span className="hidden sm:inline">{item.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </Tabs>
+        <nav className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border/60 overflow-x-auto">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => navigate(`/admin/monitoramento${item.path ? `/${item.path}` : ""}`)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200",
+                  isActive
+                    ? "bg-card text-foreground shadow-sm border border-border/60"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                )}
+              >
+                <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "")} />
+                <span className="hidden sm:inline">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       )}
 
       <Suspense fallback={<LoadingState message="Carregando módulo..." />}>

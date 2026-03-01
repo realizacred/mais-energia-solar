@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const PROVIDER_LABELS: Record<string, string> = {
   solarman: "Solarman",
@@ -90,10 +91,9 @@ export default function MonitorSettings() {
         />
       ) : (
         <>
-          {/* Active integrations */}
           {activeIntegrations.length > 0 && (
             <SectionCard title={`Conectados (${activeIntegrations.length})`} icon={Wifi}>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {activeIntegrations.map((integration: any) => (
                   <IntegrationRow
                     key={integration.id}
@@ -107,10 +107,9 @@ export default function MonitorSettings() {
             </SectionCard>
           )}
 
-          {/* Inactive integrations */}
           {inactiveIntegrations.length > 0 && (
             <SectionCard title={`Desconectados (${inactiveIntegrations.length})`} icon={WifiOff} variant="warning">
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {inactiveIntegrations.map((integration: any) => (
                   <IntegrationRow
                     key={integration.id}
@@ -144,12 +143,12 @@ function IntegrationRow({
   const providerLabel = PROVIDER_LABELS[integration.provider] || integration.provider;
 
   return (
-    <div className="flex items-center justify-between gap-3 p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
+    <div className="flex items-center justify-between gap-3 p-4 rounded-xl border border-border/60 bg-card hover:shadow-sm transition-all">
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? "bg-success" : "bg-muted-foreground"}`} />
+        <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", isActive ? "bg-success" : "bg-muted-foreground")} />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">{providerLabel}</p>
-          <p className="text-2xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {integration.last_sync_at
               ? `Última sync ${formatDistanceToNow(new Date(integration.last_sync_at), { addSuffix: true, locale: ptBR })}`
               : "Nunca sincronizado"}
@@ -160,11 +159,11 @@ function IntegrationRow({
       <div className="flex items-center gap-2">
         <StatusBadge status={isActive ? "Conectado" : "Desconectado"} size="sm" />
         {isActive && (
-          <Button size="sm" variant="outline" onClick={onSync} disabled={isSyncing}>
-            <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+          <Button size="sm" variant="outline" onClick={onSync} disabled={isSyncing} className="h-7 w-7 p-0">
+            <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")} />
           </Button>
         )}
-        <Button size="sm" variant="ghost" onClick={onDisconnect} className="text-destructive hover:text-destructive">
+        <Button size="sm" variant="ghost" onClick={onDisconnect} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>

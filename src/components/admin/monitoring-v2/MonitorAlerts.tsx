@@ -7,12 +7,11 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Eye, Filter } from "lucide-react";
-import { listAlerts } from "@/services/monitoring/monitorService";
-import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
+import { AlertTriangle, Eye } from "lucide-react";
+import { listAlerts, listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import type { AlertSeverity } from "@/services/monitoring/monitorTypes";
+import { cn } from "@/lib/utils";
 
 const SEVERITY_LABELS: Record<string, string> = {
   critical: "Crítico",
@@ -60,34 +59,18 @@ export default function MonitorAlerts() {
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant={filterOpen === true ? "default" : "outline"}
-          onClick={() => setFilterOpen(filterOpen === true ? undefined : true)}
-          className="text-xs"
-        >
+      <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-muted/30 border border-border/50 w-fit">
+        <FilterPill active={filterOpen === true} onClick={() => setFilterOpen(filterOpen === true ? undefined : true)}>
           Abertos
-        </Button>
-        <Button
-          size="sm"
-          variant={filterOpen === false ? "default" : "outline"}
-          onClick={() => setFilterOpen(filterOpen === false ? undefined : false)}
-          className="text-xs"
-        >
+        </FilterPill>
+        <FilterPill active={filterOpen === false} onClick={() => setFilterOpen(filterOpen === false ? undefined : false)}>
           Fechados
-        </Button>
-        <div className="w-px h-6 bg-border self-center mx-1" />
+        </FilterPill>
+        <div className="w-px h-6 bg-border/60 self-center mx-1" />
         {(["all", "critical", "warn", "info"] as const).map((sev) => (
-          <Button
-            key={sev}
-            size="sm"
-            variant={filterSeverity === sev ? "default" : "outline"}
-            onClick={() => setFilterSeverity(sev)}
-            className="text-xs"
-          >
+          <FilterPill key={sev} active={filterSeverity === sev} onClick={() => setFilterSeverity(sev)}>
             {sev === "all" ? "Todas" : SEVERITY_LABELS[sev] || sev}
-          </Button>
+          </FilterPill>
         ))}
       </div>
 
@@ -102,7 +85,7 @@ export default function MonitorAlerts() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-muted-foreground text-xs">
+                <tr className="border-b border-border/60 text-muted-foreground text-xs">
                   <th className="text-left px-4 py-3 font-medium">Severidade</th>
                   <th className="text-left px-4 py-3 font-medium">Tipo</th>
                   <th className="text-left px-4 py-3 font-medium">Usina</th>
@@ -116,7 +99,7 @@ export default function MonitorAlerts() {
                 {alerts.map((alert) => {
                   const plant = plantMap.get(alert.plant_id);
                   return (
-                    <tr key={alert.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <tr key={alert.id} className="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3">
                         <StatusBadge status={SEVERITY_LABELS[alert.severity] || alert.severity} size="sm" />
                       </td>
@@ -140,6 +123,7 @@ export default function MonitorAlerts() {
                           size="sm"
                           variant="ghost"
                           onClick={() => navigate(`/admin/monitoramento/usinas/${alert.plant_id}`)}
+                          className="h-7 w-7 p-0"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
@@ -153,5 +137,21 @@ export default function MonitorAlerts() {
         </SectionCard>
       )}
     </div>
+  );
+}
+
+function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+        active
+          ? "bg-card text-foreground shadow-sm border border-border/60"
+          : "text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {children}
+    </button>
   );
 }
