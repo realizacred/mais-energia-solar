@@ -414,9 +414,18 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
   const hasSyncCapability = provider.capabilities?.sync_plants || provider.capabilities?.sync_deals;
   const isDisabled = isMonitoringStub || isComingSoon;
 
-  // Try real logo from /integrations/{id}.svg
-  const logoSrc = `/integrations/${provider.id}.svg`;
+  // Try real logo: .png first (most downloaded), then .svg fallback
+  const [logoSrc, setLogoSrc] = React.useState(`/integrations/${provider.id}.png`);
   const [logoError, setLogoError] = React.useState(false);
+
+  const handleLogoError = React.useCallback(() => {
+    if (logoSrc.endsWith('.png')) {
+      // Try SVG before giving up
+      setLogoSrc(`/integrations/${provider.id}.svg`);
+    } else {
+      setLogoError(true);
+    }
+  }, [logoSrc, provider.id]);
 
   return (
     <div
@@ -448,7 +457,7 @@ function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, o
             src={logoSrc}
             alt={provider.label}
             className="max-h-10 max-w-10 object-contain"
-            onError={() => setLogoError(true)}
+            onError={handleLogoError}
           />
         ) : (
           <Icon className={cn(
