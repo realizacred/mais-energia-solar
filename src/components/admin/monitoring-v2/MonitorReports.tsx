@@ -77,7 +77,7 @@ export default function MonitorReports() {
   const { data: prData = [] } = useQuery({
     queryKey: ["monitor-pr-report", plants.length, readings.length],
     queryFn: () => getPerformanceRatios(
-      plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp })),
+      plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp, latitude: (p as any).latitude ?? null, longitude: (p as any).longitude ?? null })),
       readings
     ),
     enabled: plants.length > 0 && readings.length > 0,
