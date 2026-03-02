@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu } from "lucide-react";
-import { getPlantDetail, listDevices, listAlerts, listDailyReadings } from "@/services/monitoring/monitorService";
+import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw } from "lucide-react";
+import { getPlantDetail, listDevices, listAlerts, listDailyReadings, syncPlantDevices } from "@/services/monitoring/monitorService";
+import { toast } from "sonner";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
 import { DeviceMpptSummary } from "./devices/DeviceMpptSummary";
@@ -42,7 +43,26 @@ const RANGE_DAYS: Record<TimeRange, number> = {
 export default function MonitorPlantDetail() {
   const { plantId } = useParams<{ plantId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [range, setRange] = useState<TimeRange>("30d");
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (!plantId || syncing) return;
+    setSyncing(true);
+    try {
+      await syncPlantDevices(plantId);
+      toast.success("Sincronização concluída");
+      queryClient.invalidateQueries({ queryKey: ["monitor-plant-detail", plantId] });
+      queryClient.invalidateQueries({ queryKey: ["monitor-devices", plantId] });
+      queryClient.invalidateQueries({ queryKey: ["monitor-readings", plantId] });
+      queryClient.invalidateQueries({ queryKey: ["monitor-alerts-plant", plantId] });
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao sincronizar");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const { data: plant, isLoading } = useQuery({
     queryKey: ["monitor-plant-detail", plantId],
@@ -90,6 +110,10 @@ export default function MonitorPlantDetail() {
             icon={Sun}
             actions={
               <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={handleSync} disabled={syncing} className="gap-1.5">
+                  <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
+                  {syncing ? "Sincronizando..." : "Sincronizar"}
+                </Button>
                 <div className={cn("h-2.5 w-2.5 rounded-full", STATUS_DOT[status])} />
                 <StatusBadge status={STATUS_LABELS[status]} />
                 {plant.health?.last_seen_at && (
