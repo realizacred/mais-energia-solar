@@ -299,6 +299,46 @@ export async function listDevices(plantId: string): Promise<MonitorDevice[]> {
   return [];
 }
 
+/**
+ * Trigger a manual sync for devices of a plant via the monitoring-sync edge function.
+ */
+export async function syncPlantDevices(plantId: string): Promise<void> {
+  // Resolve monitor_plant → integration
+  const { data: monitorPlant } = await supabase
+    .from("monitor_plants" as any)
+    .select("id, provider_id, legacy_plant_id")
+    .or(`id.eq.${plantId},legacy_plant_id.eq.${plantId}`)
+    .maybeSingle();
+
+  if (!monitorPlant) throw new Error("Usina não encontrada no monitoramento");
+
+  const mp = monitorPlant as any;
+
+  // Find integration for this provider
+  const { data: integration } = await supabase
+    .from("monitoring_integrations" as any)
+    .select("id, provider")
+    .eq("provider", mp.provider_id)
+    .maybeSingle();
+
+  if (!integration) throw new Error("Integração não encontrada para este provedor");
+
+  const int = integration as any;
+
+  const { error } = await supabase.functions.invoke("monitoring-sync", {
+    body: {
+      integrationId: int.id,
+      provider: int.provider,
+      mode: "full",
+    },
+  });
+
+  if (error) {
+    const parsed = await parseInvokeError(error);
+    throw new Error(parsed.message || "Erro ao sincronizar");
+  }
+}
+
 // ─── EVENTS / ALERTS ──────────────────────────────────────────
 
 export async function listAlerts(filters?: {

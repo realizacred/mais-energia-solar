@@ -1,22 +1,25 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Cpu, Zap, Activity, Thermometer, Clock } from "lucide-react";
-import { listDevices } from "@/services/monitoring/monitorService";
+import { ArrowLeft, Cpu, Zap, Activity, RefreshCw } from "lucide-react";
+import { listDevices, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { extractMpptData } from "./DeviceMpptSummary";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 export default function InverterDetailPage() {
   const { plantId, deviceId } = useParams<{ plantId: string; deviceId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [syncing, setSyncing] = React.useState(false);
 
   const { data: devices = [], isLoading } = useQuery({
     queryKey: ["monitor-devices", plantId],
@@ -41,6 +44,20 @@ export default function InverterDetailPage() {
   const ratedPower = Number(meta.power ?? meta.power1 ?? 0);
   const currentAcPower = Number(meta.pac ?? 0);
   const stationName = String(meta.stationName ?? "");
+  const isOffline = device.status !== "online";
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await syncPlantDevices(plantId!);
+      await queryClient.invalidateQueries({ queryKey: ["monitor-devices", plantId] });
+      toast({ title: "Dados atualizados", description: "Sincronização concluída com sucesso." });
+    } catch (err) {
+      toast({ title: "Erro ao sincronizar", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -61,6 +78,16 @@ export default function InverterDetailPage() {
             icon={Cpu}
             actions={
               <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
+                  {syncing ? "Atualizando..." : "Atualizar"}
+                </Button>
                 <StatusBadge
                   status={device.status === "online" ? "Online" : device.status === "offline" ? "Offline" : "Desconhecido"}
                 />
@@ -91,10 +118,16 @@ export default function InverterDetailPage() {
       <SectionCard title={`Canais MPPT / Strings (${data.channels.length})`} icon={Zap} variant="blue">
         {data.channels.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            Dados de string não disponíveis. O sync buscará Vpv/Ipv na próxima atualização.
+            Dados de string não disponíveis. Clique em "Atualizar" para buscar dados.
           </p>
         ) : (
           <div className="space-y-4">
+            {isOffline && (
+              <div className="rounded-lg bg-muted/30 border border-border/50 px-3 py-2 text-xs text-muted-foreground text-center">
+                ⚡ Inversor offline/noturno — valores de potência, tensão e corrente podem estar zerados.
+              </div>
+            )}
+
             {/* Header */}
             <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground font-medium px-1">
               <span>Canal</span>
@@ -104,9 +137,9 @@ export default function InverterDetailPage() {
             </div>
 
             {data.channels.map((ch) => {
-              // Try to get Vpv/Ipv from metadata if available
-              const vpv = Number(meta[`vpv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? 0);
-              const ipv = Number(meta[`ipv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? 0);
+              // Try multiple field name patterns for Vpv/Ipv
+              const vpv = Number(meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? 0);
+              const ipv = Number(meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? 0);
 
               return (
                 <div
@@ -125,13 +158,13 @@ export default function InverterDetailPage() {
                     "text-sm font-bold text-right",
                     ch.power_w > 0 ? "text-success" : "text-muted-foreground"
                   )}>
-                    {ch.power_w > 0 ? `${ch.power_w} W` : "—"}
+                    {`${ch.power_w} W`}
                   </span>
                   <span className="text-sm text-right text-foreground">
-                    {vpv > 0 ? `${vpv.toFixed(1)} V` : "—"}
+                    {vpv > 0 ? `${vpv.toFixed(1)} V` : "0 V"}
                   </span>
                   <span className="text-sm text-right text-foreground">
-                    {ipv > 0 ? `${ipv.toFixed(2)} A` : "—"}
+                    {ipv > 0 ? `${ipv.toFixed(2)} A` : "0 A"}
                   </span>
                 </div>
               );
@@ -140,7 +173,7 @@ export default function InverterDetailPage() {
             {/* Totals */}
             <div className="grid grid-cols-4 gap-2 items-center px-3 py-2.5 rounded-lg border-2 border-border font-semibold text-sm">
               <span>Total DC</span>
-              <span className="text-right text-success">{data.totalStringPower > 0 ? `${data.totalStringPower} W` : "—"}</span>
+              <span className="text-right text-success">{`${data.totalStringPower} W`}</span>
               <span className="text-right text-muted-foreground">
                 {data.maxPvVoltage ? `Vmáx ${data.maxPvVoltage.toFixed(1)} V` : "—"}
               </span>
