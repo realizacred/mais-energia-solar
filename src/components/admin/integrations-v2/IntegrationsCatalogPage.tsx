@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -30,6 +31,21 @@ import { IntegrationProviderCard } from "./IntegrationProviderCard";
 import { IntegrationProviderDrawer } from "./IntegrationProviderDrawer";
 import { cn } from "@/lib/utils";
 
+/**
+ * Providers that have dedicated configuration pages.
+ * When clicking "Configurar", redirect to these routes instead of opening the generic drawer.
+ */
+const DEDICATED_ROUTES: Record<string, string> = {
+  whatsapp_evolution: "/admin/wa-instances",
+  meta_facebook: "/admin/meta-facebook-config",
+  instagram_api: "/admin/instagram",
+  google_calendar: "/admin/integracoes",
+  webhooks_generic: "/admin/webhooks",
+  n8n_automation: "/admin/n8n",
+  asaas: "/admin/payment-gateway",
+  public_api: "/admin/openai-config",
+};
+
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
   Object.entries(LEGACY_ID_MAP).map(([legacy, canonical]) => [canonical, legacy])
 );
@@ -54,10 +70,21 @@ const CATEGORY_ORDER: IntegrationCategory[] = [
 
 export default function IntegrationsCatalogPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory | "all">("all");
   const [drawerProvider, setDrawerProvider] = useState<IntegrationProvider | null>(null);
+
+  /** Open dedicated page or generic drawer */
+  const handleConfigure = (provider: IntegrationProvider) => {
+    const route = DEDICATED_ROUTES[provider.id];
+    if (route) {
+      navigate(route);
+    } else {
+      setDrawerProvider(provider);
+    }
+  };
 
   const { data: dbProviders = [], isLoading: loadingProviders } = useQuery({
     queryKey: ["integration-providers"],
@@ -314,7 +341,7 @@ export default function IntegrationsCatalogPage() {
                   connStatus={getConnectionStatus(provider.id)}
                   plantCount={getPlantCount(provider.id)}
                   lastSync={getLastSync(provider.id)}
-                  onConfigure={() => setDrawerProvider(provider)}
+                  onConfigure={() => handleConfigure(provider)}
                   onSync={() => {
                     setSyncingProviderId(provider.id);
                     const mapped = CANONICAL_TO_LEGACY[provider.id] || provider.id;
