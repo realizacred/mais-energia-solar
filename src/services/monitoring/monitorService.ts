@@ -19,7 +19,7 @@ import type {
   MonitorDashboardStats,
 } from "./monitorTypes";
 import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "./types";
-import { derivePlantStatus } from "./plantStatusEngine";
+import { derivePlantStatus, getTodayBrasilia, getMonthStartBrasilia } from "./plantStatusEngine";
 
 /**
  * POWER_KW_TO_ENERGY_ESTIMATE_HOURS: Used ONLY as a rough multiplier
@@ -127,10 +127,8 @@ function legacyStatusToHealth(sp: SolarPlant, m?: SolarPlantMetricsDaily, monthK
 // ─── PLANTS + HEALTH (reads from legacy solar_plants) ─────────
 
 export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  const monthStartStr = monthStart.toISOString().slice(0, 10);
+  const today = getTodayBrasilia();
+  const monthStartStr = getMonthStartBrasilia();
 
   const [{ data: plants }, { data: todayMetrics }, { data: monthMetrics }] = await Promise.all([
     supabase.from("solar_plants" as any).select("*").order("name", { ascending: true }),
@@ -178,10 +176,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
   if (!plant) return null;
 
   const sp = plant as unknown as SolarPlant;
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  const monthStartStr = monthStart.toISOString().slice(0, 10);
+  const today = getTodayBrasilia();
+  const monthStartStr = getMonthStartBrasilia();
 
   // Fetch today's metric + month readings in parallel (using resolvedId for legacy table)
   const [{ data: metric }, { data: monthMetrics }] = await Promise.all([
@@ -224,10 +220,9 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
   const plants = await listPlantsWithHealth();
 
   // Compute monthly energy from readings (last 30 days)
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const readings = await listAllReadings(monthStart.toISOString().slice(0, 10), todayStr);
+  const monthStartStr = getMonthStartBrasilia();
+  const todayStr = getTodayBrasilia();
+  const readings = await listAllReadings(monthStartStr, todayStr);
 
   // Sum energy per plant, with power_kw fallback
   let totalMonthKwh = 0;
@@ -520,7 +515,7 @@ export async function listSolarPlants(): Promise<SolarPlant[]> {
 
 /** Fetch today's metrics for all solar plants (legacy table) */
 export async function getTodayMetrics(): Promise<SolarPlantMetricsDaily[]> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayBrasilia();
   const { data } = await supabase
     .from("solar_plant_metrics_daily" as any)
     .select("*")

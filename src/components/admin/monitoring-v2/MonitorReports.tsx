@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, BarChart3, Calendar, Sun } from "lucide-react";
 import { listPlantsWithHealth, listAllReadings } from "@/services/monitoring/monitorService";
+import { getTodayBrasilia, getDaysAgoBrasilia, formatDateBrasilia } from "@/services/monitoring/plantStatusEngine";
 import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorPRChart } from "./charts/MonitorPRChart";
@@ -28,30 +29,28 @@ const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
 
 function getDateRange(period: PeriodType): { start: string; end: string; label: string } {
   const now = new Date();
-  // For current periods, exclude today (incomplete readings distort PR)
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const endToday = now.toISOString().slice(0, 10);
-  const endYesterday = yesterday.toISOString().slice(0, 10);
+  const todayStr = getTodayBrasilia();
+  const yesterdayStr = getDaysAgoBrasilia(1);
 
   switch (period) {
     case "current_month": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      const safeEnd = endYesterday < start ? start : endYesterday;
+      const parts = todayStr.split("-");
+      const start = `${parts[0]}-${parts[1]}-01`;
+      const safeEnd = yesterdayStr < start ? start : yesterdayStr;
       return { start, end: safeEnd, label: `Mês Atual (${start} a ${safeEnd})` };
     }
     case "last_month": {
       const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const e = new Date(now.getFullYear(), now.getMonth(), 0);
-      return { start: s.toISOString().slice(0, 10), end: e.toISOString().slice(0, 10), label: `Mês Anterior` };
+      return { start: formatDateBrasilia(s), end: formatDateBrasilia(e), label: `Mês Anterior` };
     }
     case "last_3_months": {
       const s = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      return { start: s.toISOString().slice(0, 10), end: endYesterday, label: "Últimos 3 Meses" };
+      return { start: formatDateBrasilia(s), end: yesterdayStr, label: "Últimos 3 Meses" };
     }
     case "last_year": {
       const s = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-      return { start: s.toISOString().slice(0, 10), end: endYesterday, label: "Último Ano" };
+      return { start: formatDateBrasilia(s), end: yesterdayStr, label: "Último Ano" };
     }
   }
 }

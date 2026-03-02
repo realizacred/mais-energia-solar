@@ -34,7 +34,7 @@ const OFFLINE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 /**
  * Get current hour in America/Sao_Paulo timezone (BRT/BRST).
- * This is the SSOT for daylight/night checks across the monitoring system.
+ * SSOT for daylight/night checks across the monitoring system.
  */
 export function getBrasiliaHour(): number {
   return parseInt(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }), 10);
@@ -43,6 +43,39 @@ export function getBrasiliaHour(): number {
 export function isBrasiliaNight(): boolean {
   const hour = getBrasiliaHour();
   return hour >= 18 || hour < 6;
+}
+
+/**
+ * Get today's date string (YYYY-MM-DD) in America/Sao_Paulo timezone.
+ * SSOT — prevents UTC shift after 21h BRT (which is 00h+ UTC next day).
+ */
+export function getTodayBrasilia(): string {
+  const now = new Date();
+  return now.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // en-CA = YYYY-MM-DD
+}
+
+/**
+ * Get first day of current month (YYYY-MM-DD) in Brasilia timezone.
+ */
+export function getMonthStartBrasilia(): string {
+  const parts = getTodayBrasilia().split("-");
+  return `${parts[0]}-${parts[1]}-01`;
+}
+
+/**
+ * Get a date string N days ago in Brasilia timezone (YYYY-MM-DD).
+ */
+export function getDaysAgoBrasilia(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+}
+
+/**
+ * Format a Date to YYYY-MM-DD in Brasilia timezone.
+ */
+export function formatDateBrasilia(date: Date): string {
+  return date.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 }
 
 const POWER_THRESHOLD_KW = 0.05;

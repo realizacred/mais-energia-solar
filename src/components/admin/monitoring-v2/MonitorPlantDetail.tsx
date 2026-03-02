@@ -16,7 +16,7 @@ import { DeviceMpptSummary } from "./devices/DeviceMpptSummary";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { UI_STATUS_LABELS, UI_STATUS_DOT, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
+import { UI_STATUS_LABELS, UI_STATUS_DOT, getTodayBrasilia, getDaysAgoBrasilia, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
 
 function resolveUiStatus(raw: string | undefined): PlantUiStatus {
   if (raw === "online") return "online";
@@ -75,8 +75,8 @@ export default function MonitorPlantDetail() {
     enabled: !!plantId,
   });
 
-  const endDate = new Date().toISOString().slice(0, 10);
-  const startDate = new Date(Date.now() - RANGE_DAYS[range] * 86400000).toISOString().slice(0, 10);
+  const endDate = getTodayBrasilia();
+  const startDate = getDaysAgoBrasilia(RANGE_DAYS[range]);
 
   const { data: readings = [] } = useQuery({
     queryKey: ["monitor-readings", plantId, range],

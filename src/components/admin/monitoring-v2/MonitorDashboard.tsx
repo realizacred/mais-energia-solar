@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth, listIntegrations } from "@/services/monitoring/monitorService";
 import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
-import { isBrasiliaNight } from "@/services/monitoring/plantStatusEngine";
+import { isBrasiliaNight, getTodayBrasilia, getMonthStartBrasilia, getDaysAgoBrasilia } from "@/services/monitoring/plantStatusEngine";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
@@ -47,11 +47,11 @@ export default function MonitorDashboard() {
     queryFn: () => listAlerts({ isOpen: true }),
   });
 
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const todayBr = getTodayBrasilia();
+  const thirtyDaysAgoStr = getDaysAgoBrasilia(30);
   const { data: readings = [] } = useQuery({
     queryKey: ["monitor-readings-30d"],
-    queryFn: () => listAllReadings(thirtyDaysAgo.toISOString().slice(0, 10), new Date().toISOString().slice(0, 10)),
+    queryFn: () => listAllReadings(thirtyDaysAgoStr, todayBr),
   });
 
   const { data: financials } = useQuery({
@@ -60,14 +60,12 @@ export default function MonitorDashboard() {
     enabled: !!stats,
   });
 
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const prEndDate = yesterday < monthStart ? monthStart.toISOString().slice(0, 10) : yesterday.toISOString().slice(0, 10);
+  const monthStartStr = getMonthStartBrasilia();
+  const yesterdayStr = getDaysAgoBrasilia(1);
+  const prEndDate = yesterdayStr < monthStartStr ? monthStartStr : yesterdayStr;
   const { data: monthReadings = [] } = useQuery({
     queryKey: ["monitor-readings-month", prEndDate],
-    queryFn: () => listAllReadings(monthStart.toISOString().slice(0, 10), prEndDate),
+    queryFn: () => listAllReadings(monthStartStr, prEndDate),
   });
 
   const { data: prData = [] } = useQuery({
