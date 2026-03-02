@@ -188,20 +188,46 @@ export default function MonitorDashboard() {
           </div>
 
           {/* ═══════════════════════════════════════════════
-              🔴 BLOCO DE PRIORIDADE – ATENÇÃO AGORA
+              🔴 BLOCO DE PRIORIDADE
           ═══════════════════════════════════════════════ */}
           <PriorityAlertBlock alerts={openAlerts} onViewAlerts={() => navigate("/admin/monitoramento/alertas")} />
 
           {/* ═══════════════════════════════════════════════
-              📊 ÁREA ANALÍTICA – 2 COLUNAS
+              ⚡ FLUXO DE ENERGIA (compacto, logo após alertas)
+          ═══════════════════════════════════════════════ */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <SectionCard title="Fluxo de Energia" icon={Zap} variant="blue">
+              <EnergyFlowAnimation
+                currentPowerKw={estimatedCurrentPower}
+                isGenerating={isDaylight && isGenerating}
+              />
+            </SectionCard>
+
+            {avgLat && avgLng ? (
+              <SectionCard title="Previsão do Tempo" icon={CloudSun}>
+                <WeatherWidget lat={avgLat} lng={avgLng} />
+              </SectionCard>
+            ) : (
+              <SectionCard title="Previsão do Tempo" icon={CloudSun}>
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Adicione coordenadas às usinas para ver o clima.
+                </p>
+              </SectionCard>
+            )}
+          </div>
+
+          {/* ═══════════════════════════════════════════════
+              📊 GERAÇÃO 30 DIAS (full width – gráfico principal)
+          ═══════════════════════════════════════════════ */}
+          <SectionCard title="Geração — Últimos 30 dias" icon={BatteryCharging} variant="blue">
+            <MonitorGenerationChart readings={readings} />
+          </SectionCard>
+
+          {/* ═══════════════════════════════════════════════
+              📊 ÁREA 2 COLUNAS: Real vs Projetada + Status/Resumo
           ═══════════════════════════════════════════════ */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-            {/* ── Coluna Esquerda (3/5) ── */}
-            <div className="lg:col-span-3 space-y-5">
-              <SectionCard title="Geração — Últimos 30 dias" icon={BatteryCharging} variant="blue">
-                <MonitorGenerationChart readings={readings} />
-              </SectionCard>
-
+            <div className="lg:col-span-3">
               <SectionCard title="Geração Real vs Projetada" icon={BarChart3} variant="blue">
                 <MonitorGenerationVsEstimateChart
                   readings={readings}
@@ -211,13 +237,11 @@ export default function MonitorDashboard() {
               </SectionCard>
             </div>
 
-            {/* ── Coluna Direita (2/5) ── */}
             <div className="lg:col-span-2 space-y-5">
               <SectionCard title="Status das Usinas" icon={Activity}>
                 <MonitorStatusDonut stats={stats} />
               </SectionCard>
 
-              {/* Resumo Operacional */}
               <OperationalSummary
                 onlinePerc={Number(onlinePerc)}
                 alertCount={alertCount}
@@ -228,31 +252,8 @@ export default function MonitorDashboard() {
                 avgPR={avgPR}
                 financials={financials}
               />
-
-              {/* Previsão do Tempo */}
-              {avgLat && avgLng ? (
-                <SectionCard title="Previsão do Tempo" icon={CloudSun}>
-                  <WeatherWidget lat={avgLat} lng={avgLng} />
-                </SectionCard>
-              ) : (
-                <SectionCard title="Previsão do Tempo" icon={CloudSun}>
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    Adicione coordenadas às usinas para ver o clima.
-                  </p>
-                </SectionCard>
-              )}
             </div>
           </div>
-
-          {/* ═══════════════════════════════════════════════
-              ⚡ FLUXO DE ENERGIA
-          ═══════════════════════════════════════════════ */}
-          <SectionCard title="Fluxo de Energia" icon={Zap} variant="blue">
-            <EnergyFlowAnimation
-              currentPowerKw={estimatedCurrentPower}
-              isGenerating={isDaylight && isGenerating}
-            />
-          </SectionCard>
 
           {/* Maintenance Calendar */}
           {prData.length > 0 && (
