@@ -392,23 +392,44 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
 
 async function deyeMetrics(baseUrl: string, token: string, extId: string): Promise<DailyMetrics> {
   try {
-    // Only use /station/latest — /station/kpi does not exist in Deye Cloud API
+    // 1) /station/latest → real-time power (Watts)
     const latestJson = await deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) }).catch(() => null);
-
     const d = latestJson?.data || latestJson || {};
-
-    // generationPower is in WATTS — convert to kW
     const rawPower = d.generationPower != null ? Number(d.generationPower) : null;
     const powerKw = rawPower != null ? rawPower / 1000 : null;
 
-    const energy = d.generationToday ?? d.todayEnergy ?? d.eToday ?? null;
-    const totalEnergy = d.generationTotal ?? d.totalEnergy ?? d.eTotal ?? null;
+    // 2) /station/history granularity=2 (day) → daily energy
+    //    startAt = today, endAt = tomorrow (excluded) → returns today's kWh
+    const todayStr = new Date().toISOString().slice(0, 10); // yyyy-MM-dd
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    let energyToday: number | null = null;
+    let energyTotal: number | null = null;
+    try {
+      const histJson = await deyeFetch(baseUrl, token, "/station/history", {
+        stationId: Number(extId),
+        granularity: 2, // day
+        startAt: todayStr,
+        endAt: tomorrow,
+      });
+      const histData = histJson?.dataList || histJson?.data?.dataList || [];
+      if (Array.isArray(histData) && histData.length > 0) {
+        const todayEntry = histData[0];
+        energyToday = todayEntry?.generation != null ? Number(todayEntry.generation) :
+                      todayEntry?.generationValue != null ? Number(todayEntry.generationValue) :
+                      todayEntry?.energy != null ? Number(todayEntry.energy) : null;
+        energyTotal = todayEntry?.totalGeneration != null ? Number(todayEntry.totalGeneration) :
+                      todayEntry?.cumulativeGeneration != null ? Number(todayEntry.cumulativeGeneration) : null;
+      }
+      console.log(`[Deye] /station/history for ${extId}: energyToday=${energyToday}, keys=${histData.length > 0 ? Object.keys(histData[0]).join(",") : "empty"}`);
+    } catch (histErr) {
+      console.warn(`[Deye] /station/history failed for ${extId}: ${(histErr as Error).message}`);
+    }
 
     return {
       power_kw: powerKw,
-      energy_kwh: energy != null ? Number(energy) : null,
-      total_energy_kwh: totalEnergy != null ? Number(totalEnergy) : null,
-      metadata: d,
+      energy_kwh: energyToday,
+      total_energy_kwh: energyTotal,
+      metadata: { ...d, _historyEnergyToday: energyToday },
     };
   } catch (err) {
     console.error(`[Deye] Metrics FAILED for ${extId}: ${(err as Error).message}`);
