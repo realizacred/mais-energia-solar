@@ -81,6 +81,7 @@ const STATUS_MAP: Record<string, string> = {
   convertido: "success",
   done: "success",
   resolvido: "success",
+  online: "success",
 
   // Error
   inativo: "error",
@@ -97,6 +98,8 @@ const STATUS_MAP: Record<string, string> = {
   erro: "error",
   error: "error",
   failed: "error",
+  offline: "error",
+  sem_conexao: "error",
 
   // Warning
   pendente: "pending",

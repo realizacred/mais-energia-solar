@@ -175,7 +175,18 @@ export default function MonitorPlantDetail() {
                     <p className="text-sm font-medium text-foreground">{d.model || d.type}</p>
                     <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
                   </div>
-                  <StatusBadge status={d.status === "online" ? "Online" : d.status === "offline" ? "Offline" : "Desconhecido"} size="sm" />
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn(
+                      "h-2 w-2 rounded-full",
+                      d.status === "online" ? "bg-success" : d.status === "offline" ? "bg-destructive" : "bg-muted-foreground"
+                    )} />
+                    <span className={cn(
+                      "text-xs font-medium",
+                      d.status === "online" ? "text-success" : d.status === "offline" ? "text-destructive" : "text-muted-foreground"
+                    )}>
+                      {d.status === "online" ? "Online" : d.status === "offline" ? "Sem conexão" : "Desconhecido"}
+                    </span>
+                  </div>
                 </div>
                 {d.type === "inverter" && (
                   <div className="px-3 pb-3 border-t border-border/30 pt-2">
