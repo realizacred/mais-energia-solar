@@ -51,7 +51,7 @@ export function IntegrationProviderDrawer({
   const hasFields = fields.length > 0 && !isComingSoon;
 
   // Logo
-  const [logoSrc, setLogoSrc] = useState(`/integrations/${provider.id}.png`);
+  const [logoSrc, setLogoSrc] = useState(`/integrations/${provider.id}.svg`);
   const [logoError, setLogoError] = useState(false);
 
   // Pre-fill credentials
@@ -138,8 +138,8 @@ export function IntegrationProviderDrawer({
                   alt={provider.label}
                   className="max-h-9 max-w-9 object-contain"
                   onError={() => {
-                    if (logoSrc.endsWith(".png")) {
-                      setLogoSrc(`/integrations/${provider.id}.svg`);
+                    if (logoSrc.endsWith(".svg")) {
+                      setLogoSrc(`/integrations/${provider.id}.png`);
                     } else {
                       setLogoError(true);
                     }
