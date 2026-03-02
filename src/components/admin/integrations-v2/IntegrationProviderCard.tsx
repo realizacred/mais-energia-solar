@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ const CATEGORY_FALLBACK_ICONS: Record<IntegrationCategory, React.ElementType> = 
 };
 import { cn } from "@/lib/utils";
 import type { IntegrationProvider, ConnectionStatus } from "@/services/integrations/types";
+import { getProviderIconUrl } from "@/services/integrations/iconMap";
 
 interface Props {
   provider: IntegrationProvider;
@@ -77,25 +78,9 @@ export function IntegrationProviderCard({
   const isComingSoon = provider.status === "coming_soon";
   const isDisabled = isStub || isComingSoon;
 
-  // Logo resolution: try .svg → .png → base ID → fallback icon
-  const [logoSrc, setLogoSrc] = useState(`/integrations/${provider.id}.svg`);
-  const [logoError, setLogoError] = useState(false);
-
-  const handleLogoError = useCallback(() => {
-    if (logoSrc.endsWith(`${provider.id}.svg`)) {
-      setLogoSrc(`/integrations/${provider.id}.png`);
-    } else if (logoSrc.endsWith(".png")) {
-      // Try base ID (e.g. goodwe_sems → goodwe)
-      const base = provider.id.split("_")[0];
-      if (base !== provider.id) {
-        setLogoSrc(`/integrations/${base}.png`);
-      } else {
-        setLogoError(true);
-      }
-    } else {
-      setLogoError(true);
-    }
-  }, [logoSrc, provider.id]);
+  // Static icon resolution — instant, zero HTTP fallback
+  const iconUrl = getProviderIconUrl(provider.id);
+  const FallbackIcon = CATEGORY_FALLBACK_ICONS[provider.category] || Sun;
 
   return (
     <div
@@ -118,16 +103,14 @@ export function IntegrationProviderCard({
             ? "bg-emerald-500/10 group-hover:bg-emerald-500/15"
             : "bg-muted/50 group-hover:bg-muted/70",
         )}>
-          {!logoError ? (
+          {iconUrl ? (
             <img
-              src={logoSrc}
+              src={iconUrl}
               alt={provider.label}
               className="max-h-9 max-w-9 object-contain"
-              onError={handleLogoError}
-              loading="lazy"
             />
           ) : (
-            (() => { const F = CATEGORY_FALLBACK_ICONS[provider.category] || Sun; return <F className="h-6 w-6 text-muted-foreground" />; })()
+            <FallbackIcon className="h-6 w-6 text-muted-foreground" />
           )}
         </div>
         <StatusIndicator provider={provider} connStatus={connStatus} />
