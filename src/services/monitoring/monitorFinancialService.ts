@@ -102,7 +102,8 @@ export async function getPerformanceRatios(
 ): Promise<PlantPerformanceRatio[]> {
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysSoFar = now.getDate();
+  // Use only completed days — today is still in progress and readings may be 0
+  const daysSoFar = Math.max(1, now.getDate() - 1);
 
   // Fetch HSP for each unique location
   const hspCache = new Map<string, HspResult>();
