@@ -35,15 +35,17 @@ export default function InverterDetailPage() {
   const data = extractMpptData(device.metadata);
   const meta = device.metadata || {};
 
-  // Extract additional metadata fields
+  // Extract additional metadata fields — support multiple provider field names
   const firmware = String(meta.inverterSoftwareVersion ?? meta.firmwareVersion ?? "—");
-  const dataLogger = String(meta.collectorSn ?? meta.dataLoggerId ?? "—");
-  const lastUpdate = String(meta.dataTimestampStr ?? "");
+  const dataLogger = String(meta.collectorSn ?? meta.dataLoggerId ?? meta.deviceSn ?? "—");
+  const lastUpdate = String(meta.dataTimestampStr ?? (meta.collectionTime ? new Date(Number(meta.collectionTime) * 1000).toLocaleString("pt-BR") : "") ?? "");
   const acOutputType = Number(meta.acOutputType ?? -1);
   const phases = acOutputType === 0 ? "Monofásico" : acOutputType === 1 ? "Bifásico" : acOutputType === 2 ? "Trifásico" : "—";
-  const ratedPower = Number(meta.power ?? meta.power1 ?? 0);
-  const currentAcPower = Number(meta.pac ?? 0);
-  const stationName = String(meta.stationName ?? "");
+  // Deye: RatedPower is in watts, power is pre-converted to kW; Solis: power is already in kW
+  const ratedPower = Number(meta.power ?? 0) || Number(meta.RatedPower ?? 0) / 1000;
+  // Deye: pac is pre-converted to kW; also try raw TotalActiveACOutputPower (watts)
+  const currentAcPower = Number(meta.pac ?? 0) || Number(meta.TotalActiveACOutputPower ?? 0) / 1000;
+  const stationName = String(meta.stationName ?? meta.plantName ?? "");
   const isOffline = device.status !== "online";
 
   const handleSync = async () => {

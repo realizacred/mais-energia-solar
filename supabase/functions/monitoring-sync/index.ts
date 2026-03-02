@@ -525,10 +525,11 @@ async function deyeListDevices(baseUrl: string, token: string): Promise<{ statio
                 flatData[`ipv${i}`] = pvCurrent;
               }
               // Map other Deye fields to canonical names
+              // Confirmed field names from Deye API dataList: TotalActiveACOutputPower, DailyActiveProduction, TotalActiveProduction, RatedPower
               flatData.dcInputTypeMppt = mpptCount;
-              flatData.pac = Number(flatData["TotalACPower"] ?? flatData["AC Total Power"] ?? flatData["acTotalPower"] ?? flatData["totalActivePower"] ?? flatData["pac"] ?? 0) / 1000; // W → kW
-              flatData.etoday = Number(flatData["DailyGeneration"] ?? flatData["Day Energy"] ?? flatData["dayEnergy"] ?? flatData["Daily Generation"] ?? flatData["dailyGeneration"] ?? flatData["etoday"] ?? 0);
-              flatData.etotal = Number(flatData["TotalGeneration"] ?? flatData["Total Energy"] ?? flatData["totalEnergy"] ?? flatData["Total Generation"] ?? flatData["totalGeneration"] ?? flatData["etotal"] ?? 0);
+              flatData.pac = Number(flatData["TotalActiveACOutputPower"] ?? flatData["TotalACPower"] ?? flatData["AC Total Power"] ?? flatData["acTotalPower"] ?? flatData["pac"] ?? 0) / 1000; // W → kW
+              flatData.etoday = Number(flatData["DailyActiveProduction"] ?? flatData["DailyGeneration"] ?? flatData["Day Energy"] ?? flatData["dayEnergy"] ?? flatData["etoday"] ?? 0);
+              flatData.etotal = Number(flatData["TotalActiveProduction"] ?? flatData["TotalGeneration"] ?? flatData["Total Energy"] ?? flatData["totalEnergy"] ?? flatData["etotal"] ?? 0);
               flatData.power = Number(flatData["RatedPower"] ?? flatData["Rated Power"] ?? flatData["ratedPower"] ?? 0) / 1000; // W → kW
               flatData.machine = ld.productName || ld.deviceType || dev.model || "";
               dev.metadata = { ...dev.metadata, ...ld, ...flatData };
@@ -1913,9 +1914,10 @@ async function dispatchSync(
                       flatData[`ipv${i}`] = pvCurrent;
                     }
                     flatData.dcInputTypeMppt = mpptCount;
-                    flatData.pac = Number(flatData["TotalACPower"] ?? flatData["AC Total Power"] ?? flatData["acTotalPower"] ?? flatData["totalActivePower"] ?? 0) / 1000;
-                    flatData.etoday = Number(flatData["DailyGeneration"] ?? flatData["Day Energy"] ?? flatData["dayEnergy"] ?? flatData["Daily Generation"] ?? 0);
-                    flatData.etotal = Number(flatData["TotalGeneration"] ?? flatData["Total Energy"] ?? flatData["totalEnergy"] ?? flatData["Total Generation"] ?? 0);
+                    flatData.pac = Number(flatData["TotalActiveACOutputPower"] ?? flatData["TotalACPower"] ?? flatData["AC Total Power"] ?? 0) / 1000;
+                    flatData.etoday = Number(flatData["DailyActiveProduction"] ?? flatData["DailyGeneration"] ?? flatData["Day Energy"] ?? 0);
+                    flatData.etotal = Number(flatData["TotalActiveProduction"] ?? flatData["TotalGeneration"] ?? flatData["Total Energy"] ?? 0);
+                    flatData.power = Number(flatData["RatedPower"] ?? flatData["Rated Power"] ?? 0) / 1000;
                     flatData.machine = ld.productName || ld.deviceType || dev.model || "";
                     dev.metadata = { ...dev.metadata, ...ld, ...flatData };
                     console.log(`[Deye] Normalized device ${dev.serial}: mpptCount=${mpptCount}, pac=${flatData.pac}, etoday=${flatData.etoday}`);

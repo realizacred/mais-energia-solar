@@ -40,10 +40,10 @@ function extractMpptData(metadata: Record<string, unknown>): {
   const trimmed = channels.slice(0, Math.max(mpptCount, lastNonZero + 1));
 
   const totalStringPower = trimmed.reduce((s, c) => s + c.power_w, 0);
-  const acPower = Number(meta.pac ?? 0) * 1000; // pac is in kW
-  const energyToday = Number(meta.etoday ?? meta.etoday1 ?? 0);
-  const energyTotal = Number(meta.etotal ?? meta.etotal1 ?? 0);
-  const machineName = String(meta.machine ?? meta.productModel ?? "");
+  const acPower = (Number(meta.pac ?? 0) || Number(meta.TotalActiveACOutputPower ?? 0) / 1000) * 1000; // convert to watts
+  const energyToday = Number(meta.etoday ?? 0) || Number(meta.DailyActiveProduction ?? meta.etoday1 ?? 0);
+  const energyTotal = Number(meta.etotal ?? 0) || Number(meta.TotalActiveProduction ?? meta.etotal1 ?? 0);
+  const machineName = String(meta.machine ?? meta.productModel ?? meta.productName ?? "");
   const maxPvVoltage = meta.maxUpv ? Number(meta.maxUpv) : null;
 
   return { mpptCount, channels: trimmed, totalStringPower, acPower, energyToday, energyTotal, machineName, maxPvVoltage };
