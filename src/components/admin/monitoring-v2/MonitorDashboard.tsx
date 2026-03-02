@@ -1,15 +1,13 @@
 import React from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { Button } from "@/components/ui/button";
-import { Sun, Zap, AlertTriangle, WifiOff, Activity, Database, Gauge, BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3, CloudSun, Wrench } from "lucide-react";
+import { Sun, Zap, AlertTriangle, WifiOff, Activity, Gauge, BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3, CloudSun, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
-import { seedMonitorData, clearMonitorData } from "@/services/monitoring/mockSeedService";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
@@ -78,23 +76,6 @@ export default function MonitorDashboard() {
     enabled: plants.length > 0 && monthReadings.length > 0,
   });
 
-  const seedMutation = useMutation({
-    mutationFn: seedMonitorData,
-    onSuccess: (res) => {
-      toast.success(`Seed criado: ${res.plants} usinas, ${res.readings} leituras, ${res.events} eventos`);
-      refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const clearMutation = useMutation({
-    mutationFn: clearMonitorData,
-    onSuccess: () => {
-      toast.success("Dados mock removidos");
-      refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   if (isLoading) return <LoadingState message="Carregando dashboard..." />;
 
@@ -135,31 +116,13 @@ export default function MonitorDashboard() {
         title="Monitoramento Solar"
         description="Visão geral das usinas fotovoltaicas"
         icon={Sun}
-        actions={
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
-              <Database className="h-3.5 w-3.5 mr-1" />
-              {seedMutation.isPending ? "Criando..." : "Seed Demo"}
-            </Button>
-            {!isEmpty && (
-              <Button size="sm" variant="ghost" onClick={() => clearMutation.mutate()} disabled={clearMutation.isPending}>
-                Limpar Mock
-              </Button>
-            )}
-          </div>
-        }
       />
 
       {isEmpty ? (
         <EmptyState
           icon={Sun}
           title="Nenhuma usina cadastrada"
-          description="Conecte um provedor de monitoramento ou crie dados de demonstração para começar."
-          action={{
-            label: "Criar Dados Demo",
-            onClick: () => seedMutation.mutate(),
-            icon: Database,
-          }}
+          description="Conecte um provedor de monitoramento para começar."
         />
       ) : (
         <>
