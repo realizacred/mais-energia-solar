@@ -123,7 +123,8 @@ export default function MonitorDashboard() {
   const nextSync = lastSync ? addMinutes(lastSync, SYNC_INTERVAL_MIN) : null;
 
   return (
-    <div className="space-y-5">
+    // width-exception: monitoring dashboard max-width for alignment
+    <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-8 space-y-8">
       {/* ─── Header ─── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <PageHeader
@@ -132,7 +133,7 @@ export default function MonitorDashboard() {
           icon={Sun}
         />
         {lastSync && (
-          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-xl px-3 py-2 border border-border/60 shrink-0">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-2xl px-3 py-2 border border-border/60 shrink-0">
             <div className="flex items-center gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Sync: <strong className="text-foreground">{formatDistanceToNow(lastSync, { addSuffix: true, locale: ptBR })}</strong></span>
@@ -150,10 +151,8 @@ export default function MonitorDashboard() {
         <EmptyState icon={Sun} title="Nenhuma usina cadastrada" description="Conecte um provedor de monitoramento para começar." />
       ) : (
         <>
-          {/* ═══════════════════════════════════════════════
-              🔹 FAIXA SUPERIOR – 6 KPI CARDS
-          ═══════════════════════════════════════════════ */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* ═══ KPI ROW — 6 columns ═══ */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <EnterpriseKpi
               icon={Sun} label="Total Usinas" value={String(stats.total_plants)}
               onClick={() => navigate("/admin/monitoramento/usinas")}
@@ -187,15 +186,11 @@ export default function MonitorDashboard() {
             />
           </div>
 
-          {/* ═══════════════════════════════════════════════
-              🔴 BLOCO DE PRIORIDADE
-          ═══════════════════════════════════════════════ */}
+          {/* ═══ PRIORITY ALERT ═══ */}
           <PriorityAlertBlock alerts={openAlerts} onViewAlerts={() => navigate("/admin/monitoramento/alertas")} />
 
-          {/* ═══════════════════════════════════════════════
-              ⚡ FLUXO DE ENERGIA (compacto, logo após alertas)
-          ═══════════════════════════════════════════════ */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* ═══ 2-COL: Energy Flow + Weather ═══ */}
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
             <SectionCard title="Fluxo de Energia" icon={Zap} variant="blue">
               <EnergyFlowAnimation
                 currentPowerKw={estimatedCurrentPower}
@@ -216,28 +211,22 @@ export default function MonitorDashboard() {
             )}
           </div>
 
-          {/* ═══════════════════════════════════════════════
-              📊 GERAÇÃO 30 DIAS (full width – gráfico principal)
-          ═══════════════════════════════════════════════ */}
+          {/* ═══ GERAÇÃO 30 DIAS (full width) ═══ */}
           <SectionCard title="Geração — Últimos 30 dias" icon={BatteryCharging} variant="blue">
             <MonitorGenerationChart readings={readings} />
           </SectionCard>
 
-          {/* ═══════════════════════════════════════════════
-              📊 ÁREA 2 COLUNAS: Real vs Projetada + Status/Resumo
-          ═══════════════════════════════════════════════ */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-            <div className="lg:col-span-3">
-              <SectionCard title="Geração Real vs Projetada" icon={BarChart3} variant="blue">
-                <MonitorGenerationVsEstimateChart
-                  readings={readings}
-                  plants={plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp }))}
-                  hspKwhM2={prData?.[0]?.hsp_used ?? null}
-                />
-              </SectionCard>
-            </div>
+          {/* ═══ 2-COL: Real vs Projetada + Status/Resumo ═══ */}
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+            <SectionCard title="Geração Real vs Projetada" icon={BarChart3} variant="blue">
+              <MonitorGenerationVsEstimateChart
+                readings={readings}
+                plants={plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp }))}
+                hspKwhM2={prData?.[0]?.hsp_used ?? null}
+              />
+            </SectionCard>
 
-            <div className="lg:col-span-2 space-y-5">
+            <div className="space-y-6">
               <SectionCard title="Status das Usinas" icon={Activity}>
                 <MonitorStatusDonut stats={stats} />
               </SectionCard>
@@ -255,7 +244,7 @@ export default function MonitorDashboard() {
             </div>
           </div>
 
-          {/* Maintenance Calendar */}
+          {/* ═══ MAINTENANCE ═══ */}
           {prData.length > 0 && (
             <SectionCard title="Manutenção & Limpeza" icon={Wrench} variant="warning">
               <MaintenanceCalendar prData={prData} plants={plants} />
@@ -297,10 +286,9 @@ function EnterpriseKpi({ icon: Icon, label, value, subtitle, accentColor = "mute
     <div
       onClick={onClick}
       className={cn(
-        "relative rounded-2xl border bg-card p-4 transition-all duration-200",
+        "relative rounded-2xl border bg-card p-6 transition-all duration-200 shadow-sm",
         highlight ? a.borderHighlight : "border-border/50",
         onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
-        "hover:shadow-sm"
       )}
     >
       <div className="flex items-start justify-between gap-2">
