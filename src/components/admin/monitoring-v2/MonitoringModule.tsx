@@ -2,7 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { LayoutDashboard, Sun, AlertTriangle, FileText, Plug, DollarSign, BookOpen } from "lucide-react";
+import { LayoutDashboard, Sun, AlertTriangle, FileText, Plug, DollarSign, BookOpen, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MonitorDashboard = lazy(() => import("./MonitorDashboard"));
@@ -14,10 +14,12 @@ const MonitorReports = lazy(() => import("./MonitorReports"));
 const MonitorSettings = lazy(() => import("./MonitorSettings"));
 const MonitorBilling = lazy(() => import("./MonitorBilling"));
 const MonitorAlertsTutorial = lazy(() => import("./MonitorAlertsTutorial"));
+const MonitorMpptStrings = lazy(() => import("./MonitorMpptStrings"));
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "" },
   { key: "usinas", label: "Usinas", icon: Sun, path: "usinas" },
+  { key: "mppt-strings", label: "MPPT & Strings", icon: Cpu, path: "mppt-strings" },
   { key: "alertas", label: "Alertas", icon: AlertTriangle, path: "alertas" },
   { key: "relatorios", label: "Relatórios", icon: FileText, path: "relatorios" },
   { key: "cobrancas", label: "Cobranças", icon: DollarSign, path: "cobrancas" },
@@ -73,6 +75,7 @@ export default function MonitoringModule() {
           <Route path="usinas" element={<MonitorPlants />} />
           <Route path="usinas/:plantId" element={<MonitorPlantDetail />} />
           <Route path="usinas/:plantId/inversor/:deviceId" element={<InverterDetailPage />} />
+          <Route path="mppt-strings" element={<MonitorMpptStrings />} />
           <Route path="alertas" element={<MonitorAlerts />} />
           <Route path="relatorios" element={<MonitorReports />} />
           <Route path="cobrancas" element={<MonitorBilling />} />

@@ -7665,6 +7665,209 @@ export type Database = {
         }
         Relationships: []
       }
+      monitor_string_alerts: {
+        Row: {
+          alert_type: string
+          context: Json | null
+          created_at: string
+          detected_at: string
+          device_id: string
+          id: string
+          message: string | null
+          plant_id: string
+          registry_id: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          context?: Json | null
+          created_at?: string
+          detected_at?: string
+          device_id: string
+          id?: string
+          message?: string | null
+          plant_id: string
+          registry_id?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          context?: Json | null
+          created_at?: string
+          detected_at?: string
+          device_id?: string
+          id?: string
+          message?: string | null
+          plant_id?: string
+          registry_id?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_string_alerts_registry_id_fkey"
+            columns: ["registry_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_string_registry"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_string_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_string_metrics: {
+        Row: {
+          created_at: string
+          current_a: number | null
+          device_id: string
+          generating: boolean | null
+          id: string
+          metadata: Json | null
+          online: boolean | null
+          plant_id: string
+          power_w: number | null
+          registry_id: string
+          tenant_id: string
+          ts: string
+          voltage_v: number | null
+        }
+        Insert: {
+          created_at?: string
+          current_a?: number | null
+          device_id: string
+          generating?: boolean | null
+          id?: string
+          metadata?: Json | null
+          online?: boolean | null
+          plant_id: string
+          power_w?: number | null
+          registry_id: string
+          tenant_id: string
+          ts?: string
+          voltage_v?: number | null
+        }
+        Update: {
+          created_at?: string
+          current_a?: number | null
+          device_id?: string
+          generating?: boolean | null
+          id?: string
+          metadata?: Json | null
+          online?: boolean | null
+          plant_id?: string
+          power_w?: number | null
+          registry_id?: string
+          tenant_id?: string
+          ts?: string
+          voltage_v?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_string_metrics_registry_id_fkey"
+            columns: ["registry_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_string_registry"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_string_metrics_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_string_registry: {
+        Row: {
+          baseline_day: string | null
+          baseline_power_avg_w: number | null
+          baseline_power_p50_w: number | null
+          baseline_power_p90_w: number | null
+          created_at: string
+          device_id: string
+          first_seen_at: string
+          granularity: string
+          id: string
+          inverter_serial: string | null
+          is_active: boolean
+          last_seen_at: string
+          metadata: Json | null
+          mppt_number: number | null
+          plant_id: string
+          provider_id: string | null
+          string_number: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          baseline_day?: string | null
+          baseline_power_avg_w?: number | null
+          baseline_power_p50_w?: number | null
+          baseline_power_p90_w?: number | null
+          created_at?: string
+          device_id: string
+          first_seen_at?: string
+          granularity?: string
+          id?: string
+          inverter_serial?: string | null
+          is_active?: boolean
+          last_seen_at?: string
+          metadata?: Json | null
+          mppt_number?: number | null
+          plant_id: string
+          provider_id?: string | null
+          string_number?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          baseline_day?: string | null
+          baseline_power_avg_w?: number | null
+          baseline_power_p50_w?: number | null
+          baseline_power_p90_w?: number | null
+          created_at?: string
+          device_id?: string
+          first_seen_at?: string
+          granularity?: string
+          id?: string
+          inverter_serial?: string | null
+          is_active?: boolean
+          last_seen_at?: string
+          metadata?: Json | null
+          mppt_number?: number | null
+          plant_id?: string
+          provider_id?: string | null
+          string_number?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_string_registry_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monitor_subscriptions: {
         Row: {
           billing_cycle: string

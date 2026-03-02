@@ -1661,6 +1661,39 @@ async function syncPlantsByProvider(
     } catch (err) { console.warn(`[Sync] Alarms fetch failed (non-blocking): ${(err as Error).message}`); }
   }
 
+  // ── POST-SYNC HOOK: MPPT/String processing (additive, non-blocking) ──
+  // Fires only if feature_mppt_string_monitoring is enabled for this tenant.
+  // Does NOT alter any existing behavior — all processing is in a separate Edge Function.
+  try {
+    // Collect all monitor_plants.id that were synced
+    const { data: syncedPlants } = await ctx.supabaseAdmin
+      .from("monitor_plants")
+      .select("id")
+      .eq("tenant_id", ctx.tenantId)
+      .eq("provider_id", ctx.provider);
+    
+    const plantIdsForHook = (syncedPlants || []).map((p: any) => p.id);
+    
+    if (plantIdsForHook.length > 0) {
+      // Non-blocking: fire and forget — errors here MUST NOT affect sync result
+      fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/mppt-string-engine`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          action: "process_sync",
+          tenant_id: ctx.tenantId,
+          plant_ids: plantIdsForHook,
+        }),
+      }).catch((e) => console.warn(`[Sync] MPPT hook fire-and-forget error: ${e.message}`));
+    }
+  } catch (hookErr) {
+    // Absolutely non-blocking — never break the sync
+    console.warn(`[Sync] MPPT hook error (non-blocking): ${(hookErr as Error).message}`);
+  }
+
   return { plantsUpserted, metricsUpserted, errors, errorCategories };
 }
 
