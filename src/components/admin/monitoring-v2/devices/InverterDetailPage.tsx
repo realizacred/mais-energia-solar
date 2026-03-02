@@ -137,9 +137,9 @@ export default function InverterDetailPage() {
             </div>
 
             {data.channels.map((ch) => {
-              // Try multiple field name patterns for Vpv/Ipv
-              const vpv = Number(meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? 0);
-              const ipv = Number(meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? 0);
+              // Try multiple field name patterns for Vpv/Ipv (Solis: vpv1/ipv1, Growatt: vpv1/ipv1, legacy: uPv1/iPv1)
+              const vpv = Number(meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? meta[`Vpv${ch.index}`] ?? 0);
+              const ipv = Number(meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? meta[`Ipv${ch.index}`] ?? 0);
 
               return (
                 <div

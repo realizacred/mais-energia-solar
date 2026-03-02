@@ -95,8 +95,8 @@ export interface ProviderAdapter {
   /** Fetch daily metrics for one plant */
   fetchMetrics(auth: AuthResult, externalPlantId: string): Promise<DailyMetrics>;
 
-  /** List devices per plant (optional) */
-  fetchDevices?(auth: AuthResult): Promise<NormalizedDeviceGroup[]>;
+  /** List devices per plant (optional). options.detailSns limits expensive per-device API calls. */
+  fetchDevices?(auth: AuthResult, options?: { detailSns?: string[] }): Promise<NormalizedDeviceGroup[]>;
 
   /** List alarms (optional) */
   fetchAlarms?(auth: AuthResult): Promise<NormalizedAlarm[]>;
