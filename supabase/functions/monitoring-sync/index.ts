@@ -1755,8 +1755,16 @@ async function dispatchSync(
 
 const CRON_SECRET = "7fK29sLmQx9!pR8zT2vW4yA6cD";
 
-async function handleCron(supabaseAdmin: ReturnType<typeof createClient>): Promise<Response> {
-  console.log("[monitoring-sync] CRON mode: syncing all connected integrations");
+async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?: Record<string, unknown>): Promise<Response> {
+  const cronMode = (body?.mode as string) || "full";
+  const isConsolidation = cronMode === "consolidation";
+
+  // Determine if it's nighttime in Brazil (BRT = UTC-3)
+  const nowUtc = new Date();
+  const brtHour = (nowUtc.getUTCHours() - 3 + 24) % 24;
+  const isNighttime = brtHour < 5 || brtHour >= 20; // 20h-5h BRT = night
+
+  console.log(`[monitoring-sync] CRON mode=${cronMode} brtHour=${brtHour} isNight=${isNighttime} isConsolidation=${isConsolidation}`);
 
   const { data: integrations } = await supabaseAdmin
     .from("monitoring_integrations")
@@ -1786,31 +1794,44 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>): Promi
         integrationId: int.id,
       };
 
-      let result: { plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] };
-      result = await dispatchSync(ctx, provider, tokens, credentials, null, "full", int, supabaseAdmin);
+      // At night or consolidation: only sync metrics (don't update plant status)
+      const syncMode = (isNighttime || isConsolidation) ? "metrics" : "full";
 
-      // Update integration status
-      const newStatus = result.errors.length > 0 ? "error" : "connected";
-      await supabaseAdmin.from("monitoring_integrations").update({
-        last_sync_at: new Date().toISOString(),
-        status: newStatus,
-        sync_error: result.errors.length > 0 ? result.errors.join("; ").slice(0, 500) : null,
-        updated_at: new Date().toISOString(),
-      }).eq("id", int.id);
+      let result: { plantsUpserted: number; metricsUpserted: number; errors: string[]; discoveredPlants?: NormalizedPlant[] };
+      result = await dispatchSync(ctx, provider, tokens, credentials, null, syncMode, int, supabaseAdmin);
+
+      // Don't change integration status during nighttime/consolidation syncs
+      if (!isNighttime && !isConsolidation) {
+        const newStatus = result.errors.length > 0 ? "error" : "connected";
+        await supabaseAdmin.from("monitoring_integrations").update({
+          last_sync_at: new Date().toISOString(),
+          status: newStatus,
+          sync_error: result.errors.length > 0 ? result.errors.join("; ").slice(0, 500) : null,
+          updated_at: new Date().toISOString(),
+        }).eq("id", int.id);
+      } else {
+        // Only update last_sync_at, preserve current status
+        await supabaseAdmin.from("monitoring_integrations").update({
+          last_sync_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq("id", int.id);
+      }
 
       results.push({ provider, plants_synced: result.plantsUpserted, metrics_synced: result.metricsUpserted, errors: result.errors });
     } catch (err) {
       console.error(`[monitoring-sync] CRON error for ${provider}:`, err);
       results.push({ provider, plants_synced: 0, metrics_synced: 0, errors: [(err as Error).message] });
-      await supabaseAdmin.from("monitoring_integrations").update({
-        status: "error",
-        sync_error: (err as Error).message?.slice(0, 500),
-        updated_at: new Date().toISOString(),
-      }).eq("id", int.id);
+      if (!isNighttime && !isConsolidation) {
+        await supabaseAdmin.from("monitoring_integrations").update({
+          status: "error",
+          sync_error: (err as Error).message?.slice(0, 500),
+          updated_at: new Date().toISOString(),
+        }).eq("id", int.id);
+      }
     }
   }
 
-  console.log(`[monitoring-sync] CRON done: ${results.length} providers synced`);
+  console.log(`[monitoring-sync] CRON done: ${results.length} providers synced (mode=${cronMode}, night=${isNighttime})`);
   return jsonResponse({ success: true, results });
 }
 
@@ -1827,7 +1848,9 @@ serve(async (req) => {
     // ── CRON MODE: x-cron-secret header bypasses user auth ──
     const cronSecret = req.headers.get("x-cron-secret");
     if (cronSecret === CRON_SECRET) {
-      return await handleCron(supabaseAdmin);
+      let cronBody: Record<string, unknown> = {};
+      try { cronBody = await req.json(); } catch { /* empty body is fine */ }
+      return await handleCron(supabaseAdmin, cronBody);
     }
 
     const authHeader = req.headers.get("Authorization");
