@@ -77,6 +77,16 @@ function mapCategoria(itemType: string): string {
 
 // ─── Public API ───────────────────────────────────────────
 
+export interface CatalogKitSummary {
+  moduloDescricao: string;
+  moduloQtd: number;
+  moduloPotenciaKwp: number;
+  inversorDescricao: string;
+  inversorQtd: number;
+  inversorPotenciaKw: number;
+  totalItens: number;
+}
+
 /**
  * Lista kits ativos do tenant (RLS filtra automaticamente).
  */
@@ -89,6 +99,71 @@ export async function fetchActiveKits(): Promise<CatalogKit[]> {
 
   if (error) throw new Error(`Erro ao buscar kits: ${error.message}`);
   return data ?? [];
+}
+
+/**
+ * Fetch summary info (module/inverter descriptions, quantities) for a set of catalog kits.
+ */
+export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, CatalogKitSummary>> {
+  if (kitIds.length === 0) return new Map();
+
+  const { data: items, error } = await supabase
+    .from("solar_kit_catalog_items")
+    .select("kit_id, item_type, ref_id, description, quantity")
+    .in("kit_id", kitIds);
+
+  if (error || !items) return new Map();
+
+  // Collect ref_ids for lookups
+  const moduloRefIds = items.filter(i => i.item_type === "modulo" && i.ref_id).map(i => i.ref_id!);
+  const inversorRefIds = items.filter(i => i.item_type === "inversor" && i.ref_id).map(i => i.ref_id!);
+
+  const [modulos, inversores] = await Promise.all([
+    moduloRefIds.length > 0 ? lookupModulos(moduloRefIds) : Promise.resolve(new Map<string, ModuloRef>()),
+    inversorRefIds.length > 0 ? lookupInversores(inversorRefIds) : Promise.resolve(new Map<string, InversorRef>()),
+  ]);
+
+  const result = new Map<string, CatalogKitSummary>();
+
+  for (const kitId of kitIds) {
+    const kitItems = items.filter(i => i.kit_id === kitId);
+    const modItem = kitItems.find(i => i.item_type === "modulo");
+    const invItem = kitItems.find(i => i.item_type === "inversor");
+
+    let moduloDescricao = modItem?.description || "—";
+    let moduloPotWp = 0;
+    if (modItem?.ref_id) {
+      const ref = modulos.get(modItem.ref_id);
+      if (ref) {
+        moduloDescricao = `${ref.fabricante} ${ref.modelo} ${ref.potencia_wp}W`;
+        moduloPotWp = ref.potencia_wp;
+      }
+    }
+
+    let inversorDescricao = invItem?.description || "—";
+    let inversorPotKw = 0;
+    if (invItem?.ref_id) {
+      const ref = inversores.get(invItem.ref_id);
+      if (ref) {
+        inversorDescricao = `${ref.fabricante} ${ref.modelo}`;
+        inversorPotKw = ref.potencia_nominal_kw;
+      }
+    }
+
+    const moduloQtd = modItem?.quantity || 0;
+
+    result.set(kitId, {
+      moduloDescricao,
+      moduloQtd,
+      moduloPotenciaKwp: (moduloQtd * moduloPotWp) / 1000,
+      inversorDescricao,
+      inversorQtd: invItem?.quantity || 0,
+      inversorPotenciaKw: inversorPotKw * (invItem?.quantity || 1),
+      totalItens: kitItems.length,
+    });
+  }
+
+  return result;
 }
 
 /**
