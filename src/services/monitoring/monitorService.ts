@@ -111,11 +111,26 @@ function legacyStatusToHealth(sp: SolarPlant, m?: SolarPlantMetricsDaily, monthK
     energyToday = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // approximate daily generation (NOT HSP for PR)
   }
 
+  // Smart status: if the raw status says "offline" but the plant has recent data
+  // (updated_at within 12h) or has generated energy this month, consider it "online"
+  // This prevents nighttime standby from being shown as offline.
+  let derivedStatus = statusMap[sp.status] || "unknown";
+  if (derivedStatus === "offline") {
+    const updatedAt = sp.updated_at ? new Date(sp.updated_at).getTime() : 0;
+    const twelveHoursAgo = Date.now() - 12 * 3600 * 1000;
+    const hasRecentUpdate = updatedAt > twelveHoursAgo;
+    const hasMonthGeneration = (monthKwh ?? 0) > 0;
+
+    if (hasRecentUpdate || hasMonthGeneration) {
+      derivedStatus = "online"; // nighttime standby, not a real fault
+    }
+  }
+
   return {
     id: sp.id,
     tenant_id: sp.tenant_id,
     plant_id: sp.id,
-    status: statusMap[sp.status] || "unknown",
+    status: derivedStatus,
     last_seen_at: sp.updated_at,
     energy_today_kwh: energyToday,
     energy_month_kwh: monthKwh ?? energyToday, // use month total if provided, else today
