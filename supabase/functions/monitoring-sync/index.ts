@@ -353,11 +353,17 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
   const plants: NormalizedPlant[] = [];
   let page = 1;
   const PAGE_SIZE = 50; // Deye API docs specify max 50
+  console.log(`[Deye] Listing plants page=${page} baseUrl=${baseUrl}`);
   while (true) {
+    const t0 = Date.now();
     const json = await deyeFetch(baseUrl, token, "/station/list", { page, size: PAGE_SIZE });
+    console.log(`[Deye] /station/list page=${page} took ${Date.now() - t0}ms, keys=${Object.keys(json || {}).join(",")}`);
     // Deye v2: stationList and total are at top level
     const list = json.stationList || json.data?.stationList || [];
-    if (!Array.isArray(list) || !list.length) break;
+    if (!Array.isArray(list) || !list.length) {
+      console.log(`[Deye] /station/list page=${page} returned empty list, stopping`);
+      break;
+    }
     for (const r of list) {
       const connStatus = r.connectionStatus as string || "";
       let status = "unknown";
@@ -373,12 +379,14 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
         status, metadata: r,
       });
     }
+    console.log(`[Deye] Page ${page}: ${list.length} plants found, total so far: ${plants.length}`);
     const total = json.total || json.data?.total || 0;
     if (page * PAGE_SIZE >= Number(total)) break;
     page++;
     // Small delay between pages to avoid rate limiting
     await new Promise(r => setTimeout(r, 300));
   }
+  console.log(`[Deye] Total plants listed: ${plants.length}`);
   return plants;
 }
 
@@ -1414,8 +1422,9 @@ async function syncPlantsByProvider(
     }
     const { data: dbPlants } = await dbPlantsQuery;
     const metricsStartTime = Date.now();
-    // Per-provider budget: cap at 30s per provider to ensure all providers get processed
-    const METRICS_TIME_BUDGET_MS = 30_000;
+    // Per-provider budget: 30s when sharing with others, 90s when syncing a single provider
+    const isSingleProviderRun = ctx.provider === (globalThis as any).__singleProviderFilter;
+    const METRICS_TIME_BUDGET_MS = isSingleProviderRun ? 90_000 : 30_000;
     const CONCURRENCY = 3; // Process 3 plants in parallel
 
     // Process metrics in concurrent batches
@@ -1742,8 +1751,8 @@ async function dispatchSync(
     // We MUST call /station/latest per plant for energy data.
     // For bulk: sequential with delay to stay lightweight and avoid API overload.
     const metricsFn = async (extId: string): Promise<DailyMetrics> => {
-      // Small delay between metric calls to avoid rate limiting
-      await new Promise(r => setTimeout(r, 200));
+      // Small delay between metric calls to avoid rate limiting (100ms is enough for Deye)
+      await new Promise(r => setTimeout(r, 100));
       return await deyeMetrics(baseUrl, at, extId);
     };
 
@@ -1951,13 +1960,14 @@ const CRON_SECRET = "7fK29sLmQx9!pR8zT2vW4yA6cD";
 async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?: Record<string, unknown>): Promise<Response> {
   const cronMode = (body?.mode as string) || "full";
   const isConsolidation = cronMode === "consolidation";
+  const filterProvider = body?.provider as string | undefined; // Optional: sync only one provider
 
   // Determine if it's nighttime in Brazil (BRT = UTC-3)
   const nowUtc = new Date();
   const brtHour = (nowUtc.getUTCHours() - 3 + 24) % 24;
   const isNighttime = brtHour < 5 || brtHour >= 20; // 20h-5h BRT = night
 
-  console.log(`[monitoring-sync] CRON mode=${cronMode} brtHour=${brtHour} isNight=${isNighttime} isConsolidation=${isConsolidation}`);
+  console.log(`[monitoring-sync] CRON mode=${cronMode} brtHour=${brtHour} isNight=${isNighttime} isConsolidation=${isConsolidation} filterProvider=${filterProvider || 'all'}`);
 
   const { data: integrations } = await supabaseAdmin
     .from("monitoring_integrations")
@@ -1970,8 +1980,15 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
 
   const results: { provider: string; plants_synced: number; metrics_synced: number; errors: string[] }[] = [];
 
-  // Filter to implementable providers
-  const syncableIntegrations = integrations.filter(int => SYNC_IMPLEMENTED.has(int.provider));
+  // Filter to implementable providers, and optionally to a single provider
+  let syncableIntegrations = integrations.filter(int => SYNC_IMPLEMENTED.has(int.provider));
+  if (filterProvider) {
+    syncableIntegrations = syncableIntegrations.filter(int => int.provider === filterProvider);
+    (globalThis as any).__singleProviderFilter = filterProvider;
+    console.log(`[monitoring-sync] Filtered to provider=${filterProvider}, ${syncableIntegrations.length} integration(s)`);
+  } else {
+    (globalThis as any).__singleProviderFilter = null;
+  }
 
   // Process ALL providers in parallel so no single provider blocks the others
   const settledResults = await Promise.allSettled(syncableIntegrations.map(async (int) => {
