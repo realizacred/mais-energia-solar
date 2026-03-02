@@ -97,7 +97,7 @@ export default function MonitorDashboard() {
   const totalPowerMwp = plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) / 1000;
   const totalEnergyTodayMwh = (stats?.energy_today_kwh || 0) / 1000;
   const totalEnergyMonthMwh = (stats?.energy_month_kwh || 0) / 1000;
-  const onlinePerc = stats?.total_plants ? ((stats.plants_online / stats.total_plants) * 100).toFixed(0) : "0";
+  const onlinePerc = stats?.total_plants ? (((stats.plants_online + (stats.plants_standby || 0)) / stats.total_plants) * 100).toFixed(0) : "0";
 
   // PR average (only plants with valid PR)
   const validPr = prData.filter((p) => p.pr_status === "ok" && p.pr_percent != null);
@@ -172,18 +172,18 @@ export default function MonitorDashboard() {
             />
             <KpiCard
               label="Online"
-              value={String(stats.plants_online)}
-              subtitle={`${onlinePerc}%`}
+              value={String(stats.plants_online + (stats.plants_standby || 0))}
+              subtitle={`${onlinePerc}% (${stats.plants_standby || 0} standby)`}
               icon={Activity}
               color="success"
               onClick={() => navigate("/admin/monitoramento/usinas?status=online")}
             />
             <KpiCard
-              label="Com Alerta"
-              value={String(stats.plants_alert)}
-              icon={AlertTriangle}
+              label="Standby"
+              value={String(stats.plants_standby || 0)}
+              icon={Activity}
               color="warning"
-              onClick={() => navigate("/admin/monitoramento/usinas?status=alert")}
+              onClick={() => navigate("/admin/monitoramento/usinas?status=standby")}
             />
             <KpiCard
               label="Offline"

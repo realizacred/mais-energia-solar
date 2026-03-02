@@ -10,40 +10,20 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sun, Search, MapPin, List, Zap, Activity, Filter } from "lucide-react";
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
-import type { PlantWithHealth, MonitorPlantStatus } from "@/services/monitoring/monitorTypes";
+import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
+import type { PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
+import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS } from "@/services/monitoring/plantStatusEngine";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MonitorPlantsMap } from "./MonitorPlantsMap";
 import { cn } from "@/lib/utils";
 
-const STATUS_LABELS: Record<MonitorPlantStatus, string> = {
-  online: "Online",
-  alert: "Alerta",
-  offline: "Offline",
-  unknown: "Sem dados",
-};
-
-const STATUS_DOT: Record<MonitorPlantStatus, string> = {
-  online: "bg-success",
-  alert: "bg-warning",
-  offline: "bg-destructive",
-  unknown: "bg-muted-foreground",
-};
-
-const FILTER_CHIPS: { key: MonitorPlantStatus | "all"; label: string }[] = [
-  { key: "all", label: "Todas" },
-  { key: "online", label: "Online" },
-  { key: "alert", label: "Alerta" },
-  { key: "offline", label: "Offline" },
-  { key: "unknown", label: "Sem dados" },
-];
-
 export default function MonitorPlants() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const initialFilter = (searchParams.get("status") || "all") as MonitorPlantStatus | "all";
+  const initialFilter = (searchParams.get("status") || "all") as PlantUiStatus | "all";
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<MonitorPlantStatus | "all">(initialFilter);
+  const [statusFilter, setStatusFilter] = useState<PlantUiStatus | "all">(initialFilter);
   const [brandFilter, setBrandFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"split" | "list" | "map">("split");
 
@@ -67,8 +47,8 @@ export default function MonitorPlants() {
         p.name?.toLowerCase().includes(search.toLowerCase()) ||
         p.city?.toLowerCase().includes(search.toLowerCase()) ||
         p.state?.toLowerCase().includes(search.toLowerCase());
-      const matchStatus =
-        statusFilter === "all" || (p.health?.status || "unknown") === statusFilter;
+      const plantStatus = (p.health?.status === "standby" ? "standby" : p.health?.status === "online" ? "online" : "offline") as PlantUiStatus;
+      const matchStatus = statusFilter === "all" || plantStatus === statusFilter;
       const matchBrand =
         brandFilter === "all" || p.provider_name === brandFilter;
       return matchSearch && matchStatus && matchBrand;
@@ -141,7 +121,7 @@ export default function MonitorPlants() {
           </Select>
         )}
         <div className="flex gap-1 flex-wrap">
-          {FILTER_CHIPS.map((chip) => (
+          {PLANT_FILTER_CHIPS.map((chip) => (
             <Button
               key={chip.key}
               size="sm"
@@ -197,7 +177,8 @@ export default function MonitorPlants() {
 }
 
 function PlantListItem({ plant, onClick }: { plant: PlantWithHealth; onClick: () => void }) {
-  const status = plant.health?.status || "unknown";
+  const rawStatus = plant.health?.status || "offline";
+  const uiStatus: PlantUiStatus = rawStatus === "standby" ? "standby" : rawStatus === "online" ? "online" : "offline";
 
   return (
     <button
@@ -206,10 +187,10 @@ function PlantListItem({ plant, onClick }: { plant: PlantWithHealth; onClick: ()
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", STATUS_DOT[status])} />
+          <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", UI_STATUS_DOT[uiStatus])} />
           <span className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{plant.name}</span>
         </div>
-        <StatusBadge status={STATUS_LABELS[status]} size="sm" />
+        <StatusBadge status={UI_STATUS_LABELS[uiStatus]} size="sm" />
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground pl-5">
         {plant.city && (

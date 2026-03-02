@@ -82,6 +82,7 @@ const STATUS_MAP: Record<string, string> = {
   done: "success",
   resolvido: "success",
   online: "success",
+  standby: "warning",
 
   // Error
   inativo: "error",
