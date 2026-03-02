@@ -345,9 +345,27 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
   const isOffline = uiStatus === "offline";
   const isStandby = uiStatus === "standby";
 
-  // Estimate performance ratio (rough: energy today vs expected ~4.5h * capacity)
   const expectedDaily = powerKwp * 4.5;
   const perfPercent = expectedDaily > 0 ? Math.min(100, Math.round((energyToday / expectedDaily) * 100)) : 0;
+
+  // Format power nicely
+  const powerDisplay = powerKwp > 0
+    ? powerKwp >= 1000
+      ? `${(powerKwp / 1000).toFixed(1)} MWp`
+      : `${Number(powerKwp.toFixed(2))} kWp`
+    : "—";
+
+  // Format energy nicely
+  const energyDisplay = energyToday > 0
+    ? energyToday >= 1000
+      ? `${(energyToday / 1000).toFixed(1)} MWh`
+      : `${Number(energyToday.toFixed(1))} kWh`
+    : "0 kWh";
+
+  // Format last seen
+  const lastSeen = plant.health?.last_seen_at
+    ? formatDistanceToNow(new Date(plant.health.last_seen_at), { addSuffix: false, locale: ptBR })
+    : "—";
 
   return (
     <button
@@ -360,11 +378,11 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
         !isOffline && !isStandby && "border-border/50",
       )}
     >
-      <div className="p-4 space-y-3">
-        {/* Top row: name + badge */}
+      <div className="p-3.5 space-y-2.5">
+        {/* Top: name + status */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", UI_STATUS_DOT[uiStatus])} />
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className={cn("h-2 w-2 rounded-full shrink-0", UI_STATUS_DOT[uiStatus])} />
             <span className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
               {plant.name}
             </span>
@@ -373,56 +391,52 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
           <StatusBadge status={UI_STATUS_LABELS[uiStatus]} size="sm" />
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 text-xs">
-          <div>
-            <p className="text-muted-foreground">Potência</p>
-            <p className="font-semibold text-foreground">{powerKwp ? `${powerKwp} kWp` : "—"}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Hoje</p>
-            <p className="font-semibold text-foreground">{energyToday > 0 ? `${energyToday.toFixed(0)} kWh` : "0 kWh"}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Atualização</p>
-            <p className="font-semibold text-foreground truncate">
-              {plant.health?.last_seen_at
-                ? formatDistanceToNow(new Date(plant.health.last_seen_at), { addSuffix: false, locale: ptBR })
-                : "—"}
-            </p>
-          </div>
+        {/* Stats: clean grid */}
+        <div className="grid grid-cols-3 gap-2">
+          <StatCell label="Potência" value={powerDisplay} />
+          <StatCell label="Hoje" value={energyDisplay} />
+          <StatCell label="Atualização" value={lastSeen} />
         </div>
 
         {/* Performance bar */}
         {uiStatus === "online" && expectedDaily > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-[10px]">
-              <span className="text-muted-foreground">Performance</span>
-              <span className={cn(
-                "font-semibold",
-                perfPercent >= 70 ? "text-success" : perfPercent >= 40 ? "text-warning" : "text-destructive"
-              )}>
-                {perfPercent}%
-              </span>
-            </div>
-            <Progress value={perfPercent} className="h-1.5" />
+          <div className="flex items-center gap-2">
+            <Progress value={perfPercent} className="h-1.5 flex-1" />
+            <span className={cn(
+              "text-[11px] font-semibold tabular-nums w-8 text-right",
+              perfPercent >= 70 ? "text-success" : perfPercent >= 40 ? "text-warning" : "text-destructive"
+            )}>
+              {perfPercent}%
+            </span>
           </div>
         )}
 
-        {/* Meta row */}
+        {/* Location + brand */}
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
           {plant.city && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3 shrink-0" /> {plant.city}{plant.state ? `/${plant.state}` : ""}
+            <span className="flex items-center gap-1 truncate">
+              <MapPin className="h-3 w-3 shrink-0" />
+              {plant.city}{plant.state ? `, ${plant.state}` : ""}
             </span>
           )}
           {plant.provider_name && (
-            <span className="px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground capitalize text-[10px]">
+            <span className="ml-auto px-1.5 py-0.5 rounded-md bg-muted text-[10px] capitalize shrink-0">
               {plant.provider_name}
             </span>
           )}
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 ml-auto shrink-0 group-hover:text-primary transition-colors" />
         </div>
       </div>
     </button>
+  );
+}
+
+/* Small stat cell for plant card */
+function StatCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-muted/40 rounded-lg px-2 py-1.5 text-center">
+      <p className="text-[10px] text-muted-foreground leading-none mb-0.5">{label}</p>
+      <p className="text-xs font-bold text-foreground leading-tight truncate">{value}</p>
+    </div>
   );
 }
