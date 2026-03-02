@@ -519,7 +519,7 @@ function calculateLeadScore(lead: any): number {
   return Math.min(score, 100);
 }
 
-// ── MediaSection (migrated from SolarZap) ──
+// ── MediaSection ──
 
 function MediaSection({ conversationId }: { conversationId: string }) {
   const { data: mediaMessages, isLoading } = useQuery({
