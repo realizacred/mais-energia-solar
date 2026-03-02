@@ -2119,11 +2119,11 @@ function DocumentosTab({ dealId }: { dealId: string }) {
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
 
-      // Load templates for names (from proposta_templates – the actual SSOT)
+      // Load document templates (SSOT: document_templates — FK in generated_documents)
       const { data: tpls } = await supabase
-        .from("proposta_templates")
+        .from("document_templates")
         .select("id, nome, categoria")
-        .eq("ativo", true)
+        .eq("status", "active")
         .order("categoria")
         .order("nome");
 
@@ -2366,7 +2366,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
             <div className="py-6 text-center space-y-2">
               <FileText className="h-10 w-10 mx-auto opacity-30" />
               <p className="text-sm font-medium">Nenhum modelo de documento cadastrado</p>
-              <p className="text-xs text-muted-foreground">Cadastre templates em Configurações → Templates de Documento para poder gerar documentos.</p>
+              <p className="text-xs text-muted-foreground">Cadastre templates em <strong>Configurações → Documentos</strong> para poder gerar documentos.</p>
             </div>
           ) : (
             <>
