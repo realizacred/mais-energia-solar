@@ -381,48 +381,29 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
 
 async function deyeMetrics(baseUrl: string, token: string, extId: string): Promise<DailyMetrics> {
   try {
-    // Fetch real-time power from /station/latest
-    const latestJson = await deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) });
-    const d = latestJson.data || latestJson;
+    // Fetch real-time power + energy in parallel
+    const [latestJson, kpiJson] = await Promise.all([
+      deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) }).catch(() => null),
+      deyeFetch(baseUrl, token, "/station/kpi", { stationId: Number(extId) }).catch(() => null),
+    ]);
+
+    const d = latestJson?.data || latestJson || {};
+    const k = kpiJson?.data || kpiJson || {};
+
     // generationPower is in WATTS — convert to kW
     const rawPower = d.generationPower != null ? Number(d.generationPower) : null;
     const powerKw = rawPower != null ? rawPower / 1000 : null;
 
-    // Fetch energy from /station/kpi (today/month/total)
-    let energy: number | null = null;
-    let totalEnergy: number | null = null;
-    try {
-      const kpiJson = await deyeFetch(baseUrl, token, "/station/kpi", { stationId: Number(extId) });
-      const k = kpiJson.data || kpiJson;
-      energy = k.generationToday != null ? Number(k.generationToday) :
-               k.todayGeneration != null ? Number(k.todayGeneration) :
-               k.monthGeneration != null ? Number(k.monthGeneration) / 30 : null;
-      totalEnergy = k.generationTotal != null ? Number(k.generationTotal) :
-                    k.totalGeneration != null ? Number(k.totalGeneration) :
-                    k.cumulativeGeneration != null ? Number(k.cumulativeGeneration) : null;
-      // If kpi doesn't have today but has month, try to get from latest
-      if (energy == null) {
-        energy = d.generationToday != null ? Number(d.generationToday) :
-                 d.todayEnergy != null ? Number(d.todayEnergy) :
-                 d.eToday != null ? Number(d.eToday) : null;
-      }
-      if (totalEnergy == null) {
-        totalEnergy = d.generationTotal != null ? Number(d.generationTotal) :
-                      d.totalEnergy != null ? Number(d.totalEnergy) :
-                      d.eTotal != null ? Number(d.eTotal) : null;
-      }
-      console.log(`[Deye] KPI for ${extId}: today=${energy}, total=${totalEnergy}, raw=${JSON.stringify(k).substring(0, 200)}`);
-    } catch (kpiErr) {
-      console.warn(`[Deye] KPI failed for ${extId}: ${(kpiErr as Error).message}`);
-      // Fallback: try energy fields from latest
-      energy = d.generationToday != null ? Number(d.generationToday) :
-               d.todayEnergy != null ? Number(d.todayEnergy) : null;
-      totalEnergy = d.generationTotal != null ? Number(d.generationTotal) :
-                    d.totalEnergy != null ? Number(d.totalEnergy) : null;
-    }
+    // Energy from KPI (primary) or latest (fallback)
+    const energy = k.generationToday ?? k.todayGeneration ?? d.generationToday ?? d.todayEnergy ?? d.eToday ?? null;
+    const totalEnergy = k.generationTotal ?? k.totalGeneration ?? k.cumulativeGeneration ?? d.generationTotal ?? d.totalEnergy ?? d.eTotal ?? null;
 
-    console.log(`[Deye] Metrics for ${extId}: powerW=${rawPower}, powerKw=${powerKw}, today=${energy}, total=${totalEnergy}`);
-    return { power_kw: powerKw, energy_kwh: energy, total_energy_kwh: totalEnergy, metadata: { ...latestJson, kpi: true } };
+    return {
+      power_kw: powerKw,
+      energy_kwh: energy != null ? Number(energy) : null,
+      total_energy_kwh: totalEnergy != null ? Number(totalEnergy) : null,
+      metadata: { ...d, kpi: k },
+    };
   } catch (err) {
     console.error(`[Deye] Metrics FAILED for ${extId}: ${(err as Error).message}`);
     return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
@@ -436,7 +417,7 @@ async function deyeListDevices(baseUrl: string, token: string): Promise<{ statio
 
   for (const plant of plants) {
     try {
-      const json = await deyeFetch(baseUrl, token, "/station/device", { stationId: Number(plant.external_id), page: 1, size: 200 });
+      const json = await deyeFetch(baseUrl, token, "/station/device", { stationId: plant.external_id, page: 1, size: 200 });
       const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
       if (!Array.isArray(list) || !list.length) continue;
 
@@ -1435,9 +1416,12 @@ async function syncPlantsByProvider(
     }
     const { data: dbPlants } = await dbPlantsQuery;
     const metricsStartTime = Date.now();
-    const METRICS_TIME_BUDGET_MS = 45_000; // Stop before edge function timeout
+    // Per-provider budget: cap at 30s per provider to ensure all providers get processed
+    const METRICS_TIME_BUDGET_MS = 30_000;
+    const CONCURRENCY = 3; // Process 3 plants in parallel
 
-    for (const p of dbPlants || []) {
+    // Process metrics in concurrent batches
+    for (let i = 0; i < (dbPlants || []).length; i += CONCURRENCY) {
       // Time budget check — stop gracefully before timeout
       if (Date.now() - metricsStartTime > METRICS_TIME_BUDGET_MS) {
         console.warn(`[Sync] Time budget exceeded after ${metricsUpserted} metrics, skipping remaining`);
@@ -1445,38 +1429,43 @@ async function syncPlantsByProvider(
         break;
       }
 
-      try {
-        const metrics = await metricsFn(p.external_id);
-        const err = await upsertMetrics(ctx, p.id, metrics);
-        if (err) errors.push(`Metrics ${p.external_id}: ${err}`); else metricsUpserted++;
+      const batch = (dbPlants || []).slice(i, i + CONCURRENCY);
+      const results = await Promise.allSettled(
+        batch.map(async (p) => {
+          const metrics = await metricsFn(p.external_id);
+          const err = await upsertMetrics(ctx, p.id, metrics);
+          if (err) throw new Error(`Metrics ${p.external_id}: ${err}`);
 
-        // ── APPEND-ONLY: Save raw payload for audit trail ──
-        try {
-          await ctx.supabaseAdmin.from("monitor_provider_payloads").insert({
-            tenant_id: ctx.tenantId,
-            provider_id: ctx.provider,
-            entity: "metrics",
-            entity_id: p.external_id,
-            raw: metrics.metadata || {},
-          });
-        } catch (_) { /* non-blocking */ }
-
-        // ── APPEND-ONLY: Save realtime reading snapshot ──
-        try {
-          if (metrics.power_kw != null || metrics.energy_kwh != null) {
-            await ctx.supabaseAdmin.from("monitor_readings_realtime").insert({
-              tenant_id: ctx.tenantId,
-              plant_id: p.id,
-              ts: new Date().toISOString(),
-              power_w: metrics.power_kw != null ? metrics.power_kw * 1000 : null,
-              energy_kwh: metrics.energy_kwh,
-              status: "synced",
-              metadata: { source: "monitoring-sync", provider: ctx.provider },
+          // ── APPEND-ONLY: Save raw payload for audit trail ──
+          try {
+            await ctx.supabaseAdmin.from("monitor_provider_payloads").insert({
+              tenant_id: ctx.tenantId, provider_id: ctx.provider,
+              entity: "metrics", entity_id: p.external_id,
+              raw: metrics.metadata || {},
             });
-          }
-        } catch (_) { /* non-blocking */ }
-      } catch (metricErr) {
-        errors.push(`Metrics ${p.external_id}: ${(metricErr as Error).message}`);
+          } catch (_) { /* non-blocking */ }
+
+          // ── APPEND-ONLY: Save realtime reading snapshot ──
+          try {
+            if (metrics.power_kw != null || metrics.energy_kwh != null) {
+              await ctx.supabaseAdmin.from("monitor_readings_realtime").insert({
+                tenant_id: ctx.tenantId, plant_id: p.id,
+                ts: new Date().toISOString(),
+                power_w: metrics.power_kw != null ? metrics.power_kw * 1000 : null,
+                energy_kwh: metrics.energy_kwh,
+                status: "synced",
+                metadata: { source: "monitoring-sync", provider: ctx.provider },
+              });
+            }
+          } catch (_) { /* non-blocking */ }
+
+          return true;
+        })
+      );
+
+      for (const r of results) {
+        if (r.status === "fulfilled") metricsUpserted++;
+        else errors.push(r.reason?.message || "Unknown metric error");
       }
     }
   }
@@ -1758,7 +1747,8 @@ async function dispatchSync(
       return await deyeMetrics(baseUrl, at, extId);
     };
 
-    // For bulk cron: skip deyeListDevices (109 plants × API call = timeout)
+    // For bulk cron: use lightweight per-station device fetch (batched, with time budget)
+    // For selective: full detail fetch for selected plants only
     const extras: { devicesFn?: () => Promise<{ stationId: string; devices: NormalizedDevice[] }[]> } = {};
     if (isSelectiveSync) {
       extras.devicesFn = async () => {
@@ -1768,6 +1758,34 @@ async function dispatchSync(
         const selIds = new Set((selPlants || []).map((p: any) => String(p.provider_plant_id)));
         const allDevices = await deyeListDevices(baseUrl, at);
         return allDevices.filter(g => selIds.has(g.stationId));
+      };
+    } else {
+      // Bulk cron: discover devices from /station/device for each plant (lightweight, no /device/latest)
+      extras.devicesFn = async () => {
+        const plants = await deyeListPlants(baseUrl, at);
+        const result: { stationId: string; devices: NormalizedDevice[] }[] = [];
+        const startTime = Date.now();
+        for (const plant of plants) {
+          if (Date.now() - startTime > 30_000) break; // 30s budget for devices
+          try {
+            const json = await deyeFetch(baseUrl, at, "/station/device", { stationId: plant.external_id, page: 1, size: 200 });
+            const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
+            if (!Array.isArray(list) || !list.length) continue;
+            const devices: NormalizedDevice[] = list.map((d: any) => ({
+              provider_device_id: String(d.id || d.deviceSn || d.sn || ""),
+              type: String(d.deviceType || "inverter").toLowerCase().includes("inverter") ? "inverter" :
+                    String(d.deviceType || "").toLowerCase().includes("logger") ? "logger" : "inverter",
+              model: d.productName || d.deviceType || null,
+              serial: d.deviceSn || d.sn || null,
+              status: d.deviceStatus === 1 || d.connectStatus === 1 ? "online" :
+                      d.deviceStatus === 0 || d.connectStatus === 0 ? "offline" :
+                      d.deviceStatus === 2 ? "alarm" : "unknown",
+              metadata: d,
+            }));
+            if (devices.length > 0) result.push({ stationId: plant.external_id, devices });
+          } catch (e) { console.warn(`[Deye] bulk device fetch failed for ${plant.external_id}: ${(e as Error).message}`); }
+        }
+        return result;
       };
     }
 
@@ -1950,7 +1968,6 @@ async function dispatchSync(
 
     return await syncPlantsByProvider(ctx, listFnLv, (eid) => livoltekMetrics(lvToken, lvBaseUrl, eid), mode, selectedPlantIds);
   } else {
-    throw new Error(`Provider sync not implemented yet: ${provider}. Connect via portal.`);
   }
 }
 
@@ -1980,9 +1997,12 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
 
   const results: { provider: string; plants_synced: number; metrics_synced: number; errors: string[] }[] = [];
 
-  for (const int of integrations) {
+  // Filter to implementable providers
+  const syncableIntegrations = integrations.filter(int => SYNC_IMPLEMENTED.has(int.provider));
+
+  // Process ALL providers in parallel so no single provider blocks the others
+  const settledResults = await Promise.allSettled(syncableIntegrations.map(async (int) => {
     const provider = int.provider;
-    if (!SYNC_IMPLEMENTED.has(provider)) continue;
 
     try {
       console.log(`[monitoring-sync] CRON syncing provider=${provider} integration=${int.id}`);
@@ -2024,30 +2044,29 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
         }).eq("id", int.id);
       }
 
-      results.push({ provider, plants_synced: result.plantsUpserted, metrics_synced: result.metricsUpserted, errors: result.errors });
+      return { provider, plants_synced: result.plantsUpserted, metrics_synced: result.metricsUpserted, errors: result.errors };
     } catch (err) {
       console.error(`[monitoring-sync] CRON error for ${provider}:`, err);
-      results.push({ provider, plants_synced: 0, metrics_synced: 0, errors: [(err as Error).message] });
-      // Only mark as "error" for AUTH issues — timeouts and transient failures should NOT disconnect
       const errMsg = (err as Error).message || "";
       const isAuthFailure = /auth|unauthorized|forbidden|missing.*credential|invalid.*key/i.test(errMsg);
       if (!isNighttime && !isConsolidation) {
         if (isAuthFailure) {
           await supabaseAdmin.from("monitoring_integrations").update({
-            status: "error",
-            sync_error: errMsg.slice(0, 500),
-            updated_at: new Date().toISOString(),
+            status: "error", sync_error: errMsg.slice(0, 500), updated_at: new Date().toISOString(),
           }).eq("id", int.id);
         } else {
-          // Transient error (timeout, rate limit, etc.) — preserve "connected" status, just log the error
           await supabaseAdmin.from("monitoring_integrations").update({
-            last_sync_at: new Date().toISOString(),
-            sync_error: `[transient] ${errMsg}`.slice(0, 500),
-            updated_at: new Date().toISOString(),
+            last_sync_at: new Date().toISOString(), sync_error: `[transient] ${errMsg}`.slice(0, 500), updated_at: new Date().toISOString(),
           }).eq("id", int.id);
         }
       }
+      return { provider, plants_synced: 0, metrics_synced: 0, errors: [errMsg] };
     }
+  }));
+
+  for (const r of settledResults) {
+    if (r.status === "fulfilled") results.push(r.value);
+    else results.push({ provider: "unknown", plants_synced: 0, metrics_synced: 0, errors: [r.reason?.message || "Unknown"] });
   }
 
   console.log(`[monitoring-sync] CRON done: ${results.length} providers synced (mode=${cronMode}, night=${isNighttime})`);
