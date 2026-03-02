@@ -56,18 +56,19 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   const powerKw = normalizePowerKw(input.power_kw);
   const currentHour = new Date().getHours();
   const isNight = currentHour >= 18 || currentHour < 6;
-  const isActivelyGenerating = powerKw > POWER_THRESHOLD_KW;
 
-  // Rule 2: STANDBY — nighttime, no active generation, but synced
-  // At night, even if energy_today > 0, power_kw = 0 means not generating NOW
-  if (isNight && !isActivelyGenerating) {
+  // Rule 2: STANDBY — nighttime always standby (synced)
+  // Many providers return stale power_kw from the last daytime reading,
+  // so we NEVER trust power_kw at night. Synced + night = standby.
+  if (isNight) {
     return {
       uiStatus: "standby",
       reason: "Noturno — sem geração solar esperada",
     };
   }
 
-  // Rule 3: ONLINE — actively generating OR daytime with energy today
+  // Rule 3 (daytime only): ONLINE — actively generating or generated today
+  const isActivelyGenerating = powerKw > POWER_THRESHOLD_KW;
   const hasGeneration = isActivelyGenerating || input.energy_today_kwh > 0;
   if (hasGeneration) {
     return {
