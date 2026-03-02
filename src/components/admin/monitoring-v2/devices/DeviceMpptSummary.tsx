@@ -98,7 +98,9 @@ export function DeviceMpptSummary({ device, onViewDetail }: DeviceMpptSummaryPro
               )}
             >
               <p className="text-[10px] text-muted-foreground font-medium">
-                {data.mpptCount > 0 ? `MPPT ${Math.ceil(ch.index / (32 / Math.max(data.mpptCount, 1)))}` : `String ${ch.index}`}
+                {data.mpptCount > 0
+                  ? `MPPT ${Math.ceil(ch.index / Math.max(Math.ceil(data.channels.length / data.mpptCount), 1))}`
+                  : `String ${ch.index}`}
               </p>
               <p className={cn(
                 "text-sm font-bold",
