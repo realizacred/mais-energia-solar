@@ -15,21 +15,12 @@ import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { IntegrationPlantsList } from "./IntegrationPlantsList";
+import { getProvider } from "@/services/monitoring/providerRegistry";
 
-const PROVIDER_LABELS: Record<string, string> = {
-  solarman: "Solarman",
-  deye_cloud: "Deye Cloud",
-  solis_cloud: "Solis Cloud",
-  growatt: "Growatt",
-  huawei_fusionsolar: "Huawei FusionSolar",
-  huawei: "Huawei FusionSolar",
-  solaredge: "SolarEdge",
-  enphase: "Enphase",
-  fronius: "Fronius",
-  goodwe: "GoodWe",
-  abb_fimer: "ABB / FIMER",
-  canadian_solar: "Canadian Solar",
-};
+/** Resolve provider label from registry SSOT — no hardcoded map */
+function getProviderLabel(id: string): string {
+  return getProvider(id)?.label || id;
+}
 
 export default function MonitorSettings() {
   const queryClient = useQueryClient();
@@ -71,8 +62,8 @@ export default function MonitorSettings() {
   if (isLoading) return <LoadingState message="Carregando integrações..." />;
 
   const sortAlpha = (a: any, b: any) => {
-    const labelA = PROVIDER_LABELS[a.provider] || a.provider;
-    const labelB = PROVIDER_LABELS[b.provider] || b.provider;
+    const labelA = getProviderLabel(a.provider);
+    const labelB = getProviderLabel(b.provider);
     return labelA.localeCompare(labelB, "pt-BR");
   };
   const activeIntegrations = integrations.filter((i: any) => i.status === "active" || i.status === "connected").sort(sortAlpha);
@@ -158,7 +149,7 @@ function IntegrationRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const isActive = integration.status === "active" || integration.status === "connected";
-  const providerLabel = PROVIDER_LABELS[integration.provider] || integration.provider;
+  const providerLabel = getProviderLabel(integration.provider);
 
   return (
     <div className="rounded-xl border border-border/60 bg-card hover:shadow-sm transition-all">
