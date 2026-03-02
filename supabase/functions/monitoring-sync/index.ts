@@ -253,16 +253,20 @@ async function solisListInverters(apiId: string, apiSecret: string): Promise<{ s
         try {
           const detailJson = await solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
           const dd = detailJson.data || {};
+          // Log raw keys to diagnose field mapping
+          console.log(`[Solis] inverterDetail keys for ${sn}:`, Object.keys(dd).filter(k => /pv|Pv|PV|vpv|ipv|uPv|iPv|pow/i.test(k)).join(", "));
           detailMeta = {
-            vpv1: dd.uPv1 ?? dd.vpv1 ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
-            vpv2: dd.uPv2 ?? dd.vpv2 ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
-            vpv3: dd.uPv3 ?? dd.vpv3 ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
-            vpv4: dd.uPv4 ?? dd.vpv4 ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
+            vpv1: dd.uPv1 ?? dd.vpv1 ?? dd.pv1Voltage ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? dd.pv1Current ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
+            vpv2: dd.uPv2 ?? dd.vpv2 ?? dd.pv2Voltage ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? dd.pv2Current ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
+            vpv3: dd.uPv3 ?? dd.vpv3 ?? dd.pv3Voltage ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? dd.pv3Current ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
+            vpv4: dd.uPv4 ?? dd.vpv4 ?? dd.pv4Voltage ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? dd.pv4Current ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
             pac: dd.pac ?? dd.generationPower ?? null,
             etoday: dd.eToday ?? dd.dayEnergy ?? null,
             etotal: dd.eTotal ?? dd.allEnergy ?? null,
             dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
           };
+          // Log the actual extracted values
+          console.log(`[Solis] detailMeta for ${sn}: vpv1=${detailMeta.vpv1}, ipv1=${detailMeta.ipv1}, vpv2=${detailMeta.vpv2}, ipv2=${detailMeta.ipv2}`);
         } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}: ${(e as Error).message}`); }
       }
 
