@@ -4,15 +4,18 @@ import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { Sun, Zap, AlertTriangle, WifiOff, Activity, Gauge, BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3, CloudSun, Wrench, Clock, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import {
+  Sun, Zap, AlertTriangle, WifiOff, Activity, Gauge,
+  BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3,
+  CloudSun, Wrench, Clock, RefreshCw, ChevronRight, CheckCircle2,
+  Moon,
+} from "lucide-react";
 import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth, listIntegrations } from "@/services/monitoring/monitorService";
 import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorGenerationVsEstimateChart } from "./charts/MonitorGenerationVsEstimateChart";
-import { MonitorPRChart } from "./charts/MonitorPRChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
 import { EnergyFlowAnimation } from "./EnergyFlowAnimation";
 import { WeatherWidget } from "./WeatherWidget";
@@ -21,13 +24,14 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/formatters/index";
 import { formatDistanceToNow, addMinutes, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
 
 const SYNC_INTERVAL_MIN = 15;
 
 export default function MonitorDashboard() {
   const navigate = useNavigate();
 
-  const { data: stats, isLoading, refetch } = useQuery({
+  const { data: stats, isLoading } = useQuery({
     queryKey: ["monitor-dashboard-stats"],
     queryFn: getDashboardStats,
   });
@@ -49,14 +53,12 @@ export default function MonitorDashboard() {
     queryFn: () => listAllReadings(thirtyDaysAgo.toISOString().slice(0, 10), new Date().toISOString().slice(0, 10)),
   });
 
-  // Financial data
   const { data: financials } = useQuery({
     queryKey: ["monitor-financials", stats?.energy_today_kwh, stats?.energy_month_kwh],
     queryFn: () => getFinancials(stats?.energy_today_kwh || 0, stats?.energy_month_kwh || 0),
     enabled: !!stats,
   });
 
-  // Monthly readings for PR calculation — exclude today (incomplete)
   const monthStart = new Date();
   monthStart.setDate(1);
   const yesterday = new Date();
@@ -67,16 +69,12 @@ export default function MonitorDashboard() {
     queryFn: () => listAllReadings(monthStart.toISOString().slice(0, 10), prEndDate),
   });
 
-  // Performance Ratio
   const { data: prData = [] } = useQuery({
     queryKey: ["monitor-pr", plants.length, monthReadings.length],
     queryFn: () => getPerformanceRatios(
       plants.map((p) => ({
-        id: p.id,
-        name: p.name,
-        installed_power_kwp: p.installed_power_kwp,
-        latitude: p.lat,
-        longitude: p.lng,
+        id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp,
+        latitude: p.lat, longitude: p.lng,
       })),
       monthReadings
     ),
@@ -88,41 +86,35 @@ export default function MonitorDashboard() {
     queryFn: listIntegrations,
   });
 
-
   if (isLoading) return <LoadingState message="Carregando dashboard..." />;
 
   const isEmpty = !stats || stats.total_plants === 0;
 
-  // Compute aggregate KPIs
+  // ─── Derived KPIs ───
   const totalPowerMwp = plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) / 1000;
   const totalEnergyTodayMwh = (stats?.energy_today_kwh || 0) / 1000;
   const totalEnergyMonthMwh = (stats?.energy_month_kwh || 0) / 1000;
-  const onlinePerc = stats?.total_plants ? (((stats.plants_online + (stats.plants_standby || 0)) / stats.total_plants) * 100).toFixed(0) : "0";
+  const onlineCount = (stats?.plants_online || 0) + (stats?.plants_standby || 0);
+  const onlinePerc = stats?.total_plants ? ((onlineCount / stats.total_plants) * 100).toFixed(0) : "0";
+  const alertCount = openAlerts.length;
 
-  // PR average (only plants with valid PR)
   const validPr = prData.filter((p) => p.pr_status === "ok" && p.pr_percent != null);
   const avgPR = validPr.length > 0
     ? Math.round(validPr.reduce((s, p) => s + (p.pr_percent ?? 0), 0) / validPr.length * 10) / 10
     : null;
 
-  // Average lat/lng for weather widget
   const plantsWithCoords = plants.filter((p) => p.lat != null && p.lng != null);
   const avgLat = plantsWithCoords.length > 0
-    ? plantsWithCoords.reduce((s, p) => s + (p.lat || 0), 0) / plantsWithCoords.length
-    : null;
+    ? plantsWithCoords.reduce((s, p) => s + (p.lat || 0), 0) / plantsWithCoords.length : null;
   const avgLng = plantsWithCoords.length > 0
-    ? plantsWithCoords.reduce((s, p) => s + (p.lng || 0), 0) / plantsWithCoords.length
-    : null;
+    ? plantsWithCoords.reduce((s, p) => s + (p.lng || 0), 0) / plantsWithCoords.length : null;
 
-  // Current power estimate (if generating today)
   const isGenerating = (stats?.energy_today_kwh || 0) > 0;
   const currentHour = new Date().getHours();
   const isDaylight = currentHour >= 6 && currentHour <= 18;
   const estimatedCurrentPower = isDaylight && isGenerating
-    ? (plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) * 0.7)
-    : 0;
+    ? (plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) * 0.7) : 0;
 
-  // Sync timing
   const lastSyncDate = integrations
     .filter((i: any) => i.last_sync_at)
     .map((i: any) => new Date(i.last_sync_at).getTime())
@@ -131,7 +123,8 @@ export default function MonitorDashboard() {
   const nextSync = lastSync ? addMinutes(lastSync, SYNC_INTERVAL_MIN) : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* ─── Header ─── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <PageHeader
           title="Monitoramento Solar"
@@ -139,10 +132,10 @@ export default function MonitorDashboard() {
           icon={Sun}
         />
         {lastSync && (
-          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2 border border-border/60 shrink-0">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-xl px-3 py-2 border border-border/60 shrink-0">
             <div className="flex items-center gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
-              <span>Última sync: <strong className="text-foreground">{formatDistanceToNow(lastSync, { addSuffix: true, locale: ptBR })}</strong></span>
+              <span>Sync: <strong className="text-foreground">{formatDistanceToNow(lastSync, { addSuffix: true, locale: ptBR })}</strong></span>
             </div>
             <span className="text-border">|</span>
             <div className="flex items-center gap-1.5">
@@ -154,144 +147,114 @@ export default function MonitorDashboard() {
       </div>
 
       {isEmpty ? (
-        <EmptyState
-          icon={Sun}
-          title="Nenhuma usina cadastrada"
-          description="Conecte um provedor de monitoramento para começar."
-        />
+        <EmptyState icon={Sun} title="Nenhuma usina cadastrada" description="Conecte um provedor de monitoramento para começar." />
       ) : (
         <>
-          {/* Hero KPI Row */}
+          {/* ═══════════════════════════════════════════════
+              🔹 FAIXA SUPERIOR – 6 KPI CARDS
+          ═══════════════════════════════════════════════ */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <KpiCard
-              label="Total Usinas"
-              value={String(stats.total_plants)}
-              icon={Sun}
-              color="primary"
+            <EnterpriseKpi
+              icon={Sun} label="Total Usinas" value={String(stats.total_plants)}
               onClick={() => navigate("/admin/monitoramento/usinas")}
             />
-            <KpiCard
-              label="Online"
-              value={String(stats.plants_online + (stats.plants_standby || 0))}
-              subtitle={`${onlinePerc}% (${stats.plants_standby || 0} standby)`}
-              icon={Activity}
-              color="success"
+            <EnterpriseKpi
+              icon={Activity} label="Online" value={String(onlineCount)}
+              subtitle={`${onlinePerc}% do total`}
+              accentColor="success"
               onClick={() => navigate("/admin/monitoramento/usinas?status=online")}
             />
-            <KpiCard
-              label="Standby"
-              value={String(stats.plants_standby || 0)}
-              icon={Activity}
-              color="warning"
-              onClick={() => navigate("/admin/monitoramento/usinas?status=standby")}
+            <EnterpriseKpi
+              icon={AlertTriangle} label="Com Alerta"
+              value={String(alertCount)}
+              accentColor={alertCount > 0 ? "destructive" : "muted"}
+              highlight={alertCount > 0}
+              onClick={() => navigate("/admin/monitoramento/alertas")}
             />
-            <KpiCard
-              label="Offline"
-              value={String(stats.plants_offline)}
-              icon={WifiOff}
-              color="destructive"
-              onClick={() => navigate("/admin/monitoramento/usinas?status=offline")}
-            />
-            <KpiCard
-              label="Potência Total"
+            <EnterpriseKpi
+              icon={Gauge} label="Potência Instalada"
               value={totalPowerMwp >= 1 ? `${totalPowerMwp.toFixed(1)} MWp` : `${(totalPowerMwp * 1000).toFixed(0)} kWp`}
-              icon={Gauge}
-              color="info"
-              onClick={() => navigate("/admin/monitoramento/usinas")}
             />
-            <KpiCard
-              label="Energia Hoje"
+            <EnterpriseKpi
+              icon={Zap} label="Energia Hoje"
               value={totalEnergyTodayMwh >= 1 ? `${totalEnergyTodayMwh.toFixed(1)} MWh` : `${(stats.energy_today_kwh || 0).toFixed(0)} kWh`}
-              icon={Zap}
-              color="secondary"
-              onClick={() => navigate("/admin/monitoramento/usinas")}
+              accentColor="primary"
+            />
+            <EnterpriseKpi
+              icon={BatteryCharging} label="Energia do Mês"
+              value={totalEnergyMonthMwh >= 1 ? `${totalEnergyMonthMwh.toFixed(1)} MWh` : `${(stats.energy_month_kwh || 0).toFixed(0)} kWh`}
+              accentColor="secondary"
             />
           </div>
 
-          {/* Financial + Environmental + PR summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <SummaryCard
-              label="Economia Hoje"
-              value={financials ? formatBRL(financials.savings_today_brl) : "—"}
-              icon={DollarSign}
-              color="success"
-              subtitle={financials ? `Tarifa: ${formatBRL(financials.tarifa_kwh)}/kWh` : undefined}
-            />
-            <SummaryCard
-              label="Economia Mês"
-              value={financials ? formatBRL(financials.savings_month_brl) : "—"}
-              icon={TrendingUp}
-              color="info"
-              subtitle={totalEnergyMonthMwh >= 1 ? `${totalEnergyMonthMwh.toFixed(1)} MWh gerados` : `${(stats.energy_month_kwh || 0).toFixed(0)} kWh gerados`}
-            />
-            <SummaryCard
-              label="CO₂ Evitado (Mês)"
-              value={financials ? `${financials.co2_avoided_month_kg.toFixed(0)} kg` : "—"}
-              icon={Leaf}
-              color="success"
-              subtitle={financials ? `≈ ${Math.ceil(financials.co2_avoided_month_kg / 22)} árvores/ano` : undefined}
-            />
-            <SummaryCard
-              label="Performance Ratio"
-              value={avgPR !== null ? `${avgPR}%` : "—"}
-              icon={BarChart3}
-              color={avgPR !== null && avgPR >= 75 ? "success" : avgPR !== null && avgPR >= 60 ? "warning" : "destructive"}
-              subtitle={avgPR !== null ? (avgPR >= 80 ? "Excelente" : avgPR >= 70 ? "Bom" : avgPR >= 60 ? "Regular" : "Atenção") : undefined}
-            />
-          </div>
+          {/* ═══════════════════════════════════════════════
+              🔴 BLOCO DE PRIORIDADE – ATENÇÃO AGORA
+          ═══════════════════════════════════════════════ */}
+          <PriorityAlertBlock alerts={openAlerts} onViewAlerts={() => navigate("/admin/monitoramento/alertas")} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Attention list */}
-            <SectionCard title="Atenção Agora" icon={AlertTriangle} variant="warning" className="lg:col-span-2">
-              <MonitorAttentionList
-                alerts={openAlerts.slice(0, 10)}
-                onViewPlant={(plantId) => navigate(`/admin/monitoramento/usinas/${plantId}`)}
-              />
-            </SectionCard>
+          {/* ═══════════════════════════════════════════════
+              📊 ÁREA ANALÍTICA – 2 COLUNAS
+          ═══════════════════════════════════════════════ */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+            {/* ── Coluna Esquerda (3/5) ── */}
+            <div className="lg:col-span-3 space-y-5">
+              <SectionCard title="Geração — Últimos 30 dias" icon={BatteryCharging} variant="blue">
+                <MonitorGenerationChart readings={readings} />
+              </SectionCard>
 
-            {/* Status donut */}
-            <SectionCard title="Status das Usinas" icon={Activity}>
-              <MonitorStatusDonut stats={stats} />
-            </SectionCard>
-          </div>
+              <SectionCard title="Geração Real vs Projetada" icon={BarChart3} variant="blue">
+                <MonitorGenerationVsEstimateChart
+                  readings={readings}
+                  plants={plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp }))}
+                  hspKwhM2={prData?.[0]?.hsp_used ?? null}
+                />
+              </SectionCard>
+            </div>
 
-          {/* Generation chart */}
-          <SectionCard title="Geração — Últimos 30 dias" icon={BatteryCharging} variant="blue">
-            <MonitorGenerationChart readings={readings} />
-          </SectionCard>
+            {/* ── Coluna Direita (2/5) ── */}
+            <div className="lg:col-span-2 space-y-5">
+              <SectionCard title="Status das Usinas" icon={Activity}>
+                <MonitorStatusDonut stats={stats} />
+              </SectionCard>
 
-          {/* Energy Flow Animation + Weather */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SectionCard title="Fluxo de Energia" icon={Zap} variant="blue">
-              <EnergyFlowAnimation
+              {/* Resumo Operacional */}
+              <OperationalSummary
+                onlinePerc={Number(onlinePerc)}
+                alertCount={alertCount}
                 currentPowerKw={estimatedCurrentPower}
-                isGenerating={isDaylight && isGenerating}
+                energyTodayKwh={stats.energy_today_kwh || 0}
+                standbyCount={stats.plants_standby || 0}
+                offlineCount={stats.plants_offline || 0}
+                avgPR={avgPR}
+                financials={financials}
               />
-            </SectionCard>
 
-            {avgLat && avgLng ? (
-              <SectionCard title="Previsão do Tempo" icon={CloudSun}>
-                <WeatherWidget lat={avgLat} lng={avgLng} />
-              </SectionCard>
-            ) : (
-              <SectionCard title="Previsão do Tempo" icon={CloudSun}>
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Adicione coordenadas às usinas para ver o clima.
-                </p>
-              </SectionCard>
-            )}
+              {/* Previsão do Tempo */}
+              {avgLat && avgLng ? (
+                <SectionCard title="Previsão do Tempo" icon={CloudSun}>
+                  <WeatherWidget lat={avgLat} lng={avgLng} />
+                </SectionCard>
+              ) : (
+                <SectionCard title="Previsão do Tempo" icon={CloudSun}>
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Adicione coordenadas às usinas para ver o clima.
+                  </p>
+                </SectionCard>
+              )}
+            </div>
           </div>
 
-          {/* Generation vs Estimate chart */}
-          <SectionCard title="Geração Real vs Projetada — Últimos 30 dias" icon={BarChart3} variant="blue">
-            <MonitorGenerationVsEstimateChart
-              readings={readings}
-              plants={plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp }))}
-              hspKwhM2={prData?.[0]?.hsp_used ?? null}
+          {/* ═══════════════════════════════════════════════
+              ⚡ FLUXO DE ENERGIA
+          ═══════════════════════════════════════════════ */}
+          <SectionCard title="Fluxo de Energia" icon={Zap} variant="blue">
+            <EnergyFlowAnimation
+              currentPowerKw={estimatedCurrentPower}
+              isGenerating={isDaylight && isGenerating}
             />
           </SectionCard>
 
-          {/* Maintenance / Cleaning Calendar */}
+          {/* Maintenance Calendar */}
           {prData.length > 0 && (
             <SectionCard title="Manutenção & Limpeza" icon={Wrench} variant="warning">
               <MaintenanceCalendar prData={prData} plants={plants} />
@@ -303,72 +266,148 @@ export default function MonitorDashboard() {
   );
 }
 
-/* ─── Inline KPI Card ─── */
-type KpiColor = "primary" | "secondary" | "success" | "warning" | "destructive" | "info" | "muted";
+/* ═══════════════════════════════════════════════════════════════
+   ENTERPRISE KPI CARD
+═══════════════════════════════════════════════════════════════ */
 
-const KPI_STYLES: Record<KpiColor, { ring: string; iconBg: string; iconText: string }> = {
-  primary:     { ring: "ring-primary/20",     iconBg: "bg-primary/10",     iconText: "text-primary" },
-  secondary:   { ring: "ring-secondary/20",   iconBg: "bg-secondary/10",   iconText: "text-secondary" },
-  success:     { ring: "ring-success/20",     iconBg: "bg-success/10",     iconText: "text-success" },
-  warning:     { ring: "ring-warning/20",     iconBg: "bg-warning/10",     iconText: "text-warning" },
-  destructive: { ring: "ring-destructive/20", iconBg: "bg-destructive/10", iconText: "text-destructive" },
-  info:        { ring: "ring-info/20",        iconBg: "bg-info/10",        iconText: "text-info" },
-  muted:       { ring: "ring-muted/30",       iconBg: "bg-muted",          iconText: "text-muted-foreground" },
+type AccentColor = "primary" | "secondary" | "success" | "warning" | "destructive" | "info" | "muted";
+
+const ACCENT_MAP: Record<AccentColor, { iconBg: string; iconText: string; borderHighlight: string }> = {
+  primary:     { iconBg: "bg-primary/8",     iconText: "text-primary",         borderHighlight: "border-primary/30" },
+  secondary:   { iconBg: "bg-secondary/8",   iconText: "text-secondary",       borderHighlight: "border-secondary/30" },
+  success:     { iconBg: "bg-success/8",     iconText: "text-success",         borderHighlight: "border-success/30" },
+  warning:     { iconBg: "bg-warning/8",     iconText: "text-warning",         borderHighlight: "border-warning/30" },
+  destructive: { iconBg: "bg-destructive/8", iconText: "text-destructive",     borderHighlight: "border-destructive/40" },
+  info:        { iconBg: "bg-info/8",        iconText: "text-info",            borderHighlight: "border-info/30" },
+  muted:       { iconBg: "bg-muted",         iconText: "text-muted-foreground", borderHighlight: "border-border" },
 };
 
-function KpiCard({ label, value, subtitle, icon: Icon, color, onClick }: {
+function EnterpriseKpi({ icon: Icon, label, value, subtitle, accentColor = "muted", highlight = false, onClick }: {
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   subtitle?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: KpiColor;
+  accentColor?: AccentColor;
+  highlight?: boolean;
   onClick?: () => void;
 }) {
-  const s = KPI_STYLES[color];
+  const a = ACCENT_MAP[accentColor];
   return (
     <div
       onClick={onClick}
       className={cn(
-        "relative rounded-xl border border-border/60 bg-card p-4 ring-1 card-stat-elevated",
-        s.ring,
-        onClick && "cursor-pointer"
+        "relative rounded-2xl border bg-card p-4 transition-all duration-200",
+        highlight ? a.borderHighlight : "border-border/50",
+        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        "hover:shadow-sm"
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground font-medium truncate">{label}</p>
-          <p className="text-xl font-bold text-foreground mt-1 truncate">{value}</p>
-          {subtitle && <p className="text-xs text-muted-foreground/70 mt-0.5">{subtitle}</p>}
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">{label}</p>
+          <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
+          {subtitle && <p className="text-[11px] text-muted-foreground mt-1.5">{subtitle}</p>}
         </div>
-        <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0", s.iconBg)}>
-          <Icon className={cn("h-4.5 w-4.5", s.iconText)} />
+        <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", a.iconBg)}>
+          <Icon className={cn("h-[18px] w-[18px]", a.iconText)} />
         </div>
       </div>
     </div>
   );
 }
 
-function SummaryCard({ label, value, subtitle, icon: Icon, color }: {
-  label: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: KpiColor;
+/* ═══════════════════════════════════════════════════════════════
+   PRIORITY ALERT BLOCK
+═══════════════════════════════════════════════════════════════ */
+
+function PriorityAlertBlock({ alerts, onViewAlerts }: {
+  alerts: Array<{ id: string; title: string; severity: string; plant_id: string }>;
+  onViewAlerts: () => void;
 }) {
-  const s = KPI_STYLES[color];
+  const criticals = alerts.filter((a) => a.severity === "critical");
+  const hasCritical = criticals.length > 0;
+
+  if (!hasCritical && alerts.length === 0) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-success/20 bg-success/5 px-5 py-4">
+        <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+        <p className="text-sm font-medium text-foreground">Sistema operando dentro da normalidade</p>
+      </div>
+    );
+  }
+
+  const topAlert = criticals[0] || alerts[0];
+
   return (
     <div className={cn(
-      "flex items-center gap-4 rounded-xl border border-border/60 bg-card p-4 ring-1 card-stat-elevated",
-      s.ring
+      "flex items-center justify-between gap-4 rounded-2xl border px-5 py-4",
+      hasCritical
+        ? "border-destructive/25 bg-gradient-to-r from-destructive/5 via-destructive/3 to-transparent"
+        : "border-warning/25 bg-gradient-to-r from-warning/5 via-warning/3 to-transparent"
     )}>
-      <div className={cn("h-11 w-11 rounded-xl flex items-center justify-center shrink-0", s.iconBg)}>
-        <Icon className={cn("h-5 w-5", s.iconText)} />
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={cn(
+          "h-9 w-9 rounded-full flex items-center justify-center shrink-0",
+          hasCritical ? "bg-destructive/10" : "bg-warning/10"
+        )}>
+          <AlertTriangle className={cn("h-4 w-4", hasCritical ? "text-destructive" : "text-warning")} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{topAlert.title}</p>
+          <p className="text-xs text-muted-foreground">
+            {alerts.length === 1 ? "1 alerta ativo" : `${alerts.length} alertas ativos`}
+          </p>
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground font-medium">{label}</p>
-        <p className="text-lg font-bold text-foreground truncate">{value}</p>
-        {subtitle && <p className="text-xs text-muted-foreground/70">{subtitle}</p>}
-      </div>
+      <Button variant="ghost" size="sm" onClick={onViewAlerts} className="shrink-0 gap-1">
+        Ver detalhes <ChevronRight className="h-3.5 w-3.5" />
+      </Button>
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OPERATIONAL SUMMARY
+═══════════════════════════════════════════════════════════════ */
+
+function OperationalSummary({ onlinePerc, alertCount, currentPowerKw, energyTodayKwh, standbyCount, offlineCount, avgPR, financials }: {
+  onlinePerc: number;
+  alertCount: number;
+  currentPowerKw: number;
+  energyTodayKwh: number;
+  standbyCount: number;
+  offlineCount: number;
+  avgPR: number | null;
+  financials: any;
+}) {
+  const rows = [
+    { label: "Disponibilidade", value: `${onlinePerc}%`, icon: Activity, color: onlinePerc >= 90 ? "text-success" : onlinePerc >= 70 ? "text-warning" : "text-destructive" },
+    { label: "Standby", value: String(standbyCount), icon: Moon, color: "text-warning" },
+    { label: "Offline", value: String(offlineCount), icon: WifiOff, color: offlineCount > 0 ? "text-destructive" : "text-muted-foreground" },
+    { label: "Alertas ativos", value: String(alertCount), icon: AlertTriangle, color: alertCount > 0 ? "text-destructive" : "text-success" },
+    { label: "Potência ativa", value: currentPowerKw > 0 ? `${(currentPowerKw).toFixed(0)} kW` : "—", icon: Zap, color: "text-primary" },
+    { label: "Energia acumulada hoje", value: `${energyTodayKwh.toFixed(0)} kWh`, icon: BatteryCharging, color: "text-secondary" },
+    ...(avgPR !== null ? [{ label: "Performance Ratio", value: `${avgPR}%`, icon: BarChart3, color: avgPR >= 75 ? "text-success" : avgPR >= 60 ? "text-warning" : "text-destructive" }] : []),
+    ...(financials ? [
+      { label: "Economia hoje", value: formatBRL(financials.savings_today_brl), icon: DollarSign, color: "text-success" },
+      { label: "Economia mês", value: formatBRL(financials.savings_month_brl), icon: TrendingUp, color: "text-info" },
+      { label: "CO₂ evitado", value: `${financials.co2_avoided_month_kg.toFixed(0)} kg`, icon: Leaf, color: "text-success" },
+    ] : []),
+  ];
+
+  return (
+    <SectionCard title="Resumo Operacional" icon={BarChart3}>
+      <div className="space-y-0 divide-y divide-border/40">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
+            <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+              <row.icon className={cn("h-3.5 w-3.5", row.color)} />
+              <span>{row.label}</span>
+            </div>
+            <span className={cn("text-sm font-semibold", row.color)}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
   );
 }
