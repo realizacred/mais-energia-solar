@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const MonitorDashboard = lazy(() => import("./MonitorDashboard"));
 const MonitorPlants = lazy(() => import("./MonitorPlants"));
 const MonitorPlantDetail = lazy(() => import("./MonitorPlantDetail"));
+const InverterDetailPage = lazy(() => import("./devices/InverterDetailPage"));
 const MonitorAlerts = lazy(() => import("./MonitorAlerts"));
 const MonitorReports = lazy(() => import("./MonitorReports"));
 const MonitorSettings = lazy(() => import("./MonitorSettings"));
@@ -71,6 +72,7 @@ export default function MonitoringModule() {
           <Route index element={<MonitorDashboard />} />
           <Route path="usinas" element={<MonitorPlants />} />
           <Route path="usinas/:plantId" element={<MonitorPlantDetail />} />
+          <Route path="usinas/:plantId/inversor/:deviceId" element={<InverterDetailPage />} />
           <Route path="alertas" element={<MonitorAlerts />} />
           <Route path="relatorios" element={<MonitorReports />} />
           <Route path="cobrancas" element={<MonitorBilling />} />

@@ -11,6 +11,7 @@ import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu } from "lucide-react"
 import { getPlantDetail, listDevices, listAlerts, listDailyReadings } from "@/services/monitoring/monitorService";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
+import { DeviceMpptSummary } from "./devices/DeviceMpptSummary";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -143,14 +144,24 @@ export default function MonitorPlantDetail() {
           {devices.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">Nenhum dispositivo registrado</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {devices.map((d) => (
-                <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card hover:shadow-sm transition-all">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{d.model || d.type}</p>
-                    <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
+                <div key={d.id} className="rounded-lg border border-border/60 bg-card hover:shadow-sm transition-all overflow-hidden">
+                  <div className="flex items-center justify-between p-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{d.model || d.type}</p>
+                      <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
+                    </div>
+                    <StatusBadge status={d.status === "online" ? "Online" : d.status === "offline" ? "Offline" : "Desconhecido"} size="sm" />
                   </div>
-                  <StatusBadge status={d.status === "online" ? "Online" : d.status === "offline" ? "Offline" : "Desconhecido"} size="sm" />
+                  {d.type === "inverter" && (
+                    <div className="px-3 pb-3 border-t border-border/30 pt-2">
+                      <DeviceMpptSummary
+                        device={d}
+                        onViewDetail={() => navigate(`/admin/monitoramento/usinas/${plantId}/inversor/${d.id}`)}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
