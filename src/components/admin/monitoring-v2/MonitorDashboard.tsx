@@ -255,6 +255,7 @@ export default function MonitorDashboard() {
             <MonitorGenerationVsEstimateChart
               readings={readings}
               plants={plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp }))}
+              hspKwhM2={prData?.[0]?.hsp_used ?? null}
             />
           </SectionCard>
 

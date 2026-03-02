@@ -19,10 +19,15 @@ export interface ExpectedYieldResult {
   deviation_percent: number; // positive = underperforming
 }
 
+/**
+ * Default losses calibrated to ~23% total:
+ * (1 - 0.08) × (1 - 0.05) × (1 - 0.12) ≈ 0.769 → 23.1% loss
+ * This reflects real-world conditions in Brazil (overload, clipping, etc.)
+ */
 const DEFAULT_LOSSES: PlantLosses = {
-  shading_loss_percent: 5,
-  soiling_loss_percent: 3,
-  other_losses_percent: 10,
+  shading_loss_percent: 8,
+  soiling_loss_percent: 5,
+  other_losses_percent: 12,
 };
 
 /**

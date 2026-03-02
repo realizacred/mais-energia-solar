@@ -10,15 +10,16 @@ import {
   Legend,
 } from "recharts";
 import type { MonitorReadingDaily } from "@/services/monitoring/monitorTypes";
+import { calcExpectedFactor } from "@/services/monitoring/expectedYieldService";
 
 interface Props {
   readings: MonitorReadingDaily[];
   plants: Array<{ id: string; name: string; installed_power_kwp: number | null }>;
+  /** HSP from irradiation service (monthly average for the region) */
+  hspKwhM2?: number | null;
 }
 
-const AVG_SUN_HOURS = 4.5;
-
-export function MonitorGenerationVsEstimateChart({ readings, plants }: Props) {
+export function MonitorGenerationVsEstimateChart({ readings, plants, hspKwhM2 }: Props) {
   const chartData = useMemo(() => {
     // Group readings by date
     const byDate = new Map<string, number>();
@@ -28,7 +29,9 @@ export function MonitorGenerationVsEstimateChart({ readings, plants }: Props) {
 
     // Total installed capacity
     const totalKwp = plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0);
-    const dailyEstimate = totalKwp * AVG_SUN_HOURS;
+    const hsp = hspKwhM2 ?? 4.8; // fallback only if not provided
+    const expectedFactor = calcExpectedFactor({}); // uses calibrated defaults (~23% loss)
+    const dailyEstimate = totalKwp * hsp * expectedFactor;
 
     // Sort dates and build chart data
     const sortedDates = Array.from(byDate.keys()).sort();
@@ -38,7 +41,7 @@ export function MonitorGenerationVsEstimateChart({ readings, plants }: Props) {
       realizado: Math.round(byDate.get(date)! * 10) / 10,
       projetado: Math.round(dailyEstimate * 10) / 10,
     }));
-  }, [readings, plants]);
+  }, [readings, plants, hspKwhM2]);
 
   if (chartData.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-8">Sem dados para comparação.</p>;
