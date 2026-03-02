@@ -195,7 +195,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   }, [initialItens]);
 
   const [distribuidorNome, setDistribuidorNome] = useState(initialCardData?.distribuidorNome || "");
-  const [custo, setCusto] = useState(0);
+  const [custo, setCusto] = useState(initialCardData?.custo || 0);
   const [nomeKit, setNomeKit] = useState(initialCardData?.nomeKit || "");
   const [codigoKit, setCodigoKit] = useState(initialCardData?.codigoKit || "");
   const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(initialCardData?.sistema || sistemaProp || "on_grid");
@@ -222,7 +222,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     setModuloEntries(initModulos);
     setInversorEntries(initInversores);
     setOtimizadorEntries(initOtimizadores);
-    setCusto(initCusto);
+    // Prefer meta custo over calculated initCusto (catalog items have preco_unitario=0)
+    setCusto(initialCardData?.custo || initCusto);
     // Restore header fields from card data
     if (initialCardData) {
       setDistribuidorNome(initialCardData.distribuidorNome || "");
