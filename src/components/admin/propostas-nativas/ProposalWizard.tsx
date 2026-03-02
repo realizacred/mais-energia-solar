@@ -780,7 +780,8 @@ export function ProposalWizard() {
                 const mapped = mapLeadTipoTelhadoToProposal(roofType) || roofType;
                 setLocTipoTelhado(mapped);
               }
-              // Pre-fill distribuidora from snapshot — resolve ID by name
+
+              // Pre-fill distribuidora — resolve ID by name with fuzzy matching
               const disNome = snap.dis_energia || snap.locDistribuidoraNome;
               const disId = snap.locDistribuidoraId;
               if (disId) {
@@ -788,15 +789,51 @@ export function ProposalWizard() {
                 if (disNome) setLocDistribuidoraNome(disNome);
               } else if (disNome) {
                 setLocDistribuidoraNome(disNome);
-                // Try to resolve ID from concessionarias table
+                // Split words for fuzzy matching (e.g. "Energisa MG" → search each word)
+                const words = disNome.split(/\s+/).filter((w: string) => w.length >= 2);
+                let resolved = false;
+                // Try exact ilike first
                 const { data: conc } = await supabase
                   .from("concessionarias")
-                  .select("id")
+                  .select("id, nome")
                   .ilike("nome", `%${disNome}%`)
                   .limit(1)
                   .maybeSingle();
-                if (conc?.id) setLocDistribuidoraId(conc.id);
+                if (conc?.id) {
+                  setLocDistribuidoraId(conc.id);
+                  setLocDistribuidoraNome(conc.nome);
+                  resolved = true;
+                }
+                // Fallback: try matching by state abbreviation (e.g. "MG" → "Minas Gerais")
+                if (!resolved && cli.estado) {
+                  const { data: concByState } = await supabase
+                    .from("concessionarias")
+                    .select("id, nome")
+                    .eq("estado", cli.estado)
+                    .ilike("nome", `%${words[0]}%`)
+                    .limit(1)
+                    .maybeSingle();
+                  if (concByState?.id) {
+                    setLocDistribuidoraId(concByState.id);
+                    setLocDistribuidoraNome(concByState.nome);
+                    resolved = true;
+                  }
+                }
+                // Last resort: search by first word only
+                if (!resolved && words.length > 0) {
+                  const { data: concWord } = await supabase
+                    .from("concessionarias")
+                    .select("id, nome")
+                    .ilike("nome", `%${words[0]}%`)
+                    .limit(1)
+                    .maybeSingle();
+                  if (concWord?.id) {
+                    setLocDistribuidoraId(concWord.id);
+                    setLocDistribuidoraNome(concWord.nome);
+                  }
+                }
               }
+
               // Pre-fill consumo from snapshot
               const consumo = snap.consumo_mensal || snap.ucs?.[0]?.consumo_kwh;
               if (consumo && consumo > 0) {
@@ -808,7 +845,49 @@ export function ProposalWizard() {
                   return updated;
                 });
               }
-              console.log("[ProposalWizard] Recovered from snapshot:", { roofType, disNome, disId, consumo });
+
+              // Pre-fill kit items from snapshot
+              if (snap.panel_model || snap.inverter_model) {
+                const recoveredItens: KitItemRow[] = [];
+                if (snap.panel_model) {
+                  recoveredItens.push({
+                    id: crypto.randomUUID(),
+                    descricao: snap.panel_model,
+                    fabricante: "",
+                    modelo: snap.panel_model,
+                    potencia_w: 0,
+                    quantidade: snap.panel_quantity || 1,
+                    preco_unitario: 0,
+                    categoria: "modulo",
+                    avulso: false,
+                  });
+                }
+                if (snap.inverter_model) {
+                  recoveredItens.push({
+                    id: crypto.randomUUID(),
+                    descricao: snap.inverter_model,
+                    fabricante: "",
+                    modelo: snap.inverter_model,
+                    potencia_w: 0,
+                    quantidade: snap.inverter_quantity || 1,
+                    preco_unitario: 0,
+                    categoria: "inversor",
+                    avulso: false,
+                  });
+                }
+                if (recoveredItens.length > 0) setItens(recoveredItens);
+              }
+
+              // Pre-fill venda from snapshot
+              if (snap.equipment_cost || snap.installation_cost) {
+                setVenda(prev => ({
+                  ...prev,
+                  custo_kit: snap.equipment_cost || prev.custo_kit,
+                  custo_instalacao: snap.installation_cost || prev.custo_instalacao,
+                }));
+              }
+
+              console.log("[ProposalWizard] Recovered from snapshot:", { roofType, disNome, disId, consumo, panel: snap.panel_model, inverter: snap.inverter_model });
             }
           }
         }
