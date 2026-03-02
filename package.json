@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "audit:brand": "npx -y ripgrep-bin -n -i 'solarz|solar z|gdash|g-dash|g dash' src public supabase"
+    "audit:brand": "npx -y ripgrep-bin -n -i 'solarz|solar z|gdash|g-dash|g dash' src public supabase",
+    "audit:width": "npx -y ripgrep-bin -n 'max-w-[0-9]xl' src/pages/Admin.tsx src/pages/VendedorPortal.tsx src/pages/SuperAdmin.tsx src/components/admin/ --glob '!*.test.*' || echo '✅ No restrictive max-width in admin pages'"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
