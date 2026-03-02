@@ -664,10 +664,54 @@ async function handleConnectionUpdate(supabase: any, instanceId: string, payload
     .update({
       status: dbStatus,
       last_seen_at: dbStatus === "connected" ? new Date().toISOString() : undefined,
+      updated_at: new Date().toISOString(),
     })
     .eq("id", instanceId);
 
   console.log(`[process-webhook-events] Instance ${instanceId} connection: ${state} -> ${dbStatus}`);
+
+  // Auto-reconnect: if disconnected, trigger immediate reconnect attempt
+  if (dbStatus === "disconnected" || dbStatus === "error") {
+    try {
+      const { data: inst } = await supabase
+        .from("wa_instances")
+        .select("evolution_api_url, evolution_instance_key, api_key, nome")
+        .eq("id", instanceId)
+        .single();
+
+      if (inst?.evolution_api_url && inst?.evolution_instance_key) {
+        const apiUrl = inst.evolution_api_url.replace(/\/$/, "");
+        const apiKey = inst.api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
+        const encodedKey = encodeURIComponent(inst.evolution_instance_key);
+
+        console.log(`[process-webhook-events] Auto-reconnect attempt for ${inst.nome}...`);
+
+        const connectRes = await fetch(`${apiUrl}/instance/connect/${encodedKey}`, {
+          method: "GET",
+          headers: { apikey: apiKey },
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (connectRes.ok) {
+          const result = await connectRes.json();
+          const newState = result?.instance?.state || result?.state;
+          console.log(`[process-webhook-events] Auto-reconnect result: ${newState}`);
+          
+          if (newState === "open") {
+            await supabase.from("wa_instances").update({
+              status: "connected",
+              last_seen_at: new Date().toISOString(),
+            }).eq("id", instanceId);
+          }
+        } else {
+          await connectRes.text();
+          console.warn(`[process-webhook-events] Auto-reconnect failed: ${connectRes.status}`);
+        }
+      }
+    } catch (e) {
+      console.warn(`[process-webhook-events] Auto-reconnect error: ${(e as Error).message}`);
+    }
+  }
 }
 
 async function handleContactsUpsert(
