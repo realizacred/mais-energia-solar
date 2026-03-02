@@ -4,9 +4,9 @@ import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { Sun, Zap, AlertTriangle, WifiOff, Activity, Gauge, BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3, CloudSun, Wrench } from "lucide-react";
+import { Sun, Zap, AlertTriangle, WifiOff, Activity, Gauge, BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3, CloudSun, Wrench, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth } from "@/services/monitoring/monitorService";
+import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth, listIntegrations } from "@/services/monitoring/monitorService";
 import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
@@ -19,6 +19,10 @@ import { WeatherWidget } from "./WeatherWidget";
 import { MaintenanceCalendar } from "./MaintenanceCalendar";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/formatters/index";
+import { formatDistanceToNow, addMinutes, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+const SYNC_INTERVAL_MIN = 15;
 
 export default function MonitorDashboard() {
   const navigate = useNavigate();
@@ -79,6 +83,11 @@ export default function MonitorDashboard() {
     enabled: plants.length > 0 && monthReadings.length > 0,
   });
 
+  const { data: integrations = [] } = useQuery({
+    queryKey: ["monitor-integrations"],
+    queryFn: listIntegrations,
+  });
+
 
   if (isLoading) return <LoadingState message="Carregando dashboard..." />;
 
@@ -113,13 +122,36 @@ export default function MonitorDashboard() {
     ? (plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) * 0.7)
     : 0;
 
+  // Sync timing
+  const lastSyncDate = integrations
+    .filter((i: any) => i.last_sync_at)
+    .map((i: any) => new Date(i.last_sync_at).getTime())
+    .sort((a: number, b: number) => b - a)[0];
+  const lastSync = lastSyncDate ? new Date(lastSyncDate) : null;
+  const nextSync = lastSync ? addMinutes(lastSync, SYNC_INTERVAL_MIN) : null;
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Monitoramento Solar"
-        description="Visão geral das usinas fotovoltaicas"
-        icon={Sun}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <PageHeader
+          title="Monitoramento Solar"
+          description="Visão geral das usinas fotovoltaicas"
+          icon={Sun}
+        />
+        {lastSync && (
+          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2 border border-border/60 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Última sync: <strong className="text-foreground">{formatDistanceToNow(lastSync, { addSuffix: true, locale: ptBR })}</strong></span>
+            </div>
+            <span className="text-border">|</span>
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              <span>Próxima: <strong className="text-foreground">{nextSync && nextSync > new Date() ? format(nextSync, "HH:mm") : "em breve"}</strong></span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {isEmpty ? (
         <EmptyState
