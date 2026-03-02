@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { JSZip } from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,7 +7,215 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-import { createReport } from "npm:docx-templates@4.13.0";
+/**
+ * Simple DOCX template processor that replaces [variable] placeholders.
+ * Works by unzipping the DOCX, finding placeholders in XML files, and replacing them.
+ */
+async function processDocxTemplate(
+  templateBytes: Uint8Array,
+  vars: Record<string, string>,
+): Promise<Uint8Array> {
+  const zip = await JSZip.loadAsync(templateBytes);
+
+  // Process all XML files in the DOCX (document.xml, headers, footers, etc.)
+  const xmlFiles = Object.keys(zip.files).filter(
+    (f) => f.endsWith(".xml") || f.endsWith(".xml.rels"),
+  );
+
+  for (const fileName of xmlFiles) {
+    const file = zip.file(fileName);
+    if (!file || file.dir) continue;
+
+    let content = await file.async("string");
+    let modified = false;
+
+    // DOCX often splits placeholders across multiple XML runs.
+    // First, try to find and replace simple [var] patterns
+    for (const [key, value] of Object.entries(vars)) {
+      // Escape XML special chars in the value
+      const safeValue = escapeXml(value);
+
+      // Direct replacement: [key]
+      const simplePattern = `[${key}]`;
+      if (content.includes(simplePattern)) {
+        content = content.replaceAll(simplePattern, safeValue);
+        modified = true;
+      }
+    }
+
+    // Handle split placeholders: Word may split [variable] across XML runs like:
+    // <w:r><w:t>[</w:t></w:r><w:r><w:t>variable</w:t></w:r><w:r><w:t>]</w:t></w:r>
+    // Strategy: extract all text, find placeholders, then rebuild
+    if (!modified || content.includes("[")) {
+      const result = replaceSplitPlaceholders(content, vars);
+      if (result.changed) {
+        content = result.content;
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      zip.file(fileName, content);
+    }
+  }
+
+  const output = await zip.generateAsync({ type: "uint8array" });
+  return output;
+}
+
+/**
+ * Handle placeholders that Word splits across multiple XML <w:r> runs.
+ */
+function replaceSplitPlaceholders(
+  xml: string,
+  vars: Record<string, string>,
+): { content: string; changed: boolean } {
+  let changed = false;
+
+  // Find sequences of <w:r>...</w:r> that together form a [placeholder]
+  // We look for text content between <w:t> tags
+  const textPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+
+  // Collect all text nodes with their positions
+  interface TextNode {
+    fullMatch: string;
+    text: string;
+    start: number;
+    end: number;
+  }
+
+  const textNodes: TextNode[] = [];
+  let match;
+  while ((match = textPattern.exec(xml)) !== null) {
+    textNodes.push({
+      fullMatch: match[0],
+      text: match[1],
+      start: match.index,
+      end: match.index + match[0].length,
+    });
+  }
+
+  // Concatenate all text to find placeholder boundaries
+  const fullText = textNodes.map((n) => n.text).join("");
+
+  // Find all [placeholder] in the concatenated text
+  const placeholderPattern = /\[([^\]]+)\]/g;
+  let placeholderMatch;
+  const replacements: Array<{
+    startNode: number;
+    endNode: number;
+    startOffset: number;
+    endOffset: number;
+    key: string;
+    value: string;
+  }> = [];
+
+  while ((placeholderMatch = placeholderPattern.exec(fullText)) !== null) {
+    const key = placeholderMatch[1];
+    const value = vars[key];
+    if (value === undefined) continue;
+
+    const phStart = placeholderMatch.index;
+    const phEnd = phStart + placeholderMatch[0].length;
+
+    // Map character positions back to text nodes
+    let charPos = 0;
+    let startNodeIdx = -1;
+    let endNodeIdx = -1;
+    let startCharOffset = 0;
+    let endCharOffset = 0;
+
+    for (let i = 0; i < textNodes.length; i++) {
+      const nodeStart = charPos;
+      const nodeEnd = charPos + textNodes[i].text.length;
+
+      if (startNodeIdx === -1 && phStart >= nodeStart && phStart < nodeEnd) {
+        startNodeIdx = i;
+        startCharOffset = phStart - nodeStart;
+      }
+      if (phEnd > nodeStart && phEnd <= nodeEnd) {
+        endNodeIdx = i;
+        endCharOffset = phEnd - nodeStart;
+        break;
+      }
+      charPos = nodeEnd;
+    }
+
+    if (startNodeIdx >= 0 && endNodeIdx >= 0) {
+      replacements.push({
+        startNode: startNodeIdx,
+        endNode: endNodeIdx,
+        startOffset: startCharOffset,
+        endOffset: endCharOffset,
+        key,
+        value: escapeXml(value),
+      });
+    }
+  }
+
+  // Apply replacements in reverse order to maintain positions
+  for (let r = replacements.length - 1; r >= 0; r--) {
+    const rep = replacements[r];
+    changed = true;
+
+    if (rep.startNode === rep.endNode) {
+      // Placeholder is within a single node
+      const node = textNodes[rep.startNode];
+      const newText =
+        node.text.substring(0, rep.startOffset) +
+        rep.value +
+        node.text.substring(rep.endOffset);
+      const newXml = node.fullMatch.replace(node.text, newText);
+      xml = xml.substring(0, node.start) + newXml + xml.substring(node.end);
+    } else {
+      // Placeholder spans multiple nodes:
+      // Put the replacement value in the first node, clear the middle nodes, trim the last node
+      for (let i = rep.endNode; i >= rep.startNode; i--) {
+        const node = textNodes[i];
+        let newText: string;
+
+        if (i === rep.startNode) {
+          newText = node.text.substring(0, rep.startOffset) + rep.value;
+        } else if (i === rep.endNode) {
+          newText = node.text.substring(rep.endOffset);
+        } else {
+          newText = "";
+        }
+
+        const newXml = node.fullMatch.replace(
+          />([^<]*)<\/w:t>/,
+          `>${newText}</w:t>`,
+        );
+        xml = xml.substring(0, node.start) + newXml + xml.substring(node.end);
+      }
+    }
+
+    // Re-scan nodes after modification (positions shifted)
+    textNodes.length = 0;
+    textPattern.lastIndex = 0;
+    while ((match = textPattern.exec(xml)) !== null) {
+      textNodes.push({
+        fullMatch: match[0],
+        text: match[1],
+        start: match.index,
+        end: match.index + match[0].length,
+      });
+    }
+  }
+
+  return { content: xml, changed };
+}
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+// ─── Main handler ─────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -143,11 +352,11 @@ Deno.serve(async (req) => {
 
     const vars: Record<string, string> = {};
 
-    // 6a. Se tiver snapshot, ele é a fonte primária (contém TODOS os cálculos)
+    // 6a. Se tiver snapshot, extrair campos úteis (evitar objetos complexos)
     const snapshot = versaoData?.snapshot as Record<string, any> | null;
     if (snapshot && typeof snapshot === "object") {
       for (const [key, value] of Object.entries(snapshot)) {
-        if (value !== null && value !== undefined && value !== "") {
+        if (value !== null && value !== undefined && value !== "" && typeof value !== "object") {
           vars[key] = String(value);
         }
       }
@@ -181,7 +390,6 @@ Deno.serve(async (req) => {
     set("tipo_telhado", lead?.tipo_telhado);
     set("cape_telhado", lead?.tipo_telhado);
     set("fase", lead?.rede_atendimento);
-    set("dis_energia", ""); // Distribuidora - será do snapshot se existir
 
     // Sistema Solar
     const potencia = versaoData?.potencia_kwp || projeto?.potencia_kwp || cliente?.potencia_kwp;
@@ -219,7 +427,7 @@ Deno.serve(async (req) => {
     if (consultor) {
       set("consultor_nome", consultor.nome);
       set("responsavel_nome", consultor.nome);
-      set("responsavel_nom", consultor.nome); // typo no template
+      set("responsavel_nom", consultor.nome);
       set("consultor_telefone", consultor.telefone);
       set("consultor_email", consultor.email);
     }
@@ -236,28 +444,19 @@ Deno.serve(async (req) => {
     if (!docxResponse.ok) {
       return jsonError(`Erro ao baixar template DOCX: ${docxResponse.status}`, 500);
     }
-    const templateBuffer = await docxResponse.arrayBuffer();
+    const templateBuffer = new Uint8Array(await docxResponse.arrayBuffer());
+    console.log(`[template-preview] DOCX downloaded: ${templateBuffer.byteLength} bytes`);
 
-    // ── 8. PROCESSAR COM docx-templates ───────────────────
-    console.log(`[template-preview] Processing DOCX (${templateBuffer.byteLength} bytes) with ${Object.keys(vars).length} variables`);
+    // ── 8. PROCESSAR TEMPLATE ─────────────────────────────
+    console.log(`[template-preview] Processing DOCX with JSZip-based replacer`);
 
     let report: Uint8Array;
     try {
-      const result = await createReport({
-        template: new Uint8Array(templateBuffer),
-        data: vars,
-        cmdDelimiter: ["[", "]"],
-        failFast: false,
-        errorHandler: (e: any, raw_code: string) => {
-          console.warn(`[template-preview] Template cmd error in "${raw_code}":`, e?.message || e);
-          return "";
-        },
-      });
-      report = result instanceof Uint8Array ? result : new Uint8Array(result);
-      console.log(`[template-preview] createReport OK, output: ${report.length} bytes`);
-    } catch (reportErr: any) {
-      console.error("[template-preview] createReport threw:", reportErr?.message, reportErr?.stack);
-      return jsonError(`Erro ao processar template DOCX: ${reportErr?.message || "unknown"}`, 500);
+      report = await processDocxTemplate(templateBuffer, vars);
+      console.log(`[template-preview] Processing OK, output: ${report.length} bytes`);
+    } catch (processErr: any) {
+      console.error("[template-preview] Processing error:", processErr?.message, processErr?.stack);
+      return jsonError(`Erro ao processar template DOCX: ${processErr?.message || "unknown"}`, 500);
     }
 
     // ── 9. RETORNAR O ARQUIVO PROCESSADO ──────────────────
@@ -273,8 +472,8 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err: any) {
-    console.error("[template-preview] Error:", err);
-    return jsonError(err.message ?? "Erro interno", 500);
+    console.error("[template-preview] Error:", err?.message, err?.stack);
+    return jsonError(err?.message ?? "Erro interno", 500);
   }
 });
 
