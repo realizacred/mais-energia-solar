@@ -774,29 +774,41 @@ export function ProposalWizard() {
 
             const snap = (lastVersao as any)?.snapshot as Record<string, any> | null;
             if (!cancelled && snap) {
-            // Pre-fill tipo de telhado from snapshot
-            const roofType = snap.roof_type || snap.locTipoTelhado;
-            if (roofType && !locTipoTelhado) {
-              const mapped = mapLeadTipoTelhadoToProposal(roofType) || roofType;
-              setLocTipoTelhado(mapped);
-            }
-            // Pre-fill distribuidora from snapshot
-            const dis = snap.dis_energia || snap.locDistribuidoraNome;
-            if (dis && !locDistribuidoraNome) {
-              setLocDistribuidoraNome(dis);
-            }
-            // Pre-fill consumo from snapshot
-            const consumo = snap.consumo_mensal || snap.ucs?.[0]?.consumo_kwh;
-            if (consumo && consumo > 0) {
-              setUcs(prev => {
-                const updated = [...prev];
-                if (updated[0].consumo_mensal === 0) {
-                  updated[0] = { ...updated[0], consumo_mensal: consumo };
-                }
-                return updated;
-              });
-            }
-            console.log("[ProposalWizard] Recovered data from previous proposal snapshot:", { roofType, dis, consumo });
+              // Pre-fill tipo de telhado from snapshot
+              const roofType = snap.roof_type || snap.locTipoTelhado;
+              if (roofType) {
+                const mapped = mapLeadTipoTelhadoToProposal(roofType) || roofType;
+                setLocTipoTelhado(mapped);
+              }
+              // Pre-fill distribuidora from snapshot — resolve ID by name
+              const disNome = snap.dis_energia || snap.locDistribuidoraNome;
+              const disId = snap.locDistribuidoraId;
+              if (disId) {
+                setLocDistribuidoraId(disId);
+                if (disNome) setLocDistribuidoraNome(disNome);
+              } else if (disNome) {
+                setLocDistribuidoraNome(disNome);
+                // Try to resolve ID from concessionarias table
+                const { data: conc } = await supabase
+                  .from("concessionarias")
+                  .select("id")
+                  .ilike("nome", `%${disNome}%`)
+                  .limit(1)
+                  .maybeSingle();
+                if (conc?.id) setLocDistribuidoraId(conc.id);
+              }
+              // Pre-fill consumo from snapshot
+              const consumo = snap.consumo_mensal || snap.ucs?.[0]?.consumo_kwh;
+              if (consumo && consumo > 0) {
+                setUcs(prev => {
+                  const updated = [...prev];
+                  if (updated[0].consumo_mensal === 0) {
+                    updated[0] = { ...updated[0], consumo_mensal: consumo };
+                  }
+                  return updated;
+                });
+              }
+              console.log("[ProposalWizard] Recovered from snapshot:", { roofType, disNome, disId, consumo });
             }
           }
         }
