@@ -1,4 +1,6 @@
 import React, { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { CalendarDays, Wrench, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +14,7 @@ interface MaintenanceItem {
   plantName: string;
   reason: string;
   urgency: "high" | "medium" | "low";
-  prPercent: number;
+  prPercent: number | null;
   suggestedAction: string;
 }
 
@@ -68,6 +70,31 @@ function analyzeMaintenanceNeeds(
     }
   });
 
+  // Detect plants with offline inverters
+  plants.forEach((plant) => {
+    const plantDevices = (plant as any).devices as Array<{ status: string; model?: string; serial?: string }> | undefined;
+    if (!plantDevices) return;
+    const offlineInverters = plantDevices.filter(
+      (d: any) => d.type === "inverter" && d.status === "offline"
+    );
+    if (offlineInverters.length > 0) {
+      const existing = items.find((i) => i.plantId === plant.id);
+      if (!existing) {
+        items.push({
+          plantId: plant.id,
+          plantName: plant.name,
+          reason: `${offlineInverters.length} inversor(es) offline`,
+          urgency: "high",
+          prPercent: prData.find((p) => p.plant_id === plant.id)?.pr_percent ?? null,
+          suggestedAction: `Verificar comunicação: ${offlineInverters.map((d: any) => d.serial || d.model || "inversor").join(", ")}`,
+        });
+      } else {
+        existing.reason += ` | ${offlineInverters.length} inversor(es) offline`;
+        existing.suggestedAction += `. Verificar comunicação: ${offlineInverters.map((d: any) => d.serial || d.model || "inversor").join(", ")}`;
+      }
+    }
+  });
+
   // Check for plants that haven't been seen recently (>7 days)
   const now = Date.now();
   plants.forEach((p) => {
@@ -115,7 +142,32 @@ function analyzeMaintenanceNeeds(
 }
 
 export function MaintenanceCalendar({ prData, plants }: Props) {
-  const items = useMemo(() => analyzeMaintenanceNeeds(prData, plants), [prData, plants]);
+  // Fetch all inverter devices to detect offline ones
+  const plantIds = plants.map((p) => p.id);
+  const { data: allDevices = [] } = useQuery({
+    queryKey: ["monitor-devices-maintenance", plantIds.join(",")],
+    queryFn: async () => {
+      if (!plantIds.length) return [];
+      const { data } = await supabase
+        .from("monitor_devices")
+        .select("plant_id, type, status, model, serial, metadata")
+        .in("plant_id", plantIds)
+        .eq("type", "inverter");
+      return data || [];
+    },
+    enabled: plantIds.length > 0,
+  });
+
+  // Enrich plants with device data for maintenance analysis
+  const enrichedPlants = useMemo(() => 
+    plants.map((p) => ({
+      ...p,
+      devices: allDevices.filter((d) => d.plant_id === p.id),
+    })),
+    [plants, allDevices]
+  );
+
+  const items = useMemo(() => analyzeMaintenanceNeeds(prData, enrichedPlants), [prData, enrichedPlants]);
 
   if (items.length === 0) {
     return (

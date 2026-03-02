@@ -127,6 +127,30 @@ export async function getPerformanceRatios(
     }
   });
 
+  // Fetch devices to detect offline inverters and adjust effective kWp
+  const offlineInfoMap = new Map<string, { offlineCount: number; totalCount: number; offlinePowerKw: number; totalPowerKw: number }>();
+  try {
+    const plantIds = plants.map((p) => p.id);
+    const { data: devices } = await supabase
+      .from("monitor_devices")
+      .select("plant_id, type, status, metadata")
+      .in("plant_id", plantIds)
+      .eq("type", "inverter");
+    if (devices) {
+      for (const d of devices) {
+        const info = offlineInfoMap.get(d.plant_id) || { offlineCount: 0, totalCount: 0, offlinePowerKw: 0, totalPowerKw: 0 };
+        const ratedPower = Number((d.metadata as any)?.power ?? (d.metadata as any)?.power1 ?? 0);
+        info.totalCount++;
+        info.totalPowerKw += ratedPower;
+        if (d.status === "offline") {
+          info.offlineCount++;
+          info.offlinePowerKw += ratedPower;
+        }
+        offlineInfoMap.set(d.plant_id, info);
+      }
+    }
+  } catch { /* proceed without device adjustment */ }
+
   const results: PlantPerformanceRatio[] = [];
 
   for (const p of plants) {
@@ -135,6 +159,21 @@ export async function getPerformanceRatios(
     const hspKey = `${p.latitude ?? "null"}_${p.longitude ?? "null"}`;
     const hspResult = hspCache.get(hspKey)!;
     const hsp = hspResult.hsp_kwh_m2;
+
+    // Adjust effective kWp: discount offline inverters proportionally
+    const offlineInfo = offlineInfoMap.get(p.id);
+    let effectiveKwp = kwp;
+    if (kwp && kwp > 0 && offlineInfo && offlineInfo.offlineCount > 0 && offlineInfo.totalCount > 0) {
+      if (offlineInfo.totalPowerKw > 0) {
+        // Use rated power ratio
+        const onlineRatio = Math.max(0, 1 - (offlineInfo.offlinePowerKw / offlineInfo.totalPowerKw));
+        effectiveKwp = kwp * onlineRatio;
+      } else {
+        // Fallback: use count ratio
+        const onlineRatio = Math.max(0, 1 - (offlineInfo.offlineCount / offlineInfo.totalCount));
+        effectiveKwp = kwp * onlineRatio;
+      }
+    }
 
     // Calculate expected factor from plant-specific losses
     const losses: Partial<PlantLosses> = {
@@ -146,7 +185,7 @@ export async function getPerformanceRatios(
 
     // Determine PR status (strict — never fallback to fake data)
     let prStatus: PrStatus = "ok";
-    if (!kwp || kwp <= 0) {
+    if (!effectiveKwp || effectiveKwp <= 0) {
       prStatus = "config_required";
     } else if (hsp == null || hsp <= 0) {
       prStatus = "irradiation_unavailable";
@@ -154,10 +193,10 @@ export async function getPerformanceRatios(
       prStatus = "no_data";
     }
 
-    // Expected energy with losses applied
-    const canCalc = prStatus === "ok" && kwp && kwp > 0 && hsp && hsp > 0;
-    const expectedSoFar = canCalc ? kwp * hsp * daysSoFar * expectedFactor : 0;
-    const expectedFull = canCalc ? kwp * hsp * daysInMonth * expectedFactor : 0;
+    // Expected energy with losses applied — using effective kWp (excluding offline inverters)
+    const canCalc = prStatus === "ok" && effectiveKwp && effectiveKwp > 0 && hsp && hsp > 0;
+    const expectedSoFar = canCalc ? effectiveKwp * hsp * daysSoFar * expectedFactor : 0;
+    const expectedFull = canCalc ? effectiveKwp * hsp * daysInMonth * expectedFactor : 0;
 
     // PR = actual / expected * 100 (capped at 120% to flag anomalies)
     const prValue = (canCalc && expectedSoFar > 0)
@@ -182,7 +221,7 @@ export async function getPerformanceRatios(
     results.push({
       plant_id: p.id,
       plant_name: p.name,
-      installed_kwp: kwp || 0,
+      installed_kwp: effectiveKwp || 0,
       expected_month_kwh: Math.round(expectedFull * 10) / 10,
       actual_month_kwh: actual,
       pr_percent: prValue != null ? Math.round(prValue * 10) / 10 : null,
