@@ -63,8 +63,16 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
       return d >= lastMonth && d < thisMonth;
     }).length;
     
-    const growth = lastMonthLeads > 0 
-      ? Math.round(((thisMonthLeads - lastMonthLeads) / lastMonthLeads) * 100)
+    // Proportional growth: normalize last month's count to the same
+    // number of elapsed days so early-month comparisons are fair.
+    const dayOfMonth = now.getDate();
+    const daysInLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    const proportionalLastMonth = lastMonthLeads > 0
+      ? (lastMonthLeads / daysInLastMonth) * dayOfMonth
+      : 0;
+
+    const growth = proportionalLastMonth > 0
+      ? Math.round(((thisMonthLeads - proportionalLastMonth) / proportionalLastMonth) * 100)
       : thisMonthLeads > 0 ? 100 : 0;
     
     const closedStatuses = statuses.filter(s => 

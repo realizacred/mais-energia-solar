@@ -113,10 +113,15 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
   }, [leads]);
 
   const growthRate = useMemo(() => {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
     const thisMonth = leadsByMonth[leadsByMonth.length - 1]?.leads || 0;
     const lastMonth = leadsByMonth[leadsByMonth.length - 2]?.leads || 0;
-    if (lastMonth === 0) return thisMonth > 0 ? 100 : 0;
-    return Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
+    // Proportional comparison: scale last month to the same elapsed days
+    const daysInLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    const proportional = lastMonth > 0 ? (lastMonth / daysInLastMonth) * dayOfMonth : 0;
+    if (proportional === 0) return thisMonth > 0 ? 100 : 0;
+    return Math.round(((thisMonth - proportional) / proportional) * 100);
   }, [leadsByMonth]);
 
   const totalKwh = leads.reduce((acc, l) => acc + l.media_consumo, 0);
