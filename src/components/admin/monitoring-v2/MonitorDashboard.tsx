@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth, listIntegrations } from "@/services/monitoring/monitorService";
 import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
+import { isBrasiliaNight } from "@/services/monitoring/plantStatusEngine";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
@@ -110,8 +111,7 @@ export default function MonitorDashboard() {
     ? plantsWithCoords.reduce((s, p) => s + (p.lng || 0), 0) / plantsWithCoords.length : null;
 
   const isGenerating = (stats?.energy_today_kwh || 0) > 0;
-  const currentHour = new Date().getHours();
-  const isDaylight = currentHour >= 6 && currentHour <= 18;
+  const isDaylight = !isBrasiliaNight();
   const estimatedCurrentPower = isDaylight && isGenerating
     ? (plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) * 0.7) : 0;
 

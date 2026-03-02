@@ -31,6 +31,20 @@ interface PlantStatusInput {
 }
 
 const OFFLINE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+/**
+ * Get current hour in America/Sao_Paulo timezone (BRT/BRST).
+ * This is the SSOT for daylight/night checks across the monitoring system.
+ */
+export function getBrasiliaHour(): number {
+  return parseInt(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }), 10);
+}
+
+export function isBrasiliaNight(): boolean {
+  const hour = getBrasiliaHour();
+  return hour >= 18 || hour < 6;
+}
+
 const POWER_THRESHOLD_KW = 0.05;
 
 /**
@@ -54,8 +68,7 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
 
   // Recent sync confirmed — check generation
   const powerKw = normalizePowerKw(input.power_kw);
-  const currentHour = new Date().getHours();
-  const isNight = currentHour >= 18 || currentHour < 6;
+  const isNight = isBrasiliaNight();
 
   // Rule 2: STANDBY — nighttime always standby (synced)
   // Many providers return stale power_kw from the last daytime reading,
