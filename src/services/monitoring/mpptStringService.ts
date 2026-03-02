@@ -3,6 +3,7 @@
  * Reads from monitor_string_registry, monitor_string_metrics, monitor_string_alerts.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/storagePaths";
 import type {
   StringRegistry,
   StringMetric,
@@ -15,9 +16,7 @@ import type { MonitorDevice } from "./monitorTypes";
 // ─── Feature flag check ──────────────────────────────────────
 
 export async function isMpptStringEnabled(): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-  const tenantId = (user as any)?.app_metadata?.tenant_id || user?.user_metadata?.tenant_id;
+  const tenantId = await getCurrentTenantId();
   if (!tenantId) return false;
 
   const { data } = await supabase
