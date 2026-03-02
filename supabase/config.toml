@@ -225,6 +225,7 @@ verify_jwt = false
 
 [functions.monitoring-sync]
 verify_jwt = false
+wall_clock_limit = 120
 
 [functions.monitor-alert-engine]
 verify_jwt = false

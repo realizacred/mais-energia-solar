@@ -381,23 +381,48 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
 
 async function deyeMetrics(baseUrl: string, token: string, extId: string): Promise<DailyMetrics> {
   try {
-    const json = await deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) });
-    // Deye v2: generationPower (kW), generationToday (kWh), generationTotal (kWh)
-    // Also try nested data field for compatibility
-    const d = json.data || json;
-    const energy = d.generationToday != null ? Number(d.generationToday) :
-                  d.todayEnergy != null ? Number(d.todayEnergy) :
-                  d.eToday != null ? Number(d.eToday) : null;
-    const totalEnergy = d.generationTotal != null ? Number(d.generationTotal) :
-                        d.totalEnergy != null ? Number(d.totalEnergy) :
-                        d.eTotal != null ? Number(d.eTotal) : null;
-    console.log(`[Deye] Metrics for ${extId}: power=${d.generationPower}, today=${energy}, total=${totalEnergy}`);
-    return {
-      power_kw: d.generationPower != null ? Number(d.generationPower) : null,
-      energy_kwh: energy,
-      total_energy_kwh: totalEnergy,
-      metadata: json,
-    };
+    // Fetch real-time power from /station/latest
+    const latestJson = await deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) });
+    const d = latestJson.data || latestJson;
+    // generationPower is in WATTS — convert to kW
+    const rawPower = d.generationPower != null ? Number(d.generationPower) : null;
+    const powerKw = rawPower != null ? rawPower / 1000 : null;
+
+    // Fetch energy from /station/kpi (today/month/total)
+    let energy: number | null = null;
+    let totalEnergy: number | null = null;
+    try {
+      const kpiJson = await deyeFetch(baseUrl, token, "/station/kpi", { stationId: Number(extId) });
+      const k = kpiJson.data || kpiJson;
+      energy = k.generationToday != null ? Number(k.generationToday) :
+               k.todayGeneration != null ? Number(k.todayGeneration) :
+               k.monthGeneration != null ? Number(k.monthGeneration) / 30 : null;
+      totalEnergy = k.generationTotal != null ? Number(k.generationTotal) :
+                    k.totalGeneration != null ? Number(k.totalGeneration) :
+                    k.cumulativeGeneration != null ? Number(k.cumulativeGeneration) : null;
+      // If kpi doesn't have today but has month, try to get from latest
+      if (energy == null) {
+        energy = d.generationToday != null ? Number(d.generationToday) :
+                 d.todayEnergy != null ? Number(d.todayEnergy) :
+                 d.eToday != null ? Number(d.eToday) : null;
+      }
+      if (totalEnergy == null) {
+        totalEnergy = d.generationTotal != null ? Number(d.generationTotal) :
+                      d.totalEnergy != null ? Number(d.totalEnergy) :
+                      d.eTotal != null ? Number(d.eTotal) : null;
+      }
+      console.log(`[Deye] KPI for ${extId}: today=${energy}, total=${totalEnergy}, raw=${JSON.stringify(k).substring(0, 200)}`);
+    } catch (kpiErr) {
+      console.warn(`[Deye] KPI failed for ${extId}: ${(kpiErr as Error).message}`);
+      // Fallback: try energy fields from latest
+      energy = d.generationToday != null ? Number(d.generationToday) :
+               d.todayEnergy != null ? Number(d.todayEnergy) : null;
+      totalEnergy = d.generationTotal != null ? Number(d.generationTotal) :
+                    d.totalEnergy != null ? Number(d.totalEnergy) : null;
+    }
+
+    console.log(`[Deye] Metrics for ${extId}: powerW=${rawPower}, powerKw=${powerKw}, today=${energy}, total=${totalEnergy}`);
+    return { power_kw: powerKw, energy_kwh: energy, total_energy_kwh: totalEnergy, metadata: { ...latestJson, kpi: true } };
   } catch (err) {
     console.error(`[Deye] Metrics FAILED for ${extId}: ${(err as Error).message}`);
     return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
@@ -1409,36 +1434,50 @@ async function syncPlantsByProvider(
       dbPlantsQuery = dbPlantsQuery.in("external_id", Array.from(selectedExternalIds));
     }
     const { data: dbPlants } = await dbPlantsQuery;
+    const metricsStartTime = Date.now();
+    const METRICS_TIME_BUDGET_MS = 45_000; // Stop before edge function timeout
+
     for (const p of dbPlants || []) {
-      const metrics = await metricsFn(p.external_id);
-      const err = await upsertMetrics(ctx, p.id, metrics);
-      if (err) errors.push(`Metrics ${p.external_id}: ${err}`); else metricsUpserted++;
+      // Time budget check — stop gracefully before timeout
+      if (Date.now() - metricsStartTime > METRICS_TIME_BUDGET_MS) {
+        console.warn(`[Sync] Time budget exceeded after ${metricsUpserted} metrics, skipping remaining`);
+        errors.push(`Time budget: processed ${metricsUpserted}/${(dbPlants || []).length} plants`);
+        break;
+      }
 
-      // ── APPEND-ONLY: Save raw payload for audit trail ──
       try {
-        await ctx.supabaseAdmin.from("monitor_provider_payloads").insert({
-          tenant_id: ctx.tenantId,
-          provider_id: ctx.provider,
-          entity: "metrics",
-          entity_id: p.external_id,
-          raw: metrics.metadata || {},
-        });
-      } catch (_) { /* non-blocking: audit insert failure is tolerable */ }
+        const metrics = await metricsFn(p.external_id);
+        const err = await upsertMetrics(ctx, p.id, metrics);
+        if (err) errors.push(`Metrics ${p.external_id}: ${err}`); else metricsUpserted++;
 
-      // ── APPEND-ONLY: Save realtime reading snapshot ──
-      try {
-        if (metrics.power_kw != null || metrics.energy_kwh != null) {
-          await ctx.supabaseAdmin.from("monitor_readings_realtime").insert({
+        // ── APPEND-ONLY: Save raw payload for audit trail ──
+        try {
+          await ctx.supabaseAdmin.from("monitor_provider_payloads").insert({
             tenant_id: ctx.tenantId,
-            plant_id: p.id,
-            ts: new Date().toISOString(),
-            power_w: metrics.power_kw != null ? metrics.power_kw * 1000 : null,
-            energy_kwh: metrics.energy_kwh,
-            status: "synced",
-            metadata: { source: "monitoring-sync", provider: ctx.provider },
+            provider_id: ctx.provider,
+            entity: "metrics",
+            entity_id: p.external_id,
+            raw: metrics.metadata || {},
           });
-        }
-      } catch (_) { /* non-blocking */ }
+        } catch (_) { /* non-blocking */ }
+
+        // ── APPEND-ONLY: Save realtime reading snapshot ──
+        try {
+          if (metrics.power_kw != null || metrics.energy_kwh != null) {
+            await ctx.supabaseAdmin.from("monitor_readings_realtime").insert({
+              tenant_id: ctx.tenantId,
+              plant_id: p.id,
+              ts: new Date().toISOString(),
+              power_w: metrics.power_kw != null ? metrics.power_kw * 1000 : null,
+              energy_kwh: metrics.energy_kwh,
+              status: "synced",
+              metadata: { source: "monitoring-sync", provider: ctx.provider },
+            });
+          }
+        } catch (_) { /* non-blocking */ }
+      } catch (metricErr) {
+        errors.push(`Metrics ${p.external_id}: ${(metricErr as Error).message}`);
+      }
     }
   }
 
@@ -1706,34 +1745,16 @@ async function dispatchSync(
 
     console.log(`[Deye] Starting sync mode=${mode} selectedPlants=${selectedPlantIds?.length || 'all'}`);
 
-    // Pre-fetch plant list to use as metrics cache (avoids 109 individual API calls)
-    const plantListCache = new Map<string, Record<string, unknown>>();
+    const isSelectiveSync = selectedPlantIds && selectedPlantIds.length > 0;
+
     const listFn = async () => {
-      const plants = await deyeListPlants(baseUrl, at);
-      // Cache metadata from /station/list for metrics extraction
-      for (const p of plants) {
-        plantListCache.set(p.external_id, p.metadata);
-      }
-      console.log(`[Deye] Cached ${plantListCache.size} plants from list API`);
-      return plants;
+      return await deyeListPlants(baseUrl, at);
     };
 
-    // For bulk cron: extract metrics from cached plant list data (single API call already made)
-    // For selective: call individual /station/latest for detailed data
-    const isSelectiveSync = selectedPlantIds && selectedPlantIds.length > 0;
+    // Deye /station/list does NOT return generationToday/generationTotal — only generationPower (watts).
+    // We MUST call /station/latest per plant for energy data.
+    // For bulk: batch with concurrency control and time budget.
     const metricsFn = async (extId: string): Promise<DailyMetrics> => {
-      if (!isSelectiveSync && plantListCache.has(extId)) {
-        // Bulk: use cached data from /station/list (has generationPower, generationToday, generationTotal)
-        const cached = plantListCache.get(extId)!;
-        const energy = cached.generationToday != null ? Number(cached.generationToday) :
-                      cached.todayEnergy != null ? Number(cached.todayEnergy) : null;
-        const totalEnergy = cached.generationTotal != null ? Number(cached.generationTotal) :
-                           cached.totalEnergy != null ? Number(cached.totalEnergy) : null;
-        const power = cached.generationPower != null ? Number(cached.generationPower) : null;
-        console.log(`[Deye] Metrics(cached) for ${extId}: power=${power}, today=${energy}, total=${totalEnergy}`);
-        return { power_kw: power, energy_kwh: energy, total_energy_kwh: totalEnergy, metadata: cached };
-      }
-      // Selective: call detailed API
       return await deyeMetrics(baseUrl, at, extId);
     };
 
