@@ -75,6 +75,14 @@ export function IntegrationProviderCard({
   const handleLogoError = useCallback(() => {
     if (logoSrc.endsWith(".png")) {
       setLogoSrc(`/integrations/${provider.id}.svg`);
+    } else if (logoSrc.includes(`/${provider.id}.svg`)) {
+      // Try canonical ID from label (e.g. goodwe_sems → goodwe)
+      const base = provider.id.split("_")[0];
+      if (base !== provider.id) {
+        setLogoSrc(`/integrations/${base}.svg`);
+      } else {
+        setLogoError(true);
+      }
     } else {
       setLogoError(true);
     }
