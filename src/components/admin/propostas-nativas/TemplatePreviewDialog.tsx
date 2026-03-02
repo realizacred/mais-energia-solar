@@ -250,7 +250,16 @@ export function TemplatePreviewDialog({
       const response = await supabase.functions.invoke("template-preview", {
         body: { template_id: templateId, proposta_id: proposta.id },
       });
-      if (response.error) throw new Error(response.error.message || "Erro ao gerar DOCX");
+      if (response.error) {
+        // Try to extract detailed error from the response body
+        let detail = response.error.message || "Erro ao gerar DOCX";
+        try {
+          if (response.data && typeof response.data === "object" && response.data.error) {
+            detail = response.data.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
 
       const blob = response.data instanceof Blob
         ? response.data
