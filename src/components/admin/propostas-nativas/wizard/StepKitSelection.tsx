@@ -155,12 +155,24 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       }
       onItensChange(rows);
 
-      // Create a manual kit entry so user can edit
+      // Find catalog kit for full metadata
+      const catalogKit = catalogKits.find(k => k.id === kitId);
       const topoLabel = pd?.topologias?.[0] || "Tradicional";
       const card = kitItemsToCardData(rows, topoLabel);
+
+      const meta: KitMeta = {
+        distribuidorNome: kitName,
+        nomeKit: catalogKit?.name || kitName,
+        codigoKit: kitId.slice(0, 8).toUpperCase(),
+        topologia: topoLabel,
+        custo: catalogKit?.fixed_price || 0,
+        sistema: "on_grid",
+      };
+
       if (card) {
         card.distribuidorNome = kitName;
-        setManualKits([{ card, itens: rows, meta: { topologia: topoLabel, distribuidorNome: kitName } }]);
+        if (meta.custo) card.precoTotal = meta.custo;
+        setManualKits([{ card, itens: rows, meta }]);
       }
 
       toast({ title: "Kit importado do catálogo", description: `${kitName} — ${rows.length} item(ns). Edite na aba "Criar manualmente".` });
