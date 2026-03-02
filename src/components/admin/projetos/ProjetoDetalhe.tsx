@@ -2119,11 +2119,11 @@ function DocumentosTab({ dealId }: { dealId: string }) {
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
 
-      // Load templates for names
+      // Load templates for names (from proposta_templates – the actual SSOT)
       const { data: tpls } = await supabase
-        .from("document_templates")
+        .from("proposta_templates")
         .select("id, nome, categoria")
-        .eq("status", "active")
+        .eq("ativo", true)
         .order("categoria")
         .order("nome");
 
