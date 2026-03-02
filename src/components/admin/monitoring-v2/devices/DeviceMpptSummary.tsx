@@ -99,7 +99,11 @@ export function DeviceMpptSummary({ device, onViewDetail }: DeviceMpptSummaryPro
             >
               <p className="text-[10px] text-muted-foreground font-medium">
                 {data.mpptCount > 0
-                  ? `MPPT ${Math.ceil(ch.index / Math.max(Math.ceil(data.channels.length / data.mpptCount), 1))}`
+                  ? (() => {
+                      const stringsPerMppt = Math.max(Math.ceil(data.channels.length / data.mpptCount), 1);
+                      const mpptNum = Math.ceil(ch.index / stringsPerMppt);
+                      return `MPPT ${mpptNum} · S${ch.index}`;
+                    })()
                   : `String ${ch.index}`}
               </p>
               <p className={cn(
