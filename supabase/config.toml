@@ -245,3 +245,7 @@ verify_jwt = false
 
 [functions.growatt-api]
 verify_jwt = false
+
+[functions.mppt-string-engine]
+verify_jwt = false
+wall_clock_limit = 120
