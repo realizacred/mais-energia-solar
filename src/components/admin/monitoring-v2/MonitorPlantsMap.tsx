@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { PlantWithHealth, MonitorPlantStatus } from "@/services/monitoring/monitorTypes";
+import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
+import type { PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
 
 interface Props {
   plants: PlantWithHealth[];
@@ -9,15 +10,20 @@ interface Props {
 }
 
 /* Use semantic CSS variable colors for map pins */
-const STATUS_COLORS: Record<MonitorPlantStatus, string> = {
+const STATUS_COLORS: Record<PlantUiStatus, string> = {
   online: "hsl(152, 82%, 30%)",
-  alert: "hsl(35, 95%, 48%)",
+  standby: "hsl(35, 95%, 48%)",
   offline: "hsl(0, 84%, 40%)",
-  unknown: "hsl(218, 22%, 38%)",
 };
 
-function createIcon(status: MonitorPlantStatus) {
-  const color = STATUS_COLORS[status] || STATUS_COLORS.unknown;
+function resolveUiStatus(raw: string | undefined): PlantUiStatus {
+  if (raw === "online") return "online";
+  if (raw === "standby") return "standby";
+  return "offline";
+}
+
+function createIcon(status: PlantUiStatus) {
+  const color = STATUS_COLORS[status] || STATUS_COLORS.offline;
   return L.divIcon({
     className: "monitor-map-pin",
     html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2.5px solid hsl(0,0%,100%);box-shadow:0 2px 6px rgba(0,0,0,0.25);"></div>`,
@@ -51,7 +57,7 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
 
     plants.forEach((plant) => {
       if (plant.lat == null || plant.lng == null) return;
-      const status = plant.health?.status || "unknown";
+      const status = resolveUiStatus(plant.health?.status);
       const marker = L.marker([plant.lat, plant.lng], { icon: createIcon(status) })
         .addTo(map)
         .bindPopup(

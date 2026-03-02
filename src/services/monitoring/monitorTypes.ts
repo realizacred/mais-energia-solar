@@ -1,6 +1,6 @@
 /** Types for the new monitor_* schema */
 
-export type MonitorPlantStatus = "online" | "alert" | "offline" | "unknown";
+export type MonitorPlantStatus = "online" | "standby" | "alert" | "offline" | "unknown";
 export type AlertSeverity = "info" | "warn" | "critical";
 export type AlertType = "offline" | "low_generation" | "comm_fault" | "inverter_fault" | "other";
 export type DeviceType = "inverter" | "logger" | "gateway" | "meter";
@@ -88,6 +88,7 @@ export interface PlantWithHealth extends MonitorPlant {
 /** Dashboard aggregated stats */
 export interface MonitorDashboardStats {
   plants_online: number;
+  plants_standby: number;
   plants_alert: number;
   plants_offline: number;
   plants_unknown: number;

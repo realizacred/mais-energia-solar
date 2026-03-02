@@ -16,20 +16,13 @@ import { DeviceMpptSummary } from "./devices/DeviceMpptSummary";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { UI_STATUS_LABELS, UI_STATUS_DOT, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
 
-const STATUS_LABELS: Record<string, string> = {
-  online: "Online",
-  alert: "Alerta",
-  offline: "Offline",
-  unknown: "Sem dados",
-};
-
-const STATUS_DOT: Record<string, string> = {
-  online: "bg-success",
-  alert: "bg-warning",
-  offline: "bg-destructive",
-  unknown: "bg-muted-foreground",
-};
+function resolveUiStatus(raw: string | undefined): PlantUiStatus {
+  if (raw === "online") return "online";
+  if (raw === "standby") return "standby";
+  return "offline";
+}
 
 type TimeRange = "7d" | "30d" | "90d" | "365d";
 
@@ -94,7 +87,7 @@ export default function MonitorPlantDetail() {
   if (isLoading) return <LoadingState message="Carregando usina..." />;
   if (!plant) return <EmptyState icon={Sun} title="Usina não encontrada" />;
 
-  const status = plant.health?.status || "unknown";
+  const status = resolveUiStatus(plant.health?.status);
 
   return (
     <div className="space-y-6">
@@ -114,8 +107,8 @@ export default function MonitorPlantDetail() {
                   <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
                   {syncing ? "Sincronizando..." : "Sincronizar"}
                 </Button>
-                <div className={cn("h-2.5 w-2.5 rounded-full", STATUS_DOT[status])} />
-                <StatusBadge status={STATUS_LABELS[status]} />
+                <div className={cn("h-2.5 w-2.5 rounded-full", UI_STATUS_DOT[status])} />
+                <StatusBadge status={UI_STATUS_LABELS[status]} />
                 {plant.health?.last_seen_at && (
                   <span className="text-xs text-muted-foreground">
                     Visto {formatDistanceToNow(new Date(plant.health.last_seen_at), { addSuffix: true, locale: ptBR })}

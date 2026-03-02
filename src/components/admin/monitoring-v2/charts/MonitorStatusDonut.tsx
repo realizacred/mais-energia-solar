@@ -8,17 +8,15 @@ interface Props {
 
 const STATUS_CONFIG = [
   { key: "Online", color: "hsl(var(--success))" },
-  { key: "Alerta", color: "hsl(var(--warning))" },
+  { key: "Standby", color: "hsl(var(--warning))" },
   { key: "Offline", color: "hsl(var(--destructive))" },
-  { key: "Sem dados", color: "hsl(var(--muted-foreground))" },
 ];
 
 export function MonitorStatusDonut({ stats }: Props) {
   const data = [
     { name: "Online", value: stats.plants_online },
-    { name: "Alerta", value: stats.plants_alert },
-    { name: "Offline", value: stats.plants_offline },
-    { name: "Sem dados", value: stats.plants_unknown },
+    { name: "Standby", value: stats.plants_standby || 0 },
+    { name: "Offline", value: stats.plants_offline + stats.plants_unknown },
   ].filter((d) => d.value > 0);
 
   if (data.length === 0) {

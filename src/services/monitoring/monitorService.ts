@@ -19,6 +19,7 @@ import type {
   MonitorDashboardStats,
 } from "./monitorTypes";
 import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "./types";
+import { derivePlantStatus } from "./plantStatusEngine";
 
 /**
  * POWER_KW_TO_ENERGY_ESTIMATE_HOURS: Used ONLY as a rough multiplier
@@ -91,49 +92,33 @@ function mapSolarPlantToMonitorPlant(sp: SolarPlant): MonitorPlant {
 }
 
 function legacyStatusToHealth(sp: SolarPlant, m?: SolarPlantMetricsDaily, monthKwh?: number): MonitorHealthCache {
-  const statusMap: Record<string, MonitorPlantStatus> = {
-    normal: "online",
-    offline: "offline",
-    alarm: "alert",
-    no_communication: "offline",
-    unknown: "unknown",
-  };
-
   // energy_kwh is the authoritative field; fallback: estimate from power_kw
-  // power_kw from Solis V2 / Deye is actually watts (e.g. 3808 = 3.808 kW)
-  // Estimate daily energy = power_kw_actual * AVG_SUN_HOURS (4.5h)
   let energyToday = 0;
   if (m?.energy_kwh != null && Number(m.energy_kwh) > 0) {
     energyToday = Number(m.energy_kwh);
   } else if (m?.power_kw != null && Number(m.power_kw) > 0) {
-    // power_kw stores watts for some providers; convert to kW then estimate daily kWh
     const powerKw = Number(m.power_kw) > 100 ? Number(m.power_kw) / 1000 : Number(m.power_kw);
-    energyToday = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // approximate daily generation (NOT HSP for PR)
+    energyToday = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS;
   }
 
-  // Smart status: if the raw status says "offline" but the plant generated
-  // energy TODAY and was recently synced, treat it as nighttime standby ("online").
-  // Important: do NOT use monthly generation here — it masks real offline plants.
-  let derivedStatus = statusMap[sp.status] || "unknown";
-  if (derivedStatus === "offline") {
-    const updatedAt = sp.updated_at ? new Date(sp.updated_at).getTime() : 0;
-    const twoHoursAgo = Date.now() - 2 * 3600 * 1000;
-    const hasRecentSync = updatedAt > twoHoursAgo;
-    const hasEnergyToday = energyToday > 0;
+  // Use the centralized status engine — SSOT
+  const { uiStatus } = derivePlantStatus({
+    updated_at: sp.updated_at,
+    power_kw: m?.power_kw != null ? Number(m.power_kw) : null,
+    energy_today_kwh: energyToday,
+  });
 
-    if (hasRecentSync && hasEnergyToday) {
-      derivedStatus = "online"; // nighttime standby, not a real fault
-    }
-  }
+  // Map engine status to MonitorPlantStatus for backward compat
+  const statusForHealth: MonitorPlantStatus = uiStatus === "standby" ? "standby" : uiStatus;
 
   return {
     id: sp.id,
     tenant_id: sp.tenant_id,
     plant_id: sp.id,
-    status: derivedStatus,
+    status: statusForHealth,
     last_seen_at: sp.updated_at,
     energy_today_kwh: energyToday,
-    energy_month_kwh: monthKwh ?? energyToday, // use month total if provided, else today
+    energy_month_kwh: monthKwh ?? energyToday,
     performance_7d_pct: null,
     open_alerts_count: 0,
     updated_at: sp.updated_at,
@@ -257,6 +242,7 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
 
   return {
     plants_online: plants.filter((p) => p.health?.status === "online").length,
+    plants_standby: plants.filter((p) => p.health?.status === "standby").length,
     plants_alert: plants.filter((p) => p.health?.status === "alert").length,
     plants_offline: plants.filter((p) => p.health?.status === "offline").length,
     plants_unknown: plants.filter((p) => p.health?.status === "unknown").length,
