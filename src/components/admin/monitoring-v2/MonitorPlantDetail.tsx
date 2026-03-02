@@ -138,44 +138,42 @@ export default function MonitorPlantDetail() {
         <MonitorGenerationChart readings={readings} />
       </SectionCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Devices */}
-        <SectionCard title={`Dispositivos (${devices.length})`} icon={Cpu}>
-          {devices.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum dispositivo registrado</p>
-          ) : (
-            <div className="space-y-3">
-              {devices.map((d) => (
-                <div key={d.id} className="rounded-lg border border-border/60 bg-card hover:shadow-sm transition-all overflow-hidden">
-                  <div className="flex items-center justify-between p-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{d.model || d.type}</p>
-                      <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
-                    </div>
-                    <StatusBadge status={d.status === "online" ? "Online" : d.status === "offline" ? "Offline" : "Desconhecido"} size="sm" />
+      {/* Devices — full width */}
+      <SectionCard title={`Dispositivos (${devices.length})`} icon={Cpu}>
+        {devices.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum dispositivo registrado</p>
+        ) : (
+          <div className="space-y-3">
+            {devices.map((d) => (
+              <div key={d.id} className="rounded-lg border border-border/60 bg-card hover:shadow-sm transition-all overflow-hidden">
+                <div className="flex items-center justify-between p-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{d.model || d.type}</p>
+                    <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
                   </div>
-                  {d.type === "inverter" && (
-                    <div className="px-3 pb-3 border-t border-border/30 pt-2">
-                      <DeviceMpptSummary
-                        device={d}
-                        onViewDetail={() => navigate(`/admin/monitoramento/usinas/${plantId}/inversor/${d.id}`)}
-                      />
-                    </div>
-                  )}
+                  <StatusBadge status={d.status === "online" ? "Online" : d.status === "offline" ? "Offline" : "Desconhecido"} size="sm" />
                 </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+                {d.type === "inverter" && (
+                  <div className="px-3 pb-3 border-t border-border/30 pt-2">
+                    <DeviceMpptSummary
+                      device={d}
+                      onViewDetail={() => navigate(`/admin/monitoramento/usinas/${plantId}/inversor/${d.id}`)}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
-        {/* Alerts timeline */}
-        <SectionCard title={`Eventos (${alerts.length})`} icon={AlertTriangle} variant="warning">
-          <MonitorAttentionList
-            alerts={alerts.slice(0, 15)}
-            onViewPlant={() => {}}
-          />
-        </SectionCard>
-      </div>
+      {/* Alerts timeline */}
+      <SectionCard title={`Eventos (${alerts.length})`} icon={AlertTriangle} variant="warning">
+        <MonitorAttentionList
+          alerts={alerts.slice(0, 15)}
+          onViewPlant={() => {}}
+        />
+      </SectionCard>
     </div>
   );
 }
