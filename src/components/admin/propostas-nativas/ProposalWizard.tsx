@@ -752,6 +752,55 @@ export function ProposalWizard() {
           }
         }
 
+        // ─── Fallback: if client has no lead, try to recover data from most recent proposal snapshot
+        if (!cli.lead_id) {
+          // Find the most recent proposta for this client
+          const { data: lastProposta } = await supabase
+            .from("propostas_nativas")
+            .select("id")
+            .eq("cliente_id", customerIdFromUrl)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (lastProposta?.id) {
+            const { data: lastVersao } = await supabase
+              .from("proposta_versoes" as any)
+              .select("snapshot, potencia_kwp, valor_total")
+              .eq("proposta_id", lastProposta.id)
+              .order("versao_numero", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            const snap = (lastVersao as any)?.snapshot as Record<string, any> | null;
+            if (!cancelled && snap) {
+            // Pre-fill tipo de telhado from snapshot
+            const roofType = snap.roof_type || snap.locTipoTelhado;
+            if (roofType && !locTipoTelhado) {
+              const mapped = mapLeadTipoTelhadoToProposal(roofType) || roofType;
+              setLocTipoTelhado(mapped);
+            }
+            // Pre-fill distribuidora from snapshot
+            const dis = snap.dis_energia || snap.locDistribuidoraNome;
+            if (dis && !locDistribuidoraNome) {
+              setLocDistribuidoraNome(dis);
+            }
+            // Pre-fill consumo from snapshot
+            const consumo = snap.consumo_mensal || snap.ucs?.[0]?.consumo_kwh;
+            if (consumo && consumo > 0) {
+              setUcs(prev => {
+                const updated = [...prev];
+                if (updated[0].consumo_mensal === 0) {
+                  updated[0] = { ...updated[0], consumo_mensal: consumo };
+                }
+                return updated;
+              });
+            }
+            console.log("[ProposalWizard] Recovered data from previous proposal snapshot:", { roofType, dis, consumo });
+            }
+          }
+        }
+
         toast({ title: "Dados carregados do projeto", description: `Cliente: ${cli.nome}` });
       } catch (err) {
         console.error("[ProposalWizard] Error loading project context:", err);
