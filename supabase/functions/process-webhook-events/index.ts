@@ -397,6 +397,19 @@ async function handleMessageUpsert(
         throw convError;
       }
       conversationId = newConv.id;
+
+      // Enqueue background job to fetch profile picture for new conversations
+      if (!isGroup) {
+        try {
+          await supabase.from("wa_bg_jobs").insert({
+            tenant_id: tenantId,
+            instance_id: instanceId,
+            job_type: "profile_pic",
+            payload: { conversation_id: newConv.id, remote_jid: remoteJid },
+            status: "pending",
+          });
+        } catch (_) { /* non-critical */ }
+      }
     }
     timingLog("conversation_upsert", t0_conv, { conversationId, isNew: !existingConv });
 
