@@ -324,6 +324,118 @@ export function ProposalWizard() {
     toast({ title: "📋 Rascunho restaurado", description: "O progresso anterior foi recuperado automaticamente." });
   }, [propostaIdFromUrl, versaoIdFromUrl, restoreFromSnapshot]);
 
+  // ─── Normalize legacy (SolarMarket-imported) snapshots to WizardSnapshot format ───
+  const normalizeLegacySnapshot = useCallback(async (
+    raw: Record<string, any>,
+    propostaId: string,
+    versao: { potencia_kwp: number | null; valor_total: number | null; grupo: string | null }
+  ): Promise<Partial<WizardSnapshot>> => {
+    if (raw.source !== "legacy_import") return raw as any;
+
+    console.log("[ProposalWizard] Normalizing legacy snapshot for wizard");
+
+    // Fetch related proposta → cliente data
+    const { data: proposta } = await supabase
+      .from("propostas_nativas")
+      .select("titulo, cliente_id, lead_id, deal_id")
+      .eq("id", propostaId)
+      .maybeSingle();
+
+    let clienteData: any = null;
+    if (proposta?.cliente_id) {
+      const { data } = await supabase
+        .from("clientes")
+        .select("nome, telefone, email, cpf_cnpj, empresa, cep, estado, cidade, bairro, rua, numero, complemento")
+        .eq("id", proposta.cliente_id)
+        .maybeSingle();
+      clienteData = data;
+    }
+
+    // Map legacy fields to wizard format
+    const normalized: Partial<WizardSnapshot> = {
+      locEstado: clienteData?.estado || "",
+      locCidade: clienteData?.cidade || "",
+      locTipoTelhado: raw.roof_type || "",
+      locDistribuidoraNome: raw.dis_energia || "",
+      locDistribuidoraId: "",
+      locIrradiacao: 0,
+      locGhiSeries: null,
+      locLatitude: null,
+      distanciaKm: 0,
+      projectAddress: clienteData ? {
+        cep: clienteData.cep || "",
+        rua: clienteData.rua || "",
+        numero: clienteData.numero || "",
+        bairro: clienteData.bairro || "",
+        complemento: clienteData.complemento || "",
+        cidade: clienteData.cidade || "",
+        estado: clienteData.estado || "",
+      } : undefined,
+      mapSnapshots: [],
+      cliente: clienteData ? {
+        nome: clienteData.nome || "",
+        celular: clienteData.telefone || "",
+        email: clienteData.email || "",
+        cnpj_cpf: clienteData.cpf_cnpj || "",
+        empresa: clienteData.empresa || "",
+      } : undefined,
+      ucs: [{
+        nome: "UC Principal",
+        consumo_kwh: raw.consumo_mensal || 0,
+        tipo_fase: "trifasico",
+        grupo: versao.grupo || "B",
+        subgrupo: "B3",
+        tarifa_kwh: raw.tarifa_distribuidora || 0,
+      }],
+      grupo: versao.grupo || "B",
+      potenciaKwp: versao.potencia_kwp || 0,
+      itens: [
+        ...(raw.panel_model ? [{
+          tipo: "modulo",
+          fabricante: "",
+          modelo: raw.panel_model,
+          potencia_w: 0,
+          quantidade: raw.panel_quantity || 0,
+          preco_unitario: 0,
+          preco_total: 0,
+        }] : []),
+        ...(raw.inverter_model ? [{
+          tipo: "inversor",
+          fabricante: "",
+          modelo: raw.inverter_model,
+          potencia_w: 0,
+          quantidade: raw.inverter_quantity || 1,
+          preco_unitario: 0,
+          preco_total: 0,
+        }] : []),
+      ],
+      layouts: [],
+      manualKits: [],
+      adicionais: [],
+      servicos: raw.installation_cost ? [{
+        nome: "Mão de Obra / Instalação",
+        valor: raw.installation_cost,
+        tipo: "fixo",
+      }] : [],
+      venda: {
+        custo_equipamentos: raw.equipment_cost || 0,
+        custo_servicos: raw.installation_cost || 0,
+        margem_percentual: 0,
+        preco_final: versao.valor_total || 0,
+      },
+      pagamentoOpcoes: raw.payment_conditions ? [{ descricao: raw.payment_conditions }] : [],
+      nomeProposta: proposta?.titulo || "",
+      descricaoProposta: "",
+      templateSelecionado: "",
+      step: 0,
+      premissas: null,
+      preDimensionamento: null,
+      customFieldValues: {},
+    };
+
+    return normalized;
+  }, []);
+
   // ─── Restore from DB when proposta_id + versao_id in URL (edit mode) ───
   const dbRestoreAttemptedRef = useRef(false);
   useEffect(() => {
@@ -344,7 +456,13 @@ export function ProposalWizard() {
           return;
         }
 
-        const s = versao.snapshot as unknown as WizardSnapshot;
+        const rawSnapshot = versao.snapshot as unknown as Record<string, any>;
+
+        // Normalize legacy snapshots (imported from SolarMarket) to wizard format
+        const s = rawSnapshot.source === "legacy_import"
+          ? await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot
+          : rawSnapshot as WizardSnapshot;
+
         restoreFromSnapshot(s);
         setSavedPropostaId(propostaIdFromUrl);
         setSavedVersaoId(versaoIdFromUrl);
@@ -353,13 +471,19 @@ export function ProposalWizard() {
         // Clear localStorage draft to avoid conflicts
         clearLocal();
 
-        toast({ title: "📋 Proposta carregada", description: "Todos os dados foram restaurados do banco de dados." });
+        const isLegacy = rawSnapshot.source === "legacy_import";
+        toast({
+          title: isLegacy ? "📋 Proposta importada carregada" : "📋 Proposta carregada",
+          description: isLegacy
+            ? "Dados do SolarMarket foram mapeados. Revise e complete os campos."
+            : "Todos os dados foram restaurados do banco de dados.",
+        });
       } catch (err) {
         console.error("[ProposalWizard] Error loading proposal from DB:", err);
         toast({ title: "Erro ao carregar proposta", description: "Não foi possível restaurar os dados.", variant: "destructive" });
       }
     })();
-  }, [propostaIdFromUrl, versaoIdFromUrl, restoreFromSnapshot, clearLocal]);
+  }, [propostaIdFromUrl, versaoIdFromUrl, restoreFromSnapshot, clearLocal, normalizeLegacySnapshot]);
 
   // dealIdFromUrl is a deals.id UUID — passed as deal_id to RPC (which resolves/creates projetos)
   const resolvedDealId = projectContext?.dealId || dealIdFromUrl || undefined;
