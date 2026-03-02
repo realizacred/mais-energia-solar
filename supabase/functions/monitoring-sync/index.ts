@@ -381,28 +381,23 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
 
 async function deyeMetrics(baseUrl: string, token: string, extId: string): Promise<DailyMetrics> {
   try {
-    // Fetch real-time power + energy in parallel
-    const [latestJson, kpiJson] = await Promise.all([
-      deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) }).catch(() => null),
-      deyeFetch(baseUrl, token, "/station/kpi", { stationId: Number(extId) }).catch(() => null),
-    ]);
+    // Only use /station/latest — /station/kpi does not exist in Deye Cloud API
+    const latestJson = await deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) }).catch(() => null);
 
     const d = latestJson?.data || latestJson || {};
-    const k = kpiJson?.data || kpiJson || {};
 
     // generationPower is in WATTS — convert to kW
     const rawPower = d.generationPower != null ? Number(d.generationPower) : null;
     const powerKw = rawPower != null ? rawPower / 1000 : null;
 
-    // Energy from KPI (primary) or latest (fallback)
-    const energy = k.generationToday ?? k.todayGeneration ?? d.generationToday ?? d.todayEnergy ?? d.eToday ?? null;
-    const totalEnergy = k.generationTotal ?? k.totalGeneration ?? k.cumulativeGeneration ?? d.generationTotal ?? d.totalEnergy ?? d.eTotal ?? null;
+    const energy = d.generationToday ?? d.todayEnergy ?? d.eToday ?? null;
+    const totalEnergy = d.generationTotal ?? d.totalEnergy ?? d.eTotal ?? null;
 
     return {
       power_kw: powerKw,
       energy_kwh: energy != null ? Number(energy) : null,
       total_energy_kwh: totalEnergy != null ? Number(totalEnergy) : null,
-      metadata: { ...d, kpi: k },
+      metadata: d,
     };
   } catch (err) {
     console.error(`[Deye] Metrics FAILED for ${extId}: ${(err as Error).message}`);
@@ -417,7 +412,7 @@ async function deyeListDevices(baseUrl: string, token: string): Promise<{ statio
 
   for (const plant of plants) {
     try {
-      const json = await deyeFetch(baseUrl, token, "/station/device", { stationId: plant.external_id, page: 1, size: 200 });
+      const json = await deyeFetch(baseUrl, token, "/station/device", { stationIds: [Number(plant.external_id)], page: 1, size: 200 });
       const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
       if (!Array.isArray(list) || !list.length) continue;
 
@@ -1768,7 +1763,7 @@ async function dispatchSync(
         for (const plant of plants) {
           if (Date.now() - startTime > 30_000) break; // 30s budget for devices
           try {
-            const json = await deyeFetch(baseUrl, at, "/station/device", { stationId: plant.external_id, page: 1, size: 200 });
+            const json = await deyeFetch(baseUrl, at, "/station/device", { stationIds: [Number(plant.external_id)], page: 1, size: 200 });
             const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
             if (!Array.isArray(list) || !list.length) continue;
             const devices: NormalizedDevice[] = list.map((d: any) => ({
