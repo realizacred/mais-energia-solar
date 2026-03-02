@@ -170,12 +170,20 @@ async function solisListPlants(apiId: string, apiSecret: string): Promise<Normal
     const records = data?.page?.records || data?.records || [];
     if (!records.length) break;
     for (const r of records) {
+      // Solis state: 1=online, 2=offline, 3=alarm
+      // state=2 at night is normal standby. Check dataTimestamp to distinguish.
+      let plantStatus = normStatus(r.state, STATUS_MAP_NUMERIC);
+      if (plantStatus === "offline" && r.dataTimestamp) {
+        const tsMs = Number(r.dataTimestamp) > 1e12 ? Number(r.dataTimestamp) : Number(r.dataTimestamp) * 1000;
+        const sixHoursAgo = Date.now() - 6 * 3600 * 1000;
+        if (tsMs > sixHoursAgo) plantStatus = "normal"; // nighttime standby
+      }
       plants.push({
         external_id: String(r.id || r.sno || ""), name: String(r.stationName || r.sno || ""),
         capacity_kw: r.installedCapacity ?? r.capacity != null ? Number(r.installedCapacity ?? r.capacity) : null,
         address: r.city ? String(r.city) : null,
         latitude: r.latitude != null ? Number(r.latitude) : null, longitude: r.longitude != null ? Number(r.longitude) : null,
-        status: normStatus(r.state, STATUS_MAP_NUMERIC), metadata: r,
+        status: plantStatus, metadata: r,
       });
     }
     if (pageNo * 100 >= Number(data?.page?.total || 0)) break;

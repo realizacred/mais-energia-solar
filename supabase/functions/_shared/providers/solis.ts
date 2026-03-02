@@ -146,12 +146,33 @@ export class SolisAdapter implements ProviderAdapter {
           } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}`); }
         }
 
+        // Solis state: 1=online, 2=offline, 3=alarm
+        // BUT state=2 at night is normal standby, not a real fault.
+        // currentState: 3=normal-standby, 1015=comm-fault, etc.
+        // We treat state=2 + recent dataTimestamp (< 6h) as "online" (nighttime standby)
+        let deviceStatus = "unknown";
+        if (r.state === 1) {
+          deviceStatus = "online";
+        } else if (r.state === 3) {
+          deviceStatus = "alarm";
+        } else if (r.state === 2) {
+          // Check if dataTimestamp is recent (within 6 hours) — means inverter communicated recently, just not generating
+          const ts = r.dataTimestamp ?? detailMeta.dataTimestamp;
+          const tsMs = ts ? (Number(ts) > 1e12 ? Number(ts) : Number(ts) * 1000) : 0;
+          const sixHoursAgo = Date.now() - 6 * 3600 * 1000;
+          if (tsMs > sixHoursAgo) {
+            deviceStatus = "online"; // nighttime standby — inverter is healthy
+          } else {
+            deviceStatus = "offline"; // genuinely offline — no communication
+          }
+        }
+
         const device = {
           provider_device_id: String(r.id || r.sn || ""),
           type: "inverter",
           model: r.inverterType || r.model || null,
           serial: sn,
-          status: r.state === 1 ? "online" : r.state === 2 ? "offline" : r.state === 3 ? "alarm" : "unknown",
+          status: deviceStatus,
           metadata: { ...r, ...detailMeta },
         };
         const existing = result.find((x) => x.stationId === stationId);
