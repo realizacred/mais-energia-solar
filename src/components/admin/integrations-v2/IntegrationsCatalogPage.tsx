@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -13,7 +12,7 @@ import {
   Search, Plug, Sun, Users, HardDrive,
   Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText, Globe,
   Workflow, FileSignature, Zap, CloudSun, Sprout, Cpu, Gauge, Radio,
-  Building2, Calculator, QrCode, Webhook, LayoutGrid, Power,
+  Building2, Calculator, QrCode, Webhook, LayoutGrid, Power, ArrowLeft,
 } from "lucide-react";
 import {
   listProviders,
@@ -32,18 +31,17 @@ import { IntegrationProviderDrawer } from "./IntegrationProviderDrawer";
 import { cn } from "@/lib/utils";
 
 /**
- * Providers that have dedicated configuration pages.
- * When clicking "Configurar", redirect to these routes instead of opening the generic drawer.
+ * Providers that have dedicated configuration components.
+ * Rendered inline inside the catalog instead of navigating away.
  */
-const DEDICATED_ROUTES: Record<string, string> = {
-  whatsapp_evolution: "/admin/wa-instances",
-  meta_facebook: "/admin/meta-facebook-config",
-  instagram_api: "/admin/instagram",
-  google_calendar: "/admin/integracoes",
-  webhooks_generic: "/admin/webhooks",
-  n8n_automation: "/admin/n8n",
-  asaas: "/admin/payment-gateway",
-  public_api: "/admin/openai-config",
+const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
+  whatsapp_evolution: lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager }))),
+  meta_facebook: lazy(() => import("@/pages/admin/MetaFacebookConfigPage")),
+  instagram_api: lazy(() => import("@/components/admin/InstagramConfig").then(m => ({ default: m.InstagramConfig }))),
+  google_calendar: lazy(() => import("@/components/admin/integrations/IntegrationsPage")),
+  webhooks_generic: lazy(() => import("@/components/admin/WebhookManager")),
+  asaas: lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig }))),
+  public_api: lazy(() => import("@/pages/admin/OpenAIConfigPage")),
 };
 
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
@@ -70,21 +68,22 @@ const CATEGORY_ORDER: IntegrationCategory[] = [
 
 export default function IntegrationsCatalogPage() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory | "all">("all");
   const [drawerProvider, setDrawerProvider] = useState<IntegrationProvider | null>(null);
+  const [inlineProviderId, setInlineProviderId] = useState<string | null>(null);
 
-  /** Open dedicated page or generic drawer */
+  /** Open dedicated inline view or generic drawer */
   const handleConfigure = (provider: IntegrationProvider) => {
-    const route = DEDICATED_ROUTES[provider.id];
-    if (route) {
-      navigate(route);
+    if (DEDICATED_COMPONENTS[provider.id]) {
+      setInlineProviderId(provider.id);
     } else {
       setDrawerProvider(provider);
     }
   };
+
+  const handleBackToCatalog = () => setInlineProviderId(null);
 
   const { data: dbProviders = [], isLoading: loadingProviders } = useQuery({
     queryKey: ["integration-providers"],
@@ -224,6 +223,29 @@ export default function IntegrationsCatalogPage() {
 
   const totalFiltered = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
   const connectedCount = providers.filter(p => getConnectionStatus(p.id) === "connected").length;
+
+  // ── Inline dedicated view ──
+  const InlineComponent = inlineProviderId ? DEDICATED_COMPONENTS[inlineProviderId] : null;
+  const inlineProvider = inlineProviderId ? providers.find(p => p.id === inlineProviderId) : null;
+
+  if (InlineComponent && inlineProvider) {
+    return (
+      <div className="space-y-4 w-full max-w-none">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBackToCatalog}
+          className="gap-2 text-muted-foreground hover:text-foreground -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao catálogo
+        </Button>
+        <Suspense fallback={<LoadingState message={`Carregando ${inlineProvider.label}…`} />}>
+          <InlineComponent />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full max-w-none">
