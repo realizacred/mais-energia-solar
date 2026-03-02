@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Sun, Zap, Home, PlugZap } from "lucide-react";
+import { Sun, Zap, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -8,10 +8,10 @@ interface Props {
   isGenerating: boolean;
 }
 
-/** Animated energy flow: Panels → Inverter → Home/Grid */
+/** Enterprise energy flow: Panels → Inverter → Home/Grid */
 export function EnergyFlowAnimation({ currentPowerKw, isGenerating }: Props) {
   return (
-    <div className="relative flex items-center justify-between gap-2 py-6 px-4">
+    <div className="relative flex items-center justify-between gap-4 py-8 px-6 md:px-12">
       {/* Solar Panels */}
       <FlowNode
         icon={Sun}
@@ -21,7 +21,7 @@ export function EnergyFlowAnimation({ currentPowerKw, isGenerating }: Props) {
         pulse={isGenerating}
       />
 
-      {/* Flow line 1: Panels → Inverter */}
+      {/* Flow line 1 */}
       <FlowLine active={isGenerating} />
 
       {/* Inverter */}
@@ -33,7 +33,7 @@ export function EnergyFlowAnimation({ currentPowerKw, isGenerating }: Props) {
         pulse={isGenerating}
       />
 
-      {/* Flow line 2: Inverter → Grid/Home */}
+      {/* Flow line 2 */}
       <FlowLine active={isGenerating} delay={0.5} />
 
       {/* Home / Grid */}
@@ -51,10 +51,10 @@ export function EnergyFlowAnimation({ currentPowerKw, isGenerating }: Props) {
 type NodeColor = "warning" | "success" | "primary" | "muted";
 
 const NODE_COLORS: Record<NodeColor, { bg: string; text: string; ring: string }> = {
-  warning: { bg: "bg-warning/10", text: "text-warning", ring: "ring-warning/30" },
-  success: { bg: "bg-success/10", text: "text-success", ring: "ring-success/30" },
-  primary: { bg: "bg-primary/10", text: "text-primary", ring: "ring-primary/30" },
-  muted: { bg: "bg-muted", text: "text-muted-foreground", ring: "ring-border" },
+  warning: { bg: "bg-warning/10", text: "text-warning", ring: "ring-warning/20" },
+  success: { bg: "bg-success/10", text: "text-success", ring: "ring-success/20" },
+  primary: { bg: "bg-primary/10", text: "text-primary", ring: "ring-primary/20" },
+  muted: { bg: "bg-muted", text: "text-muted-foreground", ring: "ring-border/40" },
 };
 
 function FlowNode({
@@ -72,21 +72,21 @@ function FlowNode({
 }) {
   const s = NODE_COLORS[color];
   return (
-    <div className="flex flex-col items-center gap-2 z-10">
+    <div className="flex flex-col items-center gap-3 z-10">
       <motion.div
         className={cn(
-          "h-14 w-14 rounded-2xl flex items-center justify-center ring-2",
+          "h-16 w-16 rounded-full flex items-center justify-center ring-2",
           s.bg,
           s.ring
         )}
-        animate={pulse ? { scale: [1, 1.08, 1] } : {}}
-        transition={pulse ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : {}}
+        animate={pulse ? { scale: [1, 1.06, 1] } : {}}
+        transition={pulse ? { duration: 2.5, repeat: Infinity, ease: "easeInOut" } : {}}
       >
-        <Icon className={cn("h-6 w-6", s.text)} />
+        <Icon className={cn("h-7 w-7", s.text)} />
       </motion.div>
       <div className="text-center">
         <p className="text-xs font-semibold text-foreground">{label}</p>
-        <p className="text-2xs text-muted-foreground">{value}</p>
+        <p className="text-[11px] text-muted-foreground">{value}</p>
       </div>
     </div>
   );
@@ -94,13 +94,13 @@ function FlowNode({
 
 function FlowLine({ active, delay = 0 }: { active: boolean; delay?: number }) {
   return (
-    <div className="flex-1 relative h-1 rounded-full bg-border/40 overflow-hidden min-w-[40px]">
+    <div className="flex-1 relative h-0.5 rounded-full bg-border/30 overflow-hidden min-w-[60px]">
       {active && (
         <motion.div
-          className="absolute inset-y-0 left-0 w-8 rounded-full bg-gradient-to-r from-primary/0 via-primary to-primary/0"
-          animate={{ x: ["-100%", "400%"] }}
+          className="absolute inset-y-0 left-0 w-10 rounded-full bg-gradient-to-r from-transparent via-primary/70 to-transparent"
+          animate={{ x: ["-100%", "500%"] }}
           transition={{
-            duration: 1.5,
+            duration: 2,
             repeat: Infinity,
             ease: "easeInOut",
             delay,
