@@ -424,17 +424,17 @@ async function deyeMetrics(baseUrl: string, token: string, extId: string): Promi
           startAt: todayStr,
           endAt: tomorrow,
         });
-        const raw = histJson?.dataList || histJson?.data?.dataList || histJson?.data || {};
-        console.log(`[Deye] /station/history raw keys for ${extId}: ${typeof raw === "object" ? Object.keys(raw).join(",") : "non-object"}, isArray=${Array.isArray(raw)}`);
+        // Deye returns data in "stationDataItems" array (confirmed from API)
+        const raw = histJson?.stationDataItems || histJson?.dataList || histJson?.data?.stationDataItems || histJson?.data?.dataList || [];
         const histData = Array.isArray(raw) ? raw : [];
         if (histData.length > 0) {
           const e = histData[0];
-          console.log(`[Deye] /station/history entry keys: ${Object.keys(e).join(",")}`);
-          // Try all known field names
-          for (const f of ["generation", "generationValue", "energy", "dailyGeneration", "dayGeneration"]) {
+          console.log(`[Deye] /station/history entry keys for ${extId}: ${Object.keys(e).join(",")}`);
+          // generationValue is the confirmed field name from Deye API
+          for (const f of ["generationValue", "generation", "generationToday", "energy", "dailyGeneration", "dayGeneration"]) {
             if (e[f] != null && Number(e[f]) > 0) { energyToday = Number(e[f]); break; }
           }
-          for (const f of ["totalGeneration", "cumulativeGeneration", "allEnergy"]) {
+          for (const f of ["totalGeneration", "cumulativeGeneration", "allEnergy", "totalGenerationValue"]) {
             if (e[f] != null && Number(e[f]) > 0) { energyTotal = Number(e[f]); break; }
           }
         }
