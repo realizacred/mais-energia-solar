@@ -44,6 +44,7 @@ export interface ProviderDefinition {
   api_docs_url?: string;
   rate_limit_rpm?: number;
   legacy_ids?: string[];
+  tutorial?: { steps: string[]; notes?: string } | string;
 }
 
 // ─── Reusable field templates ────────────────────────────────────
@@ -418,7 +419,11 @@ export function toIntegrationProvider(p: ProviderDefinition): import("@/services
     status: p.status === "active" ? "available" : p.status === "beta" ? "available" : "coming_soon",
     auth_type: p.auth_type,
     credential_schema: p.fields,
-    tutorial: { steps: [] },
+    tutorial: typeof p.tutorial === "object" && p.tutorial !== undefined
+      ? p.tutorial as { steps: string[]; notes?: string }
+      : typeof p.tutorial === "string"
+        ? { steps: p.tutorial.split("\n").filter(Boolean) }
+        : { steps: [] },
     capabilities: {
       sync_plants: p.capabilities.sync_plants,
       sync_health: p.capabilities.sync_health,

@@ -128,7 +128,7 @@ const PostSalePlansPage = lazy(() => import("@/components/admin/post-sale/PostSa
 const PostSaleUpsellPage = lazy(() => import("@/components/admin/post-sale/PostSaleUpsellList"));
 const PostSaleVisitDetailPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitDetail"));
 const PostSaleChecklistsPage = lazy(() => import("@/components/admin/post-sale/PostSaleChecklistsPage"));
-// SolarZap removed — functionality consolidated into WaInbox (Atendimento)
+// Atendimento consolidado no WaInbox
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard")
     .then((m) => ({ default: m.ProposalWizard }))
@@ -516,7 +516,7 @@ export default function Admin() {
                 
                 {/* Atendimento */}
                 <Route path="inbox" element={<WaInboxWithParams />} />
-                {/* SolarZap routes removed — consolidated into inbox */}
+                {/* Rotas de atendimento consolidadas no inbox */}
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
                 <Route path="followup-queue" element={<WaFollowupQueuePage />} />
