@@ -157,15 +157,20 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
       // Find catalog kit for full metadata
       const catalogKit = catalogKits.find(k => k.id === kitId);
+      const summary = catalogSummaries.get(kitId);
       const topoLabel = pd?.topologias?.[0] || "Tradicional";
       const card = kitItemsToCardData(rows, topoLabel);
+
+      // Cost: prefer fixed_price from catalog, then calculated from item unit_prices
+      const calculatedCost = rows.reduce((s, r) => s + r.quantidade * r.preco_unitario, 0);
+      const kitCost = catalogKit?.fixed_price || summary?.custoTotal || calculatedCost;
 
       const meta: KitMeta = {
         distribuidorNome: kitName,
         nomeKit: catalogKit?.name || kitName,
         codigoKit: kitId.slice(0, 8).toUpperCase(),
         topologia: topoLabel,
-        custo: catalogKit?.fixed_price || 0,
+        custo: kitCost,
         sistema: "on_grid",
       };
 

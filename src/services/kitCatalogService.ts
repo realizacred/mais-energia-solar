@@ -33,6 +33,7 @@ interface CatalogKitItem {
   quantity: number;
   unit: string | null;
   notes: string | null;
+  unit_price: number;
   created_at: string;
 }
 
@@ -85,6 +86,7 @@ export interface CatalogKitSummary {
   inversorQtd: number;
   inversorPotenciaKw: number;
   totalItens: number;
+  custoTotal: number;
 }
 
 /**
@@ -109,7 +111,7 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
 
   const { data: items, error } = await supabase
     .from("solar_kit_catalog_items")
-    .select("kit_id, item_type, ref_id, description, quantity")
+    .select("kit_id, item_type, ref_id, description, quantity, unit_price")
     .in("kit_id", kitIds);
 
   if (error || !items) {
@@ -154,6 +156,7 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
     }
 
     const moduloQtd = modItem?.quantity || 0;
+    const custoTotal = kitItems.reduce((s, i) => s + (i.quantity || 0) * (i.unit_price || 0), 0);
 
     result.set(kitId, {
       moduloDescricao,
@@ -163,6 +166,7 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
       inversorQtd: invItem?.quantity || 0,
       inversorPotenciaKw: inversorPotKw * (invItem?.quantity || 1),
       totalItens: kitItems.length,
+      custoTotal,
     });
   }
 
@@ -175,7 +179,7 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
 export async function fetchKitItems(kitId: string): Promise<CatalogKitItem[]> {
   const { data, error } = await supabase
     .from("solar_kit_catalog_items")
-    .select("id, kit_id, item_type, ref_id, description, quantity, unit, notes, created_at")
+    .select("id, kit_id, item_type, ref_id, description, quantity, unit, notes, unit_price, created_at")
     .eq("kit_id", kitId)
     .order("created_at");
 
@@ -239,7 +243,7 @@ export async function snapshotCatalogKitToKitItemRows(kitId: string): Promise<Ki
       modelo,
       potencia_w,
       quantidade: Math.max(1, item.quantity),
-      preco_unitario: 0, // Pricing stays in the existing flow
+      preco_unitario: item.unit_price || 0,
       categoria: mapCategoria(item.item_type),
       avulso: item.item_type === "generico",
       produto_ref: item.ref_id || null,

@@ -14582,6 +14582,7 @@ export type Database = {
           ref_id: string | null
           tenant_id: string
           unit: string | null
+          unit_price: number
           updated_at: string
         }
         Insert: {
@@ -14595,6 +14596,7 @@ export type Database = {
           ref_id?: string | null
           tenant_id: string
           unit?: string | null
+          unit_price?: number
           updated_at?: string
         }
         Update: {
@@ -14608,6 +14610,7 @@ export type Database = {
           ref_id?: string | null
           tenant_id?: string
           unit?: string | null
+          unit_price?: number
           updated_at?: string
         }
         Relationships: [
