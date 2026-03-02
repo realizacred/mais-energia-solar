@@ -28,12 +28,17 @@ const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
 
 function getDateRange(period: PeriodType): { start: string; end: string; label: string } {
   const now = new Date();
-  const end = now.toISOString().slice(0, 10);
+  // For current periods, exclude today (incomplete readings distort PR)
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const endToday = now.toISOString().slice(0, 10);
+  const endYesterday = yesterday.toISOString().slice(0, 10);
 
   switch (period) {
     case "current_month": {
       const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      return { start, end, label: `Mês Atual (${start} a ${end})` };
+      const safeEnd = endYesterday < start ? start : endYesterday;
+      return { start, end: safeEnd, label: `Mês Atual (${start} a ${safeEnd})` };
     }
     case "last_month": {
       const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -42,11 +47,11 @@ function getDateRange(period: PeriodType): { start: string; end: string; label: 
     }
     case "last_3_months": {
       const s = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      return { start: s.toISOString().slice(0, 10), end, label: "Últimos 3 Meses" };
+      return { start: s.toISOString().slice(0, 10), end: endYesterday, label: "Últimos 3 Meses" };
     }
     case "last_year": {
       const s = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-      return { start: s.toISOString().slice(0, 10), end, label: "Último Ano" };
+      return { start: s.toISOString().slice(0, 10), end: endYesterday, label: "Último Ano" };
     }
   }
 }

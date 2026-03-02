@@ -52,12 +52,15 @@ export default function MonitorDashboard() {
     enabled: !!stats,
   });
 
-  // Monthly readings for PR calculation
+  // Monthly readings for PR calculation — exclude today (incomplete)
   const monthStart = new Date();
   monthStart.setDate(1);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const prEndDate = yesterday < monthStart ? monthStart.toISOString().slice(0, 10) : yesterday.toISOString().slice(0, 10);
   const { data: monthReadings = [] } = useQuery({
-    queryKey: ["monitor-readings-month"],
-    queryFn: () => listAllReadings(monthStart.toISOString().slice(0, 10), new Date().toISOString().slice(0, 10)),
+    queryKey: ["monitor-readings-month", prEndDate],
+    queryFn: () => listAllReadings(monthStart.toISOString().slice(0, 10), prEndDate),
   });
 
   // Performance Ratio
