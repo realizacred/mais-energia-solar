@@ -1392,10 +1392,26 @@ async function syncPlantsByProvider(
         }
 
         for (const d of group.devices) {
+          // Merge metadata: preserve detailed fields (vpv, ipv, ppv) from previous manual refreshes
+          // that are NOT present in bulk sync list responses
+          let mergedMetadata = d.metadata;
+          try {
+            const { data: existing } = await ctx.supabaseAdmin
+              .from("monitor_devices")
+              .select("metadata")
+              .eq("plant_id", monitorPlantId)
+              .eq("provider_device_id", d.provider_device_id)
+              .maybeSingle();
+            if (existing?.metadata && typeof existing.metadata === "object") {
+              // Keep detail fields from existing metadata, overlay with new bulk data
+              mergedMetadata = { ...existing.metadata as Record<string, unknown>, ...d.metadata };
+            }
+          } catch { /* proceed with non-merged metadata */ }
+
           const { error } = await ctx.supabaseAdmin.from("monitor_devices").upsert({
             tenant_id: ctx.tenantId, plant_id: monitorPlantId, provider_device_id: d.provider_device_id,
             type: d.type, model: d.model, serial: d.serial, status: d.status,
-            metadata: d.metadata, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+            metadata: mergedMetadata, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString(),
           }, { onConflict: "plant_id,provider_device_id" });
           if (error) errors.push(`Device ${d.serial}: ${error.message}`); else devCount++;
         }
