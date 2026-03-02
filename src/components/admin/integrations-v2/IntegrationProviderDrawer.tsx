@@ -14,6 +14,7 @@ import {
   RefreshCw, HelpCircle, ShieldCheck, Loader2, Sun, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getProviderIconUrl } from "@/services/integrations/iconMap";
 import { connectProvider } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField, ConnectionStatus } from "@/services/integrations/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,9 +51,8 @@ export function IntegrationProviderDrawer({
   const isComingSoon = provider.status === "coming_soon";
   const hasFields = fields.length > 0 && !isComingSoon;
 
-  // Logo
-  const [logoSrc, setLogoSrc] = useState(`/integrations/${provider.id}.svg`);
-  const [logoError, setLogoError] = useState(false);
+  // Static icon resolution — instant
+  const iconUrl = getProviderIconUrl(provider.id);
 
   // Pre-fill credentials
   useEffect(() => {
@@ -132,18 +132,11 @@ export function IntegrationProviderDrawer({
         <div className="px-6 pt-6 pb-4 border-b border-border/50 bg-muted/20">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-card border border-border/50 shadow-sm">
-              {!logoError ? (
+              {iconUrl ? (
                 <img
-                  src={logoSrc}
+                  src={iconUrl}
                   alt={provider.label}
                   className="max-h-9 max-w-9 object-contain"
-                  onError={() => {
-                    if (logoSrc.endsWith(".svg")) {
-                      setLogoSrc(`/integrations/${provider.id}.png`);
-                    } else {
-                      setLogoError(true);
-                    }
-                  }}
                 />
               ) : (
                 <Sun className="h-6 w-6 text-muted-foreground" />
