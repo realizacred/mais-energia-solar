@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Image, ExternalLink, UserPlus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { UserPlus } from "lucide-react";
+import { StorageFileGallery } from "@/components/ui-kit/StorageFileGallery";
+
 import { useLeadOwnership } from "@/hooks/useLeadOwnership";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,25 +25,11 @@ interface OrcamentoViewDialogProps {
 }
 
 export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }: OrcamentoViewDialogProps) {
-  const { toast } = useToast();
+  
   const [assignOpen, setAssignOpen] = useState(false);
   const ownership = useLeadOwnership(open && orcamento ? orcamento.lead_id : null);
 
-  const handleOpenFile = async (filePath: string) => {
-    const { data, error } = await supabase.storage
-      .from("contas-luz")
-      .createSignedUrl(filePath, 3600);
-
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, "_blank");
-    } else {
-      toast({
-        title: "Erro",
-        description: "Não foi possível abrir o arquivo.",
-        variant: "destructive",
-      });
-    }
-  };
+  // handleOpenFile removed – StorageFileGallery handles file preview/download
 
   if (!orcamento) return null;
 
@@ -184,37 +170,7 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
               <p className="text-sm text-muted-foreground mb-2">
                 Arquivos Anexados ({orcamento.arquivos_urls.length})
               </p>
-              <div className="space-y-2">
-                {orcamento.arquivos_urls.map((filePath, index) => {
-                  const fileName = filePath.split("/").pop() || `Arquivo ${index + 1}`;
-                  const isImage = /\.(jpg|jpeg|png)$/i.test(fileName);
-
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {isImage ? (
-                          <Image className="w-5 h-5 text-primary" />
-                        ) : (
-                          <FileText className="w-5 h-5 text-destructive" />
-                        )}
-                        <span className="text-sm font-medium truncate">{fileName}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenFile(filePath)}
-                        className="flex items-center gap-1 text-primary hover:text-primary"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Abrir
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+              <StorageFileGallery bucket="contas-luz" filePaths={orcamento.arquivos_urls} />
             </div>
           )}
         </div>
