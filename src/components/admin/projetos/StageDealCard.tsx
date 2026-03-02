@@ -124,9 +124,9 @@ export function StageDealCard({
   const stagnation = getStagnationLevel(deal.last_stage_change);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
 
-  const docChecklist = deal.doc_checklist as Record<string, boolean> | null;
-  const docTotal = docChecklist ? Object.keys(docChecklist).length : 0;
-  const docDone = docChecklist ? Object.values(docChecklist).filter(Boolean).length : 0;
+  // Doc checklist desabilitado temporariamente
+  const docTotal = 0;
+  const docDone = 0;
   const isOverdue = deal.expected_close_date && new Date(deal.expected_close_date) < new Date();
 
   // Determine border class — priority: won > lost > critical > warning > etiqueta > proposal status

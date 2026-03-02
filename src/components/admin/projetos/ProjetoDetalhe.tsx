@@ -1379,8 +1379,7 @@ function GerenciamentoTab({
             </Card>
           )}
 
-          {/* Card: Documentos Pendentes */}
-          <ProjetoDocChecklist dealId={deal.id} />
+          {/* Checklist de Documentos desabilitado temporariamente */}
         </div>
 
         {/* ── RIGHT WORK AREA (70%) ── */}
@@ -2254,8 +2253,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Document Checklist */}
-      <ProjetoDocChecklist dealId={dealId} />
+      {/* Checklist de Documentos desabilitado temporariamente */}
 
       {/* Generated Documents */}
       <div className="space-y-4">
