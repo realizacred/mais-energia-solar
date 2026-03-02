@@ -369,7 +369,9 @@ export function ProposalWizard() {
         bairro: clienteData.bairro || "",
         complemento: clienteData.complemento || "",
         cidade: clienteData.cidade || "",
-        estado: clienteData.estado || "",
+        uf: clienteData.estado || "",
+        lat: null,
+        lon: null,
       } : undefined,
       mapSnapshots: [],
       cliente: clienteData ? {
