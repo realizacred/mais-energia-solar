@@ -37,6 +37,7 @@ const Inbox = lazy(() => import("./pages/Inbox"));
 const MessagingApp = lazy(() => import("./pages/MessagingApp"));
 const AppDebug = lazy(() => import("./pages/AppDebug"));
 const OAuthGoogleCallback = lazy(() => import("./pages/OAuthGoogleCallback"));
+const IntegrationsSandbox = lazy(() => import("./dev/IntegrationsSandboxRoute"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,6 +110,11 @@ const App = () => (
               <Route path="/inbox" element={<TenantGuardGate><Inbox /></TenantGuardGate>} />
               <Route path="/app" element={<TenantGuardGate><MessagingApp /></TenantGuardGate>} />
               <Route path="/app/debug" element={<TenantGuardGate><AppDebug /></TenantGuardGate>} />
+
+              {/* DEV-only sandbox (stripped in prod build) */}
+              {import.meta.env.DEV && (
+                <Route path="/dev/integrations" element={<IntegrationsSandbox />} />
+              )}
 
               <Route path="*" element={<NotFound />} />
             </Routes>
