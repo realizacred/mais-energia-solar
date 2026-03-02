@@ -54,27 +54,27 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
 
   // Recent sync confirmed — check generation
   const powerKw = normalizePowerKw(input.power_kw);
-  const hasGeneration = powerKw > POWER_THRESHOLD_KW || input.energy_today_kwh > 0;
-
-  // Rule 3: ONLINE — generating
-  if (hasGeneration) {
-    return {
-      uiStatus: "online",
-      reason: powerKw > POWER_THRESHOLD_KW
-        ? `Gerando ${powerKw.toFixed(2)} kW`
-        : `Gerou ${input.energy_today_kwh.toFixed(1)} kWh hoje`,
-    };
-  }
-
-  // No generation — check if nighttime for standby
   const currentHour = new Date().getHours();
   const isNight = currentHour >= 18 || currentHour < 6;
+  const isActivelyGenerating = powerKw > POWER_THRESHOLD_KW;
 
-  // Rule 2: STANDBY — nighttime, no generation, but synced
-  if (isNight) {
+  // Rule 2: STANDBY — nighttime, no active generation, but synced
+  // At night, even if energy_today > 0, power_kw = 0 means not generating NOW
+  if (isNight && !isActivelyGenerating) {
     return {
       uiStatus: "standby",
       reason: "Noturno — sem geração solar esperada",
+    };
+  }
+
+  // Rule 3: ONLINE — actively generating OR daytime with energy today
+  const hasGeneration = isActivelyGenerating || input.energy_today_kwh > 0;
+  if (hasGeneration) {
+    return {
+      uiStatus: "online",
+      reason: isActivelyGenerating
+        ? `Gerando ${powerKw.toFixed(2)} kW`
+        : `Gerou ${input.energy_today_kwh.toFixed(1)} kWh hoje`,
     };
   }
 
