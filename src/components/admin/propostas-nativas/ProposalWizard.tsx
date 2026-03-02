@@ -307,11 +307,17 @@ export function ProposalWizard() {
     if (s.step > 0) setStep(s.step);
   }, []);
 
-  // Restore from localStorage on mount (only once, skip if loading from DB)
+  // Restore from localStorage on mount (only once, skip if loading from DB or project context)
   useEffect(() => {
     if (hasRestoredRef.current) return;
     // If we have proposta_id + versao_id, the DB restore effect will handle it
     if (propostaIdFromUrl && versaoIdFromUrl) return;
+    // If opening from a project (deal/customer), skip localStorage — project data takes priority
+    if (dealIdFromUrl || customerIdFromUrl) {
+      hasRestoredRef.current = true;
+      clearLocal();
+      return;
+    }
     hasRestoredRef.current = true;
 
     const draft = loadLocal();
@@ -322,7 +328,7 @@ export function ProposalWizard() {
     if (draft.savedVersaoId) setSavedVersaoId(draft.savedVersaoId);
 
     toast({ title: "📋 Rascunho restaurado", description: "O progresso anterior foi recuperado automaticamente." });
-  }, [propostaIdFromUrl, versaoIdFromUrl, restoreFromSnapshot]);
+  }, [propostaIdFromUrl, versaoIdFromUrl, dealIdFromUrl, customerIdFromUrl, restoreFromSnapshot]);
 
   // ─── Normalize legacy (SolarMarket-imported) snapshots to WizardSnapshot format ───
   const normalizeLegacySnapshot = useCallback(async (
