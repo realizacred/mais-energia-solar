@@ -239,21 +239,31 @@ Deno.serve(async (req) => {
     const templateBuffer = await docxResponse.arrayBuffer();
 
     // ── 8. PROCESSAR COM docx-templates ───────────────────
-    // O template DOCX usa [variavel] com colchetes — definir delimitadores corretos
-    console.log(`[template-preview] Processing DOCX with [bracket] delimiters and ${Object.keys(vars).length} variables`);
+    console.log(`[template-preview] Processing DOCX (${templateBuffer.byteLength} bytes) with ${Object.keys(vars).length} variables`);
 
-    const report = await createReport({
-      template: new Uint8Array(templateBuffer),
-      data: vars,
-      cmdDelimiter: ["[", "]"],
-      failFast: false,
-    });
+    let report: Uint8Array;
+    try {
+      const result = await createReport({
+        template: new Uint8Array(templateBuffer),
+        data: vars,
+        cmdDelimiter: ["[", "]"],
+        failFast: false,
+        errorHandler: (e: any, raw_code: string) => {
+          console.warn(`[template-preview] Template cmd error in "${raw_code}":`, e?.message || e);
+          return "";
+        },
+      });
+      report = result instanceof Uint8Array ? result : new Uint8Array(result);
+      console.log(`[template-preview] createReport OK, output: ${report.length} bytes`);
+    } catch (reportErr: any) {
+      console.error("[template-preview] createReport threw:", reportErr?.message, reportErr?.stack);
+      return jsonError(`Erro ao processar template DOCX: ${reportErr?.message || "unknown"}`, 500);
+    }
 
     // ── 9. RETORNAR O ARQUIVO PROCESSADO ──────────────────
     const clienteNome = cliente?.nome || lead?.nome || "preview";
     const fileName = `preview_${template.nome.replace(/[^a-zA-Z0-9]/g, "_")}_${clienteNome.replace(/[^a-zA-Z0-9]/g, "_")}.docx`;
-
-    console.log(`[template-preview] Success, returning ${report.length} bytes as ${fileName}`);
+    console.log(`[template-preview] Returning ${report.length} bytes as ${fileName}`);
 
     return new Response(report, {
       headers: {
