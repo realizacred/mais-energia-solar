@@ -154,7 +154,17 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         return;
       }
       onItensChange(rows);
-      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${rows.length} item(ns) carregados` });
+
+      // Create a manual kit entry so user can edit
+      const topoLabel = pd?.topologias?.[0] || "Tradicional";
+      const card = kitItemsToCardData(rows, topoLabel);
+      if (card) {
+        card.distribuidorNome = kitName;
+        setManualKits([{ card, itens: rows, meta: { topologia: topoLabel, distribuidorNome: kitName } }]);
+      }
+
+      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${rows.length} item(ns). Edite na aba "Criar manualmente".` });
+      setTab("manual");
     } catch (err: any) {
       toast({ title: "Erro ao importar kit", description: err.message, variant: "destructive" });
     } finally {
