@@ -42,7 +42,7 @@ const DEDICATED_ROUTES: Record<string, string> = {
   google_calendar: "/admin/integracoes",
   webhooks_generic: "/admin/webhooks",
   n8n_automation: "/admin/n8n",
-  asaas: "/admin/fiscal",
+  asaas: "/admin/payment-gateway",
   public_api: "/admin/openai-config",
 };
 
