@@ -1840,7 +1840,11 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
 
       // Don't change integration status during nighttime/consolidation syncs
       if (!isNighttime && !isConsolidation) {
-        const newStatus = result.errors.length > 0 ? "error" : "connected";
+        // Only mark as "error" if there are CRITICAL errors (auth failures, no data at all)
+        // Partial metric failures (e.g., 2 of 168 plants failed) should NOT disconnect the integration
+        const isCriticalFailure = result.plantsUpserted === 0 && result.metricsUpserted === 0 && result.errors.length > 0;
+        const hasAuthError = result.errors.some((e: string) => /auth|unauthorized|forbidden|missing.*credential/i.test(e));
+        const newStatus = (isCriticalFailure || hasAuthError) ? "error" : "connected";
         await supabaseAdmin.from("monitoring_integrations").update({
           last_sync_at: new Date().toISOString(),
           status: newStatus,
@@ -1859,12 +1863,24 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
     } catch (err) {
       console.error(`[monitoring-sync] CRON error for ${provider}:`, err);
       results.push({ provider, plants_synced: 0, metrics_synced: 0, errors: [(err as Error).message] });
+      // Only mark as "error" for AUTH issues — timeouts and transient failures should NOT disconnect
+      const errMsg = (err as Error).message || "";
+      const isAuthFailure = /auth|unauthorized|forbidden|missing.*credential|invalid.*key/i.test(errMsg);
       if (!isNighttime && !isConsolidation) {
-        await supabaseAdmin.from("monitoring_integrations").update({
-          status: "error",
-          sync_error: (err as Error).message?.slice(0, 500),
-          updated_at: new Date().toISOString(),
-        }).eq("id", int.id);
+        if (isAuthFailure) {
+          await supabaseAdmin.from("monitoring_integrations").update({
+            status: "error",
+            sync_error: errMsg.slice(0, 500),
+            updated_at: new Date().toISOString(),
+          }).eq("id", int.id);
+        } else {
+          // Transient error (timeout, rate limit, etc.) — preserve "connected" status, just log the error
+          await supabaseAdmin.from("monitoring_integrations").update({
+            last_sync_at: new Date().toISOString(),
+            sync_error: `[transient] ${errMsg}`.slice(0, 500),
+            updated_at: new Date().toISOString(),
+          }).eq("id", int.id);
+        }
       }
     }
   }
@@ -1975,11 +1991,13 @@ serve(async (req) => {
     const SESSIONLESS_PROVIDERS = ["solis_cloud"];
     const cats = result.errorCategories || [];
     let newStatus: string;
+    const isCritical = result.plantsUpserted === 0 && result.metricsUpserted === 0 && result.errors.length > 0;
     if (cats.includes("PERMISSION")) {
       newStatus = "blocked";
     } else if (cats.includes("AUTH") && !SESSIONLESS_PROVIDERS.includes(provider)) {
       newStatus = "reconnect_required";
-    } else if (result.errors.length > 0) {
+    } else if (isCritical) {
+      // Only mark error if NOTHING succeeded — partial failures keep "connected"
       newStatus = "error";
     } else {
       newStatus = "connected";
