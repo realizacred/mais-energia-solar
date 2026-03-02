@@ -352,8 +352,9 @@ async function deyeFetch(baseUrl: string, token: string, ep: string, body: Recor
 async function deyeListPlants(baseUrl: string, token: string): Promise<NormalizedPlant[]> {
   const plants: NormalizedPlant[] = [];
   let page = 1;
+  const PAGE_SIZE = 50; // Deye API docs specify max 50
   while (true) {
-    const json = await deyeFetch(baseUrl, token, "/station/list", { page, size: 200 });
+    const json = await deyeFetch(baseUrl, token, "/station/list", { page, size: PAGE_SIZE });
     // Deye v2: stationList and total are at top level
     const list = json.stationList || json.data?.stationList || [];
     if (!Array.isArray(list) || !list.length) break;
@@ -373,8 +374,10 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
       });
     }
     const total = json.total || json.data?.total || 0;
-    if (page * 200 >= Number(total)) break;
+    if (page * PAGE_SIZE >= Number(total)) break;
     page++;
+    // Small delay between pages to avoid rate limiting
+    await new Promise(r => setTimeout(r, 300));
   }
   return plants;
 }
@@ -412,7 +415,7 @@ async function deyeListDevices(baseUrl: string, token: string): Promise<{ statio
 
   for (const plant of plants) {
     try {
-      const json = await deyeFetch(baseUrl, token, "/station/device", { stationIds: [Number(plant.external_id)], page: 1, size: 200 });
+      const json = await deyeFetch(baseUrl, token, "/station/device", { stationIds: [Number(plant.external_id)], page: 1, size: 50 });
       const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
       if (!Array.isArray(list) || !list.length) continue;
 
@@ -1737,13 +1740,15 @@ async function dispatchSync(
 
     // Deye /station/list does NOT return generationToday/generationTotal — only generationPower (watts).
     // We MUST call /station/latest per plant for energy data.
-    // For bulk: batch with concurrency control and time budget.
+    // For bulk: sequential with delay to stay lightweight and avoid API overload.
     const metricsFn = async (extId: string): Promise<DailyMetrics> => {
+      // Small delay between metric calls to avoid rate limiting
+      await new Promise(r => setTimeout(r, 200));
       return await deyeMetrics(baseUrl, at, extId);
     };
 
-    // For bulk cron: use lightweight per-station device fetch (batched, with time budget)
-    // For selective: full detail fetch for selected plants only
+    // For selective sync: fetch devices for selected plants only
+    // For bulk cron: SKIP device discovery entirely — too heavy, done only on manual/selective sync
     const extras: { devicesFn?: () => Promise<{ stationId: string; devices: NormalizedDevice[] }[]> } = {};
     if (isSelectiveSync) {
       extras.devicesFn = async () => {
@@ -1754,35 +1759,8 @@ async function dispatchSync(
         const allDevices = await deyeListDevices(baseUrl, at);
         return allDevices.filter(g => selIds.has(g.stationId));
       };
-    } else {
-      // Bulk cron: discover devices from /station/device for each plant (lightweight, no /device/latest)
-      extras.devicesFn = async () => {
-        const plants = await deyeListPlants(baseUrl, at);
-        const result: { stationId: string; devices: NormalizedDevice[] }[] = [];
-        const startTime = Date.now();
-        for (const plant of plants) {
-          if (Date.now() - startTime > 30_000) break; // 30s budget for devices
-          try {
-            const json = await deyeFetch(baseUrl, at, "/station/device", { stationIds: [Number(plant.external_id)], page: 1, size: 200 });
-            const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
-            if (!Array.isArray(list) || !list.length) continue;
-            const devices: NormalizedDevice[] = list.map((d: any) => ({
-              provider_device_id: String(d.id || d.deviceSn || d.sn || ""),
-              type: String(d.deviceType || "inverter").toLowerCase().includes("inverter") ? "inverter" :
-                    String(d.deviceType || "").toLowerCase().includes("logger") ? "logger" : "inverter",
-              model: d.productName || d.deviceType || null,
-              serial: d.deviceSn || d.sn || null,
-              status: d.deviceStatus === 1 || d.connectStatus === 1 ? "online" :
-                      d.deviceStatus === 0 || d.connectStatus === 0 ? "offline" :
-                      d.deviceStatus === 2 ? "alarm" : "unknown",
-              metadata: d,
-            }));
-            if (devices.length > 0) result.push({ stationId: plant.external_id, devices });
-          } catch (e) { console.warn(`[Deye] bulk device fetch failed for ${plant.external_id}: ${(e as Error).message}`); }
-        }
-        return result;
-      };
     }
+    // No extras.devicesFn for bulk = no device discovery in cron (lightweight)
 
     return await syncPlantsByProvider(ctx, listFn, metricsFn, mode, selectedPlantIds, extras);
   } else if (p === "growatt" || p === "growatt_server") {
