@@ -113,7 +113,7 @@ const App = () => (
 
               {/* DEV-only sandbox (stripped in prod build) */}
               {import.meta.env.DEV && (
-                <Route path="/dev/integrations" element={<IntegrationsSandbox />} />
+                <Route path="/__dev__/integrations" element={<IntegrationsSandbox />} />
               )}
 
               <Route path="*" element={<NotFound />} />
