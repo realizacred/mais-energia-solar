@@ -37,7 +37,7 @@ export function WaProfileAvatar({
 }: WaProfileAvatarProps) {
   const [imgError, setImgError] = useState(false);
 
-  const showImg = !!profilePictureUrl && !imgError;
+  const showImg = !!profilePictureUrl && profilePictureUrl !== "none" && !imgError;
 
   const fallback = isGroup ? (
     <Users className={iconSizes[size]} />
