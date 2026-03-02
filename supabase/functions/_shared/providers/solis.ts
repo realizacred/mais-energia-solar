@@ -126,13 +126,33 @@ export class SolisAdapter implements ProviderAdapter {
 
       for (const r of records) {
         const stationId = String(r.stationId || r.plantId || "");
+        const sn = r.sn || r.inverterSn || null;
+
+        // Enrich with Vpv/Ipv from inverterDetail
+        let detailMeta: Record<string, unknown> = {};
+        if (sn) {
+          try {
+            await this.rateDelay();
+            const detailJson = await this.solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
+            const dd = detailJson.data || {};
+            detailMeta = {
+              vpv1: dd.uPv1 ?? dd.vpv1 ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
+              vpv2: dd.uPv2 ?? dd.vpv2 ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
+              vpv3: dd.uPv3 ?? dd.vpv3 ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
+              vpv4: dd.uPv4 ?? dd.vpv4 ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
+              pac: dd.pac ?? null, etoday: dd.eToday ?? null, etotal: dd.eTotal ?? null,
+              dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
+            };
+          } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}`); }
+        }
+
         const device = {
           provider_device_id: String(r.id || r.sn || ""),
           type: "inverter",
           model: r.inverterType || r.model || null,
-          serial: r.sn || r.inverterSn || null,
+          serial: sn,
           status: r.state === 1 ? "online" : r.state === 2 ? "offline" : r.state === 3 ? "alarm" : "unknown",
-          metadata: r,
+          metadata: { ...r, ...detailMeta },
         };
         const existing = result.find((x) => x.stationId === stationId);
         if (existing) existing.devices.push(device);

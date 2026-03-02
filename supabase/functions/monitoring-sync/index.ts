@@ -237,13 +237,34 @@ async function solisListInverters(apiId: string, apiSecret: string): Promise<{ s
     if (!records.length) break;
     for (const r of records) {
       const stationId = String(r.stationId || r.plantId || "");
+      const sn = r.sn || r.inverterSn || null;
+
+      // Enrich with Vpv/Ipv from inverterDetail (best-effort, don't block on failure)
+      let detailMeta: Record<string, unknown> = {};
+      if (sn) {
+        try {
+          const detailJson = await solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
+          const dd = detailJson.data || {};
+          detailMeta = {
+            vpv1: dd.uPv1 ?? dd.vpv1 ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
+            vpv2: dd.uPv2 ?? dd.vpv2 ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
+            vpv3: dd.uPv3 ?? dd.vpv3 ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
+            vpv4: dd.uPv4 ?? dd.vpv4 ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
+            pac: dd.pac ?? dd.generationPower ?? null,
+            etoday: dd.eToday ?? dd.dayEnergy ?? null,
+            etotal: dd.eTotal ?? dd.allEnergy ?? null,
+            dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
+          };
+        } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}: ${(e as Error).message}`); }
+      }
+
       const device: NormalizedDevice = {
         provider_device_id: String(r.id || r.sn || ""),
         type: "inverter",
         model: r.inverterType || r.model || r.machineName || null,
-        serial: r.sn || r.inverterSn || null,
+        serial: sn,
         status: r.state === 1 ? "online" : r.state === 2 ? "offline" : r.state === 3 ? "alarm" : "unknown",
-        metadata: r,
+        metadata: { ...r, ...detailMeta },
       };
       const existing = result.find((x) => x.stationId === stationId);
       if (existing) existing.devices.push(device); else result.push({ stationId, devices: [device] });
@@ -651,6 +672,100 @@ async function growattApiMetrics(apiKey: string, plantId: string): Promise<Daily
       metadata: d,
     };
   } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+}
+
+// Growatt API: List devices per plant with MPPT detail (Vpv/Ipv)
+async function growattApiListDevices(apiKey: string): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
+  const tokenHdr = { "token": apiKey };
+  const rateDelay = () => new Promise<void>((r) => setTimeout(r, 2500));
+  const result: { stationId: string; devices: NormalizedDevice[] }[] = [];
+
+  try {
+    // Get all plants first
+    const plantsRes = await fetch("https://openapi.growatt.com/v1/plant/list?page=1&perpage=100", { headers: tokenHdr });
+    const plantsJson = await plantsRes.json().catch(() => ({}));
+    const plants = plantsJson.data?.plants || [];
+
+    // For business accounts, also try c_user_list
+    if (plants.length === 0) {
+      const usersRes = await fetch("https://openapi.growatt.com/v1/user/c_user_list?page=1&perpage=100", { headers: tokenHdr });
+      const usersJson = await usersRes.json().catch(() => ({}));
+      const users = (usersJson.data?.c_user || []) as any[];
+      for (const user of users) {
+        if (!user.c_user_id) continue;
+        await rateDelay();
+        try {
+          const pRes = await fetch(`https://openapi.growatt.com/v1/plant/list?c_user_id=${user.c_user_id}&page=1&perpage=100`, { headers: tokenHdr });
+          const pJson = await pRes.json().catch(() => ({}));
+          plants.push(...(pJson.data?.plants || []));
+        } catch {}
+      }
+    }
+
+    // For each plant, get device list
+    for (const plant of plants) {
+      const plantId = String(plant.plant_id || plant.plantId || plant.id || "");
+      if (!plantId) continue;
+      await rateDelay();
+
+      try {
+        const devRes = await fetch(`https://openapi.growatt.com/v1/device/list?plant_id=${plantId}&page=1&perpage=100`, { headers: tokenHdr });
+        const devJson = await devRes.json().catch(() => ({}));
+        const devList = devJson.data?.devices || devJson.data || [];
+
+        const devices: NormalizedDevice[] = [];
+        for (const dev of devList) {
+          const sn = dev.device_sn || dev.deviceSn || dev.sn || "";
+          const devType = dev.device_type || dev.deviceType || "inverter";
+          
+          // Fetch per-device detail with Vpv/Ipv (queryLastData)
+          let detailMeta: Record<string, unknown> = {};
+          if (sn) {
+            await rateDelay();
+            try {
+              const dRes = await fetch("https://openapi.growatt.com/v4/new-api/queryLastData", {
+                method: "POST",
+                headers: { "token": apiKey, "Content-Type": "application/x-www-form-urlencoded" },
+                body: `deviceType=${encodeURIComponent(devType === "inverter" ? "min" : devType)}&deviceSn=${encodeURIComponent(sn)}`,
+              });
+              const dJson = await dRes.json().catch(() => ({}));
+              if (dJson.code === 0) {
+                const dd = dJson.data?.[devType === "inverter" ? "min" : devType]?.[0] || dJson.data || {};
+                detailMeta = {
+                  vpv1: dd.vpv1 ?? dd.uPv1 ?? null, ipv1: dd.ipv1 ?? dd.iPv1 ?? null, ppv1: dd.ppv1 ?? null,
+                  vpv2: dd.vpv2 ?? dd.uPv2 ?? null, ipv2: dd.ipv2 ?? dd.iPv2 ?? null, ppv2: dd.ppv2 ?? null,
+                  vpv3: dd.vpv3 ?? dd.uPv3 ?? null, ipv3: dd.ipv3 ?? dd.iPv3 ?? null, ppv3: dd.ppv3 ?? null,
+                  vpv4: dd.vpv4 ?? dd.uPv4 ?? null, ipv4: dd.ipv4 ?? dd.iPv4 ?? null, ppv4: dd.ppv4 ?? null,
+                  pac: dd.pac ?? null,
+                  etoday: dd.eacToday ?? dd.eToday ?? null,
+                  etotal: dd.eacTotal ?? dd.eTotal ?? null,
+                  dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
+                  machine: dd.deviceModel || dd.model || dev.model || null,
+                  maxUpv: dd.maxUpv ?? null,
+                };
+              }
+            } catch (e) { console.warn(`[Growatt] queryLastData failed for ${sn}: ${(e as Error).message}`); }
+          }
+
+          devices.push({
+            provider_device_id: sn || String(dev.id || ""),
+            type: devType === "min" || devType === "inv" ? "inverter" : devType,
+            model: detailMeta.machine as string || dev.model || dev.device_model || null,
+            serial: sn || null,
+            status: dev.status === 1 || dev.status === "1" ? "online" : dev.status === 0 || dev.status === "0" ? "offline" : "unknown",
+            metadata: { ...dev, ...detailMeta },
+          });
+        }
+
+        if (devices.length > 0) {
+          result.push({ stationId: plantId, devices });
+        }
+      } catch (e) { console.warn(`[Growatt] device list failed for plant ${plantId}: ${(e as Error).message}`); }
+    }
+  } catch (e) { console.error(`[Growatt] growattApiListDevices error: ${(e as Error).message}`); }
+
+  console.log(`[Growatt] Listed ${result.reduce((s, g) => s + g.devices.length, 0)} devices across ${result.length} plants`);
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1451,7 +1566,9 @@ async function dispatchSync(
     if (authMode === "api_key") {
       const apiKey = tokens.apiKey as string || "";
       if (!apiKey) throw new Error("No API key (token) stored for Growatt.");
-      return await syncPlantsByProvider(ctx, () => growattApiListPlants(apiKey), (eid) => growattApiMetrics(apiKey, eid), mode, selectedPlantIds);
+      return await syncPlantsByProvider(ctx, () => growattApiListPlants(apiKey), (eid) => growattApiMetrics(apiKey, eid), mode, selectedPlantIds, {
+        devicesFn: () => growattApiListDevices(apiKey),
+      });
     } else {
       // Portal/ShineServer mode — use stored cookies or re-authenticate
       let cookies = tokens.cookies as string || "";
