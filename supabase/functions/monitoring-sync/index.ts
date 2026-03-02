@@ -392,44 +392,64 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
 
 async function deyeMetrics(baseUrl: string, token: string, extId: string): Promise<DailyMetrics> {
   try {
-    // 1) /station/latest → real-time power (Watts)
+    // 1) /station/latest → real-time power (Watts) + daily/total energy fields
     const latestJson = await deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) }).catch(() => null);
     const d = latestJson?.data || latestJson || {};
+    console.log(`[Deye] /station/latest keys for ${extId}: ${Object.keys(d).join(",")}`);
     const rawPower = d.generationPower != null ? Number(d.generationPower) : null;
     const powerKw = rawPower != null ? rawPower / 1000 : null;
 
-    // 2) /station/history granularity=2 (day) → daily energy
-    //    startAt = today, endAt = tomorrow (excluded) → returns today's kWh
-    const todayStr = new Date().toISOString().slice(0, 10); // yyyy-MM-dd
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    // Try to extract energy directly from /station/latest (some Deye accounts include these)
     let energyToday: number | null = null;
     let energyTotal: number | null = null;
-    try {
-      const histJson = await deyeFetch(baseUrl, token, "/station/history", {
-        stationId: Number(extId),
-        granularity: 2, // day
-        startAt: todayStr,
-        endAt: tomorrow,
-      });
-      const histData = histJson?.dataList || histJson?.data?.dataList || [];
-      if (Array.isArray(histData) && histData.length > 0) {
-        const todayEntry = histData[0];
-        energyToday = todayEntry?.generation != null ? Number(todayEntry.generation) :
-                      todayEntry?.generationValue != null ? Number(todayEntry.generationValue) :
-                      todayEntry?.energy != null ? Number(todayEntry.energy) : null;
-        energyTotal = todayEntry?.totalGeneration != null ? Number(todayEntry.totalGeneration) :
-                      todayEntry?.cumulativeGeneration != null ? Number(todayEntry.cumulativeGeneration) : null;
-      }
-      console.log(`[Deye] /station/history for ${extId}: energyToday=${energyToday}, keys=${histData.length > 0 ? Object.keys(histData[0]).join(",") : "empty"}`);
-    } catch (histErr) {
-      console.warn(`[Deye] /station/history failed for ${extId}: ${(histErr as Error).message}`);
+
+    // Check common field names in /station/latest
+    const todayFields = ["lastMonthGeneration", "todayElectricity", "generationToday", "todayEnergy", "eToday", "dayGeneration"];
+    const totalFields = ["totalElectricity", "generationTotal", "totalEnergy", "eTotal", "allEnergy"];
+    for (const f of todayFields) {
+      if (d[f] != null && Number(d[f]) > 0) { energyToday = Number(d[f]); break; }
     }
+    for (const f of totalFields) {
+      if (d[f] != null && Number(d[f]) > 0) { energyTotal = Number(d[f]); break; }
+    }
+
+    // 2) Fallback: /station/history granularity=2 (day) → daily energy
+    if (energyToday == null) {
+      try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        const histJson = await deyeFetch(baseUrl, token, "/station/history", {
+          stationId: Number(extId),
+          granularity: 2,
+          startAt: todayStr,
+          endAt: tomorrow,
+        });
+        const raw = histJson?.dataList || histJson?.data?.dataList || histJson?.data || {};
+        console.log(`[Deye] /station/history raw keys for ${extId}: ${typeof raw === "object" ? Object.keys(raw).join(",") : "non-object"}, isArray=${Array.isArray(raw)}`);
+        const histData = Array.isArray(raw) ? raw : [];
+        if (histData.length > 0) {
+          const e = histData[0];
+          console.log(`[Deye] /station/history entry keys: ${Object.keys(e).join(",")}`);
+          // Try all known field names
+          for (const f of ["generation", "generationValue", "energy", "dailyGeneration", "dayGeneration"]) {
+            if (e[f] != null && Number(e[f]) > 0) { energyToday = Number(e[f]); break; }
+          }
+          for (const f of ["totalGeneration", "cumulativeGeneration", "allEnergy"]) {
+            if (e[f] != null && Number(e[f]) > 0) { energyTotal = Number(e[f]); break; }
+          }
+        }
+      } catch (histErr) {
+        console.warn(`[Deye] /station/history failed for ${extId}: ${(histErr as Error).message}`);
+      }
+    }
+
+    console.log(`[Deye] Metrics for ${extId}: power=${powerKw}kW, energyToday=${energyToday}, energyTotal=${energyTotal}`);
 
     return {
       power_kw: powerKw,
       energy_kwh: energyToday,
       total_energy_kwh: energyTotal,
-      metadata: { ...d, _historyEnergyToday: energyToday },
+      metadata: { ...d, _energyToday: energyToday, _energyTotal: energyTotal },
     };
   } catch (err) {
     console.error(`[Deye] Metrics FAILED for ${extId}: ${(err as Error).message}`);
@@ -1365,13 +1385,26 @@ interface SyncContext {
 async function upsertPlants(ctx: SyncContext, plants: NormalizedPlant[]): Promise<{ count: number; errors: string[] }> {
   let count = 0; const errors: string[] = [];
   for (const plant of plants) {
+    const now = new Date().toISOString();
     const { error } = await ctx.supabaseAdmin.from("solar_plants").upsert({
       tenant_id: ctx.tenantId, integration_id: ctx.integrationId, provider: ctx.provider,
       external_id: plant.external_id, name: plant.name, capacity_kw: plant.capacity_kw,
       address: plant.address, latitude: plant.latitude, longitude: plant.longitude,
-      status: plant.status, metadata: plant.metadata, updated_at: new Date().toISOString(),
+      status: plant.status, metadata: plant.metadata, updated_at: now,
     }, { onConflict: "tenant_id,provider,external_id" });
     if (error) errors.push(`Plant ${plant.external_id}: ${error.message}`); else count++;
+
+    // Keep monitor_plants in sync (metadata, last_seen_at, coordinates)
+    try {
+      await ctx.supabaseAdmin.from("monitor_plants").upsert({
+        tenant_id: ctx.tenantId, provider_id: ctx.provider, provider_plant_id: plant.external_id,
+        name: plant.name, installed_power_kwp: plant.capacity_kw,
+        city: plant.metadata?.cityStr as string || null,
+        state: plant.metadata?.regionStr as string || null,
+        lat: plant.latitude, lng: plant.longitude,
+        metadata: plant.metadata, last_seen_at: now, updated_at: now, is_active: true,
+      }, { onConflict: "tenant_id,provider_id,provider_plant_id" });
+    } catch { /* non-blocking */ }
   }
   return { count, errors };
 }
