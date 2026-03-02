@@ -367,14 +367,74 @@ async function deyeListPlants(baseUrl: string, token: string): Promise<Normalize
 async function deyeMetrics(baseUrl: string, token: string, extId: string): Promise<DailyMetrics> {
   try {
     const json = await deyeFetch(baseUrl, token, "/station/latest", { stationId: Number(extId) });
-    // Deye v2: fields are at top level (generationPower, batterySOC, etc.)
+    // Deye v2: generationPower (kW), generationToday (kWh), generationTotal (kWh)
+    // Also try nested data field for compatibility
+    const d = json.data || json;
     return {
-      power_kw: json.generationPower != null ? Number(json.generationPower) : null,
-      energy_kwh: null, // station/latest doesn't return daily energy directly
-      total_energy_kwh: null,
+      power_kw: d.generationPower != null ? Number(d.generationPower) : null,
+      energy_kwh: d.generationToday != null ? Number(d.generationToday) :
+                  d.todayEnergy != null ? Number(d.todayEnergy) :
+                  d.eToday != null ? Number(d.eToday) : null,
+      total_energy_kwh: d.generationTotal != null ? Number(d.generationTotal) :
+                        d.totalEnergy != null ? Number(d.totalEnergy) :
+                        d.eTotal != null ? Number(d.eTotal) : null,
       metadata: json,
     };
   } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+}
+
+async function deyeListDevices(baseUrl: string, token: string): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
+  // First get all stations to iterate
+  const plants = await deyeListPlants(baseUrl, token);
+  const result: { stationId: string; devices: NormalizedDevice[] }[] = [];
+
+  for (const plant of plants) {
+    try {
+      const json = await deyeFetch(baseUrl, token, "/station/device", { stationId: Number(plant.external_id), page: 1, size: 200 });
+      const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
+      if (!Array.isArray(list) || !list.length) continue;
+
+      const devices: NormalizedDevice[] = [];
+      const sns: string[] = [];
+      for (const d of list) {
+        const sn = d.deviceSn || d.sn || "";
+        if (sn) sns.push(sn);
+        let status = "unknown";
+        if (d.deviceStatus === 1 || d.connectStatus === 1) status = "online";
+        else if (d.deviceStatus === 0 || d.connectStatus === 0) status = "offline";
+        else if (d.deviceStatus === 2) status = "alarm";
+
+        devices.push({
+          provider_device_id: String(d.id || sn),
+          type: String(d.deviceType || "inverter").toLowerCase().includes("inverter") ? "inverter" :
+                String(d.deviceType || "").toLowerCase().includes("logger") ? "logger" : "inverter",
+          model: d.productName || d.deviceType || null,
+          serial: sn || null,
+          status,
+          metadata: d,
+        });
+      }
+
+      // Fetch latest data for all devices in this station (batch, up to 10)
+      if (sns.length > 0) {
+        try {
+          const latestJson = await deyeFetch(baseUrl, token, "/device/latest", { deviceSnList: sns.slice(0, 10) });
+          const latestList = latestJson.deviceDataList || latestJson.data?.deviceDataList || [];
+          for (const ld of latestList) {
+            const dev = devices.find(x => x.serial === ld.deviceSn);
+            if (dev) {
+              dev.metadata = { ...dev.metadata, ...ld };
+            }
+          }
+        } catch (e) { console.warn(`[Deye] device/latest failed for station ${plant.external_id}: ${(e as Error).message}`); }
+      }
+
+      if (devices.length > 0) {
+        result.push({ stationId: plant.external_id, devices });
+      }
+    } catch (e) { console.warn(`[Deye] station/device failed for ${plant.external_id}: ${(e as Error).message}`); }
+  }
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1622,7 +1682,9 @@ async function dispatchSync(
     const at = tokens.access_token as string;
     const baseUrl = (credentials.baseUrl as string) || "https://eu1-developer.deyecloud.com/v1.0";
     if (!at) throw new Error("No access token. Reconnect.");
-    return await syncPlantsByProvider(ctx, () => deyeListPlants(baseUrl, at), (eid) => deyeMetrics(baseUrl, at, eid), mode, selectedPlantIds);
+    return await syncPlantsByProvider(ctx, () => deyeListPlants(baseUrl, at), (eid) => deyeMetrics(baseUrl, at, eid), mode, selectedPlantIds, {
+      devicesFn: () => deyeListDevices(baseUrl, at),
+    });
   } else if (p === "growatt" || p === "growatt_server") {
     const authMode = credentials.auth_mode as string || (tokens.apiKey ? "api_key" : "portal");
     if (authMode === "api_key") {
