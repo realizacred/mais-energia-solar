@@ -44,6 +44,14 @@ function clientHasAddress(c?: ClienteData | null): boolean {
   return !!(c && (c.endereco || c.cidade || c.cep));
 }
 
+function addressMatchesClient(addr: ProjectAddress, c?: ClienteData | null): boolean {
+  if (!c) return false;
+  const norm = (s?: string | null) => (s || "").trim().toLowerCase();
+  // Match on city+state (minimum) since street/cep may be null
+  if (!norm(addr.cidade) && !norm(addr.uf)) return false;
+  return norm(addr.cidade) === norm(c.cidade) && norm(addr.uf) === norm(c.estado);
+}
+
 export function ProjectAddressFields({
   address, onAddressChange, clienteData, onCoordsChange, reverseGeocodedAddress,
 }: Props) {
@@ -60,8 +68,17 @@ export function ProjectAddressFields({
 
   // ── Auto-apply client address on mount when project address is empty ──
   useEffect(() => {
-    if (didAutoApplyRef.current) return;
+   if (didAutoApplyRef.current) return;
     if (!clientHasAddress(clienteData)) return;
+
+    // If address already matches client, just check the box
+    if (!isAddressEmpty(address) && addressMatchesClient(address, clienteData)) {
+      didAutoApplyRef.current = true;
+      setSameAsClient(true);
+      return;
+    }
+
+    // If address is empty, auto-fill from client
     if (!isAddressEmpty(address)) return;
 
     didAutoApplyRef.current = true;
