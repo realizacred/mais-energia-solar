@@ -1,20 +1,18 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
-  Search, Plug, RefreshCw, Info, Sun, Users, HardDrive,
+  Search, Plug, Sun, Users, HardDrive,
   Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText, Globe,
   Workflow, FileSignature, Zap, CloudSun, Sprout, Cpu, Gauge, Radio,
-  Building2, Calculator, QrCode, Webhook, LayoutGrid, CheckCircle2,
-  AlertCircle, Clock, Power,
+  Building2, Calculator, QrCode, Webhook, LayoutGrid, Power,
 } from "lucide-react";
 import {
   listProviders,
@@ -28,7 +26,8 @@ import {
 import type { IntegrationProvider, IntegrationCategory, ConnectionStatus } from "@/services/integrations/types";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/services/integrations/types";
 import { PROVIDER_REGISTRY, toIntegrationProvider, LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
-import { IntegrationConnectModal } from "./IntegrationConnectModal";
+import { IntegrationProviderCard } from "./IntegrationProviderCard";
+import { IntegrationProviderDrawer } from "./IntegrationProviderDrawer";
 import { cn } from "@/lib/utils";
 
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
@@ -39,7 +38,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Sun, Zap, CloudSun, Sprout, Cpu, Gauge, Radio, Users, Building2,
   HardDrive, Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText,
   Globe, Workflow, FileSignature, Calculator, QrCode, Webhook,
-  Plug, Info, SunDim: Sun, LayoutGrid, Cloud: CloudSun, Power,
+  Plug, LayoutGrid, Power,
 };
 
 function getIcon(key: string | null): React.ElementType {
@@ -58,7 +57,7 @@ export default function IntegrationsCatalogPage() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory | "all">("all");
-  const [connectModal, setConnectModal] = useState<IntegrationProvider | null>(null);
+  const [drawerProvider, setDrawerProvider] = useState<IntegrationProvider | null>(null);
 
   const { data: dbProviders = [], isLoading: loadingProviders } = useQuery({
     queryKey: ["integration-providers"],
@@ -197,19 +196,20 @@ export default function IntegrationsCatalogPage() {
   if (loadingProviders) return <LoadingState message="Carregando integrações..." />;
 
   const totalFiltered = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
+  const connectedCount = providers.filter(p => getConnectionStatus(p.id) === "connected").length;
 
   return (
     <div className="space-y-6 w-full max-w-none">
       {/* ─── Header ─── */}
       <PageHeader
         title="Integrações"
-        description="Conecte inversores, monitoramento, CRM e serviços externos."
+        description={`Conecte inversores, monitoramento, CRM e serviços externos. ${connectedCount} integração(ões) ativa(s).`}
         icon={Plug}
       />
 
-      {/* ─── Toolbar: Search + Tabs ─── */}
+      {/* ─── Toolbar ─── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Pesquisar integração…"
@@ -218,13 +218,17 @@ export default function IntegrationsCatalogPage() {
             className="pl-9 h-10 text-sm bg-card border-border"
           />
         </div>
-        <div className="flex bg-muted rounded-lg p-1 gap-0.5">
-          {([["all", "Todas"], ["active", "Ativas"], ["inactive", "Disponíveis"]] as [TabFilter, string][]).map(([key, label]) => (
+        <div className="flex bg-muted rounded-xl p-1 gap-0.5">
+          {([
+            ["all", "Todas"],
+            ["active", "Ativas"],
+            ["inactive", "Disponíveis"],
+          ] as [TabFilter, string][]).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-md transition-all",
+                "px-4 py-2 text-sm font-medium rounded-lg transition-all",
                 tab === key
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -244,7 +248,7 @@ export default function IntegrationsCatalogPage() {
               size="sm"
               variant={selectedCategory === "all" ? "default" : "outline"}
               onClick={() => setSelectedCategory("all")}
-              className="text-xs shrink-0 h-8"
+              className="text-xs shrink-0 h-8 rounded-full"
             >
               Todas
             </Button>
@@ -254,7 +258,7 @@ export default function IntegrationsCatalogPage() {
                 size="sm"
                 variant={selectedCategory === cat ? "default" : "outline"}
                 onClick={() => setSelectedCategory(cat)}
-                className="text-xs shrink-0 h-8"
+                className="text-xs shrink-0 h-8 rounded-full"
               >
                 {CATEGORY_LABELS[cat]}
               </Button>
@@ -267,7 +271,7 @@ export default function IntegrationsCatalogPage() {
         {/* ─── Sidebar ─── */}
         <aside className="hidden lg:block w-56 shrink-0">
           <nav className="sticky top-24 space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-3">
               Categorias
             </p>
             <SidebarItem
@@ -302,15 +306,15 @@ export default function IntegrationsCatalogPage() {
               description="Tente outro termo de busca ou filtro."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtered.map((provider) => (
-                <ProviderCard
+                <IntegrationProviderCard
                   key={provider.id}
                   provider={provider}
                   connStatus={getConnectionStatus(provider.id)}
                   plantCount={getPlantCount(provider.id)}
                   lastSync={getLastSync(provider.id)}
-                  onConnect={() => setConnectModal(provider)}
+                  onConfigure={() => setDrawerProvider(provider)}
                   onSync={() => {
                     setSyncingProviderId(provider.id);
                     const mapped = CANONICAL_TO_LEGACY[provider.id] || provider.id;
@@ -325,17 +329,29 @@ export default function IntegrationsCatalogPage() {
         </div>
       </div>
 
-      {connectModal && (
-        <IntegrationConnectModal
-          key={connectModal.id}
-          open={!!connectModal}
-          onOpenChange={(open) => { if (!open) setConnectModal(null); }}
-          provider={connectModal}
+      {/* ─── Drawer ─── */}
+      {drawerProvider && (
+        <IntegrationProviderDrawer
+          key={drawerProvider.id}
+          open={!!drawerProvider}
+          onOpenChange={(open) => { if (!open) setDrawerProvider(null); }}
+          provider={drawerProvider}
+          connStatus={getConnectionStatus(drawerProvider.id)}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ["integration-connections"] });
             queryClient.invalidateQueries({ queryKey: ["monitoring-integrations"] });
-            setConnectModal(null);
+            setDrawerProvider(null);
           }}
+          onDisconnect={() => {
+            disconnectMut.mutate(drawerProvider.id);
+            setDrawerProvider(null);
+          }}
+          onSync={() => {
+            setSyncingProviderId(drawerProvider.id);
+            const mapped = CANONICAL_TO_LEGACY[drawerProvider.id] || drawerProvider.id;
+            syncMut.mutate(mapped);
+          }}
+          syncing={syncingProviderId === drawerProvider.id}
         />
       )}
     </div>
@@ -352,192 +368,18 @@ function SidebarItem({ icon: Icon, label, count, active, onClick }: {
       className={cn(
         "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all text-left",
         active
-          ? "bg-primary/10 text-primary font-semibold"
+          ? "bg-primary/10 text-primary font-semibold shadow-sm"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate flex-1">{label}</span>
       <span className={cn(
-        "text-xs tabular-nums font-medium min-w-[1.25rem] text-center",
-        active ? "text-primary/70" : "text-muted-foreground/50"
+        "text-xs tabular-nums font-medium min-w-[1.25rem] text-center rounded-full px-1.5",
+        active ? "bg-primary/20 text-primary" : "text-muted-foreground/50"
       )}>
         {count}
       </span>
     </button>
-  );
-}
-
-/* ─── Status Badge ─── */
-function StatusBadgeTag({ provider }: { provider: IntegrationProvider }) {
-  const isMonitoring = provider.category === "monitoring";
-  const isMonitoringActive = isMonitoring && provider.capabilities?.sync_plants && provider.capabilities?.sync_health;
-  const isMonitoringBeta = isMonitoring && provider.capabilities?.sync_plants && !provider.capabilities?.sync_health;
-  const isMonitoringStub = isMonitoring && !provider.capabilities?.sync_plants;
-  const isComingSoon = provider.status === "coming_soon";
-  const isMaintenance = provider.status === "maintenance";
-
-  if (isMonitoringActive) {
-    return <Badge className="text-[10px] font-medium bg-success/15 text-success border-success/25 px-2 py-0.5 rounded-full">Produção</Badge>;
-  }
-  if (isMonitoringBeta) {
-    return <Badge className="text-[10px] font-medium bg-warning/15 text-warning border-warning/25 px-2 py-0.5 rounded-full">Beta</Badge>;
-  }
-  if (isMonitoringStub) {
-    return <Badge variant="outline" className="text-[10px] font-medium border-border/60 text-muted-foreground px-2 py-0.5 rounded-full">Planejado</Badge>;
-  }
-  if (!isMonitoring && isComingSoon) {
-    return <Badge variant="outline" className="text-[10px] font-medium border-border/60 text-muted-foreground px-2 py-0.5 rounded-full">Em breve</Badge>;
-  }
-  if (isMaintenance) {
-    return (
-      <Badge variant="outline" className="text-[10px] font-medium border-warning/40 text-warning px-2 py-0.5 rounded-full">
-        <AlertCircle className="h-3 w-3 mr-0.5" />
-        Manutenção
-      </Badge>
-    );
-  }
-  return null;
-}
-
-/* ─── Provider Card (GDASH Style) ─── */
-function ProviderCard({ provider, connStatus, plantCount, lastSync, onConnect, onSync, onDisconnect, syncing }: {
-  provider: IntegrationProvider; connStatus: ConnectionStatus; plantCount: number;
-  lastSync: string | null; onConnect: () => void; onSync: () => void;
-  onDisconnect: () => void; syncing: boolean;
-}) {
-  const Icon = getIcon(provider.logo_key);
-  const isConnected = connStatus === "connected";
-  const isMonitoring = provider.category === "monitoring";
-  const isMonitoringStub = isMonitoring && !provider.capabilities?.sync_plants;
-  const isComingSoon = provider.status === "coming_soon";
-  const hasSyncCapability = provider.capabilities?.sync_plants || provider.capabilities?.sync_deals;
-  const isDisabled = isMonitoringStub || isComingSoon;
-
-  // Try real logo: .png first (most downloaded), then .svg fallback
-  const [logoSrc, setLogoSrc] = React.useState(`/integrations/${provider.id}.png`);
-  const [logoError, setLogoError] = React.useState(false);
-
-  const handleLogoError = React.useCallback(() => {
-    if (logoSrc.endsWith('.png')) {
-      // Try SVG before giving up
-      setLogoSrc(`/integrations/${provider.id}.svg`);
-    } else {
-      setLogoError(true);
-    }
-  }, [logoSrc, provider.id]);
-
-  return (
-    <div
-      className={cn(
-        "relative flex flex-col items-center text-center rounded-2xl border p-5 min-h-[170px] max-h-[190px] transition-all duration-200",
-        isConnected
-          ? "border-success/30 bg-card shadow-sm hover:shadow-md"
-          : isDisabled
-            ? "border-border/30 bg-muted/30 opacity-70"
-            : "border-border/50 bg-card hover:border-border hover:shadow-md"
-      )}
-    >
-      {/* Status badge — top right */}
-      <div className="absolute top-3 right-3">
-        {isConnected ? (
-          <div className="flex items-center gap-1 bg-success/10 text-success rounded-full px-2 py-0.5">
-            <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-            <span className="text-[10px] font-medium">Conectado</span>
-          </div>
-        ) : (
-          <StatusBadgeTag provider={provider} />
-        )}
-      </div>
-
-      {/* Logo box */}
-      <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted/40 mx-auto mb-3">
-        {!logoError ? (
-          <img
-            src={logoSrc}
-            alt={provider.label}
-            className="max-h-10 max-w-10 object-contain"
-            onError={handleLogoError}
-          />
-        ) : (
-          <Icon className={cn(
-            "h-6 w-6",
-            isConnected ? "text-primary" : isDisabled ? "text-muted-foreground/50" : "text-muted-foreground"
-          )} />
-        )}
-      </div>
-
-      {/* Name */}
-      <h3 className="text-base font-semibold text-foreground leading-tight">{provider.label}</h3>
-
-      {/* Description — 2 lines max */}
-      <p className="text-sm text-muted-foreground line-clamp-2 mt-1 mb-auto px-1 leading-snug">
-        {provider.description}
-      </p>
-
-      {/* Connected metrics */}
-      {isConnected && (plantCount > 0 || lastSync) && (
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
-          {plantCount > 0 && (
-            <span className="flex items-center gap-1">
-              <Sun className="h-3 w-3 text-warning" />
-              {plantCount}
-            </span>
-          )}
-          {lastSync && (
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {new Date(lastSync).toLocaleDateString("pt-BR")}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Action button */}
-      <div className="w-full mt-3">
-        {isConnected ? (
-          <div className="flex gap-2 w-full">
-            {hasSyncCapability && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onSync}
-                disabled={syncing}
-                className="flex-1 h-10 rounded-xl text-sm font-medium px-4"
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", syncing && "animate-spin")} />
-                Sync
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onDisconnect}
-              className="h-10 rounded-xl text-sm text-destructive hover:text-destructive hover:bg-destructive/10 px-3"
-            >
-              <Power className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ) : isDisabled ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled
-            className="w-full h-10 rounded-xl text-sm font-medium text-muted-foreground cursor-not-allowed px-4"
-          >
-            {isMonitoringStub ? "Em desenvolvimento" : "Em breve"}
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            onClick={onConnect}
-            className="w-full h-10 rounded-xl text-sm font-medium px-4"
-          >
-            <Plug className="h-3.5 w-3.5 mr-1.5" />
-            Conectar
-          </Button>
-        )}
-      </div>
-    </div>
   );
 }
