@@ -3,8 +3,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Plug, RefreshCw, Power, Sun, Clock, CheckCircle2,
-  AlertCircle, Settings, Zap,
+  AlertCircle, Settings, Zap, Users, HardDrive, Calendar,
+  Mail, MessageCircle, Video, CreditCard, ReceiptText,
+  Globe, Workflow, FileSignature,
 } from "lucide-react";
+import type { IntegrationCategory } from "@/services/integrations/types";
+
+const CATEGORY_FALLBACK_ICONS: Record<IntegrationCategory, React.ElementType> = {
+  monitoring: Sun, crm: Users, storage: HardDrive, calendar: Calendar,
+  email: Mail, messaging: MessageCircle, meetings: Video, billing: CreditCard,
+  nf: ReceiptText, api: Globe, automation: Workflow, signature: FileSignature,
+};
 import { cn } from "@/lib/utils";
 import type { IntegrationProvider, ConnectionStatus } from "@/services/integrations/types";
 
@@ -118,7 +127,7 @@ export function IntegrationProviderCard({
               loading="lazy"
             />
           ) : (
-            <Sun className="h-6 w-6 text-muted-foreground" />
+            (() => { const F = CATEGORY_FALLBACK_ICONS[provider.category] || Sun; return <F className="h-6 w-6 text-muted-foreground" />; })()
           )}
         </div>
         <StatusIndicator provider={provider} connStatus={connStatus} />
