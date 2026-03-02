@@ -1749,18 +1749,16 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Refetch when tab/window regains focus (user navigated back from wizard)
+  // Refetch when tab/window regains focus only if data is stale (>30s)
+  const lastFetchRef = useRef(0);
   useEffect(() => {
-    const handleFocus = () => setRefreshKey(k => k + 1);
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") handleFocus();
+      if (document.visibilityState === "visible" && Date.now() - lastFetchRef.current > 30_000) {
+        setRefreshKey(k => k + 1);
+      }
     };
-    window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   // Load proposals — query propostas_nativas.deal_id directly
@@ -1858,7 +1856,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
           setPropostas([]);
         }
       } catch (err) { console.error("PropostasTab:", err); }
-      finally { setLoading(false); }
+      finally { setLoading(false); lastFetchRef.current = Date.now(); }
     }
     load();
   }, [customerId, dealId, refreshKey]);
