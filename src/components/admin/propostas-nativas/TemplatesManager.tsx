@@ -14,6 +14,42 @@ import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
 import type { TemplateBlock } from "@/components/admin/proposal-builder";
 
+/** Extract storage path from a public/signed URL for the proposta-templates bucket */
+function extractStoragePath(fileUrl: string): string | null {
+  const marker = "/proposta-templates/";
+  const idx = fileUrl.indexOf(marker);
+  if (idx === -1) return null;
+  let path = fileUrl.substring(idx + marker.length);
+  // Remove query params
+  const qIdx = path.indexOf("?");
+  if (qIdx !== -1) path = path.substring(0, qIdx);
+  return decodeURIComponent(path);
+}
+
+async function downloadDocx(fileUrl: string) {
+  const path = extractStoragePath(fileUrl);
+  if (!path) {
+    // Fallback: open directly
+    window.open(fileUrl, "_blank");
+    return;
+  }
+  const { data, error } = await supabase.storage
+    .from("proposta-templates")
+    .download(path);
+  if (error || !data) {
+    toast({ title: "Erro ao baixar arquivo", description: error?.message || "Arquivo não encontrado", variant: "destructive" });
+    return;
+  }
+  const url = URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = path.split("/").pop() || "template.docx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 interface PropostaTemplate {
   id: string;
   nome: string;
@@ -430,11 +466,9 @@ export function TemplatesManager() {
                         <Badge variant="outline" className="text-[10px] gap-1 text-success border-success/30 bg-success/5">
                           <FileText className="h-3 w-3" /> {form.file_url.split("/").pop()?.replace(/^\d+_/, "") || "Arquivo anexado"}
                         </Badge>
-                        <a href={form.file_url} target="_blank" rel="noopener noreferrer">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Baixar">
-                            <Download className="h-3 w-3" />
-                          </Button>
-                        </a>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Baixar" onClick={() => downloadDocx(form.file_url!)}>
+                          <Download className="h-3 w-3" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -539,11 +573,9 @@ export function TemplatesManager() {
                       </Button>
                     )}
                     {t.file_url && (
-                      <a href={t.file_url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar DOCX">
-                          <Download className="h-3 w-3" />
-                        </Button>
-                      </a>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar DOCX" onClick={() => downloadDocx(t.file_url!)}>
+                        <Download className="h-3 w-3" />
+                      </Button>
                     )}
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(t)} disabled={dialogOpen}>
                       <Edit2 className="h-3 w-3" />
