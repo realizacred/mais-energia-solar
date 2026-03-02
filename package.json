@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "audit:brand": "npx -y ripgrep-bin -n -i 'solarz|solar z|gdash|g-dash|g dash' src public supabase"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
