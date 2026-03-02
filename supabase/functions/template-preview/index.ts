@@ -6,8 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// @deno-types="https://unpkg.com/docx-templates/lib/bundled.d.ts"
-import { createReport } from "https://unpkg.com/docx-templates/lib/browser.js";
+import { createReport } from "npm:docx-templates@4.13.0";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
