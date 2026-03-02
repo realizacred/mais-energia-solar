@@ -7,6 +7,8 @@ const corsHeaders = {
 };
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_EXECUTION_MS = 25_000; // Stop before 30s timeout
+const BATCH_SIZE = 50; // Process N chats per invocation
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -22,39 +24,27 @@ Deno.serve(async (req) => {
     // Authenticate caller
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "Unauthorized" }, 401);
     }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "Invalid token" }, 401);
     }
 
     // Check admin role
     const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
     if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "Forbidden" }, 403);
     }
 
     const body = await req.json();
-    const { instance_id, days = 365 } = body;
+    const { instance_id, days = 365, offset = 0 } = body;
     const cutoffMs = Date.now() - (days * 24 * 60 * 60 * 1000);
 
     if (!instance_id) {
-      return new Response(JSON.stringify({ error: "instance_id required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "instance_id required" }, 400);
     }
 
     // Get instance details
@@ -65,10 +55,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (instErr || !instance) {
-      return new Response(JSON.stringify({ error: "Instance not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "Instance not found" }, 404);
     }
 
     const apiUrl = instance.evolution_api_url?.replace(/\/$/, "");
@@ -76,41 +63,48 @@ Deno.serve(async (req) => {
     const instanceKey = instance.evolution_instance_key;
 
     if (!apiUrl || !instanceKey) {
-      return new Response(JSON.stringify({ error: "Instance API not configured" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "Instance API not configured" }, 400);
     }
 
-    console.log(`[sync-wa-history] Starting sync for instance ${instanceKey} (${instance.id})`);
+    const startTime = Date.now();
+    console.log(`[sync-wa-history] Starting sync for instance ${instanceKey} (${instance.id}), offset=${offset}`);
 
     // Step 1: Fetch all chats from Evolution API
     const chatsRes = await fetch(`${apiUrl}/chat/findChats/${encodeURIComponent(instanceKey)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: apiKey },
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!chatsRes.ok) {
       const errText = await chatsRes.text().catch(() => "");
       console.error(`[sync-wa-history] findChats failed [${chatsRes.status}]: ${errText.substring(0, 300)}`);
-      return new Response(JSON.stringify({ error: "Failed to fetch chats from Evolution API" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonRes({ error: "Failed to fetch chats from Evolution API" }, 502);
     }
 
     const chats = await chatsRes.json();
     const chatList = Array.isArray(chats) ? chats : (chats.data || chats.chats || []);
+    const totalChats = chatList.length;
 
-    console.log(`[sync-wa-history] Found ${chatList.length} chats`);
+    // Process only a batch starting from offset
+    const batch = chatList.slice(offset, offset + BATCH_SIZE);
+    console.log(`[sync-wa-history] Processing batch ${offset}-${offset + batch.length} of ${totalChats} chats`);
 
     let totalConversations = 0;
     let totalMessages = 0;
     let reopened = 0;
     const errors: string[] = [];
     const now = Date.now();
+    let stoppedEarly = false;
 
-    for (const chat of chatList) {
+    for (const chat of batch) {
+      // Check time budget
+      if (Date.now() - startTime > MAX_EXECUTION_MS) {
+        console.log(`[sync-wa-history] Time budget exceeded, stopping early`);
+        stoppedEarly = true;
+        break;
+      }
+
       try {
         const remoteJid = chat.id || chat.remoteJid || chat.jid;
         if (!remoteJid || remoteJid === "status@broadcast") continue;
@@ -132,24 +126,11 @@ Deno.serve(async (req) => {
         if (existingConv) {
           conversationId = existingConv.id;
         } else {
-          // Fetch profile picture for all chats (individuals and groups)
-          let profilePicUrl: string | null = null;
-          try {
-            const picRes = await fetch(`${apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceKey)}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", apikey: apiKey },
-              body: JSON.stringify({ number: remoteJid }),
-            });
-            if (picRes.ok) {
-              const picData = await picRes.json();
-              profilePicUrl = picData?.profilePictureUrl || picData?.url || null;
-            }
-          } catch (_) { /* ignore */ }
-
           const displayName = isGroup
             ? (chat.subject || chat.name || `Grupo ${phone.substring(0, 12)}...`)
             : contactName;
 
+          // Skip profile pic fetch to save time — it will be fetched later on demand
           const { data: newConv, error: convErr } = await supabase
             .from("wa_conversations")
             .insert({
@@ -159,9 +140,8 @@ Deno.serve(async (req) => {
               cliente_telefone: phone,
               cliente_nome: displayName,
               is_group: isGroup,
-              status: "resolved", // default to resolved, will reopen if recent
+              status: "resolved",
               unread_count: 0,
-              profile_picture_url: profilePicUrl,
             })
             .select("id")
             .single();
@@ -180,36 +160,49 @@ Deno.serve(async (req) => {
           headers: { "Content-Type": "application/json", apikey: apiKey },
           body: JSON.stringify({
             where: { key: { remoteJid } },
-            limit: 500,
+            limit: 200,
           }),
+          signal: AbortSignal.timeout(8000),
         });
 
-        if (!msgsRes.ok) continue;
+        if (!msgsRes.ok) {
+          await msgsRes.text().catch(() => {});
+          continue;
+        }
 
         const msgsData = await msgsRes.json();
         const messages = Array.isArray(msgsData) ? msgsData : (msgsData.data || msgsData.messages || []);
 
+        // Batch-check existing messages to avoid N+1 queries
+        const evolutionIds = messages
+          .map((m: any) => m.key?.id || m.id)
+          .filter(Boolean);
+
+        const existingIds = new Set<string>();
+        if (evolutionIds.length > 0) {
+          // Check in chunks of 100
+          for (let i = 0; i < evolutionIds.length; i += 100) {
+            const chunk = evolutionIds.slice(i, i + 100);
+            const { data: existing } = await supabase
+              .from("wa_messages")
+              .select("evolution_message_id")
+              .in("evolution_message_id", chunk);
+            existing?.forEach((e: any) => existingIds.add(e.evolution_message_id));
+          }
+        }
+
         let latestMsgAt: string | null = null;
         let latestPreview: string | null = null;
+        let latestDirection: string | null = null;
+        const newMessages: any[] = [];
 
         for (const msg of messages) {
           const key = msg.key || {};
           const evolutionId = key.id || msg.id;
-          if (!evolutionId) continue;
-
-          // Skip if already exists
-          const { data: existingMsg } = await supabase
-            .from("wa_messages")
-            .select("id")
-            .eq("evolution_message_id", evolutionId)
-            .maybeSingle();
-
-          if (existingMsg) continue;
+          if (!evolutionId || existingIds.has(evolutionId)) continue;
 
           const fromMe = key.fromMe === true;
           const direction = fromMe ? "out" : "in";
-
-          // Extract content
           const messageContent = msg.message || {};
           const { content, messageType } = extractContent(messageContent, msg);
 
@@ -218,21 +211,17 @@ Deno.serve(async (req) => {
             ? (typeof rawTs === "number" ? (rawTs > 1e12 ? rawTs : rawTs * 1000) : new Date(rawTs).getTime())
             : Date.now();
 
-          // Skip messages older than cutoff
           if (msgMs < cutoffMs) continue;
 
           const msgTimestamp = new Date(msgMs).toISOString();
 
-          // Track latest message for conversation update
           if (!latestMsgAt || msgTimestamp > latestMsgAt) {
             latestMsgAt = msgTimestamp;
             latestPreview = content ? content.substring(0, 100) : `[${messageType}]`;
+            latestDirection = direction;
           }
 
-          const participantJid = isGroup ? (key.participant || msg.participant || null) : null;
-          const participantName = isGroup ? (msg.pushName || null) : null;
-
-          await supabase.from("wa_messages").insert({
+          newMessages.push({
             conversation_id: conversationId,
             tenant_id: instance.tenant_id,
             evolution_message_id: evolutionId,
@@ -242,13 +231,22 @@ Deno.serve(async (req) => {
             media_url: msg.mediaUrl || null,
             media_mime_type: msg.mimetype || null,
             status: fromMe ? "sent" : "delivered",
-            participant_jid: participantJid,
-            participant_name: participantName,
+            participant_jid: isGroup ? (key.participant || msg.participant || null) : null,
+            participant_name: isGroup ? (msg.pushName || null) : null,
             created_at: msgTimestamp,
             metadata: { synced: true },
           });
+        }
 
-          totalMessages++;
+        // Batch insert messages (chunks of 50)
+        for (let i = 0; i < newMessages.length; i += 50) {
+          const chunk = newMessages.slice(i, i + 50);
+          const { error: insertErr } = await supabase.from("wa_messages").insert(chunk);
+          if (insertErr) {
+            errors.push(`Msgs ${phone}: ${insertErr.message}`);
+          } else {
+            totalMessages += chunk.length;
+          }
         }
 
         // Update conversation with latest message info
@@ -256,9 +254,9 @@ Deno.serve(async (req) => {
           const updates: Record<string, unknown> = {
             last_message_at: latestMsgAt,
             last_message_preview: latestPreview,
+            last_message_direction: latestDirection,
           };
 
-          // Reopen if latest message is within 7 days
           const msgAge = now - new Date(latestMsgAt).getTime();
           if (msgAge <= SEVEN_DAYS_MS) {
             updates.status = "open";
@@ -285,26 +283,28 @@ Deno.serve(async (req) => {
       })
       .eq("id", instance.id);
 
+    const nextOffset = offset + BATCH_SIZE;
+    const hasMore = nextOffset < totalChats && !stoppedEarly;
+
     const summary = {
       success: true,
       conversations_created: totalConversations,
       messages_imported: totalMessages,
       reopened_conversations: reopened,
+      total_chats: totalChats,
+      processed_offset: offset,
+      processed_count: batch.length,
+      has_more: hasMore,
+      next_offset: hasMore ? nextOffset : null,
       errors_count: errors.length,
-      errors: errors.slice(0, 10),
+      errors: errors.slice(0, 5),
     };
 
-    console.log(`[sync-wa-history] Done:`, JSON.stringify(summary));
-
-    return new Response(JSON.stringify(summary), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.log(`[sync-wa-history] Batch done:`, JSON.stringify(summary));
+    return jsonRes(summary);
   } catch (err) {
     console.error("[sync-wa-history] Unhandled error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonRes({ error: String(err) }, 500);
   }
 });
 
@@ -327,4 +327,11 @@ function extractContent(messageContent: any, msg: any): { content: string | null
   if (messageContent.reactionMessage) return { content: messageContent.reactionMessage.text || null, messageType: "reaction" };
   if (msg.body || msg.text) return { content: msg.body || msg.text, messageType: "text" };
   return { content: null, messageType: "text" };
+}
+
+function jsonRes(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
