@@ -77,18 +77,18 @@ export function IntegrationProviderCard({
   const isComingSoon = provider.status === "coming_soon";
   const isDisabled = isStub || isComingSoon;
 
-  // Logo resolution: try .png → .svg → fallback icon
-  const [logoSrc, setLogoSrc] = useState(`/integrations/${provider.id}.png`);
+  // Logo resolution: try .svg → .png → base ID → fallback icon
+  const [logoSrc, setLogoSrc] = useState(`/integrations/${provider.id}.svg`);
   const [logoError, setLogoError] = useState(false);
 
   const handleLogoError = useCallback(() => {
-    if (logoSrc.endsWith(".png")) {
-      setLogoSrc(`/integrations/${provider.id}.svg`);
-    } else if (logoSrc.includes(`/${provider.id}.svg`)) {
-      // Try canonical ID from label (e.g. goodwe_sems → goodwe)
+    if (logoSrc.endsWith(`${provider.id}.svg`)) {
+      setLogoSrc(`/integrations/${provider.id}.png`);
+    } else if (logoSrc.endsWith(".png")) {
+      // Try base ID (e.g. goodwe_sems → goodwe)
       const base = provider.id.split("_")[0];
       if (base !== provider.id) {
-        setLogoSrc(`/integrations/${base}.svg`);
+        setLogoSrc(`/integrations/${base}.png`);
       } else {
         setLogoError(true);
       }
