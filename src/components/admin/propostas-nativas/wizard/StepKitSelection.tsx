@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen } from "lucide-react";
+import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import {
 } from "./types";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { fetchActiveKits, snapshotCatalogKitToKitItemRows, type CatalogKit } from "@/services/kitCatalogService";
+import { fetchActiveKits, snapshotCatalogKitToKitItemRows, fetchKitsSummary, type CatalogKit, type CatalogKitSummary } from "@/services/kitCatalogService";
 
 import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
 import { KitCard, type KitCardData } from "./kit/KitCard";
@@ -110,6 +110,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   // SSOT: itens do catálogo são importados como KitItemRow[] e persistidos via snapshot JSONB.
   // proposta_kits/proposta_kit_itens NÃO são populados neste fluxo (legado).
   const [catalogKits, setCatalogKits] = useState<CatalogKit[]>([]);
+  const [catalogSummaries, setCatalogSummaries] = useState<Map<string, CatalogKitSummary>>(new Map());
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState<string | null>(null); // kitId being loaded
@@ -122,7 +123,15 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     setCatalogLoading(true);
     setCatalogError(null);
     fetchActiveKits()
-      .then((kits) => { setCatalogKits(kits); catalogLoaded.current = true; })
+      .then(async (kits) => {
+        setCatalogKits(kits);
+        catalogLoaded.current = true;
+        // Fetch summaries in parallel
+        if (kits.length > 0) {
+          const summaries = await fetchKitsSummary(kits.map(k => k.id));
+          setCatalogSummaries(summaries);
+        }
+      })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
   }, [tab]);
@@ -350,40 +359,83 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {catalogKits.map(kit => (
-                    <div
-                      key={kit.id}
-                      className="rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between min-h-[140px]"
-                    >
-                      <div className="space-y-1.5">
-                        <p className="text-sm font-bold truncate">{kit.name}</p>
-                        {kit.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">{kit.description}</p>
-                        )}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {kit.estimated_kwp != null && kit.estimated_kwp > 0 && (
-                            <Badge variant="secondary" className="text-[10px]">{kit.estimated_kwp} kWp</Badge>
+                  {catalogKits.map(kit => {
+                    const summary = catalogSummaries.get(kit.id);
+                    return (
+                      <div
+                        key={kit.id}
+                        className="rounded-xl border-2 border-border/40 bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between min-h-[200px]"
+                      >
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm font-bold truncate">{kit.name}</p>
+                            {kit.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{kit.description}</p>
+                            )}
+                          </div>
+
+                          {/* Module info */}
+                          {summary && summary.moduloQtd > 0 && (
+                            <div className="flex items-start gap-2 text-xs">
+                              <Sun className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                              <div>
+                                <p className="font-medium">{summary.moduloQtd}x {summary.moduloDescricao}</p>
+                                {summary.moduloPotenciaKwp > 0 && (
+                                  <p className="text-[10px] text-muted-foreground">Total {summary.moduloPotenciaKwp.toFixed(2)} kWp</p>
+                                )}
+                              </div>
+                            </div>
                           )}
-                          <Badge variant="outline" className="text-[10px]">{kit.pricing_mode === "fixed" ? "Preço fixo" : "Calculado"}</Badge>
+
+                          {/* Inverter info */}
+                          {summary && summary.inversorQtd > 0 && (
+                            <div className="flex items-start gap-2 text-xs">
+                              <Cpu className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                              <div>
+                                <p className="font-medium">{summary.inversorQtd}x {summary.inversorDescricao}</p>
+                                {summary.inversorPotenciaKw > 0 && (
+                                  <p className="text-[10px] text-muted-foreground">Total {summary.inversorPotenciaKw.toFixed(2)} kW</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {kit.estimated_kwp != null && kit.estimated_kwp > 0 && (
+                              <Badge variant="secondary" className="text-[10px]">{kit.estimated_kwp} kWp</Badge>
+                            )}
+                            <Badge variant="outline" className="text-[10px]">
+                              {kit.pricing_mode === "fixed" ? `Fixo ${kit.fixed_price ? formatBRL(kit.fixed_price) : ""}` : "Calculado"}
+                            </Badge>
+                            {summary && (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                                {summary.totalItens} itens
+                              </Badge>
+                            )}
+                          </div>
+
+                          {kit.fixed_price != null && kit.fixed_price > 0 && (
+                            <p className="text-sm font-bold text-primary">{formatBRL(kit.fixed_price)}</p>
+                          )}
+                        </div>
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            size="sm"
+                            className="gap-1.5 h-8 text-xs"
+                            disabled={snapshotLoading === kit.id}
+                            onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
+                          >
+                            {snapshotLoading === kit.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Plus className="h-3.5 w-3.5" />
+                            )}
+                            Selecionar
+                          </Button>
                         </div>
                       </div>
-                      <div className="mt-3 flex justify-end">
-                        <Button
-                          size="sm"
-                          className="gap-1.5 h-8 text-xs"
-                          disabled={snapshotLoading === kit.id}
-                          onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
-                        >
-                          {snapshotLoading === kit.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Plus className="h-3.5 w-3.5" />
-                          )}
-                          Selecionar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
