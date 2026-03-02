@@ -490,14 +490,49 @@ async function deyeListDevices(baseUrl: string, token: string): Promise<{ statio
       }
 
       // Fetch latest data for all devices in this station (batch, up to 10)
+      // API uses "deviceList" param (confirmed from official sample code)
       if (sns.length > 0) {
         try {
-          const latestJson = await deyeFetch(baseUrl, token, "/device/latest", { deviceSnList: sns.slice(0, 10) });
+          const latestJson = await deyeFetch(baseUrl, token, "/device/latest", { deviceList: sns.slice(0, 10) });
           const latestList = latestJson.deviceDataList || latestJson.data?.deviceDataList || [];
+          console.log(`[Deye] /device/latest returned ${latestList.length} items for station ${plant.external_id}`);
           for (const ld of latestList) {
+            if (latestList.indexOf(ld) === 0) {
+              // Log first device's dataList keys for debugging field mapping
+              const dl = ld.dataList || [];
+              console.log(`[Deye] device/latest sample dataList (${dl.length} items): ${dl.slice(0, 20).map((x: any) => x.key || x.name || JSON.stringify(x)).join(", ")}`);
+            }
             const dev = devices.find(x => x.serial === ld.deviceSn);
             if (dev) {
-              dev.metadata = { ...dev.metadata, ...ld };
+              // Normalize Deye dataList [{key, value, unit}] → flat map for MPPT extraction
+              const flatData: Record<string, unknown> = {};
+              const dataList = ld.dataList || [];
+              for (const item of dataList) {
+                const key = item.key || item.name || "";
+                if (key) flatData[key] = item.value ?? item.val ?? null;
+              }
+              // Map Deye PV fields to canonical format (pow1..powN, vpv1..vpvN, ipv1..ipvN)
+              // Deye uses keys like: PV1 Power, PV2 Power, PV1 Voltage, PV1 Current, etc.
+              // Also try: pv1Power, pv2Power, pvPower1, etc.
+              let mpptCount = 0;
+              for (let i = 1; i <= 8; i++) {
+                const pvPower = Number(flatData[`PV${i} Power`] ?? flatData[`pv${i}Power`] ?? flatData[`pvPower${i}`] ?? flatData[`PV${i}Power`] ?? 0);
+                const pvVoltage = Number(flatData[`PV${i} Voltage`] ?? flatData[`pv${i}Voltage`] ?? flatData[`pvVoltage${i}`] ?? flatData[`PV${i}Voltage`] ?? 0);
+                const pvCurrent = Number(flatData[`PV${i} Current`] ?? flatData[`pv${i}Current`] ?? flatData[`pvCurrent${i}`] ?? flatData[`PV${i}Current`] ?? 0);
+                if (pvPower > 0 || pvVoltage > 0 || pvCurrent > 0) mpptCount = i;
+                flatData[`pow${i}`] = pvPower;
+                flatData[`vpv${i}`] = pvVoltage;
+                flatData[`ipv${i}`] = pvCurrent;
+              }
+              // Map other Deye fields to canonical names
+              flatData.dcInputTypeMppt = mpptCount;
+              flatData.pac = Number(flatData["AC Total Power"] ?? flatData["acTotalPower"] ?? flatData["totalActivePower"] ?? flatData["pac"] ?? 0) / 1000; // W → kW
+              flatData.etoday = Number(flatData["Day Energy"] ?? flatData["dayEnergy"] ?? flatData["Daily Generation"] ?? flatData["dailyGeneration"] ?? flatData["etoday"] ?? 0);
+              flatData.etotal = Number(flatData["Total Energy"] ?? flatData["totalEnergy"] ?? flatData["Total Generation"] ?? flatData["totalGeneration"] ?? flatData["etotal"] ?? 0);
+              flatData.power = Number(flatData["Rated Power"] ?? flatData["ratedPower"] ?? 0) / 1000; // W → kW
+              flatData.machine = ld.productName || ld.deviceType || dev.model || "";
+              dev.metadata = { ...dev.metadata, ...ld, ...flatData };
+              console.log(`[Deye] Normalized device ${dev.serial}: mpptCount=${mpptCount}, pac=${flatData.pac}, etoday=${flatData.etoday}`);
             }
           }
         } catch (e) { console.warn(`[Deye] device/latest failed for station ${plant.external_id}: ${(e as Error).message}`); }
@@ -1810,8 +1845,7 @@ async function dispatchSync(
       return await deyeMetrics(baseUrl, at, extId);
     };
 
-    // For selective sync: fetch devices for selected plants only
-    // For bulk cron: SKIP device discovery entirely — too heavy, done only on manual/selective sync
+    // Deye: fetch devices only for selective/manual sync (bulk is too heavy, causes CPU timeout)
     const extras: { devicesFn?: () => Promise<{ stationId: string; devices: NormalizedDevice[] }[]> } = {};
     if (isSelectiveSync) {
       extras.devicesFn = async () => {
