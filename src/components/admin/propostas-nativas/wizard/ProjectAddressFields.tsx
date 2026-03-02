@@ -67,16 +67,18 @@ export function ProjectAddressFields({
   addressRef.current = address;
 
   // ── Auto-apply client address on mount when project address is empty ──
+  // Also auto-check the checkbox if address already matches client
   useEffect(() => {
-   if (didAutoApplyRef.current) return;
     if (!clientHasAddress(clienteData)) return;
 
-    // If address already matches client, just check the box
+    // If address already matches client, just check the box (even if previously attempted)
     if (!isAddressEmpty(address) && addressMatchesClient(address, clienteData)) {
+      if (!sameAsClient) setSameAsClient(true);
       didAutoApplyRef.current = true;
-      setSameAsClient(true);
       return;
     }
+
+    if (didAutoApplyRef.current) return;
 
     // If address is empty, auto-fill from client
     if (!isAddressEmpty(address)) return;
@@ -86,7 +88,7 @@ export function ProjectAddressFields({
     setSameAsClient(true);
     onAddressChange(mapped);
     forwardGeocode(mapped);
-  }, [clienteData]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clienteData, address.cidade, address.uf]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Apply reverse geocoded address from map click ──
   useEffect(() => {
