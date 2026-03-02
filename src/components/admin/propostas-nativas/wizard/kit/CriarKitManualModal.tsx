@@ -132,13 +132,17 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     const mods = initialItens.filter(i => i.categoria === "modulo");
     if (mods.length === 0) return [createEmptyModulo()];
     return mods.map(m => {
-      const catalogMatch = modulos.find(c => c.modelo === m.modelo && c.fabricante === m.fabricante);
+      // Match by produto_ref (exact ID) first, then by fabricante+modelo
+      const catalogMatch = modulos.find(c =>
+        (m.produto_ref && c.id === m.produto_ref) ||
+        (c.modelo === m.modelo && c.fabricante === m.fabricante)
+      );
       return {
         id: crypto.randomUUID(),
         selectedId: catalogMatch?.id || "",
         quantidade: m.quantidade,
         avulso: m.avulso || !catalogMatch,
-        nome: m.modelo || "",
+        nome: catalogMatch ? "" : (m.descricao || `${m.fabricante} ${m.modelo}`.trim()),
         fabricante: m.fabricante || "",
         potenciaW: m.potencia_w || 0,
       } as ModuloEntry;
@@ -150,13 +154,17 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     const invs = initialItens.filter(i => i.categoria === "inversor");
     if (invs.length === 0) return [createEmptyInversor()];
     return invs.map(inv => {
-      const catalogMatch = inversores.find(c => c.modelo === inv.modelo && c.fabricante === inv.fabricante);
+      // Match by produto_ref (exact ID) first, then by fabricante+modelo
+      const catalogMatch = inversores.find(c =>
+        (inv.produto_ref && c.id === inv.produto_ref) ||
+        (c.modelo === inv.modelo && c.fabricante === inv.fabricante)
+      );
       return {
         id: crypto.randomUUID(),
         selectedId: catalogMatch?.id || "",
         quantidade: inv.quantidade,
         avulso: inv.avulso || !catalogMatch,
-        nome: inv.modelo || "",
+        nome: catalogMatch ? "" : (inv.descricao || `${inv.fabricante} ${inv.modelo}`.trim()),
         fabricante: inv.fabricante || "",
         potenciaW: inv.potencia_w || 0,
         fases: "", tensaoLinha: 0,
