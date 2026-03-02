@@ -329,9 +329,24 @@ async function solisListAlarms(apiId: string, apiSecret: string): Promise<Normal
 // ═══════════════════════════════════════════════════════════
 
 async function deyeFetch(baseUrl: string, token: string, ep: string, body: Record<string, unknown> = {}) {
-  const res = await fetch(`${baseUrl}${ep}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-  const text = await res.text();
-  try { return JSON.parse(text); } catch { throw new Error(`Deye non-JSON (${res.status}): ${text.slice(0, 200)}`); }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15s per-request timeout
+  try {
+    const res = await fetch(`${baseUrl}${ep}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      console.error(`[Deye] API ${ep} returned ${res.status}: ${text.slice(0, 300)}`);
+      throw new Error(`Deye API ${res.status}: ${text.slice(0, 200)}`);
+    }
+    try { return JSON.parse(text); } catch { throw new Error(`Deye non-JSON (${res.status}): ${text.slice(0, 200)}`); }
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function deyeListPlants(baseUrl: string, token: string): Promise<NormalizedPlant[]> {
@@ -370,17 +385,23 @@ async function deyeMetrics(baseUrl: string, token: string, extId: string): Promi
     // Deye v2: generationPower (kW), generationToday (kWh), generationTotal (kWh)
     // Also try nested data field for compatibility
     const d = json.data || json;
+    const energy = d.generationToday != null ? Number(d.generationToday) :
+                  d.todayEnergy != null ? Number(d.todayEnergy) :
+                  d.eToday != null ? Number(d.eToday) : null;
+    const totalEnergy = d.generationTotal != null ? Number(d.generationTotal) :
+                        d.totalEnergy != null ? Number(d.totalEnergy) :
+                        d.eTotal != null ? Number(d.eTotal) : null;
+    console.log(`[Deye] Metrics for ${extId}: power=${d.generationPower}, today=${energy}, total=${totalEnergy}`);
     return {
       power_kw: d.generationPower != null ? Number(d.generationPower) : null,
-      energy_kwh: d.generationToday != null ? Number(d.generationToday) :
-                  d.todayEnergy != null ? Number(d.todayEnergy) :
-                  d.eToday != null ? Number(d.eToday) : null,
-      total_energy_kwh: d.generationTotal != null ? Number(d.generationTotal) :
-                        d.totalEnergy != null ? Number(d.totalEnergy) :
-                        d.eTotal != null ? Number(d.eTotal) : null,
+      energy_kwh: energy,
+      total_energy_kwh: totalEnergy,
       metadata: json,
     };
-  } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+  } catch (err) {
+    console.error(`[Deye] Metrics FAILED for ${extId}: ${(err as Error).message}`);
+    return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
+  }
 }
 
 async function deyeListDevices(baseUrl: string, token: string): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
@@ -1682,9 +1703,54 @@ async function dispatchSync(
     const at = tokens.access_token as string;
     const baseUrl = (credentials.baseUrl as string) || "https://eu1-developer.deyecloud.com/v1.0";
     if (!at) throw new Error("No access token. Reconnect.");
-    return await syncPlantsByProvider(ctx, () => deyeListPlants(baseUrl, at), (eid) => deyeMetrics(baseUrl, at, eid), mode, selectedPlantIds, {
-      devicesFn: () => deyeListDevices(baseUrl, at),
-    });
+
+    console.log(`[Deye] Starting sync mode=${mode} selectedPlants=${selectedPlantIds?.length || 'all'}`);
+
+    // Pre-fetch plant list to use as metrics cache (avoids 109 individual API calls)
+    const plantListCache = new Map<string, Record<string, unknown>>();
+    const listFn = async () => {
+      const plants = await deyeListPlants(baseUrl, at);
+      // Cache metadata from /station/list for metrics extraction
+      for (const p of plants) {
+        plantListCache.set(p.external_id, p.metadata);
+      }
+      console.log(`[Deye] Cached ${plantListCache.size} plants from list API`);
+      return plants;
+    };
+
+    // For bulk cron: extract metrics from cached plant list data (single API call already made)
+    // For selective: call individual /station/latest for detailed data
+    const isSelectiveSync = selectedPlantIds && selectedPlantIds.length > 0;
+    const metricsFn = async (extId: string): Promise<DailyMetrics> => {
+      if (!isSelectiveSync && plantListCache.has(extId)) {
+        // Bulk: use cached data from /station/list (has generationPower, generationToday, generationTotal)
+        const cached = plantListCache.get(extId)!;
+        const energy = cached.generationToday != null ? Number(cached.generationToday) :
+                      cached.todayEnergy != null ? Number(cached.todayEnergy) : null;
+        const totalEnergy = cached.generationTotal != null ? Number(cached.generationTotal) :
+                           cached.totalEnergy != null ? Number(cached.totalEnergy) : null;
+        const power = cached.generationPower != null ? Number(cached.generationPower) : null;
+        console.log(`[Deye] Metrics(cached) for ${extId}: power=${power}, today=${energy}, total=${totalEnergy}`);
+        return { power_kw: power, energy_kwh: energy, total_energy_kwh: totalEnergy, metadata: cached };
+      }
+      // Selective: call detailed API
+      return await deyeMetrics(baseUrl, at, extId);
+    };
+
+    // For bulk cron: skip deyeListDevices (109 plants × API call = timeout)
+    const extras: { devicesFn?: () => Promise<{ stationId: string; devices: NormalizedDevice[] }[]> } = {};
+    if (isSelectiveSync) {
+      extras.devicesFn = async () => {
+        const { data: selPlants } = await ctx.supabaseAdmin
+          .from("monitor_plants").select("provider_plant_id")
+          .in("id", selectedPlantIds);
+        const selIds = new Set((selPlants || []).map((p: any) => String(p.provider_plant_id)));
+        const allDevices = await deyeListDevices(baseUrl, at);
+        return allDevices.filter(g => selIds.has(g.stationId));
+      };
+    }
+
+    return await syncPlantsByProvider(ctx, listFn, metricsFn, mode, selectedPlantIds, extras);
   } else if (p === "growatt" || p === "growatt_server") {
     const authMode = credentials.auth_mode as string || (tokens.apiKey ? "api_key" : "portal");
     if (authMode === "api_key") {
