@@ -1,122 +1,78 @@
 /**
- * Irradiation Service — SSOT for daily HSP (Peak Sun Hours).
- * Provides getDailyHsp() with cache lookup + regional premise fallback.
- * Used by PR calculation to replace the hardcoded 4.5 constant.
+ * Irradiation Service — SSOT for HSP (Peak Sun Hours) used in PR calculations.
+ *
+ * STRATEGY:
+ *   TIER 1: irradiance-provider (Atlas INPE + NSRDB — real data per lat/lon)
+ *   TIER 2: irradiation_regional_premises (seasonal average by region)
+ *   TIER 3: National fallback (monthly average for all Brazil)
+ *
+ * This bridges the meteorologia base (irradiance-provider) with the monitoring engine.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getMonthlyIrradiance } from "@/services/irradiance-provider";
 
 export interface HspResult {
   hsp_kwh_m2: number | null;
-  source: "cache" | "regional_premise" | "national_fallback" | "unavailable";
+  source: "atlas_inpe" | "nsrdb" | "cache" | "regional_premise" | "national_fallback" | "unavailable";
   confidence: "high" | "medium" | "low" | "none";
 }
 
 /** Map latitude to Brazilian region for fallback premises */
 function latLonToRegion(lat: number | null, lon: number | null): string {
   if (lat == null || lon == null) return "brasil";
-
-  // Rough Brazilian region mapping by latitude bands
-  // Norte: lat > -5
-  // Nordeste: lat -5 to -15, lon > -42
-  // Centro-Oeste: lat -5 to -20, lon <= -42
-  // Sudeste: lat -15 to -25, lon > -50
-  // Sul: lat < -25
-
   if (lat > -5) return "norte";
-  if (lat > -15 && lon != null && lon > -42) return "nordeste";
-  if (lat > -20 && lon != null && lon <= -42) return "centro_oeste";
+  if (lat > -15 && lon > -42) return "nordeste";
+  if (lat > -20 && lon <= -42) return "centro_oeste";
   if (lat > -25) return "sudeste";
   return "sul";
 }
 
 /**
- * Get daily HSP for a location, with fallback chain:
- * 1. irradiation_daily_cache (real API data)
- * 2. irradiation_regional_premises (seasonal average by region)
- * 3. National fallback (monthly average for all Brazil)
+ * Get the month key (m01..m12) from a 1-based month number.
  */
-export async function getDailyHsp(params: {
-  lat: number | null;
-  lon: number | null;
-  date?: Date;
-}): Promise<HspResult> {
-  const { lat, lon, date = new Date() } = params;
-  const dateStr = date.toISOString().slice(0, 10);
-  const month = date.getMonth() + 1;
-
-  // 1. Try cache (exact location match within ~0.1° tolerance)
-  if (lat != null && lon != null) {
-    const { data: cached } = await supabase
-      .from("irradiation_daily_cache" as any)
-      .select("hsp_kwh_m2, source, confidence")
-      .gte("latitude", lat - 0.1)
-      .lte("latitude", lat + 0.1)
-      .gte("longitude", lon - 0.1)
-      .lte("longitude", lon + 0.1)
-      .eq("date", dateStr)
-      .order("confidence", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (cached && (cached as any).hsp_kwh_m2) {
-      return {
-        hsp_kwh_m2: Number((cached as any).hsp_kwh_m2),
-        source: "cache",
-        confidence: (cached as any).confidence === "high" ? "high" : "medium",
-      };
-    }
-  }
-
-  // 2. Regional premise fallback
-  const region = latLonToRegion(lat, lon);
-  const { data: premise } = await supabase
-    .from("irradiation_regional_premises" as any)
-    .select("hsp_kwh_m2")
-    .eq("region", region)
-    .eq("month", month)
-    .maybeSingle();
-
-  if (premise && (premise as any).hsp_kwh_m2) {
-    return {
-      hsp_kwh_m2: Number((premise as any).hsp_kwh_m2),
-      source: "regional_premise",
-      confidence: "medium",
-    };
-  }
-
-  // 3. National fallback
-  const { data: national } = await supabase
-    .from("irradiation_regional_premises" as any)
-    .select("hsp_kwh_m2")
-    .eq("region", "brasil")
-    .eq("month", month)
-    .maybeSingle();
-
-  if (national && (national as any).hsp_kwh_m2) {
-    return {
-      hsp_kwh_m2: Number((national as any).hsp_kwh_m2),
-      source: "national_fallback",
-      confidence: "low",
-    };
-  }
-
-  // No HSP data available — never use hardcoded 4.5
-  return { hsp_kwh_m2: null, source: "unavailable", confidence: "none" };
+function monthKey(month: number): string {
+  return `m${String(month).padStart(2, "0")}`;
 }
 
 /**
- * Get average HSP for a date range at a location.
- * Useful for monthly PR calculations.
+ * Try to get HSP from the irradiance-provider (Atlas INPE + NSRDB).
+ * Returns the daily average for the requested month.
  */
-export async function getMonthlyAvgHsp(params: {
-  lat: number | null;
-  lon: number | null;
-  month?: number;
-}): Promise<HspResult> {
-  const { lat, lon, month = new Date().getMonth() + 1 } = params;
+async function tryIrradianceProvider(
+  lat: number,
+  lon: number,
+  month: number
+): Promise<HspResult | null> {
+  try {
+    const result = await getMonthlyIrradiance({ lat, lon });
+    const key = monthKey(month) as keyof typeof result.series;
+    const hsp = result.series[key];
 
-  // For monthly average, go straight to regional premises
+    if (hsp && hsp > 0) {
+      const sourceLabel = result.source === "nsrdb" ? "nsrdb" as const : "atlas_inpe" as const;
+      return {
+        hsp_kwh_m2: Math.round(hsp * 100) / 100,
+        source: result.cache_hit ? "cache" : sourceLabel,
+        confidence: "high",
+      };
+    }
+    return null;
+  } catch (e: any) {
+    console.warn("[IrradiationService] irradiance-provider failed:", e.message);
+    return null;
+  }
+}
+
+/**
+ * Regional premise fallback (TIER 2/3).
+ */
+async function tryRegionalFallback(
+  lat: number | null,
+  lon: number | null,
+  month: number
+): Promise<HspResult> {
   const region = latLonToRegion(lat, lon);
+
   const { data: premise } = await supabase
     .from("irradiation_regional_premises" as any)
     .select("hsp_kwh_m2")
@@ -148,6 +104,50 @@ export async function getMonthlyAvgHsp(params: {
     };
   }
 
-  // No HSP data available — never use hardcoded fallback
   return { hsp_kwh_m2: null, source: "unavailable", confidence: "none" };
+}
+
+/**
+ * Get daily HSP for a location with full fallback chain.
+ * TIER 1: Atlas INPE / NSRDB (real data per lat/lon)
+ * TIER 2: Regional premise
+ * TIER 3: National fallback
+ */
+export async function getDailyHsp(params: {
+  lat: number | null;
+  lon: number | null;
+  date?: Date;
+}): Promise<HspResult> {
+  const { lat, lon, date = new Date() } = params;
+  const month = date.getMonth() + 1;
+
+  // TIER 1: Try real irradiance data
+  if (lat != null && lon != null) {
+    const providerResult = await tryIrradianceProvider(lat, lon, month);
+    if (providerResult) return providerResult;
+  }
+
+  // TIER 2/3: Regional/national fallback
+  return tryRegionalFallback(lat, lon, month);
+}
+
+/**
+ * Get average HSP for a month at a location.
+ * Used for monthly PR calculations.
+ */
+export async function getMonthlyAvgHsp(params: {
+  lat: number | null;
+  lon: number | null;
+  month?: number;
+}): Promise<HspResult> {
+  const { lat, lon, month = new Date().getMonth() + 1 } = params;
+
+  // TIER 1: Try real irradiance data
+  if (lat != null && lon != null) {
+    const providerResult = await tryIrradianceProvider(lat, lon, month);
+    if (providerResult) return providerResult;
+  }
+
+  // TIER 2/3: Regional/national fallback
+  return tryRegionalFallback(lat, lon, month);
 }
