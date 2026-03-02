@@ -330,6 +330,7 @@ export async function syncPlantDevices(plantId: string): Promise<void> {
       integrationId: int.id,
       provider: int.provider,
       mode: "full",
+      selected_plant_ids: [mp.id],
     },
   });
 
