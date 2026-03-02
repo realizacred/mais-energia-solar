@@ -269,12 +269,34 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
 // ─── DEVICES ──────────────────────────────────────────────────
 
 export async function listDevices(plantId: string): Promise<MonitorDevice[]> {
+  // Try with the given plantId first (covers monitor_plants.id)
   const { data } = await supabase
     .from("monitor_devices" as any)
     .select("*")
     .eq("plant_id", plantId)
     .order("type", { ascending: true });
-  return (data as unknown as MonitorDevice[]) || [];
+
+  if (data && data.length > 0) {
+    return data as unknown as MonitorDevice[];
+  }
+
+  // Fallback: plantId might be a legacy solar_plants.id — resolve to monitor_plants.id
+  const { data: monitorPlant } = await supabase
+    .from("monitor_plants" as any)
+    .select("id")
+    .eq("legacy_plant_id", plantId)
+    .maybeSingle();
+
+  if (monitorPlant) {
+    const { data: devicesFromMonitor } = await supabase
+      .from("monitor_devices" as any)
+      .select("*")
+      .eq("plant_id", (monitorPlant as any).id)
+      .order("type", { ascending: true });
+    return (devicesFromMonitor as unknown as MonitorDevice[]) || [];
+  }
+
+  return [];
 }
 
 // ─── EVENTS / ALERTS ──────────────────────────────────────────
