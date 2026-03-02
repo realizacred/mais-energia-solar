@@ -1390,28 +1390,35 @@ async function syncPlantsByProvider(
     } catch (err) { errors.push(`Devices: ${(err as Error).message}`); }
   }
 
-  // ── Alarms / Events ──
+  // ── Alarms / Events (non-blocking — errors here must NOT stop device/metrics sync) ──
   if (mode === "full" && extras?.alarmsFn) {
     try {
       const alarms = await extras.alarmsFn();
-      const { data: dbPlants } = await ctx.supabaseAdmin.from("solar_plants").select("id, external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
-      const plantMap = new Map((dbPlants || []).map((p: any) => [String(p.external_id), p.id]));
+      // Build map from provider_plant_id → monitor_plants.id (NOT solar_plants.id)
+      const { data: monPlants } = await ctx.supabaseAdmin
+        .from("monitor_plants")
+        .select("id, provider_plant_id")
+        .eq("tenant_id", ctx.tenantId)
+        .eq("provider_id", ctx.provider);
+      const monitorPlantMap = new Map((monPlants || []).map((p: any) => [String(p.provider_plant_id), p.id]));
 
       let almCount = 0;
       for (const a of alarms) {
-        const plantId = plantMap.get(a.provider_plant_id);
-        if (!plantId) continue;
-        const { error } = await ctx.supabaseAdmin.from("monitor_events").upsert({
-          tenant_id: ctx.tenantId, plant_id: plantId, provider_event_id: a.provider_event_id,
-          provider_id: ctx.provider, provider_plant_id: a.provider_plant_id,
-          severity: a.severity, type: a.type, title: a.title, message: a.message,
-          starts_at: a.starts_at, ends_at: a.ends_at, is_open: a.is_open,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "tenant_id,provider_event_id" });
-        if (error) errors.push(`Alarm ${a.provider_event_id}: ${error.message}`); else almCount++;
+        const monPlantId = monitorPlantMap.get(a.provider_plant_id);
+        if (!monPlantId) { continue; } // skip alarms for unmapped plants
+        try {
+          const { error } = await ctx.supabaseAdmin.from("monitor_events").upsert({
+            tenant_id: ctx.tenantId, plant_id: monPlantId, provider_event_id: a.provider_event_id,
+            provider_id: ctx.provider, provider_plant_id: a.provider_plant_id,
+            severity: a.severity, type: a.type, title: a.title, message: a.message,
+            starts_at: a.starts_at, ends_at: a.ends_at, is_open: a.is_open,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "tenant_id,provider_event_id" });
+          if (error) { console.warn(`[Sync] Alarm upsert error: ${error.message}`); } else { almCount++; }
+        } catch (almErr) { console.warn(`[Sync] Alarm insert failed: ${(almErr as Error).message}`); }
       }
       console.log(`[Sync] Upserted ${almCount} alarms`);
-    } catch (err) { errors.push(`Alarms: ${(err as Error).message}`); }
+    } catch (err) { console.warn(`[Sync] Alarms fetch failed (non-blocking): ${(err as Error).message}`); }
   }
 
   return { plantsUpserted, metricsUpserted, errors, errorCategories };
@@ -1541,7 +1548,19 @@ async function dispatchSync(
     } = {};
 
     if (canonicalAdapter.fetchDevices) {
-      extras.devicesFn = () => canonicalAdapter.fetchDevices!(authResult);
+      // For selective sync (manual refresh), fetch device detail (vpv/ipv) for specific plant's devices
+      // For bulk cron sync, skip expensive per-device API calls to avoid timeout
+      if (selectedPlantIds && selectedPlantIds.length > 0) {
+        // Get SNs of devices in the selected plants to pass as detailSns
+        const { data: selectedDevices } = await admin.from("monitor_devices")
+          .select("serial")
+          .in("plant_id", selectedPlantIds)
+          .not("serial", "is", null);
+        const detailSns = (selectedDevices || []).map((d: any) => d.serial).filter(Boolean);
+        extras.devicesFn = () => canonicalAdapter.fetchDevices!(authResult, { detailSns });
+      } else {
+        extras.devicesFn = () => canonicalAdapter.fetchDevices!(authResult, {});
+      }
     }
     if (canonicalAdapter.fetchAlarms) {
       extras.alarmsFn = () => canonicalAdapter.fetchAlarms!(authResult);

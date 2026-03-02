@@ -111,11 +111,12 @@ export class SolisAdapter implements ProviderAdapter {
     }
   }
 
-  async fetchDevices(auth: AuthResult): Promise<NormalizedDeviceGroup[]> {
+  async fetchDevices(auth: AuthResult, options?: { detailSns?: string[] }): Promise<NormalizedDeviceGroup[]> {
     const { apiId } = auth.credentials as { apiId: string };
     const apiSecret = auth.tokens.apiSecret as string;
     const result: NormalizedDeviceGroup[] = [];
     let pageNo = 1;
+    const detailSnsSet = options?.detailSns ? new Set(options.detailSns) : null;
 
     while (true) {
       if (pageNo > 1) await this.rateDelay();
@@ -128,30 +129,23 @@ export class SolisAdapter implements ProviderAdapter {
         const stationId = String(r.stationId || r.plantId || "");
         const sn = r.sn || r.inverterSn || null;
 
-        // Enrich with Vpv/Ipv from inverterDetail
+        // Only call inverterDetail for specific SNs (manual refresh) to avoid timeout on bulk sync
         let detailMeta: Record<string, unknown> = {};
-        if (sn) {
+        const shouldFetchDetail = sn && (detailSnsSet === null || detailSnsSet.has(sn));
+        if (shouldFetchDetail) {
           try {
             await this.rateDelay();
             const detailJson = await this.solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
             const dd = detailJson.data || {};
-            // Debug: log PV-related keys from inverterDetail
-            const pvKeys = Object.keys(dd).filter(k => /pv|Pv|PV|vpv|ipv|uPv|iPv|pow|voltage|current/i.test(k));
-            console.log(`[Solis] inverterDetail raw PV keys for ${sn}:`, pvKeys.join(", ") || "(none found)");
-            if (pvKeys.length === 0) {
-              // Log ALL keys to discover the right field names
-              console.log(`[Solis] inverterDetail ALL keys for ${sn}:`, Object.keys(dd).join(", "));
-            }
             detailMeta = {
-              vpv1: dd.uPv1 ?? dd.vpv1 ?? dd.pv1Voltage ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? dd.pv1Current ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
-              vpv2: dd.uPv2 ?? dd.vpv2 ?? dd.pv2Voltage ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? dd.pv2Current ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
-              vpv3: dd.uPv3 ?? dd.vpv3 ?? dd.pv3Voltage ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? dd.pv3Current ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
-              vpv4: dd.uPv4 ?? dd.vpv4 ?? dd.pv4Voltage ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? dd.pv4Current ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
+              vpv1: dd.uPv1 ?? dd.vpv1 ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
+              vpv2: dd.uPv2 ?? dd.vpv2 ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
+              vpv3: dd.uPv3 ?? dd.vpv3 ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
+              vpv4: dd.uPv4 ?? dd.vpv4 ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
               pac: dd.pac ?? null, etoday: dd.eToday ?? null, etotal: dd.eTotal ?? null,
               dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
             };
-            console.log(`[Solis] detailMeta extracted for ${sn}: vpv1=${detailMeta.vpv1}, ipv1=${detailMeta.ipv1}, vpv2=${detailMeta.vpv2}`);
-          } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}`); }
+          } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}: ${(e as Error).message}`); }
         }
 
         // Solis state: 1=online, 2=offline, 3=alarm
