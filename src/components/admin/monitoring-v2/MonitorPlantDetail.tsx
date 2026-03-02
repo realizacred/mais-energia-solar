@@ -172,7 +172,9 @@ export default function MonitorPlantDetail() {
               <div key={d.id} className="rounded-lg border border-border/60 bg-card hover:shadow-sm transition-all overflow-hidden">
                 <div className="flex items-center justify-between p-3">
                   <div>
-                    <p className="text-sm font-medium text-foreground">{d.model || d.type}</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {d.type === "logger" ? "Datalogger" : (d.model || d.type)}
+                    </p>
                     <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
                   </div>
                   <div className="flex items-center gap-1.5">

@@ -480,8 +480,12 @@ async function deyeListDevices(baseUrl: string, token: string): Promise<{ statio
 
         devices.push({
           provider_device_id: String(d.id || sn),
-          type: String(d.deviceType || "inverter").toLowerCase().includes("inverter") ? "inverter" :
-                String(d.deviceType || "").toLowerCase().includes("logger") ? "logger" : "inverter",
+          type: (() => {
+            const dt = String(d.deviceType || "").toLowerCase();
+            if (dt.includes("inverter")) return "inverter";
+            if (dt.includes("collector") || dt.includes("logger") || dt.includes("datalog")) return "logger";
+            return "inverter";
+          })(),
           model: d.productName || d.deviceType || null,
           serial: sn || null,
           status,
