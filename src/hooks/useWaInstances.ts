@@ -147,20 +147,42 @@ export function useWaInstances() {
     return data.results as CheckStatusResult[];
   };
 
-  // Trigger historical message sync for an instance
+  // Trigger historical message sync for an instance (batched to avoid timeouts)
   const triggerHistorySync = async (instanceId: string, days = 365) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error("Sessão inválida");
 
-    const { data, error } = await supabase.functions.invoke("sync-wa-history", {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-      body: { instance_id: instanceId, days },
-    });
+    let offset = 0;
+    let totalConversations = 0;
+    let totalMessages = 0;
 
-    if (error) throw error;
+    // Loop through batches until done
+    while (true) {
+      const { data, error } = await supabase.functions.invoke("sync-wa-history", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { instance_id: instanceId, days, offset },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro na sincronização");
+
+      totalConversations += data.conversations_created || 0;
+      totalMessages += data.messages_imported || 0;
+
+      if (!data.has_more || !data.next_offset) break;
+      offset = data.next_offset;
+
+      // Show progress toast for large syncs
+      if (offset > 0) {
+        toast({
+          title: "Sincronizando...",
+          description: `${offset}/${data.total_chats} conversas processadas...`,
+        });
+      }
+    }
 
     queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-    return data;
+    return { conversations_created: totalConversations, messages_imported: totalMessages };
   };
 
   const checkStatusMutation = useMutation({
