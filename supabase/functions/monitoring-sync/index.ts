@@ -1299,12 +1299,21 @@ async function syncPlantsByProvider(
     }
   }
 
+  // Resolve selectedPlantIds (monitor_plants.id UUIDs) → provider_plant_ids for filtering
+  let selectedExternalIds: Set<string> | null = null;
+  if (selectedPlantIds && selectedPlantIds.length > 0) {
+    const { data: selectedMPs } = await ctx.supabaseAdmin
+      .from("monitor_plants").select("provider_plant_id")
+      .in("id", selectedPlantIds);
+    selectedExternalIds = new Set((selectedMPs || []).map((m: any) => String(m.provider_plant_id)));
+  }
+
   if (mode === "plants" || mode === "full") {
     try {
       let plants = await listFn();
       // If selectedPlantIds provided, only upsert those
-      if (selectedPlantIds && selectedPlantIds.length > 0) {
-        plants = plants.filter((p) => selectedPlantIds.includes(p.external_id));
+      if (selectedExternalIds && selectedExternalIds.size > 0) {
+        plants = plants.filter((p) => selectedExternalIds!.has(p.external_id));
       }
       const result = await upsertPlants(ctx, plants);
       plantsUpserted = result.count;
@@ -1313,7 +1322,12 @@ async function syncPlantsByProvider(
   }
 
   if ((mode === "metrics" || mode === "full") && metricsFn) {
-    const { data: dbPlants } = await ctx.supabaseAdmin.from("solar_plants").select("id, external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
+    let dbPlantsQuery = ctx.supabaseAdmin.from("solar_plants").select("id, external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
+    // Filter metrics to selected plants only (avoids fetching all 168 when only 1 is needed)
+    if (selectedExternalIds && selectedExternalIds.size > 0) {
+      dbPlantsQuery = dbPlantsQuery.in("external_id", Array.from(selectedExternalIds));
+    }
+    const { data: dbPlants } = await dbPlantsQuery;
     for (const p of dbPlants || []) {
       const metrics = await metricsFn(p.external_id);
       const err = await upsertMetrics(ctx, p.id, metrics);
@@ -1559,7 +1573,8 @@ async function dispatchSync(
         const detailSns = (selectedDevices || []).map((d: any) => d.serial).filter(Boolean);
         extras.devicesFn = () => canonicalAdapter.fetchDevices!(authResult, { detailSns });
       } else {
-        extras.devicesFn = () => canonicalAdapter.fetchDevices!(authResult, {});
+        // Bulk/cron: pass empty detailSns to skip expensive inverterDetail calls (prevents timeout)
+        extras.devicesFn = () => canonicalAdapter.fetchDevices!(authResult, { detailSns: [] });
       }
     }
     if (canonicalAdapter.fetchAlarms) {
