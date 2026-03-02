@@ -165,7 +165,7 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = ([
         ],
         helperText: "Selecione a região do seu portal FusionSolar",
       },
-      { key: "username", label: "Usuário de API", type: "text", placeholder: "Ex: SolarZAPI", required: true, helperText: "Usuário criado em Gestão de API (NÃO é o login do portal)" },
+      { key: "username", label: "Usuário de API", type: "text", placeholder: "Ex: MaisEnergiaAPI", required: true, helperText: "Usuário criado em Gestão de API (NÃO é o login do portal)" },
       { key: "password", label: "Senha de API", type: "password", placeholder: "Senha do usuário de API", required: true },
     ],
   },
