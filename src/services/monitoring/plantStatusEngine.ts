@@ -110,7 +110,32 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   const providerAlarm = ps === "alarm";
   const providerConfirmedOnline = ps === "normal" || ps === "online";
 
-  // Rule 2: If provider explicitly says OFFLINE, respect it regardless of time
+  const powerKw = normalizePowerKw(input.power_kw);
+  const isNight = isBrasiliaNight();
+
+  // Rule 2: NIGHTTIME — if synced recently (rule 1 passed), always STANDBY at night
+  // Rationale: after sunset there's no solar generation. Providers may report
+  // "offline" or "disconnected" simply because inverters shut down at night.
+  // Since the device passed the 2h sync gate, it is communicating and healthy.
+  if (isNight) {
+    // Only exception: explicit alarm (real fault, not just "no power")
+    if (providerAlarm) {
+      return {
+        uiStatus: "offline",
+        reason: "Alarme reportado pelo provedor (noturno)",
+      };
+    }
+    return {
+      uiStatus: "standby",
+      reason: providerConfirmedOnline
+        ? "Noturno — sem geração solar esperada"
+        : input.energy_today_kwh > 0
+          ? "Noturno — gerou energia hoje"
+          : "Noturno — aguardando próxima sincronização",
+    };
+  }
+
+  // Rule 3 (daytime): If provider explicitly says OFFLINE, respect it
   if (providerOffline) {
     return {
       uiStatus: "offline",
@@ -118,39 +143,11 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
     };
   }
 
-  // Rule 2b: If provider reports ALARM, always offline
+  // Rule 3b: If provider reports ALARM, always offline
   if (providerAlarm) {
     return {
       uiStatus: "offline",
       reason: "Alarme reportado pelo provedor",
-    };
-  }
-
-  // Rule 3: STANDBY — nighttime + provider confirmed online (or at least not offline)
-  const powerKw = normalizePowerKw(input.power_kw);
-  const isNight = isBrasiliaNight();
-
-  if (isNight) {
-    // Only show standby if provider explicitly confirms normal/online
-    // For "unknown" status (Huawei/Growatt without proper mapping), use energy as signal
-    if (providerConfirmedOnline) {
-      return {
-        uiStatus: "standby",
-        reason: "Noturno — sem geração solar esperada",
-      };
-    }
-    // Unknown provider status at night: if there was generation today, trust standby
-    if (input.energy_today_kwh > 0) {
-      return {
-        uiStatus: "standby",
-        reason: "Noturno — gerou energia hoje",
-      };
-    }
-    // Unknown status + no generation today + night = standby (if synced recently)
-    // Being conservative only makes sense if there's no sync at all (handled by rule 1)
-    return {
-      uiStatus: "standby",
-      reason: "Noturno — aguardando próxima sincronização",
     };
   }
 
@@ -254,18 +251,27 @@ export function deriveDeviceStatus(input: DeviceStatusInput): DerivedDeviceStatu
     };
   }
 
-  // Rule 2: STANDBY — nighttime + was online
-  if (input.rawStatus === "online" && isBrasiliaNight()) {
+  // Rule 2: NIGHTTIME — recently synced (passed rule 1) → standby
+  // Inverters shut down at night; providers may report "offline"/"disconnected"
+  // which doesn't mean a real fault — just no solar generation.
+  if (isBrasiliaNight()) {
     return { status: "standby", provider_status: providerStatus, reason: "Noturno — dispositivo em standby" };
   }
 
-  // Rule 3: ONLINE — recently synced and raw status is online
-  if (input.rawStatus === "online") {
+  // Rule 3 (daytime): ONLINE if raw status indicates healthy
+  const isOnline = providerStatus === "online" || providerStatus === "normal" || providerStatus === "connected";
+  if (isOnline) {
     return { status: "online", provider_status: providerStatus, reason: "Dispositivo sincronizado e operacional" };
   }
 
-  // Raw status is not online (e.g. "offline", "fault", unknown)
-  return { status: "offline", provider_status: providerStatus, reason: `Status do provedor: ${input.rawStatus}` };
+  // Unknown/other status during daytime but recently synced — still online
+  // (device is communicating even if status label is unusual)
+  if (providerStatus === "unknown" || providerStatus === "") {
+    return { status: "online", provider_status: providerStatus, reason: "Sincronizado — status desconhecido" };
+  }
+
+  // Explicit fault/offline during daytime
+  return { status: "offline", provider_status: providerStatus, reason: `Status do provedor: ${providerStatus}` };
 }
 
 /* ─── SHARED UI STATUS RESOLVER (SSOT) ─── */
