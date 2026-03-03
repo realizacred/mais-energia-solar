@@ -99,16 +99,20 @@ export default function MonitorPlantDetail() {
   if (isLoading) return <LoadingState message="Carregando usina..." />;
   if (!plant) return <EmptyState icon={Sun} title="Usina não encontrada" />;
 
-  // ── Status coherence: if ALL devices are offline → plant MUST be offline too ──
+  // ── Status coherence: plant status MUST match device reality ──
+  // If ALL devices offline → plant offline. If ANY device online → plant online.
   const healthStatus = resolveHealthToUiStatus(plant.health?.status);
   const status: PlantUiStatus = (() => {
     if (devices.length === 0) return healthStatus;
-    const allDevicesOffline = devices.every((d) => {
+    const deviceStatuses = devices.map((d) => {
       const ts = getDeviceSsotTimestamp(d);
-      const derived = deriveDeviceStatus({ rawStatus: d.status, lastSeenAt: ts });
-      return derived.status === "offline";
+      return deriveDeviceStatus({ rawStatus: d.status, lastSeenAt: ts }).status;
     });
-    return allDevicesOffline ? "offline" : healthStatus;
+    const anyOnline = deviceStatuses.some((s) => s === "online");
+    const allOffline = deviceStatuses.every((s) => s === "offline");
+    if (allOffline) return "offline";
+    if (anyOnline && healthStatus === "offline") return "online";
+    return healthStatus;
   })();
 
   return (
