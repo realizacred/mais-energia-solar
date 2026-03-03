@@ -119,7 +119,7 @@ function legacyStatusToHealth(
   // the solar_plants.status may be stale — override "offline" to "unknown"
   // so derivePlantStatus evaluates based on actual sync + generation data
   const deviceRecentlySynced = bestLastSeenAt
-    ? (Date.now() - new Date(bestLastSeenAt).getTime()) < 90 * 60 * 1000
+    ? (Date.now() - new Date(bestLastSeenAt).getTime()) < 45 * 60 * 1000
     : false;
   const effectiveProviderStatus =
     deviceRecentlySynced && (sp.status === "offline" || sp.status === "no_communication")
@@ -231,8 +231,8 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     console.log("deviceSeenMap entries:", deviceSeenMap.size);
     const now = Date.now();
     const staleEntries = Array.from(deviceSeenMap.entries())
-      .filter(([, ts]) => now - new Date(ts).getTime() > 90 * 60 * 1000);
-    console.log("Stale plants (>90min):", staleEntries.length);
+      .filter(([, ts]) => now - new Date(ts).getTime() > 45 * 60 * 1000);
+    console.log("Stale plants (>45min):", staleEntries.length);
     staleEntries.slice(0, 5).forEach(([legacyId, ts]) => {
       const ageMin = Math.round((now - new Date(ts).getTime()) / 60000);
       console.log(`  plant=${legacyId} maxDeviceSeen=${ts} age=${ageMin}min`);
@@ -244,9 +244,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
 
   return plantList.map((sp) => {
     const m = todayMap.get(sp.id);
-    // SSOT: plant_seen_at = MAX(device.last_seen_at) — NOT solar_plants.updated_at
+    // SSOT: plant_seen_at = MAX(device.last_seen_at, solar_plants.updated_at)
+    // Some providers update solar_plants.updated_at during sync but don't touch monitor_devices.last_seen_at
     const maxDeviceSeen = deviceSeenMap.get(sp.id) || null;
-    const bestLastSeen = maxDeviceSeen;
+    const bestLastSeen = maxDeviceSeen && sp.updated_at
+      ? (maxDeviceSeen > sp.updated_at ? maxDeviceSeen : sp.updated_at)
+      : maxDeviceSeen || sp.updated_at || null;
     const health = legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen);
 
     // DEBUG SSOT — log specific problem plants
