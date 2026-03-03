@@ -1166,28 +1166,36 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
       });
       const devListJson = await devListRes.json();
       const allDevs = Array.isArray(devListJson.data) ? devListJson.data : [];
-      // Accept both inverters (1) and residential inverters (38)
-      const inverterDevs = allDevs.filter((dd: any) => dd.devTypeId === 1 || dd.devTypeId === 38);
-      const inverterIds = inverterDevs.map((dd: any) => String(dd.id));
-      const devTypeId = inverterDevs[0]?.devTypeId ?? 1;
-      console.log(`[Huawei] getDevList station=${stationCode} totalDevs=${allDevs.length} inverters=${inverterIds.length} types=${allDevs.map((dd:any)=>dd.devTypeId).join(",")} ids=${inverterIds.join(",")}`);
+      // Huawei devTypeId: 1=StringInverter, 38=ResidentialInverter, 47=ShuffleOptimizer, 10=EMI
+      // We query ALL inverter-like types for active_power
+      const INVERTER_TYPES = new Set([1, 38, 47]);
+      const inverterDevs = allDevs.filter((dd: any) => INVERTER_TYPES.has(dd.devTypeId));
+      console.log(`[Huawei] getDevList station=${stationCode} totalDevs=${allDevs.length} inverterLike=${inverterDevs.length} allTypes=${allDevs.map((dd:any)=>`${dd.devTypeId}:${dd.devName||dd.esnCode}`).join("; ")}`);
 
-      if (inverterIds.length > 0) {
+      // Group by devTypeId since getDevRealKpi requires same type per call
+      const byType = new Map<number, string[]>();
+      for (const dd of inverterDevs) {
+        const ids = byType.get(dd.devTypeId) || [];
+        ids.push(String(dd.id));
+        byType.set(dd.devTypeId, ids);
+      }
+
+      let totalPower = 0;
+      for (const [typeId, ids] of byType) {
         const devRes = await fetch(`${base}/thirdData/getDevRealKpi`, {
           method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
-          body: JSON.stringify({ devIds: inverterIds.join(","), devTypeId }),
+          body: JSON.stringify({ devIds: ids.join(","), devTypeId: typeId }),
         });
         const devJson = await devRes.json();
         if (devJson.success !== false && Array.isArray(devJson.data)) {
-          let totalPower = 0;
           for (const dev of devJson.data) {
             const dim = dev.dataItemMap || {};
             totalPower += Number(dim.active_power ?? 0);
           }
-          powerKw = totalPower;
-          console.log(`[Huawei] getDevRealKpi station=${stationCode} count=${devJson.data.length} totalPower=${totalPower}kW`);
+          console.log(`[Huawei] getDevRealKpi station=${stationCode} type=${typeId} count=${devJson.data.length} power=${totalPower}kW`);
         }
       }
+      if (inverterDevs.length > 0) powerKw = totalPower;
     } catch (devErr) {
       console.warn(`[Huawei] device power fetch failed for ${stationCode}: ${(devErr as Error).message}`);
     }
