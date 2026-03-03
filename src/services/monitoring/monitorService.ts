@@ -115,12 +115,23 @@ function legacyStatusToHealth(
   // SSOT: normalizePowerKw
   const currentPowerKw = normalizePowerKw(m?.power_kw != null ? Number(m.power_kw) : null);
 
+  // SSOT: when devices are actively syncing (bestLastSeenAt within 2h),
+  // the solar_plants.status may be stale — override "offline" to "unknown"
+  // so derivePlantStatus evaluates based on actual sync + generation data
+  const deviceRecentlySynced = bestLastSeenAt
+    ? (Date.now() - new Date(bestLastSeenAt).getTime()) < 2 * 60 * 60 * 1000
+    : false;
+  const effectiveProviderStatus =
+    deviceRecentlySynced && (sp.status === "offline" || sp.status === "no_communication")
+      ? "unknown"
+      : sp.status;
+
   // Use the centralized status engine — SSOT with canonical timestamp
   const { uiStatus } = derivePlantStatus({
     updated_at: canonicalLastSeen,
     power_kw: m?.power_kw != null ? Number(m.power_kw) : null,
     energy_today_kwh: energyToday,
-    provider_status: sp.status,
+    provider_status: effectiveProviderStatus,
   });
 
   // Map engine status to MonitorPlantStatus for backward compat
