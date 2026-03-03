@@ -62,28 +62,34 @@ function normalizeDevice(
   const mpptCount = Number(meta.dcInputTypeMppt ?? meta.dcInputType ?? meta.mpptCount ?? 0);
   const readings: NormalizedReading[] = [];
 
-  let hasStringData = false;
+  // Phase 1: Discover which string indices have real data (power > 0 or V/I > 0)
+  const realStrings: number[] = [];
   for (let i = 1; i <= 32; i++) {
     const power = numberOrNull(meta[`pow${i}`] ?? meta[`ppv${i}`]);
     const voltage = numberOrNull(meta[`vpv${i}`] ?? meta[`uPv${i}`] ?? meta[`pv${i}Voltage`]);
     const current = numberOrNull(meta[`ipv${i}`] ?? meta[`iPv${i}`] ?? meta[`pv${i}Current`]);
+    // Only include strings with actual non-zero data, OR strings within declared mpptCount
+    const hasData = (power !== null && power > 0) || (voltage !== null && voltage > 0) || (current !== null && current > 0);
+    if (hasData || i <= mpptCount) {
+      realStrings.push(i);
+    }
+  }
 
-    if (power === null && voltage === null && current === null && i > mpptCount) continue;
+  // Phase 2: Build readings only for real strings
+  let hasStringData = false;
+  for (const i of realStrings) {
+    const power = numberOrNull(meta[`pow${i}`] ?? meta[`ppv${i}`]);
+    const voltage = numberOrNull(meta[`vpv${i}`] ?? meta[`uPv${i}`] ?? meta[`pv${i}Voltage`]);
+    const current = numberOrNull(meta[`ipv${i}`] ?? meta[`iPv${i}`] ?? meta[`pv${i}Current`]);
 
     hasStringData = true;
 
-    // Determine MPPT number based on mpptCount and string distribution
+    // Determine MPPT number
     let mpptNum: number | null = null;
     if (mpptCount > 0) {
-      // Find how many strings actually exist to compute distribution
-      let maxStringIdx = 0;
-      for (let j = 1; j <= 32; j++) {
-        if (numberOrNull(meta[`pow${j}`] ?? meta[`ppv${j}`]) !== null || j <= mpptCount) {
-          maxStringIdx = j;
-        }
-      }
-      const stringsPerMppt = Math.max(Math.ceil(maxStringIdx / mpptCount), 1);
-      mpptNum = Math.ceil(i / stringsPerMppt);
+      const stringsPerMppt = Math.max(Math.ceil(realStrings.length / mpptCount), 1);
+      const posInList = realStrings.indexOf(i);
+      mpptNum = Math.floor(posInList / stringsPerMppt) + 1;
     }
 
     readings.push({

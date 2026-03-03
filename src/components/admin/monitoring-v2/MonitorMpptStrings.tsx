@@ -114,9 +114,14 @@ export default function MonitorMpptStrings() {
     setRecalculating(true);
     try {
       const result = await recalculateBaseline(activePlant);
-      toast.success(`Baseline recalculado para ${result.updated} strings`);
-    } catch {
-      toast.error("Erro ao recalcular baseline");
+      if (result.updated === 0) {
+        toast.info("Nenhuma string com dados suficientes para calibração (mínimo 5 leituras). Aguarde mais ciclos de sincronização.");
+      } else {
+        toast.success(`Baseline recalculado para ${result.updated} strings`);
+      }
+    } catch (err) {
+      console.error("[handleRecalculate]", err);
+      toast.error("Erro ao recalcular baseline. Verifique se há dados de geração suficientes.");
     } finally {
       setRecalculating(false);
     }
