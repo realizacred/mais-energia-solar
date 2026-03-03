@@ -16,7 +16,7 @@ import { DeviceMpptSummary } from "./devices/DeviceMpptSummary";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { UI_STATUS_LABELS, UI_STATUS_DOT, getTodayBrasilia, getDaysAgoBrasilia, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
+import { UI_STATUS_LABELS, UI_STATUS_DOT, getTodayBrasilia, getDaysAgoBrasilia, isBrasiliaNight, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
 
 function resolveUiStatus(raw: string | undefined): PlantUiStatus {
   if (raw === "online") return "online";
@@ -172,18 +172,27 @@ export default function MonitorPlantDetail() {
                     </p>
                     <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className={cn(
-                      "h-2 w-2 rounded-full",
-                      d.status === "online" ? "bg-success" : d.status === "offline" ? "bg-destructive" : "bg-muted-foreground"
-                    )} />
-                    <span className={cn(
-                      "text-xs font-medium",
-                      d.status === "online" ? "text-success" : d.status === "offline" ? "text-destructive" : "text-muted-foreground"
-                    )}>
-                      {d.status === "online" ? "Online" : d.status === "offline" ? "Sem conexão" : "Desconhecido"}
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-1.5">
+                      {(() => {
+                        const isNight = isBrasiliaNight();
+                        const isDeviceOnline = d.status === "online";
+                        const displayStatus = isDeviceOnline && isNight ? "standby" : d.status;
+                        return (
+                          <>
+                            <span className={cn(
+                              "h-2 w-2 rounded-full",
+                              displayStatus === "online" ? "bg-success" : displayStatus === "standby" ? "bg-warning" : displayStatus === "offline" ? "bg-destructive" : "bg-muted-foreground"
+                            )} />
+                            <span className={cn(
+                              "text-xs font-medium",
+                              displayStatus === "online" ? "text-success" : displayStatus === "standby" ? "text-warning" : displayStatus === "offline" ? "text-destructive" : "text-muted-foreground"
+                            )}>
+                              {displayStatus === "online" ? "Online" : displayStatus === "standby" ? "Standby" : displayStatus === "offline" ? "Sem conexão" : "Desconhecido"}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
                 </div>
                 {d.type === "inverter" && (
                   <div className="px-3 pb-3 border-t border-border/30 pt-2">

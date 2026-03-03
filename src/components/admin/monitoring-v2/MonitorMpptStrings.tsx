@@ -24,6 +24,36 @@ import {
 import type { DeviceStringCard, StringAlert, StringRegistryWithMetric } from "@/services/monitoring/mpptStringTypes";
 import type { PlantWithHealth, MonitorDevice } from "@/services/monitoring/monitorTypes";
 import { motion, AnimatePresence } from "framer-motion";
+import { isBrasiliaNight } from "@/services/monitoring/plantStatusEngine";
+
+/* ═══════════════════════════════════════════
+   Device status resolver — respects plant status engine
+   At night, synced devices show "Standby" instead of "Online"
+═══════════════════════════════════════════ */
+
+function resolveDeviceDisplayStatus(deviceStatus: string): { label: string; dot: string } {
+  if (deviceStatus === "online" && isBrasiliaNight()) {
+    return { label: "Standby", dot: "bg-warning" };
+  }
+  if (deviceStatus === "online") {
+    return { label: "Online", dot: "bg-success" };
+  }
+  return { label: "Offline", dot: "bg-destructive" };
+}
+
+function DeviceStatusIndicator({ deviceStatus }: {
+  deviceStatus: string;
+  devices?: MonitorDevice[];
+  deviceId?: string;
+}) {
+  const { label, dot } = resolveDeviceDisplayStatus(deviceStatus);
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={cn("h-2.5 w-2.5 rounded-full", dot)} />
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    </div>
+  );
+}
 
 /* ═══════════════════════════════════════════
    Status helpers
@@ -402,15 +432,7 @@ function StringsTab({ cards, devices }: { cards: DeviceStringCard[]; devices: Mo
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className={cn(
-                    "h-2.5 w-2.5 rounded-full",
-                    card.device_status === "online" ? "bg-success" : "bg-destructive"
-                  )} />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {card.device_status === "online" ? "Online" : "Offline"}
-                  </span>
-                </div>
+                <DeviceStatusIndicator deviceStatus={card.device_status} devices={devices} deviceId={card.device_id} />
                 {card.open_alerts.length > 0 && (
                   <span className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive text-[11px] font-bold">
                     {card.open_alerts.length} alerta{card.open_alerts.length > 1 ? "s" : ""}
