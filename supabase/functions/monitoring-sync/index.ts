@@ -1167,7 +1167,7 @@ async function huaweiListPlants(xsrfToken: string, cookies: string, region: stri
 }
 
 async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: string, region: string): Promise<DailyMetrics> {
-  const HW_DELAY = 3500; // 3.5s between each Huawei API call
+  const HW_DELAY = 5000; // 5s between each Huawei API call (up from 3.5s to avoid 407)
   try {
     const base = huaweiBaseUrl(region);
 
@@ -1202,6 +1202,8 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
       }
     } else if (isRateLimited) {
       console.warn(`[Huawei] Station ${stationCode} rate-limited (407), skipping`);
+      // Return special marker so caller knows not to overwrite existing data
+      return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {}, _rateLimited: true } as any;
     }
 
     // Huawei field mapping:
@@ -1605,6 +1607,16 @@ async function upsertPlants(ctx: SyncContext, plants: NormalizedPlant[]): Promis
 }
 
 async function upsertMetrics(ctx: SyncContext, plantId: string, metrics: DailyMetrics): Promise<string | null> {
+  // Skip upsert if rate-limited or ALL values are null (preserve existing data)
+  if ((metrics as any)._rateLimited) {
+    console.log(`[Sync] Skipping metrics upsert for ${plantId} (rate-limited, preserving existing data)`);
+    return null;
+  }
+  if (metrics.power_kw == null && metrics.energy_kwh == null && metrics.total_energy_kwh == null) {
+    console.log(`[Sync] Skipping metrics upsert for ${plantId} (all values null, preserving existing data)`);
+    return null;
+  }
+
   const { error } = await ctx.supabaseAdmin.from("solar_plant_metrics_daily").upsert({
     tenant_id: ctx.tenantId, plant_id: plantId, date: today(),
     energy_kwh: metrics.energy_kwh, power_kw: metrics.power_kw,
@@ -1612,13 +1624,12 @@ async function upsertMetrics(ctx: SyncContext, plantId: string, metrics: DailyMe
   }, { onConflict: "tenant_id,plant_id,date" });
 
   // If metrics were successfully obtained (any non-null value), the plant is communicating
-  // Update status to "normal" if currently "unknown" — indicates active communication
   if (!error && (metrics.power_kw != null || metrics.energy_kwh != null || metrics.total_energy_kwh != null)) {
     try {
       await ctx.supabaseAdmin.from("solar_plants")
         .update({ status: "normal", updated_at: new Date().toISOString() })
         .eq("id", plantId)
-        .eq("status", "unknown"); // Only upgrade unknown → normal, don't override alarm/offline
+        .eq("status", "unknown");
     } catch { /* non-blocking */ }
   }
 
@@ -1708,7 +1719,7 @@ async function syncPlantsByProvider(
 
       const batch = (dbPlants || []).slice(i, i + CONCURRENCY);
       // Add inter-batch delay for rate-limited providers
-      if (i > 0 && isHuawei) await new Promise(r => setTimeout(r, 7000));
+      if (i > 0 && isHuawei) await new Promise(r => setTimeout(r, 10000)); // 10s between Huawei batches
       const results = await Promise.allSettled(
         batch.map(async (p) => {
           const metrics = await metricsFn(p.external_id);
