@@ -56,7 +56,10 @@ function normStatus(raw: number | string | undefined, map: Record<string, string
 }
 
 const STATUS_MAP_NUMERIC = { "1": "normal", "2": "offline", "3": "alarm", "4": "no_communication" };
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" });
+  return fmt.format(new Date());
+};
 
 // ═══════════════════════════════════════════════════════════
 // Solarman Business API
@@ -425,8 +428,10 @@ async function deyeMetrics(baseUrl: string, token: string, extId: string): Promi
     // 2) Fallback: /station/history granularity=2 (day) → daily energy
     if (energyToday == null) {
       try {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        const todayStr = today();
+        const tomorrowDate = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const tomorrow = tomorrowDate.toISOString().slice(0, 10);
         const histJson = await deyeFetch(baseUrl, token, "/station/history", {
           stationId: Number(extId),
           granularity: 2,
