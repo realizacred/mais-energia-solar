@@ -1121,62 +1121,79 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
   try {
     const base = huaweiBaseUrl(region);
 
-    // 1) Station-level KPIs (daily/total energy)
+    // 1) Station-level real-time KPIs
     const res = await fetch(`${base}/thirdData/getStationRealKpi`, {
       method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
       body: JSON.stringify({ stationCodes: stationCode }),
     });
     const json = await res.json();
-    console.log(`[Huawei] getStationRealKpi RAW station=${stationCode} success=${json.success} failCode=${json.failCode} dataLen=${Array.isArray(json.data) ? json.data.length : 'N/A'} rawData=${JSON.stringify(json.data)?.substring(0, 500)}`);
+    console.log(`[Huawei] getStationRealKpi station=${stationCode} success=${json.success} failCode=${json.failCode} dataLen=${Array.isArray(json.data) ? json.data.length : 'N/A'} raw=${JSON.stringify(json.data)?.substring(0, 400)}`);
     if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
-    const d = json.data?.[0]?.dataItemMap || {};
+    let d = json.data?.[0]?.dataItemMap || {};
+
+    // 2) FALLBACK: if getStationRealKpi returns empty dataItemMap, try getKpiStationDay
+    if (Object.keys(d).length === 0) {
+      console.log(`[Huawei] getStationRealKpi returned EMPTY for ${stationCode}, trying getKpiStationDay fallback...`);
+      try {
+        const today = new Date();
+        const collectTime = today.getTime(); // Huawei expects epoch millis
+        const dayRes = await fetch(`${base}/thirdData/getKpiStationDay`, {
+          method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
+          body: JSON.stringify({ stationCodes: stationCode, collectTime }),
+        });
+        const dayJson = await dayRes.json();
+        console.log(`[Huawei] getKpiStationDay station=${stationCode} success=${dayJson.success} failCode=${dayJson.failCode} raw=${JSON.stringify(dayJson.data)?.substring(0, 400)}`);
+        if (dayJson.success !== false && Array.isArray(dayJson.data) && dayJson.data.length > 0) {
+          d = dayJson.data[0].dataItemMap || {};
+        }
+      } catch (dayErr) {
+        console.warn(`[Huawei] getKpiStationDay fallback failed: ${(dayErr as Error).message}`);
+      }
+    }
 
     // Huawei field mapping:
-    //   day_power   = daily energy (kWh)  — NOT instantaneous power
+    //   day_power / inverter_power = daily energy (kWh)
     //   total_power = lifetime energy (kWh)
-    //   month_power = monthly energy (kWh)
-    const energyKwh = d.day_power != null ? Number(d.day_power) : null;
+    const energyKwh = d.day_power != null ? Number(d.day_power) : d.inverter_power != null ? Number(d.inverter_power) : null;
     const totalEnergyKwh = d.total_power != null ? Number(d.total_power) : null;
 
-    // 2) Get real-time power from device-level KPI
-    //    IMPORTANT: getDevRealKpi expects actual device IDs, NOT station codes.
-    //    We must first list devices for this station, then query their KPIs.
+    // 3) Get real-time power from device-level KPI
     let powerKw: number | null = null;
     try {
-      // 2a) List inverter devices for this station
       const devListRes = await fetch(`${base}/thirdData/getDevList`, {
         method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
         body: JSON.stringify({ stationCodes: stationCode }),
       });
       const devListJson = await devListRes.json();
       const allDevs = Array.isArray(devListJson.data) ? devListJson.data : [];
-      // Filter to inverters only (devTypeId === 1)
-      const inverterIds = allDevs.filter((d: any) => d.devTypeId === 1).map((d: any) => String(d.id));
-      console.log(`[Huawei] getDevList station=${stationCode} totalDevs=${allDevs.length} inverters=${inverterIds.length} ids=${inverterIds.join(",")}`);
+      // Accept both inverters (1) and residential inverters (38)
+      const inverterDevs = allDevs.filter((dd: any) => dd.devTypeId === 1 || dd.devTypeId === 38);
+      const inverterIds = inverterDevs.map((dd: any) => String(dd.id));
+      const devTypeId = inverterDevs[0]?.devTypeId ?? 1;
+      console.log(`[Huawei] getDevList station=${stationCode} totalDevs=${allDevs.length} inverters=${inverterIds.length} types=${allDevs.map((dd:any)=>dd.devTypeId).join(",")} ids=${inverterIds.join(",")}`);
 
       if (inverterIds.length > 0) {
-        // 2b) Query real-time KPIs for these inverters
         const devRes = await fetch(`${base}/thirdData/getDevRealKpi`, {
           method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
-          body: JSON.stringify({ devIds: inverterIds.join(","), devTypeId: 1 }),
+          body: JSON.stringify({ devIds: inverterIds.join(","), devTypeId }),
         });
         const devJson = await devRes.json();
         if (devJson.success !== false && Array.isArray(devJson.data)) {
           let totalPower = 0;
           for (const dev of devJson.data) {
             const dim = dev.dataItemMap || {};
-            const ap = Number(dim.active_power ?? 0);
-            totalPower += ap;
+            totalPower += Number(dim.active_power ?? 0);
           }
           powerKw = totalPower;
-          console.log(`[Huawei] getDevRealKpi station=${stationCode} inverters=${devJson.data.length} totalPower=${totalPower}kW`);
-        } else {
-          console.warn(`[Huawei] getDevRealKpi no data station=${stationCode} success=${devJson.success} failCode=${devJson.failCode}`);
+          console.log(`[Huawei] getDevRealKpi station=${stationCode} count=${devJson.data.length} totalPower=${totalPower}kW`);
         }
       }
     } catch (devErr) {
       console.warn(`[Huawei] device power fetch failed for ${stationCode}: ${(devErr as Error).message}`);
     }
+
+    // Small delay to avoid Huawei rate limiting across sequential station calls
+    await new Promise(r => setTimeout(r, 500));
 
     return {
       power_kw: powerKw,
