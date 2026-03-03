@@ -35,7 +35,7 @@ interface PlantStatusInput {
   provider_status?: string | null;
 }
 
-const OFFLINE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
+const OFFLINE_THRESHOLD_MS = 45 * 60 * 1000; // 45 min (~3 ciclos de sync de 15 min)
 
 /**
  * Get current hour in America/Sao_Paulo timezone (BRT/BRST).
