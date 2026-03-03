@@ -1166,68 +1166,111 @@ async function huaweiListPlants(xsrfToken: string, cookies: string, region: stri
   });
 }
 
-async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: string, region: string): Promise<DailyMetrics> {
-  const HW_DELAY = 5000; // 5s between each Huawei API call (up from 3.5s to avoid 407)
-  try {
-    const base = huaweiBaseUrl(region);
+/**
+ * Batch-fetch metrics for multiple Huawei stations in a SINGLE API call.
+ * getStationRealKpi accepts comma-separated stationCodes — drastically reduces API budget.
+ * Returns a Map<stationCode, DailyMetrics>.
+ */
+async function huaweiMetricsBatch(
+  xsrfToken: string, cookies: string, stationCodes: string[], region: string,
+): Promise<Map<string, DailyMetrics>> {
+  const result = new Map<string, DailyMetrics>();
+  if (stationCodes.length === 0) return result;
 
-    // 1) Station-level real-time KPIs (single call — most efficient)
+  const base = huaweiBaseUrl(region);
+  const codesParam = stationCodes.join(",");
+
+  try {
+    // 1) Batch getStationRealKpi — ONE call for ALL stations
     const res = await fetch(`${base}/thirdData/getStationRealKpi`, {
-      method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
-      body: JSON.stringify({ stationCodes: stationCode }),
+      method: "POST",
+      headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
+      body: JSON.stringify({ stationCodes: codesParam }),
     });
     const json = await res.json();
-    console.log(`[Huawei] getStationRealKpi station=${stationCode} success=${json.success} failCode=${json.failCode} dataLen=${Array.isArray(json.data) ? json.data.length : 'N/A'} raw=${JSON.stringify(json.data)?.substring(0, 400)}`);
-    if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
-    const isRateLimited = json.failCode === 407;
-    let d = json.data?.[0]?.dataItemMap || {};
+    const dataArr = Array.isArray(json.data) ? json.data : [];
+    console.log(`[Huawei] getStationRealKpi BATCH (${stationCodes.length} stations): success=${json.success}, failCode=${json.failCode}, returned=${dataArr.length} items`);
 
-    // 2) FALLBACK: only if data genuinely empty (not rate-limited)
-    if (Object.keys(d).length === 0 && !isRateLimited) {
-      await new Promise(r => setTimeout(r, HW_DELAY));
-      console.log(`[Huawei] getStationRealKpi returned EMPTY for ${stationCode}, trying getKpiStationDay fallback...`);
+    if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
+    if (json.failCode === 407) {
+      console.warn(`[Huawei] Batch getStationRealKpi rate-limited (407)`);
+      for (const sc of stationCodes) {
+        result.set(sc, { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {}, _rateLimited: true } as any);
+      }
+      return result;
+    }
+
+    // Index returned data by stationCode
+    const dataByStation = new Map<string, Record<string, any>>();
+    for (const item of dataArr) {
+      const code = String(item.stationCode || "");
+      const d = item.dataItemMap || {};
+      if (code) dataByStation.set(code, d);
+    }
+
+    // 2) For stations with NO data from real-time, try getKpiStationDay as fallback
+    const emptyStations = stationCodes.filter(sc => {
+      const d = dataByStation.get(sc);
+      return !d || Object.keys(d).length === 0;
+    });
+
+    if (emptyStations.length > 0) {
+      console.log(`[Huawei] ${emptyStations.length}/${stationCodes.length} stations returned empty from getStationRealKpi, trying getKpiStationDay fallback...`);
       try {
+        await new Promise(r => setTimeout(r, 5000)); // delay before next call
         const collectTime = Date.now();
         const dayRes = await fetch(`${base}/thirdData/getKpiStationDay`, {
-          method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
-          body: JSON.stringify({ stationCodes: stationCode, collectTime }),
+          method: "POST",
+          headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
+          body: JSON.stringify({ stationCodes: emptyStations.join(","), collectTime }),
         });
         const dayJson = await dayRes.json();
-        console.log(`[Huawei] getKpiStationDay station=${stationCode} success=${dayJson.success} failCode=${dayJson.failCode} raw=${JSON.stringify(dayJson.data)?.substring(0, 400)}`);
-        if (dayJson.success !== false && Array.isArray(dayJson.data) && dayJson.data.length > 0) {
-          d = dayJson.data[0].dataItemMap || {};
+        const dayArr = Array.isArray(dayJson.data) ? dayJson.data : [];
+        console.log(`[Huawei] getKpiStationDay fallback: success=${dayJson.success}, failCode=${dayJson.failCode}, returned=${dayArr.length} items`);
+        for (const item of dayArr) {
+          const code = String(item.stationCode || "");
+          const d = item.dataItemMap || {};
+          if (code && Object.keys(d).length > 0) {
+            dataByStation.set(code, d);
+          }
         }
       } catch (dayErr) {
         console.warn(`[Huawei] getKpiStationDay fallback failed: ${(dayErr as Error).message}`);
       }
-    } else if (isRateLimited) {
-      console.warn(`[Huawei] Station ${stationCode} rate-limited (407), skipping`);
-      // Return special marker so caller knows not to overwrite existing data
-      return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {}, _rateLimited: true } as any;
     }
 
-    // Huawei field mapping:
-    //   day_power / inverter_power = daily energy (kWh)
-    //   total_power = lifetime energy (kWh)
-    //   NOTE: real-time power (kW) requires getDevRealKpi which burns API budget.
-    //   We skip it in cron — power is derived from energy change rate on the frontend.
-    const energyKwh = d.day_power != null ? Number(d.day_power) : d.inverter_power != null ? Number(d.inverter_power) : null;
-    const totalEnergyKwh = d.total_power != null ? Number(d.total_power) : null;
+    // 3) Build results
+    for (const sc of stationCodes) {
+      const d = dataByStation.get(sc) || {};
+      const energyKwh = d.day_power != null ? Number(d.day_power) : d.inverter_power != null ? Number(d.inverter_power) : null;
+      const totalEnergyKwh = d.total_power != null ? Number(d.total_power) : null;
 
-    // Inter-station cooldown
-    await new Promise(r => setTimeout(r, HW_DELAY));
+      if (Object.keys(d).length === 0) {
+        console.warn(`[Huawei] Station ${sc} returned NO data from both endpoints — plant may need API access in FusionSolar portal`);
+      } else {
+        console.log(`[Huawei] Station ${sc}: day_power=${d.day_power}, total_power=${d.total_power}, keys=${Object.keys(d).join(",")}`);
+      }
 
-    return {
-      power_kw: null, // Not available at station level — requires device calls that burn rate limit
-      energy_kwh: energyKwh,
-      total_energy_kwh: totalEnergyKwh,
-      metadata: { ...d },
-    };
+      result.set(sc, {
+        power_kw: null, // Not available at station level
+        energy_kwh: energyKwh,
+        total_energy_kwh: totalEnergyKwh,
+        metadata: { ...d },
+      });
+    }
+
+    return result;
   } catch (e: any) {
     if (e.message === "TOKEN_EXPIRED") throw e;
-    console.error(`[Huawei] huaweiMetrics failed for ${stationCode}: ${e.message}`);
-    return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
+    console.error(`[Huawei] huaweiMetricsBatch failed: ${e.message}`);
+    return result;
   }
+}
+
+// Legacy single-station wrapper (used by syncPlantsByProvider per-plant metricsFn)
+async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: string, region: string): Promise<DailyMetrics> {
+  const batch = await huaweiMetricsBatch(xsrfToken, cookies, [stationCode], region);
+  return batch.get(stationCode) || { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
 }
 
 async function huaweiListDevices(xsrfToken: string, cookies: string, region: string, stationCodes: string[]): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
@@ -2418,7 +2461,35 @@ async function dispatchSync(
       }
     };
 
-    return await syncPlantsByProvider(ctx, listFnHw, (eid) => huaweiMetrics(xsrf, hwCookies, eid, hwRegion), mode, selectedPlantIds, {
+    // Use batch metrics: pre-fetch ALL station metrics in 1-2 API calls, then serve from cache
+    const hwMetricsCache = new Map<string, DailyMetrics>();
+    let hwCacheLoaded = false;
+
+    const hwMetricsFn = async (stationCode: string): Promise<DailyMetrics> => {
+      // Lazy-load: on first call, batch-fetch ALL stations at once
+      if (!hwCacheLoaded) {
+        hwCacheLoaded = true;
+        const { data: dbPlants } = await admin.from("solar_plants")
+          .select("external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
+        const allCodes = (dbPlants || []).map((p: any) => String(p.external_id));
+        try {
+          const batchResult = await huaweiMetricsBatch(xsrf, hwCookies, allCodes, hwRegion);
+          for (const [k, v] of batchResult) hwMetricsCache.set(k, v);
+          console.log(`[Huawei] Batch metrics cache loaded: ${hwMetricsCache.size} stations`);
+        } catch (e: any) {
+          if (e.message === "TOKEN_EXPIRED") {
+            await tryReAuth();
+            const batchResult = await huaweiMetricsBatch(xsrf, hwCookies, allCodes, hwRegion);
+            for (const [k, v] of batchResult) hwMetricsCache.set(k, v);
+          } else {
+            console.error(`[Huawei] Batch metrics failed: ${e.message}`);
+          }
+        }
+      }
+      return hwMetricsCache.get(stationCode) || { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
+    };
+
+    return await syncPlantsByProvider(ctx, listFnHw, hwMetricsFn, mode, selectedPlantIds, {
       devicesFn: hwDevicesFn,
     });
   } else if (p === "goodwe") {
