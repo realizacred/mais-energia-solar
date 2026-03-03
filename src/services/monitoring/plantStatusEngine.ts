@@ -136,24 +136,26 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
     };
   }
 
-  // Rule 3 (daytime): Provider says "offline"/"no_communication" but device synced < 2h
-  // → Do NOT trust it. Many providers (Huawei, Growatt, Deye) report "offline" when
-  //   inverters are idle (clouds, early morning, maintenance) but still communicating.
-  //   The 2h sync gate (rule 1) is the ONLY reliable offline indicator.
+  // Rule 3 (daytime): Provider says "offline"/"no_communication"
+  // If there's active generation → trust generation over label (provider false positive).
+  // If NO generation → trust the provider: plant is genuinely offline.
   if (providerOffline) {
-    // If there's active generation, it's clearly online despite label
-    if (input.energy_today_kwh > 0 || powerKw > POWER_THRESHOLD_KW) {
+    if (powerKw > POWER_THRESHOLD_KW) {
       return {
         uiStatus: "online",
-        reason: powerKw > POWER_THRESHOLD_KW
-          ? `Gerando ${powerKw.toFixed(2)} kW (provedor reporta offline)`
-          : `Gerou ${input.energy_today_kwh.toFixed(1)} kWh hoje (provedor reporta offline)`,
+        reason: `Gerando ${powerKw.toFixed(2)} kW (provedor reporta offline)`,
       };
     }
-    // No generation but synced recently — online, waiting for data
+    if (input.energy_today_kwh > 0) {
+      return {
+        uiStatus: "online",
+        reason: `Gerou ${input.energy_today_kwh.toFixed(1)} kWh hoje (provedor reporta offline)`,
+      };
+    }
+    // No generation + provider confirms offline → trust provider
     return {
-      uiStatus: "online",
-      reason: "Sincronizado — provedor reporta offline mas comunicação ativa",
+      uiStatus: "offline",
+      reason: "Sem geração — provedor confirma offline",
     };
   }
 
