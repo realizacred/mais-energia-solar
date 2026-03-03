@@ -374,6 +374,7 @@ async function processAlertsTenant(
         const { error } = await sb.from("monitor_events").insert({
           tenant_id: c.tenantId,
           plant_id: c.plantId,
+          solar_plant_id: c.plantId, // SSOT: alert-engine queries solar_plants, so plantId IS solar_plants.id
           device_id: c.deviceId,
           channel_id: c.channelId,
           type: c.type,

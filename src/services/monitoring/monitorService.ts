@@ -335,16 +335,41 @@ export async function listAlerts(filters?: {
   isOpen?: boolean;
   severity?: string;
 }): Promise<MonitorEvent[]> {
+  // SSOT: query by solar_plant_id first; if no results, fallback for pre-migration data
+  if (filters?.plantId) {
+    let q = supabase
+      .from("monitor_events" as any)
+      .select("*")
+      .eq("solar_plant_id", filters.plantId)
+      .order("starts_at", { ascending: false });
+    if (filters.isOpen !== undefined) q = q.eq("is_open", filters.isOpen);
+    if (filters.severity) q = q.eq("severity", filters.severity);
+    const { data } = await q.limit(200);
+    const results = (data as unknown as MonitorEvent[]) || [];
+
+    // Fallback: pre-migration events with solar_plant_id NULL
+    if (results.length === 0) {
+      let fallback = supabase
+        .from("monitor_events" as any)
+        .select("*")
+        .eq("plant_id", filters.plantId)
+        .is("solar_plant_id", null)
+        .order("starts_at", { ascending: false });
+      if (filters.isOpen !== undefined) fallback = fallback.eq("is_open", filters.isOpen);
+      if (filters.severity) fallback = fallback.eq("severity", filters.severity);
+      const { data: fbData } = await fallback.limit(200);
+      return (fbData as unknown as MonitorEvent[]) || [];
+    }
+    return results;
+  }
+
+  // No plantId filter — return all
   let q = supabase
     .from("monitor_events" as any)
     .select("*")
     .order("starts_at", { ascending: false });
-
-  // SSOT: prefer solar_plant_id for filtering; fallback to plant_id for compat
-  if (filters?.plantId) q = q.or(`solar_plant_id.eq.${filters.plantId},plant_id.eq.${filters.plantId}`);
   if (filters?.isOpen !== undefined) q = q.eq("is_open", filters.isOpen);
   if (filters?.severity) q = q.eq("severity", filters.severity);
-
   const { data } = await q.limit(200);
   return (data as unknown as MonitorEvent[]) || [];
 }
