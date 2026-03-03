@@ -1109,7 +1109,7 @@ async function huaweiListPlants(xsrfToken: string, cookies: string, region: stri
   }
   return list.map((r: any) => ({
     external_id: String(r.stationCode || ""), name: String(r.stationName || ""),
-    capacity_kw: r.capacity != null ? Number(r.capacity) : null,
+    capacity_kw: r.capacity != null ? Number(r.capacity) * 1000 : null, // Huawei returns capacity in MW, convert to kWp
     address: r.stationAddr || null,
     latitude: r.latitude != null ? Number(r.latitude) : null, longitude: r.longitude != null ? Number(r.longitude) : null,
     status: r.realHealthState === 3 ? "normal" : r.realHealthState === 1 ? "offline" : r.realHealthState === 2 ? "alarm" : "unknown",
