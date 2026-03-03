@@ -291,9 +291,13 @@ function EnterpriseKpi({ icon: Icon, label, value, subtitle, accentColor = "mute
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">{label}</p>
-          <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
-          {subtitle && <p className="text-[11px] text-muted-foreground mt-1.5">{subtitle}</p>}
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium min-h-[28px] leading-[14px] flex items-end">{label}</p>
+          <p className="text-2xl font-bold text-foreground leading-none mt-1">{value}</p>
+          {subtitle ? (
+            <p className="text-[11px] text-muted-foreground mt-1.5">{subtitle}</p>
+          ) : (
+            <div className="h-[17px]" />
+          )}
         </div>
         <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", a.iconBg)}>
           <Icon className={cn("h-[18px] w-[18px]", a.iconText)} />
