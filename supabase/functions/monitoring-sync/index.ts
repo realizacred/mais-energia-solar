@@ -2110,101 +2110,130 @@ async function dispatchSync(
       return await deyeMetrics(baseUrl, at, extId);
     };
 
-    // Deye: fetch devices only for selective/manual sync (bulk is too heavy, causes CPU timeout)
-    // OPTIMIZED: only fetch devices for selected plants instead of ALL plants
+    // Deye: fetch devices with MPPT telemetry
+    // Selective sync: fetch all selected plants
+    // Bulk/cron sync: rotating batch (DEYE_DEVICE_BUDGET stations per cycle) to avoid timeout
+    const DEYE_DEVICE_BUDGET = 15; // max stations to fetch devices per cron cycle
+
     const extras: { devicesFn?: () => Promise<{ stationId: string; devices: NormalizedDevice[] }[]> } = {};
+
+    // Helper: fetch devices + /device/latest for a list of stationIds
+    const fetchDevicesForStations = async (stationIds: number[]): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> => {
+      const result: { stationId: string; devices: NormalizedDevice[] }[] = [];
+      for (const stationId of stationIds) {
+        try {
+          const json = await deyeFetch(baseUrl, at, "/station/device", { stationIds: [stationId], page: 1, size: 50 });
+          const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
+          if (!Array.isArray(list) || !list.length) continue;
+
+          const devices: NormalizedDevice[] = [];
+          const sns: string[] = [];
+          for (const d of list) {
+            const sn = d.deviceSn || d.sn || "";
+            if (sn) sns.push(sn);
+            let status = "unknown";
+            if (d.deviceStatus === 1 || d.connectStatus === 1) status = "online";
+            else if (d.deviceStatus === 0 || d.connectStatus === 0) status = "offline";
+            else if (d.deviceStatus === 2) status = "alarm";
+            const deyeCollTs2 = d.collectionTime;
+            const deyeLastSeenAt2 = deyeCollTs2
+              ? new Date(Number(deyeCollTs2) > 1e12 ? Number(deyeCollTs2) : Number(deyeCollTs2) * 1000).toISOString()
+              : undefined;
+            devices.push({
+              provider_device_id: String(d.id || sn),
+              type: (() => {
+                const dt = String(d.deviceType || "").toLowerCase();
+                if (dt.includes("inverter")) return "inverter";
+                if (dt.includes("collector") || dt.includes("logger") || dt.includes("datalog")) return "logger";
+                return "inverter";
+              })(),
+              model: d.productName || d.deviceType || null,
+              serial: sn || null,
+              status,
+              metadata: d,
+              lastSeenAt: deyeLastSeenAt2,
+            });
+          }
+
+          // Fetch latest telemetry (MPPT data) for devices in this station
+          if (sns.length > 0) {
+            try {
+              await new Promise(r => setTimeout(r, 100)); // rate limit
+              const latestJson = await deyeFetch(baseUrl, at, "/device/latest", { deviceList: sns.slice(0, 10) });
+              const latestList = latestJson.deviceDataList || latestJson.data?.deviceDataList || [];
+              console.log(`[Deye] /device/latest returned ${latestList.length} items for station ${stationId}`);
+              for (const ld of latestList) {
+                if (latestList.indexOf(ld) === 0) {
+                  const dl = ld.dataList || [];
+                  console.log(`[Deye] device/latest sample dataList (${dl.length} items): ${dl.slice(0, 20).map((x: any) => x.key || x.name || JSON.stringify(x)).join(", ")}`);
+                }
+                const dev = devices.find(x => x.serial === ld.deviceSn);
+                if (dev) {
+                  const flatData: Record<string, unknown> = {};
+                  const dataList = ld.dataList || [];
+                  for (const item of dataList) {
+                    const key = item.key || item.name || "";
+                    if (key) flatData[key] = item.value ?? item.val ?? null;
+                  }
+                  let mpptCount = 0;
+                  for (let i = 1; i <= 8; i++) {
+                    const pvPower = Number(flatData[`DCPowerPV${i}`] ?? flatData[`PV${i} Power`] ?? flatData[`pv${i}Power`] ?? flatData[`pvPower${i}`] ?? 0);
+                    const pvVoltage = Number(flatData[`DCVoltagePV${i}`] ?? flatData[`PV${i} Voltage`] ?? flatData[`pv${i}Voltage`] ?? flatData[`pvVoltage${i}`] ?? 0);
+                    const pvCurrent = Number(flatData[`DCCurrentPV${i}`] ?? flatData[`PV${i} Current`] ?? flatData[`pv${i}Current`] ?? flatData[`pvCurrent${i}`] ?? 0);
+                    if (pvPower > 0 || pvVoltage > 0 || pvCurrent > 0) mpptCount = i;
+                    flatData[`pow${i}`] = pvPower;
+                    flatData[`vpv${i}`] = pvVoltage;
+                    flatData[`ipv${i}`] = pvCurrent;
+                  }
+                  flatData.dcInputTypeMppt = mpptCount;
+                  flatData.pac = Number(flatData["TotalActiveACOutputPower"] ?? flatData["TotalACPower"] ?? flatData["AC Total Power"] ?? 0) / 1000;
+                  flatData.etoday = Number(flatData["DailyActiveProduction"] ?? flatData["DailyGeneration"] ?? flatData["Day Energy"] ?? 0);
+                  flatData.etotal = Number(flatData["TotalActiveProduction"] ?? flatData["TotalGeneration"] ?? flatData["Total Energy"] ?? 0);
+                  flatData.power = Number(flatData["RatedPower"] ?? flatData["Rated Power"] ?? 0) / 1000;
+                  flatData.machine = ld.productName || ld.deviceType || dev.model || "";
+                  dev.metadata = { ...dev.metadata, ...ld, ...flatData };
+                  console.log(`[Deye] Normalized device ${dev.serial}: mpptCount=${mpptCount}, pac=${flatData.pac}, etoday=${flatData.etoday}`);
+                }
+              }
+            } catch (e) { console.warn(`[Deye] device/latest failed for station ${stationId}: ${(e as Error).message}`); }
+          }
+
+          if (devices.length > 0) {
+            result.push({ stationId: String(stationId), devices });
+          }
+        } catch (e) { console.warn(`[Deye] station/device failed for ${stationId}: ${(e as Error).message}`); }
+      }
+      return result;
+    };
+
     if (isSelectiveSync) {
+      // Selective: fetch ALL selected plants
       extras.devicesFn = async () => {
         const { data: selPlants } = await ctx.supabaseAdmin
           .from("monitor_plants").select("provider_plant_id")
           .in("id", selectedPlantIds);
         const selStationIds = (selPlants || []).map((p: any) => Number(p.provider_plant_id));
-        console.log(`[Deye] Selective device fetch for stations: ${selStationIds.join(", ")}`);
-        
-        const result: { stationId: string; devices: NormalizedDevice[] }[] = [];
-        for (const stationId of selStationIds) {
-          try {
-            const json = await deyeFetch(baseUrl, at, "/station/device", { stationIds: [stationId], page: 1, size: 50 });
-            const list = json.deviceListItems || json.data?.deviceListItems || json.devices || json.data?.devices || [];
-            if (!Array.isArray(list) || !list.length) continue;
+        console.log(`[Deye] Selective device fetch for ${selStationIds.length} stations`);
+        return await fetchDevicesForStations(selStationIds);
+      };
+    } else {
+      // Bulk/cron: rotating batch — fetch DEYE_DEVICE_BUDGET stations per cycle
+      extras.devicesFn = async () => {
+        const { data: allPlants } = await ctx.supabaseAdmin
+          .from("monitor_plants").select("provider_plant_id")
+          .eq("provider_id", integration.provider_id)
+          .eq("is_active", true);
+        const allStationIds = (allPlants || []).map((p: any) => Number(p.provider_plant_id));
+        if (!allStationIds.length) return [];
 
-            const devices: NormalizedDevice[] = [];
-            const sns: string[] = [];
-            for (const d of list) {
-              const sn = d.deviceSn || d.sn || "";
-              if (sn) sns.push(sn);
-              let status = "unknown";
-              if (d.deviceStatus === 1 || d.connectStatus === 1) status = "online";
-              else if (d.deviceStatus === 0 || d.connectStatus === 0) status = "offline";
-              else if (d.deviceStatus === 2) status = "alarm";
-              // SSOT: extract real device data timestamp from Deye API
-              const deyeCollTs2 = d.collectionTime;
-              const deyeLastSeenAt2 = deyeCollTs2
-                ? new Date(Number(deyeCollTs2) > 1e12 ? Number(deyeCollTs2) : Number(deyeCollTs2) * 1000).toISOString()
-                : undefined;
-              devices.push({
-                provider_device_id: String(d.id || sn),
-                type: String(d.deviceType || "inverter").toLowerCase().includes("inverter") ? "inverter" :
-                      String(d.deviceType || "").toLowerCase().includes("logger") ? "logger" : "inverter",
-                model: d.productName || d.deviceType || null,
-                serial: sn || null,
-                status,
-                metadata: d,
-                lastSeenAt: deyeLastSeenAt2,
-              });
-            }
-
-            // Fetch latest telemetry (MPPT data) for devices in this station
-            if (sns.length > 0) {
-              try {
-                const latestJson = await deyeFetch(baseUrl, at, "/device/latest", { deviceList: sns.slice(0, 10) });
-                const latestList = latestJson.deviceDataList || latestJson.data?.deviceDataList || [];
-                console.log(`[Deye] /device/latest returned ${latestList.length} items for station ${stationId}`);
-                for (const ld of latestList) {
-                  if (latestList.indexOf(ld) === 0) {
-                    const dl = ld.dataList || [];
-                    console.log(`[Deye] device/latest sample dataList (${dl.length} items): ${dl.slice(0, 20).map((x: any) => x.key || x.name || JSON.stringify(x)).join(", ")}`);
-                  }
-                  const dev = devices.find(x => x.serial === ld.deviceSn);
-                  if (dev) {
-                    const flatData: Record<string, unknown> = {};
-                    const dataList = ld.dataList || [];
-                    for (const item of dataList) {
-                      const key = item.key || item.name || "";
-                      if (key) flatData[key] = item.value ?? item.val ?? null;
-                    }
-                    let mpptCount = 0;
-                    for (let i = 1; i <= 8; i++) {
-                      const pvPower = Number(flatData[`DCPowerPV${i}`] ?? flatData[`PV${i} Power`] ?? flatData[`pv${i}Power`] ?? flatData[`pvPower${i}`] ?? 0);
-                      const pvVoltage = Number(flatData[`DCVoltagePV${i}`] ?? flatData[`PV${i} Voltage`] ?? flatData[`pv${i}Voltage`] ?? flatData[`pvVoltage${i}`] ?? 0);
-                      const pvCurrent = Number(flatData[`DCCurrentPV${i}`] ?? flatData[`PV${i} Current`] ?? flatData[`pv${i}Current`] ?? flatData[`pvCurrent${i}`] ?? 0);
-                      if (pvPower > 0 || pvVoltage > 0 || pvCurrent > 0) mpptCount = i;
-                      flatData[`pow${i}`] = pvPower;
-                      flatData[`vpv${i}`] = pvVoltage;
-                      flatData[`ipv${i}`] = pvCurrent;
-                    }
-                    flatData.dcInputTypeMppt = mpptCount;
-                    flatData.pac = Number(flatData["TotalActiveACOutputPower"] ?? flatData["TotalACPower"] ?? flatData["AC Total Power"] ?? 0) / 1000;
-                    flatData.etoday = Number(flatData["DailyActiveProduction"] ?? flatData["DailyGeneration"] ?? flatData["Day Energy"] ?? 0);
-                    flatData.etotal = Number(flatData["TotalActiveProduction"] ?? flatData["TotalGeneration"] ?? flatData["Total Energy"] ?? 0);
-                    flatData.power = Number(flatData["RatedPower"] ?? flatData["Rated Power"] ?? 0) / 1000;
-                    flatData.machine = ld.productName || ld.deviceType || dev.model || "";
-                    dev.metadata = { ...dev.metadata, ...ld, ...flatData };
-                    console.log(`[Deye] Normalized device ${dev.serial}: mpptCount=${mpptCount}, pac=${flatData.pac}, etoday=${flatData.etoday}`);
-                  }
-                }
-              } catch (e) { console.warn(`[Deye] device/latest failed for station ${stationId}: ${(e as Error).message}`); }
-            }
-
-            if (devices.length > 0) {
-              result.push({ stationId: String(stationId), devices });
-            }
-          } catch (e) { console.warn(`[Deye] station/device failed for ${stationId}: ${(e as Error).message}`); }
-        }
-        return result;
+        const totalBatches = Math.ceil(allStationIds.length / DEYE_DEVICE_BUDGET);
+        const currentBatch = new Date().getMinutes() % Math.max(totalBatches, 1);
+        const start = currentBatch * DEYE_DEVICE_BUDGET;
+        const batchIds = allStationIds.slice(start, start + DEYE_DEVICE_BUDGET);
+        console.log(`[Deye] Cron device batch ${currentBatch + 1}/${totalBatches}: fetching ${batchIds.length} stations (of ${allStationIds.length} total)`);
+        return await fetchDevicesForStations(batchIds);
       };
     }
-    // No extras.devicesFn for bulk = no device discovery in cron (lightweight)
 
     return await syncPlantsByProvider(ctx, listFn, metricsFn, mode, selectedPlantIds, extras);
   } else if (p === "growatt" || p === "growatt_server") {
