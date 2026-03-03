@@ -105,10 +105,12 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   }
 
   // Recent sync confirmed — check provider-reported status first
-  const providerOffline = input.provider_status === "offline" || input.provider_status === "no_communication";
-  const providerAlarm = input.provider_status === "alarm";
+  const ps = input.provider_status || "unknown";
+  const providerOffline = ps === "offline" || ps === "no_communication";
+  const providerAlarm = ps === "alarm";
+  const providerConfirmedOnline = ps === "normal" || ps === "online";
 
-  // Rule 2: If provider explicitly says OFFLINE, respect it even at night
+  // Rule 2: If provider explicitly says OFFLINE, respect it regardless of time
   if (providerOffline) {
     return {
       uiStatus: "offline",
@@ -116,14 +118,38 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
     };
   }
 
-  // Rule 3: STANDBY — nighttime + provider not reporting offline
+  // Rule 2b: If provider reports ALARM, always offline
+  if (providerAlarm) {
+    return {
+      uiStatus: "offline",
+      reason: "Alarme reportado pelo provedor",
+    };
+  }
+
+  // Rule 3: STANDBY — nighttime + provider confirmed online (or at least not offline)
   const powerKw = normalizePowerKw(input.power_kw);
   const isNight = isBrasiliaNight();
 
   if (isNight) {
+    // Only show standby if provider explicitly confirms normal/online
+    // For "unknown" status (Huawei/Growatt without proper mapping), use energy as signal
+    if (providerConfirmedOnline) {
+      return {
+        uiStatus: "standby",
+        reason: "Noturno — sem geração solar esperada",
+      };
+    }
+    // Unknown provider status at night: if there was generation today, trust standby
+    if (input.energy_today_kwh > 0) {
+      return {
+        uiStatus: "standby",
+        reason: "Noturno — gerou energia hoje",
+      };
+    }
+    // Unknown status + no generation today + night = offline (conservative)
     return {
-      uiStatus: providerAlarm ? "offline" : "standby",
-      reason: providerAlarm ? "Alarme reportado pelo provedor" : "Noturno — sem geração solar esperada",
+      uiStatus: "offline",
+      reason: "Sem confirmação de comunicação pelo provedor",
     };
   }
 
