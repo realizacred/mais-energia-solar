@@ -1676,7 +1676,7 @@ async function syncPlantsByProvider(
 
       const batch = (dbPlants || []).slice(i, i + CONCURRENCY);
       // Add inter-batch delay for rate-limited providers
-      if (i > 0 && isHuawei) await new Promise(r => setTimeout(r, 3000));
+      if (i > 0 && isHuawei) await new Promise(r => setTimeout(r, 7000));
       const results = await Promise.allSettled(
         batch.map(async (p) => {
           const metrics = await metricsFn(p.external_id);
@@ -1714,6 +1714,43 @@ async function syncPlantsByProvider(
         if (r.status === "fulfilled") metricsUpserted++;
         else errors.push(r.reason?.message || "Unknown metric error");
       }
+    }
+
+    // ── Lightweight device status sync (for providers without devicesFn in bulk mode) ──
+    // This derives device online/offline from plant metrics instead of calling expensive device APIs
+    if (!extras?.devicesFn) {
+      try {
+        const { data: dbMonitorPlants } = await ctx.supabaseAdmin
+          .from("monitor_plants").select("id, provider_plant_id, legacy_plant_id")
+          .eq("tenant_id", ctx.tenantId).eq("provider_id", ctx.provider);
+        
+        if (dbMonitorPlants && dbMonitorPlants.length > 0) {
+          // Get solar_plants status to derive device status
+          const legacyIds = (dbMonitorPlants as any[]).map((p: any) => p.legacy_plant_id).filter(Boolean);
+          const { data: solarStatuses } = legacyIds.length > 0
+            ? await ctx.supabaseAdmin.from("solar_plants").select("id, status, updated_at").in("id", legacyIds)
+            : { data: [] };
+          const statusMap = new Map((solarStatuses || []).map((s: any) => [s.id, s]));
+
+          let devUpdated = 0;
+          for (const mp of dbMonitorPlants as any[]) {
+            const solarPlant = mp.legacy_plant_id ? statusMap.get(mp.legacy_plant_id) : null;
+            // Derive device status: if solar_plants.status is "normal" and recently updated → online
+            const isNormal = solarPlant?.status === "normal";
+            const recentUpdate = solarPlant?.updated_at && (Date.now() - new Date(solarPlant.updated_at).getTime()) < 2 * 60 * 60 * 1000; // 2h
+            const derivedStatus = isNormal && recentUpdate ? "online" : "offline";
+            const derivedLastSeen = solarPlant?.updated_at || new Date().toISOString();
+
+            const { error: devErr, count: updCount } = await ctx.supabaseAdmin
+              .from("monitor_devices")
+              .update({ status: derivedStatus, last_seen_at: derivedLastSeen, updated_at: new Date().toISOString() })
+              .eq("plant_id", mp.id)
+              .eq("tenant_id", ctx.tenantId);
+            if (!devErr && updCount) devUpdated += updCount;
+          }
+          console.log(`[Sync] Lightweight device status sync: ${devUpdated} devices updated for ${ctx.provider}`);
+        }
+      } catch (err) { console.warn(`[Sync] Lightweight device sync error: ${(err as Error).message}`); }
     }
   }
 
