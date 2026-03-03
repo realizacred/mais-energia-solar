@@ -229,7 +229,7 @@ export async function getDeviceStringCards(
       }));
 
       // Resolve alert status with smart rules
-      resolveStringAlerts(fallbackStrings);
+      resolveStringAlerts(fallbackStrings, dev.status);
 
       return {
         device_id: dev.id,
@@ -268,7 +268,7 @@ export async function getDeviceStringCards(
     });
 
     // Resolve critical alerts with smart rules (time window + sibling check)
-    resolveStringAlerts(strings);
+    resolveStringAlerts(strings, dev.status);
 
     return {
       device_id: dev.id,
@@ -284,10 +284,25 @@ export async function getDeviceStringCards(
 }
 
 // ─── Smart alert resolution ─────────────────────────────────
-// Rules: 1) Only flag critical between 09-16h BRT
-//        2) At least 1 sibling string must have power > 0 (cloudy ≠ error)
-//        3) The string must have 0W AND 0V
-function resolveStringAlerts(strings: StringRegistryWithMetric[]): void {
+// Rules: 1) If device is offline/standby → all strings "unknown" (no alarm)
+//        2) Only flag critical between 09-16h BRT
+//        3) At least 1 sibling string must have power > 0 (cloudy ≠ error)
+//        4) The string must have 0W AND 0V
+function resolveStringAlerts(
+  strings: StringRegistryWithMetric[],
+  deviceStatus?: string,
+): void {
+  // Offline or standby inverter → never raise critical
+  const isDeviceDown = deviceStatus === "offline" || deviceStatus === "standby"
+    || deviceStatus === "disconnected" || deviceStatus === "no_communication";
+
+  if (isDeviceDown) {
+    for (const s of strings) {
+      s.alert_status = "unknown";
+    }
+    return;
+  }
+
   const now = new Date();
   // BRT = UTC-3
   const brtHour = (now.getUTCHours() - 3 + 24) % 24;
