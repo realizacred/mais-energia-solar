@@ -212,12 +212,24 @@ export async function recalculateBaseline(plantId: string): Promise<{ updated: n
       body: { action: "recalculate_baseline", plant_id: resolvedId },
     });
     if (error) {
-      // FunctionsHttpError may have context in its message or response body
-      const msg = typeof error === "object" && "message" in error
-        ? (error as any).message
-        : String(error);
-      console.error("[recalculateBaseline] Edge function error:", msg, error);
-      throw new Error(msg || "Erro ao recalcular baseline");
+      // FunctionsHttpError: try to extract the response body for details
+      let msg = "Erro ao recalcular baseline";
+      try {
+        if (error instanceof Response || (error as any)?.json) {
+          const body = await (error as any).json();
+          msg = body?.error || body?.message || msg;
+        } else if (typeof error === "object" && "message" in error) {
+          msg = (error as any).message || msg;
+        } else {
+          msg = String(error);
+        }
+      } catch {
+        msg = typeof error === "object" && "message" in error
+          ? (error as any).message
+          : String(error);
+      }
+      console.error("[recalculateBaseline] Edge function error:", msg);
+      throw new Error(msg);
     }
     if (data?.error) {
       throw new Error(data.error);
