@@ -18,7 +18,7 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 // All providers with real sync logic
 const SYNC_IMPLEMENTED = new Set([
   "solarman_business_api", "solarman_business", "solaredge", "solis_cloud", "deye_cloud",
-  "growatt", "hoymiles", "sungrow", "huawei", "goodwe", "fronius",
+  "growatt", "hoymiles", "sungrow", "huawei", "huawei_fusionsolar", "goodwe", "fronius",
   "fox_ess", "solax", "saj", "shinemonitor", "apsystems", "enphase",
   "sunny_portal", "sofar", "kstar", "intelbras", "ecosolys",
   "csi_cloudpro", "csi_smart_energy", "csi_cloud", "livoltek", "livoltek_cf",
@@ -1120,19 +1120,60 @@ async function huaweiListPlants(xsrfToken: string, cookies: string, region: stri
 async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: string, region: string): Promise<DailyMetrics> {
   try {
     const base = huaweiBaseUrl(region);
+
+    // 1) Station-level KPIs (daily/total energy)
     const res = await fetch(`${base}/thirdData/getStationRealKpi`, {
       method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
       body: JSON.stringify({ stationCodes: stationCode }),
     });
     const json = await res.json();
+    if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
     const d = json.data?.[0]?.dataItemMap || {};
+    console.log(`[Huawei] getStationRealKpi station=${stationCode} keys=${Object.keys(d).join(",") || "EMPTY"} day_power=${d.day_power} total_power=${d.total_power}`);
+
+    // Huawei field mapping:
+    //   day_power   = daily energy (kWh)  — NOT instantaneous power
+    //   total_power = lifetime energy (kWh)
+    //   month_power = monthly energy (kWh)
+    const energyKwh = d.day_power != null ? Number(d.day_power) : null;
+    const totalEnergyKwh = d.total_power != null ? Number(d.total_power) : null;
+
+    // 2) Try to get real-time power from device-level KPI
+    let powerKw: number | null = null;
+    try {
+      const devRes = await fetch(`${base}/thirdData/getDevRealKpi`, {
+        method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
+        body: JSON.stringify({ devIds: stationCode, devTypeId: 1 }), // devTypeId 1 = inverter
+      });
+      const devJson = await devRes.json();
+      if (devJson.success !== false && Array.isArray(devJson.data)) {
+        // Sum active_power from all inverters of this station
+        let totalPower = 0;
+        for (const dev of devJson.data) {
+          const dim = dev.dataItemMap || {};
+          const ap = Number(dim.active_power ?? 0);
+          totalPower += ap;
+        }
+        if (totalPower > 0 || devJson.data.length > 0) {
+          powerKw = totalPower;
+          console.log(`[Huawei] getDevRealKpi station=${stationCode} inverters=${devJson.data.length} totalPower=${totalPower}kW`);
+        }
+      }
+    } catch (devErr) {
+      console.warn(`[Huawei] getDevRealKpi failed for ${stationCode}: ${(devErr as Error).message}`);
+    }
+
     return {
-      power_kw: d.real_health_state != null ? null : d.day_power != null ? Number(d.day_power) : null,
-      energy_kwh: d.day_power != null ? Number(d.day_power) : null,
-      total_energy_kwh: d.total_power != null ? Number(d.total_power) : null,
-      metadata: d,
+      power_kw: powerKw,
+      energy_kwh: energyKwh,
+      total_energy_kwh: totalEnergyKwh,
+      metadata: { ...d, _realtime_power_kw: powerKw },
     };
-  } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
+  } catch (e: any) {
+    if (e.message === "TOKEN_EXPIRED") throw e;
+    console.error(`[Huawei] huaweiMetrics failed for ${stationCode}: ${e.message}`);
+    return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
+  }
 }
 
 async function huaweiListDevices(xsrfToken: string, cookies: string, region: string, stationCodes: string[]): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
