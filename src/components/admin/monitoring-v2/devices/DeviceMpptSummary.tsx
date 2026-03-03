@@ -2,6 +2,7 @@ import React from "react";
 import { Zap, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MonitorDevice } from "@/services/monitoring/monitorTypes";
+import { isBrasiliaNight } from "@/services/monitoring/plantStatusEngine";
 
 interface MpptChannel {
   index: number;
@@ -55,7 +56,19 @@ interface DeviceMpptSummaryProps {
 }
 
 export function DeviceMpptSummary({ device, onViewDetail }: DeviceMpptSummaryProps) {
-  const data = extractMpptData(device.metadata);
+  const rawData = extractMpptData(device.metadata);
+  const isNight = isBrasiliaNight();
+
+  // At night, zero out instantaneous power — stale data from last daytime sync
+  const data = isNight
+    ? {
+        ...rawData,
+        channels: rawData.channels.map(ch => ({ ...ch, power_w: 0 })),
+        totalStringPower: 0,
+        acPower: 0,
+        maxPvVoltage: null,
+      }
+    : rawData;
 
   const hasAnyData = data.channels.length > 0 || data.energyToday > 0;
   if (!hasAnyData && device.type !== "inverter") return null;
