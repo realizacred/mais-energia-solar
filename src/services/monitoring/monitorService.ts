@@ -119,6 +119,7 @@ function legacyStatusToHealth(
     updated_at: canonicalLastSeen,
     power_kw: m?.power_kw != null ? Number(m.power_kw) : null,
     energy_today_kwh: energyToday,
+    provider_status: sp.status,
   });
 
   // Map engine status to MonitorPlantStatus for backward compat
