@@ -42,12 +42,22 @@ export default function MonitorPlantDetail() {
     if (!plantId || syncing) return;
     setSyncing(true);
     try {
-      await syncPlantDevices(plantId);
-      toast.success("Sincronização concluída");
+      const result = await syncPlantDevices(plantId);
       queryClient.invalidateQueries({ queryKey: ["monitor-plant-detail", plantId] });
       queryClient.invalidateQueries({ queryKey: ["monitor-devices", plantId] });
       queryClient.invalidateQueries({ queryKey: ["monitor-readings", plantId] });
       queryClient.invalidateQueries({ queryKey: ["monitor-alerts-plant", plantId] });
+
+      const hasErrors = result.errors.length > 0;
+      const metricsOk = result.metrics_synced > 0;
+
+      if (hasErrors && !metricsOk) {
+        toast.error(`Sincronização parcial: ${result.errors[0] || "sem dados novos"}`);
+      } else if (!metricsOk) {
+        toast.info("Sincronização concluída — sem dados novos do provedor.");
+      } else {
+        toast.success("Sincronização concluída com sucesso!");
+      }
     } catch (e: any) {
       toast.error(e?.message || "Erro ao sincronizar");
     } finally {
