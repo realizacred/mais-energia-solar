@@ -35,7 +35,7 @@ interface PlantStatusInput {
   provider_status?: string | null;
 }
 
-const OFFLINE_THRESHOLD_MS = 90 * 60 * 1000; // 90 min (default — ~6 ciclos de sync de 15 min)
+const OFFLINE_THRESHOLD_MS = 45 * 60 * 1000; // 45 min (~3 ciclos de sync de 15 min)
 const OFFLINE_THRESHOLD_WITH_ENERGY_MS = 3 * 60 * 60 * 1000; // 3h — planta que gerou hoje tem mais tolerância
 
 /**
