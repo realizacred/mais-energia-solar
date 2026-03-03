@@ -277,19 +277,28 @@ async function solisListInverters(apiId: string, apiSecret: string): Promise<{ s
       await new Promise(resolve => setTimeout(resolve, 2100));
       const detailJson = await solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
       const dd = detailJson.data || {};
-      console.log(`[Solis] inverterDetail keys for ${sn}:`, Object.keys(dd).filter(k => /pv|Pv|PV|vpv|ipv|uPv|iPv|pow/i.test(k)).join(", "));
-      const detailMeta: Record<string, unknown> = {
-        vpv1: dd.uPv1 ?? dd.vpv1 ?? dd.pv1Voltage ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? dd.pv1Current ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
-        vpv2: dd.uPv2 ?? dd.vpv2 ?? dd.pv2Voltage ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? dd.pv2Current ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
-        vpv3: dd.uPv3 ?? dd.vpv3 ?? dd.pv3Voltage ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? dd.pv3Current ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
-        vpv4: dd.uPv4 ?? dd.vpv4 ?? dd.pv4Voltage ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? dd.pv4Current ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
-        pac: dd.pac ?? dd.generationPower ?? null,
-        etoday: dd.eToday ?? dd.dayEnergy ?? null,
-        etotal: dd.eTotal ?? dd.allEnergy ?? null,
-        etotal1: dd.eTotal1 ?? dd.allEnergy1 ?? null,
-        dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
-        dataTimestamp: dd.dataTimestamp ?? null,
-      };
+      // Log ALL keys to discover correct V/I field names per model
+      console.log(`[Solis] inverterDetail ALL keys for ${sn}:`, Object.keys(dd).join(", "));
+      console.log(`[Solis] PV-related values for ${sn}:`, JSON.stringify(
+        Object.fromEntries(Object.entries(dd).filter(([k]) => /pv|volt|curr|string|mppt|uP|iP|pow|dc/i.test(k)))
+      ));
+      const detailMeta: Record<string, unknown> = {};
+      // Map per-string V/I/P from Solis detail - try all known field patterns
+      for (let si = 1; si <= 4; si++) {
+        const vpvVal = dd[`uPv${si}`] ?? dd[`vpv${si}`] ?? dd[`pv${si}Voltage`] ?? dd[`Upv${si}`] ?? dd[`UPv${si}`] ?? dd[`pvVoltage${si}`] ?? null;
+        const ipvVal = dd[`iPv${si}`] ?? dd[`ipv${si}`] ?? dd[`pv${si}Current`] ?? dd[`Ipv${si}`] ?? dd[`IPv${si}`] ?? dd[`pvCurrent${si}`] ?? null;
+        const ppvVal = dd[`pow${si}`] ?? dd[`ppv${si}`] ?? dd[`pv${si}Power`] ?? null;
+        detailMeta[`vpv${si}`] = vpvVal;
+        detailMeta[`ipv${si}`] = ipvVal;
+        detailMeta[`ppv${si}`] = ppvVal;
+      }
+      detailMeta.pac = dd.pac ?? dd.generationPower ?? null;
+      detailMeta.etoday = dd.eToday ?? dd.dayEnergy ?? null;
+      detailMeta.etotal = dd.eTotal ?? dd.allEnergy ?? null;
+      detailMeta.etotal1 = dd.eTotal1 ?? dd.allEnergy1 ?? null;
+      detailMeta.dcInputTypeMppt = dd.mpptCount ?? dd.dcInputType ?? null;
+      detailMeta.dataTimestamp = dd.dataTimestamp ?? null;
+      detailMeta.maxUpv = dd.maxUpv ?? null;
       console.log(`[Solis] detailMeta for ${sn}: vpv1=${detailMeta.vpv1}, ipv1=${detailMeta.ipv1}, vpv2=${detailMeta.vpv2}, ipv2=${detailMeta.ipv2}`);
       detailMap.set(sn, detailMeta);
     } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}: ${(e as Error).message}`); }

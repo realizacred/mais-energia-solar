@@ -185,17 +185,22 @@ export default function InverterDetailPage() {
             </div>
 
             {data.channels.map((ch) => {
-              // Try multiple field name patterns for Vpv/Ipv (Solis: vpv1/ipv1, Growatt: vpv1/ipv1, legacy: uPv1/iPv1)
-              const rawVpvVal = meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? meta[`Vpv${ch.index}`];
-              const rawIpvVal = meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? meta[`Ipv${ch.index}`];
-              // Distinguish "no data fetched" (null/undefined) from "device reports 0"
+              // Try multiple field name patterns for Vpv/Ipv
+              const rawVpvVal = meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? meta[`Vpv${ch.index}`] ?? meta[`Upv${ch.index}`];
+              const rawIpvVal = meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? meta[`Ipv${ch.index}`] ?? meta[`IPv${ch.index}`];
               const hasVpv = rawVpvVal != null && String(rawVpvVal) !== "null";
               const hasIpv = rawIpvVal != null && String(rawIpvVal) !== "null";
               const rawVpv = hasVpv ? Number(rawVpvVal) : null;
               const rawIpv = hasIpv ? Number(rawIpvVal) : null;
-              // Zero out Vpv/Ipv when offline/standby (stale data)
-              const vpv = isOffline ? 0 : rawVpv;
-              const ipv = isOffline ? 0 : rawIpv;
+              // Derive current from power/voltage if available (P = V * I → I = P / V)
+              const maxVoltage = data.maxPvVoltage ?? null;
+              const derivedIpv = (rawIpv == null && ch.power_w > 0 && maxVoltage && maxVoltage > 0)
+                ? ch.power_w / maxVoltage : null;
+              const derivedVpv = (rawVpv == null && ch.power_w > 0 && maxVoltage && maxVoltage > 0)
+                ? maxVoltage : null;
+              // Zero out when offline (stale data)
+              const vpv = isOffline ? 0 : (rawVpv ?? derivedVpv);
+              const ipv = isOffline ? 0 : (rawIpv ?? derivedIpv);
 
               return (
                 <div
@@ -216,11 +221,11 @@ export default function InverterDetailPage() {
                   )}>
                     {`${ch.power_w} W`}
                   </span>
-                  <span className="text-sm text-right text-foreground">
-                    {vpv == null ? "—" : vpv > 0 ? `${vpv.toFixed(1)} V` : "0 V"}
+                  <span className="text-sm text-right text-foreground" title={rawVpv == null && derivedVpv != null ? "Estimado a partir da Vmáx" : undefined}>
+                    {vpv == null ? "—" : vpv > 0 ? `${rawVpv == null ? "≈ " : ""}${vpv.toFixed(1)} V` : "0 V"}
                   </span>
-                  <span className="text-sm text-right text-foreground">
-                    {ipv == null ? "—" : ipv > 0 ? `${ipv.toFixed(2)} A` : "0 A"}
+                  <span className="text-sm text-right text-foreground" title={rawIpv == null && derivedIpv != null ? "Estimado: P / Vmáx" : undefined}>
+                    {ipv == null ? "—" : ipv > 0 ? `${rawIpv == null ? "≈ " : ""}${ipv.toFixed(2)} A` : "0 A"}
                   </span>
                 </div>
               );
