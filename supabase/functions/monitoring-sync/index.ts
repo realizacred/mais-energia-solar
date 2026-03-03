@@ -1680,19 +1680,20 @@ async function syncPlantsByProvider(
     }
     const { data: dbPlants } = await dbPlantsQuery;
     const metricsStartTime = Date.now();
-    // Per-provider budget: 250s when running solo (per-provider cron), 30s when sharing
+    // Per-provider budget: 280s when running solo (per-provider cron), 30s when sharing
     const isSingleProviderRun = ctx.provider === (globalThis as any).__singleProviderFilter;
-    const METRICS_TIME_BUDGET_MS = isSingleProviderRun ? 250_000 : 30_000;
+    const METRICS_TIME_BUDGET_MS = isSingleProviderRun ? 280_000 : 30_000;
     // Huawei needs sequential processing (each metric call does 3-4 sub-requests)
     const isHuawei = ctx.provider === "huawei" || ctx.provider === "huawei_fusionsolar";
-    const CONCURRENCY = isHuawei ? 1 : 3;
+    const isDeye = ctx.provider === "deye" || ctx.provider === "deye_cloud";
+    const CONCURRENCY = isHuawei ? 1 : isDeye ? 5 : 3;
 
     // Process metrics in concurrent batches
     for (let i = 0; i < (dbPlants || []).length; i += CONCURRENCY) {
       // Time budget check — stop gracefully before timeout
       if (Date.now() - metricsStartTime > METRICS_TIME_BUDGET_MS) {
-        console.warn(`[Sync] Time budget exceeded after ${metricsUpserted} metrics, skipping remaining`);
-        errors.push(`Time budget: processed ${metricsUpserted}/${(dbPlants || []).length} plants`);
+        console.warn(`[Sync] Time budget: processed ${metricsUpserted}/${(dbPlants || []).length} plants (will continue next cycle)`);
+        // Don't push to errors — this is expected behavior for large portfolios, not a real error
         break;
       }
 
