@@ -159,14 +159,6 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   const isActivelyGenerating = powerKw > POWER_THRESHOLD_KW;
   const hasGeneration = isActivelyGenerating || input.energy_today_kwh > 0;
 
-  // Rule 3b: If provider reports ALARM, always offline
-  if (providerAlarm) {
-    return {
-      uiStatus: "offline",
-      reason: "Alarme reportado pelo provedor",
-    };
-  }
-
   // Rule 4 (daytime): ONLINE — provider confirms or actively generating
   // If provider explicitly says "normal"/"online", trust it — plant is communicating
   if (providerConfirmedOnline) {

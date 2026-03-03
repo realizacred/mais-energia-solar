@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
 import { extractMpptData } from "./devices/DeviceMpptSummary";
+import { PlantMpptSection } from "./devices/PlantMpptSection";
 
 import { cn } from "@/lib/utils";
 import {
@@ -98,7 +99,17 @@ export default function MonitorPlantDetail() {
   if (isLoading) return <LoadingState message="Carregando usina..." />;
   if (!plant) return <EmptyState icon={Sun} title="Usina não encontrada" />;
 
-  const status = resolveHealthToUiStatus(plant.health?.status);
+  // ── Status coherence: if ALL devices are offline → plant MUST be offline too ──
+  const healthStatus = resolveHealthToUiStatus(plant.health?.status);
+  const status: PlantUiStatus = (() => {
+    if (devices.length === 0) return healthStatus;
+    const allDevicesOffline = devices.every((d) => {
+      const ts = getDeviceSsotTimestamp(d);
+      const derived = deriveDeviceStatus({ rawStatus: d.status, lastSeenAt: ts });
+      return derived.status === "offline";
+    });
+    return allDevicesOffline ? "offline" : healthStatus;
+  })();
 
   return (
     <div className="space-y-6">
@@ -181,6 +192,10 @@ export default function MonitorPlantDetail() {
         )}
       </SectionCard>
 
+      {/* MPPT & Strings */}
+      {plantId && devices.length > 0 && (
+        <PlantMpptSection plantId={plantId} devices={devices} isOffline={status === "offline"} />
+      )}
 
       {/* Alerts timeline */}
       <SectionCard title={`Eventos (${alerts.length})`} icon={AlertTriangle} variant="warning">
