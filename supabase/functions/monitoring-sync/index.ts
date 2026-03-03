@@ -2312,7 +2312,7 @@ async function dispatchSync(
       extras.devicesFn = async () => {
         const { data: allPlants } = await ctx.supabaseAdmin
           .from("monitor_plants").select("provider_plant_id")
-          .eq("provider_id", integration.provider_id)
+          .eq("provider_id", "deye_cloud")
           .eq("is_active", true);
         const allStationIds = (allPlants || []).map((p: any) => Number(p.provider_plant_id));
         if (!allStationIds.length) return [];
