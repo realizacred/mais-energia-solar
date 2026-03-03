@@ -15,6 +15,8 @@ import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
 import { extractMpptData } from "./devices/DeviceMpptSummary";
 import { PlantMpptSection } from "./devices/PlantMpptSection";
+import { StringAlertBell } from "./devices/StringAlertBell";
+import { isMpptStringEnabled, getDeviceStringCards } from "@/services/monitoring/mpptStringService";
 
 import { cn } from "@/lib/utils";
 import {
@@ -88,6 +90,19 @@ export default function MonitorPlantDetail() {
     enabled: !!plantId,
   });
 
+  // MPPT string cards for alert bell + toast
+  const { data: mpptEnabled } = useQuery({
+    queryKey: ["mppt-string-feature-flag"],
+    queryFn: isMpptStringEnabled,
+    staleTime: 60_000,
+  });
+  const deviceIds = devices.map(d => d.id).sort().join(",");
+  const { data: stringCards = [] } = useQuery({
+    queryKey: ["mppt-string-cards", plantId, deviceIds],
+    queryFn: () => getDeviceStringCards(plantId!, devices),
+    enabled: !!mpptEnabled && !!plantId && devices.length > 0,
+  });
+
   const endDate = getTodayBrasilia();
   const startDate = getDaysAgoBrasilia(RANGE_DAYS[range]);
 
@@ -129,7 +144,8 @@ export default function MonitorPlantDetail() {
             description={[plant.city, plant.state].filter(Boolean).join(" - ")}
             icon={Sun}
             actions={
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <StringAlertBell cards={stringCards} />
                 <Button size="sm" variant="outline" onClick={handleSync} disabled={syncing} className="gap-1.5">
                   <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
                   {syncing ? "Sincronizando..." : "Sincronizar"}
