@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
-import { type PlantUiStatus, resolveHealthToUiStatus } from "@/services/monitoring/plantStatusEngine";
+import { type PlantUiStatus, resolveHealthToUiStatus, formatRelativeSeenAt } from "@/services/monitoring/plantStatusEngine";
 
 interface Props {
   plants: PlantWithHealth[];
@@ -83,6 +83,7 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
       if (plant.lat == null || plant.lng == null) return;
       const status = resolveHealthToUiStatus(plant.health?.status);
       const energyToday = plant.health?.energy_today_kwh || 0;
+      const seenLabel = formatRelativeSeenAt(plant.health?.last_seen_at, { addSuffix: true });
 
       const marker = L.marker([plant.lat, plant.lng], { icon: createIcon(status) })
         .addTo(map)
@@ -94,7 +95,7 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
             ${plant.installed_power_kwp ? `⚡ ${plant.installed_power_kwp} kWp<br/>` : ""}
             🔋 Hoje: ${energyToday.toFixed(0)} kWh<br/>
             ${plant.city ? `📍 ${plant.city}${plant.state ? `/${plant.state}` : ""}<br/>` : ""}
-            ${plant.health?.last_seen_at ? `🕐 ${new Date(plant.health.last_seen_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}` : ""}
+            ${plant.health?.last_seen_at ? `🕐 Visto ${seenLabel}` : ""}
           </div>`,
           { closeButton: false, className: "monitor-popup" }
         )

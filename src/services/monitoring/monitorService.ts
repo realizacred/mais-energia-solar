@@ -92,7 +92,12 @@ function legacyStatusToHealth(
   monthKwh?: number,
   yesterdayMetric?: SolarPlantMetricsDaily,
   openAlertCount?: number,
+  /** SSOT: best available "last seen" = GREATEST(sp.updated_at, max device last_seen_at) */
+  bestLastSeenAt?: string | null,
 ): MonitorHealthCache {
+  // SSOT: canonical plant timestamp — prefer device-enriched timestamp
+  const canonicalLastSeen = bestLastSeenAt || sp.updated_at;
+
   // SSOT: use extractDailyEnergy helper
   let energyToday = extractDailyEnergy(m?.energy_kwh ?? null, m?.power_kw ?? null);
 
@@ -109,9 +114,9 @@ function legacyStatusToHealth(
   // SSOT: normalizePowerKw
   const currentPowerKw = normalizePowerKw(m?.power_kw != null ? Number(m.power_kw) : null);
 
-  // Use the centralized status engine — SSOT
+  // Use the centralized status engine — SSOT with canonical timestamp
   const { uiStatus } = derivePlantStatus({
-    updated_at: sp.updated_at,
+    updated_at: canonicalLastSeen,
     power_kw: m?.power_kw != null ? Number(m.power_kw) : null,
     energy_today_kwh: energyToday,
   });
@@ -124,13 +129,13 @@ function legacyStatusToHealth(
     tenant_id: sp.tenant_id,
     plant_id: sp.id,
     status: statusForHealth,
-    last_seen_at: sp.updated_at,
+    last_seen_at: canonicalLastSeen,
     energy_today_kwh: energyToday,
     energy_month_kwh: monthKwh ?? energyToday,
     current_power_kw: currentPowerKw > 0 ? currentPowerKw : 0,
     performance_7d_pct: null,
     open_alerts_count: openAlertCount ?? 0,
-    updated_at: sp.updated_at,
+    updated_at: canonicalLastSeen,
     is_yesterday_fallback: isYesterdayFallback,
   };
 }
@@ -161,6 +166,34 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     });
   }
 
+  // SSOT: Fetch MAX(monitor_devices.last_seen_at) per plant via monitor_plants join
+  // monitor_plants.legacy_plant_id = solar_plants.id
+  const deviceSeenMap = new Map<string, string>();
+  {
+    const { data: mpRows } = await supabase
+      .from("monitor_plants" as any)
+      .select("id, legacy_plant_id")
+      .in("legacy_plant_id", plantList.map((p) => p.id));
+    const monitorPlantRows = (mpRows as unknown as Array<{ id: string; legacy_plant_id: string }>) || [];
+    if (monitorPlantRows.length > 0) {
+      const mpIds = monitorPlantRows.map((r) => r.id);
+      const mpIdToLegacy = new Map(monitorPlantRows.map((r) => [r.id, r.legacy_plant_id]));
+      const { data: devRows } = await supabase
+        .from("monitor_devices" as any)
+        .select("plant_id, last_seen_at")
+        .in("plant_id", mpIds)
+        .not("last_seen_at", "is", null);
+      ((devRows as unknown as Array<{ plant_id: string; last_seen_at: string }>) || []).forEach((d) => {
+        const legacyId = mpIdToLegacy.get(d.plant_id);
+        if (!legacyId) return;
+        const existing = deviceSeenMap.get(legacyId);
+        if (!existing || d.last_seen_at > existing) {
+          deviceSeenMap.set(legacyId, d.last_seen_at);
+        }
+      });
+    }
+  }
+
   const todayMap = new Map<string, SolarPlantMetricsDaily>();
   ((todayMetrics as unknown as SolarPlantMetricsDaily[]) || []).forEach((m) =>
     todayMap.set(m.plant_id, m)
@@ -180,9 +213,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
 
   return plantList.map((sp) => {
     const m = todayMap.get(sp.id);
+    // SSOT: bestLastSeen = GREATEST(sp.updated_at, max device last_seen_at)
+    const maxDeviceSeen = deviceSeenMap.get(sp.id);
+    const bestLastSeen = maxDeviceSeen && maxDeviceSeen > sp.updated_at ? maxDeviceSeen : sp.updated_at;
     return {
       ...mapSolarPlantToMonitorPlant(sp),
-      health: legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id)),
+      health: legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen),
       provider_name: sp.provider || undefined,
     };
   });
@@ -207,7 +243,6 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
     supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
-    // SSOT: use solar_plant_id (= resolvedId = solar_plants.id) + explicit tenant_id
     supabase.from("monitor_events" as any).select("id").eq("solar_plant_id", resolvedId).eq("tenant_id", sp.tenant_id).eq("is_open", true),
   ]);
 
@@ -221,9 +256,32 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 
   const openAlertCount = ((alertRows as unknown as any[]) || []).length;
 
+  // SSOT: Fetch MAX(monitor_devices.last_seen_at) for this plant
+  let maxDeviceSeen: string | null = null;
+  {
+    const { data: mpRow } = await supabase
+      .from("monitor_plants" as any)
+      .select("id")
+      .eq("legacy_plant_id", resolvedId)
+      .maybeSingle();
+    if (mpRow) {
+      const { data: devRows } = await supabase
+        .from("monitor_devices" as any)
+        .select("last_seen_at")
+        .eq("plant_id", (mpRow as any).id)
+        .not("last_seen_at", "is", null)
+        .order("last_seen_at", { ascending: false })
+        .limit(1);
+      const topDev = (devRows as unknown as Array<{ last_seen_at: string }>) || [];
+      if (topDev.length > 0) maxDeviceSeen = topDev[0].last_seen_at;
+    }
+  }
+
+  const bestLastSeen = maxDeviceSeen && maxDeviceSeen > sp.updated_at ? maxDeviceSeen : sp.updated_at;
+
   return {
     ...mapSolarPlantToMonitorPlant(sp),
-    health: legacyStatusToHealth(sp, m, monthKwh, ym, openAlertCount),
+    health: legacyStatusToHealth(sp, m, monthKwh, ym, openAlertCount, bestLastSeen),
   };
 }
 

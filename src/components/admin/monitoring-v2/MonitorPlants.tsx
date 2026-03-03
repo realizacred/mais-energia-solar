@@ -85,7 +85,7 @@ export default function MonitorPlants() {
           case "power":
             return (b.installed_power_kwp || 0) - (a.installed_power_kwp || 0);
           case "updated":
-            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+            return new Date(b.health?.last_seen_at || b.updated_at).getTime() - new Date(a.health?.last_seen_at || a.updated_at).getTime();
           case "name":
             return (a.name || "").localeCompare(b.name || "");
           default:
