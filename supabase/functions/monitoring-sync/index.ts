@@ -2484,6 +2484,7 @@ serve(async (req) => {
     // ── CRON MODE: x-cron-secret header bypasses user auth ──
     const cronSecretHeader = req.headers.get("x-cron-secret");
     const expectedCronSecret = Deno.env.get("CRON_SECRET");
+    console.log(`[monitoring-sync] Auth check: cronHeader=${!!cronSecretHeader}, envSet=${!!expectedCronSecret}, match=${cronSecretHeader === expectedCronSecret}`);
     if (cronSecretHeader && expectedCronSecret && cronSecretHeader === expectedCronSecret) {
       let cronBody: Record<string, unknown> = {};
       try { cronBody = await req.json(); } catch { /* empty body is fine */ }
