@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
 import { extractMpptData } from "./devices/DeviceMpptSummary";
-import { PlantMpptSection } from "./devices/PlantMpptSection";
+
 import { cn } from "@/lib/utils";
 import {
   UI_STATUS_LABELS, UI_STATUS_DOT, getTodayBrasilia, getDaysAgoBrasilia,
@@ -181,8 +181,6 @@ export default function MonitorPlantDetail() {
         )}
       </SectionCard>
 
-      {/* MPPT & Strings */}
-      <PlantMpptSection plantId={plantId!} devices={devices} isOffline={status === "offline"} />
 
       {/* Alerts timeline */}
       <SectionCard title={`Eventos (${alerts.length})`} icon={AlertTriangle} variant="warning">
