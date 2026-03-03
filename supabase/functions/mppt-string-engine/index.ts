@@ -512,6 +512,34 @@ serve(async (req: Request) => {
         return jsonResponse({ success: true, ...result });
       }
 
+      case "bootstrap_all": {
+        // Process ALL plants for this tenant — used for initial setup
+        console.log(`[mppt-string-engine] bootstrap_all for tenant ${tenantId}`);
+        const { data: allPlants } = await supabaseAdmin
+          .from("monitor_plants")
+          .select("id")
+          .eq("tenant_id", tenantId);
+        const allIds = (allPlants || []).map((p: any) => p.id);
+        console.log(`[mppt-string-engine] Found ${allIds.length} plants to bootstrap`);
+        
+        let totalProcessed = 0;
+        let totalAlerts = 0;
+        // Process in batches of 20 to avoid timeouts
+        const BATCH = 20;
+        for (let i = 0; i < allIds.length; i += BATCH) {
+          const batch = allIds.slice(i, i + BATCH);
+          const result = await processSyncHook(supabaseAdmin, tenantId, batch);
+          totalProcessed += result.processed;
+          totalAlerts += result.alerts_created;
+          // Auto-baseline for each
+          for (const pid of batch) {
+            await autoBaseline(supabaseAdmin, tenantId, pid);
+          }
+          console.log(`[mppt-string-engine] Bootstrap batch ${i / BATCH + 1}: processed=${result.processed}`);
+        }
+        return jsonResponse({ success: true, processed: totalProcessed, alerts_created: totalAlerts, plants: allIds.length });
+      }
+
       default:
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
