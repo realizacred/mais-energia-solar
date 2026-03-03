@@ -93,8 +93,9 @@ export default function MonitorDashboard() {
   const totalPowerMwp = plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) / 1000;
   const totalEnergyTodayMwh = (stats?.energy_today_kwh || 0) / 1000;
   const totalEnergyMonthMwh = (stats?.energy_month_kwh || 0) / 1000;
-  const onlineCount = (stats?.plants_online || 0) + (stats?.plants_standby || 0);
-  const onlinePerc = stats?.total_plants ? ((onlineCount / stats.total_plants) * 100).toFixed(0) : "0";
+  const activeCount = (stats?.plants_online || 0) + (stats?.plants_standby || 0);
+  const activePerc = stats?.total_plants ? ((activeCount / stats.total_plants) * 100).toFixed(0) : "0";
+  const isNight = isBrasiliaNight();
   const alertCount = openAlerts.length;
 
   const validPr = prData.filter((p) => p.pr_status === "ok" && p.pr_percent != null);
@@ -156,10 +157,12 @@ export default function MonitorDashboard() {
               onClick={() => navigate("/admin/monitoramento/usinas")}
             />
             <EnterpriseKpi
-              icon={Activity} label="Online" value={String(onlineCount)}
-              subtitle={`${onlinePerc}% do total`}
+              icon={isNight ? Moon : Activity}
+              label={isNight ? "Ativas (Standby)" : "Online"}
+              value={String(activeCount)}
+              subtitle={`${activePerc}% do total`}
               accentColor="success"
-              onClick={() => navigate("/admin/monitoramento/usinas?status=online")}
+              onClick={() => navigate(isNight ? "/admin/monitoramento/usinas?status=standby" : "/admin/monitoramento/usinas?status=online")}
             />
             <EnterpriseKpi
               icon={AlertTriangle} label="Com Alerta"
@@ -230,7 +233,7 @@ export default function MonitorDashboard() {
               </SectionCard>
 
               <OperationalSummary
-                onlinePerc={Number(onlinePerc)}
+                onlinePerc={Number(activePerc)}
                 alertCount={alertCount}
                 currentPowerKw={realCurrentPower}
                 energyTodayKwh={stats.energy_today_kwh || 0}
