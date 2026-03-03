@@ -37,8 +37,8 @@ function createIcon(status: PlantUiStatus) {
 
 const TILE_LAYERS = {
   street: {
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    options: { maxZoom: 19, attribution: "© OpenStreetMap" },
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    options: { maxZoom: 19, attribution: "© OpenStreetMap, © CARTO", subdomains: "abcd" },
   },
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
