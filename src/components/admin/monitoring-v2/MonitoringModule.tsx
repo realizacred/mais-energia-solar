@@ -19,7 +19,7 @@ const MonitorMpptStrings = lazy(() => import("./MonitorMpptStrings"));
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "" },
   { key: "usinas", label: "Usinas", icon: Sun, path: "usinas" },
-  { key: "mppt-strings", label: "MPPT & Strings", icon: Cpu, path: "mppt-strings" },
+  
   { key: "alertas", label: "Alertas", icon: AlertTriangle, path: "alertas" },
   { key: "relatorios", label: "Relatórios", icon: FileText, path: "relatorios" },
   { key: "cobrancas", label: "Cobranças", icon: DollarSign, path: "cobrancas" },
