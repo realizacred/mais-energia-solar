@@ -137,30 +137,27 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   }
 
   // Rule 3 (daytime): Provider explicitly says "offline"/"no_communication"
-  // HOWEVER: if real-time telemetry shows active power generation, the plant IS
-  // communicating — the provider status field is stale/wrong (common with Deye, Huawei).
-  const isActivelyGenerating = powerKw > POWER_THRESHOLD_KW;
-  const hasGeneration = isActivelyGenerating || input.energy_today_kwh > 0;
-
+  // → Trust the provider unconditionally. Any power/energy values in the DB are STALE
+  //   from before communication was lost — NOT proof of current generation.
+  //   If there's no communication, there's no way to know real-time status.
   if (providerOffline) {
-    // Override: active generation proves the plant is online
-    if (isActivelyGenerating) {
-      return {
-        uiStatus: "online",
-        reason: `Gerando ${powerKw.toFixed(1)} kW (status provedor ignorado)`,
-      };
-    }
-    if (input.energy_today_kwh > 0) {
-      return {
-        uiStatus: "online",
-        reason: `Gerou ${input.energy_today_kwh.toFixed(1)} kWh hoje (status provedor ignorado)`,
-      };
-    }
     return {
       uiStatus: "offline",
       reason: "Provedor confirma offline / sem comunicação",
     };
   }
+
+  // Rule 3b: If provider reports ALARM, always offline
+  if (providerAlarm) {
+    return {
+      uiStatus: "offline",
+      reason: "Alarme reportado pelo provedor",
+    };
+  }
+
+  // Rule 4 (daytime): ONLINE — provider confirms or actively generating
+  const isActivelyGenerating = powerKw > POWER_THRESHOLD_KW;
+  const hasGeneration = isActivelyGenerating || input.energy_today_kwh > 0;
 
   // Rule 3b: If provider reports ALARM, always offline
   if (providerAlarm) {
