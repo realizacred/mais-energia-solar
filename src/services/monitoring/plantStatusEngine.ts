@@ -31,6 +31,8 @@ interface PlantStatusInput {
   power_kw: number | null;
   /** Energy generated today in kWh */
   energy_today_kwh: number;
+  /** Provider-reported status (e.g. "normal", "offline", "alarm") */
+  provider_status?: string | null;
 }
 
 const OFFLINE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -102,17 +104,26 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
     };
   }
 
-  // Recent sync confirmed — check generation
+  // Recent sync confirmed — check provider-reported status first
+  const providerOffline = input.provider_status === "offline" || input.provider_status === "no_communication";
+  const providerAlarm = input.provider_status === "alarm";
+
+  // Rule 2: If provider explicitly says OFFLINE, respect it even at night
+  if (providerOffline) {
+    return {
+      uiStatus: "offline",
+      reason: "Reportado offline pelo provedor",
+    };
+  }
+
+  // Rule 3: STANDBY — nighttime + provider not reporting offline
   const powerKw = normalizePowerKw(input.power_kw);
   const isNight = isBrasiliaNight();
 
-  // Rule 2: STANDBY — nighttime always standby (synced)
-  // Many providers return stale power_kw from the last daytime reading,
-  // so we NEVER trust power_kw at night. Synced + night = standby.
   if (isNight) {
     return {
-      uiStatus: "standby",
-      reason: "Noturno — sem geração solar esperada",
+      uiStatus: providerAlarm ? "offline" : "standby",
+      reason: providerAlarm ? "Alarme reportado pelo provedor" : "Noturno — sem geração solar esperada",
     };
   }
 
