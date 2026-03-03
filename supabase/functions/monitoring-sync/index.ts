@@ -1166,10 +1166,13 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
       });
       const devListJson = await devListRes.json();
       const allDevs = Array.isArray(devListJson.data) ? devListJson.data : [];
-      // Huawei devTypeId: 1=StringInverter, 38=ResidentialInverter, 47=ShuffleOptimizer, 10=EMI
-      // We query ALL inverter-like types for active_power
-      const INVERTER_TYPES = new Set([1, 38, 47]);
-      const inverterDevs = allDevs.filter((dd: any) => INVERTER_TYPES.has(dd.devTypeId));
+      // Huawei devTypeId — ALL known types that report active_power:
+      //  1=StringInverter, 2=SmartLogger, 10=EMI, 17=GridMeter, 22=PID,
+      //  37=Optimizer, 38=ResidentialInverter, 39=Battery, 46=SmartDongle/Logger,
+      //  47=ShuffleOptimizer, 62=ResidentialBattery, 63=Backup Box
+      // We query ALL types — even non-inverters — and sum active_power safely
+      const POWER_DEVICE_TYPES = new Set([1, 2, 10, 17, 22, 37, 38, 39, 46, 47, 62, 63]);
+      const inverterDevs = allDevs.filter((dd: any) => POWER_DEVICE_TYPES.has(dd.devTypeId));
       console.log(`[Huawei] getDevList station=${stationCode} totalDevs=${allDevs.length} inverterLike=${inverterDevs.length} allTypes=${allDevs.map((dd:any)=>`${dd.devTypeId}:${dd.devName||dd.esnCode}`).join("; ")}`);
 
       // Group by devTypeId since getDevRealKpi requires same type per call
