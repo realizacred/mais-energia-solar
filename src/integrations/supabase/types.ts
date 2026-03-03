@@ -19555,6 +19555,13 @@ export type Database = {
           updated_at: string
         }[]
       }
+      fn_monitor_open_alert_counts: {
+        Args: { _tenant_id: string }
+        Returns: {
+          open_count: number
+          plant_id: string
+        }[]
+      }
       generate_consultor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
         Args: never
