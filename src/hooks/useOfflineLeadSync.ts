@@ -23,6 +23,8 @@ interface LeadData {
   observacoes?: string | null;
   arquivos_urls?: string[];
   vendedor?: string | null;
+  /** Código/slug do consultor — usado pelo edge function para resolver o vendedor */
+  vendedor_codigo?: string | null;
   synced?: boolean;
   offlineFiles?: OfflineFile[];
 }
@@ -188,7 +190,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
         body: {
           nome: lead.nome,
           telefone: lead.telefone,
-          vendedor_codigo: lead.vendedor || undefined,
+          vendedor_codigo: lead.vendedor_codigo || lead.vendedor || undefined,
           cep: lead.cep || null,
           estado: lead.estado,
           cidade: lead.cidade,
