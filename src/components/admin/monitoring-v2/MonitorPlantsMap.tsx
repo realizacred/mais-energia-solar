@@ -100,7 +100,7 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
             ${plant.installed_power_kwp ? `⚡ ${plant.installed_power_kwp} kWp<br/>` : ""}
             🔋 Hoje: ${energyToday.toFixed(0)} kWh<br/>
             ${plant.city ? `📍 ${plant.city}${plant.state ? `/${plant.state}` : ""}<br/>` : ""}
-            ${plant.health?.last_seen_at ? `🕐 ${new Date(plant.health.last_seen_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}
+            ${plant.health?.last_seen_at ? `🕐 ${new Date(plant.health.last_seen_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}` : ""}
           </div>`,
           { closeButton: false, className: "monitor-popup" }
         )

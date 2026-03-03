@@ -356,10 +356,11 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
     : "—";
 
   // Format energy nicely
+  const isFallback = plant.health?.is_yesterday_fallback;
   const energyDisplay = energyToday > 0
-    ? energyToday >= 1000
+    ? (energyToday >= 1000
       ? `${(energyToday / 1000).toFixed(1)} MWh`
-      : `${Number(energyToday.toFixed(1))} kWh`
+      : `${Number(energyToday.toFixed(1))} kWh`) + (isFallback ? " (ontem)" : "")
     : "0 kWh";
 
   // Format last seen
@@ -394,7 +395,7 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
         {/* Stats: clean grid */}
         <div className="grid grid-cols-3 gap-2">
           <StatCell label="Potência" value={powerDisplay} />
-          <StatCell label="Hoje" value={energyDisplay} />
+          <StatCell label={isFallback ? "Ontem" : "Hoje"} value={energyDisplay} />
           <StatCell label="Atualização" value={lastSeen} />
         </div>
 

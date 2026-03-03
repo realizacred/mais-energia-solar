@@ -139,7 +139,7 @@ export default function MonitorDashboard() {
             <span className="text-border">|</span>
             <div className="flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
-              <span>Próxima: <strong className="text-foreground">{nextSync && nextSync > new Date() ? format(nextSync, "HH:mm") : "em breve"}</strong></span>
+              <span>Próxima: <strong className="text-foreground">{nextSync && nextSync > new Date() ? nextSync.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) : "em breve"}</strong></span>
             </div>
           </div>
         )}
