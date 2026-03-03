@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Cpu, Zap, AlertTriangle, BarChart3, RefreshCw, ShieldCheck,
-  Activity, WifiOff, CheckCircle2, Clock, Radio, Wifi, Server,
-  ChevronRight,
+  Activity, WifiOff, CheckCircle2, Clock, Radio, Server,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -28,6 +27,7 @@ import {
   deriveDeviceStatus, resolveHealthToUiStatus,
   DEVICE_STATUS_LABELS, DEVICE_STATUS_DOT,
 } from "@/services/monitoring/plantStatusEngine";
+import { DataOriginBadge, DataOriginLegend } from "./ui/DataOriginBadge";
 
 /* ═══════════════════════════════════════════
    Device status resolver — SSOT via deriveDeviceStatus()
@@ -38,7 +38,6 @@ function DeviceStatusIndicator({ deviceStatus, devices, deviceId }: {
   devices?: MonitorDevice[];
   deviceId?: string;
 }) {
-  // Find actual device to get last_seen_at for SSOT 2h rule
   const device = devices?.find((d) => d.id === deviceId);
   const derived = deriveDeviceStatus({
     rawStatus: deviceStatus,
@@ -131,13 +130,16 @@ export default function MonitorMpptStrings() {
     );
   }
 
+  const uiStatus = activePlantData ? resolveHealthToUiStatus(activePlantData.health?.status) : "offline";
+  const isOffline = uiStatus === "offline";
+
   return (
     <div className="space-y-5">
       {/* ─── Plant selector pills ─── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
         {plants.map((p) => {
           const isActive = activePlant === p.id;
-          const uiStatus = resolveHealthToUiStatus(p.health?.status);
+          const pStatus = resolveHealthToUiStatus(p.health?.status);
           return (
             <button
               key={p.id}
@@ -151,7 +153,7 @@ export default function MonitorMpptStrings() {
             >
               <span className={cn(
                 "h-2 w-2 rounded-full shrink-0",
-                uiStatus === "online" ? "bg-success" : uiStatus === "standby" ? "bg-warning" : "bg-destructive"
+                pStatus === "online" ? "bg-success" : pStatus === "standby" ? "bg-warning" : "bg-destructive"
               )} />
               {p.name}
             </button>
@@ -160,14 +162,15 @@ export default function MonitorMpptStrings() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          1) CABEÇALHO TÉCNICO DO INVERSOR
+          DUAL-PANE HEADER: SSOT + RAW
       ═══════════════════════════════════════════ */}
       {activePlantData && (
-        <InverterTechnicalHeader
+        <DualPaneHeader
           plant={activePlantData}
           devices={devices}
           cards={cards}
           openAlerts={openAlertCount}
+          isOffline={isOffline}
         />
       )}
 
@@ -206,7 +209,7 @@ export default function MonitorMpptStrings() {
           {loadingCards ? (
             <LoadingState message="Carregando strings..." />
           ) : tab === "strings" ? (
-            <StringsTab cards={cards} devices={devices} />
+            <StringsTab cards={cards} devices={devices} isOffline={isOffline} />
           ) : tab === "baseline" ? (
             <BaselineTab cards={cards} onRecalculate={handleRecalculate} recalculating={recalculating} />
           ) : (
@@ -214,24 +217,25 @@ export default function MonitorMpptStrings() {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* ─── Footer Legend ─── */}
+      <DataOriginLegend />
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════
-   INVERTER TECHNICAL HEADER
+   DUAL-PANE HEADER (SSOT vs RAW)
 ═══════════════════════════════════════════ */
 
-function InverterTechnicalHeader({
-  plant,
-  devices,
-  cards,
-  openAlerts,
+function DualPaneHeader({
+  plant, devices, cards, openAlerts, isOffline,
 }: {
   plant: PlantWithHealth;
   devices: MonitorDevice[];
   cards: DeviceStringCard[];
   openAlerts: number;
+  isOffline: boolean;
 }) {
   const inverters = devices.filter((d) => d.type === "inverter");
   const firstInverter = inverters[0];
@@ -240,89 +244,91 @@ function InverterTechnicalHeader({
 
   const totalStrings = cards.reduce((s, c) => s + c.strings.length, 0);
   const calibratedStrings = cards.reduce(
-    (s, c) => s + c.strings.filter((st) => st.baseline_day).length,
-    0
+    (s, c) => s + c.strings.filter((st) => st.baseline_day).length, 0
   );
+
+  // RAW data from inverter metadata
+  const inverterMeta = firstInverter?.metadata as Record<string, unknown> | undefined;
+  const rawEtoday = inverterMeta?.etoday != null ? Number(inverterMeta.etoday) : null;
+  const rawPower = inverterMeta?.pac != null ? Number(inverterMeta.pac) : (inverterMeta?.power != null ? Number(inverterMeta.power) : null);
+  const rawPowerKw = rawPower != null ? (rawPower > 1000 ? rawPower / 1000 : rawPower) : null;
+  const providerStatus = (firstInverter?.status as string) || "—";
 
   const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
     online:  { label: "Online", bg: "bg-success/10", text: "text-success", dot: "bg-success" },
     standby: { label: "Standby", bg: "bg-warning/10", text: "text-warning", dot: "bg-warning" },
     offline: { label: "Offline", bg: "bg-destructive/10", text: "text-destructive", dot: "bg-destructive" },
   };
-
   const sc = statusConfig[uiStatus] || statusConfig.offline;
 
   return (
-    <div className="rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left: Plant/Inverter info */}
-        <div className="space-y-3">
-          <div>
-            <h2 className="text-lg font-bold text-foreground">{plant.name}</h2>
-            {firstInverter && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {firstInverter.model || "Inversor"} • Serial: {firstInverter.serial || "—"}
-              </p>
-            )}
+    <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
+      {/* Plant name row */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border/30 bg-muted/20">
+        <div>
+          <h2 className="text-lg font-bold text-foreground">{plant.name}</h2>
+          {firstInverter && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {firstInverter.model || "Inversor"} • Serial: {firstInverter.serial || "—"}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-xl", sc.bg)}>
+            <span className={cn("h-2.5 w-2.5 rounded-full", sc.dot)} />
+            <span className={cn("text-sm font-bold", sc.text)}>{sc.label}</span>
           </div>
+          {openAlerts > 0 && (
+            <span className="px-3 py-1.5 rounded-xl bg-destructive/10 text-destructive text-xs font-bold">
+              {openAlerts} alerta{openAlerts > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+      </div>
 
+      {/* Dual-pane metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/30">
+        {/* LEFT: SSOT (System consolidated) */}
+        <div className="p-5 space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            <span className="text-xs font-bold text-foreground uppercase tracking-wider">Status do Sistema</span>
+            <DataOriginBadge type="ssot" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
-            <TechStat
+            <MetricItem
+              icon={Activity}
+              label="Energia Hoje"
+              value={health?.energy_today_kwh ? `${Number(health.energy_today_kwh.toFixed(1))} kWh` : "0 kWh"}
+              origin="ssot"
+            />
+            <MetricItem
+              icon={Zap}
+              label="Potência Atual"
+              value={health?.current_power_kw ? `${Number(health.current_power_kw.toFixed(2))} kW` : "0 kW"}
+              origin="ssot"
+            />
+            <MetricItem
               icon={Server}
               label="Inversores"
               value={`${inverters.length}`}
+              origin="ssot"
             />
-            <TechStat
-              icon={Zap}
-              label="Potência"
-              value={plant.installed_power_kwp
-                ? `${Number(plant.installed_power_kwp.toFixed(2))} kWp`
-                : "—"
-              }
-            />
-            <TechStat
+            <MetricItem
               icon={Cpu}
               label="Strings"
               value={`${totalStrings}`}
-            />
-            <TechStat
-              icon={Activity}
-              label="Energia Hoje"
-              value={health?.energy_today_kwh
-                ? `${Number(health.energy_today_kwh.toFixed(1))} kWh`
-                : "0 kWh"
-              }
+              origin="ssot"
             />
           </div>
-        </div>
-
-        {/* Right: Status indicators */}
-        <div className="space-y-3">
-          {/* Status badge */}
-          <div className="flex items-center gap-3">
-            <div className={cn("flex items-center gap-2 px-4 py-2 rounded-xl", sc.bg)}>
-              <span className={cn("h-2.5 w-2.5 rounded-full", sc.dot)} />
-              <span className={cn("text-sm font-bold", sc.text)}>{sc.label}</span>
-            </div>
-            {openAlerts > 0 && (
-              <span className="px-3 py-1.5 rounded-xl bg-destructive/10 text-destructive text-xs font-bold">
-                {openAlerts} alerta{openAlerts > 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-
           {/* Status checklist */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5 pt-1">
             <StatusCheckItem
               ok={health?.last_seen_at != null}
               label={health?.last_seen_at
-                ? `Sincronizado há ${formatDistanceToNow(new Date(health.last_seen_at), { locale: ptBR })}`
+                ? `Sync: ${formatDistanceToNow(new Date(health.last_seen_at), { locale: ptBR })}`
                 : "Sem sincronização"
               }
-            />
-            <StatusCheckItem
-              ok={uiStatus === "online" || uiStatus === "standby"}
-              label={uiStatus === "online" || uiStatus === "standby" ? "API conectada" : "API desconectada"}
             />
             <StatusCheckItem
               ok={calibratedStrings > 0}
@@ -332,9 +338,48 @@ function InverterTechnicalHeader({
               }
               pending={calibratedStrings === 0 && totalStrings > 0}
             />
-            <StatusCheckItem
-              ok={true}
-              label="Alertas habilitados"
+          </div>
+        </div>
+
+        {/* RIGHT: RAW (Inverter provider data) */}
+        <div className={cn("p-5 space-y-3 transition-opacity", isOffline && "opacity-60")}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="h-2 w-2 rounded-full bg-muted-foreground" />
+            <span className="text-xs font-bold text-foreground uppercase tracking-wider">Dados do Inversor</span>
+            <DataOriginBadge type="raw" />
+          </div>
+
+          {isOffline && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20 mb-2">
+              <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+              <span className="text-[11px] text-warning font-medium">Dados do provedor podem estar desatualizados.</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <MetricItem
+              icon={Activity}
+              label="Energia Inversor"
+              value={rawEtoday != null ? `${rawEtoday.toFixed(1)} kWh` : "—"}
+              origin="raw"
+            />
+            <MetricItem
+              icon={Zap}
+              label="Potência Inversor"
+              value={rawPowerKw != null ? `${rawPowerKw.toFixed(2)} kW` : "—"}
+              origin="raw"
+            />
+            <MetricItem
+              icon={Radio}
+              label="Status Provedor"
+              value={providerStatus}
+              origin="raw"
+            />
+            <MetricItem
+              icon={Cpu}
+              label="Modelo"
+              value={firstInverter?.model || "—"}
+              origin="raw"
             />
           </div>
         </div>
@@ -343,17 +388,25 @@ function InverterTechnicalHeader({
   );
 }
 
-function TechStat({ icon: Icon, label, value }: {
+/* ═══════════════════════════════════════════
+   Small reusable sub-components
+═══════════════════════════════════════════ */
+
+function MetricItem({ icon: Icon, label, value, origin }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
+  origin: "ssot" | "raw";
 }) {
   return (
     <div className="flex items-center gap-2.5 bg-muted/30 rounded-xl px-3 py-2.5">
-      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <Icon className="h-4 w-4 text-primary" />
+      <div className={cn(
+        "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+        origin === "ssot" ? "bg-primary/10" : "bg-muted"
+      )}>
+        <Icon className={cn("h-4 w-4", origin === "ssot" ? "text-primary" : "text-muted-foreground")} />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-xs font-bold text-foreground leading-tight truncate">{value}</p>
         <p className="text-[10px] text-muted-foreground leading-none">{label}</p>
       </div>
@@ -385,7 +438,7 @@ function StatusCheckItem({ ok, label, pending }: { ok: boolean; label: string; p
    STRINGS TAB
 ═══════════════════════════════════════════ */
 
-function StringsTab({ cards, devices }: { cards: DeviceStringCard[]; devices: MonitorDevice[] }) {
+function StringsTab({ cards, devices, isOffline }: { cards: DeviceStringCard[]; devices: MonitorDevice[]; isOffline: boolean }) {
   if (cards.length === 0) {
     return <MonitoringAwaitingState />;
   }
@@ -393,7 +446,6 @@ function StringsTab({ cards, devices }: { cards: DeviceStringCard[]; devices: Mo
   return (
     <div className="space-y-5">
       {cards.map((card) => {
-        // Group strings by MPPT
         const mpptGroups = new Map<number, StringRegistryWithMetric[]>();
         const ungrouped: StringRegistryWithMetric[] = [];
 
@@ -410,7 +462,10 @@ function StringsTab({ cards, devices }: { cards: DeviceStringCard[]; devices: Mo
         const sortedMppts = Array.from(mpptGroups.entries()).sort((a, b) => a[0] - b[0]);
 
         return (
-          <div key={card.device_id} className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
+          <div key={card.device_id} className={cn(
+            "rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm transition-opacity",
+            isOffline && "opacity-60"
+          )}>
             {/* Device header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 bg-muted/20">
               <div className="flex items-center gap-3">
@@ -418,11 +473,14 @@ function StringsTab({ cards, devices }: { cards: DeviceStringCard[]; devices: Mo
                   <Cpu className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">
-                    {card.device_model || "Inversor"}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground">
+                      {card.device_model || "Inversor"}
+                    </h3>
+                    <DataOriginBadge type="raw" />
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Serial: {card.device_serial || "—"}
+                    Serial: {card.device_serial || "—"} • Dados de string (raw do provedor)
                   </p>
                 </div>
               </div>
@@ -435,6 +493,13 @@ function StringsTab({ cards, devices }: { cards: DeviceStringCard[]; devices: Mo
                 )}
               </div>
             </div>
+
+            {isOffline && (
+              <div className="flex items-center gap-2 px-5 py-2 bg-warning/5 border-b border-warning/20">
+                <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+                <span className="text-[11px] text-warning font-medium">Dados do provedor podem estar desatualizados.</span>
+              </div>
+            )}
 
             {/* MPPT groups */}
             <div className="p-4 space-y-4">
@@ -461,7 +526,7 @@ function StringsTab({ cards, devices }: { cards: DeviceStringCard[]; devices: Mo
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
                         {strings.map((s) => (
-                          <StringCell key={s.id} entry={s} />
+                          <StringCell key={s.id} entry={s} isSystemOnline={!isOffline} />
                         ))}
                       </div>
                     </div>
@@ -477,7 +542,7 @@ function StringsTab({ cards, devices }: { cards: DeviceStringCard[]; devices: Mo
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
                         {ungrouped.map((s) => (
-                          <StringCell key={s.id} entry={s} />
+                          <StringCell key={s.id} entry={s} isSystemOnline={!isOffline} />
                         ))}
                       </div>
                     </div>
@@ -507,7 +572,6 @@ function MonitoringAwaitingState() {
             O sistema registrará automaticamente MPPTs e Strings após a próxima sincronização.
           </p>
         </div>
-
         <div className="space-y-2 text-left bg-muted/30 rounded-xl p-4">
           <StatusCheckItem ok={true} label="Integração ativa" />
           <StatusCheckItem ok={true} label="API conectada" />
@@ -519,31 +583,38 @@ function MonitoringAwaitingState() {
   );
 }
 
-/* ─── String Cell (enhanced) ─── */
+/* ─── String Cell (enhanced with origin badge + offline awareness) ─── */
 
-function StringCell({ entry }: { entry: StringRegistryWithMetric }) {
+function StringCell({ entry, isSystemOnline }: { entry: StringRegistryWithMetric; isSystemOnline: boolean }) {
   const badge = ALERT_BADGE[entry.alert_status || "unknown"];
-  const label = entry.string_number
-    ? `S${entry.string_number}`
-    : "Inversor";
+  const label = entry.string_number ? `S${entry.string_number}` : "Inversor";
 
   const powerVal = entry.latest_power_w;
   const baselinePct = entry.baseline_pct;
 
+  // String stopped while system online = yellow warning
+  const isStoppedWhileOnline = isSystemOnline && powerVal != null && powerVal === 0 && entry.alert_status !== "unknown";
+
   return (
     <div
       className={cn(
-        "rounded-xl border p-3 transition-all hover:shadow-sm hover:-translate-y-0.5 cursor-default",
+        "rounded-xl border p-3 transition-all hover:shadow-sm hover:-translate-y-0.5 cursor-default relative",
         entry.alert_status === "ok" ? "border-success/25 bg-success/5" :
         entry.alert_status === "critical" ? "border-destructive/25 bg-destructive/5" :
         entry.alert_status === "warn" ? "border-warning/25 bg-warning/5" :
         "border-border/40 bg-muted/15"
       )}
+      title={isStoppedWhileOnline ? "Inversor online, mas string sem geração." : "Baseado em dados diretos do inversor."}
     >
-      {/* Label + status dot */}
+      {/* Label + status dot + warning icon */}
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[11px] font-semibold text-muted-foreground">{label}</span>
-        <span className={cn("h-2 w-2 rounded-full", badge.dot)} />
+        <div className="flex items-center gap-1">
+          {isStoppedWhileOnline && (
+            <AlertTriangle className="h-3 w-3 text-warning" />
+          )}
+          <span className={cn("h-2 w-2 rounded-full", badge.dot)} />
+        </div>
       </div>
 
       {/* Power value */}
@@ -561,10 +632,7 @@ function StringCell({ entry }: { entry: StringRegistryWithMetric }) {
               {baselinePct.toFixed(0)}%
             </span>
           </div>
-          <Progress
-            value={Math.min(baselinePct, 100)}
-            className="h-1"
-          />
+          <Progress value={Math.min(baselinePct, 100)} className="h-1" />
         </div>
       )}
 
@@ -583,9 +651,7 @@ function StringCell({ entry }: { entry: StringRegistryWithMetric }) {
 ═══════════════════════════════════════════ */
 
 function BaselineTab({
-  cards,
-  onRecalculate,
-  recalculating,
+  cards, onRecalculate, recalculating,
 }: {
   cards: DeviceStringCard[];
   onRecalculate: () => void;
@@ -602,7 +668,6 @@ function BaselineTab({
 
   return (
     <div className="space-y-4">
-      {/* Header bar */}
       <div className="flex items-center justify-between rounded-2xl border border-border/50 bg-card px-5 py-3.5 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-primary/8 flex items-center justify-center">
@@ -687,7 +752,6 @@ function AlertsTab({ alerts }: { alerts: StringAlert[] }) {
 
   return (
     <div className="space-y-5">
-      {/* Open alerts */}
       <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/30 bg-muted/20">
           <AlertTriangle className={cn("h-4 w-4", open.length > 0 ? "text-destructive" : "text-muted-foreground")} />
@@ -711,7 +775,6 @@ function AlertsTab({ alerts }: { alerts: StringAlert[] }) {
         </div>
       </div>
 
-      {/* Resolved alerts */}
       {resolved.length > 0 && (
         <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
           <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/30 bg-muted/20">
@@ -769,9 +832,7 @@ function AlertRow({ alert }: { alert: StringAlert }) {
       <span
         className={cn(
           "px-2.5 py-1 rounded-lg text-[10px] font-bold shrink-0",
-          isCritical
-            ? "bg-destructive/10 text-destructive"
-            : "bg-warning/10 text-warning"
+          isCritical ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
         )}
       >
         {isCritical ? "Crítico" : "Atenção"}

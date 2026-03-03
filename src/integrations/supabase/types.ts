@@ -7217,7 +7217,7 @@ export type Database = {
           provider_plant_id: string | null
           resolved_at: string | null
           severity: string
-          solar_plant_id: string | null
+          solar_plant_id: string
           starts_at: string
           tenant_id: string
           title: string
@@ -7241,7 +7241,7 @@ export type Database = {
           provider_plant_id?: string | null
           resolved_at?: string | null
           severity?: string
-          solar_plant_id?: string | null
+          solar_plant_id: string
           starts_at?: string
           tenant_id: string
           title: string
@@ -7265,7 +7265,7 @@ export type Database = {
           provider_plant_id?: string | null
           resolved_at?: string | null
           severity?: string
-          solar_plant_id?: string | null
+          solar_plant_id?: string
           starts_at?: string
           tenant_id?: string
           title?: string
