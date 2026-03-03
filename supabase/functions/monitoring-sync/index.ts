@@ -1107,14 +1107,31 @@ async function huaweiListPlants(xsrfToken: string, cookies: string, region: stri
     console.warn(`[Huawei] API retornou sucesso mas 0 usinas. Verifique se as plantas foram selecionadas no portal FusionSolar > Gestão de API.`);
     console.log(`[Huawei] Raw data keys: ${rawData ? Object.keys(rawData) : "null"}`);
   }
-  return list.map((r: any) => ({
-    external_id: String(r.stationCode || ""), name: String(r.stationName || ""),
-    capacity_kw: r.capacity != null ? Number(r.capacity) * 1000 : null, // Huawei returns capacity in MW, convert to kWp
-    address: r.stationAddr || null,
-    latitude: r.latitude != null ? Number(r.latitude) : null, longitude: r.longitude != null ? Number(r.longitude) : null,
-    status: r.realHealthState === 3 ? "normal" : r.realHealthState === 1 ? "offline" : r.realHealthState === 2 ? "alarm" : "unknown",
-    metadata: r,
-  }));
+  return list.map((r: any) => {
+    // Huawei realHealthState: 1=disconnect, 2=fault, 3=healthy
+    // Many accounts don't return this field — derive status from available signals
+    let status: string;
+    if (r.realHealthState === 3) status = "normal";
+    else if (r.realHealthState === 1) status = "offline";
+    else if (r.realHealthState === 2) status = "alarm";
+    else if (r.realHealthState != null) status = "unknown";
+    else {
+      // realHealthState missing — use capacity + connectFlag as heuristic
+      // If plant has capacity > 0, assume "normal" (will be refined by metrics)
+      const cap = r.capacity != null ? Number(r.capacity) : 0;
+      status = cap > 0 ? "normal" : "unknown";
+      console.log(`[Huawei] Plant ${r.stationCode} missing realHealthState, derived="${status}" (capacity=${cap}MW)`);
+    }
+    return {
+      external_id: String(r.stationCode || ""), name: String(r.stationName || ""),
+      capacity_kw: r.capacity != null ? Number(r.capacity) * 1000 : null,
+      address: r.stationAddr || null,
+      latitude: r.latitude != null ? Number(r.latitude) : null,
+      longitude: r.longitude != null ? Number(r.longitude) : null,
+      status,
+      metadata: r,
+    };
+  });
 }
 
 async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: string, region: string): Promise<DailyMetrics> {
@@ -1602,6 +1619,18 @@ async function upsertMetrics(ctx: SyncContext, plantId: string, metrics: DailyMe
     energy_kwh: metrics.energy_kwh, power_kw: metrics.power_kw,
     total_energy_kwh: metrics.total_energy_kwh, metadata: metrics.metadata,
   }, { onConflict: "tenant_id,plant_id,date" });
+
+  // If metrics were successfully obtained (any non-null value), the plant is communicating
+  // Update status to "normal" if currently "unknown" — indicates active communication
+  if (!error && (metrics.power_kw != null || metrics.energy_kwh != null || metrics.total_energy_kwh != null)) {
+    try {
+      await ctx.supabaseAdmin.from("solar_plants")
+        .update({ status: "normal", updated_at: new Date().toISOString() })
+        .eq("id", plantId)
+        .eq("status", "unknown"); // Only upgrade unknown → normal, don't override alarm/offline
+    } catch { /* non-blocking */ }
+  }
+
   return error ? error.message : null;
 }
 
