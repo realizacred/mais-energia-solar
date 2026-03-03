@@ -35,8 +35,16 @@ interface PlantStatusInput {
   provider_status?: string | null;
 }
 
-/** SSOT: Threshold único de offline — 30 min (~2 ciclos de sync de 15 min). Padrão para TODAS as APIs/usinas. */
+/** SSOT: Threshold de offline diurno — 30 min (~2 ciclos de sync de 15 min). */
 const OFFLINE_THRESHOLD_MS = 30 * 60 * 1000;
+
+/**
+ * SSOT: Threshold de offline noturno — 14h.
+ * Inverters shut down at sunset (~18h). At night the last sync will be from
+ * the afternoon. If last sync was within 14h it means the plant synced today
+ * during daytime and is just sleeping. Beyond 14h → truly offline.
+ */
+const NIGHT_OFFLINE_THRESHOLD_MS = 14 * 60 * 60 * 1000;
 
 /**
  * Get current hour in America/Sao_Paulo timezone (BRT/BRST).
@@ -95,12 +103,15 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   const updatedAt = input.updated_at ? new Date(input.updated_at).getTime() : 0;
   const elapsed = now - updatedAt;
 
-  // Rule 1: OFFLINE — no recent sync (threshold único: 30 min para TODAS as APIs)
-  if (!input.updated_at || elapsed > OFFLINE_THRESHOLD_MS) {
+  const isNight = isBrasiliaNight();
+  const activeThreshold = isNight ? NIGHT_OFFLINE_THRESHOLD_MS : OFFLINE_THRESHOLD_MS;
+
+  // Rule 1: OFFLINE — no recent sync (30 min daytime, 14h nighttime)
+  if (!input.updated_at || elapsed > activeThreshold) {
     return {
       uiStatus: "offline",
       reason: input.updated_at
-        ? `Última sincronização há ${Math.round(elapsed / 60000)} min (limite: 30 min)`
+        ? `Última sincronização há ${Math.round(elapsed / 60000)} min (limite: ${Math.round(activeThreshold / 60000)} min)`
         : "Sem data de sincronização",
     };
   }
@@ -112,12 +123,10 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   const providerConfirmedOnline = ps === "normal" || ps === "online";
 
   const powerKw = normalizePowerKw(input.power_kw);
-  const isNight = isBrasiliaNight();
 
-  // Rule 2: NIGHTTIME — if synced recently (rule 1 passed), always STANDBY at night
-  // Rationale: after sunset there's no solar generation. Providers may report
-  // "offline" or "disconnected" simply because inverters shut down at night.
-  // Since the device passed the 2h sync gate, it is communicating and healthy.
+  // Rule 2: NIGHTTIME — if synced within night threshold, always STANDBY
+  // Inverters shut down at sunset; providers may report "offline"/"disconnected"
+  // which doesn't mean a real fault — just no solar generation.
   if (isNight) {
     // Only exception: explicit alarm (real fault, not just "no power")
     if (providerAlarm) {
@@ -137,9 +146,6 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   }
 
   // Rule 3 (daytime): Provider explicitly says "offline"/"no_communication"
-  // → Trust the provider unconditionally. Any power/energy values in the DB are STALE
-  //   from before communication was lost — NOT proof of current generation.
-  //   If there's no communication, there's no way to know real-time status.
   if (providerOffline) {
     return {
       uiStatus: "offline",
@@ -245,8 +251,11 @@ export function deriveDeviceStatus(input: DeviceStatusInput): DerivedDeviceStatu
   const elapsed = now - lastSeen;
   const providerStatus = input.rawStatus || "unknown";
 
-  // Rule 1: OFFLINE — no recent sync (same 2h threshold as plants)
-  if (!input.lastSeenAt || elapsed > OFFLINE_THRESHOLD_MS) {
+  const isNight = isBrasiliaNight();
+  const activeThreshold = isNight ? NIGHT_OFFLINE_THRESHOLD_MS : OFFLINE_THRESHOLD_MS;
+
+  // Rule 1: OFFLINE — no recent sync (30 min day, 14h night)
+  if (!input.lastSeenAt || elapsed > activeThreshold) {
     return {
       status: "offline",
       provider_status: providerStatus,
@@ -395,7 +404,8 @@ export function computeDeviceStaleness(snapshotAt: string | null): DeviceStalene
   }
   const elapsed = Date.now() - new Date(snapshotAt).getTime();
   const minutesAgo = Math.round(elapsed / 60000);
-  const stale = elapsed > OFFLINE_THRESHOLD_MS;
+  const activeThreshold = isBrasiliaNight() ? NIGHT_OFFLINE_THRESHOLD_MS : OFFLINE_THRESHOLD_MS;
+  const stale = elapsed > activeThreshold;
   return {
     stale,
     minutesAgo,
