@@ -106,7 +106,11 @@ export default function MonitorPlants() {
     const standby = plants.filter((p) => resolveUiStatus(p) === "standby").length;
     const offline = plants.filter((p) => resolveUiStatus(p) === "offline").length;
     const totalPowerKwp = plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0);
-    const energyTodayKwh = plants.reduce((s, p) => s + (p.health?.energy_today_kwh || 0), 0);
+    // SSOT: exclude yesterday fallback from aggregated "Energia Hoje" to avoid inflated numbers
+    const energyTodayKwh = plants.reduce((s, p) => {
+      if (p.health?.is_yesterday_fallback) return s; // skip fallback entries
+      return s + (p.health?.energy_today_kwh || 0);
+    }, 0);
     return { total: plants.length, online, standby, offline, totalPowerKwp, energyTodayKwh };
   }, [plants]);
 
@@ -170,7 +174,7 @@ export default function MonitorPlants() {
         <MiniKpi label="Standby" value={kpiData.standby} icon={Moon} color="warning" />
         <MiniKpi label="Offline" value={kpiData.offline} icon={WifiOff} color={kpiData.offline > 0 ? "destructive" : "muted"} />
         <MiniKpi
-          label="Potência"
+          label="Pot. Instalada"
           value={kpiData.totalPowerKwp >= 1000
             ? `${(kpiData.totalPowerKwp / 1000).toFixed(1)} MWp`
             : `${kpiData.totalPowerKwp.toFixed(0)} kWp`
