@@ -306,12 +306,12 @@ export default function MonitorPlants() {
 type KpiColor = "primary" | "success" | "warning" | "destructive" | "muted";
 
 const KPI_COLORS: Record<KpiColor | "default", { iconBg: string; iconText: string }> = {
-  primary:     { iconBg: "bg-primary/8",     iconText: "text-primary" },
-  success:     { iconBg: "bg-success/8",     iconText: "text-success" },
-  warning:     { iconBg: "bg-warning/8",     iconText: "text-warning" },
-  destructive: { iconBg: "bg-destructive/8", iconText: "text-destructive" },
-  muted:       { iconBg: "bg-muted",         iconText: "text-muted-foreground" },
-  default:     { iconBg: "bg-muted/60",      iconText: "text-foreground" },
+  primary:     { iconBg: "bg-primary/15",     iconText: "text-primary" },
+  success:     { iconBg: "bg-success/15",     iconText: "text-success" },
+  warning:     { iconBg: "bg-warning/15",     iconText: "text-warning" },
+  destructive: { iconBg: "bg-destructive/15", iconText: "text-destructive" },
+  muted:       { iconBg: "bg-muted",          iconText: "text-muted-foreground" },
+  default:     { iconBg: "bg-muted/60",       iconText: "text-foreground" },
 };
 
 function MiniKpi({ label, value, icon: Icon, color }: {

@@ -367,7 +367,7 @@ export default function MonitorBilling() {
 
 function MiniCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 ring-1 ring-primary/10">
+    <div className="rounded-xl border border-border/60 bg-card p-4 ring-1 ring-primary/15">
       <p className="text-xs text-muted-foreground font-medium">{label}</p>
       <p className="text-lg font-bold text-foreground mt-1">{value}</p>
     </div>
