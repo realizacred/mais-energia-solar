@@ -17,10 +17,8 @@ import {
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
 import type { PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
-import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS, isBrasiliaNight, resolveHealthToUiStatus } from "@/services/monitoring/plantStatusEngine";
+import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS, isBrasiliaNight, resolveHealthToUiStatus, formatRelativeSeenAt } from "@/services/monitoring/plantStatusEngine";
 import { getProviderIconUrl } from "@/services/integrations/iconMap";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { MonitorPlantsMap } from "./MonitorPlantsMap";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -370,10 +368,8 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
       : `${Number(energyToday.toFixed(1))} kWh`) + (isFallback ? " (ontem)" : "")
     : "0 kWh";
 
-  // Format last seen
-  const lastSeen = plant.health?.last_seen_at
-    ? formatDistanceToNow(new Date(plant.health.last_seen_at), { addSuffix: false, locale: ptBR })
-    : "—";
+  // Format last seen — SSOT helper
+  const lastSeen = formatRelativeSeenAt(plant.health?.last_seen_at);
 
   return (
     <button

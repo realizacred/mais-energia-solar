@@ -11,8 +11,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { listPlantsWithHealth, listDevices } from "@/services/monitoring/monitorService";
 import {
   isMpptStringEnabled,
@@ -24,7 +22,7 @@ import type { DeviceStringCard, StringAlert, StringRegistryWithMetric } from "@/
 import type { PlantWithHealth, MonitorDevice } from "@/services/monitoring/monitorTypes";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  deriveDeviceStatus, resolveHealthToUiStatus,
+  deriveDeviceStatus, resolveHealthToUiStatus, formatRelativeSeenAt,
   DEVICE_STATUS_LABELS, DEVICE_STATUS_DOT,
 } from "@/services/monitoring/plantStatusEngine";
 import { DataOriginBadge, DataOriginLegend } from "./ui/DataOriginBadge";
@@ -326,7 +324,7 @@ function DualPaneHeader({
             <StatusCheckItem
               ok={health?.last_seen_at != null}
               label={health?.last_seen_at
-                ? `Sync: ${formatDistanceToNow(new Date(health.last_seen_at), { locale: ptBR })}`
+                ? `Sync: ${formatRelativeSeenAt(health.last_seen_at)}`
                 : "Sem sincronização"
               }
             />

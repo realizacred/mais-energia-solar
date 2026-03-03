@@ -1,3 +1,6 @@
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
 /**
  * Plant Status Engine — SSOT for deriving plant UI status.
  *
@@ -312,4 +315,23 @@ export function computeDeviceStaleness(snapshotAt: string | null): DeviceStalene
     minutesAgo,
     label: stale ? `Última leitura há ${minutesAgo} min` : `Sincronizado há ${minutesAgo} min`,
   };
+}
+
+/* ─── RELATIVE TIME FORMATTER (SSOT) ─── */
+
+/**
+ * Format a "seen at" timestamp as relative text (e.g., "há 13 min", "há 3 horas").
+ * SSOT — the ONLY helper for "Visto há …" / "Sync há …" across all monitoring screens.
+ * Returns "—" if no date is provided.
+ */
+export function formatRelativeSeenAt(dateStr: string | null | undefined, options?: { addSuffix?: boolean }): string {
+  if (!dateStr) return "—";
+  try {
+    return formatDistanceToNow(new Date(dateStr), {
+      addSuffix: options?.addSuffix ?? false,
+      locale: ptBR,
+    });
+  } catch {
+    return "—";
+  }
 }

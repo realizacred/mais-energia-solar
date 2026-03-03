@@ -10,9 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Cpu, Zap, Activity, RefreshCw, AlertTriangle } from "lucide-react";
 import { listDevices, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { extractMpptData } from "./DeviceMpptSummary";
-import { deriveDeviceStatus, DEVICE_STATUS_LABELS, computeDeviceStaleness } from "@/services/monitoring/plantStatusEngine";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { deriveDeviceStatus, DEVICE_STATUS_LABELS, computeDeviceStaleness, formatRelativeSeenAt } from "@/services/monitoring/plantStatusEngine";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -102,7 +100,7 @@ export default function InverterDetailPage() {
                 <StatusBadge status={statusLabel} />
                 {snapshotAt && (
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(snapshotAt), { addSuffix: true, locale: ptBR })}
+                    {formatRelativeSeenAt(snapshotAt, { addSuffix: true })}
                   </span>
                 )}
               </div>
@@ -118,7 +116,7 @@ export default function InverterDetailPage() {
           <span>
             <strong>Dados do inversor desatualizados.</strong>{" "}
             {snapshotAt
-              ? `Última leitura ${formatDistanceToNow(new Date(snapshotAt), { addSuffix: true, locale: ptBR })}.`
+              ? `Última leitura ${formatRelativeSeenAt(snapshotAt, { addSuffix: true })}.`
               : "Sem data de sincronização."}
           </span>
         </div>
