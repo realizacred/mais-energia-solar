@@ -181,6 +181,13 @@ export default function MonitorPlantDetail() {
                         const coherentStatus = status === "offline" && deviceDerived.status !== "offline"
                           ? computeDeviceStaleness(deviceSeenAt).stale ? "offline" as const : deviceDerived.status
                           : deviceDerived.status;
+
+                        // DEBUG SSOT — temporary instrumentation
+                        if (import.meta.env.DEV) {
+                          const ageMin = deviceSeenAt ? Math.round((Date.now() - new Date(deviceSeenAt).getTime()) / 60000) : null;
+                          console.log(`[SSOT DEVICE] id=${d.id} raw=${d.status} last_seen_at=${deviceSeenAt} age=${ageMin}min derived=${deviceDerived.status} coherent=${coherentStatus}`);
+                        }
+
                         return (
                           <>
                             <span className={cn("h-2 w-2 rounded-full", DEVICE_STATUS_DOT[coherentStatus])} />
