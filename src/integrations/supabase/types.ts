@@ -7209,6 +7209,7 @@ export type Database = {
           id: string
           is_open: boolean
           message: string | null
+          monitor_plant_id: string | null
           opened_at: string | null
           plant_id: string
           provider_event_id: string | null
@@ -7216,6 +7217,7 @@ export type Database = {
           provider_plant_id: string | null
           resolved_at: string | null
           severity: string
+          solar_plant_id: string | null
           starts_at: string
           tenant_id: string
           title: string
@@ -7231,6 +7233,7 @@ export type Database = {
           id?: string
           is_open?: boolean
           message?: string | null
+          monitor_plant_id?: string | null
           opened_at?: string | null
           plant_id: string
           provider_event_id?: string | null
@@ -7238,6 +7241,7 @@ export type Database = {
           provider_plant_id?: string | null
           resolved_at?: string | null
           severity?: string
+          solar_plant_id?: string | null
           starts_at?: string
           tenant_id: string
           title: string
@@ -7253,6 +7257,7 @@ export type Database = {
           id?: string
           is_open?: boolean
           message?: string | null
+          monitor_plant_id?: string | null
           opened_at?: string | null
           plant_id?: string
           provider_event_id?: string | null
@@ -7260,6 +7265,7 @@ export type Database = {
           provider_plant_id?: string | null
           resolved_at?: string | null
           severity?: string
+          solar_plant_id?: string | null
           starts_at?: string
           tenant_id?: string
           title?: string
@@ -19559,7 +19565,7 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: {
           open_count: number
-          plant_id: string
+          solar_plant_id: string
         }[]
       }
       generate_consultor_slug: { Args: { nome: string }; Returns: string }
