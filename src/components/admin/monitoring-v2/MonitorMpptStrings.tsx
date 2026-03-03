@@ -343,7 +343,9 @@ function DualPaneHeader({
               ok={calibratedStrings > 0}
               label={calibratedStrings > 0
                 ? `Baseline: ${calibratedStrings}/${totalStrings}`
-                : "Aguardando calibração"
+                : totalStrings > 0
+                  ? "Calibrando baseline…"
+                  : "Sem strings"
               }
               pending={calibratedStrings === 0 && totalStrings > 0}
             />
