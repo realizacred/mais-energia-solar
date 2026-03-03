@@ -141,6 +141,8 @@ export type DeviceUiStatus = "online" | "standby" | "offline";
 export interface DerivedDeviceStatus {
   status: DeviceUiStatus;
   reason: string;
+  /** Original provider-reported status, preserved for diagnostics */
+  provider_status: string;
 }
 
 interface DeviceStatusInput {
@@ -161,29 +163,31 @@ export function deriveDeviceStatus(input: DeviceStatusInput): DerivedDeviceStatu
   const now = Date.now();
   const lastSeen = input.lastSeenAt ? new Date(input.lastSeenAt).getTime() : 0;
   const elapsed = now - lastSeen;
+  const providerStatus = input.rawStatus || "unknown";
 
   // Rule 1: OFFLINE — no recent sync (same 2h threshold as plants)
   if (!input.lastSeenAt || elapsed > OFFLINE_THRESHOLD_MS) {
     return {
       status: "offline",
+      provider_status: providerStatus,
       reason: input.lastSeenAt
-        ? `Sem sincronização há ${Math.round(elapsed / 60000)} min`
+        ? `Offline por timeout — sem sincronização há ${Math.round(elapsed / 60000)} min`
         : "Sem data de sincronização",
     };
   }
 
   // Rule 2: STANDBY — nighttime + was online
   if (input.rawStatus === "online" && isBrasiliaNight()) {
-    return { status: "standby", reason: "Noturno — dispositivo em standby" };
+    return { status: "standby", provider_status: providerStatus, reason: "Noturno — dispositivo em standby" };
   }
 
   // Rule 3: ONLINE — recently synced and raw status is online
   if (input.rawStatus === "online") {
-    return { status: "online", reason: "Dispositivo sincronizado e operacional" };
+    return { status: "online", provider_status: providerStatus, reason: "Dispositivo sincronizado e operacional" };
   }
 
   // Raw status is not online (e.g. "offline", "fault", unknown)
-  return { status: "offline", reason: `Status do provedor: ${input.rawStatus}` };
+  return { status: "offline", provider_status: providerStatus, reason: `Status do provedor: ${input.rawStatus}` };
 }
 
 /* ─── SHARED UI STATUS RESOLVER (SSOT) ─── */
