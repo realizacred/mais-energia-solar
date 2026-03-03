@@ -110,8 +110,8 @@ export default function MonitorDashboard() {
 
   const isGenerating = (stats?.energy_today_kwh || 0) > 0;
   const isDaylight = !isBrasiliaNight();
-  const estimatedCurrentPower = isDaylight && isGenerating
-    ? (plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) * 0.7) : 0;
+  // SSOT: use real aggregated current_power_kw from health (not estimated)
+  const realCurrentPower = isDaylight ? (stats?.current_power_kw || 0) : 0;
 
   const lastSyncDate = integrations
     .filter((i: any) => i.last_sync_at)
@@ -191,7 +191,7 @@ export default function MonitorDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
             <SectionCard title="Fluxo de Energia" icon={Zap} variant="blue">
               <EnergyFlowAnimation
-                currentPowerKw={estimatedCurrentPower}
+                currentPowerKw={realCurrentPower}
                 isGenerating={isDaylight && isGenerating}
               />
             </SectionCard>
@@ -232,7 +232,7 @@ export default function MonitorDashboard() {
               <OperationalSummary
                 onlinePerc={Number(onlinePerc)}
                 alertCount={alertCount}
-                currentPowerKw={estimatedCurrentPower}
+                currentPowerKw={realCurrentPower}
                 energyTodayKwh={stats.energy_today_kwh || 0}
                 standbyCount={stats.plants_standby || 0}
                 offlineCount={stats.plants_offline || 0}

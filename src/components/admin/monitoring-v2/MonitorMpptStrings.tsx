@@ -24,33 +24,30 @@ import {
 import type { DeviceStringCard, StringAlert, StringRegistryWithMetric } from "@/services/monitoring/mpptStringTypes";
 import type { PlantWithHealth, MonitorDevice } from "@/services/monitoring/monitorTypes";
 import { motion, AnimatePresence } from "framer-motion";
-import { isBrasiliaNight } from "@/services/monitoring/plantStatusEngine";
+import {
+  deriveDeviceStatus, resolveHealthToUiStatus,
+  DEVICE_STATUS_LABELS, DEVICE_STATUS_DOT,
+} from "@/services/monitoring/plantStatusEngine";
 
 /* ═══════════════════════════════════════════
-   Device status resolver — respects plant status engine
-   At night, synced devices show "Standby" instead of "Online"
+   Device status resolver — SSOT via deriveDeviceStatus()
 ═══════════════════════════════════════════ */
 
-function resolveDeviceDisplayStatus(deviceStatus: string): { label: string; dot: string } {
-  if (deviceStatus === "online" && isBrasiliaNight()) {
-    return { label: "Standby", dot: "bg-warning" };
-  }
-  if (deviceStatus === "online") {
-    return { label: "Online", dot: "bg-success" };
-  }
-  return { label: "Offline", dot: "bg-destructive" };
-}
-
-function DeviceStatusIndicator({ deviceStatus }: {
+function DeviceStatusIndicator({ deviceStatus, devices, deviceId }: {
   deviceStatus: string;
   devices?: MonitorDevice[];
   deviceId?: string;
 }) {
-  const { label, dot } = resolveDeviceDisplayStatus(deviceStatus);
+  // Find actual device to get last_seen_at for SSOT 2h rule
+  const device = devices?.find((d) => d.id === deviceId);
+  const derived = deriveDeviceStatus({
+    rawStatus: deviceStatus,
+    lastSeenAt: device?.last_seen_at || device?.updated_at || null,
+  });
   return (
     <div className="flex items-center gap-1.5">
-      <span className={cn("h-2.5 w-2.5 rounded-full", dot)} />
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className={cn("h-2.5 w-2.5 rounded-full", DEVICE_STATUS_DOT[derived.status])} />
+      <span className="text-xs font-medium text-muted-foreground">{DEVICE_STATUS_LABELS[derived.status]}</span>
     </div>
   );
 }
@@ -140,7 +137,7 @@ export default function MonitorMpptStrings() {
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
         {plants.map((p) => {
           const isActive = activePlant === p.id;
-          const status = p.health?.status;
+          const uiStatus = resolveHealthToUiStatus(p.health?.status);
           return (
             <button
               key={p.id}
@@ -154,7 +151,7 @@ export default function MonitorMpptStrings() {
             >
               <span className={cn(
                 "h-2 w-2 rounded-full shrink-0",
-                status === "online" ? "bg-success" : status === "standby" ? "bg-warning" : "bg-destructive"
+                uiStatus === "online" ? "bg-success" : uiStatus === "standby" ? "bg-warning" : "bg-destructive"
               )} />
               {p.name}
             </button>
@@ -239,7 +236,7 @@ function InverterTechnicalHeader({
   const inverters = devices.filter((d) => d.type === "inverter");
   const firstInverter = inverters[0];
   const health = plant.health;
-  const status = health?.status || "offline";
+  const uiStatus = resolveHealthToUiStatus(health?.status);
 
   const totalStrings = cards.reduce((s, c) => s + c.strings.length, 0);
   const calibratedStrings = cards.reduce(
@@ -247,15 +244,13 @@ function InverterTechnicalHeader({
     0
   );
 
-  const statusConfig = {
+  const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
     online:  { label: "Online", bg: "bg-success/10", text: "text-success", dot: "bg-success" },
     standby: { label: "Standby", bg: "bg-warning/10", text: "text-warning", dot: "bg-warning" },
     offline: { label: "Offline", bg: "bg-destructive/10", text: "text-destructive", dot: "bg-destructive" },
-    alert:   { label: "Alerta", bg: "bg-destructive/10", text: "text-destructive", dot: "bg-destructive" },
-    unknown: { label: "Desconhecido", bg: "bg-muted", text: "text-muted-foreground", dot: "bg-muted-foreground" },
   };
 
-  const sc = statusConfig[status] || statusConfig.unknown;
+  const sc = statusConfig[uiStatus] || statusConfig.offline;
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
@@ -326,8 +321,8 @@ function InverterTechnicalHeader({
               }
             />
             <StatusCheckItem
-              ok={status === "online" || status === "standby"}
-              label={status === "online" || status === "standby" ? "API conectada" : "API desconectada"}
+              ok={uiStatus === "online" || uiStatus === "standby"}
+              label={uiStatus === "online" || uiStatus === "standby" ? "API conectada" : "API desconectada"}
             />
             <StatusCheckItem
               ok={calibratedStrings > 0}

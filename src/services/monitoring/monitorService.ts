@@ -19,15 +19,10 @@ import type {
   MonitorDashboardStats,
 } from "./monitorTypes";
 import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "./types";
-import { derivePlantStatus, getTodayBrasilia, getMonthStartBrasilia, getDaysAgoBrasilia, isBrasiliaNight } from "./plantStatusEngine";
-
-/**
- * POWER_KW_TO_ENERGY_ESTIMATE_HOURS: Used ONLY as a rough multiplier
- * when energy_kwh is null but power_kw is available.
- * NOT the same as HSP for PR calculation (which comes from irradiationService).
- * This is a conservative estimate for dashboard display purposes only.
- */
-const POWER_KW_TO_ENERGY_ESTIMATE_HOURS = 4.5;
+import {
+  derivePlantStatus, getTodayBrasilia, getMonthStartBrasilia, getDaysAgoBrasilia, isBrasiliaNight,
+  normalizePowerKw, extractDailyEnergy, sumMonthlyEnergy, POWER_KW_TO_ENERGY_ESTIMATE_HOURS,
+} from "./plantStatusEngine";
 
 /**
  * LEGACY JOIN: Resolve a plantId that may be monitor_plants.id to its
@@ -96,35 +91,23 @@ function legacyStatusToHealth(
   m?: SolarPlantMetricsDaily,
   monthKwh?: number,
   yesterdayMetric?: SolarPlantMetricsDaily,
+  openAlertCount?: number,
 ): MonitorHealthCache {
-  // energy_kwh is the authoritative field; fallback: estimate from power_kw
-  let energyToday = 0;
-  if (m?.energy_kwh != null && Number(m.energy_kwh) > 0) {
-    energyToday = Number(m.energy_kwh);
-  } else if (m?.power_kw != null && Number(m.power_kw) > 0) {
-    const powerKw = Number(m.power_kw) > 100 ? Number(m.power_kw) / 1000 : Number(m.power_kw);
-    energyToday = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS;
-  }
+  // SSOT: use extractDailyEnergy helper
+  let energyToday = extractDailyEnergy(m?.energy_kwh ?? null, m?.power_kw ?? null);
 
   // Yesterday fallback: when today has no data AND it's night, show yesterday's energy
   let isYesterdayFallback = false;
   if (energyToday === 0 && isBrasiliaNight() && yesterdayMetric) {
-    let yesterdayEnergy = 0;
-    if (yesterdayMetric.energy_kwh != null && Number(yesterdayMetric.energy_kwh) > 0) {
-      yesterdayEnergy = Number(yesterdayMetric.energy_kwh);
-    } else if (yesterdayMetric.power_kw != null && Number(yesterdayMetric.power_kw) > 0) {
-      const powerKw = Number(yesterdayMetric.power_kw) > 100 ? Number(yesterdayMetric.power_kw) / 1000 : Number(yesterdayMetric.power_kw);
-      yesterdayEnergy = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS;
-    }
+    const yesterdayEnergy = extractDailyEnergy(yesterdayMetric.energy_kwh ?? null, yesterdayMetric.power_kw ?? null);
     if (yesterdayEnergy > 0) {
       energyToday = yesterdayEnergy;
       isYesterdayFallback = true;
     }
   }
 
-  // Normalize current power
-  const rawPower = m?.power_kw != null ? Number(m.power_kw) : 0;
-  const currentPowerKw = rawPower > 100 ? rawPower / 1000 : rawPower;
+  // SSOT: normalizePowerKw
+  const currentPowerKw = normalizePowerKw(m?.power_kw != null ? Number(m.power_kw) : null);
 
   // Use the centralized status engine — SSOT
   const { uiStatus } = derivePlantStatus({
@@ -146,7 +129,7 @@ function legacyStatusToHealth(
     energy_month_kwh: monthKwh ?? energyToday,
     current_power_kw: currentPowerKw > 0 ? currentPowerKw : 0,
     performance_7d_pct: null,
-    open_alerts_count: 0,
+    open_alerts_count: openAlertCount ?? 0,
     updated_at: sp.updated_at,
     is_yesterday_fallback: isYesterdayFallback,
   };
@@ -158,11 +141,13 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   const yesterday = getDaysAgoBrasilia(1);
   const monthStartStr = getMonthStartBrasilia();
 
-  const [{ data: plants }, { data: todayMetrics }, { data: yesterdayMetrics }, { data: monthMetrics }] = await Promise.all([
+  const [{ data: plants }, { data: todayMetrics }, { data: yesterdayMetrics }, { data: monthMetrics }, { data: alertCounts }] = await Promise.all([
     supabase.from("solar_plants" as any).select("*").order("name", { ascending: true }),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", today),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", yesterday),
     supabase.from("solar_plant_metrics_daily" as any).select("plant_id, energy_kwh, power_kw").gte("date", monthStartStr).lte("date", today),
+    // Real alert counts — 1 aggregated query instead of N
+    supabase.from("monitor_events" as any).select("plant_id").eq("is_open", true),
   ]);
 
   const todayMap = new Map<string, SolarPlantMetricsDaily>();
@@ -175,31 +160,30 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     yesterdayMap.set(m.plant_id, m)
   );
 
-  // Sum month energy per plant with power_kw fallback
+  // SSOT: sumMonthlyEnergy per plant
   const monthMap = new Map<string, number>();
   ((monthMetrics as unknown as Array<{ plant_id: string; energy_kwh: number | null; power_kw: number | null }>) || []).forEach((r) => {
-    let energy = 0;
-    if (r.energy_kwh != null && Number(r.energy_kwh) > 0) {
-      energy = Number(r.energy_kwh);
-    } else if (r.power_kw != null && Number(r.power_kw) > 0) {
-      const powerKw = Number(r.power_kw) > 100 ? Number(r.power_kw) / 1000 : Number(r.power_kw);
-      energy = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // NOT HSP for PR
-    }
+    const energy = extractDailyEnergy(r.energy_kwh, r.power_kw);
     monthMap.set(r.plant_id, (monthMap.get(r.plant_id) || 0) + energy);
+  });
+
+  // Build alert count map from real data
+  const alertMap = new Map<string, number>();
+  ((alertCounts as unknown as Array<{ plant_id: string }>) || []).forEach((a) => {
+    alertMap.set(a.plant_id, (alertMap.get(a.plant_id) || 0) + 1);
   });
 
   return ((plants as unknown as SolarPlant[]) || []).map((sp) => {
     const m = todayMap.get(sp.id);
     return {
       ...mapSolarPlantToMonitorPlant(sp),
-      health: legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id)),
+      health: legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id)),
       provider_name: sp.provider || undefined,
     };
   });
 }
 
 export async function getPlantDetail(plantId: string): Promise<PlantWithHealth | null> {
-  // LEGACY JOIN: resolve monitor_plants.id → solar_plants.id if needed
   const resolvedId = await resolveToLegacyPlantId(plantId);
   const { data: plant } = await supabase
     .from("solar_plants" as any)
@@ -214,45 +198,26 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
   const yesterday = getDaysAgoBrasilia(1);
   const monthStartStr = getMonthStartBrasilia();
 
-  // Fetch today's metric, yesterday's metric, and month readings in parallel
-  const [{ data: metric }, { data: yesterdayMetric }, { data: monthMetrics }] = await Promise.all([
-    supabase
-      .from("solar_plant_metrics_daily" as any)
-      .select("*")
-      .eq("plant_id", resolvedId)
-      .eq("date", today)
-      .maybeSingle(),
-    supabase
-      .from("solar_plant_metrics_daily" as any)
-      .select("*")
-      .eq("plant_id", resolvedId)
-      .eq("date", yesterday)
-      .maybeSingle(),
-    supabase
-      .from("solar_plant_metrics_daily" as any)
-      .select("energy_kwh, power_kw")
-      .eq("plant_id", resolvedId)
-      .gte("date", monthStartStr)
-      .lte("date", today),
+  const [{ data: metric }, { data: yesterdayMetric }, { data: monthMetrics }, { data: alertRows }] = await Promise.all([
+    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
+    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
+    supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
+    supabase.from("monitor_events" as any).select("id").eq("plant_id", plantId).eq("is_open", true),
   ]);
 
   const m = metric as unknown as SolarPlantMetricsDaily | undefined;
   const ym = yesterdayMetric as unknown as SolarPlantMetricsDaily | undefined;
 
-  // Sum month energy with power_kw fallback
-  let monthKwh = 0;
-  ((monthMetrics as unknown as Array<{ energy_kwh: number | null; power_kw: number | null }>) || []).forEach((r) => {
-    if (r.energy_kwh != null && Number(r.energy_kwh) > 0) {
-      monthKwh += Number(r.energy_kwh);
-    } else if (r.power_kw != null && Number(r.power_kw) > 0) {
-      const powerKw = Number(r.power_kw) > 100 ? Number(r.power_kw) / 1000 : Number(r.power_kw);
-      monthKwh += powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS;
-    }
-  });
+  // SSOT: sumMonthlyEnergy
+  const monthKwh = sumMonthlyEnergy(
+    ((monthMetrics as unknown as Array<{ energy_kwh: number | null; power_kw: number | null }>) || [])
+  );
+
+  const openAlertCount = ((alertRows as unknown as any[]) || []).length;
 
   return {
     ...mapSolarPlantToMonitorPlant(sp),
-    health: legacyStatusToHealth(sp, m, monthKwh, ym),
+    health: legacyStatusToHealth(sp, m, monthKwh, ym, openAlertCount),
   };
 }
 
@@ -261,21 +226,17 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 export async function getDashboardStats(): Promise<MonitorDashboardStats> {
   const plants = await listPlantsWithHealth();
 
-  // Compute monthly energy from readings (last 30 days)
+  // SSOT: monthly energy from readings
   const monthStartStr = getMonthStartBrasilia();
   const todayStr = getTodayBrasilia();
   const readings = await listAllReadings(monthStartStr, todayStr);
 
-  // Sum energy per plant, with power_kw fallback
-  let totalMonthKwh = 0;
-  readings.forEach((r) => {
-    if (r.energy_kwh > 0) {
-      totalMonthKwh += r.energy_kwh;
-    } else if (r.peak_power_kw && r.peak_power_kw > 0) {
-      const powerKw = r.peak_power_kw > 100 ? r.peak_power_kw / 1000 : r.peak_power_kw;
-      totalMonthKwh += powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // NOT HSP for PR
-    }
-  });
+  const totalMonthKwh = sumMonthlyEnergy(
+    readings.map((r) => ({ energy_kwh: r.energy_kwh, power_kw: r.peak_power_kw }))
+  );
+
+  // SSOT: real current power = sum of all plants' current_power_kw (not estimated)
+  const currentPowerKw = plants.reduce((s, p) => s + (p.health?.current_power_kw || 0), 0);
 
   return {
     plants_online: plants.filter((p) => p.health?.status === "online").length,
@@ -286,6 +247,7 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
     total_plants: plants.length,
     energy_today_kwh: plants.reduce((s, p) => s + (p.health?.energy_today_kwh || 0), 0),
     energy_month_kwh: totalMonthKwh,
+    current_power_kw: currentPowerKw,
   };
 }
 
