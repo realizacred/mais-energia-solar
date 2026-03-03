@@ -378,10 +378,17 @@ export async function listDevices(plantId: string): Promise<MonitorDevice[]> {
   return [];
 }
 
+export interface SyncResult {
+  plants_synced: number;
+  metrics_synced: number;
+  errors: string[];
+}
+
 /**
  * Trigger a manual sync for devices of a plant via the monitoring-sync edge function.
+ * Returns sync result with counts for smarter UI feedback.
  */
-export async function syncPlantDevices(plantId: string): Promise<void> {
+export async function syncPlantDevices(plantId: string): Promise<SyncResult> {
   // Resolve monitor_plant → integration
   const { data: monitorPlant } = await supabase
     .from("monitor_plants" as any)
@@ -404,7 +411,7 @@ export async function syncPlantDevices(plantId: string): Promise<void> {
 
   const int = integration as any;
 
-  const { error } = await supabase.functions.invoke("monitoring-sync", {
+  const { data, error } = await supabase.functions.invoke("monitoring-sync", {
     body: {
       integrationId: int.id,
       provider: int.provider,
@@ -417,6 +424,12 @@ export async function syncPlantDevices(plantId: string): Promise<void> {
     const parsed = await parseInvokeError(error);
     throw new Error(parsed.message || "Erro ao sincronizar");
   }
+
+  return {
+    plants_synced: data?.plants_synced ?? 0,
+    metrics_synced: data?.metrics_synced ?? 0,
+    errors: data?.errors ?? [],
+  };
 }
 
 // ─── EVENTS / ALERTS ──────────────────────────────────────────

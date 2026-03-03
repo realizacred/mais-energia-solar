@@ -59,9 +59,20 @@ export default function InverterDetailPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      await syncPlantDevices(plantId!);
+      const result = await syncPlantDevices(plantId!);
       await queryClient.invalidateQueries({ queryKey: ["monitor-devices", plantId] });
-      toast({ title: "Dados atualizados", description: "Sincronização concluída com sucesso." });
+
+      // Smart feedback: check if device data actually changed
+      const hasErrors = result.errors.length > 0;
+      const metricsOk = result.metrics_synced > 0;
+
+      if (hasErrors && !metricsOk) {
+        toast({ title: "Sincronização parcial", description: `Dispositivo pode estar sem comunicação. ${result.errors[0] || ""}`, variant: "destructive" });
+      } else if (!metricsOk) {
+        toast({ title: "Sincronização concluída", description: "Dispositivo sem dados novos do provedor — pode estar offline." });
+      } else {
+        toast({ title: "Dados atualizados", description: "Sincronização concluída com sucesso." });
+      }
     } catch (err) {
       toast({ title: "Erro ao sincronizar", description: (err as Error).message, variant: "destructive" });
     } finally {

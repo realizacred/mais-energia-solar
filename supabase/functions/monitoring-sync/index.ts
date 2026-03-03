@@ -1130,9 +1130,39 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
   } catch { return { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} }; }
 }
 
-// ═══════════════════════════════════════════════════════════
-// GoodWe SEMS
-// ═══════════════════════════════════════════════════════════
+async function huaweiListDevices(xsrfToken: string, cookies: string, region: string, stationCodes: string[]): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
+  const base = huaweiBaseUrl(region);
+  const results: { stationId: string; devices: NormalizedDevice[] }[] = [];
+
+  for (const stationCode of stationCodes) {
+    try {
+      const res = await fetch(`${base}/thirdData/getDevList`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
+        body: JSON.stringify({ stationCodes: stationCode }),
+      });
+      const json = await res.json();
+      if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
+      const devList = Array.isArray(json.data) ? json.data : [];
+      const devices: NormalizedDevice[] = devList.map((d: any) => ({
+        provider_device_id: String(d.id || d.devDn || d.esnCode || ""),
+        type: d.devTypeId === 1 ? "inverter" : d.devTypeId === 62 ? "logger" : "other",
+        model: d.devName || d.softwareVersion || "",
+        serial: d.esnCode || d.devDn || "",
+        status: d.devStatus === 1 ? "online" : "offline",
+        lastSeenAt: null,
+        metadata: d,
+      }));
+      results.push({ stationId: stationCode, devices });
+    } catch (err) {
+      console.error(`[Huawei] getDevList error for station ${stationCode}: ${(err as Error).message}`);
+      if ((err as Error).message === "TOKEN_EXPIRED") throw err;
+    }
+  }
+  console.log(`[Huawei] Listed devices for ${stationCodes.length} stations, total ${results.reduce((s, r) => s + r.devices.length, 0)} devices`);
+  return results;
+}
+
 
 function goodweTokenHeader(token: string, uid: string): string {
   return JSON.stringify({ version: "v2.1.0", client: "ios", language: "en", timestamp: String(Date.now()), uid: uid || "", token });
@@ -2058,22 +2088,57 @@ async function dispatchSync(
     let xsrf = tokens.xsrfToken as string || "";
     let hwCookies = tokens.cookies as string || "";
     const hwRegion = (tokens.region as string) || (credentials.region as string) || "la5";
+
+    // Helper: attempt re-auth if token expired and credentials available
+    const tryReAuth = async () => {
+      if (!credentials.username || !credentials.password) {
+        // No password stored — mark integration for reconnection
+        await admin.from("monitoring_integrations").update({
+          status: "reconnect_required",
+          sync_error: "[AUTH] Sessão expirada. Senha não armazenada — reconecte a integração com username e senha.",
+          updated_at: new Date().toISOString(),
+        }).eq("id", ctx.integrationId);
+        throw new Error("Sessão Huawei expirada. Reconecte a integração com username e senha.");
+      }
+      console.log("[Huawei] Token expirado, re-autenticando...");
+      const reauth = await huaweiReAuth(credentials);
+      xsrf = reauth.xsrfToken;
+      hwCookies = reauth.cookies;
+      await admin.from("monitoring_integrations").update({ tokens: { xsrfToken: xsrf, cookies: hwCookies, region: hwRegion } }).eq("id", ctx.integrationId);
+    };
+
     const listFnHw = async () => {
       try {
         return await huaweiListPlants(xsrf, hwCookies, hwRegion);
       } catch (e: any) {
-        if (e.message === "TOKEN_EXPIRED" && credentials.username && credentials.password) {
-          console.log("[Huawei] Token expirado, re-autenticando...");
-          const reauth = await huaweiReAuth(credentials);
-          xsrf = reauth.xsrfToken;
-          hwCookies = reauth.cookies;
-          await admin.from("monitoring_integrations").update({ tokens: { xsrfToken: xsrf, cookies: hwCookies, region: hwRegion } }).eq("id", ctx.integrationId);
+        if (e.message === "TOKEN_EXPIRED") {
+          await tryReAuth();
           return await huaweiListPlants(xsrf, hwCookies, hwRegion);
         }
         throw e;
       }
     };
-    return await syncPlantsByProvider(ctx, listFnHw, (eid) => huaweiMetrics(xsrf, hwCookies, eid, hwRegion), mode, selectedPlantIds);
+
+    // Huawei devicesFn: fetch devices for all stations
+    const hwDevicesFn = async (): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> => {
+      // Get all station codes for this tenant
+      const { data: dbPlants } = await admin.from("solar_plants").select("external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
+      const stationCodes = (dbPlants || []).map((p: any) => String(p.external_id));
+      if (stationCodes.length === 0) return [];
+      try {
+        return await huaweiListDevices(xsrf, hwCookies, hwRegion, stationCodes);
+      } catch (e: any) {
+        if (e.message === "TOKEN_EXPIRED") {
+          await tryReAuth();
+          return await huaweiListDevices(xsrf, hwCookies, hwRegion, stationCodes);
+        }
+        throw e;
+      }
+    };
+
+    return await syncPlantsByProvider(ctx, listFnHw, (eid) => huaweiMetrics(xsrf, hwCookies, eid, hwRegion), mode, selectedPlantIds, {
+      devicesFn: hwDevicesFn,
+    });
   } else if (p === "goodwe") {
     let gwToken = tokens.token as string || "";
     let gwApi = tokens.api as string || "https://semsportal.com";
