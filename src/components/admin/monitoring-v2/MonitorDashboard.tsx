@@ -150,8 +150,8 @@ export default function MonitorDashboard() {
         <EmptyState icon={Sun} title="Nenhuma usina cadastrada" description="Conecte um provedor de monitoramento para começar." />
       ) : (
         <>
-          {/* ═══ KPI ROW — 6 columns ═══ */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {/* ═══ KPI ROW — 4 columns top ═══ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <EnterpriseKpi
               icon={Sun} label="Total Usinas" value={String(stats.total_plants)}
               onClick={() => navigate("/admin/monitoramento/usinas")}
@@ -164,6 +164,23 @@ export default function MonitorDashboard() {
               accentColor="success"
               onClick={() => navigate(isNight ? "/admin/monitoramento/usinas?status=standby" : "/admin/monitoramento/usinas?status=online")}
             />
+            <EnterpriseKpi
+              icon={WifiOff} label="Offline"
+              value={String(stats.plants_offline || 0)}
+              accentColor={(stats.plants_offline || 0) > 0 ? "destructive" : "muted"}
+              highlight={(stats.plants_offline || 0) > 0}
+              onClick={() => navigate("/admin/monitoramento/usinas?status=offline")}
+            />
+            <EnterpriseKpi
+              icon={Moon} label="Standby"
+              value={String(stats.plants_standby || 0)}
+              accentColor={(stats.plants_standby || 0) > 0 ? "warning" : "muted"}
+              onClick={() => navigate("/admin/monitoramento/usinas?status=standby")}
+            />
+          </div>
+
+          {/* ═══ KPI ROW 2 — metrics ═══ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <EnterpriseKpi
               icon={AlertTriangle} label="Com Alerta"
               value={String(alertCount)}
@@ -190,6 +207,8 @@ export default function MonitorDashboard() {
           {/* ═══ PRIORITY ALERT ═══ */}
           <PriorityAlertBlock alerts={openAlerts} onViewAlerts={() => navigate("/admin/monitoramento/alertas")} />
 
+          {/* ═══ OFFLINE + STANDBY LISTS ═══ */}
+          <OfflineStandbySection plants={plants} navigate={navigate} />
           {/* ═══ 2-COL: Energy Flow + Weather ═══ */}
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
             <SectionCard title="Fluxo de Energia" icon={Zap} variant="blue">
@@ -403,5 +422,76 @@ function OperationalSummary({ onlinePerc, alertCount, currentPowerKw, energyToda
         ))}
       </div>
     </SectionCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OFFLINE / STANDBY QUICK LIST
+═══════════════════════════════════════════════════════════════ */
+
+function OfflineStandbySection({ plants, navigate }: {
+  plants: Array<{ id: string; name: string; health?: { status?: string; last_seen_at?: string | null } }>;
+  navigate: (path: string) => void;
+}) {
+  const offlinePlants = plants.filter((p) => p.health?.status === "offline");
+  const standbyPlants = plants.filter((p) => p.health?.status === "standby");
+
+  if (offlinePlants.length === 0 && standbyPlants.length === 0) return null;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {offlinePlants.length > 0 && (
+        <SectionCard title={`Offline (${offlinePlants.length})`} icon={WifiOff} variant="warning">
+          <div className="space-y-1 max-h-[240px] overflow-y-auto">
+            {offlinePlants.slice(0, 20).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => navigate(`/admin/monitoramento/usinas/${p.id}`)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+              >
+                <span className="text-sm text-foreground truncate">{p.name}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="h-2 w-2 rounded-full bg-destructive" />
+                  <span className="text-xs text-muted-foreground">
+                    {p.health?.last_seen_at
+                      ? formatDistanceToNow(new Date(p.health.last_seen_at), { addSuffix: true, locale: ptBR })
+                      : "sem dados"}
+                  </span>
+                </div>
+              </button>
+            ))}
+            {offlinePlants.length > 20 && (
+              <button onClick={() => navigate("/admin/monitoramento/usinas?status=offline")} className="w-full text-xs text-primary font-medium py-2 hover:underline">
+                Ver todas ({offlinePlants.length})
+              </button>
+            )}
+          </div>
+        </SectionCard>
+      )}
+      {standbyPlants.length > 0 && (
+        <SectionCard title={`Standby (${standbyPlants.length})`} icon={Moon}>
+          <div className="space-y-1 max-h-[240px] overflow-y-auto">
+            {standbyPlants.slice(0, 20).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => navigate(`/admin/monitoramento/usinas/${p.id}`)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+              >
+                <span className="text-sm text-foreground truncate">{p.name}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="h-2 w-2 rounded-full bg-warning" />
+                  <span className="text-xs text-muted-foreground">standby</span>
+                </div>
+              </button>
+            ))}
+            {standbyPlants.length > 20 && (
+              <button onClick={() => navigate("/admin/monitoramento/usinas?status=standby")} className="w-full text-xs text-primary font-medium py-2 hover:underline">
+                Ver todas ({standbyPlants.length})
+              </button>
+            )}
+          </div>
+        </SectionCard>
+      )}
+    </div>
   );
 }
