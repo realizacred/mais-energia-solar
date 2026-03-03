@@ -13,12 +13,10 @@ import { toast } from "sonner";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
 import { DeviceMpptSummary } from "./devices/DeviceMpptSummary";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import {
   UI_STATUS_LABELS, UI_STATUS_DOT, getTodayBrasilia, getDaysAgoBrasilia,
-  resolveHealthToUiStatus, deriveDeviceStatus,
+  resolveHealthToUiStatus, deriveDeviceStatus, computeDeviceStaleness, formatRelativeSeenAt,
   DEVICE_STATUS_LABELS, DEVICE_STATUS_DOT, DEVICE_STATUS_TEXT,
   type PlantUiStatus,
 } from "@/services/monitoring/plantStatusEngine";
@@ -110,7 +108,7 @@ export default function MonitorPlantDetail() {
                 <StatusBadge status={UI_STATUS_LABELS[status]} />
                 {plant.health?.last_seen_at && (
                   <span className="text-xs text-muted-foreground" title={new Date(plant.health.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}>
-                    Visto {formatDistanceToNow(new Date(plant.health.last_seen_at), { addSuffix: true, locale: ptBR })}
+                    Visto {formatRelativeSeenAt(plant.health.last_seen_at, { addSuffix: true })}
                     {" · "}
                     {new Date(plant.health.last_seen_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
                   </span>
@@ -173,15 +171,23 @@ export default function MonitorPlantDetail() {
                   </div>
                     <div className="flex items-center gap-1.5">
                       {(() => {
-                        const deviceStatus = deriveDeviceStatus({
+                        const deviceSeenAt = d.last_seen_at || d.updated_at;
+                        const deviceDerived = deriveDeviceStatus({
                           rawStatus: d.status,
-                          lastSeenAt: d.last_seen_at || d.updated_at,
+                          lastSeenAt: deviceSeenAt,
                         });
+                        // Coherence: if plant is OFFLINE, device cannot be online/standby
+                        const coherentStatus = status === "offline" && deviceDerived.status !== "offline"
+                          ? computeDeviceStaleness(deviceSeenAt).stale ? "offline" as const : deviceDerived.status
+                          : deviceDerived.status;
                         return (
                           <>
-                            <span className={cn("h-2 w-2 rounded-full", DEVICE_STATUS_DOT[deviceStatus.status])} />
-                            <span className={cn("text-xs font-medium", DEVICE_STATUS_TEXT[deviceStatus.status])}>
-                              {DEVICE_STATUS_LABELS[deviceStatus.status]}
+                            <span className={cn("h-2 w-2 rounded-full", DEVICE_STATUS_DOT[coherentStatus])} />
+                            <span className={cn("text-xs font-medium", DEVICE_STATUS_TEXT[coherentStatus])}>
+                              {DEVICE_STATUS_LABELS[coherentStatus]}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground ml-1">
+                              {formatRelativeSeenAt(deviceSeenAt, { addSuffix: true })}
                             </span>
                           </>
                         );
