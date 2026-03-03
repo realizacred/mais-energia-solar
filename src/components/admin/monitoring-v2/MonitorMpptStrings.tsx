@@ -37,14 +37,20 @@ function DeviceStatusIndicator({ deviceStatus, devices, deviceId }: {
   deviceId?: string;
 }) {
   const device = devices?.find((d) => d.id === deviceId);
+  const deviceSeenAt = device?.last_seen_at || device?.updated_at || null;
   const derived = deriveDeviceStatus({
     rawStatus: deviceStatus,
-    lastSeenAt: device?.last_seen_at || device?.updated_at || null,
+    lastSeenAt: deviceSeenAt,
   });
   return (
     <div className="flex items-center gap-1.5">
       <span className={cn("h-2.5 w-2.5 rounded-full", DEVICE_STATUS_DOT[derived.status])} />
       <span className="text-xs font-medium text-muted-foreground">{DEVICE_STATUS_LABELS[derived.status]}</span>
+      {deviceSeenAt && (
+        <span className="text-[10px] text-muted-foreground">
+          ({formatRelativeSeenAt(deviceSeenAt, { addSuffix: true })})
+        </span>
+      )}
     </div>
   );
 }
