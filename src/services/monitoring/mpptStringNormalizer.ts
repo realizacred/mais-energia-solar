@@ -31,40 +31,65 @@ export function normalizeDeviceToStringReadings(
   const mpptCount = Number(meta.dcInputTypeMppt ?? meta.dcInputType ?? meta.mpptCount ?? 0);
   const readings: NormalizedStringReading[] = [];
 
-  // Scan for pow1..pow32 (string-level power in W)
-  let hasStringData = false;
+  // ── Step 1: Collect raw channel data ──
+  interface RawChannel { index: number; power: number | null; voltage: number | null; current: number | null }
+  const rawChannels: RawChannel[] = [];
   for (let i = 1; i <= 32; i++) {
     const power = numberOrNull(meta[`pow${i}`] ?? meta[`ppv${i}`]);
     const voltage = numberOrNull(meta[`vpv${i}`] ?? meta[`uPv${i}`] ?? meta[`pv${i}Voltage`]);
     const current = numberOrNull(meta[`ipv${i}`] ?? meta[`iPv${i}`] ?? meta[`pv${i}Current`]);
-
-    // Only emit if we have any data for this string index, or it's within mpptCount
-    if (power === null && voltage === null && current === null && i > mpptCount) continue;
-
-    hasStringData = true;
-    const stringsPerMppt = mpptCount > 0 ? Math.max(Math.ceil(32 / mpptCount), 1) : 1;
-    const mpptNum = mpptCount > 0 ? Math.ceil(i / stringsPerMppt) : null;
-
-    readings.push({
-      tenant_id: device.tenant_id,
-      plant_id: plantId,
-      device_id: device.id,
-      inverter_serial: device.serial || null,
-      provider_id: null,
-      ts,
-      inverter_online: inverterOnline,
-      plant_generating: plantGenerating,
-      mppt_number: mpptNum,
-      string_number: i,
-      power_w: power,
-      voltage_v: voltage,
-      current_a: current,
-      granularity: "string" as StringGranularity,
-    });
+    rawChannels.push({ index: i, power, voltage, current });
   }
 
-  // If no string-level data, fall back to inverter-level
-  if (!hasStringData) {
+  // ── Step 2: Trim to only relevant channels (align with extractMpptData) ──
+  // Find last channel with any non-zero value
+  let lastActiveIndex = -1;
+  for (let i = rawChannels.length - 1; i >= 0; i--) {
+    const ch = rawChannels[i];
+    if ((ch.power !== null && ch.power > 0) || (ch.voltage !== null && ch.voltage > 0) || (ch.current !== null && ch.current > 0)) {
+      lastActiveIndex = i;
+      break;
+    }
+  }
+  const keepCount = Math.max(mpptCount, lastActiveIndex + 1);
+  if (keepCount === 0) {
+    // No string-level data at all — skip to inverter fallback
+  } else {
+    const trimmed = rawChannels.slice(0, keepCount);
+
+    // ── Step 3: Determine MPPT grouping ──
+    // If mpptCount matches trimmed length, it's 1 string per MPPT
+    const stringsPerMppt = mpptCount > 0 ? Math.max(Math.ceil(trimmed.length / mpptCount), 1) : 1;
+
+    let hasStringData = false;
+    for (const ch of trimmed) {
+      if (ch.power === null && ch.voltage === null && ch.current === null) continue;
+      hasStringData = true;
+      const mpptNum = mpptCount > 0 ? Math.ceil(ch.index / stringsPerMppt) : null;
+
+      readings.push({
+        tenant_id: device.tenant_id,
+        plant_id: plantId,
+        device_id: device.id,
+        inverter_serial: device.serial || null,
+        provider_id: null,
+        ts,
+        inverter_online: inverterOnline,
+        plant_generating: plantGenerating,
+        mppt_number: mpptNum,
+        string_number: ch.index,
+        power_w: ch.power,
+        voltage_v: ch.voltage,
+        current_a: ch.current,
+        granularity: "string" as StringGranularity,
+      });
+    }
+
+    if (hasStringData) return readings;
+  }
+
+  // Inverter-level fallback
+  {
     const acPower = numberOrNull(meta.pac ?? meta.TotalActiveACOutputPower);
     if (acPower !== null) {
       readings.push({
