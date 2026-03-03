@@ -1840,7 +1840,8 @@ async function syncPlantsByProvider(
     }
 
     // ── Lightweight device status sync (for providers without devicesFn in bulk mode) ──
-    // This derives device online/offline from plant metrics instead of calling expensive device APIs
+    // Derives device online/offline from plant status. CRITICAL: only update last_seen_at
+    // when the plant is actually online — never pollute it with sync timestamps for offline plants.
     if (!extras?.devicesFn) {
       try {
         const { data: dbMonitorPlants } = await ctx.supabaseAdmin
@@ -1848,7 +1849,6 @@ async function syncPlantsByProvider(
           .eq("tenant_id", ctx.tenantId).eq("provider_id", ctx.provider);
         
         if (dbMonitorPlants && dbMonitorPlants.length > 0) {
-          // Get solar_plants status to derive device status
           const legacyIds = (dbMonitorPlants as any[]).map((p: any) => p.legacy_plant_id).filter(Boolean);
           const { data: solarStatuses } = legacyIds.length > 0
             ? await ctx.supabaseAdmin.from("solar_plants").select("id, status, updated_at").in("id", legacyIds)
@@ -1858,15 +1858,25 @@ async function syncPlantsByProvider(
           let devUpdated = 0;
           for (const mp of dbMonitorPlants as any[]) {
             const solarPlant = mp.legacy_plant_id ? statusMap.get(mp.legacy_plant_id) : null;
-            // Derive device status: if solar_plants.status is "normal" and recently updated → online
             const isNormal = solarPlant?.status === "normal";
-            const recentUpdate = solarPlant?.updated_at && (Date.now() - new Date(solarPlant.updated_at).getTime()) < 2 * 60 * 60 * 1000; // 2h
+            const recentUpdate = solarPlant?.updated_at && (Date.now() - new Date(solarPlant.updated_at).getTime()) < 2 * 60 * 60 * 1000;
             const derivedStatus = isNormal && recentUpdate ? "online" : "offline";
-            const derivedLastSeen = solarPlant?.updated_at || new Date().toISOString();
+
+            // SSOT FIX: Only update last_seen_at when device is ONLINE.
+            // When offline, preserve the original last_seen_at so the frontend
+            // correctly shows how long ago the device was last truly seen.
+            const updatePayload: Record<string, unknown> = {
+              status: derivedStatus,
+              updated_at: new Date().toISOString(),
+            };
+            if (derivedStatus === "online" && solarPlant?.updated_at) {
+              updatePayload.last_seen_at = solarPlant.updated_at;
+            }
+            // If offline, do NOT touch last_seen_at — let it age naturally
 
             const { error: devErr, count: updCount } = await ctx.supabaseAdmin
               .from("monitor_devices")
-              .update({ status: derivedStatus, last_seen_at: derivedLastSeen, updated_at: new Date().toISOString() })
+              .update(updatePayload)
               .eq("plant_id", mp.id)
               .eq("tenant_id", ctx.tenantId);
             if (!devErr && updCount) devUpdated += updCount;
