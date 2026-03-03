@@ -105,7 +105,10 @@ export default defineConfig(({ mode }) => {
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,webmanifest}"],
+        cleanupOutdatedCaches: true,
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/, /^\/~oauth/],
         // IMPORTANT: Do NOT cache Supabase REST API or Edge Function responses.
