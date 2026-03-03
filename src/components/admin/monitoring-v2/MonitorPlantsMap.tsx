@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
 import { type PlantUiStatus, resolveHealthToUiStatus, formatRelativeSeenAt } from "@/services/monitoring/plantStatusEngine";
+import { cn } from "@/lib/utils";
+import { Map, Satellite } from "lucide-react";
 
 interface Props {
   plants: PlantWithHealth[];
@@ -33,27 +35,34 @@ function createIcon(status: PlantUiStatus) {
   });
 }
 
-function createClusterIcon(count: number, worstStatus: PlantUiStatus) {
-  const color = STATUS_COLORS[worstStatus];
-  return L.divIcon({
-    className: "monitor-cluster-pin",
-    html: `
-      <div style="
-        width:36px;height:36px;border-radius:50%;
-        background:${color};opacity:0.9;
-        border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.3);
-        display:flex;align-items:center;justify-content:center;
-        color:#fff;font-size:12px;font-weight:700;font-family:Inter,sans-serif;
-      ">${count}</div>
-    `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-  });
-}
+const TILE_LAYERS = {
+  street: {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    options: { maxZoom: 19, attribution: "© OpenStreetMap" },
+  },
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    options: { maxZoom: 19, attribution: "© Esri" },
+  },
+} as const;
+
+type TileMode = keyof typeof TILE_LAYERS;
 
 export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const [tileMode, setTileMode] = useState<TileMode>("street");
+
+  // Switch tile layer without recreating map
+  useEffect(() => {
+    if (!mapInstance.current) return;
+    if (tileLayerRef.current) {
+      mapInstance.current.removeLayer(tileLayerRef.current);
+    }
+    const cfg = TILE_LAYERS[tileMode];
+    tileLayerRef.current = L.tileLayer(cfg.url, cfg.options).addTo(mapInstance.current);
+  }, [tileMode]);
 
   useEffect(() => {
     if (!mapRef.current || plants.length === 0) return;
@@ -61,6 +70,7 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
     if (mapInstance.current) {
       mapInstance.current.remove();
       mapInstance.current = null;
+      tileLayerRef.current = null;
     }
 
     const map = L.map(mapRef.current, {
@@ -68,9 +78,8 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
       attributionControl: false,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-    }).addTo(map);
+    const cfg = TILE_LAYERS[tileMode];
+    tileLayerRef.current = L.tileLayer(cfg.url, cfg.options).addTo(map);
 
     // Inject pulse animation CSS
     const style = document.createElement("style");
@@ -92,7 +101,7 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
             <strong style="font-size:13px;">${plant.name}</strong><br/>
             <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${STATUS_COLORS[status]};margin-right:4px;vertical-align:middle;"></span>
             <span style="font-weight:600;">${status === "online" ? "Online" : status === "standby" ? "Standby" : "Offline"}</span><br/>
-            ${plant.installed_power_kwp ? `⚡ ${plant.installed_power_kwp} kWp<br/>` : ""}
+            ${plant.installed_power_kwp ? `⚡ ${plant.installed_power_kwp.toFixed(1)} kWp<br/>` : ""}
             🔋 Hoje: ${energyToday.toFixed(0)} kWh<br/>
             ${plant.city ? `📍 ${plant.city}${plant.state ? `/${plant.state}` : ""}<br/>` : ""}
             ${plant.health?.last_seen_at ? `🕐 Visto ${seenLabel}` : ""}
@@ -115,9 +124,37 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
       if (mapInstance.current) {
         mapInstance.current.remove();
         mapInstance.current = null;
+        tileLayerRef.current = null;
       }
     };
   }, [plants, onSelectPlant]);
 
-  return <div ref={mapRef} className="w-full h-full" style={{ minHeight: 450 }} />;
+  return (
+    <div className="relative w-full h-full" style={{ minHeight: 450 }}>
+      <div ref={mapRef} className="w-full h-full" style={{ minHeight: 450 }} />
+      {/* Tile mode toggle */}
+      <div className="absolute top-3 right-3 z-[1000] flex gap-1 p-1 rounded-lg bg-card/90 backdrop-blur-sm border border-border/60 shadow-md">
+        <button
+          onClick={() => setTileMode("street")}
+          className={cn(
+            "p-1.5 rounded-md transition-colors",
+            tileMode === "street" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
+          title="Mapa"
+        >
+          <Map className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => setTileMode("satellite")}
+          className={cn(
+            "p-1.5 rounded-md transition-colors",
+            tileMode === "satellite" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
+          title="Satélite"
+        >
+          <Satellite className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
 }
