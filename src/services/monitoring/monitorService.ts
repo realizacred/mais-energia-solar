@@ -119,7 +119,7 @@ function legacyStatusToHealth(
   // the solar_plants.status may be stale — override "offline" to "unknown"
   // so derivePlantStatus evaluates based on actual sync + generation data
   const deviceRecentlySynced = bestLastSeenAt
-    ? (Date.now() - new Date(bestLastSeenAt).getTime()) < 45 * 60 * 1000
+    ? (Date.now() - new Date(bestLastSeenAt).getTime()) < 30 * 60 * 1000
     : false;
   const effectiveProviderStatus =
     deviceRecentlySynced && (sp.status === "offline" || sp.status === "no_communication")
@@ -231,8 +231,8 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     console.log("deviceSeenMap entries:", deviceSeenMap.size);
     const now = Date.now();
     const staleEntries = Array.from(deviceSeenMap.entries())
-      .filter(([, ts]) => now - new Date(ts).getTime() > 45 * 60 * 1000);
-    console.log("Stale plants (>45min):", staleEntries.length);
+      .filter(([, ts]) => now - new Date(ts).getTime() > 30 * 60 * 1000);
+    console.log("Stale plants (>30min):", staleEntries.length);
     staleEntries.slice(0, 5).forEach(([legacyId, ts]) => {
       const ageMin = Math.round((now - new Date(ts).getTime()) / 60000);
       console.log(`  plant=${legacyId} maxDeviceSeen=${ts} age=${ageMin}min`);
