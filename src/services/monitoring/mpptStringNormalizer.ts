@@ -8,6 +8,7 @@
  */
 import type { MonitorDevice } from "./monitorTypes";
 import type { NormalizedStringReading, StringGranularity } from "./mpptStringTypes";
+import { deriveDeviceStatus, getDeviceSsotTimestamp } from "./plantStatusEngine";
 
 /**
  * Normalize a device's metadata into canonical string readings.
@@ -21,8 +22,11 @@ export function normalizeDeviceToStringReadings(
   if (device.type !== "inverter") return [];
 
   const meta = device.metadata || {};
-  const ts = device.last_seen_at || new Date().toISOString();
-  const inverterOnline = device.status === "online";
+  const deviceSeenAt = getDeviceSsotTimestamp(device);
+  const ts = deviceSeenAt || new Date().toISOString();
+  // SSOT: derive status via engine — NEVER use device.status directly
+  const derived = deriveDeviceStatus({ rawStatus: device.status, lastSeenAt: deviceSeenAt });
+  const inverterOnline = derived.status === "online";
 
   const mpptCount = Number(meta.dcInputTypeMppt ?? meta.dcInputType ?? meta.mpptCount ?? 0);
   const readings: NormalizedStringReading[] = [];
