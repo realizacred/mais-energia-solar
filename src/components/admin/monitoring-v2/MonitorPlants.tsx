@@ -17,7 +17,7 @@ import {
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
 import type { PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
-import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS } from "@/services/monitoring/plantStatusEngine";
+import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS, isBrasiliaNight } from "@/services/monitoring/plantStatusEngine";
 import { getProviderIconUrl } from "@/services/integrations/iconMap";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -357,9 +357,11 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
       : `${Number(powerKwp.toFixed(2))} kWp`
     : "—";
 
-  // Format real-time power
-  const realtimePowerDisplay = currentPowerKw > 0
-    ? `⚡ ${Number(currentPowerKw.toFixed(2))} kW`
+  // Format real-time power — zero at night (stale data)
+  const isNight = isBrasiliaNight();
+  const effectivePower = isNight ? 0 : currentPowerKw;
+  const realtimePowerDisplay = effectivePower > 0
+    ? `⚡ ${Number(effectivePower.toFixed(2))} kW`
     : "";
 
   // Format energy nicely
