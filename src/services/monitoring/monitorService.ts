@@ -211,14 +211,47 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     monthMap.set(r.plant_id, (monthMap.get(r.plant_id) || 0) + energy);
   });
 
+  // DEBUG SSOT — temporary instrumentation (remove after validation)
+  if (import.meta.env.DEV) {
+    console.group("[SSOT] listPlantsWithHealth — deviceSeenMap stats");
+    console.log("Total solar_plants:", plantList.length);
+    console.log("deviceSeenMap entries:", deviceSeenMap.size);
+    const now = Date.now();
+    const staleEntries = Array.from(deviceSeenMap.entries())
+      .filter(([, ts]) => now - new Date(ts).getTime() > 2 * 60 * 60 * 1000);
+    console.log("Stale plants (>2h):", staleEntries.length);
+    staleEntries.slice(0, 5).forEach(([legacyId, ts]) => {
+      const ageMin = Math.round((now - new Date(ts).getTime()) / 60000);
+      console.log(`  plant=${legacyId} maxDeviceSeen=${ts} age=${ageMin}min`);
+    });
+    const missingPlants = plantList.filter(p => !deviceSeenMap.has(p.id));
+    console.log("Plants WITHOUT deviceSeenMap entry (null last_seen):", missingPlants.length);
+    console.groupEnd();
+  }
+
   return plantList.map((sp) => {
     const m = todayMap.get(sp.id);
     // SSOT: plant_seen_at = MAX(device.last_seen_at) — NOT solar_plants.updated_at
     const maxDeviceSeen = deviceSeenMap.get(sp.id) || null;
     const bestLastSeen = maxDeviceSeen;
+    const health = legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen);
+
+    // DEBUG SSOT — log specific problem plants
+    if (import.meta.env.DEV && sp.id === "af44b227-7f1d-4276-bc81-0860c7425aa9") {
+      console.log("[SSOT DEBUG] Problem plant af44b227:", {
+        solarPlantId: sp.id,
+        name: sp.name,
+        solarPlantUpdatedAt: sp.updated_at,
+        maxDeviceSeen,
+        bestLastSeen,
+        derivedHealthStatus: health.status,
+        healthLastSeenAt: health.last_seen_at,
+      });
+    }
+
     return {
       ...mapSolarPlantToMonitorPlant(sp),
-      health: legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen),
+      health,
       provider_name: sp.provider || undefined,
     };
   });

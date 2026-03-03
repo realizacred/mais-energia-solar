@@ -343,6 +343,16 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
   const isOffline = uiStatus === "offline";
   const isStandby = uiStatus === "standby";
 
+  // DEBUG SSOT — log the specific problem plant
+  if (import.meta.env.DEV && plant.id === "af44b227-7f1d-4276-bc81-0860c7425aa9") {
+    console.log("[SSOT PLANT CARD] af44b227:", {
+      healthStatus: plant.health?.status,
+      healthLastSeenAt: plant.health?.last_seen_at,
+      uiStatus,
+      isOffline,
+    });
+  }
+
   const expectedDaily = powerKwp * 4.5;
   const perfPercent = expectedDaily > 0 ? Math.min(100, Math.round((energyToday / expectedDaily) * 100)) : 0;
 
