@@ -849,6 +849,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         telefone: data.telefone.trim(),
         ...buildOrcamentoData(data, []),
         vendedor_codigo: vendedorCodigo || undefined,
+        origem: isPublicVendorForm ? "canal_consultor" : undefined,
         offlineFiles: hasFiles ? uploadedFiles : undefined,
       };
 
