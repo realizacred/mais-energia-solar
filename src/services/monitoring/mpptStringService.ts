@@ -225,9 +225,9 @@ export async function getDeviceStringCards(
         latest_current_a: r.current_a,
         latest_ts: r.ts,
         baseline_pct: null,
-        alert_status: r.power_w != null && r.power_w > 0 ? "ok"
-          : r.power_w === 0 && r.inverter_online ? "critical"
-          : "unknown",
+        alert_status: (r.power_w != null && r.power_w > 0) || (r.voltage_v != null && r.voltage_v > 0)
+          ? "ok"
+          : r.inverter_online ? "critical" : "unknown",
       }));
 
       return {
@@ -248,10 +248,12 @@ export async function getDeviceStringCards(
           : null;
 
       let alertStatus: "ok" | "warn" | "critical" | "unknown" = "unknown";
-      if (metric && metric.power_w != null) {
-        if (metric.power_w === 0 && metric.online) alertStatus = "critical";
-        else if (baselinePct !== null && baselinePct < 30) alertStatus = "warn";
-        else if (metric.power_w > 0) alertStatus = "ok";
+      const hasPower = metric && metric.power_w != null && metric.power_w > 0;
+      const hasVoltage = metric && metric.voltage_v != null && metric.voltage_v > 0;
+      if (hasPower || hasVoltage) {
+        alertStatus = "ok";
+      } else if (metric && metric.online && metric.power_w != null && metric.power_w === 0) {
+        alertStatus = "critical";
       }
 
       return {
