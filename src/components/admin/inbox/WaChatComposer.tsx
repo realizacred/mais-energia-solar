@@ -232,7 +232,7 @@ export function WaChatComposer({
   }, [slashFilteredReplies.length]);
 
   const applySlashReply = useCallback((qr: QuickReplyDb) => {
-    setInputValue(qr.conteudo);
+    setInputValue(qr.conteudo.replace(/\\n/g, "\n"));
     setSlashActive(false);
     setSlashQuery("");
     setSlashIndex(0);
@@ -491,7 +491,7 @@ export function WaChatComposer({
                       key={qr.id}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors group border border-transparent hover:border-border/30"
                       onClick={() => {
-                        setInputValue(qr.conteudo);
+                        setInputValue(qr.conteudo.replace(/\\n/g, "\n"));
                         setQuickReplySearch("");
                         setSelectedCategory(null);
                         textareaRef.current?.focus();

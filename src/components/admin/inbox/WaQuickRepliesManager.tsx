@@ -262,7 +262,7 @@ export function WaQuickRepliesManager() {
       setEditing(reply);
       setForm({
         titulo: reply.titulo,
-        conteudo: reply.conteudo,
+        conteudo: reply.conteudo.replace(/\\n/g, "\n"),
         emoji: reply.emoji || "💬",
         categoria: reply.categoria || "geral",
         media_type: reply.media_type || "none",
