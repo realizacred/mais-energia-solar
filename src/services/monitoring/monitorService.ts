@@ -92,11 +92,11 @@ function legacyStatusToHealth(
   monthKwh?: number,
   yesterdayMetric?: SolarPlantMetricsDaily,
   openAlertCount?: number,
-  /** SSOT: best available "last seen" = GREATEST(sp.updated_at, max device last_seen_at) */
+  /** SSOT: plant_seen_at = MAX(device.last_seen_at) — NOT solar_plants.updated_at */
   bestLastSeenAt?: string | null,
 ): MonitorHealthCache {
-  // SSOT: canonical plant timestamp — prefer device-enriched timestamp
-  const canonicalLastSeen = bestLastSeenAt || sp.updated_at;
+  // SSOT: canonical plant timestamp — device-derived only; sp.updated_at is NOT sync time
+  const canonicalLastSeen = bestLastSeenAt || null;
 
   // SSOT: use extractDailyEnergy helper
   let energyToday = extractDailyEnergy(m?.energy_kwh ?? null, m?.power_kw ?? null);
@@ -213,9 +213,9 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
 
   return plantList.map((sp) => {
     const m = todayMap.get(sp.id);
-    // SSOT: bestLastSeen = GREATEST(sp.updated_at, max device last_seen_at)
-    const maxDeviceSeen = deviceSeenMap.get(sp.id);
-    const bestLastSeen = maxDeviceSeen && maxDeviceSeen > sp.updated_at ? maxDeviceSeen : sp.updated_at;
+    // SSOT: plant_seen_at = MAX(device.last_seen_at) — NOT solar_plants.updated_at
+    const maxDeviceSeen = deviceSeenMap.get(sp.id) || null;
+    const bestLastSeen = maxDeviceSeen;
     return {
       ...mapSolarPlantToMonitorPlant(sp),
       health: legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen),
@@ -277,7 +277,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
     }
   }
 
-  const bestLastSeen = maxDeviceSeen && maxDeviceSeen > sp.updated_at ? maxDeviceSeen : sp.updated_at;
+  const bestLastSeen = maxDeviceSeen;
 
   return {
     ...mapSolarPlantToMonitorPlant(sp),

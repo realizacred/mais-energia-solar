@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-// @ts-ignore — deriveDeviceStatus used for SSOT device status
-import { deriveDeviceStatus } from "@/services/monitoring/plantStatusEngine";
+// @ts-ignore — deriveDeviceStatus + getDeviceSsotTimestamp used for SSOT device status
+import { deriveDeviceStatus, getDeviceSsotTimestamp } from "@/services/monitoring/plantStatusEngine";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarDays, Wrench, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
@@ -77,7 +77,7 @@ function analyzeMaintenanceNeeds(
     const plantDevices = (plant as any).devices as Array<{ type?: string; status: string; model?: string; serial?: string; last_seen_at?: string; updated_at?: string }> | undefined;
     if (!plantDevices) return;
     const offlineInverters = plantDevices.filter(
-      (d) => d.type === "inverter" && deriveDeviceStatus({ rawStatus: d.status, lastSeenAt: d.last_seen_at || d.updated_at || null }).status === "offline"
+      (d) => d.type === "inverter" && deriveDeviceStatus({ rawStatus: d.status, lastSeenAt: getDeviceSsotTimestamp(d) }).status === "offline"
     );
     if (offlineInverters.length > 0) {
       const existing = items.find((i) => i.plantId === plant.id);
