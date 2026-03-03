@@ -51,7 +51,6 @@ export function PlantMpptSection({ plantId, devices, isOffline }: PlantMpptSecti
   if (!enabled || isLoading) return null;
 
   const totalStrings = cards.reduce((s, c) => s + c.strings.length, 0);
-  if (totalStrings === 0) return null;
 
   const handleRecalculate = async () => {
     if (recalculating) return;
@@ -94,22 +93,34 @@ export function PlantMpptSection({ plantId, devices, isOffline }: PlantMpptSecti
         </Button>
       }
     >
-      {/* Baseline summary */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-        <span className="font-medium">
-          {calibrated}/{totalStrings} strings calibradas
-        </span>
-        {calibrated === 0 && totalStrings > 0 && (
-          <span className="text-warning">• Aguardando calibração</span>
-        )}
-      </div>
+      {totalStrings === 0 ? (
+        <div className="text-center py-6">
+          <Clock className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+          <p className="text-sm font-medium text-muted-foreground">Aguardando dados de strings</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            O baseline será calculado automaticamente após 5 leituras válidas
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Baseline summary */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+            <span className="font-medium">
+              {calibrated}/{totalStrings} strings calibradas
+            </span>
+            {calibrated === 0 && totalStrings > 0 && (
+              <span className="text-warning">• Aguardando calibração</span>
+            )}
+          </div>
 
-      {/* Device cards */}
-      <div className="space-y-4">
-        {cards.map((card) => (
-          <DeviceStringsCard key={card.device_id} card={card} isOffline={isOffline} />
-        ))}
-      </div>
+          {/* Device cards */}
+          <div className="space-y-4">
+            {cards.map((card) => (
+              <DeviceStringsCard key={card.device_id} card={card} isOffline={isOffline} />
+            ))}
+          </div>
+        </>
+      )}
     </SectionCard>
   );
 }
