@@ -169,12 +169,10 @@ export async function getDeviceStringCards(
   devices: MonitorDevice[],
 ): Promise<DeviceStringCard[]> {
   const inverters = devices.filter((d) => d.type === "inverter");
-  console.log("[getDeviceStringCards] plantId:", plantId, "total devices:", devices.length, "inverters:", inverters.length);
-  console.log("[getDeviceStringCards] device types:", devices.map(d => ({ id: d.id, type: d.type, model: d.model })));
   if (!inverters.length) return [];
 
+  const resolvedPlantId = await resolveMonitorPlantId(plantId);
   const registry = await listStringRegistry(plantId);
-  console.log("[getDeviceStringCards] registry entries:", registry.length);
   const registryIds = registry.map((r) => r.id);
   const [latestMetrics, openAlerts] = await Promise.all([
     listLatestMetrics(registryIds),
@@ -189,18 +187,23 @@ export async function getDeviceStringCards(
     alertsByDevice.set(a.device_id, arr);
   }
 
-  return inverters.map((dev) => {
+  const cards = await Promise.all(inverters.map(async (dev) => {
     const devRegistry = registry.filter((r) => r.device_id === dev.id);
 
-    // ── Fallback: if no registry entries, use normalizer to extract from metadata ──
+    // ── Auto-register: if no registry, create entries from normalizer ──
     if (devRegistry.length === 0) {
-      console.log("[getDeviceStringCards] No registry for device", dev.id, "- using normalizer fallback. metadata keys:", Object.keys(dev.metadata || {}));
       const readings = normalizeDeviceToStringReadings(dev, plantId, true);
-      console.log("[getDeviceStringCards] Normalizer fallback produced", readings.length, "readings for device", dev.id);
+      if (readings.length > 0) {
+        // Fire-and-forget: insert registry entries so future syncs can write metrics
+        autoRegisterStrings(resolvedPlantId, dev, readings).catch((err) =>
+          console.error("[getDeviceStringCards] auto-register error:", err)
+        );
+      }
+
       const fallbackStrings: StringRegistryWithMetric[] = readings.map((r) => ({
         id: `live-${dev.id}-${r.mppt_number ?? 0}-${r.string_number ?? 0}`,
         tenant_id: r.tenant_id,
-        plant_id: r.plant_id,
+        plant_id: resolvedPlantId,
         device_id: r.device_id,
         inverter_serial: r.inverter_serial,
         provider_id: r.provider_id,
@@ -270,7 +273,45 @@ export async function getDeviceStringCards(
       strings,
       open_alerts: alertsByDevice.get(dev.id) || [],
     };
-  });
+  }));
+
+  return cards;
+}
+
+// ─── Auto-register strings into monitor_string_registry ──────
+async function autoRegisterStrings(
+  resolvedPlantId: string,
+  device: MonitorDevice,
+  readings: import("./mpptStringTypes").NormalizedStringReading[],
+): Promise<void> {
+  const now = new Date().toISOString();
+  const rows = readings.map((r) => ({
+    tenant_id: r.tenant_id,
+    plant_id: resolvedPlantId,
+    device_id: r.device_id,
+    inverter_serial: r.inverter_serial,
+    provider_id: r.provider_id,
+    mppt_number: r.mppt_number,
+    string_number: r.string_number,
+    granularity: r.granularity,
+    first_seen_at: now,
+    last_seen_at: now,
+    is_active: true,
+    metadata: {},
+  }));
+
+  const { error } = await supabase
+    .from("monitor_string_registry" as any)
+    .upsert(rows as any, {
+      onConflict: "tenant_id,plant_id,device_id,mppt_number,string_number,granularity",
+      ignoreDuplicates: true,
+    });
+
+  if (error) {
+    console.error("[autoRegisterStrings] upsert error:", error.message);
+  } else {
+    console.log("[autoRegisterStrings] Registered", rows.length, "strings for device", device.id);
+  }
 }
 
 // ─── Baseline recalculation (manual trigger) ─────────────────

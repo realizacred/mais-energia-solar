@@ -108,11 +108,14 @@ export function PlantMpptSection({ plantId, devices, isOffline }: PlantMpptSecti
         <>
           {/* Baseline summary */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-            <span className="font-medium">
-              {calibrated}/{totalStrings} strings calibradas
-            </span>
-            {calibrated === 0 && totalStrings > 0 && (
-              <span className="text-warning">• Aguardando calibração</span>
+            {calibrated > 0 ? (
+              <span className="font-medium">
+                {calibrated}/{totalStrings} strings calibradas
+              </span>
+            ) : (
+              <span className="font-medium text-muted-foreground/70">
+                Dados em tempo real • Baseline será calculado após 5 leituras
+              </span>
             )}
           </div>
 
