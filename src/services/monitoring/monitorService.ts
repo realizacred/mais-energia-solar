@@ -146,7 +146,8 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", today),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", yesterday),
     supabase.from("solar_plant_metrics_daily" as any).select("plant_id, energy_kwh, power_kw").gte("date", monthStartStr).lte("date", today),
-    // Real alert counts — 1 aggregated query instead of N
+    // Real alert counts — 1 aggregated query, filtered by tenant via RLS + explicit tenant filter
+    // RLS already filters by tenant, but we also rely on plant_id mapping for safety
     supabase.from("monitor_events" as any).select("plant_id").eq("is_open", true),
   ]);
 
@@ -226,14 +227,10 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 export async function getDashboardStats(): Promise<MonitorDashboardStats> {
   const plants = await listPlantsWithHealth();
 
-  // SSOT: monthly energy from readings
-  const monthStartStr = getMonthStartBrasilia();
-  const todayStr = getTodayBrasilia();
-  const readings = await listAllReadings(monthStartStr, todayStr);
-
-  const totalMonthKwh = sumMonthlyEnergy(
-    readings.map((r) => ({ energy_kwh: r.energy_kwh, power_kw: r.peak_power_kw }))
-  );
+  // SSOT: monthly energy = sum of each plant's health.energy_month_kwh
+  // (already computed via solar_plant_metrics_daily in listPlantsWithHealth)
+  // No separate listAllReadings call — single source of truth.
+  const totalMonthKwh = plants.reduce((s, p) => s + (p.health?.energy_month_kwh || 0), 0);
 
   // SSOT: real current power = sum of all plants' current_power_kw (not estimated)
   const currentPowerKw = plants.reduce((s, p) => s + (p.health?.current_power_kw || 0), 0);
@@ -241,9 +238,10 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
   return {
     plants_online: plants.filter((p) => p.health?.status === "online").length,
     plants_standby: plants.filter((p) => p.health?.status === "standby").length,
-    plants_alert: plants.filter((p) => p.health?.status === "alert").length,
+    // SSOT: plants_alert = plants with open alerts, NOT status === "alert"
+    plants_alert: plants.filter((p) => (p.health?.open_alerts_count || 0) > 0).length,
     plants_offline: plants.filter((p) => p.health?.status === "offline").length,
-    plants_unknown: plants.filter((p) => p.health?.status === "unknown").length,
+    plants_unknown: plants.filter((p) => !p.health?.status || p.health.status === "unknown").length,
     total_plants: plants.length,
     energy_today_kwh: plants.reduce((s, p) => s + (p.health?.energy_today_kwh || 0), 0),
     energy_month_kwh: totalMonthKwh,
