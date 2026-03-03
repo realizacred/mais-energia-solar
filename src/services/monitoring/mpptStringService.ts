@@ -207,15 +207,25 @@ export async function getDeviceStringCards(
 
 export async function recalculateBaseline(plantId: string): Promise<{ updated: number }> {
   const resolvedId = await resolveMonitorPlantId(plantId);
-  const { data, error } = await supabase.functions.invoke("mppt-string-engine", {
-    body: { action: "recalculate_baseline", plant_id: resolvedId },
-  });
-  if (error) {
-    console.error("[recalculateBaseline] Error:", error);
-    throw new Error(typeof error === "object" && error.message ? error.message : "Erro ao recalcular baseline");
+  try {
+    const { data, error } = await supabase.functions.invoke("mppt-string-engine", {
+      body: { action: "recalculate_baseline", plant_id: resolvedId },
+    });
+    if (error) {
+      // FunctionsHttpError may have context in its message or response body
+      const msg = typeof error === "object" && "message" in error
+        ? (error as any).message
+        : String(error);
+      console.error("[recalculateBaseline] Edge function error:", msg, error);
+      throw new Error(msg || "Erro ao recalcular baseline");
+    }
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+    return { updated: data?.updated || 0 };
+  } catch (e: any) {
+    if (e?.message) throw e;
+    console.error("[recalculateBaseline] Unexpected error:", e);
+    throw new Error("Erro inesperado ao recalcular baseline");
   }
-  if (data?.error) {
-    throw new Error(data.error);
-  }
-  return { updated: data?.updated || 0 };
 }
