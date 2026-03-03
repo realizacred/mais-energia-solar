@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const cronSecret = Deno.env.get("CRON_SECRET");
     const headerCronSecret = req.headers.get("x-cron-secret");
-    const isCron = (
+    const isCron = Boolean(
       (headerCronSecret && cronSecret && headerCronSecret === cronSecret) ||
       (body.cron_secret && cronSecret && body.cron_secret === cronSecret)
     );
