@@ -149,9 +149,12 @@ export async function getDeviceStringCards(
   devices: MonitorDevice[],
 ): Promise<DeviceStringCard[]> {
   const inverters = devices.filter((d) => d.type === "inverter");
+  console.log("[getDeviceStringCards] plantId:", plantId, "total devices:", devices.length, "inverters:", inverters.length);
+  console.log("[getDeviceStringCards] device types:", devices.map(d => ({ id: d.id, type: d.type, model: d.model })));
   if (!inverters.length) return [];
 
   const registry = await listStringRegistry(plantId);
+  console.log("[getDeviceStringCards] registry entries:", registry.length);
   const registryIds = registry.map((r) => r.id);
   const [latestMetrics, openAlerts] = await Promise.all([
     listLatestMetrics(registryIds),
@@ -171,7 +174,9 @@ export async function getDeviceStringCards(
 
     // ── Fallback: if no registry entries, use normalizer to extract from metadata ──
     if (devRegistry.length === 0) {
+      console.log("[getDeviceStringCards] No registry for device", dev.id, "- using normalizer fallback. metadata keys:", Object.keys(dev.metadata || {}));
       const readings = normalizeDeviceToStringReadings(dev, plantId, true);
+      console.log("[getDeviceStringCards] Normalizer fallback produced", readings.length, "readings for device", dev.id);
       const fallbackStrings: StringRegistryWithMetric[] = readings.map((r) => ({
         id: `live-${dev.id}-${r.mppt_number ?? 0}-${r.string_number ?? 0}`,
         tenant_id: r.tenant_id,
