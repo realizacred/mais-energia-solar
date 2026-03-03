@@ -242,60 +242,82 @@ interface NormalizedDevice {
 
 async function solisListInverters(apiId: string, apiSecret: string): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
   const result: { stationId: string; devices: NormalizedDevice[] }[] = [];
+
+  // Phase 1: Fetch ALL inverters from inverterList (fast, no detail)
+  const allRecords: any[] = [];
   let pageNo = 1;
   while (true) {
     const json = await solisFetch(apiId, apiSecret, "/v1/api/inverterList", { pageNo, pageSize: 100 });
     const data = json.data as any;
     const records = data?.page?.records || data?.records || [];
     if (!records.length) break;
-    for (const r of records) {
-      const stationId = String(r.stationId || r.plantId || "");
-      const sn = r.sn || r.inverterSn || null;
-
-      // Enrich with Vpv/Ipv from inverterDetail (best-effort, don't block on failure)
-      let detailMeta: Record<string, unknown> = {};
-      if (sn) {
-        try {
-          await new Promise(r => setTimeout(r, 2100)); // Solis API mandates 2s between calls
-          const detailJson = await solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
-          const dd = detailJson.data || {};
-          // Log raw keys to diagnose field mapping
-          console.log(`[Solis] inverterDetail keys for ${sn}:`, Object.keys(dd).filter(k => /pv|Pv|PV|vpv|ipv|uPv|iPv|pow/i.test(k)).join(", "));
-          detailMeta = {
-            vpv1: dd.uPv1 ?? dd.vpv1 ?? dd.pv1Voltage ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? dd.pv1Current ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
-            vpv2: dd.uPv2 ?? dd.vpv2 ?? dd.pv2Voltage ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? dd.pv2Current ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
-            vpv3: dd.uPv3 ?? dd.vpv3 ?? dd.pv3Voltage ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? dd.pv3Current ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
-            vpv4: dd.uPv4 ?? dd.vpv4 ?? dd.pv4Voltage ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? dd.pv4Current ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
-            pac: dd.pac ?? dd.generationPower ?? null,
-            etoday: dd.eToday ?? dd.dayEnergy ?? null,
-            etotal: dd.eTotal ?? dd.allEnergy ?? null,
-            dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
-          };
-          // Log the actual extracted values
-          console.log(`[Solis] detailMeta for ${sn}: vpv1=${detailMeta.vpv1}, ipv1=${detailMeta.ipv1}, vpv2=${detailMeta.vpv2}, ipv2=${detailMeta.ipv2}`);
-        } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}: ${(e as Error).message}`); }
-      }
-
-      // SSOT: extract real device data timestamp from Solis API
-      const solisDataTs = r.dataTimestamp ?? detailMeta.dataTimestamp;
-      const solisLastSeenAt = solisDataTs
-        ? new Date(Number(solisDataTs) > 1e12 ? Number(solisDataTs) : Number(solisDataTs) * 1000).toISOString()
-        : undefined;
-
-      const device: NormalizedDevice = {
-        provider_device_id: String(r.id || r.sn || ""),
-        type: "inverter",
-        model: r.inverterType || r.model || r.machineName || null,
-        serial: sn,
-        status: r.state === 1 ? "online" : r.state === 2 ? "offline" : r.state === 3 ? "alarm" : "unknown",
-        metadata: { ...r, ...detailMeta },
-        lastSeenAt: solisLastSeenAt,
-      };
-      const existing = result.find((x) => x.stationId === stationId);
-      if (existing) existing.devices.push(device); else result.push({ stationId, devices: [device] });
-    }
+    allRecords.push(...records);
     if (pageNo * 100 >= Number(data?.page?.total || 0)) break;
     pageNo++;
+    await new Promise(r => setTimeout(r, 2100));
+  }
+  console.log(`[Solis] inverterList: ${allRecords.length} inverters found`);
+
+  // Phase 2: Fetch inverterDetail for a BUDGET of inverters (time-limited to avoid timeout)
+  // Rotate: use minute-of-hour to pick a different batch each cycle
+  const DETAIL_BUDGET = 30; // max inverters to fetch detail per cycle (~65s)
+  const minuteOfHour = new Date().getMinutes();
+  const totalBatches = Math.ceil(allRecords.length / DETAIL_BUDGET);
+  const currentBatch = minuteOfHour % Math.max(totalBatches, 1);
+  const detailStart = currentBatch * DETAIL_BUDGET;
+  const detailEnd = Math.min(detailStart + DETAIL_BUDGET, allRecords.length);
+  console.log(`[Solis] inverterDetail: fetching batch ${currentBatch+1}/${totalBatches} (indices ${detailStart}-${detailEnd-1})`);
+
+  const detailMap = new Map<string, Record<string, unknown>>();
+  for (let i = detailStart; i < detailEnd; i++) {
+    const r = allRecords[i];
+    const sn = r.sn || r.inverterSn || null;
+    if (!sn) continue;
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2100));
+      const detailJson = await solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
+      const dd = detailJson.data || {};
+      console.log(`[Solis] inverterDetail keys for ${sn}:`, Object.keys(dd).filter(k => /pv|Pv|PV|vpv|ipv|uPv|iPv|pow/i.test(k)).join(", "));
+      const detailMeta: Record<string, unknown> = {
+        vpv1: dd.uPv1 ?? dd.vpv1 ?? dd.pv1Voltage ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? dd.pv1Current ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
+        vpv2: dd.uPv2 ?? dd.vpv2 ?? dd.pv2Voltage ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? dd.pv2Current ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
+        vpv3: dd.uPv3 ?? dd.vpv3 ?? dd.pv3Voltage ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? dd.pv3Current ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
+        vpv4: dd.uPv4 ?? dd.vpv4 ?? dd.pv4Voltage ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? dd.pv4Current ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
+        pac: dd.pac ?? dd.generationPower ?? null,
+        etoday: dd.eToday ?? dd.dayEnergy ?? null,
+        etotal: dd.eTotal ?? dd.allEnergy ?? null,
+        etotal1: dd.eTotal1 ?? dd.allEnergy1 ?? null,
+        dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
+        dataTimestamp: dd.dataTimestamp ?? null,
+      };
+      console.log(`[Solis] detailMeta for ${sn}: vpv1=${detailMeta.vpv1}, ipv1=${detailMeta.ipv1}, vpv2=${detailMeta.vpv2}, ipv2=${detailMeta.ipv2}`);
+      detailMap.set(sn, detailMeta);
+    } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}: ${(e as Error).message}`); }
+  }
+  console.log(`[Solis] inverterDetail: fetched ${detailMap.size} details`);
+
+  // Phase 3: Build normalized devices, merging detail where available
+  for (const r of allRecords) {
+    const stationId = String(r.stationId || r.plantId || "");
+    const sn = r.sn || r.inverterSn || null;
+    const detailMeta = (sn ? detailMap.get(sn) : null) || {};
+
+    const solisDataTs = r.dataTimestamp ?? (detailMeta as any).dataTimestamp;
+    const solisLastSeenAt = solisDataTs
+      ? new Date(Number(solisDataTs) > 1e12 ? Number(solisDataTs) : Number(solisDataTs) * 1000).toISOString()
+      : undefined;
+
+    const device: NormalizedDevice = {
+      provider_device_id: String(r.id || r.sn || ""),
+      type: "inverter",
+      model: r.inverterType || r.model || r.machineName || null,
+      serial: sn,
+      status: r.state === 1 ? "online" : r.state === 2 ? "offline" : r.state === 3 ? "alarm" : "unknown",
+      metadata: { ...r, ...detailMeta },
+      lastSeenAt: solisLastSeenAt,
+    };
+    const existing = result.find((x) => x.stationId === stationId);
+    if (existing) existing.devices.push(device); else result.push({ stationId, devices: [device] });
   }
   return result;
 }

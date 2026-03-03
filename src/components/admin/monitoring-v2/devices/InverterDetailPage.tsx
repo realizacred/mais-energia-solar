@@ -186,8 +186,13 @@ export default function InverterDetailPage() {
 
             {data.channels.map((ch) => {
               // Try multiple field name patterns for Vpv/Ipv (Solis: vpv1/ipv1, Growatt: vpv1/ipv1, legacy: uPv1/iPv1)
-              const rawVpv = Number(meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? meta[`Vpv${ch.index}`] ?? 0);
-              const rawIpv = Number(meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? meta[`Ipv${ch.index}`] ?? 0);
+              const rawVpvVal = meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? meta[`Vpv${ch.index}`];
+              const rawIpvVal = meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? meta[`Ipv${ch.index}`];
+              // Distinguish "no data fetched" (null/undefined) from "device reports 0"
+              const hasVpv = rawVpvVal != null && String(rawVpvVal) !== "null";
+              const hasIpv = rawIpvVal != null && String(rawIpvVal) !== "null";
+              const rawVpv = hasVpv ? Number(rawVpvVal) : null;
+              const rawIpv = hasIpv ? Number(rawIpvVal) : null;
               // Zero out Vpv/Ipv when offline/standby (stale data)
               const vpv = isOffline ? 0 : rawVpv;
               const ipv = isOffline ? 0 : rawIpv;
@@ -212,10 +217,10 @@ export default function InverterDetailPage() {
                     {`${ch.power_w} W`}
                   </span>
                   <span className="text-sm text-right text-foreground">
-                    {vpv > 0 ? `${vpv.toFixed(1)} V` : "0 V"}
+                    {vpv == null ? "—" : vpv > 0 ? `${vpv.toFixed(1)} V` : "0 V"}
                   </span>
                   <span className="text-sm text-right text-foreground">
-                    {ipv > 0 ? `${ipv.toFixed(2)} A` : "0 A"}
+                    {ipv == null ? "—" : ipv > 0 ? `${ipv.toFixed(2)} A` : "0 A"}
                   </span>
                 </div>
               );
