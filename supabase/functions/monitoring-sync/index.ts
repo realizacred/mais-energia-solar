@@ -1883,8 +1883,9 @@ async function syncPlantsByProvider(
     }
 
     // ── Lightweight device status sync (for providers without devicesFn in bulk mode) ──
-    // Derives device online/offline from plant status. CRITICAL: only update last_seen_at
-    // when the plant is actually online — never pollute it with sync timestamps for offline plants.
+    // Derives device online/offline from plant sync recency.
+    // IMPORTANT: Many providers (Deye, Huawei) report "offline" status even when actively
+    // generating. We use updated_at recency as the TRUE communication signal.
     if (!extras?.devicesFn) {
       try {
         const { data: dbMonitorPlants } = await ctx.supabaseAdmin
@@ -1898,24 +1899,36 @@ async function syncPlantsByProvider(
             : { data: [] };
           const statusMap = new Map((solarStatuses || []).map((s: any) => [s.id, s]));
 
+          // Also fetch today's metrics to detect active generation
+          const todayStr = new Date().toISOString().split("T")[0];
+          const { data: todayMetrics } = legacyIds.length > 0
+            ? await ctx.supabaseAdmin.from("solar_plant_metrics_daily")
+                .select("plant_id, power_kw, energy_kwh")
+                .in("plant_id", legacyIds).eq("date", todayStr)
+            : { data: [] };
+          const metricsMap = new Map((todayMetrics || []).map((m: any) => [m.plant_id, m]));
+
           let devUpdated = 0;
           for (const mp of dbMonitorPlants as any[]) {
             const solarPlant = mp.legacy_plant_id ? statusMap.get(mp.legacy_plant_id) : null;
-            const isNormal = solarPlant?.status === "normal";
+            const metric = mp.legacy_plant_id ? metricsMap.get(mp.legacy_plant_id) : null;
             const recentUpdate = solarPlant?.updated_at && (Date.now() - new Date(solarPlant.updated_at).getTime()) < 2 * 60 * 60 * 1000;
-            const derivedStatus = isNormal && recentUpdate ? "online" : "offline";
+            const hasActivePower = metric && Number(metric.power_kw || 0) > 0.01;
+            const hasEnergyToday = metric && Number(metric.energy_kwh || 0) > 0;
+            const isNormal = solarPlant?.status === "normal";
 
-            // SSOT FIX: Only update last_seen_at when device is ONLINE.
-            // When offline, preserve the original last_seen_at so the frontend
-            // correctly shows how long ago the device was last truly seen.
+            // Device is online if: (a) provider says normal + recent, OR (b) has active generation
+            const derivedStatus = (isNormal && recentUpdate) || hasActivePower || hasEnergyToday ? "online" : "offline";
+
             const updatePayload: Record<string, unknown> = {
               status: derivedStatus,
               updated_at: new Date().toISOString(),
             };
-            if (derivedStatus === "online" && solarPlant?.updated_at) {
+            // Update last_seen_at whenever the plant was recently synced (updated_at is fresh)
+            // This is the TRUE communication signal — not the provider's cached status field
+            if (recentUpdate && solarPlant?.updated_at) {
               updatePayload.last_seen_at = solarPlant.updated_at;
             }
-            // If offline, do NOT touch last_seen_at — let it age naturally
 
             const { error: devErr, count: updCount } = await ctx.supabaseAdmin
               .from("monitor_devices")
