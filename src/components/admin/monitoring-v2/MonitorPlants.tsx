@@ -15,6 +15,7 @@ import {
   SortAsc, ChevronRight,
 } from "lucide-react";
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
+import { getProvider } from "@/services/monitoring/providerRegistry";
 import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
 import type { PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
 import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS, isBrasiliaNight, resolveHealthToUiStatus, formatRelativeSeenAt } from "@/services/monitoring/plantStatusEngine";
@@ -209,8 +210,8 @@ export default function MonitorPlants() {
             <SelectContent>
               <SelectItem value="all">Todas as marcas</SelectItem>
               {brands.map((b) => (
-                <SelectItem key={b} value={b} className="capitalize">
-                  {b.charAt(0).toUpperCase() + b.slice(1)}
+                <SelectItem key={b} value={b}>
+                  {getProvider(b)?.label || b}
                 </SelectItem>
               ))}
             </SelectContent>
