@@ -31,7 +31,7 @@ export default function InverterDetailPage() {
   if (isLoading) return <LoadingState message="Carregando inversor..." />;
   if (!device) return <EmptyState icon={Cpu} title="Inversor não encontrado" />;
 
-  const data = extractMpptData(device.metadata);
+  const rawData = extractMpptData(device.metadata);
   const meta = device.metadata || {};
 
   // ─── SSOT: Derive device status instead of using raw device.status ───
@@ -43,8 +43,19 @@ export default function InverterDetailPage() {
   const snapshotAt = deviceSeenAt;
   const staleness = computeDeviceStaleness(snapshotAt);
   const isStale = staleness.stale;
-  const isOffline = derived.status === "offline";
+  const isOffline = derived.status === "offline" || derived.status === "standby";
   const statusLabel = DEVICE_STATUS_LABELS[derived.status];
+
+  // ─── SSOT: Zero out instantaneous power when offline/standby (stale data) ───
+  const data = isOffline
+    ? {
+        ...rawData,
+        channels: rawData.channels.map(ch => ({ ...ch, power_w: 0 })),
+        totalStringPower: 0,
+        acPower: 0,
+        maxPvVoltage: null,
+      }
+    : rawData;
 
   // Extract additional metadata fields — support multiple provider field names
   const firmware = String(meta.inverterSoftwareVersion ?? meta.firmwareVersion ?? "—");
@@ -53,7 +64,7 @@ export default function InverterDetailPage() {
   const acOutputType = Number(meta.acOutputType ?? -1);
   const phases = acOutputType === 0 ? "Monofásico" : acOutputType === 1 ? "Bifásico" : acOutputType === 2 ? "Trifásico" : "—";
   const ratedPower = Number(meta.power ?? 0) || Number(meta.RatedPower ?? 0) / 1000;
-  const currentAcPower = Number(meta.pac ?? 0) || Number(meta.TotalActiveACOutputPower ?? 0) / 1000;
+  const currentAcPower = isOffline ? 0 : (Number(meta.pac ?? 0) || Number(meta.TotalActiveACOutputPower ?? 0) / 1000);
   const stationName = String(meta.stationName ?? meta.plantName ?? "");
 
   const handleSync = async () => {
@@ -175,8 +186,11 @@ export default function InverterDetailPage() {
 
             {data.channels.map((ch) => {
               // Try multiple field name patterns for Vpv/Ipv (Solis: vpv1/ipv1, Growatt: vpv1/ipv1, legacy: uPv1/iPv1)
-              const vpv = Number(meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? meta[`Vpv${ch.index}`] ?? 0);
-              const ipv = Number(meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? meta[`Ipv${ch.index}`] ?? 0);
+              const rawVpv = Number(meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? meta[`Vpv${ch.index}`] ?? 0);
+              const rawIpv = Number(meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? meta[`Ipv${ch.index}`] ?? 0);
+              // Zero out Vpv/Ipv when offline/standby (stale data)
+              const vpv = isOffline ? 0 : rawVpv;
+              const ipv = isOffline ? 0 : rawIpv;
 
               return (
                 <div
