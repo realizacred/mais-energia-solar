@@ -122,6 +122,10 @@ function legacyStatusToHealth(
     }
   }
 
+  // Normalize current power
+  const rawPower = m?.power_kw != null ? Number(m.power_kw) : 0;
+  const currentPowerKw = rawPower > 100 ? rawPower / 1000 : rawPower;
+
   // Use the centralized status engine — SSOT
   const { uiStatus } = derivePlantStatus({
     updated_at: sp.updated_at,
@@ -140,6 +144,7 @@ function legacyStatusToHealth(
     last_seen_at: sp.updated_at,
     energy_today_kwh: energyToday,
     energy_month_kwh: monthKwh ?? energyToday,
+    current_power_kw: currentPowerKw > 0 ? currentPowerKw : 0,
     performance_7d_pct: null,
     open_alerts_count: 0,
     updated_at: sp.updated_at,

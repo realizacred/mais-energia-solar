@@ -342,18 +342,24 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
   const uiStatus = resolveUiStatus(plant);
   const energyToday = plant.health?.energy_today_kwh || 0;
   const powerKwp = plant.installed_power_kwp || 0;
+  const currentPowerKw = plant.health?.current_power_kw || 0;
   const isOffline = uiStatus === "offline";
   const isStandby = uiStatus === "standby";
 
   const expectedDaily = powerKwp * 4.5;
   const perfPercent = expectedDaily > 0 ? Math.min(100, Math.round((energyToday / expectedDaily) * 100)) : 0;
 
-  // Format power nicely
+  // Format installed power
   const powerDisplay = powerKwp > 0
     ? powerKwp >= 1000
       ? `${(powerKwp / 1000).toFixed(1)} MWp`
       : `${Number(powerKwp.toFixed(2))} kWp`
     : "—";
+
+  // Format real-time power
+  const realtimePowerDisplay = currentPowerKw > 0
+    ? `⚡ ${Number(currentPowerKw.toFixed(2))} kW`
+    : "";
 
   // Format energy nicely
   const isFallback = plant.health?.is_yesterday_fallback;
@@ -394,7 +400,7 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
 
         {/* Stats: clean grid */}
         <div className="grid grid-cols-3 gap-2">
-          <StatCell label="Potência" value={powerDisplay} />
+          <StatCell label="Potência" value={powerDisplay} subValue={realtimePowerDisplay} />
           <StatCell label={isFallback ? "Ontem" : "Hoje"} value={energyDisplay} />
           <StatCell label="Atualização" value={lastSeen} />
         </div>
@@ -433,11 +439,14 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
 }
 
 /* Small stat cell for plant card */
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatCell({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
   return (
     <div className="bg-muted/40 rounded-lg px-2 py-1.5 text-center">
       <p className="text-[10px] text-muted-foreground leading-none mb-0.5">{label}</p>
       <p className="text-xs font-bold text-foreground leading-tight truncate">{value}</p>
+      {subValue && (
+        <p className="text-[10px] text-success font-medium leading-none mt-0.5">{subValue}</p>
+      )}
     </div>
   );
 }
