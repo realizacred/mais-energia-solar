@@ -18,6 +18,7 @@ import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
 import type { PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
 import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS } from "@/services/monitoring/plantStatusEngine";
+import { getProviderIconUrl } from "@/services/integrations/iconMap";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MonitorPlantsMap } from "./MonitorPlantsMap";
@@ -421,17 +422,17 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
         {/* Location + brand */}
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
           {plant.city && (
-            <span className="flex items-center gap-1 truncate">
+            <span className="flex items-center gap-1 min-w-0">
               <MapPin className="h-3 w-3 shrink-0" />
-              {plant.city}{plant.state ? `, ${plant.state}` : ""}
+              <span className="truncate">{formatAddress(plant.city, plant.state)}</span>
             </span>
           )}
-          {plant.provider_name && (
-            <span className="ml-auto px-1.5 py-0.5 rounded-md bg-muted text-[10px] capitalize shrink-0">
-              {plant.provider_name}
-            </span>
-          )}
-          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 ml-auto shrink-0 group-hover:text-primary transition-colors" />
+          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+            {plant.provider_name && (
+              <ProviderLogo providerId={plant.provider_name} />
+            )}
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+          </div>
         </div>
       </div>
     </button>
@@ -448,5 +449,38 @@ function StatCell({ label, value, subValue }: { label: string; value: string; su
         <p className="text-[10px] text-success font-medium leading-none mt-0.5">{subValue}</p>
       )}
     </div>
+  );
+}
+
+/** Format address: split concatenated "CidadeEstadoRua 123" into readable format */
+function formatAddress(city: string | null, state: string | null): string {
+  if (!city) return "";
+  // The address field often comes as a single concatenated string
+  // Try to add spacing if it looks concatenated (camelCase-like transitions)
+  let formatted = city
+    .replace(/([a-zà-ú])([A-ZÀ-Ú])/g, "$1, $2") // "Rio de JaneiroResende" → "Rio de Janeiro, Resende"
+    .replace(/(\d)([A-ZÀ-Ú])/g, "$1 $2")          // "3677Minas" → "3677 Minas"
+    .replace(/([a-zà-ú])(\d)/g, "$1 $2");           // "Dutra123" → "Dutra 123"
+  if (state) formatted += `, ${state}`;
+  return formatted;
+}
+
+/** Provider logo from iconMap — falls back to text badge */
+function ProviderLogo({ providerId }: { providerId: string }) {
+  const iconUrl = getProviderIconUrl(providerId);
+  if (iconUrl) {
+    return (
+      <img
+        src={iconUrl}
+        alt={providerId}
+        className="h-5 w-5 rounded object-contain"
+        loading="lazy"
+      />
+    );
+  }
+  return (
+    <span className="px-1.5 py-0.5 rounded-md bg-muted text-[10px] capitalize">
+      {providerId}
+    </span>
   );
 }
