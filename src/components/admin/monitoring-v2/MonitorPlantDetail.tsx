@@ -16,13 +16,12 @@ import { DeviceMpptSummary } from "./devices/DeviceMpptSummary";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { UI_STATUS_LABELS, UI_STATUS_DOT, getTodayBrasilia, getDaysAgoBrasilia, isBrasiliaNight, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
-
-function resolveUiStatus(raw: string | undefined): PlantUiStatus {
-  if (raw === "online") return "online";
-  if (raw === "standby") return "standby";
-  return "offline";
-}
+import {
+  UI_STATUS_LABELS, UI_STATUS_DOT, getTodayBrasilia, getDaysAgoBrasilia,
+  resolveHealthToUiStatus, deriveDeviceStatus,
+  DEVICE_STATUS_LABELS, DEVICE_STATUS_DOT, DEVICE_STATUS_TEXT,
+  type PlantUiStatus,
+} from "@/services/monitoring/plantStatusEngine";
 
 type TimeRange = "7d" | "30d" | "90d" | "365d";
 
@@ -87,7 +86,7 @@ export default function MonitorPlantDetail() {
   if (isLoading) return <LoadingState message="Carregando usina..." />;
   if (!plant) return <EmptyState icon={Sun} title="Usina não encontrada" />;
 
-  const status = resolveUiStatus(plant.health?.status);
+  const status = resolveHealthToUiStatus(plant.health?.status);
 
   return (
     <div className="space-y-6">
@@ -174,20 +173,15 @@ export default function MonitorPlantDetail() {
                   </div>
                     <div className="flex items-center gap-1.5">
                       {(() => {
-                        const isNight = isBrasiliaNight();
-                        const isDeviceOnline = d.status === "online";
-                        const displayStatus = isDeviceOnline && isNight ? "standby" : d.status;
+                        const deviceStatus = deriveDeviceStatus({
+                          rawStatus: d.status,
+                          lastSeenAt: d.last_seen_at || d.updated_at,
+                        });
                         return (
                           <>
-                            <span className={cn(
-                              "h-2 w-2 rounded-full",
-                              displayStatus === "online" ? "bg-success" : displayStatus === "standby" ? "bg-warning" : displayStatus === "offline" ? "bg-destructive" : "bg-muted-foreground"
-                            )} />
-                            <span className={cn(
-                              "text-xs font-medium",
-                              displayStatus === "online" ? "text-success" : displayStatus === "standby" ? "text-warning" : displayStatus === "offline" ? "text-destructive" : "text-muted-foreground"
-                            )}>
-                              {displayStatus === "online" ? "Online" : displayStatus === "standby" ? "Standby" : displayStatus === "offline" ? "Sem conexão" : "Desconhecido"}
+                            <span className={cn("h-2 w-2 rounded-full", DEVICE_STATUS_DOT[deviceStatus.status])} />
+                            <span className={cn("text-xs font-medium", DEVICE_STATUS_TEXT[deviceStatus.status])}>
+                              {DEVICE_STATUS_LABELS[deviceStatus.status]}
                             </span>
                           </>
                         );

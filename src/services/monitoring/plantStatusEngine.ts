@@ -132,10 +132,109 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   };
 }
 
-/** Normalize power_kw: some providers send watts instead of kW */
-function normalizePowerKw(raw: number | null): number {
+// normalizePowerKw is now exported in the SSOT section below
+
+/* ─── DEVICE STATUS ENGINE (SSOT) ─── */
+
+export type DeviceUiStatus = "online" | "standby" | "offline";
+
+export interface DerivedDeviceStatus {
+  status: DeviceUiStatus;
+  reason: string;
+}
+
+interface DeviceStatusInput {
+  /** Raw status from monitor_devices table */
+  rawStatus: string;
+  /** ISO timestamp of last device sync/update */
+  lastSeenAt: string | null;
+}
+
+/**
+ * Derive device UI status. SSOT — the ONLY function for device status.
+ * Same philosophy as derivePlantStatus:
+ *   1. OFFLINE if last_seen > 2h ago
+ *   2. STANDBY if night + was online
+ *   3. ONLINE otherwise
+ */
+export function deriveDeviceStatus(input: DeviceStatusInput): DerivedDeviceStatus {
+  const now = Date.now();
+  const lastSeen = input.lastSeenAt ? new Date(input.lastSeenAt).getTime() : 0;
+  const elapsed = now - lastSeen;
+
+  // Rule 1: OFFLINE — no recent sync (same 2h threshold as plants)
+  if (!input.lastSeenAt || elapsed > OFFLINE_THRESHOLD_MS) {
+    return {
+      status: "offline",
+      reason: input.lastSeenAt
+        ? `Sem sincronização há ${Math.round(elapsed / 60000)} min`
+        : "Sem data de sincronização",
+    };
+  }
+
+  // Rule 2: STANDBY — nighttime + was online
+  if (input.rawStatus === "online" && isBrasiliaNight()) {
+    return { status: "standby", reason: "Noturno — dispositivo em standby" };
+  }
+
+  // Rule 3: ONLINE — recently synced and raw status is online
+  if (input.rawStatus === "online") {
+    return { status: "online", reason: "Dispositivo sincronizado e operacional" };
+  }
+
+  // Raw status is not online (e.g. "offline", "fault", unknown)
+  return { status: "offline", reason: `Status do provedor: ${input.rawStatus}` };
+}
+
+/* ─── SHARED UI STATUS RESOLVER (SSOT) ─── */
+
+/**
+ * Map a MonitorHealthCache.status string to PlantUiStatus.
+ * SSOT — eliminates duplicate resolveUiStatus() in every screen.
+ */
+export function resolveHealthToUiStatus(healthStatus: string | undefined): PlantUiStatus {
+  if (healthStatus === "online") return "online";
+  if (healthStatus === "standby") return "standby";
+  return "offline";
+}
+
+/* ─── ENERGY/POWER HELPERS (SSOT) ─── */
+
+/**
+ * Estimate energy from power when energy_kwh is unavailable.
+ * SSOT — single constant for the conservative multiplier.
+ * NOT the same as HSP for PR calculation.
+ */
+export const POWER_KW_TO_ENERGY_ESTIMATE_HOURS = 4.5;
+
+/**
+ * Normalize power: some providers send watts instead of kW.
+ * SSOT — replaces all inline W→kW conversions.
+ */
+export function normalizePowerKw(raw: number | null): number {
   if (raw == null || raw <= 0) return 0;
   return raw > 100 ? raw / 1000 : raw;
+}
+
+/**
+ * Compute energy from a daily metric row, with power_kw fallback.
+ * SSOT — replaces duplicated energy extraction in listPlantsWithHealth,
+ * getPlantDetail, and getDashboardStats.
+ */
+export function extractDailyEnergy(energyKwh: number | null, powerKw: number | null): number {
+  if (energyKwh != null && Number(energyKwh) > 0) return Number(energyKwh);
+  if (powerKw != null && Number(powerKw) > 0) {
+    return normalizePowerKw(Number(powerKw)) * POWER_KW_TO_ENERGY_ESTIMATE_HOURS;
+  }
+  return 0;
+}
+
+/**
+ * Sum monthly energy from an array of daily metric rows.
+ * SSOT — single aggregation function.
+ */
+export function sumMonthlyEnergy(rows: Array<{ energy_kwh: number | null; power_kw?: number | null }>): number {
+  return rows.reduce((total, r) => total + extractDailyEnergy(r.energy_kwh, r.power_kw ?? null), 0);
 }
 
 /* ─── UI Constants (SSOT for badges, dots, filters) ─── */
@@ -164,3 +263,23 @@ export const PLANT_FILTER_CHIPS: { key: PlantUiStatus | "all"; label: string }[]
   { key: "standby", label: "🌙 Standby" },
   { key: "offline", label: "🔴 Offline" },
 ];
+
+/* ─── Device UI Constants (SSOT) ─── */
+
+export const DEVICE_STATUS_LABELS: Record<DeviceUiStatus, string> = {
+  online: "Online",
+  standby: "Standby",
+  offline: "Sem conexão",
+};
+
+export const DEVICE_STATUS_DOT: Record<DeviceUiStatus, string> = {
+  online: "bg-success",
+  standby: "bg-warning",
+  offline: "bg-destructive",
+};
+
+export const DEVICE_STATUS_TEXT: Record<DeviceUiStatus, string> = {
+  online: "text-success",
+  standby: "text-warning",
+  offline: "text-destructive",
+};

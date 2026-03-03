@@ -99,4 +99,6 @@ export interface MonitorDashboardStats {
   total_plants: number;
   energy_today_kwh: number;
   energy_month_kwh: number;
+  /** SSOT: Real aggregated current power from all plants' health */
+  current_power_kw?: number;
 }

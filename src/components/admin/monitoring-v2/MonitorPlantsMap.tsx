@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
-import type { PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
+import { type PlantUiStatus, resolveHealthToUiStatus } from "@/services/monitoring/plantStatusEngine";
 
 interface Props {
   plants: PlantWithHealth[];
@@ -14,12 +14,6 @@ const STATUS_COLORS: Record<PlantUiStatus, string> = {
   standby: "hsl(35, 95%, 48%)",
   offline: "hsl(0, 84%, 40%)",
 };
-
-function resolveUiStatus(raw: string | undefined): PlantUiStatus {
-  if (raw === "online") return "online";
-  if (raw === "standby") return "standby";
-  return "offline";
-}
 
 function createIcon(status: PlantUiStatus) {
   const color = STATUS_COLORS[status];
@@ -87,7 +81,7 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
 
     plants.forEach((plant) => {
       if (plant.lat == null || plant.lng == null) return;
-      const status = resolveUiStatus(plant.health?.status);
+      const status = resolveHealthToUiStatus(plant.health?.status);
       const energyToday = plant.health?.energy_today_kwh || 0;
 
       const marker = L.marker([plant.lat, plant.lng], { icon: createIcon(status) })

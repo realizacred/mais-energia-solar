@@ -17,7 +17,7 @@ import {
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
 import type { PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
-import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS, isBrasiliaNight } from "@/services/monitoring/plantStatusEngine";
+import { UI_STATUS_LABELS, UI_STATUS_DOT, PLANT_FILTER_CHIPS, isBrasiliaNight, resolveHealthToUiStatus } from "@/services/monitoring/plantStatusEngine";
 import { getProviderIconUrl } from "@/services/integrations/iconMap";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,11 +35,9 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "name", label: "Ordem alfabética" },
 ];
 
+// SSOT: use shared resolveHealthToUiStatus
 function resolveUiStatus(plant: PlantWithHealth): PlantUiStatus {
-  const raw = plant.health?.status;
-  if (raw === "standby") return "standby";
-  if (raw === "online") return "online";
-  return "offline";
+  return resolveHealthToUiStatus(plant.health?.status);
 }
 
 export default function MonitorPlants() {
