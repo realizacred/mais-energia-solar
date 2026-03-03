@@ -182,6 +182,12 @@ export async function recalculateBaseline(plantId: string): Promise<{ updated: n
   const { data, error } = await supabase.functions.invoke("mppt-string-engine", {
     body: { action: "recalculate_baseline", plant_id: plantId },
   });
-  if (error) throw new Error("Erro ao recalcular baseline");
+  if (error) {
+    console.error("[recalculateBaseline] Error:", error);
+    throw new Error(typeof error === "object" && error.message ? error.message : "Erro ao recalcular baseline");
+  }
+  if (data?.error) {
+    throw new Error(data.error);
+  }
   return { updated: data?.updated || 0 };
 }
