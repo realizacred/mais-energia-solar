@@ -24,7 +24,7 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
     queryFn: async () => {
       const { data } = await supabase
         .from("wa_conversations")
-        .select("id, cliente_nome, cliente_telefone, instance_id, remote_jid, is_group, profile_picture_url")
+        .select("id, cliente_nome, cliente_telefone, instance_id, remote_jid, is_group, profile_picture_url, tenant_id")
         .neq("status", "resolved")
         .order("last_message_at", { ascending: false })
         .limit(100);
@@ -68,28 +68,31 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
         .single();
 
       if (msg) {
-        // Resolve tenant_id from user profile
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tenant_id")
-          .eq("id", user?.id)
-          .single();
-        const tenantId = profile?.tenant_id;
+        // Use tenant_id from the target conversation (always available, no profile lookup needed)
+        const tenantId = targetConv.tenant_id;
+
+        if (!tenantId) {
+          console.error("[WaForwardDialog] tenant_id missing from target conversation");
+          throw new Error("Erro interno: tenant_id não encontrado na conversa");
+        }
 
         // Queue via canonical RPC
         const idempKey = `forward_${message.id}_${targetConv.id}_${msg.id}`;
-        if (tenantId) {
-          await supabase.rpc("enqueue_wa_outbox_item", {
-            p_tenant_id: tenantId,
-            p_instance_id: targetConv.instance_id,
-            p_remote_jid: targetConv.remote_jid,
-            p_message_type: message.message_type,
-            p_content: forwardedContent,
-            p_media_url: message.media_url || null,
-            p_conversation_id: targetConv.id,
-            p_message_id: msg.id,
-            p_idempotency_key: idempKey,
-          });
+        const { error: rpcError } = await supabase.rpc("enqueue_wa_outbox_item", {
+          p_tenant_id: tenantId,
+          p_instance_id: targetConv.instance_id,
+          p_remote_jid: targetConv.remote_jid,
+          p_message_type: message.message_type,
+          p_content: forwardedContent,
+          p_media_url: message.media_url || null,
+          p_conversation_id: targetConv.id,
+          p_message_id: msg.id,
+          p_idempotency_key: idempKey,
+        });
+
+        if (rpcError) {
+          console.error("[WaForwardDialog] enqueue failed:", rpcError);
+          throw new Error("Falha ao enfileirar mensagem para envio");
         }
 
         // Update conversation preview
