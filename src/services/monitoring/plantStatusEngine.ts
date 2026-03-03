@@ -35,8 +35,8 @@ interface PlantStatusInput {
   provider_status?: string | null;
 }
 
-const OFFLINE_THRESHOLD_MS = 45 * 60 * 1000; // 45 min (~3 ciclos de sync de 15 min)
-const OFFLINE_THRESHOLD_WITH_ENERGY_MS = 3 * 60 * 60 * 1000; // 3h — planta que gerou hoje tem mais tolerância
+/** SSOT: Threshold único de offline — 30 min (~2 ciclos de sync de 15 min). Padrão para TODAS as APIs/usinas. */
+const OFFLINE_THRESHOLD_MS = 30 * 60 * 1000;
 
 /**
  * Get current hour in America/Sao_Paulo timezone (BRT/BRST).
@@ -95,17 +95,12 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   const updatedAt = input.updated_at ? new Date(input.updated_at).getTime() : 0;
   const elapsed = now - updatedAt;
 
-  // Smart threshold: if plant generated energy today, it clearly communicated —
-  // allow more time between syncs (provider delays, batching, rate limits).
-  const hasEnergyToday = input.energy_today_kwh > 0;
-  const effectiveThreshold = hasEnergyToday ? OFFLINE_THRESHOLD_WITH_ENERGY_MS : OFFLINE_THRESHOLD_MS;
-
-  // Rule 1: OFFLINE — no recent sync
-  if (!input.updated_at || elapsed > effectiveThreshold) {
+  // Rule 1: OFFLINE — no recent sync (threshold único: 30 min para TODAS as APIs)
+  if (!input.updated_at || elapsed > OFFLINE_THRESHOLD_MS) {
     return {
       uiStatus: "offline",
       reason: input.updated_at
-        ? `Última sincronização há ${Math.round(elapsed / 60000)} min (limite: ${Math.round(effectiveThreshold / 60000)} min)`
+        ? `Última sincronização há ${Math.round(elapsed / 60000)} min (limite: 30 min)`
         : "Sem data de sincronização",
     };
   }
