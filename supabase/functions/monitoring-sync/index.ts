@@ -1495,6 +1495,7 @@ async function syncPlantsByProvider(
   let plantsUpserted = 0, metricsUpserted = 0;
   const errors: string[] = [];
   const errorCategories: string[] = [];
+  const isSelectiveSync = selectedPlantIds && selectedPlantIds.length > 0;
 
   // "discover" mode: return plants without saving
   if (mode === "discover") {
@@ -1511,24 +1512,29 @@ async function syncPlantsByProvider(
 
   // Resolve selectedPlantIds (monitor_plants.id UUIDs) → provider_plant_ids for filtering
   let selectedExternalIds: Set<string> | null = null;
-  if (selectedPlantIds && selectedPlantIds.length > 0) {
+  if (isSelectiveSync) {
     const { data: selectedMPs } = await ctx.supabaseAdmin
       .from("monitor_plants").select("provider_plant_id")
       .in("id", selectedPlantIds);
     selectedExternalIds = new Set((selectedMPs || []).map((m: any) => String(m.provider_plant_id)));
+    console.log(`[Sync] Selective sync: ${selectedPlantIds.length} plants, external_ids: ${Array.from(selectedExternalIds).join(", ")}`);
   }
 
+  // ── PLANTS UPSERT ──
+  // For selective sync, SKIP the full listFn() call — plants already exist in DB.
+  // This avoids fetching ALL plants from the provider API (e.g., 170+ Solis stations).
   if (mode === "plants" || mode === "full") {
-    try {
-      let plants = await listFn();
-      // If selectedPlantIds provided, only upsert those
-      if (selectedExternalIds && selectedExternalIds.size > 0) {
-        plants = plants.filter((p) => selectedExternalIds!.has(p.external_id));
-      }
-      const result = await upsertPlants(ctx, plants);
-      plantsUpserted = result.count;
-      errors.push(...result.errors);
-    } catch (err) { const cat = (err as any)?.category || "UNKNOWN"; errors.push(`listPlants: ${(err as Error).message}`); errorCategories.push(cat); }
+    if (isSelectiveSync) {
+      console.log(`[Sync] Selective mode: skipping full listFn() — plants already provisioned`);
+      plantsUpserted = selectedPlantIds.length; // count as "done"
+    } else {
+      try {
+        const plants = await listFn();
+        const result = await upsertPlants(ctx, plants);
+        plantsUpserted = result.count;
+        errors.push(...result.errors);
+      } catch (err) { const cat = (err as any)?.category || "UNKNOWN"; errors.push(`listPlants: ${(err as Error).message}`); errorCategories.push(cat); }
+    }
   }
 
   if ((mode === "metrics" || mode === "full") && metricsFn) {
@@ -1599,6 +1605,12 @@ async function syncPlantsByProvider(
     try {
       const deviceGroups = await extras.devicesFn();
 
+      // For selective sync, filter device groups to only include selected stations
+      const filteredGroups = selectedExternalIds && selectedExternalIds.size > 0
+        ? deviceGroups.filter((g) => selectedExternalIds!.has(g.stationId))
+        : deviceGroups;
+      console.log(`[Sync] Device groups: ${deviceGroups.length} total, ${filteredGroups.length} after filter`);
+
       // monitor_devices.plant_id FK → monitor_plants.id, NOT solar_plants.id
       // Build mapping: external_id → monitor_plants.id (auto-create if missing)
       const { data: dbSolarPlants } = await ctx.supabaseAdmin.from("solar_plants").select("id, external_id, name").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
@@ -1607,7 +1619,7 @@ async function syncPlantsByProvider(
       const solarMap = new Map((dbSolarPlants || []).map((p: any) => [String(p.external_id), p]));
 
       let devCount = 0;
-      for (const group of deviceGroups) {
+      for (const group of filteredGroups) {
         let monitorPlantId = monitorMap.get(group.stationId);
 
         // Auto-create monitor_plants record if missing (from solar_plants data)
@@ -1656,7 +1668,8 @@ async function syncPlantsByProvider(
   }
 
   // ── Alarms / Events (non-blocking — errors here must NOT stop device/metrics sync) ──
-  if (mode === "full" && extras?.alarmsFn) {
+  // Skip alarms for selective sync — fetching ALL alarms is expensive and unnecessary for 1 plant
+  if (mode === "full" && extras?.alarmsFn && !isSelectiveSync) {
     try {
       const alarms = await extras.alarmsFn();
       // Build map from provider_plant_id → { monitorId, legacyId (solar_plants.id) }
