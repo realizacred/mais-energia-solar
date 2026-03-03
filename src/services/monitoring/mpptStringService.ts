@@ -29,13 +29,35 @@ export async function isMpptStringEnabled(): Promise<boolean> {
   return config?.feature_mppt_string_monitoring === true;
 }
 
+// ─── ID Resolution helper ────────────────────────────────────
+
+/** Resolve a plantId (which may be solar_plants.id) to monitor_plants.id */
+async function resolveMonitorPlantId(plantId: string): Promise<string> {
+  // First check if plantId is already a monitor_plants.id
+  const { data: directCheck } = await supabase
+    .from("monitor_plants" as any)
+    .select("id")
+    .eq("id", plantId)
+    .maybeSingle();
+  if (directCheck) return plantId;
+
+  // Fallback: plantId is a legacy solar_plants.id
+  const { data: monitorPlant } = await supabase
+    .from("monitor_plants" as any)
+    .select("id")
+    .eq("legacy_plant_id", plantId)
+    .maybeSingle();
+  return (monitorPlant as any)?.id || plantId;
+}
+
 // ─── Registry ────────────────────────────────────────────────
 
 export async function listStringRegistry(plantId: string): Promise<StringRegistry[]> {
+  const resolvedId = await resolveMonitorPlantId(plantId);
   const { data } = await supabase
     .from("monitor_string_registry" as any)
     .select("*")
-    .eq("plant_id", plantId)
+    .eq("plant_id", resolvedId)
     .eq("is_active", true)
     .order("device_id")
     .order("mppt_number")
@@ -101,12 +123,17 @@ export async function listStringAlerts(filters?: {
   deviceId?: string;
   status?: string;
 }): Promise<StringAlert[]> {
+  let resolvedPlantId = filters?.plantId;
+  if (resolvedPlantId) {
+    resolvedPlantId = await resolveMonitorPlantId(resolvedPlantId);
+  }
+
   let q = supabase
     .from("monitor_string_alerts" as any)
     .select("*")
     .order("detected_at", { ascending: false });
 
-  if (filters?.plantId) q = q.eq("plant_id", filters.plantId);
+  if (resolvedPlantId) q = q.eq("plant_id", resolvedPlantId);
   if (filters?.deviceId) q = q.eq("device_id", filters.deviceId);
   if (filters?.status) q = q.eq("status", filters.status);
 
@@ -179,8 +206,9 @@ export async function getDeviceStringCards(
 // ─── Baseline recalculation (manual trigger) ─────────────────
 
 export async function recalculateBaseline(plantId: string): Promise<{ updated: number }> {
+  const resolvedId = await resolveMonitorPlantId(plantId);
   const { data, error } = await supabase.functions.invoke("mppt-string-engine", {
-    body: { action: "recalculate_baseline", plant_id: plantId },
+    body: { action: "recalculate_baseline", plant_id: resolvedId },
   });
   if (error) {
     console.error("[recalculateBaseline] Error:", error);
