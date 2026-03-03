@@ -1166,12 +1166,13 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
       });
       const devListJson = await devListRes.json();
       const allDevs = Array.isArray(devListJson.data) ? devListJson.data : [];
-      // Huawei devTypeId — ALL known types that report active_power:
-      //  1=StringInverter, 2=SmartLogger, 10=EMI, 17=GridMeter, 22=PID,
-      //  37=Optimizer, 38=ResidentialInverter, 39=Battery, 46=SmartDongle/Logger,
-      //  47=ShuffleOptimizer, 62=ResidentialBattery, 63=Backup Box
-      // We query ALL types — even non-inverters — and sum active_power safely
-      const POWER_DEVICE_TYPES = new Set([1, 2, 10, 17, 22, 37, 38, 39, 46, 47, 62, 63]);
+      // Huawei devTypeId — COMPLETE list from official Northbound API docs:
+      //  1=StringInverter, 2=SmartLogger, 7=PowerSensor, 10=EMI, 13=Dongle,
+      //  17=GridMeter, 22=PID, 37=Optimizer, 38=ResidentialInverter, 39=Battery,
+      //  41=SmartArrayController, 46=SmartDongle, 47=ShuffleOptimizer,
+      //  62=ResidentialBattery, 63=BackupBox, 70=ESS
+      // Query ALL types and sum active_power safely (non-power devices return 0)
+      const POWER_DEVICE_TYPES = new Set([1, 2, 7, 10, 13, 17, 22, 37, 38, 39, 41, 46, 47, 62, 63, 70]);
       const inverterDevs = allDevs.filter((dd: any) => POWER_DEVICE_TYPES.has(dd.devTypeId));
       console.log(`[Huawei] getDevList station=${stationCode} totalDevs=${allDevs.length} inverterLike=${inverterDevs.length} allTypes=${allDevs.map((dd:any)=>`${dd.devTypeId}:${dd.devName||dd.esnCode}`).join("; ")}`);
 
