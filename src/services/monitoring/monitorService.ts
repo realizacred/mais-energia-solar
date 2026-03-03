@@ -92,11 +92,12 @@ function legacyStatusToHealth(
   monthKwh?: number,
   yesterdayMetric?: SolarPlantMetricsDaily,
   openAlertCount?: number,
-  /** SSOT: plant_seen_at = MAX(device.last_seen_at) — NOT solar_plants.updated_at */
+  /** SSOT: plant_seen_at = MAX(device.last_seen_at) with solar_plants.updated_at fallback */
   bestLastSeenAt?: string | null,
 ): MonitorHealthCache {
-  // SSOT: canonical plant timestamp — device-derived only; sp.updated_at is NOT sync time
-  const canonicalLastSeen = bestLastSeenAt || null;
+  // SSOT: canonical plant timestamp — prefer device-derived, fallback to solar_plants.updated_at
+  // solar_plants.updated_at IS updated by sync and is reliable when monitor_devices has no entry
+  const canonicalLastSeen = bestLastSeenAt || sp.updated_at || null;
 
   // SSOT: use extractDailyEnergy helper
   let energyToday = extractDailyEnergy(m?.energy_kwh ?? null, m?.power_kw ?? null);
