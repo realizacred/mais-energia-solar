@@ -7,13 +7,16 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Cpu, Zap, Activity, RefreshCw } from "lucide-react";
+import { ArrowLeft, Cpu, Zap, Activity, RefreshCw, AlertTriangle } from "lucide-react";
 import { listDevices, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { extractMpptData } from "./DeviceMpptSummary";
+import { deriveDeviceStatus, DEVICE_STATUS_LABELS } from "@/services/monitoring/plantStatusEngine";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+
+const OFFLINE_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
 export default function InverterDetailPage() {
   const { plantId, deviceId } = useParams<{ plantId: string; deviceId: string }>();
@@ -35,18 +38,25 @@ export default function InverterDetailPage() {
   const data = extractMpptData(device.metadata);
   const meta = device.metadata || {};
 
+  // ─── SSOT: Derive device status instead of using raw device.status ───
+  const derived = deriveDeviceStatus({
+    rawStatus: device.status,
+    lastSeenAt: device.last_seen_at || device.updated_at,
+  });
+  const snapshotAt = device.last_seen_at || device.updated_at || null;
+  const isStale = !snapshotAt || (Date.now() - new Date(snapshotAt).getTime() > OFFLINE_THRESHOLD_MS);
+  const isOffline = derived.status === "offline";
+  const statusLabel = DEVICE_STATUS_LABELS[derived.status];
+
   // Extract additional metadata fields — support multiple provider field names
   const firmware = String(meta.inverterSoftwareVersion ?? meta.firmwareVersion ?? "—");
   const dataLogger = String(meta.collectorSn ?? meta.dataLoggerId ?? meta.deviceSn ?? "—");
   const lastUpdate = String(meta.dataTimestampStr ?? (meta.collectionTime ? new Date(Number(meta.collectionTime) * 1000).toLocaleString("pt-BR") : "") ?? "");
   const acOutputType = Number(meta.acOutputType ?? -1);
   const phases = acOutputType === 0 ? "Monofásico" : acOutputType === 1 ? "Bifásico" : acOutputType === 2 ? "Trifásico" : "—";
-  // Deye: RatedPower is in watts, power is pre-converted to kW; Solis: power is already in kW
   const ratedPower = Number(meta.power ?? 0) || Number(meta.RatedPower ?? 0) / 1000;
-  // Deye: pac is pre-converted to kW; also try raw TotalActiveACOutputPower (watts)
   const currentAcPower = Number(meta.pac ?? 0) || Number(meta.TotalActiveACOutputPower ?? 0) / 1000;
   const stationName = String(meta.stationName ?? meta.plantName ?? "");
-  const isOffline = device.status !== "online";
 
   const handleSync = async () => {
     setSyncing(true);
@@ -90,12 +100,10 @@ export default function InverterDetailPage() {
                   <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
                   {syncing ? "Atualizando..." : "Atualizar"}
                 </Button>
-                <StatusBadge
-                  status={device.status === "online" ? "Online" : device.status === "offline" ? "Offline" : "Desconhecido"}
-                />
-                {device.last_seen_at && (
+                <StatusBadge status={statusLabel} />
+                {snapshotAt && (
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(device.last_seen_at), { addSuffix: true, locale: ptBR })}
+                    {formatDistanceToNow(new Date(snapshotAt), { addSuffix: true, locale: ptBR })}
                   </span>
                 )}
               </div>
@@ -104,10 +112,23 @@ export default function InverterDetailPage() {
         </div>
       </div>
 
+      {/* Staleness banner */}
+      {isStale && (
+        <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground">
+          <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+          <span>
+            <strong>Dados do inversor desatualizados.</strong>{" "}
+            {snapshotAt
+              ? `Última leitura ${formatDistanceToNow(new Date(snapshotAt), { addSuffix: true, locale: ptBR })}.`
+              : "Sem data de sincronização."}
+          </span>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <InvKpi label="Potência Nominal" value={`${ratedPower} kW`} icon={Zap} />
-        <InvKpi label="Potência AC Atual" value={`${(currentAcPower * 1000).toFixed(0)} W`} icon={Activity} />
+        <InvKpi label="Potência AC Atual" value={`${(currentAcPower * 1000).toFixed(0)} W`} icon={Activity} muted={isStale} />
         <InvKpi label="Energia Hoje" value={`${data.energyToday.toFixed(1)} kWh`} icon={Activity} />
         <InvKpi
           label="Energia Total"
@@ -123,8 +144,13 @@ export default function InverterDetailPage() {
             Dados de string não disponíveis. Clique em "Atualizar" para buscar dados.
           </p>
         ) : (
-          <div className="space-y-4">
-            {isOffline && (
+          <div className={cn("space-y-4", isStale && "opacity-60")}>
+            {isStale && (
+              <div className="rounded-lg bg-warning/10 border border-warning/30 px-3 py-2 text-xs text-warning text-center font-medium">
+                ⚠ Dados desatualizados — valores abaixo referem-se à última leitura disponível.
+              </div>
+            )}
+            {(isOffline && !isStale) && (
               <div className="rounded-lg bg-muted/30 border border-border/50 px-3 py-2 text-xs text-muted-foreground text-center">
                 ⚡ Inversor offline/noturno — valores de potência, tensão e corrente podem estar zerados.
               </div>
@@ -202,9 +228,9 @@ export default function InverterDetailPage() {
   );
 }
 
-function InvKpi({ label, value, icon: Icon }: { label: string; value: string; icon: React.ComponentType<{ className?: string }> }) {
+function InvKpi({ label, value, icon: Icon, muted }: { label: string; value: string; icon: React.ComponentType<{ className?: string }>; muted?: boolean }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 card-stat-elevated">
+    <div className={cn("rounded-xl border border-border/60 bg-card p-4 card-stat-elevated", muted && "opacity-50")}>
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0 bg-primary/10">
           <Icon className="h-5 w-5 text-primary" />
@@ -212,6 +238,7 @@ function InvKpi({ label, value, icon: Icon }: { label: string; value: string; ic
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground font-medium">{label}</p>
           <p className="text-lg font-bold text-foreground truncate">{value}</p>
+          {muted && <p className="text-[10px] text-warning">última leitura</p>}
         </div>
       </div>
     </div>
