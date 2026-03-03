@@ -46,6 +46,8 @@ export interface MonitorHealthCache {
   last_seen_at: string | null;
   energy_today_kwh: number;
   energy_month_kwh: number;
+  /** Current instantaneous power in kW (from latest metric) */
+  current_power_kw: number;
   performance_7d_pct: number | null;
   open_alerts_count: number;
   updated_at: string;
