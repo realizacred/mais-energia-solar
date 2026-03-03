@@ -284,10 +284,10 @@ async function solisListInverters(apiId: string, apiSecret: string): Promise<{ s
       ));
       const detailMeta: Record<string, unknown> = {};
       // Map per-string V/I/P from Solis detail - try all known field patterns
-      for (let si = 1; si <= 4; si++) {
-        const vpvVal = dd[`uPv${si}`] ?? dd[`vpv${si}`] ?? dd[`pv${si}Voltage`] ?? dd[`Upv${si}`] ?? dd[`UPv${si}`] ?? dd[`pvVoltage${si}`] ?? null;
-        const ipvVal = dd[`iPv${si}`] ?? dd[`ipv${si}`] ?? dd[`pv${si}Current`] ?? dd[`Ipv${si}`] ?? dd[`IPv${si}`] ?? dd[`pvCurrent${si}`] ?? null;
-        const ppvVal = dd[`pow${si}`] ?? dd[`ppv${si}`] ?? dd[`pv${si}Power`] ?? null;
+      for (let si = 1; si <= 8; si++) {
+        const vpvVal = dd[`uPv${si}`] ?? dd[`vpv${si}`] ?? dd[`pv${si}Voltage`] ?? dd[`Upv${si}`] ?? dd[`UPv${si}`] ?? dd[`pvVoltage${si}`] ?? dd[`Vpv${si}`] ?? null;
+        const ipvVal = dd[`iPv${si}`] ?? dd[`ipv${si}`] ?? dd[`pv${si}Current`] ?? dd[`Ipv${si}`] ?? dd[`IPv${si}`] ?? dd[`pvCurrent${si}`] ?? dd[`Ipv${si}`] ?? null;
+        const ppvVal = dd[`pow${si}`] ?? dd[`ppv${si}`] ?? dd[`pv${si}Power`] ?? dd[`Ppv${si}`] ?? null;
         detailMeta[`vpv${si}`] = vpvVal;
         detailMeta[`ipv${si}`] = ipvVal;
         detailMeta[`ppv${si}`] = ppvVal;
@@ -970,18 +970,18 @@ async function growattApiListDevices(apiKey: string): Promise<{ stationId: strin
               const dJson = await dRes.json().catch(() => ({}));
               if (dJson.code === 0) {
                 const dd = dJson.data?.[devType === "inverter" ? "min" : devType]?.[0] || dJson.data || {};
-                detailMeta = {
-                  vpv1: dd.vpv1 ?? dd.uPv1 ?? null, ipv1: dd.ipv1 ?? dd.iPv1 ?? null, ppv1: dd.ppv1 ?? null,
-                  vpv2: dd.vpv2 ?? dd.uPv2 ?? null, ipv2: dd.ipv2 ?? dd.iPv2 ?? null, ppv2: dd.ppv2 ?? null,
-                  vpv3: dd.vpv3 ?? dd.uPv3 ?? null, ipv3: dd.ipv3 ?? dd.iPv3 ?? null, ppv3: dd.ppv3 ?? null,
-                  vpv4: dd.vpv4 ?? dd.uPv4 ?? null, ipv4: dd.ipv4 ?? dd.iPv4 ?? null, ppv4: dd.ppv4 ?? null,
-                  pac: dd.pac ?? null,
-                  etoday: dd.eacToday ?? dd.eToday ?? null,
-                  etotal: dd.eacTotal ?? dd.eTotal ?? null,
-                  dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
-                  machine: dd.deviceModel || dd.model || dev.model || null,
-                  maxUpv: dd.maxUpv ?? null,
-                };
+                detailMeta = {} as Record<string, unknown>;
+                for (let si = 1; si <= 8; si++) {
+                  detailMeta[`vpv${si}`] = dd[`vpv${si}`] ?? dd[`uPv${si}`] ?? dd[`Vpv${si}`] ?? null;
+                  detailMeta[`ipv${si}`] = dd[`ipv${si}`] ?? dd[`iPv${si}`] ?? dd[`Ipv${si}`] ?? null;
+                  detailMeta[`ppv${si}`] = dd[`ppv${si}`] ?? dd[`pow${si}`] ?? null;
+                }
+                detailMeta.pac = dd.pac ?? null;
+                detailMeta.etoday = dd.eacToday ?? dd.eToday ?? null;
+                detailMeta.etotal = dd.eacTotal ?? dd.eTotal ?? null;
+                detailMeta.dcInputTypeMppt = dd.mpptCount ?? dd.dcInputType ?? null;
+                detailMeta.machine = dd.deviceModel || dd.model || dev.model || null;
+                detailMeta.maxUpv = dd.maxUpv ?? null;
               }
             } catch (e) { console.warn(`[Growatt] queryLastData failed for ${sn}: ${(e as Error).message}`); }
           }
