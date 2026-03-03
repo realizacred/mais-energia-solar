@@ -42,8 +42,9 @@ export function PlantMpptSection({ plantId, devices, isOffline }: PlantMpptSecti
     staleTime: 60_000,
   });
 
+  const deviceIds = devices.map(d => d.id).sort().join(",");
   const { data: cards = [], isLoading } = useQuery({
-    queryKey: ["mppt-string-cards", plantId],
+    queryKey: ["mppt-string-cards", plantId, deviceIds],
     queryFn: () => getDeviceStringCards(plantId, devices),
     enabled: !!enabled && devices.length > 0,
   });

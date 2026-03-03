@@ -51,6 +51,7 @@ export default function MonitorPlantDetail() {
       queryClient.invalidateQueries({ queryKey: ["monitor-devices", plantId] });
       queryClient.invalidateQueries({ queryKey: ["monitor-readings", plantId] });
       queryClient.invalidateQueries({ queryKey: ["monitor-alerts-plant", plantId] });
+      queryClient.invalidateQueries({ queryKey: ["mppt-string-cards"] });
 
       const hasErrors = result.errors.length > 0;
       const metricsOk = result.metrics_synced > 0;
