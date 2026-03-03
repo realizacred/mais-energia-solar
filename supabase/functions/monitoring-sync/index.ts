@@ -1669,9 +1669,9 @@ async function syncPlantsByProvider(
     }
     const { data: dbPlants } = await dbPlantsQuery;
     const metricsStartTime = Date.now();
-    // Per-provider budget: 30s when sharing with others, 90s when syncing a single provider
+    // Per-provider budget: 250s when running solo (per-provider cron), 30s when sharing
     const isSingleProviderRun = ctx.provider === (globalThis as any).__singleProviderFilter;
-    const METRICS_TIME_BUDGET_MS = isSingleProviderRun ? 90_000 : 30_000;
+    const METRICS_TIME_BUDGET_MS = isSingleProviderRun ? 250_000 : 30_000;
     const CONCURRENCY = 3; // Process 3 plants in parallel
 
     // Process metrics in concurrent batches
@@ -2484,7 +2484,7 @@ serve(async (req) => {
     // ── CRON MODE: x-cron-secret header bypasses user auth ──
     const cronSecretHeader = req.headers.get("x-cron-secret");
     const expectedCronSecret = Deno.env.get("CRON_SECRET");
-    console.log(`[monitoring-sync] Auth check: cronHeader=${!!cronSecretHeader}, envSet=${!!expectedCronSecret}, match=${cronSecretHeader === expectedCronSecret}`);
+    console.log(`[monitoring-sync] Auth check: cron=${!!cronSecretHeader}, match=${cronSecretHeader === expectedCronSecret}`);
     if (cronSecretHeader && expectedCronSecret && cronSecretHeader === expectedCronSecret) {
       let cronBody: Record<string, unknown> = {};
       try { cronBody = await req.json(); } catch { /* empty body is fine */ }
