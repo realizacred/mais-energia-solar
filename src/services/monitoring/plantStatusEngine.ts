@@ -136,26 +136,13 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
     };
   }
 
-  // Rule 3 (daytime): Provider says "offline"/"no_communication"
-  // If there's active generation → trust generation over label (provider false positive).
-  // If NO generation → trust the provider: plant is genuinely offline.
+  // Rule 3 (daytime): Provider explicitly says "offline"/"no_communication"
+  // → Trust the provider unconditionally. Any cached energy/power values are stale
+  //   leftovers from before the plant went offline — NOT proof of current generation.
   if (providerOffline) {
-    if (powerKw > POWER_THRESHOLD_KW) {
-      return {
-        uiStatus: "online",
-        reason: `Gerando ${powerKw.toFixed(2)} kW (provedor reporta offline)`,
-      };
-    }
-    if (input.energy_today_kwh > 0) {
-      return {
-        uiStatus: "online",
-        reason: `Gerou ${input.energy_today_kwh.toFixed(1)} kWh hoje (provedor reporta offline)`,
-      };
-    }
-    // No generation + provider confirms offline → trust provider
     return {
       uiStatus: "offline",
-      reason: "Sem geração — provedor confirma offline",
+      reason: "Provedor confirma offline / sem comunicação",
     };
   }
 
