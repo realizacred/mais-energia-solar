@@ -256,6 +256,7 @@ async function solisListInverters(apiId: string, apiSecret: string): Promise<{ s
       let detailMeta: Record<string, unknown> = {};
       if (sn) {
         try {
+          await new Promise(r => setTimeout(r, 2100)); // Solis API mandates 2s between calls
           const detailJson = await solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
           const dd = detailJson.data || {};
           // Log raw keys to diagnose field mapping
@@ -1221,8 +1222,8 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
       console.warn(`[Huawei] device power fetch failed for ${stationCode}: ${(devErr as Error).message}`);
     }
 
-    // Small delay to avoid Huawei rate limiting across sequential station calls
-    await new Promise(r => setTimeout(r, 500));
+    // Huawei rate limit is aggressive — 2s between station calls
+    await new Promise(r => setTimeout(r, 2000));
 
     return {
       power_kw: powerKw,
@@ -1701,7 +1702,9 @@ async function syncPlantsByProvider(
     // Per-provider budget: 250s when running solo (per-provider cron), 30s when sharing
     const isSingleProviderRun = ctx.provider === (globalThis as any).__singleProviderFilter;
     const METRICS_TIME_BUDGET_MS = isSingleProviderRun ? 250_000 : 30_000;
-    const CONCURRENCY = 3; // Process 3 plants in parallel
+    // Huawei needs sequential processing (each metric call does 3-4 sub-requests)
+    const isHuawei = ctx.provider === "huawei" || ctx.provider === "huawei_fusionsolar";
+    const CONCURRENCY = isHuawei ? 1 : 3;
 
     // Process metrics in concurrent batches
     for (let i = 0; i < (dbPlants || []).length; i += CONCURRENCY) {
@@ -1713,6 +1716,8 @@ async function syncPlantsByProvider(
       }
 
       const batch = (dbPlants || []).slice(i, i + CONCURRENCY);
+      // Add inter-batch delay for rate-limited providers
+      if (i > 0 && isHuawei) await new Promise(r => setTimeout(r, 3000));
       const results = await Promise.allSettled(
         batch.map(async (p) => {
           const metrics = await metricsFn(p.external_id);
