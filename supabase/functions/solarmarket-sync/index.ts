@@ -328,13 +328,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const cronSecret = Deno.env.get("CRON_SECRET");
     const headerCronSecret = req.headers.get("x-cron-secret");
-    // Accept either env CRON_SECRET or the known hardcoded cron secret
-    const KNOWN_CRON_SECRET = "7fK29sLmQx9!pR8zT2vW4yA6cD";
     const isCron = (
       (headerCronSecret && cronSecret && headerCronSecret === cronSecret) ||
-      (headerCronSecret && headerCronSecret === KNOWN_CRON_SECRET) ||
-      (body.cron_secret && cronSecret && body.cron_secret === cronSecret) ||
-      (body.cron_secret && body.cron_secret === KNOWN_CRON_SECRET)
+      (body.cron_secret && cronSecret && body.cron_secret === cronSecret)
     );
     console.log(`[SM Sync] Cron check: isCron=${isCron}, headerPresent=${!!headerCronSecret}`);
 

@@ -2363,7 +2363,7 @@ async function dispatchSync(
 
 
 
-const CRON_SECRET = "7fK29sLmQx9!pR8zT2vW4yA6cD";
+// CRON_SECRET is read from Deno.env at runtime
 
 async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?: Record<string, unknown>): Promise<Response> {
   const cronMode = (body?.mode as string) || "full";
@@ -2482,8 +2482,9 @@ serve(async (req) => {
     const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // ── CRON MODE: x-cron-secret header bypasses user auth ──
-    const cronSecret = req.headers.get("x-cron-secret");
-    if (cronSecret === CRON_SECRET) {
+    const cronSecretHeader = req.headers.get("x-cron-secret");
+    const expectedCronSecret = Deno.env.get("CRON_SECRET");
+    if (cronSecretHeader && expectedCronSecret && cronSecretHeader === expectedCronSecret) {
       let cronBody: Record<string, unknown> = {};
       try { cronBody = await req.json(); } catch { /* empty body is fine */ }
       return await handleCron(supabaseAdmin, cronBody);
