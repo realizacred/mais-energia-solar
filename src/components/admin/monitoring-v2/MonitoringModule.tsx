@@ -61,7 +61,7 @@ export default function MonitoringModule() {
                     : "text-muted-foreground hover:text-foreground hover:bg-card/50"
                 )}
               >
-                <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "")} />
+                <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground/70")} />
                 <span className="hidden sm:inline">{item.label}</span>
               </button>
             );

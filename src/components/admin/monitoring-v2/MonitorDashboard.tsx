@@ -261,13 +261,13 @@ export default function MonitorDashboard() {
 type AccentColor = "primary" | "secondary" | "success" | "warning" | "destructive" | "info" | "muted";
 
 const ACCENT_MAP: Record<AccentColor, { iconBg: string; iconText: string; borderHighlight: string }> = {
-  primary:     { iconBg: "bg-primary/8",     iconText: "text-primary",         borderHighlight: "border-primary/30" },
-  secondary:   { iconBg: "bg-secondary/8",   iconText: "text-secondary",       borderHighlight: "border-secondary/30" },
-  success:     { iconBg: "bg-success/8",     iconText: "text-success",         borderHighlight: "border-success/30" },
-  warning:     { iconBg: "bg-warning/8",     iconText: "text-warning",         borderHighlight: "border-warning/30" },
-  destructive: { iconBg: "bg-destructive/8", iconText: "text-destructive",     borderHighlight: "border-destructive/40" },
-  info:        { iconBg: "bg-info/8",        iconText: "text-info",            borderHighlight: "border-info/30" },
-  muted:       { iconBg: "bg-muted",         iconText: "text-muted-foreground", borderHighlight: "border-border" },
+  primary:     { iconBg: "bg-primary/15",     iconText: "text-primary",         borderHighlight: "border-primary/30" },
+  secondary:   { iconBg: "bg-secondary/15",   iconText: "text-secondary",       borderHighlight: "border-secondary/30" },
+  success:     { iconBg: "bg-success/15",     iconText: "text-success",         borderHighlight: "border-success/30" },
+  warning:     { iconBg: "bg-warning/15",     iconText: "text-warning",         borderHighlight: "border-warning/30" },
+  destructive: { iconBg: "bg-destructive/15", iconText: "text-destructive",     borderHighlight: "border-destructive/40" },
+  info:        { iconBg: "bg-info/15",        iconText: "text-info",            borderHighlight: "border-info/30" },
+  muted:       { iconBg: "bg-muted",          iconText: "text-muted-foreground", borderHighlight: "border-border" },
 };
 
 function EnterpriseKpi({ icon: Icon, label, value, subtitle, accentColor = "muted", highlight = false, onClick }: {

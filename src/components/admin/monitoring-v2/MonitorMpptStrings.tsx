@@ -325,8 +325,8 @@ function TechStat({ icon: Icon, label, value }: {
 }) {
   return (
     <div className="flex items-center gap-2.5 bg-muted/30 rounded-xl px-3 py-2.5">
-      <div className="h-8 w-8 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
-        <Icon className="h-4 w-4 text-muted-foreground" />
+      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 text-primary" />
       </div>
       <div className="min-w-0">
         <p className="text-xs font-bold text-foreground leading-tight truncate">{value}</p>
