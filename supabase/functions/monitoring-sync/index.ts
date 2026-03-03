@@ -1136,10 +1136,11 @@ async function huaweiListPlants(xsrfToken: string, cookies: string, region: stri
 }
 
 async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: string, region: string): Promise<DailyMetrics> {
+  const HW_DELAY = 3500; // 3.5s between each Huawei API call
   try {
     const base = huaweiBaseUrl(region);
 
-    // 1) Station-level real-time KPIs
+    // 1) Station-level real-time KPIs (single call — most efficient)
     const res = await fetch(`${base}/thirdData/getStationRealKpi`, {
       method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
       body: JSON.stringify({ stationCodes: stationCode }),
@@ -1147,14 +1148,15 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
     const json = await res.json();
     console.log(`[Huawei] getStationRealKpi station=${stationCode} success=${json.success} failCode=${json.failCode} dataLen=${Array.isArray(json.data) ? json.data.length : 'N/A'} raw=${JSON.stringify(json.data)?.substring(0, 400)}`);
     if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
+    const isRateLimited = json.failCode === 407;
     let d = json.data?.[0]?.dataItemMap || {};
 
-    // 2) FALLBACK: if getStationRealKpi returns empty dataItemMap, try getKpiStationDay
-    if (Object.keys(d).length === 0) {
+    // 2) FALLBACK: only if data genuinely empty (not rate-limited)
+    if (Object.keys(d).length === 0 && !isRateLimited) {
+      await new Promise(r => setTimeout(r, HW_DELAY));
       console.log(`[Huawei] getStationRealKpi returned EMPTY for ${stationCode}, trying getKpiStationDay fallback...`);
       try {
-        const today = new Date();
-        const collectTime = today.getTime(); // Huawei expects epoch millis
+        const collectTime = Date.now();
         const dayRes = await fetch(`${base}/thirdData/getKpiStationDay`, {
           method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
           body: JSON.stringify({ stationCodes: stationCode, collectTime }),
@@ -1167,69 +1169,26 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
       } catch (dayErr) {
         console.warn(`[Huawei] getKpiStationDay fallback failed: ${(dayErr as Error).message}`);
       }
+    } else if (isRateLimited) {
+      console.warn(`[Huawei] Station ${stationCode} rate-limited (407), skipping`);
     }
 
     // Huawei field mapping:
     //   day_power / inverter_power = daily energy (kWh)
     //   total_power = lifetime energy (kWh)
+    //   NOTE: real-time power (kW) requires getDevRealKpi which burns API budget.
+    //   We skip it in cron — power is derived from energy change rate on the frontend.
     const energyKwh = d.day_power != null ? Number(d.day_power) : d.inverter_power != null ? Number(d.inverter_power) : null;
     const totalEnergyKwh = d.total_power != null ? Number(d.total_power) : null;
 
-    // 3) Get real-time power from device-level KPI
-    let powerKw: number | null = null;
-    try {
-      const devListRes = await fetch(`${base}/thirdData/getDevList`, {
-        method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
-        body: JSON.stringify({ stationCodes: stationCode }),
-      });
-      const devListJson = await devListRes.json();
-      const allDevs = Array.isArray(devListJson.data) ? devListJson.data : [];
-      // Huawei devTypeId — COMPLETE list from official Northbound API docs:
-      //  1=StringInverter, 2=SmartLogger, 7=PowerSensor, 10=EMI, 13=Dongle,
-      //  17=GridMeter, 22=PID, 37=Optimizer, 38=ResidentialInverter, 39=Battery,
-      //  41=SmartArrayController, 46=SmartDongle, 47=ShuffleOptimizer,
-      //  62=ResidentialBattery, 63=BackupBox, 70=ESS
-      // Query ALL types and sum active_power safely (non-power devices return 0)
-      const POWER_DEVICE_TYPES = new Set([1, 2, 7, 10, 13, 17, 22, 37, 38, 39, 41, 46, 47, 62, 63, 70]);
-      const inverterDevs = allDevs.filter((dd: any) => POWER_DEVICE_TYPES.has(dd.devTypeId));
-      console.log(`[Huawei] getDevList station=${stationCode} totalDevs=${allDevs.length} inverterLike=${inverterDevs.length} allTypes=${allDevs.map((dd:any)=>`${dd.devTypeId}:${dd.devName||dd.esnCode}`).join("; ")}`);
-
-      // Group by devTypeId since getDevRealKpi requires same type per call
-      const byType = new Map<number, string[]>();
-      for (const dd of inverterDevs) {
-        const ids = byType.get(dd.devTypeId) || [];
-        ids.push(String(dd.id));
-        byType.set(dd.devTypeId, ids);
-      }
-
-      let totalPower = 0;
-      for (const [typeId, ids] of byType) {
-        const devRes = await fetch(`${base}/thirdData/getDevRealKpi`, {
-          method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
-          body: JSON.stringify({ devIds: ids.join(","), devTypeId: typeId }),
-        });
-        const devJson = await devRes.json();
-        if (devJson.success !== false && Array.isArray(devJson.data)) {
-          for (const dev of devJson.data) {
-            const dim = dev.dataItemMap || {};
-            totalPower += Number(dim.active_power ?? 0);
-          }
-          console.log(`[Huawei] getDevRealKpi station=${stationCode} type=${typeId} count=${devJson.data.length} power=${totalPower}kW`);
-        }
-      }
-      if (inverterDevs.length > 0) powerKw = totalPower;
-    } catch (devErr) {
-      console.warn(`[Huawei] device power fetch failed for ${stationCode}: ${(devErr as Error).message}`);
-    }
-
-    // Huawei rate limit is aggressive — 2s between station calls
-    await new Promise(r => setTimeout(r, 2000));
+    // Inter-station cooldown
+    await new Promise(r => setTimeout(r, HW_DELAY));
 
     return {
-      power_kw: powerKw,
+      power_kw: null, // Not available at station level — requires device calls that burn rate limit
       energy_kwh: energyKwh,
       total_energy_kwh: totalEnergyKwh,
-      metadata: { ...d, _realtime_power_kw: powerKw },
+      metadata: { ...d },
     };
   } catch (e: any) {
     if (e.message === "TOKEN_EXPIRED") throw e;
