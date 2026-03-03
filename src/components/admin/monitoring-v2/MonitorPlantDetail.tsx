@@ -7,12 +7,13 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown } from "lucide-react";
 import { getPlantDetail, listDevices, listAlerts, listDailyReadings, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { toast } from "sonner";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorAttentionList } from "./MonitorAttentionList";
-import { DeviceMpptSummary } from "./devices/DeviceMpptSummary";
+import { extractMpptData } from "./devices/DeviceMpptSummary";
 import { PlantMpptSection } from "./devices/PlantMpptSection";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +23,7 @@ import {
   DEVICE_STATUS_LABELS, DEVICE_STATUS_DOT, DEVICE_STATUS_TEXT,
   type PlantUiStatus,
 } from "@/services/monitoring/plantStatusEngine";
+import type { MonitorDevice } from "@/services/monitoring/monitorTypes";
 
 type TimeRange = "7d" | "30d" | "90d" | "365d";
 
@@ -166,62 +168,14 @@ export default function MonitorPlantDetail() {
         <MonitorGenerationChart readings={readings} />
       </SectionCard>
 
-      {/* Devices — full width */}
+      {/* Devices with inline technical details */}
       <SectionCard title={`Dispositivos (${devices.length})`} icon={Cpu}>
         {devices.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">Nenhum dispositivo registrado</p>
         ) : (
           <div className="space-y-3">
             {devices.map((d) => (
-              <div key={d.id} className="rounded-lg border border-border/60 bg-card hover:shadow-sm transition-all overflow-hidden">
-                <div className="flex items-center justify-between p-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {d.type === "logger" ? "Datalogger" : (d.model || d.type)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
-                  </div>
-                    <div className="flex items-center gap-1.5">
-                      {(() => {
-                        const deviceSeenAt = getDeviceSsotTimestamp(d);
-                        const deviceDerived = deriveDeviceStatus({
-                          rawStatus: d.status,
-                          lastSeenAt: deviceSeenAt,
-                        });
-                        // Coherence: if plant is OFFLINE, device cannot be online/standby
-                        const coherentStatus = status === "offline" && deviceDerived.status !== "offline"
-                          ? computeDeviceStaleness(deviceSeenAt).stale ? "offline" as const : deviceDerived.status
-                          : deviceDerived.status;
-
-                        // DEBUG SSOT — temporary instrumentation
-                        if (import.meta.env.DEV) {
-                          const ageMin = deviceSeenAt ? Math.round((Date.now() - new Date(deviceSeenAt).getTime()) / 60000) : null;
-                          console.log(`[SSOT DEVICE] id=${d.id} raw=${d.status} last_seen_at=${deviceSeenAt} age=${ageMin}min derived=${deviceDerived.status} coherent=${coherentStatus}`);
-                        }
-
-                        return (
-                          <>
-                            <span className={cn("h-2 w-2 rounded-full", DEVICE_STATUS_DOT[coherentStatus])} />
-                            <span className={cn("text-xs font-medium", DEVICE_STATUS_TEXT[coherentStatus])}>
-                              {DEVICE_STATUS_LABELS[coherentStatus]}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground ml-1">
-                              {formatRelativeSeenAt(deviceSeenAt, { addSuffix: true })}
-                            </span>
-                          </>
-                        );
-                      })()}
-                    </div>
-                </div>
-                {d.type === "inverter" && (
-                  <div className="px-3 pb-3 border-t border-border/30 pt-2">
-                    <DeviceMpptSummary
-                      device={d}
-                      onViewDetail={() => navigate(`/admin/monitoramento/usinas/${plantId}/inversor/${d.id}`)}
-                    />
-                  </div>
-                )}
-              </div>
+              <DeviceCardWithDetails key={d.id} device={d} plantStatus={status} />
             ))}
           </div>
         )}
@@ -237,6 +191,226 @@ export default function MonitorPlantDetail() {
           onViewPlant={() => {}}
         />
       </SectionCard>
+    </div>
+  );
+}
+
+/* ─── Device Card with Inline Expandable Technical Details ─── */
+
+function DeviceCardWithDetails({ device: d, plantStatus }: { device: MonitorDevice; plantStatus: PlantUiStatus }) {
+  const [open, setOpen] = useState(false);
+
+  const deviceSeenAt = getDeviceSsotTimestamp(d);
+  const deviceDerived = deriveDeviceStatus({
+    rawStatus: d.status,
+    lastSeenAt: deviceSeenAt,
+  });
+  const coherentStatus = plantStatus === "offline" && deviceDerived.status !== "offline"
+    ? computeDeviceStaleness(deviceSeenAt).stale ? "offline" as const : deviceDerived.status
+    : deviceDerived.status;
+
+  const isInverter = d.type === "inverter";
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="rounded-lg border border-border/60 bg-card hover:shadow-sm transition-all overflow-hidden">
+        <div className="flex items-center justify-between p-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {d.type === "logger" ? "Datalogger" : (d.model || d.type)}
+            </p>
+            <p className="text-xs text-muted-foreground">{d.serial || d.provider_device_id}</p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={cn("h-2 w-2 rounded-full", DEVICE_STATUS_DOT[coherentStatus])} />
+            <span className={cn("text-xs font-medium", DEVICE_STATUS_TEXT[coherentStatus])}>
+              {DEVICE_STATUS_LABELS[coherentStatus]}
+            </span>
+            <span className="text-[10px] text-muted-foreground ml-1">
+              {formatRelativeSeenAt(deviceSeenAt, { addSuffix: true })}
+            </span>
+          </div>
+        </div>
+
+        {/* Inline summary for inverters */}
+        {isInverter && (
+          <div className="px-3 pb-2 border-t border-border/30 pt-2">
+            <InverterSummaryRow device={d} isOffline={coherentStatus === "offline" || coherentStatus === "standby"} />
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors mt-2">
+                {open ? "Ocultar detalhes técnicos" : "Ver detalhes técnicos"}
+                <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
+              </button>
+            </CollapsibleTrigger>
+          </div>
+        )}
+
+        {/* Expanded technical details */}
+        {isInverter && (
+          <CollapsibleContent>
+            <InverterExpandedDetails device={d} isOffline={coherentStatus === "offline" || coherentStatus === "standby"} />
+          </CollapsibleContent>
+        )}
+      </div>
+    </Collapsible>
+  );
+}
+
+/* ─── Inverter Summary Row (always visible) ─── */
+
+function InverterSummaryRow({ device, isOffline }: { device: MonitorDevice; isOffline: boolean }) {
+  const rawData = extractMpptData(device.metadata);
+  const data = isOffline
+    ? { ...rawData, channels: rawData.channels.map(ch => ({ ...ch, power_w: 0 })), totalStringPower: 0 }
+    : rawData;
+
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-muted-foreground font-medium truncate max-w-[60%]">
+        {data.machineName || device.model || device.type}
+      </span>
+      <div className="flex items-center gap-3">
+        {data.energyToday > 0 && (
+          <span className="text-foreground">
+            <span className="text-muted-foreground">Hoje: </span>
+            <span className="font-semibold">{data.energyToday.toFixed(1)} kWh</span>
+          </span>
+        )}
+        {data.channels.length > 0 && (
+          <span className="text-muted-foreground">
+            {data.channels.length} strings
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Inverter Expanded Details (MPPT channels + technical info) ─── */
+
+function InverterExpandedDetails({ device, isOffline }: { device: MonitorDevice; isOffline: boolean }) {
+  const rawData = extractMpptData(device.metadata);
+  const staleness = computeDeviceStaleness(getDeviceSsotTimestamp(device));
+  const isStale = staleness.stale;
+  const meta = device.metadata || {};
+
+  const data = isOffline
+    ? {
+        ...rawData,
+        channels: rawData.channels.map(ch => ({ ...ch, power_w: 0 })),
+        totalStringPower: 0,
+        acPower: 0,
+        maxPvVoltage: null,
+      }
+    : rawData;
+
+  const firmware = String(meta.inverterSoftwareVersion ?? meta.firmwareVersion ?? "—");
+  const ratedPower = Number(meta.power ?? 0) || Number(meta.RatedPower ?? 0) / 1000;
+  const currentAcPower = isOffline ? 0 : (Number(meta.pac ?? 0) || Number(meta.TotalActiveACOutputPower ?? 0) / 1000);
+
+  return (
+    <div className="px-3 pb-3 border-t border-border/30 pt-3 space-y-4">
+      {/* Staleness warning */}
+      {isStale && (
+        <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning font-medium">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          Dados desatualizados — {staleness.label}
+        </div>
+      )}
+
+      {/* KPIs row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <MiniKpi label="Potência Nominal" value={`${ratedPower} kW`} />
+        <MiniKpi label="Potência AC" value={`${(currentAcPower * 1000).toFixed(0)} W`} muted={isStale} />
+        <MiniKpi label="Energia Hoje" value={`${data.energyToday.toFixed(1)} kWh`} />
+        <MiniKpi
+          label="Energia Total"
+          value={data.energyTotal >= 1000 ? `${(data.energyTotal / 1000).toFixed(1)} MWh` : `${data.energyTotal.toFixed(0)} kWh`}
+        />
+      </div>
+
+      {/* MPPT Channels */}
+      {data.channels.length > 0 && (
+        <div className={cn("space-y-2", isStale && "opacity-60")}>
+          <p className="text-[11px] font-bold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+            <Zap className="h-3 w-3 text-primary" />
+            Canais MPPT / Strings ({data.channels.length})
+          </p>
+          <div className="grid grid-cols-4 gap-1.5 text-[10px] text-muted-foreground font-medium px-1">
+            <span>Canal</span>
+            <span className="text-right">Potência</span>
+            <span className="text-right">Vpv</span>
+            <span className="text-right">Ipv</span>
+          </div>
+          {data.channels.map((ch) => {
+            const rawVpvVal = meta[`vpv${ch.index}`] ?? meta[`uPv${ch.index}`] ?? meta[`pv${ch.index}Voltage`] ?? meta[`Vpv${ch.index}`] ?? meta[`Upv${ch.index}`];
+            const rawIpvVal = meta[`ipv${ch.index}`] ?? meta[`iPv${ch.index}`] ?? meta[`pv${ch.index}Current`] ?? meta[`Ipv${ch.index}`] ?? meta[`IPv${ch.index}`];
+            const rawVpv = rawVpvVal != null && String(rawVpvVal) !== "null" ? Number(rawVpvVal) : null;
+            const rawIpv = rawIpvVal != null && String(rawIpvVal) !== "null" ? Number(rawIpvVal) : null;
+            const maxVoltage = data.maxPvVoltage ?? null;
+            const derivedIpv = (rawIpv == null && ch.power_w > 0 && maxVoltage && maxVoltage > 0) ? ch.power_w / maxVoltage : null;
+            const derivedVpv = (rawVpv == null && ch.power_w > 0 && maxVoltage && maxVoltage > 0) ? maxVoltage : null;
+            const vpv = isOffline ? 0 : (rawVpv ?? derivedVpv);
+            const ipv = isOffline ? 0 : (rawIpv ?? derivedIpv);
+
+            return (
+              <div
+                key={ch.index}
+                className={cn(
+                  "grid grid-cols-4 gap-1.5 items-center px-2.5 py-2 rounded-lg border text-xs",
+                  ch.power_w > 0 ? "border-success/30 bg-success/5" : "border-border/50 bg-muted/10"
+                )}
+              >
+                <span className="font-medium text-foreground">S{ch.index}</span>
+                <span className={cn("text-right font-bold", ch.power_w > 0 ? "text-success" : "text-muted-foreground")}>
+                  {ch.power_w} W
+                </span>
+                <span className="text-right text-foreground">
+                  {vpv == null ? "—" : vpv > 0 ? `${rawVpv == null ? "≈" : ""}${vpv.toFixed(1)} V` : "0 V"}
+                </span>
+                <span className="text-right text-foreground">
+                  {ipv == null ? "—" : ipv > 0 ? `${rawIpv == null ? "≈" : ""}${ipv.toFixed(2)} A` : "0 A"}
+                </span>
+              </div>
+            );
+          })}
+          {/* Totals */}
+          <div className="grid grid-cols-4 gap-1.5 items-center px-2.5 py-2 rounded-lg border-2 border-border font-semibold text-xs">
+            <span>Total DC</span>
+            <span className="text-right text-success">{data.totalStringPower} W</span>
+            <span className="text-right text-muted-foreground">
+              {data.maxPvVoltage ? `Vmáx ${data.maxPvVoltage.toFixed(1)} V` : "—"}
+            </span>
+            <span className="text-right text-muted-foreground">—</span>
+          </div>
+        </div>
+      )}
+
+      {/* Technical info */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+        <InfoRow label="Modelo" value={data.machineName || device.model || "—"} />
+        <InfoRow label="Serial" value={device.serial || "—"} />
+        <InfoRow label="MPPTs" value={data.mpptCount > 0 ? String(data.mpptCount) : "—"} />
+        <InfoRow label="Firmware" value={firmware} />
+      </div>
+    </div>
+  );
+}
+
+function MiniKpi({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  return (
+    <div className={cn("rounded-lg border border-border/40 bg-muted/20 p-2.5 text-center", muted && "opacity-50")}>
+      <p className="text-[10px] text-muted-foreground font-medium">{label}</p>
+      <p className="text-sm font-bold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-foreground truncate max-w-[55%] text-right">{value}</span>
     </div>
   );
 }
