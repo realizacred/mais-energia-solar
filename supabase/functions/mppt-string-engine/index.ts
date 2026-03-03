@@ -65,9 +65,9 @@ function normalizeDevice(
   // Phase 1: Discover which string indices have real data (power > 0 or V/I > 0)
   const realStrings: number[] = [];
   for (let i = 1; i <= 32; i++) {
-    const power = numberOrNull(meta[`pow${i}`] ?? meta[`ppv${i}`]);
-    const voltage = numberOrNull(meta[`vpv${i}`] ?? meta[`uPv${i}`] ?? meta[`pv${i}Voltage`]);
-    const current = numberOrNull(meta[`ipv${i}`] ?? meta[`iPv${i}`] ?? meta[`pv${i}Current`]);
+    const power = numberOrNull(meta[`pow${i}`] ?? meta[`ppv${i}`] ?? meta[`Ppv${i}`] ?? meta[`pv${i}Power`] ?? meta[`DCPowerPV${i}`]);
+    const voltage = numberOrNull(meta[`vpv${i}`] ?? meta[`uPv${i}`] ?? meta[`Vpv${i}`] ?? meta[`UPv${i}`] ?? meta[`pv${i}Voltage`] ?? meta[`DCVoltagePV${i}`]);
+    const current = numberOrNull(meta[`ipv${i}`] ?? meta[`iPv${i}`] ?? meta[`Ipv${i}`] ?? meta[`IPv${i}`] ?? meta[`pv${i}Current`] ?? meta[`DCCurrentPV${i}`]);
     // Only include strings with actual non-zero data, OR strings within declared mpptCount
     const hasData = (power !== null && power > 0) || (voltage !== null && voltage > 0) || (current !== null && current > 0);
     if (hasData || i <= mpptCount) {
@@ -78,9 +78,9 @@ function normalizeDevice(
   // Phase 2: Build readings only for real strings
   let hasStringData = false;
   for (const i of realStrings) {
-    const power = numberOrNull(meta[`pow${i}`] ?? meta[`ppv${i}`]);
-    const voltage = numberOrNull(meta[`vpv${i}`] ?? meta[`uPv${i}`] ?? meta[`pv${i}Voltage`]);
-    const current = numberOrNull(meta[`ipv${i}`] ?? meta[`iPv${i}`] ?? meta[`pv${i}Current`]);
+    const power = numberOrNull(meta[`pow${i}`] ?? meta[`ppv${i}`] ?? meta[`Ppv${i}`] ?? meta[`pv${i}Power`] ?? meta[`DCPowerPV${i}`]);
+    const voltage = numberOrNull(meta[`vpv${i}`] ?? meta[`uPv${i}`] ?? meta[`Vpv${i}`] ?? meta[`UPv${i}`] ?? meta[`pv${i}Voltage`] ?? meta[`DCVoltagePV${i}`]);
+    const current = numberOrNull(meta[`ipv${i}`] ?? meta[`iPv${i}`] ?? meta[`Ipv${i}`] ?? meta[`IPv${i}`] ?? meta[`pv${i}Current`] ?? meta[`DCCurrentPV${i}`]);
 
     hasStringData = true;
 

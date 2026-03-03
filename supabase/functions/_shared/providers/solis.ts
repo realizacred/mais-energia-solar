@@ -137,14 +137,17 @@ export class SolisAdapter implements ProviderAdapter {
             await this.rateDelay();
             const detailJson = await this.solisFetch(apiId, apiSecret, "/v1/api/inverterDetail", { sn });
             const dd = detailJson.data || {};
-            detailMeta = {
-              vpv1: dd.uPv1 ?? dd.vpv1 ?? null, ipv1: dd.iPv1 ?? dd.ipv1 ?? null, ppv1: dd.pow1 ?? dd.ppv1 ?? null,
-              vpv2: dd.uPv2 ?? dd.vpv2 ?? null, ipv2: dd.iPv2 ?? dd.ipv2 ?? null, ppv2: dd.pow2 ?? dd.ppv2 ?? null,
-              vpv3: dd.uPv3 ?? dd.vpv3 ?? null, ipv3: dd.iPv3 ?? dd.ipv3 ?? null, ppv3: dd.pow3 ?? dd.ppv3 ?? null,
-              vpv4: dd.uPv4 ?? dd.vpv4 ?? null, ipv4: dd.iPv4 ?? dd.ipv4 ?? null, ppv4: dd.pow4 ?? dd.ppv4 ?? null,
-              pac: dd.pac ?? null, etoday: dd.eToday ?? null, etotal: dd.eTotal ?? null,
-              dcInputTypeMppt: dd.mpptCount ?? dd.dcInputType ?? null,
-            };
+            detailMeta = {} as Record<string, unknown>;
+            // Extract up to 8 strings (S6 models have 6 MPPTs)
+            for (let si = 1; si <= 8; si++) {
+              detailMeta[`vpv${si}`] = dd[`uPv${si}`] ?? dd[`vpv${si}`] ?? dd[`pv${si}Voltage`] ?? dd[`Vpv${si}`] ?? null;
+              detailMeta[`ipv${si}`] = dd[`iPv${si}`] ?? dd[`ipv${si}`] ?? dd[`pv${si}Current`] ?? dd[`Ipv${si}`] ?? null;
+              detailMeta[`ppv${si}`] = dd[`pow${si}`] ?? dd[`ppv${si}`] ?? dd[`pv${si}Power`] ?? null;
+            }
+            detailMeta.pac = dd.pac ?? null;
+            detailMeta.etoday = dd.eToday ?? null;
+            detailMeta.etotal = dd.eTotal ?? null;
+            detailMeta.dcInputTypeMppt = dd.mpptCount ?? dd.dcInputType ?? null;
           } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}: ${(e as Error).message}`); }
         }
 
