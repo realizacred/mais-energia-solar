@@ -241,3 +241,27 @@ export async function recalculateBaseline(plantId: string): Promise<{ updated: n
     throw new Error("Erro inesperado ao recalcular baseline");
   }
 }
+
+// ─── Bootstrap all plants (initial setup) ────────────────────
+
+export async function bootstrapAllStrings(): Promise<{ processed: number; plants: number }> {
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) throw new Error("Tenant não encontrado");
+
+  const { data, error } = await supabase.functions.invoke("mppt-string-engine", {
+    body: { action: "bootstrap_all", tenant_id: tenantId },
+  });
+
+  if (error) {
+    let msg = "Erro ao inicializar strings";
+    try {
+      if (typeof error === "object" && "message" in error) {
+        msg = (error as any).message || msg;
+      }
+    } catch {}
+    throw new Error(msg);
+  }
+
+  if (data?.error) throw new Error(data.error);
+  return { processed: data?.processed || 0, plants: data?.plants || 0 };
+}
