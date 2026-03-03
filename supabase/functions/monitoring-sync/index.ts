@@ -1458,7 +1458,10 @@ async function upsertPlants(ctx: SyncContext, plants: NormalizedPlant[]): Promis
     if (error) errors.push(`Plant ${plant.external_id}: ${error.message}`); else count++;
 
     // Keep monitor_plants in sync (metadata, last_seen_at, coordinates)
+    // Also resolve legacy_plant_id from solar_plants for FK linkage
     try {
+      const { data: solarPlant } = await ctx.supabaseAdmin.from("solar_plants")
+        .select("id").eq("tenant_id", ctx.tenantId).eq("provider", ctx.provider).eq("external_id", plant.external_id).maybeSingle();
       await ctx.supabaseAdmin.from("monitor_plants").upsert({
         tenant_id: ctx.tenantId, provider_id: ctx.provider, provider_plant_id: plant.external_id,
         name: plant.name, installed_power_kwp: plant.capacity_kw,
@@ -1466,6 +1469,7 @@ async function upsertPlants(ctx: SyncContext, plants: NormalizedPlant[]): Promis
         state: plant.metadata?.regionStr as string || null,
         lat: plant.latitude, lng: plant.longitude,
         metadata: plant.metadata, last_seen_at: now, updated_at: now, is_active: true,
+        ...(solarPlant?.id ? { legacy_plant_id: solarPlant.id } : {}),
       }, { onConflict: "tenant_id,provider_id,provider_plant_id" });
     } catch { /* non-blocking */ }
   }
