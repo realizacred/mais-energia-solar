@@ -19,7 +19,7 @@ import type {
   MonitorDashboardStats,
 } from "./monitorTypes";
 import type { MonitoringIntegration, SolarPlant, SolarPlantMetricsDaily } from "./types";
-import { derivePlantStatus, getTodayBrasilia, getMonthStartBrasilia } from "./plantStatusEngine";
+import { derivePlantStatus, getTodayBrasilia, getMonthStartBrasilia, getDaysAgoBrasilia, isBrasiliaNight } from "./plantStatusEngine";
 
 /**
  * POWER_KW_TO_ENERGY_ESTIMATE_HOURS: Used ONLY as a rough multiplier
@@ -91,7 +91,12 @@ function mapSolarPlantToMonitorPlant(sp: SolarPlant): MonitorPlant {
   };
 }
 
-function legacyStatusToHealth(sp: SolarPlant, m?: SolarPlantMetricsDaily, monthKwh?: number): MonitorHealthCache {
+function legacyStatusToHealth(
+  sp: SolarPlant,
+  m?: SolarPlantMetricsDaily,
+  monthKwh?: number,
+  yesterdayMetric?: SolarPlantMetricsDaily,
+): MonitorHealthCache {
   // energy_kwh is the authoritative field; fallback: estimate from power_kw
   let energyToday = 0;
   if (m?.energy_kwh != null && Number(m.energy_kwh) > 0) {
@@ -99,6 +104,22 @@ function legacyStatusToHealth(sp: SolarPlant, m?: SolarPlantMetricsDaily, monthK
   } else if (m?.power_kw != null && Number(m.power_kw) > 0) {
     const powerKw = Number(m.power_kw) > 100 ? Number(m.power_kw) / 1000 : Number(m.power_kw);
     energyToday = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS;
+  }
+
+  // Yesterday fallback: when today has no data AND it's night, show yesterday's energy
+  let isYesterdayFallback = false;
+  if (energyToday === 0 && isBrasiliaNight() && yesterdayMetric) {
+    let yesterdayEnergy = 0;
+    if (yesterdayMetric.energy_kwh != null && Number(yesterdayMetric.energy_kwh) > 0) {
+      yesterdayEnergy = Number(yesterdayMetric.energy_kwh);
+    } else if (yesterdayMetric.power_kw != null && Number(yesterdayMetric.power_kw) > 0) {
+      const powerKw = Number(yesterdayMetric.power_kw) > 100 ? Number(yesterdayMetric.power_kw) / 1000 : Number(yesterdayMetric.power_kw);
+      yesterdayEnergy = powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS;
+    }
+    if (yesterdayEnergy > 0) {
+      energyToday = yesterdayEnergy;
+      isYesterdayFallback = true;
+    }
   }
 
   // Use the centralized status engine — SSOT
@@ -122,23 +143,31 @@ function legacyStatusToHealth(sp: SolarPlant, m?: SolarPlantMetricsDaily, monthK
     performance_7d_pct: null,
     open_alerts_count: 0,
     updated_at: sp.updated_at,
+    is_yesterday_fallback: isYesterdayFallback,
   };
 }
 // ─── PLANTS + HEALTH (reads from legacy solar_plants) ─────────
 
 export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   const today = getTodayBrasilia();
+  const yesterday = getDaysAgoBrasilia(1);
   const monthStartStr = getMonthStartBrasilia();
 
-  const [{ data: plants }, { data: todayMetrics }, { data: monthMetrics }] = await Promise.all([
+  const [{ data: plants }, { data: todayMetrics }, { data: yesterdayMetrics }, { data: monthMetrics }] = await Promise.all([
     supabase.from("solar_plants" as any).select("*").order("name", { ascending: true }),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", today),
+    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", yesterday),
     supabase.from("solar_plant_metrics_daily" as any).select("plant_id, energy_kwh, power_kw").gte("date", monthStartStr).lte("date", today),
   ]);
 
   const todayMap = new Map<string, SolarPlantMetricsDaily>();
   ((todayMetrics as unknown as SolarPlantMetricsDaily[]) || []).forEach((m) =>
     todayMap.set(m.plant_id, m)
+  );
+
+  const yesterdayMap = new Map<string, SolarPlantMetricsDaily>();
+  ((yesterdayMetrics as unknown as SolarPlantMetricsDaily[]) || []).forEach((m) =>
+    yesterdayMap.set(m.plant_id, m)
   );
 
   // Sum month energy per plant with power_kw fallback
@@ -158,7 +187,7 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     const m = todayMap.get(sp.id);
     return {
       ...mapSolarPlantToMonitorPlant(sp),
-      health: legacyStatusToHealth(sp, m, monthMap.get(sp.id)),
+      health: legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id)),
       provider_name: sp.provider || undefined,
     };
   });
@@ -177,15 +206,22 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 
   const sp = plant as unknown as SolarPlant;
   const today = getTodayBrasilia();
+  const yesterday = getDaysAgoBrasilia(1);
   const monthStartStr = getMonthStartBrasilia();
 
-  // Fetch today's metric + month readings in parallel (using resolvedId for legacy table)
-  const [{ data: metric }, { data: monthMetrics }] = await Promise.all([
+  // Fetch today's metric, yesterday's metric, and month readings in parallel
+  const [{ data: metric }, { data: yesterdayMetric }, { data: monthMetrics }] = await Promise.all([
     supabase
       .from("solar_plant_metrics_daily" as any)
       .select("*")
       .eq("plant_id", resolvedId)
       .eq("date", today)
+      .maybeSingle(),
+    supabase
+      .from("solar_plant_metrics_daily" as any)
+      .select("*")
+      .eq("plant_id", resolvedId)
+      .eq("date", yesterday)
       .maybeSingle(),
     supabase
       .from("solar_plant_metrics_daily" as any)
@@ -196,6 +232,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
   ]);
 
   const m = metric as unknown as SolarPlantMetricsDaily | undefined;
+  const ym = yesterdayMetric as unknown as SolarPlantMetricsDaily | undefined;
 
   // Sum month energy with power_kw fallback
   let monthKwh = 0;
@@ -204,13 +241,13 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
       monthKwh += Number(r.energy_kwh);
     } else if (r.power_kw != null && Number(r.power_kw) > 0) {
       const powerKw = Number(r.power_kw) > 100 ? Number(r.power_kw) / 1000 : Number(r.power_kw);
-      monthKwh += powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS; // NOT HSP for PR
+      monthKwh += powerKw * POWER_KW_TO_ENERGY_ESTIMATE_HOURS;
     }
   });
 
   return {
     ...mapSolarPlantToMonitorPlant(sp),
-    health: legacyStatusToHealth(sp, m, monthKwh),
+    health: legacyStatusToHealth(sp, m, monthKwh, ym),
   };
 }
 

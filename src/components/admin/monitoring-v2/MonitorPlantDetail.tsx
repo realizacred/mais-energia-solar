@@ -110,8 +110,10 @@ export default function MonitorPlantDetail() {
                 <div className={cn("h-2.5 w-2.5 rounded-full", UI_STATUS_DOT[status])} />
                 <StatusBadge status={UI_STATUS_LABELS[status]} />
                 {plant.health?.last_seen_at && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground" title={new Date(plant.health.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}>
                     Visto {formatDistanceToNow(new Date(plant.health.last_seen_at), { addSuffix: true, locale: ptBR })}
+                    {" · "}
+                    {new Date(plant.health.last_seen_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
                   </span>
                 )}
               </div>
@@ -123,7 +125,7 @@ export default function MonitorPlantDetail() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <DetailKpi label="Potência Instalada" value={`${plant.installed_power_kwp || 0} kWp`} icon={Zap} color="warning" />
-        <DetailKpi label="Energia Hoje" value={`${(plant.health?.energy_today_kwh || 0).toFixed(0)} kWh`} icon={Activity} color="success" />
+        <DetailKpi label={plant.health?.is_yesterday_fallback ? "Energia Ontem" : "Energia Hoje"} value={`${(plant.health?.energy_today_kwh || 0).toFixed(0)} kWh`} icon={Activity} color="success" />
         <DetailKpi label="Energia Mês" value={`${(plant.health?.energy_month_kwh || 0).toFixed(0)} kWh`} icon={Activity} color="info" />
         <DetailKpi label="Alertas Abertos" value={String(plant.health?.open_alerts_count || 0)} icon={AlertTriangle} color={plant.health?.open_alerts_count ? "destructive" : "muted"} />
       </div>

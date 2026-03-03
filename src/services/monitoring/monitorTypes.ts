@@ -49,6 +49,8 @@ export interface MonitorHealthCache {
   performance_7d_pct: number | null;
   open_alerts_count: number;
   updated_at: string;
+  /** When true, energy_today_kwh actually holds yesterday's value (no sync yet today) */
+  is_yesterday_fallback?: boolean;
 }
 
 export interface MonitorEvent {
