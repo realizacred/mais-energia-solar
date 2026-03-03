@@ -1127,9 +1127,9 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
       body: JSON.stringify({ stationCodes: stationCode }),
     });
     const json = await res.json();
+    console.log(`[Huawei] getStationRealKpi RAW station=${stationCode} success=${json.success} failCode=${json.failCode} dataLen=${Array.isArray(json.data) ? json.data.length : 'N/A'} rawData=${JSON.stringify(json.data)?.substring(0, 500)}`);
     if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
     const d = json.data?.[0]?.dataItemMap || {};
-    console.log(`[Huawei] getStationRealKpi station=${stationCode} keys=${Object.keys(d).join(",") || "EMPTY"} day_power=${d.day_power} total_power=${d.total_power}`);
 
     // Huawei field mapping:
     //   day_power   = daily energy (kWh)  — NOT instantaneous power
@@ -1138,29 +1138,44 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
     const energyKwh = d.day_power != null ? Number(d.day_power) : null;
     const totalEnergyKwh = d.total_power != null ? Number(d.total_power) : null;
 
-    // 2) Try to get real-time power from device-level KPI
+    // 2) Get real-time power from device-level KPI
+    //    IMPORTANT: getDevRealKpi expects actual device IDs, NOT station codes.
+    //    We must first list devices for this station, then query their KPIs.
     let powerKw: number | null = null;
     try {
-      const devRes = await fetch(`${base}/thirdData/getDevRealKpi`, {
+      // 2a) List inverter devices for this station
+      const devListRes = await fetch(`${base}/thirdData/getDevList`, {
         method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
-        body: JSON.stringify({ devIds: stationCode, devTypeId: 1 }), // devTypeId 1 = inverter
+        body: JSON.stringify({ stationCodes: stationCode }),
       });
-      const devJson = await devRes.json();
-      if (devJson.success !== false && Array.isArray(devJson.data)) {
-        // Sum active_power from all inverters of this station
-        let totalPower = 0;
-        for (const dev of devJson.data) {
-          const dim = dev.dataItemMap || {};
-          const ap = Number(dim.active_power ?? 0);
-          totalPower += ap;
-        }
-        if (totalPower > 0 || devJson.data.length > 0) {
+      const devListJson = await devListRes.json();
+      const allDevs = Array.isArray(devListJson.data) ? devListJson.data : [];
+      // Filter to inverters only (devTypeId === 1)
+      const inverterIds = allDevs.filter((d: any) => d.devTypeId === 1).map((d: any) => String(d.id));
+      console.log(`[Huawei] getDevList station=${stationCode} totalDevs=${allDevs.length} inverters=${inverterIds.length} ids=${inverterIds.join(",")}`);
+
+      if (inverterIds.length > 0) {
+        // 2b) Query real-time KPIs for these inverters
+        const devRes = await fetch(`${base}/thirdData/getDevRealKpi`, {
+          method: "POST", headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
+          body: JSON.stringify({ devIds: inverterIds.join(","), devTypeId: 1 }),
+        });
+        const devJson = await devRes.json();
+        if (devJson.success !== false && Array.isArray(devJson.data)) {
+          let totalPower = 0;
+          for (const dev of devJson.data) {
+            const dim = dev.dataItemMap || {};
+            const ap = Number(dim.active_power ?? 0);
+            totalPower += ap;
+          }
           powerKw = totalPower;
           console.log(`[Huawei] getDevRealKpi station=${stationCode} inverters=${devJson.data.length} totalPower=${totalPower}kW`);
+        } else {
+          console.warn(`[Huawei] getDevRealKpi no data station=${stationCode} success=${devJson.success} failCode=${devJson.failCode}`);
         }
       }
     } catch (devErr) {
-      console.warn(`[Huawei] getDevRealKpi failed for ${stationCode}: ${(devErr as Error).message}`);
+      console.warn(`[Huawei] device power fetch failed for ${stationCode}: ${(devErr as Error).message}`);
     }
 
     return {
