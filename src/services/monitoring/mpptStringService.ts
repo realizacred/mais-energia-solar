@@ -225,10 +225,11 @@ export async function getDeviceStringCards(
         latest_current_a: r.current_a,
         latest_ts: r.ts,
         baseline_pct: null,
-        alert_status: (r.power_w != null && r.power_w > 0) || (r.voltage_v != null && r.voltage_v > 0)
-          ? "ok"
-          : r.inverter_online ? "critical" : "unknown",
+        alert_status: "unknown" as "ok" | "warn" | "critical" | "unknown", // will be resolved below
       }));
+
+      // Resolve alert status with smart rules
+      resolveStringAlerts(fallbackStrings);
 
       return {
         device_id: dev.id,
@@ -252,9 +253,8 @@ export async function getDeviceStringCards(
       const hasVoltage = metric && metric.voltage_v != null && metric.voltage_v > 0;
       if (hasPower || hasVoltage) {
         alertStatus = "ok";
-      } else if (metric && metric.online && metric.power_w != null && metric.power_w === 0) {
-        alertStatus = "critical";
       }
+      // critical will be resolved by resolveStringAlerts below
 
       return {
         ...reg,
@@ -267,6 +267,9 @@ export async function getDeviceStringCards(
       };
     });
 
+    // Resolve critical alerts with smart rules (time window + sibling check)
+    resolveStringAlerts(strings);
+
     return {
       device_id: dev.id,
       device_model: dev.model,
@@ -278,6 +281,40 @@ export async function getDeviceStringCards(
   }));
 
   return cards;
+}
+
+// ─── Smart alert resolution ─────────────────────────────────
+// Rules: 1) Only flag critical between 09-16h BRT
+//        2) At least 1 sibling string must have power > 0 (cloudy ≠ error)
+//        3) The string must have 0W AND 0V
+function resolveStringAlerts(strings: StringRegistryWithMetric[]): void {
+  const now = new Date();
+  // BRT = UTC-3
+  const brtHour = (now.getUTCHours() - 3 + 24) % 24;
+  const inProductiveWindow = brtHour >= 9 && brtHour < 16;
+
+  // Check if at least one sibling is generating
+  const anySiblingGenerating = strings.some(
+    (s) => (s.latest_power_w != null && s.latest_power_w > 0) ||
+           (s.latest_voltage_v != null && s.latest_voltage_v > 0)
+  );
+
+  for (const s of strings) {
+    if (s.alert_status === "ok") continue; // already healthy
+
+    const hasPower = s.latest_power_w != null && s.latest_power_w > 0;
+    const hasVoltage = s.latest_voltage_v != null && s.latest_voltage_v > 0;
+
+    if (hasPower || hasVoltage) {
+      s.alert_status = "ok";
+    } else if (inProductiveWindow && anySiblingGenerating) {
+      // This string has 0W+0V while others generate → likely stopped
+      s.alert_status = "critical";
+    } else {
+      // Outside window or all strings at zero (cloudy/night) → no alarm
+      s.alert_status = "unknown";
+    }
+  }
 }
 
 // ─── Auto-register strings into monitor_string_registry ──────
