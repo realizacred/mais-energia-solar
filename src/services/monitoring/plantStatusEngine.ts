@@ -146,16 +146,31 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
         reason: "Noturno — gerou energia hoje",
       };
     }
-    // Unknown status + no generation today + night = offline (conservative)
+    // Unknown status + no generation today + night = standby (if synced recently)
+    // Being conservative only makes sense if there's no sync at all (handled by rule 1)
     return {
-      uiStatus: "offline",
-      reason: "Sem confirmação de comunicação pelo provedor",
+      uiStatus: "standby",
+      reason: "Noturno — aguardando próxima sincronização",
     };
   }
 
-  // Rule 3 (daytime only): ONLINE — actively generating or generated today
+  // Rule 4 (daytime): ONLINE — provider confirms or actively generating
   const isActivelyGenerating = powerKw > POWER_THRESHOLD_KW;
   const hasGeneration = isActivelyGenerating || input.energy_today_kwh > 0;
+
+  // If provider explicitly says "normal"/"online", trust it — plant is communicating
+  if (providerConfirmedOnline) {
+    return {
+      uiStatus: "online",
+      reason: isActivelyGenerating
+        ? `Gerando ${powerKw.toFixed(2)} kW`
+        : hasGeneration
+          ? `Gerou ${input.energy_today_kwh.toFixed(1)} kWh hoje`
+          : "Online — comunicação confirmada pelo provedor",
+    };
+  }
+
+  // Unknown provider status but has generation → online
   if (hasGeneration) {
     return {
       uiStatus: "online",
@@ -165,10 +180,11 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
     };
   }
 
-  // Daytime, synced, but no generation — still offline
+  // Unknown provider status, no generation, daytime — still online if synced recently
+  // (plant may be under clouds, in maintenance, or metrics not yet fetched today)
   return {
-    uiStatus: "offline",
-    reason: "Sincronizado mas sem geração durante o dia",
+    uiStatus: "online",
+    reason: "Sincronizado — aguardando dados de geração",
   };
 }
 
