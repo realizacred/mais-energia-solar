@@ -169,6 +169,12 @@ export class SolisAdapter implements ProviderAdapter {
           }
         }
 
+        // SSOT: extract real device data timestamp from Solis API
+        const solisDataTs = r.dataTimestamp ?? detailMeta.dataTimestamp;
+        const solisLastSeenAt = solisDataTs
+          ? new Date(Number(solisDataTs) > 1e12 ? Number(solisDataTs) : Number(solisDataTs) * 1000).toISOString()
+          : undefined;
+
         const device = {
           provider_device_id: String(r.id || r.sn || ""),
           type: "inverter",
@@ -176,6 +182,7 @@ export class SolisAdapter implements ProviderAdapter {
           serial: sn,
           status: deviceStatus,
           metadata: { ...r, ...detailMeta },
+          lastSeenAt: solisLastSeenAt,
         };
         const existing = result.find((x) => x.stationId === stationId);
         if (existing) existing.devices.push(device);

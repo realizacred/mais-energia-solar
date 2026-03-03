@@ -43,6 +43,8 @@ export interface NormalizedDevice {
   serial: string | null;
   status: string;
   metadata: Record<string, unknown>;
+  /** SSOT: actual device communication timestamp (from provider data), NOT sync cron time */
+  lastSeenAt?: string;
 }
 
 export interface NormalizedDeviceGroup {

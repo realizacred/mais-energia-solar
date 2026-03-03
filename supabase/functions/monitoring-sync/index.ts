@@ -233,6 +233,8 @@ async function solisMetrics(apiId: string, apiSecret: string, stationId: string)
 interface NormalizedDevice {
   provider_device_id: string; type: string; model: string | null;
   serial: string | null; status: string; metadata: Record<string, unknown>;
+  /** SSOT: actual device communication timestamp (from provider data), NOT sync cron time */
+  lastSeenAt?: string;
 }
 
 async function solisListInverters(apiId: string, apiSecret: string): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
@@ -270,6 +272,12 @@ async function solisListInverters(apiId: string, apiSecret: string): Promise<{ s
         } catch (e) { console.warn(`[Solis] inverterDetail failed for ${sn}: ${(e as Error).message}`); }
       }
 
+      // SSOT: extract real device data timestamp from Solis API
+      const solisDataTs = r.dataTimestamp ?? detailMeta.dataTimestamp;
+      const solisLastSeenAt = solisDataTs
+        ? new Date(Number(solisDataTs) > 1e12 ? Number(solisDataTs) : Number(solisDataTs) * 1000).toISOString()
+        : undefined;
+
       const device: NormalizedDevice = {
         provider_device_id: String(r.id || r.sn || ""),
         type: "inverter",
@@ -277,6 +285,7 @@ async function solisListInverters(apiId: string, apiSecret: string): Promise<{ s
         serial: sn,
         status: r.state === 1 ? "online" : r.state === 2 ? "offline" : r.state === 3 ? "alarm" : "unknown",
         metadata: { ...r, ...detailMeta },
+        lastSeenAt: solisLastSeenAt,
       };
       const existing = result.find((x) => x.stationId === stationId);
       if (existing) existing.devices.push(device); else result.push({ stationId, devices: [device] });
@@ -478,6 +487,12 @@ async function deyeListDevices(baseUrl: string, token: string): Promise<{ statio
         else if (d.deviceStatus === 0 || d.connectStatus === 0) status = "offline";
         else if (d.deviceStatus === 2) status = "alarm";
 
+        // SSOT: extract real device data timestamp from Deye API
+        const deyeCollTs = d.collectionTime;
+        const deyeLastSeenAt = deyeCollTs
+          ? new Date(Number(deyeCollTs) > 1e12 ? Number(deyeCollTs) : Number(deyeCollTs) * 1000).toISOString()
+          : undefined;
+
         devices.push({
           provider_device_id: String(d.id || sn),
           type: (() => {
@@ -490,6 +505,7 @@ async function deyeListDevices(baseUrl: string, token: string): Promise<{ statio
           serial: sn || null,
           status,
           metadata: d,
+          lastSeenAt: deyeLastSeenAt,
         });
       }
 
@@ -933,6 +949,12 @@ async function growattApiListDevices(apiKey: string): Promise<{ stationId: strin
             } catch (e) { console.warn(`[Growatt] queryLastData failed for ${sn}: ${(e as Error).message}`); }
           }
 
+          // SSOT: extract real device data timestamp from Growatt API
+          const growattLastUpdate = dev.last_update_time || (detailMeta as any).last_update_time;
+          const growattLastSeenAt = growattLastUpdate
+            ? (/^\d{4}-\d{2}-\d{2}/.test(String(growattLastUpdate)) ? new Date(String(growattLastUpdate) + "Z").toISOString() : undefined)
+            : undefined;
+
           devices.push({
             provider_device_id: sn || String(dev.id || ""),
             type: devType === "min" || devType === "inv" ? "inverter" : devType,
@@ -940,6 +962,7 @@ async function growattApiListDevices(apiKey: string): Promise<{ stationId: strin
             serial: sn || null,
             status: dev.status === 1 || dev.status === "1" ? "online" : dev.status === 0 || dev.status === "0" ? "offline" : "unknown",
             metadata: { ...dev, ...detailMeta },
+            lastSeenAt: growattLastSeenAt,
           });
         }
 
@@ -1618,10 +1641,12 @@ async function syncPlantsByProvider(
             }
           } catch { /* proceed with non-merged metadata */ }
 
+          // SSOT: use device's actual data timestamp, NOT cron execution time
+          const deviceLastSeenAt = d.lastSeenAt || new Date().toISOString();
           const { error } = await ctx.supabaseAdmin.from("monitor_devices").upsert({
             tenant_id: ctx.tenantId, plant_id: monitorPlantId, provider_device_id: d.provider_device_id,
             type: d.type, model: d.model, serial: d.serial, status: d.status,
-            metadata: mergedMetadata, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+            metadata: mergedMetadata, last_seen_at: deviceLastSeenAt, updated_at: new Date().toISOString(),
           }, { onConflict: "plant_id,provider_device_id" });
           if (error) errors.push(`Device ${d.serial}: ${error.message}`); else devCount++;
         }
@@ -1913,6 +1938,11 @@ async function dispatchSync(
               if (d.deviceStatus === 1 || d.connectStatus === 1) status = "online";
               else if (d.deviceStatus === 0 || d.connectStatus === 0) status = "offline";
               else if (d.deviceStatus === 2) status = "alarm";
+              // SSOT: extract real device data timestamp from Deye API
+              const deyeCollTs2 = d.collectionTime;
+              const deyeLastSeenAt2 = deyeCollTs2
+                ? new Date(Number(deyeCollTs2) > 1e12 ? Number(deyeCollTs2) : Number(deyeCollTs2) * 1000).toISOString()
+                : undefined;
               devices.push({
                 provider_device_id: String(d.id || sn),
                 type: String(d.deviceType || "inverter").toLowerCase().includes("inverter") ? "inverter" :
@@ -1921,6 +1951,7 @@ async function dispatchSync(
                 serial: sn || null,
                 status,
                 metadata: d,
+                lastSeenAt: deyeLastSeenAt2,
               });
             }
 
