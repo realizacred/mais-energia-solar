@@ -2,7 +2,7 @@ import React from "react";
 import { Zap, ArrowRight, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MonitorDevice } from "@/services/monitoring/monitorTypes";
-import { deriveDeviceStatus, computeDeviceStaleness } from "@/services/monitoring/plantStatusEngine";
+import { deriveDeviceStatus, computeDeviceStaleness, getDeviceSsotTimestamp } from "@/services/monitoring/plantStatusEngine";
 
 interface MpptChannel {
   index: number;
@@ -59,11 +59,12 @@ export function DeviceMpptSummary({ device, onViewDetail }: DeviceMpptSummaryPro
   const rawData = extractMpptData(device.metadata);
 
   // ─── SSOT: derive status + staleness ───
+  const deviceSeenAt = getDeviceSsotTimestamp(device);
   const derived = deriveDeviceStatus({
     rawStatus: device.status,
-    lastSeenAt: device.last_seen_at || device.updated_at,
+    lastSeenAt: deviceSeenAt,
   });
-  const snapshotAt = device.last_seen_at || device.updated_at || null;
+  const snapshotAt = deviceSeenAt;
   const staleness = computeDeviceStaleness(snapshotAt);
   const isDeviceOffline = derived.status === "offline" || derived.status === "standby";
 

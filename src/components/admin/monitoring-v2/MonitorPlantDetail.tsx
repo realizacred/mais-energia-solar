@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import {
   UI_STATUS_LABELS, UI_STATUS_DOT, getTodayBrasilia, getDaysAgoBrasilia,
   resolveHealthToUiStatus, deriveDeviceStatus, computeDeviceStaleness, formatRelativeSeenAt,
+  getDeviceSsotTimestamp,
   DEVICE_STATUS_LABELS, DEVICE_STATUS_DOT, DEVICE_STATUS_TEXT,
   type PlantUiStatus,
 } from "@/services/monitoring/plantStatusEngine";
@@ -171,7 +172,7 @@ export default function MonitorPlantDetail() {
                   </div>
                     <div className="flex items-center gap-1.5">
                       {(() => {
-                        const deviceSeenAt = d.last_seen_at || d.updated_at;
+                        const deviceSeenAt = getDeviceSsotTimestamp(d);
                         const deviceDerived = deriveDeviceStatus({
                           rawStatus: d.status,
                           lastSeenAt: deviceSeenAt,

@@ -156,6 +156,28 @@ interface DeviceStatusInput {
 }
 
 /**
+ * SSOT: Extract the canonical "last seen" timestamp for a device.
+ *
+ * IMPORTANT: For loggers, `updated_at` is touched by non-sync flows
+ * (metadata merges, etc.) and does NOT represent real sync time.
+ * Therefore we ONLY use `last_seen_at` for loggers.
+ * For inverters, we allow fallback to `updated_at` only when `last_seen_at` is null
+ * (extremely rare — means the device was never synced via the new flow).
+ */
+export function getDeviceSsotTimestamp(device: {
+  type?: string;
+  last_seen_at?: string | null;
+  updated_at?: string;
+}): string | null {
+  // Prefer last_seen_at always — it tracks real sync
+  if (device.last_seen_at) return device.last_seen_at;
+  // For loggers: NEVER fall back to updated_at (it's polluted)
+  if (device.type === "logger") return null;
+  // For inverters/other: fall back only if last_seen_at is null
+  return device.updated_at || null;
+}
+
+/**
  * Derive device UI status. SSOT — the ONLY function for device status.
  * Same philosophy as derivePlantStatus:
  *   1. OFFLINE if last_seen > 2h ago

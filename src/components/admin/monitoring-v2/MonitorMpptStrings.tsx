@@ -22,7 +22,7 @@ import type { DeviceStringCard, StringAlert, StringRegistryWithMetric } from "@/
 import type { PlantWithHealth, MonitorDevice } from "@/services/monitoring/monitorTypes";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  deriveDeviceStatus, resolveHealthToUiStatus, formatRelativeSeenAt,
+  deriveDeviceStatus, resolveHealthToUiStatus, formatRelativeSeenAt, getDeviceSsotTimestamp,
   DEVICE_STATUS_LABELS, DEVICE_STATUS_DOT,
 } from "@/services/monitoring/plantStatusEngine";
 import { DataOriginBadge, DataOriginLegend } from "./ui/DataOriginBadge";
@@ -37,7 +37,7 @@ function DeviceStatusIndicator({ deviceStatus, devices, deviceId }: {
   deviceId?: string;
 }) {
   const device = devices?.find((d) => d.id === deviceId);
-  const deviceSeenAt = device?.last_seen_at || device?.updated_at || null;
+  const deviceSeenAt = device ? getDeviceSsotTimestamp(device) : null;
   const derived = deriveDeviceStatus({
     rawStatus: deviceStatus,
     lastSeenAt: deviceSeenAt,

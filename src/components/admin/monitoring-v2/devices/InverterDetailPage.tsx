@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Cpu, Zap, Activity, RefreshCw, AlertTriangle } from "lucide-react";
 import { listDevices, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { extractMpptData } from "./DeviceMpptSummary";
-import { deriveDeviceStatus, DEVICE_STATUS_LABELS, computeDeviceStaleness, formatRelativeSeenAt } from "@/services/monitoring/plantStatusEngine";
+import { deriveDeviceStatus, DEVICE_STATUS_LABELS, computeDeviceStaleness, formatRelativeSeenAt, getDeviceSsotTimestamp } from "@/services/monitoring/plantStatusEngine";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -35,11 +35,12 @@ export default function InverterDetailPage() {
   const meta = device.metadata || {};
 
   // ─── SSOT: Derive device status instead of using raw device.status ───
+  const deviceSeenAt = getDeviceSsotTimestamp(device);
   const derived = deriveDeviceStatus({
     rawStatus: device.status,
-    lastSeenAt: device.last_seen_at || device.updated_at,
+    lastSeenAt: deviceSeenAt,
   });
-  const snapshotAt = device.last_seen_at || device.updated_at || null;
+  const snapshotAt = deviceSeenAt;
   const staleness = computeDeviceStaleness(snapshotAt);
   const isStale = staleness.stale;
   const isOffline = derived.status === "offline";
