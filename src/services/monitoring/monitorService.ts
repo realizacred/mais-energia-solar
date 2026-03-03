@@ -234,12 +234,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
 
   return plantList.map((sp) => {
     const m = todayMap.get(sp.id);
-    // SSOT: plant_seen_at = MAX(device.last_seen_at, solar_plants.updated_at)
-    // Some providers update solar_plants.updated_at during sync but don't touch monitor_devices.last_seen_at
+    // SSOT: plant_seen_at — prefer device last_seen_at (real communication).
+    // solar_plants.updated_at is refreshed by sync upserts even for offline plants,
+    // so it MUST NOT override a stale device timestamp.
+    // Only fall back to updated_at when no devices exist at all.
     const maxDeviceSeen = deviceSeenMap.get(sp.id) || null;
-    const bestLastSeen = maxDeviceSeen && sp.updated_at
-      ? (maxDeviceSeen > sp.updated_at ? maxDeviceSeen : sp.updated_at)
-      : maxDeviceSeen || sp.updated_at || null;
+    const bestLastSeen = maxDeviceSeen || sp.updated_at || null;
     const health = legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen);
 
     // DEBUG SSOT — log specific problem plants
