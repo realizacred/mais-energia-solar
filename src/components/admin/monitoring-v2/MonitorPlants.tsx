@@ -101,15 +101,15 @@ export default function MonitorPlants() {
     [filtered]
   );
 
-  // ─── KPI Summary (reacts to filters) ───
+  // ─── KPI Summary (always from ALL plants, not filtered) ───
   const kpiData = useMemo(() => {
-    const online = filtered.filter((p) => resolveUiStatus(p) === "online").length;
-    const standby = filtered.filter((p) => resolveUiStatus(p) === "standby").length;
-    const offline = filtered.filter((p) => resolveUiStatus(p) === "offline").length;
-    const totalPowerKwp = filtered.reduce((s, p) => s + (p.installed_power_kwp || 0), 0);
-    const energyTodayKwh = filtered.reduce((s, p) => s + (p.health?.energy_today_kwh || 0), 0);
-    return { total: filtered.length, online, standby, offline, totalPowerKwp, energyTodayKwh };
-  }, [filtered]);
+    const online = plants.filter((p) => resolveUiStatus(p) === "online").length;
+    const standby = plants.filter((p) => resolveUiStatus(p) === "standby").length;
+    const offline = plants.filter((p) => resolveUiStatus(p) === "offline").length;
+    const totalPowerKwp = plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0);
+    const energyTodayKwh = plants.reduce((s, p) => s + (p.health?.energy_today_kwh || 0), 0);
+    return { total: plants.length, online, standby, offline, totalPowerKwp, energyTodayKwh };
+  }, [plants]);
 
   const handleSelectPlant = useCallback((id: string) => {
     navigate(`/admin/monitoramento/usinas/${id}`);
