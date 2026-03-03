@@ -141,15 +141,25 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   const yesterday = getDaysAgoBrasilia(1);
   const monthStartStr = getMonthStartBrasilia();
 
-  const [{ data: plants }, { data: todayMetrics }, { data: yesterdayMetrics }, { data: monthMetrics }, { data: alertCounts }] = await Promise.all([
+  // Get tenant_id from first plant for explicit tenant filtering
+  const [{ data: plants }, { data: todayMetrics }, { data: yesterdayMetrics }, { data: monthMetrics }] = await Promise.all([
     supabase.from("solar_plants" as any).select("*").order("name", { ascending: true }),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", today),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", yesterday),
     supabase.from("solar_plant_metrics_daily" as any).select("plant_id, energy_kwh, power_kw").gte("date", monthStartStr).lte("date", today),
-    // Real alert counts — 1 aggregated query, filtered by tenant via RLS + explicit tenant filter
-    // RLS already filters by tenant, but we also rely on plant_id mapping for safety
-    supabase.from("monitor_events" as any).select("plant_id").eq("is_open", true),
   ]);
+
+  const plantList = (plants as unknown as SolarPlant[]) || [];
+  const tenantId = plantList[0]?.tenant_id;
+
+  // Aggregated alert counts via RPC — explicit tenant_id, GROUP BY in DB
+  const alertMap = new Map<string, number>();
+  if (tenantId) {
+    const { data: alertCounts } = await supabase.rpc("fn_monitor_open_alert_counts" as any, { _tenant_id: tenantId });
+    ((alertCounts as unknown as Array<{ plant_id: string; open_count: number }>) || []).forEach((a) => {
+      alertMap.set(a.plant_id, a.open_count);
+    });
+  }
 
   const todayMap = new Map<string, SolarPlantMetricsDaily>();
   ((todayMetrics as unknown as SolarPlantMetricsDaily[]) || []).forEach((m) =>
@@ -168,13 +178,7 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     monthMap.set(r.plant_id, (monthMap.get(r.plant_id) || 0) + energy);
   });
 
-  // Build alert count map from real data
-  const alertMap = new Map<string, number>();
-  ((alertCounts as unknown as Array<{ plant_id: string }>) || []).forEach((a) => {
-    alertMap.set(a.plant_id, (alertMap.get(a.plant_id) || 0) + 1);
-  });
-
-  return ((plants as unknown as SolarPlant[]) || []).map((sp) => {
+  return plantList.map((sp) => {
     const m = todayMap.get(sp.id);
     return {
       ...mapSolarPlantToMonitorPlant(sp),
@@ -203,7 +207,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
     supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
-    supabase.from("monitor_events" as any).select("id").eq("plant_id", plantId).eq("is_open", true),
+    // SSOT: use resolvedId + explicit tenant_id for monitor_events
+    supabase.from("monitor_events" as any).select("id").eq("plant_id", resolvedId).eq("tenant_id", sp.tenant_id).eq("is_open", true),
   ]);
 
   const m = metric as unknown as SolarPlantMetricsDaily | undefined;
