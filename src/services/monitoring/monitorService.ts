@@ -152,12 +152,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   const plantList = (plants as unknown as SolarPlant[]) || [];
   const tenantId = plantList[0]?.tenant_id;
 
-  // Aggregated alert counts via RPC — explicit tenant_id, GROUP BY in DB
+  // SSOT: Aggregated alert counts via RPC — uses solar_plant_id (= solar_plants.id)
   const alertMap = new Map<string, number>();
   if (tenantId) {
     const { data: alertCounts } = await supabase.rpc("fn_monitor_open_alert_counts" as any, { _tenant_id: tenantId });
-    ((alertCounts as unknown as Array<{ plant_id: string; open_count: number }>) || []).forEach((a) => {
-      alertMap.set(a.plant_id, a.open_count);
+    ((alertCounts as unknown as Array<{ solar_plant_id: string; open_count: number }>) || []).forEach((a) => {
+      if (a.solar_plant_id) alertMap.set(a.solar_plant_id, a.open_count);
     });
   }
 
@@ -207,8 +207,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
     supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
-    // SSOT: use resolvedId + explicit tenant_id for monitor_events
-    supabase.from("monitor_events" as any).select("id").eq("plant_id", resolvedId).eq("tenant_id", sp.tenant_id).eq("is_open", true),
+    // SSOT: use solar_plant_id (= resolvedId = solar_plants.id) + explicit tenant_id
+    supabase.from("monitor_events" as any).select("id").eq("solar_plant_id", resolvedId).eq("tenant_id", sp.tenant_id).eq("is_open", true),
   ]);
 
   const m = metric as unknown as SolarPlantMetricsDaily | undefined;
@@ -340,7 +340,8 @@ export async function listAlerts(filters?: {
     .select("*")
     .order("starts_at", { ascending: false });
 
-  if (filters?.plantId) q = q.eq("plant_id", filters.plantId);
+  // SSOT: prefer solar_plant_id for filtering; fallback to plant_id for compat
+  if (filters?.plantId) q = q.or(`solar_plant_id.eq.${filters.plantId},plant_id.eq.${filters.plantId}`);
   if (filters?.isOpen !== undefined) q = q.eq("is_open", filters.isOpen);
   if (filters?.severity) q = q.eq("severity", filters.severity);
 
