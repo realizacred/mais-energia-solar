@@ -43,7 +43,11 @@ function extractMpptData(metadata: Record<string, unknown>): {
   const totalStringPower = trimmed.reduce((s, c) => s + c.power_w, 0);
   const acPower = (Number(meta.pac ?? 0) || Number(meta.TotalActiveACOutputPower ?? 0) / 1000) * 1000; // convert to watts
   const energyToday = Number(meta.etoday ?? 0) || Number(meta.DailyActiveProduction ?? meta.etoday1 ?? 0);
-  const energyTotal = Number(meta.etotal ?? 0) || Number(meta.TotalActiveProduction ?? meta.etotal1 ?? 0);
+  // SSOT: Solis reports etotal in MWh and etotal1 in kWh — prefer etotal1 (kWh) when available
+  const rawEtotal1 = Number(meta.etotal1 ?? 0);
+  const rawTotalActive = Number(meta.TotalActiveProduction ?? 0);
+  const rawEtotal = Number(meta.etotal ?? 0);
+  const energyTotal = rawEtotal1 > 0 ? rawEtotal1 : rawTotalActive > 0 ? rawTotalActive : rawEtotal > 0 ? rawEtotal * 1000 : 0;
   const machineName = String(meta.machine ?? meta.productModel ?? meta.productName ?? "");
   const maxPvVoltage = meta.maxUpv ? Number(meta.maxUpv) : null;
 
