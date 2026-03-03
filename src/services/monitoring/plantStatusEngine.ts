@@ -287,3 +287,29 @@ export const DEVICE_STATUS_TEXT: Record<DeviceUiStatus, string> = {
   standby: "text-warning",
   offline: "text-destructive",
 };
+
+/* ─── STALENESS GATE (SSOT) ─── */
+
+export interface DeviceStaleness {
+  stale: boolean;
+  minutesAgo: number | null;
+  label: string;
+}
+
+/**
+ * Compute whether a device snapshot is stale.
+ * SSOT — single staleness check for all device/MPPT data across the UI.
+ */
+export function computeDeviceStaleness(snapshotAt: string | null): DeviceStaleness {
+  if (!snapshotAt) {
+    return { stale: true, minutesAgo: null, label: "Sem data de sincronização" };
+  }
+  const elapsed = Date.now() - new Date(snapshotAt).getTime();
+  const minutesAgo = Math.round(elapsed / 60000);
+  const stale = elapsed > OFFLINE_THRESHOLD_MS;
+  return {
+    stale,
+    minutesAgo,
+    label: stale ? `Última leitura há ${minutesAgo} min` : `Sincronizado há ${minutesAgo} min`,
+  };
+}

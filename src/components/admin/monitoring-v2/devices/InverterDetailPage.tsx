@@ -10,13 +10,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Cpu, Zap, Activity, RefreshCw, AlertTriangle } from "lucide-react";
 import { listDevices, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { extractMpptData } from "./DeviceMpptSummary";
-import { deriveDeviceStatus, DEVICE_STATUS_LABELS } from "@/services/monitoring/plantStatusEngine";
+import { deriveDeviceStatus, DEVICE_STATUS_LABELS, computeDeviceStaleness } from "@/services/monitoring/plantStatusEngine";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-
-const OFFLINE_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
 export default function InverterDetailPage() {
   const { plantId, deviceId } = useParams<{ plantId: string; deviceId: string }>();
@@ -44,7 +42,8 @@ export default function InverterDetailPage() {
     lastSeenAt: device.last_seen_at || device.updated_at,
   });
   const snapshotAt = device.last_seen_at || device.updated_at || null;
-  const isStale = !snapshotAt || (Date.now() - new Date(snapshotAt).getTime() > OFFLINE_THRESHOLD_MS);
+  const staleness = computeDeviceStaleness(snapshotAt);
+  const isStale = staleness.stale;
   const isOffline = derived.status === "offline";
   const statusLabel = DEVICE_STATUS_LABELS[derived.status];
 

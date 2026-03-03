@@ -1,8 +1,8 @@
 import React from "react";
-import { Zap, ArrowRight } from "lucide-react";
+import { Zap, ArrowRight, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MonitorDevice } from "@/services/monitoring/monitorTypes";
-import { isBrasiliaNight } from "@/services/monitoring/plantStatusEngine";
+import { deriveDeviceStatus, computeDeviceStaleness } from "@/services/monitoring/plantStatusEngine";
 
 interface MpptChannel {
   index: number;
@@ -57,10 +57,18 @@ interface DeviceMpptSummaryProps {
 
 export function DeviceMpptSummary({ device, onViewDetail }: DeviceMpptSummaryProps) {
   const rawData = extractMpptData(device.metadata);
-  const isNight = isBrasiliaNight();
 
-  // At night, zero out instantaneous power — stale data from last daytime sync
-  const data = isNight
+  // ─── SSOT: derive status + staleness ───
+  const derived = deriveDeviceStatus({
+    rawStatus: device.status,
+    lastSeenAt: device.last_seen_at || device.updated_at,
+  });
+  const snapshotAt = device.last_seen_at || device.updated_at || null;
+  const staleness = computeDeviceStaleness(snapshotAt);
+  const isDeviceOffline = derived.status === "offline" || derived.status === "standby";
+
+  // When device is offline/standby, zero out instantaneous power (stale data)
+  const data = isDeviceOffline
     ? {
         ...rawData,
         channels: rawData.channels.map(ch => ({ ...ch, power_w: 0 })),
@@ -74,7 +82,15 @@ export function DeviceMpptSummary({ device, onViewDetail }: DeviceMpptSummaryPro
   if (!hasAnyData && device.type !== "inverter") return null;
 
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", staleness.stale && "opacity-60")}>
+      {/* Staleness banner */}
+      {staleness.stale && (
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-warning/10 border border-warning/20">
+          <AlertTriangle className="h-3 w-3 text-warning shrink-0" />
+          <span className="text-[10px] text-warning font-medium">{staleness.label}</span>
+        </div>
+      )}
+
       {/* Machine + energy row */}
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground font-medium truncate max-w-[60%]">
