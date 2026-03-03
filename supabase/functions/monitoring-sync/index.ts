@@ -1232,8 +1232,11 @@ async function huaweiMetrics(xsrfToken: string, cookies: string, stationCode: st
 
 async function huaweiListDevices(xsrfToken: string, cookies: string, region: string, stationCodes: string[]): Promise<{ stationId: string; devices: NormalizedDevice[] }[]> {
   const base = huaweiBaseUrl(region);
+  const HW_DEV_DELAY = 5000; // 5s between API calls to avoid 407
   const results: { stationId: string; devices: NormalizedDevice[] }[] = [];
 
+  // Phase 1: Get device lists for all stations
+  const allInverters: { stationId: string; devId: string; devIdx: number }[] = [];
   for (const stationCode of stationCodes) {
     try {
       const res = await fetch(`${base}/thirdData/getDevList`, {
@@ -1243,22 +1246,99 @@ async function huaweiListDevices(xsrfToken: string, cookies: string, region: str
       });
       const json = await res.json();
       if (!json.success && json.failCode === 305) throw new Error("TOKEN_EXPIRED");
+      if (json.failCode === 407) { console.warn(`[Huawei] getDevList rate-limited for ${stationCode}`); continue; }
       const devList = Array.isArray(json.data) ? json.data : [];
-      const devices: NormalizedDevice[] = devList.map((d: any) => ({
-        provider_device_id: String(d.id || d.devDn || d.esnCode || ""),
-        type: d.devTypeId === 1 ? "inverter" : d.devTypeId === 62 ? "logger" : "other",
-        model: d.devName || d.softwareVersion || "",
-        serial: d.esnCode || d.devDn || "",
-        status: d.devStatus === 1 ? "online" : "offline",
-        lastSeenAt: null,
-        metadata: d,
-      }));
+      const devices: NormalizedDevice[] = devList.map((d: any) => {
+        const devId = String(d.id || d.devDn || d.esnCode || "");
+        const isInverter = d.devTypeId === 1;
+        if (isInverter && devId) {
+          allInverters.push({ stationId: stationCode, devId, devIdx: allInverters.length });
+        }
+        return {
+          provider_device_id: devId,
+          type: isInverter ? "inverter" : d.devTypeId === 62 ? "logger" : "other",
+          model: d.devName || d.softwareVersion || "",
+          serial: d.esnCode || d.devDn || "",
+          status: d.devStatus === 1 ? "online" : "offline",
+          lastSeenAt: null,
+          metadata: d,
+        };
+      });
       results.push({ stationId: stationCode, devices });
+      await new Promise(r => setTimeout(r, HW_DEV_DELAY));
     } catch (err) {
       console.error(`[Huawei] getDevList error for station ${stationCode}: ${(err as Error).message}`);
       if ((err as Error).message === "TOKEN_EXPIRED") throw err;
     }
   }
+
+  // Phase 2: Rotating batch — fetch getDevRealKpi for a budget of inverters per cycle
+  const HW_DETAIL_BUDGET = 3; // max inverters per cycle (rate-limit safe)
+  if (allInverters.length > 0) {
+    const totalBatches = Math.ceil(allInverters.length / HW_DETAIL_BUDGET);
+    const currentBatch = new Date().getMinutes() % Math.max(totalBatches, 1);
+    const start = currentBatch * HW_DETAIL_BUDGET;
+    const batchInverters = allInverters.slice(start, start + HW_DETAIL_BUDGET);
+    console.log(`[Huawei] getDevRealKpi batch ${currentBatch + 1}/${totalBatches}: ${batchInverters.length} inverters (of ${allInverters.length} total)`);
+
+    for (const inv of batchInverters) {
+      try {
+        await new Promise(r => setTimeout(r, HW_DEV_DELAY));
+        const kpiRes = await fetch(`${base}/thirdData/getDevRealKpi`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "XSRF-TOKEN": xsrfToken, Cookie: cookies },
+          body: JSON.stringify({ devId: inv.devId, devTypeId: 1 }),
+        });
+        const kpiJson = await kpiRes.json();
+        if (kpiJson.failCode === 407) { console.warn(`[Huawei] getDevRealKpi rate-limited for ${inv.devId}`); continue; }
+        if (!kpiJson.success && kpiJson.failCode === 305) throw new Error("TOKEN_EXPIRED");
+        
+        const kpiData = kpiJson.data?.[0]?.dataItemMap || {};
+        console.log(`[Huawei] getDevRealKpi ${inv.devId} keys: ${Object.keys(kpiData).join(", ")}`);
+
+        // Map Huawei PV fields to canonical format
+        // Huawei uses: pv1_u (voltage), pv1_i (current), pv2_u, pv2_i, ...
+        // Also: mppt_1_cap (MPPT power), pv_power (total DC power)
+        const flatData: Record<string, unknown> = {};
+        let mpptCount = 0;
+        for (let i = 1; i <= 24; i++) {
+          const pvVoltage = Number(kpiData[`pv${i}_u`] ?? 0);
+          const pvCurrent = Number(kpiData[`pv${i}_i`] ?? 0);
+          const pvPower = pvVoltage * pvCurrent; // Huawei doesn't provide per-string power directly
+          if (pvVoltage > 0 || pvCurrent > 0) mpptCount = i;
+          flatData[`vpv${i}`] = pvVoltage;
+          flatData[`ipv${i}`] = pvCurrent;
+          flatData[`pow${i}`] = pvPower > 0 ? pvPower : 0;
+        }
+        // Also check for mppt_X_cap (per-MPPT power in kW)
+        for (let i = 1; i <= 12; i++) {
+          const mpptPower = Number(kpiData[`mppt_${i}_cap`] ?? 0);
+          if (mpptPower > 0 && !flatData[`pow${i}`]) {
+            flatData[`pow${i}`] = mpptPower * 1000; // kW → W
+            if (i > mpptCount) mpptCount = i;
+          }
+        }
+        flatData.dcInputTypeMppt = mpptCount;
+        flatData.pac = Number(kpiData.active_power ?? kpiData.inverter_power ?? 0); // kW
+        flatData.etoday = Number(kpiData.day_cap ?? 0); // kWh
+        flatData.etotal = Number(kpiData.total_cap ?? 0); // kWh
+        console.log(`[Huawei] Normalized device ${inv.devId}: mpptCount=${mpptCount}, pac=${flatData.pac}, etoday=${flatData.etoday}`);
+
+        // Merge into the device in results
+        const group = results.find(r => r.stationId === inv.stationId);
+        if (group) {
+          const dev = group.devices.find(d => d.provider_device_id === inv.devId);
+          if (dev) {
+            dev.metadata = { ...dev.metadata, ...kpiData, ...flatData };
+          }
+        }
+      } catch (err) {
+        console.error(`[Huawei] getDevRealKpi error for ${inv.devId}: ${(err as Error).message}`);
+        if ((err as Error).message === "TOKEN_EXPIRED") throw err;
+      }
+    }
+  }
+
   console.log(`[Huawei] Listed devices for ${stationCodes.length} stations, total ${results.reduce((s, r) => s + r.devices.length, 0)} devices`);
   return results;
 }
