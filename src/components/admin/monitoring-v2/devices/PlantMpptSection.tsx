@@ -47,8 +47,10 @@ export function PlantMpptSection({ plantId, devices, isOffline }: PlantMpptSecti
     queryFn: () => getDeviceStringCards(plantId, devices),
     enabled: !!enabled && devices.length > 0,
   });
-
+  // Also fall back to normalizer if registry is empty but devices have metadata
+  const hasAnyInverter = devices.some((d) => d.type === "inverter");
   if (!enabled || isLoading) return null;
+  if (!hasAnyInverter) return null;
 
   const totalStrings = cards.reduce((s, c) => s + c.strings.length, 0);
 

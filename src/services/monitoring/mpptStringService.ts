@@ -4,6 +4,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/storagePaths";
+import { normalizeDeviceToStringReadings } from "./mpptStringNormalizer";
 import type {
   StringRegistry,
   StringMetric,
@@ -167,6 +168,50 @@ export async function getDeviceStringCards(
 
   return inverters.map((dev) => {
     const devRegistry = registry.filter((r) => r.device_id === dev.id);
+
+    // ── Fallback: if no registry entries, use normalizer to extract from metadata ──
+    if (devRegistry.length === 0) {
+      const readings = normalizeDeviceToStringReadings(dev, plantId, true);
+      const fallbackStrings: StringRegistryWithMetric[] = readings.map((r) => ({
+        id: `live-${dev.id}-${r.mppt_number ?? 0}-${r.string_number ?? 0}`,
+        tenant_id: r.tenant_id,
+        plant_id: r.plant_id,
+        device_id: r.device_id,
+        inverter_serial: r.inverter_serial,
+        provider_id: r.provider_id,
+        mppt_number: r.mppt_number,
+        string_number: r.string_number,
+        granularity: r.granularity,
+        first_seen_at: r.ts,
+        last_seen_at: r.ts,
+        baseline_day: null,
+        baseline_power_p50_w: null,
+        baseline_power_avg_w: null,
+        baseline_power_p90_w: null,
+        is_active: true,
+        metadata: {},
+        created_at: r.ts,
+        updated_at: r.ts,
+        latest_power_w: r.power_w,
+        latest_voltage_v: r.voltage_v,
+        latest_current_a: r.current_a,
+        latest_ts: r.ts,
+        baseline_pct: null,
+        alert_status: r.power_w != null && r.power_w > 0 ? "ok"
+          : r.power_w === 0 && r.inverter_online ? "critical"
+          : "unknown",
+      }));
+
+      return {
+        device_id: dev.id,
+        device_model: dev.model,
+        device_serial: dev.serial,
+        device_status: dev.status,
+        strings: fallbackStrings,
+        open_alerts: alertsByDevice.get(dev.id) || [],
+      };
+    }
+
     const strings: StringRegistryWithMetric[] = devRegistry.map((reg) => {
       const metric = metricsMap.get(reg.id);
       const baselinePct =
