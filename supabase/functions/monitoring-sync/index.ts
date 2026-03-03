@@ -1634,21 +1634,24 @@ async function syncPlantsByProvider(
   if (mode === "full" && extras?.alarmsFn) {
     try {
       const alarms = await extras.alarmsFn();
-      // Build map from provider_plant_id → monitor_plants.id (NOT solar_plants.id)
+      // Build map from provider_plant_id → { monitorId, legacyId (solar_plants.id) }
       const { data: monPlants } = await ctx.supabaseAdmin
         .from("monitor_plants")
-        .select("id, provider_plant_id")
+        .select("id, provider_plant_id, legacy_plant_id")
         .eq("tenant_id", ctx.tenantId)
         .eq("provider_id", ctx.provider);
-      const monitorPlantMap = new Map((monPlants || []).map((p: any) => [String(p.provider_plant_id), p.id]));
+      const monitorPlantMap = new Map((monPlants || []).map((p: any) => [String(p.provider_plant_id), { monitorId: p.id, legacyId: p.legacy_plant_id }]));
 
       let almCount = 0;
       for (const a of alarms) {
-        const monPlantId = monitorPlantMap.get(a.provider_plant_id);
-        if (!monPlantId) { continue; } // skip alarms for unmapped plants
+        const mapped = monitorPlantMap.get(a.provider_plant_id);
+        if (!mapped) { continue; } // skip alarms for unmapped plants
         try {
           const { error } = await ctx.supabaseAdmin.from("monitor_events").upsert({
-            tenant_id: ctx.tenantId, plant_id: monPlantId, provider_event_id: a.provider_event_id,
+            tenant_id: ctx.tenantId, plant_id: mapped.monitorId,
+            monitor_plant_id: mapped.monitorId,
+            solar_plant_id: mapped.legacyId || null, // SSOT: solar_plants.id via legacy_plant_id
+            provider_event_id: a.provider_event_id,
             provider_id: ctx.provider, provider_plant_id: a.provider_plant_id,
             severity: a.severity, type: a.type, title: a.title, message: a.message,
             starts_at: a.starts_at, ends_at: a.ends_at, is_open: a.is_open,
