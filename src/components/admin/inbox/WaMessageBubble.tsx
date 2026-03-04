@@ -225,8 +225,7 @@ export function WaMessageBubble({
           )}
           {msg.message_type === "audio" && (
             msg.media_url ? (
-              <audio controls preload="metadata" className="max-w-[240px] h-10">
-                <source src={msg.media_url} type={msg.media_mime_type || "audio/ogg"} />
+              <audio controls preload="metadata" className="max-w-[240px] h-10" src={msg.media_url}>
                 Seu navegador não suporta áudio.
               </audio>
             ) : (
