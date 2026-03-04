@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaInstances } from "@/hooks/useWaInstances";
@@ -19,12 +19,14 @@ import {
   WifiOff,
   Users,
   Bot,
+  Bell,
   RefreshCw,
   Trash2,
   CheckCircle2,
   XCircle,
   History,
 } from "lucide-react";
+import { PushDebugPanel } from "@/components/notifications/PushDebugPanel";
 
 interface WaSettingsDialogProps {
   open: boolean;
@@ -391,6 +393,10 @@ export function WaSettingsDialog({ open, onOpenChange }: WaSettingsDialogProps) 
               <Bot className="h-3.5 w-3.5" />
               Automação
             </TabsTrigger>
+            <TabsTrigger value="push" className="flex-1 gap-1.5">
+              <Bell className="h-3.5 w-3.5" />
+              Push
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="connection">
@@ -401,6 +407,9 @@ export function WaSettingsDialog({ open, onOpenChange }: WaSettingsDialogProps) 
           </TabsContent>
           <TabsContent value="automation">
             <AutomationTab />
+          </TabsContent>
+          <TabsContent value="push">
+            <PushDebugPanel />
           </TabsContent>
         </Tabs>
       </DialogContent>
