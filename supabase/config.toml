@@ -249,3 +249,6 @@ verify_jwt = false
 [functions.mppt-string-engine]
 verify_jwt = false
 wall_clock_limit = 120
+
+[functions.meta-ads-sync]
+verify_jwt = false

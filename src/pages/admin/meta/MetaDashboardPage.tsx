@@ -4,9 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, DollarSign, MousePointerClick, Users, TrendingUp, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BarChart3, DollarSign, MousePointerClick, Users, TrendingUp, AlertCircle, Eye, RefreshCw } from "lucide-react";
 import { TopAdsBySpend } from "@/components/admin/meta/TopAdsBySpend";
 import { TopCampaignsChart } from "@/components/admin/meta/TopCampaignsChart";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 function useMetaIntegrationStatus() {
   return useQuery({
@@ -45,17 +48,51 @@ function StatCard({ title, value, icon: Icon }: { title: string; value: string |
 
 export default function MetaDashboardPage() {
   const { data: status } = useMetaIntegrationStatus();
-  const { data, isLoading } = useMetaAdsData(30);
+  const { data, isLoading, refetch } = useMetaAdsData(30);
+  const [syncing, setSyncing] = useState(false);
+  const { toast } = useToast();
 
   const metrics = data?.totals;
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("meta-ads-sync");
+      if (error) throw error;
+      toast({
+        title: "Sincronização concluída",
+        description: `${result?.upserted ?? 0} registros atualizados, ${result?.campaigns ?? 0} campanhas.`,
+      });
+      refetch();
+    } catch (err: any) {
+      toast({
+        title: "Erro na sincronização",
+        description: err.message || "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        icon={BarChart3}
-        title="Meta Ads — Dashboard"
-        description="Visão geral de performance dos últimos 30 dias"
-      />
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <PageHeader
+          icon={BarChart3}
+          title="Meta Ads — Dashboard"
+          description="Visão geral de performance dos últimos 30 dias"
+        />
+        <Button
+          onClick={handleSync}
+          disabled={syncing || !status?.isActive}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Sincronizando..." : "Sincronizar Métricas"}
+        </Button>
+      </div>
 
       {status && !status.isActive && (
         <Card className="border-warning/50 bg-warning/5">
@@ -70,15 +107,16 @@ export default function MetaDashboardPage() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
             <Card key={i} className="animate-pulse"><CardContent className="p-4 h-20" /></Card>
           ))}
         </div>
       ) : metrics ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard title="Investimento" value={`R$ ${metrics.spend.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} icon={DollarSign} />
           <StatCard title="Cliques" value={metrics.clicks.toLocaleString("pt-BR")} icon={MousePointerClick} />
+          <StatCard title="Alcance" value={metrics.reach.toLocaleString("pt-BR")} icon={Eye} />
           <StatCard title="Leads" value={metrics.leads.toLocaleString("pt-BR")} icon={Users} />
           <StatCard title="CPL" value={`R$ ${metrics.cpl.toFixed(2)}`} icon={TrendingUp} />
         </div>
