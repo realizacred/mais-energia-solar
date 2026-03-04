@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { playIncomingMessageAlert } from "@/services/incomingMessageAlert";
 
 // ── Types ─────────────────────────────────────────────
 
@@ -466,14 +467,16 @@ export function useWaMessages(conversationId?: string) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
-          // Append new message directly instead of refetching all
           const newMsg = payload.new as any;
           const [withName] = await resolveNames([newMsg]);
           setAllMessages(prev => {
-            // Avoid duplicates
             if (prev.some(m => m.id === withName.id)) return prev;
             return [...prev, withName];
           });
+          // Play sound + vibrate for incoming messages
+          if (newMsg.direction === "in" && !newMsg.is_internal_note) {
+            playIncomingMessageAlert();
+          }
         }
       )
       .on(
