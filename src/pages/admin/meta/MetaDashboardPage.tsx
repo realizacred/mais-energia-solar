@@ -1,11 +1,12 @@
+import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, DollarSign, MousePointerClick, Users, TrendingUp, AlertCircle } from "lucide-react";
-import { format, subDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { TopAdsBySpend } from "@/components/admin/meta/TopAdsBySpend";
+import { TopCampaignsChart } from "@/components/admin/meta/TopCampaignsChart";
 
 function useMetaIntegrationStatus() {
   return useQuery({
@@ -26,33 +27,7 @@ function useMetaIntegrationStatus() {
   });
 }
 
-function useMetaMetricsSummary() {
-  const since = format(subDays(new Date(), 30), "yyyy-MM-dd");
-  return useQuery({
-    queryKey: ["meta-metrics-summary", since],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("facebook_ad_metrics")
-        .select("spend, clicks, impressions, leads_count, ctr, cpc, cpl")
-        .gte("date", since);
-      if (error) throw error;
-      const totals = (data ?? []).reduce(
-        (acc, r) => ({
-          spend: acc.spend + (r.spend ?? 0),
-          clicks: acc.clicks + (r.clicks ?? 0),
-          impressions: acc.impressions + (r.impressions ?? 0),
-          leads: acc.leads + (r.leads_count ?? 0),
-        }),
-        { spend: 0, clicks: 0, impressions: 0, leads: 0 }
-      );
-      const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
-      const cpl = totals.leads > 0 ? totals.spend / totals.leads : 0;
-      return { ...totals, ctr, cpl };
-    },
-  });
-}
-
-function StatCard({ title, value, icon: Icon, suffix }: { title: string; value: string | number; icon: React.ComponentType<{ className?: string }>; suffix?: string }) {
+function StatCard({ title, value, icon: Icon }: { title: string; value: string | number; icon: React.ComponentType<{ className?: string }> }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-4 p-4">
@@ -61,7 +36,7 @@ function StatCard({ title, value, icon: Icon, suffix }: { title: string; value: 
         </div>
         <div>
           <p className="text-xs text-muted-foreground">{title}</p>
-          <p className="text-lg font-semibold">{value}{suffix}</p>
+          <p className="text-lg font-semibold">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -70,7 +45,9 @@ function StatCard({ title, value, icon: Icon, suffix }: { title: string; value: 
 
 export default function MetaDashboardPage() {
   const { data: status } = useMetaIntegrationStatus();
-  const { data: metrics, isLoading } = useMetaMetricsSummary();
+  const { data, isLoading } = useMetaAdsData(30);
+
+  const metrics = data?.totals;
 
   return (
     <div className="space-y-6">
@@ -106,6 +83,12 @@ export default function MetaDashboardPage() {
           <StatCard title="CPL" value={`R$ ${metrics.cpl.toFixed(2)}`} icon={TrendingUp} />
         </div>
       ) : null}
+
+      {/* Top Ads + Top Campaigns Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TopAdsBySpend ads={data?.ads ?? []} isLoading={isLoading} />
+        <TopCampaignsChart campaigns={data?.campaigns ?? []} isLoading={isLoading} />
+      </div>
 
       <Card>
         <CardHeader>
