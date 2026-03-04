@@ -11,6 +11,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const OAUTH_STATE_SECRET = Deno.env.get("OAUTH_STATE_SECRET") || "";
 const MASTER_ENCRYPTION_KEY = Deno.env.get("MASTER_ENCRYPTION_KEY") || "";
+const APP_URL_LOCKED = Deno.env.get("APP_URL_LOCKED") || Deno.env.get("APP_URL") || "";
 
 const PROVIDER = "google_contacts";
 const SCOPES = [
@@ -101,12 +102,10 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
-function popupCloseHtml(qs: string): string {
-  const appUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || "";
-  const fallback = `${appUrl}/admin/integracoes?${qs}`;
-  return `<!DOCTYPE html><html><head><title>Google Contacts</title></head><body>
-<script>if(window.opener){window.close();}else{window.location.href="${fallback}";}</script>
-<p>Conectado! Feche esta janela.</p></body></html>`;
+function getCallbackUrl(): string {
+  // ALWAYS use the locked URL — never accept redirect_uri from client
+  if (APP_URL_LOCKED) return `${APP_URL_LOCKED}/oauth/google-contacts/callback`;
+  return `${SUPABASE_URL}/functions/v1/google-contacts-integration?action=callback`;
 }
 
 async function resolveUser(req: Request) {
@@ -142,7 +141,7 @@ async function logEvent(adminClient: ReturnType<typeof createClient>, params: {
   });
 }
 
-// ── Token management (reuse integrations + integration_credentials) ──
+// ── Token management ──
 
 async function getOrCreateIntegration(adminClient: ReturnType<typeof createClient>, tenantId: string) {
   const { data } = await adminClient.from("integrations")
@@ -160,16 +159,13 @@ async function getValidAccessToken(adminClient: ReturnType<typeof createClient>,
     .select("*").eq("integration_id", integrationId).order("created_at", { ascending: false }).limit(1).single();
   if (!cred) return null;
 
-  // Token still valid
   if (cred.expires_at && new Date(cred.expires_at) > new Date(Date.now() + 60_000)) {
     return await safeDecryptToken(cred.access_token_encrypted);
   }
 
-  // Need refresh
   const refreshToken = await safeDecryptToken(cred.refresh_token_encrypted);
   if (!refreshToken) return null;
 
-  // Use env vars for Google OAuth (shared across all tenants for People API)
   const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
   const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
   if (!clientId || !clientSecret) return null;
@@ -208,14 +204,11 @@ async function handleConnect(req: Request) {
   const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
   if (!clientId) return json({ error: "GOOGLE_CLIENT_ID não configurado" }, 500);
 
-  let frontendOrigin = "";
-  try { const body = await req.json(); frontendOrigin = body.origin || ""; } catch {}
-
   await getOrCreateIntegration(adminClient, tenantId);
-  const state = await signState({ tenantId, userId, origin: frontendOrigin, provider: PROVIDER, ts: Date.now() });
-  const callbackUrl = frontendOrigin
-    ? `${frontendOrigin}/oauth/google-contacts/callback`
-    : `${SUPABASE_URL}/functions/v1/google-contacts-integration?action=callback`;
+
+  // Always use locked callback URL — never trust client origin
+  const callbackUrl = getCallbackUrl();
+  const state = await signState({ tenantId, userId, provider: PROVIDER, ts: Date.now() });
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -235,7 +228,8 @@ async function handleConnect(req: Request) {
 
 async function handleCallbackProxy(req: Request) {
   const body = await req.json();
-  const { code, state: stateParam, redirect_uri } = body;
+  const { code, state: stateParam } = body;
+  // NOTE: redirect_uri from client is IGNORED — we always use APP_URL_LOCKED
   if (!code || !stateParam) return json({ error: "missing code or state" }, 400);
 
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -249,7 +243,8 @@ async function handleCallbackProxy(req: Request) {
   const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
   if (!clientId || !clientSecret) return json({ error: "Google credentials not configured" }, 500);
 
-  const callbackUrl = redirect_uri || `${SUPABASE_URL}/functions/v1/google-contacts-integration?action=callback`;
+  // Always use locked callback URL for token exchange
+  const callbackUrl = getCallbackUrl();
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -275,7 +270,6 @@ async function handleCallbackProxy(req: Request) {
 
   const expiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
 
-  // Update integration status
   await adminClient.from("integrations").update({
     status: "connected",
     connected_account_email: email,
@@ -285,7 +279,6 @@ async function handleCallbackProxy(req: Request) {
     metadata: { push_on_save: false, last_sync_at: null },
   }).eq("id", integration.id);
 
-  // Store encrypted tokens
   await adminClient.from("integration_credentials").delete().eq("integration_id", integration.id);
   const encAccess = await encryptToken(tokenData.access_token);
   const encRefresh = tokenData.refresh_token ? await encryptToken(tokenData.refresh_token) : null;
@@ -342,7 +335,6 @@ async function handleDisconnect(req: Request) {
   const { data: intRow } = await adminClient.from("integrations").select("id").eq("tenant_id", tenantId).eq("provider", PROVIDER).single();
   if (!intRow) return json({ error: "Not found" }, 404);
 
-  // Revoke token (best effort)
   const { data: cred } = await adminClient.from("integration_credentials")
     .select("access_token_encrypted").eq("integration_id", intRow.id).order("created_at", { ascending: false }).limit(1).single();
   if (cred?.access_token_encrypted) {
@@ -375,7 +367,7 @@ async function handlePullSync(req: Request) {
     return json({ error: "Token expired. Reconnect." }, 401);
   }
 
-  let stats = { processed: 0, created: 0, updated: 0, skipped: 0 };
+  const stats = { processed: 0, created: 0, updated: 0, skipped: 0 };
   let nextPageToken = "";
   const PAGE_SIZE = 200;
 
@@ -399,9 +391,10 @@ async function handlePullSync(req: Request) {
       for (const person of connections) {
         stats.processed++;
         try {
-          await upsertFromGoogle(adminClient, tenantId, person);
-          // Check if it was created or updated via the function return
-          stats.created++; // Simplified - ideally track create vs update
+          const result = await upsertFromGoogle(adminClient, tenantId, person);
+          if (result.action === "created") stats.created++;
+          else if (result.action === "updated") stats.updated++;
+          else stats.skipped++;
         } catch (err: any) {
           console.error(`[pull-sync] Error processing ${person.resourceName}:`, err.message);
           stats.skipped++;
@@ -409,7 +402,6 @@ async function handlePullSync(req: Request) {
       }
     } while (nextPageToken);
 
-    // Update last sync
     const metadata = { ...((integration.metadata as Record<string, unknown>) || {}), last_sync_at: new Date().toISOString() };
     await adminClient.from("integrations").update({ metadata }).eq("id", integration.id);
 
@@ -427,7 +419,7 @@ async function handlePullSync(req: Request) {
 
 // ── Upsert single contact from Google Person ────────────────
 
-async function upsertFromGoogle(adminClient: ReturnType<typeof createClient>, tenantId: string, person: any) {
+async function upsertFromGoogle(adminClient: ReturnType<typeof createClient>, tenantId: string, person: any): Promise<{ action: "created" | "updated" | "skipped"; contactId: string | null }> {
   const resourceName = person.resourceName;
   const etag = person.etag || null;
   const names = person.names || [];
@@ -473,7 +465,6 @@ async function upsertFromGoogle(adminClient: ReturnType<typeof createClient>, te
   }));
 
   if (contactId) {
-    // Update existing
     await adminClient.from("contacts").update({
       display_name: displayName,
       first_name: firstName,
@@ -485,12 +476,10 @@ async function upsertFromGoogle(adminClient: ReturnType<typeof createClient>, te
       source: "google",
     }).eq("id", contactId).eq("tenant_id", tenantId);
 
-    // Ensure google_resource identity
     await adminClient.from("contact_identities").upsert({
       tenant_id: tenantId, contact_id: contactId, identity_type: "google_resource", identity_value: resourceName, is_primary: true,
     }, { onConflict: "tenant_id,identity_type,identity_value" });
 
-    // Upsert phone/email identities
     for (const ph of phonesJsonb) {
       if (!ph.e164) continue;
       await adminClient.from("contact_identities").upsert({
@@ -526,7 +515,6 @@ async function upsertFromGoogle(adminClient: ReturnType<typeof createClient>, te
 
   if (error || !newContact) throw new Error(`Insert failed: ${error?.message}`);
 
-  // Create identities
   await adminClient.from("contact_identities").insert({
     tenant_id: tenantId, contact_id: newContact.id, identity_type: "google_resource", identity_value: resourceName, is_primary: true,
   }).catch(() => {});
@@ -556,7 +544,7 @@ async function handlePushUpsert(req: Request) {
   if (!contact_id) return json({ error: "contact_id required" }, 400);
 
   const integration = await getOrCreateIntegration(adminClient, tenantId);
-  if (!integration || integration.status !== "connected") return json({ error: "Not connected" }, 400);
+  if (!integration || integration.status !== "connected") return json({ skipped: true, reason: "not_connected" });
 
   const settings = (integration.metadata as Record<string, unknown>) || {};
   if (!settings.push_on_save) return json({ skipped: true, reason: "push_on_save disabled" });
@@ -571,7 +559,6 @@ async function handlePushUpsert(req: Request) {
   const googleRef = externalRefs.google || {};
   const resourceName = googleRef.resourceName;
 
-  // Build People API person body
   const personBody: any = {
     names: [{ givenName: contact.first_name || contact.display_name, familyName: contact.last_name || "" }],
     phoneNumbers: ((contact.phones as any[]) || []).map((p: any) => ({ value: p.value || p.e164, type: p.label || "other" })),
@@ -582,7 +569,6 @@ async function handlePushUpsert(req: Request) {
     let result: any;
 
     if (resourceName) {
-      // Update existing Google contact
       personBody.etag = googleRef.etag;
       const res = await fetch(`https://people.googleapis.com/v1/${resourceName}:updateContact?updatePersonFields=names,phoneNumbers,emailAddresses`, {
         method: "PATCH",
@@ -592,12 +578,10 @@ async function handlePushUpsert(req: Request) {
       result = await res.json();
       if (!res.ok) throw new Error(`Update failed: ${JSON.stringify(result).slice(0, 300)}`);
 
-      // Update etag
       await adminClient.from("contacts").update({
         external_refs: { ...externalRefs, google: { resourceName, etag: result.etag } },
       }).eq("id", contact_id);
     } else {
-      // Create new Google contact
       const res = await fetch("https://people.googleapis.com/v1/people:createContact", {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -611,7 +595,6 @@ async function handlePushUpsert(req: Request) {
         external_refs: { ...externalRefs, google: { resourceName: newResourceName, etag: result.etag } },
       }).eq("id", contact_id);
 
-      // Add google_resource identity
       await adminClient.from("contact_identities").upsert({
         tenant_id: tenantId, contact_id, identity_type: "google_resource", identity_value: newResourceName, is_primary: true,
       }, { onConflict: "tenant_id,identity_type,identity_value" }).catch(() => {});

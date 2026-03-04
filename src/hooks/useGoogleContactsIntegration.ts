@@ -40,11 +40,9 @@ export function useGoogleContactsIntegration() {
   });
 
   const connect = useMutation({
-    mutationFn: () => invoke("connect", { origin: window.location.origin }),
+    mutationFn: () => invoke("connect"),
     onSuccess: (data) => {
       if (data.auth_url) {
-        // Store state for callback
-        sessionStorage.setItem("gc_oauth_redirect_uri", `${window.location.origin}/oauth/google-contacts/callback`);
         window.open(data.auth_url, "google-contacts-oauth", "width=600,height=700,popup=yes");
       }
     },
@@ -56,13 +54,11 @@ export function useGoogleContactsIntegration() {
       invoke("callback-proxy", {
         code: params.code,
         state: params.state,
-        redirect_uri: sessionStorage.getItem("gc_oauth_redirect_uri") || `${window.location.origin}/oauth/google-contacts/callback`,
       }),
     onSuccess: () => {
       toast.success("Google Contatos conectado!");
       qc.invalidateQueries({ queryKey: QK });
       qc.invalidateQueries({ queryKey: ["google-contacts-events"] });
-      sessionStorage.removeItem("gc_oauth_redirect_uri");
     },
     onError: (e: Error) => toast.error(e.message),
   });

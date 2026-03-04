@@ -7,6 +7,7 @@ import {
   FileText, TrendingUp, X, Mail, CreditCard,
   Home, Sun, Building2, Ruler, Image,
 } from "lucide-react";
+import { WaContactEditor } from "./WaContactEditor";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -151,6 +152,9 @@ export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
               <div className="p-3 space-y-3">
                 {/* Contact header */}
                 <ContactHeader lead={lead} cliente={cliente} conversation={conversation} />
+
+                {/* Contact editor (roles, email, Google sync badge) */}
+                <WaContactEditor phoneE164={conversation.cliente_telefone || ""} />
 
                 {/* Score & Value */}
                 <ScoreValueCards leadScore={leadScore} estimatedValue={estimatedValue} />
