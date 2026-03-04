@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
               .eq("id", item.message_id);
           }
 
-          logOps(inst.tenant_id, inst.id, "outbox_sent_ack", { outbox_id: item.id, evolution_msg_id: evolutionMessageId });
+          logOps(inst.tenant_id, inst.id, item.message_type === "audio" ? "send_audio_success" : "outbox_sent_ack", { outbox_id: item.id, evolution_msg_id: evolutionMessageId, message_type: item.message_type });
           totalSent++;
         } catch (err) {
           console.error(`[process-wa-outbox] Failed item ${item.id}:`, err);
@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
               .eq("id", item.message_id);
           }
 
-          logOps(inst.tenant_id, inst.id, "outbox_failed", { outbox_id: item.id, error: String(err), retry_count: retryCount, final: newStatus === "failed" });
+          logOps(inst.tenant_id, inst.id, item.message_type === "audio" ? "send_audio_error" : "outbox_failed", { outbox_id: item.id, error: String(err), retry_count: retryCount, final: newStatus === "failed", message_type: item.message_type });
           totalFailed++;
         }
       }
@@ -236,6 +236,8 @@ async function sendEvolutionMessage(
     case "audio":
       endpoint = `/message/sendWhatsAppAudio/${instanceKey}`;
       body = { number, audio: item.media_url };
+      console.log(`[process-wa-outbox] Sending audio: endpoint=${endpoint}, mime=${item.media_mime_type || 'unknown'}, url_len=${(item.media_url || '').length}`);
+
       break;
     case "video":
       endpoint = `/message/sendMedia/${instanceKey}`;

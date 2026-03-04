@@ -26,7 +26,62 @@ Deno.serve(async (req) => {
       messagePreview,
       messageId,
       direction,
+      action,
     } = body;
+
+    // ── Test Push Mode: send a test notification to the calling user ──
+    if (action === "test") {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabaseAuth = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const { data: subs } = await supabase
+        .from("push_subscriptions")
+        .select("id, user_id, endpoint, p256dh, auth, tenant_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+
+      if (!subs || subs.length === 0) {
+        return new Response(JSON.stringify({ error: "no_subscriptions", message: "Nenhuma subscription push ativa encontrada para este usuário." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const results = await sendPushToSubscriptions(
+        subs,
+        { conversationId: "test", contactName: "🧪 Teste Push", messagePreview: "Se você viu esta notificação, push está funcionando!", instanceId: null },
+        supabase,
+        null
+      );
+
+      return new Response(JSON.stringify({ ...results, subscriptions_found: subs.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Only send for inbound messages
     if (direction !== "in") {
@@ -267,10 +322,11 @@ async function sendPushToSubscriptions(
         sent++;
         // Log dedup
         if (messageId) {
-          await supabase
-            .from("push_sent_log")
-            .insert({ message_id: messageId, subscription_id: sub.id, tenant_id: tenantIdForLog })
-            .catch(() => {}); // ignore dedup conflicts
+          try {
+            await supabase
+              .from("push_sent_log")
+              .insert({ message_id: messageId, subscription_id: sub.id, tenant_id: tenantIdForLog });
+          } catch (_) { /* ignore dedup conflicts */ }
         }
       } else {
         failed++;
