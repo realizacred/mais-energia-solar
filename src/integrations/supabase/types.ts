@@ -2177,41 +2177,113 @@ export type Database = {
           },
         ]
       }
-      contacts: {
+      contact_identities: {
         Row: {
+          contact_id: string
           created_at: string
           id: string
+          identity_type: string
+          identity_value: string
+          is_primary: boolean
+          tenant_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          identity_type: string
+          identity_value: string
+          is_primary?: boolean
+          tenant_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          identity_type?: string
+          identity_value?: string
+          is_primary?: boolean
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_identities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_identities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          emails: Json
+          external_refs: Json
+          first_name: string | null
+          id: string
           last_interaction_at: string | null
+          last_name: string | null
           linked_cliente_id: string | null
           name: string | null
+          notes: string | null
           owner_user_id: string | null
           phone_e164: string
+          phones: Json
+          roles: Json
           source: string | null
           tags: string[] | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
+          emails?: Json
+          external_refs?: Json
+          first_name?: string | null
           id?: string
           last_interaction_at?: string | null
+          last_name?: string | null
           linked_cliente_id?: string | null
           name?: string | null
+          notes?: string | null
           owner_user_id?: string | null
           phone_e164: string
+          phones?: Json
+          roles?: Json
           source?: string | null
           tags?: string[] | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
+          emails?: Json
+          external_refs?: Json
+          first_name?: string | null
           id?: string
           last_interaction_at?: string | null
+          last_name?: string | null
           linked_cliente_id?: string | null
           name?: string | null
+          notes?: string | null
           owner_user_id?: string | null
           phone_e164?: string
+          phones?: Json
+          roles?: Json
           source?: string | null
           tags?: string[] | null
           tenant_id?: string
@@ -4963,6 +5035,65 @@ export type Database = {
           },
           {
             foreignKeyName: "integration_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_events: {
+        Row: {
+          action: string
+          created_at: string
+          error_message: string | null
+          id: string
+          items_created: number | null
+          items_processed: number | null
+          items_skipped: number | null
+          items_updated: number | null
+          provider: string
+          request: Json | null
+          response: Json | null
+          status: string
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          items_created?: number | null
+          items_processed?: number | null
+          items_skipped?: number | null
+          items_updated?: number | null
+          provider?: string
+          request?: Json | null
+          response?: Json | null
+          status?: string
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          items_created?: number | null
+          items_processed?: number | null
+          items_skipped?: number | null
+          items_updated?: number | null
+          provider?: string
+          request?: Json | null
+          response?: Json | null
+          status?: string
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -20043,6 +20174,7 @@ export type Database = {
       }
       normalize_br_phone: { Args: { phone: string }; Returns: string }
       normalize_phone: { Args: { p: string }; Returns: string }
+      normalize_phone_e164: { Args: { raw: string }; Returns: string }
       normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
       preview_seed_data: { Args: never; Returns: Json }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }

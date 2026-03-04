@@ -37,6 +37,7 @@ const Inbox = lazy(() => import("./pages/Inbox"));
 const MessagingApp = lazy(() => import("./pages/MessagingApp"));
 const AppDebug = lazy(() => import("./pages/AppDebug"));
 const OAuthGoogleCallback = lazy(() => import("./pages/OAuthGoogleCallback"));
+const GoogleContactsCallbackPage = lazy(() => import("./pages/admin/GoogleContactsCallbackPage"));
 const IntegrationsSandbox = lazy(() => import("./dev/IntegrationsSandboxRoute"));
 
 const queryClient = new QueryClient({
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
               <Route path="/proposta/:token" element={<PropostaPublica />} />
               <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
+              <Route path="/oauth/google-contacts/callback" element={<GoogleContactsCallbackPage />} />
               <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
 
               {/* Protected routes — tenant guard active */}
