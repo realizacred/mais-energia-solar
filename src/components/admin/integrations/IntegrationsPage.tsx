@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useGoogleCalendarIntegration } from "@/hooks/useGoogleCalendarIntegration";
+import { GoogleContactsCard } from "./GoogleContactsCard";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
@@ -382,6 +383,9 @@ export function IntegrationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Google Contacts Card ──────────────────────────── */}
+      <GoogleContactsCard />
 
       {/* ── Google Maps Card ───────────────────────────────── */}
       <Card>
