@@ -5,9 +5,14 @@ import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart3, DollarSign, MousePointerClick, Users, TrendingUp, AlertCircle, Eye, RefreshCw } from "lucide-react";
+import {
+  BarChart3, DollarSign, MousePointerClick, Users, TrendingUp,
+  AlertCircle, Eye, RefreshCw, Target, Repeat,
+} from "lucide-react";
 import { TopAdsBySpend } from "@/components/admin/meta/TopAdsBySpend";
 import { TopCampaignsChart } from "@/components/admin/meta/TopCampaignsChart";
+import { MetaTimeSeriesChart } from "@/components/admin/meta/MetaTimeSeriesChart";
+import { SpendDistributionChart } from "@/components/admin/meta/SpendDistributionChart";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,7 +35,7 @@ function useMetaIntegrationStatus() {
   });
 }
 
-function StatCard({ title, value, icon: Icon }: { title: string; value: string | number; icon: React.ComponentType<{ className?: string }> }) {
+function StatCard({ title, value, icon: Icon, subtitle }: { title: string; value: string | number; icon: React.ComponentType<{ className?: string }>; subtitle?: string }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-4 p-4">
@@ -40,6 +45,7 @@ function StatCard({ title, value, icon: Icon }: { title: string; value: string |
         <div>
           <p className="text-xs text-muted-foreground">{title}</p>
           <p className="text-lg font-semibold">{value}</p>
+          {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
         </div>
       </CardContent>
     </Card>
@@ -106,21 +112,41 @@ export default function MetaDashboardPage() {
         </Card>
       )}
 
+      {/* KPI Cards - Row 1 */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          {[...Array(7)].map((_, i) => (
             <Card key={i} className="animate-pulse"><CardContent className="p-4 h-20" /></Card>
           ))}
         </div>
       ) : metrics ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <StatCard title="Investimento" value={`R$ ${metrics.spend.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} icon={DollarSign} />
-          <StatCard title="Cliques" value={metrics.clicks.toLocaleString("pt-BR")} icon={MousePointerClick} />
           <StatCard title="Alcance" value={metrics.reach.toLocaleString("pt-BR")} icon={Eye} />
+          <StatCard title="Impressões" value={metrics.impressions.toLocaleString("pt-BR")} icon={BarChart3} />
+          <StatCard title="Cliques" value={metrics.clicks.toLocaleString("pt-BR")} icon={MousePointerClick} />
+          <StatCard title="CTR" value={`${metrics.ctr.toFixed(2)}%`} icon={TrendingUp} />
           <StatCard title="Leads" value={metrics.leads.toLocaleString("pt-BR")} icon={Users} />
-          <StatCard title="CPL" value={`R$ ${metrics.cpl.toFixed(2)}`} icon={TrendingUp} />
+          <StatCard title="CPL" value={`R$ ${metrics.cpl.toFixed(2)}`} icon={Target} />
         </div>
       ) : null}
+
+      {/* KPI Cards - Row 2: CPC + Frequência */}
+      {metrics && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <StatCard title="CPC" value={`R$ ${metrics.cpc.toFixed(2)}`} icon={MousePointerClick} subtitle="Custo por clique" />
+          <StatCard title="CPL" value={`R$ ${metrics.cpl.toFixed(2)}`} icon={Target} subtitle="Custo por lead" />
+          <StatCard title="Frequência" value={metrics.frequency.toFixed(2)} icon={Repeat} subtitle="Impressões / Alcance" />
+        </div>
+      )}
+
+      {/* Time Series + Spend Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <MetaTimeSeriesChart daily={data?.daily ?? []} isLoading={isLoading} />
+        </div>
+        <SpendDistributionChart campaigns={data?.campaigns ?? []} isLoading={isLoading} />
+      </div>
 
       {/* Top Ads + Top Campaigns Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

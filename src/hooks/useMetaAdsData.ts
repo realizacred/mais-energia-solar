@@ -50,6 +50,15 @@ function aggregateBy<T extends Record<string, any>>(
   return map;
 }
 
+export interface DailyRow {
+  date: string;
+  spend: number;
+  clicks: number;
+  impressions: number;
+  reach: number;
+  leads_count: number;
+}
+
 export function useMetaAdsData(days = 30) {
   const since = format(subDays(new Date(), days), "yyyy-MM-dd");
 
@@ -58,9 +67,9 @@ export function useMetaAdsData(days = 30) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("facebook_ad_metrics")
-        .select("ad_id, ad_name, campaign_id, campaign_name, spend, clicks, impressions, reach, leads_count, ctr, cpc, cpl, effective_status")
+        .select("date, ad_id, ad_name, campaign_id, campaign_name, spend, clicks, impressions, reach, leads_count, ctr, cpc, cpl, effective_status")
         .gte("date", since)
-        .order("date", { ascending: false });
+        .order("date", { ascending: true });
 
       if (error) throw error;
       const rows = data ?? [];
@@ -99,6 +108,20 @@ export function useMetaAdsData(days = 30) {
       }));
       campaigns.sort((a, b) => b.spend - a.spend);
 
+      // Daily time series
+      const dailyMap = new Map<string, DailyRow>();
+      for (const r of rows) {
+        const d = r.date as string;
+        const existing = dailyMap.get(d) ?? { date: d, spend: 0, clicks: 0, impressions: 0, reach: 0, leads_count: 0 };
+        existing.spend += r.spend ?? 0;
+        existing.clicks += r.clicks ?? 0;
+        existing.impressions += r.impressions ?? 0;
+        existing.reach += (r as any).reach ?? 0;
+        existing.leads_count += r.leads_count ?? 0;
+        dailyMap.set(d, existing);
+      }
+      const daily = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
       // Summary totals
       const totals = rows.reduce(
         (acc, r) => ({
@@ -111,13 +134,20 @@ export function useMetaAdsData(days = 30) {
         { spend: 0, clicks: 0, impressions: 0, reach: 0, leads: 0 }
       );
 
+      const cpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0;
+      const cpl = totals.leads > 0 ? totals.spend / totals.leads : 0;
+      const frequency = totals.reach > 0 ? totals.impressions / totals.reach : 0;
+
       return {
         ads,
         campaigns,
+        daily,
         totals: {
           ...totals,
           ctr: totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0,
-          cpl: totals.leads > 0 ? totals.spend / totals.leads : 0,
+          cpc,
+          cpl,
+          frequency,
         },
       };
     },
