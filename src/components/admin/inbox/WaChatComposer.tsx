@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { AudioRecorderButton } from "./AudioRecorderButton";
+import type { RecordedAudio } from "@/services/audioRecorder";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useWritingAssistant } from "@/hooks/useWritingAssistant";
 import { WritingAssistantButton } from "./WritingAssistantButton";
@@ -73,6 +75,7 @@ interface ReplyingTo {
 interface WaChatComposerProps {
   onSendMessage: (content: string, isNote?: boolean, quotedMessageId?: string) => void;
   onSendMedia: (file: File, caption?: string) => void;
+  onSendAudio?: (file: File) => void;
   isSending: boolean;
   isNoteMode: boolean;
   onNoteModeChange: (v: boolean) => void;
@@ -84,6 +87,7 @@ interface WaChatComposerProps {
 export function WaChatComposer({
   onSendMessage,
   onSendMedia,
+  onSendAudio,
   isSending,
   isNoteMode,
   onNoteModeChange,
@@ -764,18 +768,38 @@ export function WaChatComposer({
           disabled={busy}
         />
 
-        <Button
-          size="icon"
-          className={`h-10 w-10 shrink-0 rounded-xl ${isNoteMode ? "bg-warning hover:bg-warning/90" : ""}`}
-          onClick={handleSend}
-          disabled={!inputValue.trim() || busy}
-        >
-          {busy ? (
-            <Spinner size="sm" />
-          ) : (
+        {inputValue.trim() ? (
+          <Button
+            size="icon"
+            className={`h-10 w-10 shrink-0 rounded-xl ${isNoteMode ? "bg-warning hover:bg-warning/90" : ""}`}
+            onClick={handleSend}
+            disabled={busy}
+          >
+            {busy ? (
+              <Spinner size="sm" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        ) : !isNoteMode && onSendAudio ? (
+          <AudioRecorderButton
+            disabled={busy}
+            onSend={(audio: RecordedAudio) => {
+              const ext = audio.mimeType.includes("mp4") ? "m4a" : audio.mimeType.includes("ogg") ? "ogg" : "webm";
+              const file = new File([audio.blob], `audio-${Date.now()}.${ext}`, { type: audio.mimeType });
+              onSendAudio(file);
+            }}
+          />
+        ) : (
+          <Button
+            size="icon"
+            className={`h-10 w-10 shrink-0 rounded-xl ${isNoteMode ? "bg-warning hover:bg-warning/90" : ""}`}
+            onClick={handleSend}
+            disabled={true}
+          >
             <Send className="h-4 w-4" />
-          )}
-        </Button>
+          </Button>
+        )}
       </div>
     </div>
   );
