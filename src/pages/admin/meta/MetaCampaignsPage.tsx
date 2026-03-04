@@ -3,10 +3,28 @@ import { formatBRL, formatInteger } from "@/lib/formatters/index";
 import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Megaphone, ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react";
 
-type SortKey = "campaign_name" | "spend" | "impressions" | "clicks" | "ctr" | "leads_count" | "cpl";
+type SortKey = "campaign_name" | "spend" | "impressions" | "reach" | "clicks" | "ctr" | "leads_count" | "cpl";
 type SortDir = "asc" | "desc";
+
+const STATUS_COLORS: Record<string, string> = {
+  ACTIVE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  PAUSED: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  DELETED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  ARCHIVED: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+};
+
+function StatusBadge({ status }: { status: string | null }) {
+  if (!status) return <span className="text-xs text-muted-foreground">—</span>;
+  const colorClass = STATUS_COLORS[status] || "bg-muted text-muted-foreground";
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider ${colorClass}`}>
+      {status}
+    </span>
+  );
+}
 
 export default function MetaCampaignsPage() {
   const { data, isLoading } = useMetaAdsData(30);
@@ -81,8 +99,10 @@ export default function MetaCampaignsPage() {
                   <tr className="border-b text-muted-foreground text-left">
                     <th className="pb-2 w-8" />
                     <SortHeader label="Nome" field="campaign_name" align="left" />
+                    <th className="pb-2 font-medium text-center">Status</th>
                     <SortHeader label="Gasto" field="spend" />
                     <SortHeader label="Impressões" field="impressions" />
+                    <SortHeader label="Alcance" field="reach" />
                     <SortHeader label="Cliques" field="clicks" />
                     <SortHeader label="CTR %" field="ctr" />
                     <SortHeader label="Leads" field="leads_count" />
@@ -92,9 +112,6 @@ export default function MetaCampaignsPage() {
                 <tbody>
                   {sorted.map((c) => {
                     const isExpanded = expandedId === c.campaign_id;
-                    const relatedAds = (data?.ads ?? []).filter(
-                      (a) => campaigns.find((camp) => camp.campaign_id === c.campaign_id)
-                    );
 
                     return (
                       <>
@@ -113,8 +130,12 @@ export default function MetaCampaignsPage() {
                           <td className="py-2.5 max-w-[200px] truncate font-medium">
                             {c.campaign_name}
                           </td>
+                          <td className="py-2.5 text-center">
+                            <StatusBadge status={c.effective_status} />
+                          </td>
                           <td className="py-2.5 text-right font-medium text-primary">{formatBRL(c.spend)}</td>
                           <td className="py-2.5 text-right">{formatInteger(c.impressions)}</td>
+                          <td className="py-2.5 text-right">{formatInteger(c.reach)}</td>
                           <td className="py-2.5 text-right">{formatInteger(c.clicks)}</td>
                           <td className="py-2.5 text-right">{c.ctr.toFixed(2)}%</td>
                           <td className="py-2.5 text-right">{c.leads_count}</td>
@@ -122,7 +143,7 @@ export default function MetaCampaignsPage() {
                         </tr>
                         {isExpanded && (
                           <tr key={`${c.campaign_id}-detail`} className="bg-muted/30">
-                            <td colSpan={8} className="p-4">
+                            <td colSpan={10} className="p-4">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                                 <div>
                                   <span className="text-muted-foreground">CTR</span>
@@ -139,7 +160,7 @@ export default function MetaCampaignsPage() {
                                   <p className="font-semibold text-sm">{formatBRL(c.cpl)}</p>
                                 </div>
                                 <div>
-                                  <span className="text-muted-foreground">Custo / 1k Impressões</span>
+                                  <span className="text-muted-foreground">CPM (Custo / 1k Impr.)</span>
                                   <p className="font-semibold text-sm">
                                     {c.impressions > 0 ? formatBRL((c.spend / c.impressions) * 1000) : "—"}
                                   </p>

@@ -10,19 +10,21 @@ interface CampaignRow {
   spend: number;
   clicks: number;
   impressions: number;
+  reach: number;
   leads_count: number;
 }
+
+type MetricKey = "spend" | "impressions" | "reach" | "clicks" | "leads_count";
 
 interface Props {
   campaigns: CampaignRow[];
   isLoading?: boolean;
 }
 
-type MetricKey = "spend" | "impressions" | "clicks" | "leads_count";
-
 const TABS: { key: MetricKey; label: string }[] = [
   { key: "spend", label: "Investimento" },
   { key: "impressions", label: "Impressões" },
+  { key: "reach", label: "Alcance" },
   { key: "clicks", label: "Cliques" },
   { key: "leads_count", label: "Leads" },
 ];

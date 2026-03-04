@@ -3332,9 +3332,11 @@ export type Database = {
           created_at: string
           ctr: number
           date: string
+          effective_status: string | null
           id: string
           impressions: number
           leads_count: number
+          reach: number | null
           spend: number
           tenant_id: string
           updated_at: string
@@ -3352,9 +3354,11 @@ export type Database = {
           created_at?: string
           ctr?: number
           date: string
+          effective_status?: string | null
           id?: string
           impressions?: number
           leads_count?: number
+          reach?: number | null
           spend?: number
           tenant_id: string
           updated_at?: string
@@ -3372,9 +3376,11 @@ export type Database = {
           created_at?: string
           ctr?: number
           date?: string
+          effective_status?: string | null
           id?: string
           impressions?: number
           leads_count?: number
+          reach?: number | null
           spend?: number
           tenant_id?: string
           updated_at?: string
