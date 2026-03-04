@@ -794,6 +794,12 @@ export function WaChatPanel({
               virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
             }, 100);
           }}
+          onSendAudio={(file) => {
+            onSendMedia(file);
+            setTimeout(() => {
+              virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
+            }, 100);
+          }}
           isSending={isSending}
           isNoteMode={isNoteMode}
           onNoteModeChange={setIsNoteMode}
