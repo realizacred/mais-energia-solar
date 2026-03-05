@@ -5387,6 +5387,65 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_sync_runs: {
+        Row: {
+          error_summary: string | null
+          finished_at: string | null
+          id: string
+          integration_config_id: string | null
+          items_created: number
+          items_failed: number
+          items_processed: number
+          items_updated: number
+          metadata: Json
+          provider: string
+          started_at: string
+          status: string
+          sync_type: string
+          tenant_id: string
+        }
+        Insert: {
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          integration_config_id?: string | null
+          items_created?: number
+          items_failed?: number
+          items_processed?: number
+          items_updated?: number
+          metadata?: Json
+          provider: string
+          started_at?: string
+          status?: string
+          sync_type: string
+          tenant_id: string
+        }
+        Update: {
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          integration_config_id?: string | null
+          items_created?: number
+          items_failed?: number
+          items_processed?: number
+          items_updated?: number
+          metadata?: Json
+          provider?: string
+          started_at?: string
+          status?: string
+          sync_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_webhook_endpoints: {
         Row: {
           created_at: string
@@ -7053,6 +7112,233 @@ export type Database = {
             columns: ["consultor_id"]
             isOneToOne: false
             referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meter_devices: {
+        Row: {
+          bidirectional_supported: boolean
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          external_device_id: string
+          firmware_version: string | null
+          health_status: string | null
+          id: string
+          installed_at: string | null
+          integration_config_id: string | null
+          is_active: boolean
+          last_reading_at: string | null
+          last_seen_at: string | null
+          manufacturer: string | null
+          metadata: Json
+          model: string | null
+          name: string
+          online_status: string | null
+          product_id: string | null
+          provider: string
+          raw_device: Json
+          serial_number: string | null
+          supports_export_energy: boolean
+          supports_import_energy: boolean
+          supports_power: boolean
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bidirectional_supported?: boolean
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          external_device_id: string
+          firmware_version?: string | null
+          health_status?: string | null
+          id?: string
+          installed_at?: string | null
+          integration_config_id?: string | null
+          is_active?: boolean
+          last_reading_at?: string | null
+          last_seen_at?: string | null
+          manufacturer?: string | null
+          metadata?: Json
+          model?: string | null
+          name: string
+          online_status?: string | null
+          product_id?: string | null
+          provider?: string
+          raw_device?: Json
+          serial_number?: string | null
+          supports_export_energy?: boolean
+          supports_import_energy?: boolean
+          supports_power?: boolean
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bidirectional_supported?: boolean
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          external_device_id?: string
+          firmware_version?: string | null
+          health_status?: string | null
+          id?: string
+          installed_at?: string | null
+          integration_config_id?: string | null
+          is_active?: boolean
+          last_reading_at?: string | null
+          last_seen_at?: string | null
+          manufacturer?: string | null
+          metadata?: Json
+          model?: string | null
+          name?: string
+          online_status?: string | null
+          product_id?: string | null
+          provider?: string
+          raw_device?: Json
+          serial_number?: string | null
+          supports_export_energy?: boolean
+          supports_import_energy?: boolean
+          supports_power?: boolean
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meter_readings: {
+        Row: {
+          created_at: string
+          current_a: number | null
+          energy_export_kwh: number | null
+          energy_import_kwh: number | null
+          frequency_hz: number | null
+          id: string
+          measured_at: string
+          meter_device_id: string
+          net_energy_kwh: number | null
+          power_factor: number | null
+          power_w: number | null
+          raw_payload: Json
+          tenant_id: string
+          voltage_v: number | null
+        }
+        Insert: {
+          created_at?: string
+          current_a?: number | null
+          energy_export_kwh?: number | null
+          energy_import_kwh?: number | null
+          frequency_hz?: number | null
+          id?: string
+          measured_at: string
+          meter_device_id: string
+          net_energy_kwh?: number | null
+          power_factor?: number | null
+          power_w?: number | null
+          raw_payload?: Json
+          tenant_id: string
+          voltage_v?: number | null
+        }
+        Update: {
+          created_at?: string
+          current_a?: number | null
+          energy_export_kwh?: number | null
+          energy_import_kwh?: number | null
+          frequency_hz?: number | null
+          id?: string
+          measured_at?: string
+          meter_device_id?: string
+          net_energy_kwh?: number | null
+          power_factor?: number | null
+          power_w?: number | null
+          raw_payload?: Json
+          tenant_id?: string
+          voltage_v?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_readings_meter_device_id_fkey"
+            columns: ["meter_device_id"]
+            isOneToOne: false
+            referencedRelation: "meter_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_readings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meter_status_latest: {
+        Row: {
+          current_a: number | null
+          energy_export_kwh: number | null
+          energy_import_kwh: number | null
+          measured_at: string
+          meter_device_id: string
+          online_status: string | null
+          power_w: number | null
+          raw_payload: Json
+          tenant_id: string
+          updated_at: string
+          voltage_v: number | null
+        }
+        Insert: {
+          current_a?: number | null
+          energy_export_kwh?: number | null
+          energy_import_kwh?: number | null
+          measured_at: string
+          meter_device_id: string
+          online_status?: string | null
+          power_w?: number | null
+          raw_payload?: Json
+          tenant_id: string
+          updated_at?: string
+          voltage_v?: number | null
+        }
+        Update: {
+          current_a?: number | null
+          energy_export_kwh?: number | null
+          energy_import_kwh?: number | null
+          measured_at?: string
+          meter_device_id?: string
+          online_status?: string | null
+          power_w?: number | null
+          raw_payload?: Json
+          tenant_id?: string
+          updated_at?: string
+          voltage_v?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_status_latest_meter_device_id_fkey"
+            columns: ["meter_device_id"]
+            isOneToOne: true
+            referencedRelation: "meter_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_status_latest_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -16943,6 +17229,358 @@ export type Database = {
           },
         ]
       }
+      unit_billing_email_settings: {
+        Row: {
+          billing_capture_email: string | null
+          created_at: string
+          created_by: string | null
+          email_billing_enabled: boolean
+          forward_to_email: string | null
+          id: string
+          notes: string | null
+          pdf_password: string | null
+          setup_status: Database["public"]["Enums"]["billing_setup_status"]
+          tenant_id: string
+          unit_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          billing_capture_email?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_billing_enabled?: boolean
+          forward_to_email?: string | null
+          id?: string
+          notes?: string | null
+          pdf_password?: string | null
+          setup_status?: Database["public"]["Enums"]["billing_setup_status"]
+          tenant_id: string
+          unit_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          billing_capture_email?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_billing_enabled?: boolean
+          forward_to_email?: string | null
+          id?: string
+          notes?: string | null
+          pdf_password?: string | null
+          setup_status?: Database["public"]["Enums"]["billing_setup_status"]
+          tenant_id?: string
+          unit_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_billing_email_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_billing_email_settings_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: true
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_invoices: {
+        Row: {
+          compensated_kwh: number | null
+          created_at: string
+          current_balance_kwh: number | null
+          due_date: string | null
+          energy_consumed_kwh: number | null
+          energy_injected_kwh: number | null
+          id: string
+          pdf_file_url: string | null
+          previous_balance_kwh: number | null
+          raw_extraction: Json
+          reference_month: number
+          reference_year: number
+          source: Database["public"]["Enums"]["invoice_source"] | null
+          source_message_id: string | null
+          status: string
+          tenant_id: string
+          total_amount: number | null
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          compensated_kwh?: number | null
+          created_at?: string
+          current_balance_kwh?: number | null
+          due_date?: string | null
+          energy_consumed_kwh?: number | null
+          energy_injected_kwh?: number | null
+          id?: string
+          pdf_file_url?: string | null
+          previous_balance_kwh?: number | null
+          raw_extraction?: Json
+          reference_month: number
+          reference_year: number
+          source?: Database["public"]["Enums"]["invoice_source"] | null
+          source_message_id?: string | null
+          status?: string
+          tenant_id: string
+          total_amount?: number | null
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          compensated_kwh?: number | null
+          created_at?: string
+          current_balance_kwh?: number | null
+          due_date?: string | null
+          energy_consumed_kwh?: number | null
+          energy_injected_kwh?: number | null
+          id?: string
+          pdf_file_url?: string | null
+          previous_balance_kwh?: number | null
+          raw_extraction?: Json
+          reference_month?: number
+          reference_year?: number
+          source?: Database["public"]["Enums"]["invoice_source"] | null
+          source_message_id?: string | null
+          status?: string
+          tenant_id?: string
+          total_amount?: number | null
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_invoices_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_meter_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ended_at: string | null
+          id: string
+          is_active: boolean
+          link_type: Database["public"]["Enums"]["meter_link_type"]
+          meter_device_id: string
+          notes: string | null
+          started_at: string
+          tenant_id: string
+          unit_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          link_type?: Database["public"]["Enums"]["meter_link_type"]
+          meter_device_id: string
+          notes?: string | null
+          started_at?: string
+          tenant_id: string
+          unit_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          link_type?: Database["public"]["Enums"]["meter_link_type"]
+          meter_device_id?: string
+          notes?: string | null
+          started_at?: string
+          tenant_id?: string
+          unit_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_meter_links_meter_device_id_fkey"
+            columns: ["meter_device_id"]
+            isOneToOne: false
+            referencedRelation: "meter_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_meter_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_meter_links_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_plant_links: {
+        Row: {
+          allocation_percent: number | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          is_active: boolean
+          metadata: Json
+          plant_id: string
+          relation_type: Database["public"]["Enums"]["plant_relation_type"]
+          started_at: string
+          tenant_id: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_percent?: number | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          plant_id: string
+          relation_type?: Database["public"]["Enums"]["plant_relation_type"]
+          started_at?: string
+          tenant_id: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_percent?: number | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          plant_id?: string
+          relation_type?: Database["public"]["Enums"]["plant_relation_type"]
+          started_at?: string
+          tenant_id?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_plant_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_plant_links_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units_consumidoras: {
+        Row: {
+          classificacao_grupo: string | null
+          classificacao_subgrupo: string | null
+          codigo_uc: string
+          concessionaria_id: string | null
+          concessionaria_nome: string | null
+          created_at: string
+          created_by: string | null
+          endereco: Json
+          id: string
+          is_archived: boolean
+          modalidade_tarifaria: string | null
+          nome: string
+          observacoes: string | null
+          status: string
+          tenant_id: string
+          tipo_uc: Database["public"]["Enums"]["uc_type"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          classificacao_grupo?: string | null
+          classificacao_subgrupo?: string | null
+          codigo_uc: string
+          concessionaria_id?: string | null
+          concessionaria_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          endereco?: Json
+          id?: string
+          is_archived?: boolean
+          modalidade_tarifaria?: string | null
+          nome: string
+          observacoes?: string | null
+          status?: string
+          tenant_id: string
+          tipo_uc?: Database["public"]["Enums"]["uc_type"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          classificacao_grupo?: string | null
+          classificacao_subgrupo?: string | null
+          codigo_uc?: string
+          concessionaria_id?: string | null
+          concessionaria_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          endereco?: Json
+          id?: string
+          is_archived?: boolean
+          modalidade_tarifaria?: string | null
+          nome?: string
+          observacoes?: string | null
+          status?: string
+          tenant_id?: string
+          tipo_uc?: Database["public"]["Enums"]["uc_type"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_consumidoras_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_consumidoras_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_counters: {
         Row: {
           created_at: string
@@ -20641,6 +21279,7 @@ export type Database = {
         | "negociacao"
         | "anotacao"
         | "status_change"
+      billing_setup_status: "pending" | "active" | "error" | "disabled"
       checklist_cliente_status:
         | "pendente"
         | "em_preenchimento"
@@ -20698,7 +21337,10 @@ export type Database = {
         | "error"
         | "revoked"
         | "expired"
+      invoice_source: "email" | "manual" | "import" | "api"
+      meter_link_type: "principal" | "auxiliar" | "backup"
       pipeline_kind: "process" | "owner_board"
+      plant_relation_type: "geradora" | "beneficiaria" | "compensacao"
       pricing_method_type: "margin_on_sale" | "margin_on_cost"
       pricing_policy_status: "draft" | "active" | "archived"
       projeto_etapa_categoria: "aberto" | "ganho" | "perdido" | "excluido"
@@ -20734,6 +21376,7 @@ export type Database = {
         | "expired"
       tenant_status: "active" | "suspended" | "disabled" | "pending"
       tipo_sistema_inversor: "ON_GRID" | "HIBRIDO" | "OFF_GRID"
+      uc_type: "consumo" | "gd_geradora" | "beneficiaria"
       wa_participant_role: "owner" | "collaborator" | "viewer"
     }
     CompositeTypes: {
@@ -20893,6 +21536,7 @@ export const Constants = {
         "anotacao",
         "status_change",
       ],
+      billing_setup_status: ["pending", "active", "error", "disabled"],
       checklist_cliente_status: [
         "pendente",
         "em_preenchimento",
@@ -20957,7 +21601,10 @@ export const Constants = {
         "revoked",
         "expired",
       ],
+      invoice_source: ["email", "manual", "import", "api"],
+      meter_link_type: ["principal", "auxiliar", "backup"],
       pipeline_kind: ["process", "owner_board"],
+      plant_relation_type: ["geradora", "beneficiaria", "compensacao"],
       pricing_method_type: ["margin_on_sale", "margin_on_cost"],
       pricing_policy_status: ["draft", "active", "archived"],
       projeto_etapa_categoria: ["aberto", "ganho", "perdido", "excluido"],
@@ -20997,6 +21644,7 @@ export const Constants = {
       ],
       tenant_status: ["active", "suspended", "disabled", "pending"],
       tipo_sistema_inversor: ["ON_GRID", "HIBRIDO", "OFF_GRID"],
+      uc_type: ["consumo", "gd_geradora", "beneficiaria"],
       wa_participant_role: ["owner", "collaborator", "viewer"],
     },
   },
