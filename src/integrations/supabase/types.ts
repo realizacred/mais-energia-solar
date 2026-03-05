@@ -3181,9 +3181,12 @@ export type Database = {
         Row: {
           ativo: boolean
           categoria: string
+          codigo_barras: string | null
           created_at: string
           custo_medio: number
+          descricao: string | null
           estoque_minimo: number
+          fornecedor: string | null
           id: string
           nome: string
           sku: string | null
@@ -3194,9 +3197,12 @@ export type Database = {
         Insert: {
           ativo?: boolean
           categoria?: string
+          codigo_barras?: string | null
           created_at?: string
           custo_medio?: number
+          descricao?: string | null
           estoque_minimo?: number
+          fornecedor?: string | null
           id?: string
           nome: string
           sku?: string | null
@@ -3207,9 +3213,12 @@ export type Database = {
         Update: {
           ativo?: boolean
           categoria?: string
+          codigo_barras?: string | null
           created_at?: string
           custo_medio?: number
+          descricao?: string | null
           estoque_minimo?: number
+          fornecedor?: string | null
           id?: string
           nome?: string
           sku?: string | null
@@ -3268,6 +3277,7 @@ export type Database = {
           created_by: string | null
           custo_unitario: number | null
           id: string
+          idempotency_key: string | null
           item_id: string
           local_id: string | null
           observacao: string | null
@@ -3277,12 +3287,14 @@ export type Database = {
           ref_type: string | null
           tenant_id: string
           tipo: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           custo_unitario?: number | null
           id?: string
+          idempotency_key?: string | null
           item_id: string
           local_id?: string | null
           observacao?: string | null
@@ -3292,12 +3304,14 @@ export type Database = {
           ref_type?: string | null
           tenant_id: string
           tipo: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
           custo_unitario?: number | null
           id?: string
+          idempotency_key?: string | null
           item_id?: string
           local_id?: string | null
           observacao?: string | null
@@ -3307,6 +3321,7 @@ export type Database = {
           ref_type?: string | null
           tenant_id?: string
           tipo?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3315,6 +3330,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estoque_itens"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_saldos"
+            referencedColumns: ["item_id"]
           },
           {
             foreignKeyName: "estoque_movimentos_local_id_fkey"
@@ -3334,37 +3356,49 @@ export type Database = {
       }
       estoque_reservas: {
         Row: {
+          consumed_at: string | null
           created_at: string
+          created_by: string | null
           id: string
           item_id: string
           local_id: string | null
+          observacao: string | null
           quantidade_reservada: number
           ref_id: string | null
           ref_type: string | null
           status: string
           tenant_id: string
+          updated_at: string
         }
         Insert: {
+          consumed_at?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           item_id: string
           local_id?: string | null
+          observacao?: string | null
           quantidade_reservada: number
           ref_id?: string | null
           ref_type?: string | null
           status?: string
           tenant_id: string
+          updated_at?: string
         }
         Update: {
+          consumed_at?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           item_id?: string
           local_id?: string | null
+          observacao?: string | null
           quantidade_reservada?: number
           ref_id?: string | null
           ref_type?: string | null
           status?: string
           tenant_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3373,6 +3407,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estoque_itens"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_saldos"
+            referencedColumns: ["item_id"]
           },
           {
             foreignKeyName: "estoque_reservas_local_id_fkey"
@@ -19379,6 +19420,7 @@ export type Database = {
         Row: {
           ativo: boolean | null
           categoria: string | null
+          codigo_barras: string | null
           custo_medio: number | null
           estoque_atual: number | null
           estoque_minimo: number | null
@@ -19389,12 +19431,75 @@ export type Database = {
           tenant_id: string | null
           unidade: string | null
         }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo_barras?: string | null
+          custo_medio?: number | null
+          estoque_atual?: never
+          estoque_minimo?: number | null
+          item_id?: string | null
+          nome?: string | null
+          reservado?: never
+          sku?: string | null
+          tenant_id?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo_barras?: string | null
+          custo_medio?: number | null
+          estoque_atual?: never
+          estoque_minimo?: number | null
+          item_id?: string | null
+          nome?: string | null
+          reservado?: never
+          sku?: string | null
+          tenant_id?: string | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_saldos_local: {
+        Row: {
+          item_id: string | null
+          item_nome: string | null
+          local_id: string | null
+          local_nome: string | null
+          saldo_local: number | null
+          sku: string | null
+          tenant_id: string | null
+          unidade: string | null
+        }
         Relationships: [
           {
             foreignKeyName: "estoque_movimentos_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_saldos"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_local_id_fkey"
+            columns: ["local_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_locais"
             referencedColumns: ["id"]
           },
           {
@@ -19680,6 +19785,22 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: string
+      }
+      estoque_consumir_reserva: {
+        Args: { p_observacao?: string; p_reserva_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      estoque_transferir: {
+        Args: {
+          p_item_id: string
+          p_local_destino: string
+          p_local_origem: string
+          p_observacao?: string
+          p_quantidade: number
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       expire_proposals: { Args: never; Returns: undefined }
       finalize_proposta_versao: {
