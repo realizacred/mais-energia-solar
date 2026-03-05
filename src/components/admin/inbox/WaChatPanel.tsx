@@ -164,6 +164,7 @@ export function WaChatPanel({
   const [showNotesPanel, setShowNotesPanel] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showFilesPanel, setShowFilesPanel] = useState(false);
+  const [showOrcamentos, setShowOrcamentos] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ url: string; type: "image" | "video" | "audio" | "document"; caption?: string } | null>(null);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyingTo | null>(null);
