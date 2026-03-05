@@ -60,6 +60,7 @@ import { WaMediaPreview } from "./WaMediaPreview";
 import { WaMessageContextMenu, type ContextMenuState } from "./WaMessageContextMenu";
 import { WaMessageBubble } from "./WaMessageBubble";
 import { WaAppointmentModal } from "./WaAppointmentModal";
+import { WaOrcamentosDrawer } from "./WaOrcamentosDrawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 
@@ -163,6 +164,7 @@ export function WaChatPanel({
   const [showNotesPanel, setShowNotesPanel] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showFilesPanel, setShowFilesPanel] = useState(false);
+  const [showOrcamentos, setShowOrcamentos] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ url: string; type: "image" | "video" | "audio" | "document"; caption?: string } | null>(null);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyingTo | null>(null);
@@ -566,6 +568,10 @@ export function WaChatPanel({
                     <CalendarPlus className="h-4 w-4 mr-2" />
                     Agendar Compromisso
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowOrcamentos(true)}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    📄 Orçamentos
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowParticipants(!showParticipants)}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Participantes
@@ -934,6 +940,15 @@ export function WaChatPanel({
           </SheetContent>
         </Sheet>
       )}
+
+      {/* Orcamentos Drawer */}
+      <WaOrcamentosDrawer
+        open={showOrcamentos}
+        onOpenChange={setShowOrcamentos}
+        leadId={conversation.lead_id}
+        clienteNome={conversation.cliente_nome}
+        clienteTelefone={conversation.cliente_telefone}
+      />
     </div>
   );
 }
