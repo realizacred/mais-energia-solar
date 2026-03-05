@@ -19513,6 +19513,7 @@ export type Database = {
           categoria: string | null
           codigo_barras: string | null
           custo_medio: number | null
+          disponivel: number | null
           estoque_atual: number | null
           estoque_minimo: number | null
           item_id: string | null
@@ -19527,6 +19528,7 @@ export type Database = {
           categoria?: string | null
           codigo_barras?: string | null
           custo_medio?: number | null
+          disponivel?: never
           estoque_atual?: never
           estoque_minimo?: number | null
           item_id?: string | null
@@ -19541,6 +19543,7 @@ export type Database = {
           categoria?: string | null
           codigo_barras?: string | null
           custo_medio?: number | null
+          disponivel?: never
           estoque_atual?: never
           estoque_minimo?: number | null
           item_id?: string | null
@@ -19562,10 +19565,12 @@ export type Database = {
       }
       estoque_saldos_local: {
         Row: {
+          disponivel_local: number | null
           item_id: string | null
           item_nome: string | null
           local_id: string | null
           local_nome: string | null
+          reservado_local: number | null
           saldo_local: number | null
           sku: string | null
           tenant_id: string | null
