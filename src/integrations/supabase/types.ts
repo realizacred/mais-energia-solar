@@ -19884,7 +19884,7 @@ export type Database = {
       }
       estoque_cancelar_reserva: {
         Args: { p_reserva_id: string; p_user_id?: string }
-        Returns: undefined
+        Returns: string
       }
       estoque_cancelar_reservas_projeto: {
         Args: { p_projeto_id: string; p_user_id: string }
