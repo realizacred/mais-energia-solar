@@ -940,6 +940,15 @@ export function WaChatPanel({
           </SheetContent>
         </Sheet>
       )}
+
+      {/* Orcamentos Drawer */}
+      <WaOrcamentosDrawer
+        open={showOrcamentos}
+        onOpenChange={setShowOrcamentos}
+        leadId={conversation.lead_id}
+        clienteNome={conversation.cliente_nome}
+        clienteTelefone={conversation.cliente_telefone}
+      />
     </div>
   );
 }
