@@ -28,7 +28,7 @@ const UC_SELECT_COLS = `id, tenant_id, codigo_uc, nome, tipo_uc, concessionaria_
 export const unitService = {
   async list(filters?: { tipo_uc?: string; is_archived?: boolean; search?: string }) {
     let q = supabase.from("units_consumidoras").select(UC_SELECT_COLS).order("nome");
-    if (filters?.tipo_uc && filters.tipo_uc !== "all") q = q.eq("tipo_uc", filters.tipo_uc);
+    if (filters?.tipo_uc && filters.tipo_uc !== "all") q = q.eq("tipo_uc", filters.tipo_uc as any);
     if (filters?.is_archived !== undefined) q = q.eq("is_archived", filters.is_archived);
     if (filters?.search) q = q.or(`nome.ilike.%${filters.search}%,codigo_uc.ilike.%${filters.search}%`);
     const { data, error } = await q;
