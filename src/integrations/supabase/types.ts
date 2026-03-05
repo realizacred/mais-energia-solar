@@ -3177,6 +3177,54 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_categorias: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          parent_id: string | null
+          slug: string
+          tenant_id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          parent_id?: string | null
+          slug: string
+          tenant_id: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          parent_id?: string | null
+          slug?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_categorias_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_categorias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_itens: {
         Row: {
           ativo: boolean
@@ -3190,6 +3238,7 @@ export type Database = {
           id: string
           nome: string
           sku: string | null
+          subcategoria: string | null
           tenant_id: string
           unidade: string
           updated_at: string
@@ -3206,6 +3255,7 @@ export type Database = {
           id?: string
           nome: string
           sku?: string | null
+          subcategoria?: string | null
           tenant_id: string
           unidade?: string
           updated_at?: string
@@ -3222,6 +3272,7 @@ export type Database = {
           id?: string
           nome?: string
           sku?: string | null
+          subcategoria?: string | null
           tenant_id?: string
           unidade?: string
           updated_at?: string
@@ -19520,38 +19571,9 @@ export type Database = {
           nome: string | null
           reservado: number | null
           sku: string | null
+          subcategoria: string | null
           tenant_id: string | null
           unidade: string | null
-        }
-        Insert: {
-          ativo?: boolean | null
-          categoria?: string | null
-          codigo_barras?: string | null
-          custo_medio?: number | null
-          disponivel?: never
-          estoque_atual?: never
-          estoque_minimo?: number | null
-          item_id?: string | null
-          nome?: string | null
-          reservado?: never
-          sku?: string | null
-          tenant_id?: string | null
-          unidade?: string | null
-        }
-        Update: {
-          ativo?: boolean | null
-          categoria?: string | null
-          codigo_barras?: string | null
-          custo_medio?: number | null
-          disponivel?: never
-          estoque_atual?: never
-          estoque_minimo?: number | null
-          item_id?: string | null
-          nome?: string | null
-          reservado?: never
-          sku?: string | null
-          tenant_id?: string | null
-          unidade?: string | null
         }
         Relationships: [
           {
