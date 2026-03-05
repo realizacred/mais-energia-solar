@@ -145,12 +145,7 @@ export function WaMessageBubble({
               {msg.participant_name}
             </p>
           )}
-          {/* Attendant name for outgoing messages */}
-          {isOut && msg.sent_by_name && !isNote && (
-            <p className="text-[10px] font-semibold text-primary/80 mb-0.5">
-              {msg.sent_by_name}
-            </p>
-          )}
+          {/* Attendant name moved to bottom (near timestamp) */}
           {isNote && (
             <div className="flex items-center gap-1 mb-1 text-[10px] text-warning font-medium">
               <StickyNote className="h-3 w-3" />
