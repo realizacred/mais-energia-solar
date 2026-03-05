@@ -568,6 +568,10 @@ export function WaChatPanel({
                     <CalendarPlus className="h-4 w-4 mr-2" />
                     Agendar Compromisso
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowOrcamentos(true)}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    📄 Orçamentos
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowParticipants(!showParticipants)}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Participantes
