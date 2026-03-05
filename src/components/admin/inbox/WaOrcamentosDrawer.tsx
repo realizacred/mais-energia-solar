@@ -158,6 +158,14 @@ export function WaOrcamentosDrawer({
               <div className="flex items-center justify-center py-12">
                 <Spinner size="sm" />
               </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-8 w-8 text-destructive/30 mb-2" />
+                <p className="text-sm text-destructive">Erro ao carregar orçamentos</p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
+                  Tentar novamente
+                </Button>
+              </div>
             ) : orcamentos.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FileText className="h-8 w-8 text-muted-foreground/30 mb-2" />
