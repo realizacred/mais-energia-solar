@@ -406,14 +406,15 @@ export function useConsumeReserva() {
 
 export function useCancelReserva() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const invalidate = useInvalidateEstoque();
 
   return useMutation({
     mutationFn: async (reservaId: string) => {
-      const { error } = await (supabase as any)
-        .from("estoque_reservas")
-        .update({ status: "cancelled", updated_at: new Date().toISOString() })
-        .eq("id", reservaId);
+      const { error } = await (supabase as any).rpc("estoque_cancelar_reserva", {
+        p_reserva_id: reservaId,
+        p_user_id: user?.id || null,
+      });
       if (error) throw error;
     },
     onSuccess: () => { invalidate(); toast({ title: "Reserva cancelada" }); },
