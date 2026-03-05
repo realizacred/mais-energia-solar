@@ -145,12 +145,7 @@ export function WaMessageBubble({
               {msg.participant_name}
             </p>
           )}
-          {/* Attendant name for outgoing messages */}
-          {isOut && msg.sent_by_name && !isNote && (
-            <p className="text-[10px] font-semibold text-primary/80 mb-0.5">
-              {msg.sent_by_name}
-            </p>
-          )}
+          {/* Attendant name moved to bottom (near timestamp) */}
           {isNote && (
             <div className="flex items-center gap-1 mb-1 text-[10px] text-warning font-medium">
               <StickyNote className="h-3 w-3" />
@@ -274,8 +269,13 @@ export function WaMessageBubble({
             <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
           )}
 
-          {/* Timestamp & status */}
+          {/* Attendant name + Timestamp & status */}
           <div className={`flex items-center gap-1 mt-1 ${isNote ? "text-warning/70" : "text-muted-foreground"}`}>
+            {isOut && msg.sent_by_name && !isNote && (
+              <span className="text-[10px] text-muted-foreground/70 italic mr-1">
+                {msg.sent_by_name}
+              </span>
+            )}
             <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
             {statusCfg && (
               <Tooltip>
