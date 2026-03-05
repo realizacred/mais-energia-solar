@@ -3244,6 +3244,7 @@ export type Database = {
           nome: string
           tenant_id: string
           tipo: string
+          updated_at: string
         }
         Insert: {
           ativo?: boolean
@@ -3252,6 +3253,7 @@ export type Database = {
           nome: string
           tenant_id: string
           tipo?: string
+          updated_at?: string
         }
         Update: {
           ativo?: boolean
@@ -3260,6 +3262,7 @@ export type Database = {
           nome?: string
           tenant_id?: string
           tipo?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3273,6 +3276,7 @@ export type Database = {
       }
       estoque_movimentos: {
         Row: {
+          ajuste_sinal: number
           created_at: string
           created_by: string | null
           custo_unitario: number | null
@@ -3290,6 +3294,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ajuste_sinal?: number
           created_at?: string
           created_by?: string | null
           custo_unitario?: number | null
@@ -3307,6 +3312,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ajuste_sinal?: number
           created_at?: string
           created_by?: string | null
           custo_unitario?: number | null
@@ -10676,6 +10682,91 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "projeto_funis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_materiais: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          local_id: string | null
+          projeto_id: string
+          quantidade: number
+          reserva_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          local_id?: string | null
+          projeto_id: string
+          quantidade: number
+          reserva_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          local_id?: string | null
+          projeto_id?: string
+          quantidade?: number
+          reserva_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_materiais_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_saldos"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_local_id_fkey"
+            columns: ["local_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_locais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_reservas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
