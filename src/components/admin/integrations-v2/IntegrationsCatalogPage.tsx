@@ -39,6 +39,7 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   meta_facebook: lazy(() => import("@/pages/admin/MetaFacebookConfigPage")),
   instagram_api: lazy(() => import("@/components/admin/InstagramConfig").then(m => ({ default: m.InstagramConfig }))),
   google_calendar: lazy(() => import("@/components/admin/integrations/IntegrationsPage")),
+  google_contacts: lazy(() => import("@/components/admin/integrations/GoogleContactsCard").then(m => ({ default: m.GoogleContactsCard }))),
   webhooks_generic: lazy(() => import("@/components/admin/WebhookManager")),
   asaas: lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig }))),
   public_api: lazy(() => import("@/pages/admin/OpenAIConfigPage")),
