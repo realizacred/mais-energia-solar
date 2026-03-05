@@ -1,6 +1,6 @@
 /**
  * Estoque (Inventory) hooks - SSOT ledger-based
- * Refactored: types + constants + query/mutation hooks
+ * All mutations go through backend RPCs (no direct inserts)
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ export interface EstoqueMovimento {
   ref_id: string | null;
   observacao: string | null;
   idempotency_key: string | null;
+  ajuste_sinal: number;
   created_at: string;
   created_by: string | null;
   item_nome?: string;
@@ -57,6 +58,7 @@ export interface EstoqueSaldo {
   codigo_barras: string | null;
   estoque_atual: number;
   reservado: number;
+  disponivel: number;
 }
 
 export interface EstoqueSaldoLocal {
@@ -68,6 +70,8 @@ export interface EstoqueSaldoLocal {
   unidade: string;
   local_nome: string;
   saldo_local: number;
+  reservado_local: number;
+  disponivel_local: number;
 }
 
 export type EstoqueLocal = {
@@ -92,6 +96,21 @@ export interface EstoqueReserva {
   created_by: string | null;
   consumed_at: string | null;
   item_nome?: string;
+}
+
+export interface ProjetoMaterial {
+  id: string;
+  tenant_id: string;
+  projeto_id: string;
+  item_id: string;
+  local_id: string | null;
+  quantidade: number;
+  reserva_id: string | null;
+  status: "pendente" | "reservado" | "consumido" | "cancelado";
+  created_by: string | null;
+  created_at: string;
+  item_nome?: string;
+  local_nome?: string;
 }
 
 // ─── Constants ──────────────────────────────────────────
@@ -221,9 +240,31 @@ export function useEstoqueReservas(statusFilter?: string) {
   });
 }
 
+export function useProjetoMateriais(projetoId: string | undefined) {
+  return useQuery<ProjetoMaterial[]>({
+    queryKey: ["projeto-materiais", projetoId],
+    enabled: !!projetoId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("projeto_materiais")
+        .select("*, estoque_itens(nome), estoque_locais(nome)")
+        .eq("projeto_id", projetoId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []).map((m: any) => ({
+        ...m,
+        item_nome: m.estoque_itens?.nome || "—",
+        local_nome: m.estoque_locais?.nome || "—",
+        estoque_itens: undefined,
+        estoque_locais: undefined,
+      }));
+    },
+  });
+}
+
 // ─── Mutations ──────────────────────────────────────────
 
-const INVALIDATE_KEYS = ["estoque-itens", "estoque-saldos", "estoque-saldos-local", "estoque-movimentos", "estoque-reservas"];
+const INVALIDATE_KEYS = ["estoque-itens", "estoque-saldos", "estoque-saldos-local", "estoque-movimentos", "estoque-reservas", "projeto-materiais"];
 
 function useInvalidateEstoque() {
   const qc = useQueryClient();
@@ -231,7 +272,6 @@ function useInvalidateEstoque() {
 }
 
 export function useCreateEstoqueItem() {
-  const qc = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
   const invalidate = useInvalidateEstoque();
@@ -265,6 +305,7 @@ export function useUpdateEstoqueItem() {
   });
 }
 
+/** Create movement via backend RPC (with validation + locks) */
 export function useCreateMovimento() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -282,17 +323,26 @@ export function useCreateMovimento() {
       ref_type?: string;
       ref_id?: string;
       idempotency_key?: string;
+      ajuste_sinal?: number;
     }) => {
       const tenantId = await resolveTenantId(user!.id);
-      const { error } = await (supabase as any)
-        .from("estoque_movimentos")
-        .insert({
-          ...mov,
-          tenant_id: tenantId,
-          created_by: user!.id,
-          origem: mov.origem || "manual",
-        });
+      const { data, error } = await (supabase as any).rpc("estoque_criar_movimento", {
+        p_tenant_id: tenantId,
+        p_item_id: mov.item_id,
+        p_local_id: mov.local_id || null,
+        p_tipo: mov.tipo,
+        p_quantidade: mov.quantidade,
+        p_origem: mov.origem || "manual",
+        p_ref_type: mov.ref_type || null,
+        p_ref_id: mov.ref_id || null,
+        p_observacao: mov.observacao || null,
+        p_idempotency_key: mov.idempotency_key || null,
+        p_custo_unitario: mov.custo_unitario || null,
+        p_ajuste_sinal: mov.ajuste_sinal ?? 1,
+        p_user_id: user!.id,
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => { invalidate(); toast({ title: "Movimento registrado" }); },
     onError: (e: Error) => { toast({ title: "Erro ao registrar movimento", description: e.message, variant: "destructive" }); },
@@ -407,5 +457,75 @@ export function useCreateEstoqueLocal() {
     },
     onSuccess: () => { invalidate(); toast({ title: "Depósito criado" }); },
     onError: (e: Error) => { toast({ title: "Erro ao criar depósito", description: e.message, variant: "destructive" }); },
+  });
+}
+
+/** Reserve material for a project (backend RPC with locks) */
+export function useReservarMaterialProjeto() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const invalidate = useInvalidateEstoque();
+
+  return useMutation({
+    mutationFn: async (params: {
+      projeto_id: string;
+      item_id: string;
+      local_id: string | null;
+      quantidade: number;
+    }) => {
+      const tenantId = await resolveTenantId(user!.id);
+      const { data, error } = await (supabase as any).rpc("estoque_reservar_material_projeto", {
+        p_tenant_id: tenantId,
+        p_projeto_id: params.projeto_id,
+        p_item_id: params.item_id,
+        p_local_id: params.local_id,
+        p_quantidade: params.quantidade,
+        p_user_id: user!.id,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { invalidate(); toast({ title: "Material reservado para o projeto" }); },
+    onError: (e: Error) => { toast({ title: "Erro ao reservar material", description: e.message, variant: "destructive" }); },
+  });
+}
+
+/** Consume all reservations for a project */
+export function useConsumirProjeto() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const invalidate = useInvalidateEstoque();
+
+  return useMutation({
+    mutationFn: async (projetoId: string) => {
+      const { data, error } = await (supabase as any).rpc("estoque_consumir_projeto", {
+        p_projeto_id: projetoId,
+        p_user_id: user!.id,
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (count) => { invalidate(); toast({ title: `${count} materiais consumidos do estoque` }); },
+    onError: (e: Error) => { toast({ title: "Erro ao consumir materiais", description: e.message, variant: "destructive" }); },
+  });
+}
+
+/** Cancel all reservations for a project */
+export function useCancelarReservasProjeto() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const invalidate = useInvalidateEstoque();
+
+  return useMutation({
+    mutationFn: async (projetoId: string) => {
+      const { data, error } = await (supabase as any).rpc("estoque_cancelar_reservas_projeto", {
+        p_projeto_id: projetoId,
+        p_user_id: user!.id,
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (count) => { invalidate(); toast({ title: `${count} reservas canceladas` }); },
+    onError: (e: Error) => { toast({ title: "Erro ao cancelar reservas", description: e.message, variant: "destructive" }); },
   });
 }

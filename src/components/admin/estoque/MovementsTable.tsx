@@ -27,30 +27,36 @@ export function MovementsTable({ movements }: { movements: EstoqueMovimento[] })
           </tr>
         </thead>
         <tbody>
-          {movements.map((m) => (
-            <tr key={m.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-              <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
-                {formatDistanceToNow(new Date(m.created_at), { addSuffix: true, locale: ptBR })}
-              </td>
-              <td className="p-3 font-medium text-foreground">{m.item_nome}</td>
-              <td className="p-3 text-muted-foreground hidden md:table-cell text-xs">{m.local_nome}</td>
-              <td className="p-3 text-center">
-                <Badge className={`text-[10px] ${tipoStyles[m.tipo] || ""}`}>
-                  {TIPO_MOVIMENTO_LABELS[m.tipo] || m.tipo}
-                </Badge>
-              </td>
-              <td className="p-3 text-right font-semibold">
-                {m.tipo === "saida" ? "-" : "+"}{m.quantidade}
-              </td>
-              <td className="p-3 text-right text-muted-foreground hidden sm:table-cell">
-                {m.custo_unitario ? `R$ ${Number(m.custo_unitario).toFixed(2)}` : "—"}
-              </td>
-              <td className="p-3 text-xs text-muted-foreground hidden lg:table-cell">{m.origem}</td>
-              <td className="p-3 text-xs text-muted-foreground hidden md:table-cell max-w-[200px] truncate">
-                {m.observacao || "—"}
-              </td>
-            </tr>
-          ))}
+          {movements.map((m) => {
+            const sign = m.tipo === "saida" ? "-"
+              : m.tipo === "ajuste" && m.ajuste_sinal === -1 ? "-"
+              : "+";
+            return (
+              <tr key={m.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
+                  {formatDistanceToNow(new Date(m.created_at), { addSuffix: true, locale: ptBR })}
+                </td>
+                <td className="p-3 font-medium text-foreground">{m.item_nome}</td>
+                <td className="p-3 text-muted-foreground hidden md:table-cell text-xs">{m.local_nome}</td>
+                <td className="p-3 text-center">
+                  <Badge className={`text-[10px] ${tipoStyles[m.tipo] || ""}`}>
+                    {TIPO_MOVIMENTO_LABELS[m.tipo] || m.tipo}
+                    {m.tipo === "ajuste" && (m.ajuste_sinal === -1 ? " ▼" : " ▲")}
+                  </Badge>
+                </td>
+                <td className="p-3 text-right font-semibold">
+                  {sign}{m.quantidade}
+                </td>
+                <td className="p-3 text-right text-muted-foreground hidden sm:table-cell">
+                  {m.custo_unitario ? `R$ ${Number(m.custo_unitario).toFixed(2)}` : "—"}
+                </td>
+                <td className="p-3 text-xs text-muted-foreground hidden lg:table-cell">{m.origem}</td>
+                <td className="p-3 text-xs text-muted-foreground hidden md:table-cell max-w-[200px] truncate">
+                  {m.observacao || "—"}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

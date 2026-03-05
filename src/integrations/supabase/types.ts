@@ -19786,9 +19786,28 @@ export type Database = {
         }
         Returns: string
       }
+      estoque_cancelar_reservas_projeto: {
+        Args: { p_projeto_id: string; p_user_id: string }
+        Returns: number
+      }
+      estoque_consumir_projeto: {
+        Args: { p_projeto_id: string; p_user_id: string }
+        Returns: number
+      }
       estoque_consumir_reserva: {
         Args: { p_observacao?: string; p_reserva_id: string; p_user_id: string }
         Returns: undefined
+      }
+      estoque_reservar_material_projeto: {
+        Args: {
+          p_item_id: string
+          p_local_id: string
+          p_projeto_id: string
+          p_quantidade: number
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: string
       }
       estoque_transferir: {
         Args: {
@@ -19800,7 +19819,7 @@ export type Database = {
           p_tenant_id: string
           p_user_id: string
         }
-        Returns: undefined
+        Returns: string
       }
       expire_proposals: { Args: never; Returns: undefined }
       finalize_proposta_versao: {

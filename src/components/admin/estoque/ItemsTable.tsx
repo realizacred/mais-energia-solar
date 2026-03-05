@@ -28,7 +28,6 @@ export function ItemsTable({ items, onQrCode }: ItemsTableProps) {
         <tbody>
           {items.map((item) => {
             const isLow = item.estoque_minimo > 0 && item.estoque_atual <= item.estoque_minimo;
-            const disponivel = item.estoque_atual - item.reservado;
             return (
               <tr key={item.item_id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                 <td className="p-3">
@@ -45,7 +44,7 @@ export function ItemsTable({ items, onQrCode }: ItemsTableProps) {
                   {item.reservado > 0 ? item.reservado : "—"}
                 </td>
                 <td className="p-3 text-right font-medium hidden md:table-cell">
-                  {disponivel} {item.unidade}
+                  {item.disponivel} {item.unidade}
                 </td>
                 <td className="p-3 text-right text-muted-foreground hidden md:table-cell">
                   {item.estoque_minimo} {item.unidade}
