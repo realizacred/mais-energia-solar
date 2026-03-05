@@ -56,6 +56,7 @@ const AvaliacoesManager = lazy(() => import("@/components/admin/AvaliacoesManage
 const ServicosManager = lazy(() => import("@/components/admin/ServicosManager").then(m => ({ default: m.ServicosManager })));
 const InstaladorManager = lazy(() => import("@/components/admin/InstaladorManager").then(m => ({ default: m.InstaladorManager })));
 const EstoquePage = lazy(() => import("@/components/admin/estoque/EstoquePage"));
+const DepositosPage = lazy(() => import("@/components/admin/estoque/DepositosPage").then(m => ({ default: m.DepositosPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
@@ -545,6 +546,7 @@ export default function Admin() {
                 {/* Operações */}
                 <Route path="instaladores" element={<InstaladorManager />} />
                 <Route path="estoque" element={<EstoquePage />} />
+                <Route path="depositos" element={<DepositosPage />} />
                 
                 {/* Financeiro */}
                 <Route path="recebimentos" element={<RecebimentosManager />} />
