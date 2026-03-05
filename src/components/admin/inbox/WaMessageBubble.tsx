@@ -269,13 +269,15 @@ export function WaMessageBubble({
             <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
           )}
 
-          {/* Attendant name + Timestamp & status */}
-          <div className={`flex items-center gap-1 mt-1 ${isNote ? "text-warning/70" : "text-muted-foreground"}`}>
-            {isOut && msg.sent_by_name && !isNote && (
-              <span className="text-[10px] text-muted-foreground/70 italic mr-1">
-                {msg.sent_by_name}
-              </span>
-            )}
+          {/* Attendant name — discrete line below content */}
+          {isOut && msg.sent_by_name && !isNote && (
+            <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+              Enviado por {msg.sent_by_name}
+            </p>
+          )}
+
+          {/* Timestamp & status */}
+          <div className={`flex items-center gap-1 mt-0.5 ${isNote ? "text-warning/70" : "text-muted-foreground"}`}>
             <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
             {statusCfg && (
               <Tooltip>
