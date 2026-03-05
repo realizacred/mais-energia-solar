@@ -19912,6 +19912,19 @@ export type Database = {
         }
         Returns: string
       }
+      estoque_reservar_material_avulso: {
+        Args: {
+          p_item_id: string
+          p_local_id?: string
+          p_observacao?: string
+          p_quantidade?: number
+          p_ref_id?: string
+          p_ref_type?: string
+          p_tenant_id: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
       estoque_reservar_material_projeto: {
         Args: {
           p_item_id: string
