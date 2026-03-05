@@ -83,6 +83,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "tarefas", label_default: "Tarefas & Prazos", group_default: "Operações", order_default: 2, icon: "ClipboardList", description: "Controle de pendências e prazos", keywords: ["tarefa", "prazo", "SLA", "pendência"], criticality: "normal", permission: "all" },
   // ── Estoque ──
   { nav_key: "estoque", label_default: "Estoque", group_default: "Estoque", order_default: 0, icon: "Package", description: "Materiais e insumos", keywords: ["estoque", "material", "cabo", "disjuntor", "inventário"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "depositos", label_default: "Depósitos", group_default: "Estoque", order_default: 1, icon: "Warehouse", description: "Cadastro e gestão de locais de armazenamento", keywords: ["depósito", "almoxarifado", "veículo", "local", "armazém"], criticality: "normal", permission: "admin_only" },
 
   // ── SolarMarket (importação) ──
   { nav_key: "solarmarket", label_default: "SolarMarket Importação", group_default: "Integrações", order_default: 4.5, icon: "Sun", description: "Importar clientes, projetos e propostas do SolarMarket", keywords: ["solarmarket", "importar", "cliente", "projeto", "proposta", "sincronizar"], criticality: "normal", permission: "admin_only" },
