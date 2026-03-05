@@ -349,6 +349,7 @@ export function useCreateMovimento() {
   });
 }
 
+/** Create reservation via backend RPC (with validation + locks) */
 export function useCreateReserva() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -364,10 +365,20 @@ export function useCreateReserva() {
       observacao?: string;
     }) => {
       const tenantId = await resolveTenantId(user!.id);
-      const { error } = await (supabase as any)
-        .from("estoque_reservas")
-        .insert({ ...reserva, tenant_id: tenantId, created_by: user!.id });
+      // Use the same RPC as project reservation but without projeto_id binding
+      // We create via estoque_criar_movimento-style validation by inserting through RPC
+      const { data, error } = await (supabase as any).rpc("estoque_reservar_material_avulso", {
+        p_tenant_id: tenantId,
+        p_item_id: reserva.item_id,
+        p_local_id: reserva.local_id || null,
+        p_quantidade: reserva.quantidade_reservada,
+        p_ref_type: reserva.ref_type || null,
+        p_ref_id: reserva.ref_id || null,
+        p_observacao: reserva.observacao || null,
+        p_user_id: user!.id,
+      });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => { invalidate(); toast({ title: "Reserva criada" }); },
     onError: (e: Error) => { toast({ title: "Erro ao criar reserva", description: e.message, variant: "destructive" }); },

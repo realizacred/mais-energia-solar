@@ -3244,6 +3244,7 @@ export type Database = {
           nome: string
           tenant_id: string
           tipo: string
+          updated_at: string
         }
         Insert: {
           ativo?: boolean
@@ -3252,6 +3253,7 @@ export type Database = {
           nome: string
           tenant_id: string
           tipo?: string
+          updated_at?: string
         }
         Update: {
           ativo?: boolean
@@ -3260,6 +3262,7 @@ export type Database = {
           nome?: string
           tenant_id?: string
           tipo?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3273,6 +3276,7 @@ export type Database = {
       }
       estoque_movimentos: {
         Row: {
+          ajuste_sinal: number
           created_at: string
           created_by: string | null
           custo_unitario: number | null
@@ -3290,6 +3294,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ajuste_sinal?: number
           created_at?: string
           created_by?: string | null
           custo_unitario?: number | null
@@ -3307,6 +3312,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ajuste_sinal?: number
           created_at?: string
           created_by?: string | null
           custo_unitario?: number | null
@@ -10676,6 +10682,91 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "projeto_funis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_materiais: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          local_id: string | null
+          projeto_id: string
+          quantidade: number
+          reserva_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          local_id?: string | null
+          projeto_id: string
+          quantidade: number
+          reserva_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          local_id?: string | null
+          projeto_id?: string
+          quantidade?: number
+          reserva_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_materiais_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_saldos"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_local_id_fkey"
+            columns: ["local_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_locais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_reservas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_materiais_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -19422,6 +19513,7 @@ export type Database = {
           categoria: string | null
           codigo_barras: string | null
           custo_medio: number | null
+          disponivel: number | null
           estoque_atual: number | null
           estoque_minimo: number | null
           item_id: string | null
@@ -19436,6 +19528,7 @@ export type Database = {
           categoria?: string | null
           codigo_barras?: string | null
           custo_medio?: number | null
+          disponivel?: never
           estoque_atual?: never
           estoque_minimo?: number | null
           item_id?: string | null
@@ -19450,6 +19543,7 @@ export type Database = {
           categoria?: string | null
           codigo_barras?: string | null
           custo_medio?: number | null
+          disponivel?: never
           estoque_atual?: never
           estoque_minimo?: number | null
           item_id?: string | null
@@ -19471,10 +19565,12 @@ export type Database = {
       }
       estoque_saldos_local: {
         Row: {
+          disponivel_local: number | null
           item_id: string | null
           item_nome: string | null
           local_id: string | null
           local_nome: string | null
+          reservado_local: number | null
           saldo_local: number | null
           sku: string | null
           tenant_id: string | null
@@ -19796,7 +19892,38 @@ export type Database = {
       }
       estoque_consumir_reserva: {
         Args: { p_observacao?: string; p_reserva_id: string; p_user_id: string }
-        Returns: undefined
+        Returns: string
+      }
+      estoque_criar_movimento: {
+        Args: {
+          p_ajuste_sinal?: number
+          p_custo_unitario?: number
+          p_idempotency_key?: string
+          p_item_id: string
+          p_local_id?: string
+          p_observacao?: string
+          p_origem?: string
+          p_quantidade?: number
+          p_ref_id?: string
+          p_ref_type?: string
+          p_tenant_id: string
+          p_tipo?: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
+      estoque_reservar_material_avulso: {
+        Args: {
+          p_item_id: string
+          p_local_id?: string
+          p_observacao?: string
+          p_quantidade?: number
+          p_ref_id?: string
+          p_ref_type?: string
+          p_tenant_id: string
+          p_user_id?: string
+        }
+        Returns: string
       }
       estoque_reservar_material_projeto: {
         Args: {
