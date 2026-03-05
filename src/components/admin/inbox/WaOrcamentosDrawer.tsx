@@ -36,30 +36,26 @@ export function WaOrcamentosDrawer({
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
-  const { data: orcamentos = [], isLoading, refetch } = useQuery({
+  const { data: orcamentos = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["wa-orcamentos-drawer", leadId],
     queryFn: async () => {
       if (!leadId) return [];
+      // Query simples SEM join inner — evita lista vazia por RLS ou lead deletado
       const { data, error } = await supabase
         .from("orcamentos")
-        .select(`
-          *,
-          lead:leads!inner(
-            id, lead_code, nome, telefone, telefone_normalized
-          )
-        `)
+        .select("*")
         .eq("lead_id", leadId)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Transform to OrcamentoDisplayItem
+      // Transform to OrcamentoDisplayItem usando props do chat como fallback
       return (data || []).map((orc: any): OrcamentoDisplayItem => ({
         id: orc.id,
         orc_code: orc.orc_code,
         lead_id: orc.lead_id,
-        lead_code: orc.lead?.lead_code || null,
-        nome: orc.lead?.nome || "",
-        telefone: orc.lead?.telefone || "",
+        lead_code: null,
+        nome: clienteNome || "",
+        telefone: clienteTelefone || "",
         cep: orc.cep,
         estado: orc.estado,
         cidade: orc.cidade,
