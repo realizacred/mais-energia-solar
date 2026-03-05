@@ -60,6 +60,7 @@ import { WaMediaPreview } from "./WaMediaPreview";
 import { WaMessageContextMenu, type ContextMenuState } from "./WaMessageContextMenu";
 import { WaMessageBubble } from "./WaMessageBubble";
 import { WaAppointmentModal } from "./WaAppointmentModal";
+import { WaOrcamentosDrawer } from "./WaOrcamentosDrawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 
