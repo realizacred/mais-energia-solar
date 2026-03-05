@@ -334,7 +334,19 @@ async function handleMessageUpsert(
       if (!fromMe) {
         updates.unread_count = (existingConv.unread_count || 0) + 1;
         if (!isGroup && contactName) {
-          updates.cliente_nome = contactName;
+          // Check contacts table for a user-saved name (priority over push name)
+          const phoneE164 = `+${phone}`;
+          const phoneAlt = altJids.length > 1 ? `+${altJids[1].replace("@s.whatsapp.net", "")}` : null;
+          const phonesToCheck = phoneAlt ? [phoneE164, phoneAlt] : [phoneE164];
+          const { data: savedContact } = await supabase
+            .from("contacts")
+            .select("name, display_name")
+            .eq("tenant_id", tenantId)
+            .in("phone_e164", phonesToCheck)
+            .limit(1)
+            .maybeSingle();
+          const savedName = savedContact?.display_name || savedContact?.name;
+          updates.cliente_nome = savedName || contactName;
         }
         if (existingConv.status === "resolved") {
           const trimmedContent = content?.trim() || "";
@@ -370,8 +382,22 @@ async function handleMessageUpsert(
           .eq("id", conversationId);
       }
     } else {
-      // P0-5: Fix group name placeholder — use null when no subject available
-      const displayName = isGroup ? (groupSubject || null) : contactName;
+      // For new conversations, check contacts table for a saved name
+      let displayName = isGroup ? (groupSubject || null) : contactName;
+      if (!isGroup && phone) {
+        const phoneE164 = `+${phone}`;
+        const phoneAlt = altJids.length > 1 ? `+${altJids[1].replace("@s.whatsapp.net", "")}` : null;
+        const phonesToCheck = phoneAlt ? [phoneE164, phoneAlt] : [phoneE164];
+        const { data: savedContact } = await supabase
+          .from("contacts")
+          .select("name, display_name")
+          .eq("tenant_id", tenantId)
+          .in("phone_e164", phonesToCheck)
+          .limit(1)
+          .maybeSingle();
+        const savedName = savedContact?.display_name || savedContact?.name;
+        if (savedName) displayName = savedName;
+      }
       
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
