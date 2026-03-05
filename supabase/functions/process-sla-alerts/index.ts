@@ -39,17 +39,31 @@ Deno.serve(async (req) => {
           .single();
         if (!tenant || tenant.status !== "active" || tenant.deleted_at) continue;
 
-        // Check business hours if configured
-        if (cfg.ignorar_fora_horario && cfg.horario_comercial_inicio && cfg.horario_comercial_fim) {
+        // Check business hours & weekends if configured
+        if (cfg.ignorar_fora_horario) {
           const now = new Date();
-          const hours = now.getHours();
-          const minutes = now.getMinutes();
-          const currentTime = hours * 60 + minutes;
-          const [startH, startM] = (cfg.horario_comercial_inicio as string).split(":").map(Number);
-          const [endH, endM] = (cfg.horario_comercial_fim as string).split(":").map(Number);
-          const startTime = startH * 60 + startM;
-          const endTime = endH * 60 + endM;
-          if (currentTime < startTime || currentTime > endTime) continue;
+          const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
+
+          // Skip weekends entirely
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+            console.log(`[sla] Skipping tenant=${cfg.tenant_id} — weekend (day=${dayOfWeek})`);
+            continue;
+          }
+
+          // Check business hours if configured
+          if (cfg.horario_comercial_inicio && cfg.horario_comercial_fim) {
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const currentTime = hours * 60 + minutes;
+            const [startH, startM] = (cfg.horario_comercial_inicio as string).split(":").map(Number);
+            const [endH, endM] = (cfg.horario_comercial_fim as string).split(":").map(Number);
+            const startTime = startH * 60 + startM;
+            const endTime = endH * 60 + endM;
+            if (currentTime < startTime || currentTime > endTime) {
+              console.log(`[sla] Skipping tenant=${cfg.tenant_id} — outside business hours`);
+              continue;
+            }
+          }
         }
 
         const cutoff = new Date(Date.now() - cfg.prazo_resposta_minutos * 60 * 1000).toISOString();
