@@ -215,7 +215,7 @@ export function WaOrcamentosDrawer({
                         </span>
                         <span className="flex items-center gap-1 ml-auto">
                           <Calendar className="h-3 w-3" />
-                          {format(new Date(orc.created_at), "dd/MM/yy", { locale: ptBR })}
+                          {(() => { try { return format(new Date(orc.created_at), "dd/MM/yy", { locale: ptBR }); } catch { return new Date(orc.created_at).toLocaleDateString("pt-BR"); } })()}
                         </span>
                       </div>
                     </button>
