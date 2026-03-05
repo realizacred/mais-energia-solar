@@ -7,7 +7,7 @@ import { useCreateMovimento, useEstoqueLocais, type EstoqueSaldo } from "@/hooks
 
 interface MovementFormDialogProps {
   open: boolean;
-  tipo: "entrada" | "saida";
+  tipo: "entrada" | "saida" | "ajuste";
   onOpenChange: () => void;
   saldos: EstoqueSaldo[];
 }
@@ -18,6 +18,7 @@ export function MovementFormDialog({ open, tipo, onOpenChange, saldos }: Movemen
   const [quantidade, setQuantidade] = useState("");
   const [custoUnitario, setCustoUnitario] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [ajusteSinal, setAjusteSinal] = useState<"1" | "-1">("1");
 
   const createMov = useCreateMovimento();
   const { data: locais = [] } = useEstoqueLocais();
@@ -31,13 +32,14 @@ export function MovementFormDialog({ open, tipo, onOpenChange, saldos }: Movemen
         tipo,
         quantidade: Number(quantidade),
         custo_unitario: tipo === "entrada" && custoUnitario ? Number(custoUnitario) : null,
-        origem: tipo === "entrada" ? "purchase" : "project",
+        origem: tipo === "entrada" ? "purchase" : tipo === "ajuste" ? "adjustment" : "manual",
         observacao: observacao.trim() || undefined,
+        ajuste_sinal: tipo === "ajuste" ? Number(ajusteSinal) : 1,
       },
       {
         onSuccess: () => {
           onOpenChange();
-          setItemId(""); setLocalId(""); setQuantidade(""); setCustoUnitario(""); setObservacao("");
+          setItemId(""); setLocalId(""); setQuantidade(""); setCustoUnitario(""); setObservacao(""); setAjusteSinal("1");
         },
       }
     );
@@ -45,11 +47,14 @@ export function MovementFormDialog({ open, tipo, onOpenChange, saldos }: Movemen
 
   const activeItems = saldos.filter((s) => s.ativo);
 
+  const title = tipo === "entrada" ? "Registrar Entrada" : tipo === "saida" ? "Registrar Saída" : "Registrar Ajuste";
+  const submitLabel = tipo === "entrada" ? "Confirmar Entrada" : tipo === "saida" ? "Confirmar Saída" : "Confirmar Ajuste";
+
   return (
     <FormModalTemplate open={open} onOpenChange={() => onOpenChange()}
-      title={tipo === "entrada" ? "Registrar Entrada" : "Registrar Saída"}
+      title={title}
       onSubmit={handleSubmit}
-      submitLabel={tipo === "entrada" ? "Confirmar Entrada" : "Confirmar Saída"}
+      submitLabel={submitLabel}
       saving={createMov.isPending}
       disabled={!itemId || !quantidade || Number(quantidade) <= 0} asForm
     >
@@ -60,7 +65,7 @@ export function MovementFormDialog({ open, tipo, onOpenChange, saldos }: Movemen
           <SelectContent>
             {activeItems.map((s) => (
               <SelectItem key={s.item_id} value={s.item_id}>
-                {s.nome} ({s.estoque_atual} {s.unidade})
+                {s.nome} ({s.disponivel} {s.unidade} disp.)
               </SelectItem>
             ))}
           </SelectContent>
@@ -73,6 +78,18 @@ export function MovementFormDialog({ open, tipo, onOpenChange, saldos }: Movemen
             <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
             <SelectContent>
               {locais.map((l) => (<SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {tipo === "ajuste" && (
+        <div>
+          <Label>Tipo de ajuste *</Label>
+          <Select value={ajusteSinal} onValueChange={(v) => setAjusteSinal(v as "1" | "-1")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">▲ Aumentar estoque</SelectItem>
+              <SelectItem value="-1">▼ Reduzir estoque</SelectItem>
             </SelectContent>
           </Select>
         </div>

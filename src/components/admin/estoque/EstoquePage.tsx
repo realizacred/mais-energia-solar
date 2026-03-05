@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Plus,
-  ScanBarcode, QrCode, ArrowRightLeft, ShieldCheck, Download, Warehouse,
+  ScanBarcode, QrCode, ArrowRightLeft, ShieldCheck, Download, Warehouse, Wrench,
 } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
@@ -36,7 +36,7 @@ export function EstoquePage() {
   // Dialogs
   const [itemDialog, setItemDialog] = useState(false);
   const [itemDialogSku, setItemDialogSku] = useState("");
-  const [movDialog, setMovDialog] = useState<"entrada" | "saida" | null>(null);
+  const [movDialog, setMovDialog] = useState<"entrada" | "saida" | "ajuste" | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [qrItem, setQrItem] = useState<EstoqueSaldo | null>(null);
   const [reservaDialog, setReservaDialog] = useState(false);
@@ -49,7 +49,7 @@ export function EstoquePage() {
   );
   const { data: reservas = [], isLoading: loadingReservas } = useEstoqueReservas(reservaStatusFilter);
 
-  // Stats
+  // Stats - use disponivel from backend
   const activeSaldos = saldos.filter((s) => s.ativo);
   const totalItens = activeSaldos.length;
   const lowStockCount = activeSaldos.filter((s) => s.estoque_atual <= s.estoque_minimo && s.estoque_minimo > 0).length;
@@ -81,11 +81,10 @@ export function EstoquePage() {
   const handleExportCSV = () => {
     const rows = [["Item", "SKU", "Categoria", "Unidade", "Estoque", "Mínimo", "Reservado", "Disponível", "Custo Médio", "Valor"]];
     filteredSaldos.forEach((s) => {
-      const disponivel = s.estoque_atual - s.reservado;
       rows.push([
         s.nome, s.sku || "", s.categoria, s.unidade,
         String(s.estoque_atual), String(s.estoque_minimo), String(s.reservado),
-        String(disponivel), String(s.custo_medio),
+        String(s.disponivel), String(s.custo_medio),
         String((s.estoque_atual * s.custo_medio).toFixed(2)),
       ]);
     });
@@ -112,6 +111,9 @@ export function EstoquePage() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => setTransferDialog(true)}>
               <ArrowRightLeft className="h-4 w-4 mr-1.5" />Transferir
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setMovDialog("ajuste")}>
+              <Wrench className="h-4 w-4 mr-1.5" />Ajuste
             </Button>
             <Button variant="outline" size="sm" onClick={() => setMovDialog("saida")}>
               <ArrowUpCircle className="h-4 w-4 mr-1.5" />Saída
