@@ -406,6 +406,7 @@ export function useConsumeReserva() {
 
 export function useCancelReserva() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const invalidate = useInvalidateEstoque();
 
   return useMutation({
