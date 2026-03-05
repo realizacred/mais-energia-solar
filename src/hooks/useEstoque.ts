@@ -472,6 +472,55 @@ export function useCreateEstoqueLocal() {
   });
 }
 
+export function useUpdateEstoqueLocal() {
+  const { toast } = useToast();
+  const invalidate = useInvalidateEstoque();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; nome?: string; tipo?: string; ativo?: boolean }) => {
+      const { data, error } = await (supabase as any)
+        .from("estoque_locais")
+        .update(updates)
+        .eq("id", id)
+        .select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { invalidate(); toast({ title: "Depósito atualizado" }); },
+    onError: (e: Error) => { toast({ title: "Erro ao atualizar depósito", description: e.message, variant: "destructive" }); },
+  });
+}
+
+export function useDeleteEstoqueLocal() {
+  const { toast } = useToast();
+  const invalidate = useInvalidateEstoque();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Soft-delete: set ativo = false
+      const { error } = await (supabase as any)
+        .from("estoque_locais")
+        .update({ ativo: false })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast({ title: "Depósito removido" }); },
+    onError: (e: Error) => { toast({ title: "Erro ao remover depósito", description: e.message, variant: "destructive" }); },
+  });
+}
+
+export function useAllEstoqueLocais() {
+  return useQuery<EstoqueLocal[]>({
+    queryKey: ["estoque-locais-all"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("estoque_locais").select("*").order("nome");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
 /** Reserve material for a project (backend RPC with locks) */
 export function useReservarMaterialProjeto() {
   const { toast } = useToast();
