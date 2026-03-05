@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import {
   Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Plus,
   ScanBarcode, QrCode, ArrowRightLeft, ShieldCheck, Download, Warehouse, Wrench,
+  FileText,
 } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
@@ -24,11 +25,17 @@ import {
   useEstoqueSaldos, useEstoqueMovimentos, useEstoqueReservas,
   ESTOQUE_CATEGORIAS, CATEGORIA_LABELS, type EstoqueSaldo,
 } from "@/hooks/useEstoque";
+import { useEstoqueCategorias } from "@/hooks/useEstoqueCategorias";
+import { generateEstoqueItemsPDF, generateEstoqueMovimentosPDF, generateEstoqueBaixoPDF } from "./estoqueReportPDF";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function EstoquePage() {
   const [tab, setTab] = useState("itens");
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
+  const [subCatFilter, setSubCatFilter] = useState("all");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [movTipoFilter, setMovTipoFilter] = useState("all");
   const [reservaStatusFilter, setReservaStatusFilter] = useState("active");
@@ -48,8 +55,35 @@ export function EstoquePage() {
     movTipoFilter !== "all" ? { tipo: movTipoFilter } : undefined
   );
   const { data: reservas = [], isLoading: loadingReservas } = useEstoqueReservas(reservaStatusFilter);
+  const { data: customCategorias = [] } = useEstoqueCategorias();
 
-  // Stats - use disponivel from backend
+  // Merge hardcoded + custom categories for filter
+  const allCategoryOptions = useMemo(() => {
+    const options: { value: string; label: string }[] = ESTOQUE_CATEGORIAS.map((c) => ({
+      value: c,
+      label: CATEGORIA_LABELS[c] || c,
+    }));
+    const parentCats = customCategorias.filter((c) => !c.parent_id && c.ativo);
+    parentCats.forEach((c) => {
+      if (!options.find((o) => o.value === c.slug)) {
+        options.push({ value: c.slug, label: c.nome });
+      }
+    });
+    return options;
+  }, [customCategorias]);
+
+  // Subcategories for selected category
+  const subCategoryOptions = useMemo(() => {
+    if (catFilter === "all") return [];
+    const parent = customCategorias.find((c) => c.slug === catFilter && !c.parent_id && c.ativo);
+    if (!parent) return [];
+    return customCategorias.filter((c) => c.parent_id === parent.id && c.ativo).map((c) => ({
+      value: c.slug,
+      label: c.nome,
+    }));
+  }, [catFilter, customCategorias]);
+
+  // Stats
   const activeSaldos = saldos.filter((s) => s.ativo);
   const totalItens = activeSaldos.length;
   const lowStockCount = activeSaldos.filter((s) => s.estoque_atual <= s.estoque_minimo && s.estoque_minimo > 0).length;
@@ -66,9 +100,10 @@ export function EstoquePage() {
       );
     }
     if (catFilter !== "all") result = result.filter((s) => s.categoria === catFilter);
+    if (subCatFilter !== "all") result = result.filter((s) => (s as any).subcategoria === subCatFilter);
     if (lowStockOnly) result = result.filter((s) => s.estoque_atual <= s.estoque_minimo && s.estoque_minimo > 0);
     return result;
-  }, [activeSaldos, search, catFilter, lowStockOnly]);
+  }, [activeSaldos, search, catFilter, subCatFilter, lowStockOnly]);
 
   // Filtered movements
   const filteredMov = useMemo(() => {
@@ -96,6 +131,12 @@ export function EstoquePage() {
     a.download = `estoque_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Reset subcategory when category changes
+  const handleCatChange = (v: string) => {
+    setCatFilter(v);
+    setSubCatFilter("all");
   };
 
   return (
@@ -163,19 +204,30 @@ export function EstoquePage() {
             <TabsTrigger value="movimentos">Movimentos</TabsTrigger>
             <TabsTrigger value="reservas">Reservas</TabsTrigger>
           </TabsList>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <SearchInput value={search} onChange={setSearch} placeholder="Buscar..." className="w-48" />
             {tab === "itens" && (
               <>
-                <Select value={catFilter} onValueChange={setCatFilter}>
+                <Select value={catFilter} onValueChange={handleCatChange}>
                   <SelectTrigger className="w-36 h-9 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas</SelectItem>
-                    {ESTOQUE_CATEGORIAS.map((c) => (
-                      <SelectItem key={c} value={c}>{CATEGORIA_LABELS[c] || c}</SelectItem>
+                    {allCategoryOptions.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {subCategoryOptions.length > 0 && (
+                  <Select value={subCatFilter} onValueChange={setSubCatFilter}>
+                    <SelectTrigger className="w-36 h-9 text-xs"><SelectValue placeholder="Subcategoria" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      {subCategoryOptions.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <Button
                   variant={lowStockOnly ? "destructive" : "outline"} size="sm" className="text-xs gap-1"
                   onClick={() => setLowStockOnly(!lowStockOnly)}
@@ -185,22 +237,54 @@ export function EstoquePage() {
                 <Button variant="outline" size="sm" className="text-xs gap-1" onClick={handleExportCSV}>
                   <Download className="h-3 w-3" />CSV
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-xs gap-1">
+                      <FileText className="h-3 w-3" />PDF
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => generateEstoqueItemsPDF(filteredSaldos)}>
+                      Lista de Itens
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => generateEstoqueMovimentosPDF(movimentos)}>
+                      Movimentações
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => generateEstoqueBaixoPDF(saldos)} disabled={lowStockCount === 0}>
+                      Itens com Estoque Baixo
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setLocalDialog(true)}>
                   <Warehouse className="h-3 w-3" />Depósito
                 </Button>
               </>
             )}
             {tab === "movimentos" && (
-              <Select value={movTipoFilter} onValueChange={setMovTipoFilter}>
-                <SelectTrigger className="w-32 h-9 text-xs"><SelectValue placeholder="Tipo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="entrada">Entrada</SelectItem>
-                  <SelectItem value="saida">Saída</SelectItem>
-                  <SelectItem value="ajuste">Ajuste</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
-                </SelectContent>
-              </Select>
+              <>
+                <Select value={movTipoFilter} onValueChange={setMovTipoFilter}>
+                  <SelectTrigger className="w-32 h-9 text-xs"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="entrada">Entrada</SelectItem>
+                    <SelectItem value="saida">Saída</SelectItem>
+                    <SelectItem value="ajuste">Ajuste</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
+                  </SelectContent>
+                </Select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-xs gap-1">
+                      <FileText className="h-3 w-3" />PDF
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => generateEstoqueMovimentosPDF(filteredMov)}>
+                      Movimentações Filtradas
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             )}
             {tab === "reservas" && (
               <>

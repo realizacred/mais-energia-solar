@@ -548,6 +548,7 @@ export default function Admin() {
                 <Route path="instaladores" element={<InstaladorManager />} />
                 <Route path="estoque" element={<EstoquePage />} />
                 <Route path="depositos" element={<DepositosPage />} />
+                <Route path="categorias-estoque" element={<CategoriasEstoquePage />} />
                 
                 {/* Financeiro */}
                 <Route path="recebimentos" element={<RecebimentosManager />} />
