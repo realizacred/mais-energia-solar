@@ -52,14 +52,11 @@ export function ReservaFormDialog({ open, onOpenChange, saldos }: ReservaFormDia
         <Select value={itemId} onValueChange={setItemId}>
           <SelectTrigger><SelectValue placeholder="Selecione o item" /></SelectTrigger>
           <SelectContent>
-            {activeItems.map((s) => {
-              const disp = s.estoque_atual - s.reservado;
-              return (
-                <SelectItem key={s.item_id} value={s.item_id}>
-                  {s.nome} (disp: {disp} {s.unidade})
-                </SelectItem>
-              );
-            })}
+            {activeItems.map((s) => (
+              <SelectItem key={s.item_id} value={s.item_id}>
+                {s.nome} (disp: {s.disponivel} {s.unidade})
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
