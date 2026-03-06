@@ -62,7 +62,7 @@ export default function UCsListPage() {
     return {
       all: active.length,
       no_concessionaria: active.filter(u => !u.concessionaria_id && !u.concessionaria_nome).length,
-      no_billing: active.filter(u => !u.concessionaria_nome).length, // proxy for missing billing config
+      no_billing: 0, // placeholder — requires billing settings join (future enhancement)
       archived: allUcs.filter(u => u.is_archived).length,
     };
   }, [allUcs]);
