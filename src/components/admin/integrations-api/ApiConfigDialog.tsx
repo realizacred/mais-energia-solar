@@ -19,10 +19,13 @@ interface Props {
 }
 
 const TUYA_REGIONS = [
-  { value: "https://openapi.tuyaus.com", label: "América (US)" },
+  { value: "https://openapi.tuyaus.com", label: "América Ocidental (US) — Recomendado para Brasil" },
+  { value: "https://openapi-ueaz.tuyaus.com", label: "América Oriental (US-East)" },
+  { value: "https://openapi.tuyaeu.com", label: "Europa Central (EU)" },
+  { value: "https://openapi-weaz.tuyaeu.com", label: "Europa Ocidental (EU-West)" },
   { value: "https://openapi.tuyacn.com", label: "China (CN)" },
-  { value: "https://openapi.tuyaeu.com", label: "Europa (EU)" },
   { value: "https://openapi.tuyain.com", label: "Índia (IN)" },
+  { value: "https://openapi-sg.tuyaus.com", label: "Singapura (SG)" },
 ];
 
 export function ApiConfigDialog({ open, onOpenChange, editingConfig, onSuccess }: Props) {
