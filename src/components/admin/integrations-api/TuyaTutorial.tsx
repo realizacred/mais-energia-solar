@@ -11,38 +11,38 @@ const STEPS = [
   {
     num: 1,
     title: "Criar conta no Tuya Developer Platform",
-    desc: 'Acesse platform.tuya.com e crie uma conta de desenvolvedor. Escolha o plano "Trial" (gratuito para desenvolvimento).',
+    desc: 'Acesse platform.tuya.com e crie uma conta de desenvolvedor gratuitamente.',
     link: "https://platform.tuya.com",
   },
   {
     num: 2,
     title: "Criar Cloud Project",
-    desc: 'No menu "Cloud > Development", clique em "Create Cloud Project". Escolha "Smart Home" como Industry e selecione seu Data Center (Europa para o Brasil).',
+    desc: 'No menu "Cloud > Development", clique em "Create Cloud Project". Escolha a Indústria, método "Personalizado", e selecione o Data Center (para o Brasil, escolha "América Ocidental").',
   },
   {
     num: 3,
+    title: "Autorizar Serviços de API",
+    desc: 'Na tela seguinte, mantenha os 4 serviços padrão selecionados: Núcleo de IoT, Gerenciamento de tokens, Serviço básico da indústria e Gestão de identidade. Clique em "Autorizar".',
+  },
+  {
+    num: 4,
     title: "Vincular App e Dispositivos",
     desc: 'Na aba "Devices" do projeto, vincule o app Tuya Smart ou Smart Life. Os medidores cadastrados no app aparecerão automaticamente.',
   },
   {
-    num: 4,
+    num: 5,
     title: "Copiar Access ID (Client ID)",
     desc: 'Na aba "Overview" do projeto cloud, copie o campo "Access ID/Client ID".',
   },
   {
-    num: 5,
+    num: 6,
     title: "Copiar Access Secret (Client Secret)",
     desc: 'Na mesma página, copie o "Access Secret/Client Secret". Guarde em local seguro.',
   },
   {
-    num: 6,
-    title: "Escolher Região / Data Center",
-    desc: "Selecione a região correspondente ao Data Center do projeto. Para o Brasil, normalmente é Europa (EU) ou América (US).",
-  },
-  {
     num: 7,
     title: "Colar Credenciais no Sistema",
-    desc: 'Clique em "Nova Integração", selecione Tuya Smart, cole o Client ID e Client Secret, e escolha a região.',
+    desc: 'No nosso sistema, clique em "Nova Integração", selecione Tuya Smart, cole o Client ID e Client Secret, e escolha a região (América Ocidental = https://openapi.tuyaus.com).',
   },
   {
     num: 8,
