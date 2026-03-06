@@ -13,11 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import { Search, Gauge, Wifi, WifiOff, ArrowLeftRight, Eye, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MeterLinkDialog } from "./MeterLinkDialog";
 
 export default function MetersListPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [linkDialogMeter, setLinkDialogMeter] = useState<MeterDevice | null>(null);
@@ -117,7 +119,7 @@ export default function MetersListPage() {
                 {meters.map((m) => {
                   const linkedUC = getLinkedUC(m.id);
                   return (
-                    <TableRow key={m.id} className="group">
+                    <TableRow key={m.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/medidores/${m.id}`)}>
                       <TableCell className="font-medium">{m.name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{m.model || "—"}</TableCell>
                       <TableCell>
@@ -150,7 +152,7 @@ export default function MetersListPage() {
                         {m.last_reading_at ? new Date(m.last_reading_at).toLocaleString("pt-BR") : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setLinkDialogMeter(m)}>
                             {linkedUC ? "Trocar UC" : "Vincular UC"}
                           </Button>

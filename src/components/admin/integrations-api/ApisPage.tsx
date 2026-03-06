@@ -1,6 +1,6 @@
 /**
  * ApisPage — Integration API configuration management.
- * Shows configured providers and allows CRUD.
+ * Shows configured providers with real sync actions, tutorial, and logs.
  */
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,8 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Plug, Zap, TestTube2, Power, PowerOff, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Plug, Zap, Power, PowerOff, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { ApiConfigDialog } from "./ApiConfigDialog";
+import { TuyaSyncActions } from "./TuyaSyncActions";
+import { TuyaTutorial } from "./TuyaTutorial";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -52,19 +54,6 @@ export default function ApisPage() {
     },
   });
 
-  const testMut = useMutation({
-    mutationFn: async (id: string) => {
-      // Simulate test — in production this would call an edge function
-      await new Promise(r => setTimeout(r, 1500));
-      await integrationApiService.updateTestResult(id, true);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["integrations_api_configs"] });
-      toast({ title: "Conexão testada com sucesso" });
-    },
-    onError: (err: any) => toast({ title: "Falha no teste", description: err?.message, variant: "destructive" }),
-  });
-
   function handleEdit(config: IntegrationApiConfig) {
     setEditingConfig(config);
     setDialogOpen(true);
@@ -74,6 +63,13 @@ export default function ApisPage() {
     setEditingConfig(null);
     setDialogOpen(true);
   }
+
+  const STATUS_MAP: Record<string, { variant: "success" | "destructive" | "warning" | "muted"; label: string }> = {
+    connected: { variant: "success", label: "Conectado" },
+    error: { variant: "destructive", label: "Erro" },
+    active: { variant: "success", label: "Ativo" },
+    inactive: { variant: "muted", label: "Inativo" },
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -88,67 +84,10 @@ export default function ApisPage() {
         }
       />
 
-      {/* Available Providers */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(PROVIDER_INFO).map(([key, info]) => {
-          const existing = configs.filter(c => c.provider === key);
-          return (
-            <Card key={key} className="relative overflow-hidden">
-              <div className={`absolute top-0 left-0 w-1 h-full ${info.color}`} />
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{info.label}</CardTitle>
-                  {existing.length > 0 ? (
-                    <Badge variant="outline" className="text-xs">{existing.length} configurada(s)</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-xs">Não configurado</Badge>
-                  )}
-                </div>
-                <CardDescription className="text-xs">{info.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {existing.length === 0 ? (
-                  <Button variant="outline" size="sm" className="w-full" onClick={handleCreate}>
-                    <Zap className="w-3 h-3 mr-1" /> Configurar
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    {existing.map(cfg => (
-                      <div key={cfg.id} className="flex items-center justify-between text-sm border rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <StatusBadge
-                            variant={cfg.status === "connected" ? "success" : cfg.status === "error" ? "destructive" : "warning"}
-                            dot
-                          >
-                            {cfg.status === "connected" ? "Conectado" : cfg.status === "error" ? "Erro" : "Inativo"}
-                          </StatusBadge>
-                          <span className="truncate font-medium">{cfg.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => testMut.mutate(cfg.id)} disabled={testMut.isPending} title="Testar">
-                            <TestTube2 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMut.mutate({ id: cfg.id, active: !cfg.is_active })} title={cfg.is_active ? "Desativar" : "Ativar"}>
-                            {cfg.is_active ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5 text-muted-foreground" />}
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(cfg)} title="Editar">
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(cfg.id)} title="Remover">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {/* Tutorial */}
+      <TuyaTutorial />
 
-      {/* All configs table */}
+      {/* Loading / Error / Empty */}
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
       ) : error ? (
@@ -160,7 +99,66 @@ export default function ApisPage() {
           description="Configure uma API para sincronizar medidores, dispositivos IoT ou dados externos."
           action={{ label: "Nova Integração", onClick: handleCreate, icon: Plus }}
         />
-      ) : null}
+      ) : (
+        <div className="space-y-4">
+          {configs.map(cfg => {
+            const info = PROVIDER_INFO[cfg.provider] || { label: cfg.provider, color: "bg-muted" };
+            const statusInfo = STATUS_MAP[cfg.status] || { variant: "muted" as const, label: cfg.status };
+
+            return (
+              <Card key={cfg.id} className="relative overflow-hidden">
+                <div className={`absolute top-0 left-0 w-1 h-full ${info.color}`} />
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div>
+                        <CardTitle className="text-base">{cfg.name}</CardTitle>
+                        <CardDescription className="text-xs mt-0.5">
+                          {info.label} · {cfg.base_url || "Região não definida"}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <StatusBadge variant={statusInfo.variant} dot>
+                        {statusInfo.label}
+                      </StatusBadge>
+                      {cfg.last_tested_at && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Testado: {new Date(cfg.last_tested_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      )}
+                      {cfg.last_sync_at && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Sync: {new Date(cfg.last_sync_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMut.mutate({ id: cfg.id, active: !cfg.is_active })} title={cfg.is_active ? "Desativar" : "Ativar"}>
+                          {cfg.is_active ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5 text-muted-foreground" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(cfg)} title="Editar">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(cfg.id)} title="Remover">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {cfg.provider === "tuya" && cfg.is_active && (
+                    <TuyaSyncActions configId={cfg.id} configName={cfg.name} />
+                  )}
+                  {!cfg.is_active && (
+                    <p className="text-sm text-muted-foreground italic">Integração desativada. Ative para usar as ações de sincronização.</p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <ApiConfigDialog
         open={dialogOpen}

@@ -61,6 +61,7 @@ const CategoriasEstoquePage = lazy(() => import("@/components/admin/estoque/Cate
 const UCsListPage = lazy(() => import("@/components/admin/ucs/UCsListPage"));
 const UCDetailPage = lazy(() => import("@/components/admin/ucs/UCDetailPage"));
 const MetersListPage = lazy(() => import("@/components/admin/meters/MetersListPage"));
+const MeterDetailPage = lazy(() => import("@/components/admin/meters/MeterDetailPage"));
 const ApisPage = lazy(() => import("@/components/admin/integrations-api/ApisPage"));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
@@ -559,6 +560,7 @@ export default function Admin() {
                 
                 {/* Medidores */}
                 <Route path="medidores" element={<MetersListPage />} />
+                <Route path="medidores/:id" element={<MeterDetailPage />} />
                 
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />
