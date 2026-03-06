@@ -127,14 +127,36 @@ Deno.serve(async (req) => {
             .eq("id", item.id);
 
           if (item.message_id) {
-            const msgUpdate: Record<string, unknown> = { status: "sent" };
-            if (evolutionMessageId) {
-              msgUpdate.evolution_message_id = evolutionMessageId;
-            }
-            await supabase
+            // Non-regression guard: only advance status, never downgrade
+            const { data: currentMsg } = await supabase
               .from("wa_messages")
-              .update(msgUpdate)
-              .eq("id", item.message_id);
+              .select("status")
+              .eq("id", item.message_id)
+              .maybeSingle();
+            
+            const STATUS_RANK: Record<string, number> = {
+              pending: 0, queued: 1, sending: 2, sent: 3, delivered: 4, read: 5,
+            };
+            const currentRank = STATUS_RANK[currentMsg?.status || "pending"] ?? 0;
+            const newRank = STATUS_RANK["sent"] ?? 3;
+
+            if (newRank > currentRank) {
+              const msgUpdate: Record<string, unknown> = { status: "sent", sent_at: new Date().toISOString() };
+              if (evolutionMessageId) {
+                msgUpdate.evolution_message_id = evolutionMessageId;
+              }
+              await supabase
+                .from("wa_messages")
+                .update(msgUpdate)
+                .eq("id", item.message_id);
+            } else if (evolutionMessageId) {
+              // Still link the evolution_message_id even if status is already higher
+              await supabase
+                .from("wa_messages")
+                .update({ evolution_message_id: evolutionMessageId })
+                .eq("id", item.message_id)
+                .is("evolution_message_id", null);
+            }
           }
 
           logOps(inst.tenant_id, inst.id, item.message_type === "audio" ? "send_audio_success" : "outbox_sent_ack", { outbox_id: item.id, evolution_msg_id: evolutionMessageId, message_type: item.message_type });
