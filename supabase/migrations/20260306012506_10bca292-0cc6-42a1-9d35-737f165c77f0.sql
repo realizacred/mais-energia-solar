@@ -1,0 +1,1 @@
+ALTER TABLE public.units_consumidoras ALTER COLUMN tenant_id SET DEFAULT current_tenant_id();

@@ -17604,7 +17604,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tipo_uc?: Database["public"]["Enums"]["uc_type"]
           updated_at?: string
           updated_by?: string | null
