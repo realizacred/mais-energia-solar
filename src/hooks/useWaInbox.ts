@@ -739,6 +739,8 @@ export function useWaMessages(conversationId?: string) {
     loadOlderMessages,
     sendMessage: sendMessage.mutateAsync,
     isSending: sendMessage.isPending,
+    retryMessage: retryMessage.mutateAsync,
+    isRetrying: retryMessage.isPending,
   };
 }
 
