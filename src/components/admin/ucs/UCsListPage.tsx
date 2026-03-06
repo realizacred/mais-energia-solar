@@ -92,7 +92,7 @@ export default function UCsListPage() {
   const pagedUcs = filteredUcs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Reset page when filters change
-  useMemo(() => setPage(1), [quickFilter, tipoFilter, search]);
+  useEffect(() => setPage(1), [quickFilter, tipoFilter, search]);
 
   const archiveMut = useMutation({
     mutationFn: (id: string) => unitService.archive(id),
