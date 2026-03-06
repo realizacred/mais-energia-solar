@@ -136,9 +136,11 @@ async function tuyaRequest(
   const contentHash = await sha256(bodyStr);
 
   // For business requests: str = client_id + access_token + t + nonce + stringToSign
+  // URL in stringToSign must include query parameters
   const stringToSign = [method.toUpperCase(), contentHash, "", path].join("\n");
   const str = clientId + token.access_token + t + nonce + stringToSign;
   const sign = await hmacSha256(clientSecret, str);
+  console.log(`[tuya-proxy] Request: ${method} ${path}, t=${t}, nonce=${nonce.slice(0,8)}...`);
 
   const headers: Record<string, string> = {
     client_id: clientId,
