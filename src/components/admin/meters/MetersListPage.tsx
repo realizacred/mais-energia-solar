@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MeterLinkDialog } from "./MeterLinkDialog";
 
 export default function MetersListPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [linkDialogMeter, setLinkDialogMeter] = useState<MeterDevice | null>(null);
