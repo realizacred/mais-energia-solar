@@ -66,24 +66,39 @@ export const invoiceService = {
   },
 
   async upsertBillingSettings(unitId: string, input: Partial<BillingEmailSettings>) {
+    // Separate pdf_password — use secure RPC
+    const { pdf_password, ...safeInput } = input as any;
+
     const existing = await this.getBillingSettings(unitId);
+    let result: BillingEmailSettings;
+
     if (existing) {
       const { data, error } = await supabase
-        .from("unit_billing_email_settings")
-        .update(input as any)
+        .from(BILLING_TABLE)
+        .update(safeInput)
         .eq("id", existing.id)
         .select(BILLING_COLS)
         .single();
       if (error) throw error;
-      return data as BillingEmailSettings;
+      result = data as BillingEmailSettings;
     } else {
       const { data, error } = await supabase
-        .from("unit_billing_email_settings")
-        .insert({ ...input, unit_id: unitId } as any)
+        .from(BILLING_TABLE)
+        .insert({ ...safeInput, unit_id: unitId } as any)
         .select(BILLING_COLS)
         .single();
       if (error) throw error;
-      return data as BillingEmailSettings;
+      result = data as BillingEmailSettings;
     }
+
+    // Update pdf_password via secure RPC if provided
+    if (pdf_password !== undefined) {
+      await supabase.rpc("set_billing_pdf_password", {
+        p_unit_id: unitId,
+        p_password: pdf_password || "",
+      });
+    }
+
+    return result;
   },
 };
