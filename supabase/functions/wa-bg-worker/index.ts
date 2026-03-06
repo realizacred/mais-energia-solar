@@ -58,17 +58,31 @@ Deno.serve(async (req) => {
         console.log(`[wa-bg-worker] [METRIC] ${job.job_type} done in ${elapsed}ms (${job.idempotency_key})`);
       } catch (err) {
         const nextAttempt = (job.attempts || 0) + 1;
+        const isFinal = nextAttempt >= MAX_ATTEMPTS;
         const backoffMs = Math.min(60_000, 1000 * Math.pow(2, nextAttempt));
 
         await supabase
           .from("wa_bg_jobs")
           .update({
-            status: nextAttempt >= MAX_ATTEMPTS ? "failed" : "pending",
+            status: isFinal ? "failed" : "pending",
             attempts: nextAttempt,
             last_error: String(err).substring(0, 500),
             next_run_at: new Date(Date.now() + backoffMs).toISOString(),
           })
           .eq("id", job.id);
+
+        // When media_fetch permanently fails, mark the message so UI shows error instead of infinite loading
+        if (isFinal && job.job_type === "media_fetch" && job.payload?.evolution_message_id) {
+          await supabase
+            .from("wa_messages")
+            .update({ 
+              error_message: "Mídia não disponível — falha ao baixar do provedor",
+              metadata: { media_failed: true },
+            })
+            .eq("evolution_message_id", job.payload.evolution_message_id)
+            .is("media_url", null);
+          console.warn(`[wa-bg-worker] media_fetch PERMANENTLY FAILED for ${job.payload.evolution_message_id}`);
+        }
 
         failed++;
         console.warn(`[wa-bg-worker] ${job.job_type} failed (attempt ${nextAttempt}):`, String(err).substring(0, 200));
