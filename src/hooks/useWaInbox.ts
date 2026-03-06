@@ -39,20 +39,32 @@ export interface WaMessage {
   id: string;
   conversation_id: string;
   evolution_message_id: string | null;
+  correlation_id: string | null;
   direction: "in" | "out";
   message_type: string;
   content: string | null;
   media_url: string | null;
   media_mime_type: string | null;
+  media_status: string | null;
+  media_error_message: string | null;
+  file_name: string | null;
+  file_size: number | null;
   quoted_message_id: string | null;
   sent_by_user_id: string | null;
   is_internal_note: boolean;
   status: string | null;
   error_message: string | null;
+  error_code: string | null;
   metadata: any;
   participant_jid: string | null;
   participant_name: string | null;
   created_at: string;
+  // timestamps
+  queued_at: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+  failed_at: string | null;
   // joined
   sent_by_name?: string | null;
 }
@@ -470,7 +482,13 @@ export function useWaMessages(conversationId?: string) {
           const newMsg = payload.new as any;
           const [withName] = await resolveNames([newMsg]);
           setAllMessages(prev => {
-            if (prev.some(m => m.id === withName.id)) return prev;
+            // Deterministic dedup: check by id, correlation_id, or evolution_message_id
+            const isDuplicate = prev.some(m => 
+              m.id === withName.id ||
+              (withName.correlation_id && (m as any).correlation_id === withName.correlation_id) ||
+              (withName.evolution_message_id && m.evolution_message_id === withName.evolution_message_id)
+            );
+            if (isDuplicate) return prev;
             return [...prev, withName];
           });
           // Play sound + vibrate for incoming messages
@@ -490,7 +508,14 @@ export function useWaMessages(conversationId?: string) {
         (payload) => {
           const updated = payload.new as any;
           setAllMessages(prev =>
-            prev.map(m => m.id === updated.id ? { ...m, ...updated } : m)
+            prev.map(m => {
+              // Match by id or correlation_id for optimistic update reconciliation
+              if (m.id === updated.id) return { ...m, ...updated };
+              if (updated.correlation_id && (m as any).correlation_id === updated.correlation_id) {
+                return { ...m, ...updated };
+              }
+              return m;
+            })
           );
         }
       )
@@ -549,7 +574,8 @@ export function useWaMessages(conversationId?: string) {
         quotedEvolutionId = quotedMsg?.evolution_message_id || null;
       }
 
-      // Insert message locally
+      // Insert message locally with correlation_id for canonical dedup
+      const correlationId = crypto.randomUUID();
       const { data: msg, error: msgError } = await supabase
         .from("wa_messages")
         .insert({
@@ -562,7 +588,9 @@ export function useWaMessages(conversationId?: string) {
           is_internal_note: isInternalNote,
           status: isInternalNote ? "sent" : "pending",
           quoted_message_id: quotedMessageId || null,
-        })
+          correlation_id: correlationId,
+          queued_at: new Date().toISOString(),
+        } as any)
         .select()
         .single();
 

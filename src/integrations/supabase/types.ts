@@ -19264,64 +19264,106 @@ export type Database = {
         Row: {
           content: string | null
           conversation_id: string
+          correlation_id: string | null
           created_at: string
+          delivered_at: string | null
           direction: string
+          error_code: string | null
           error_message: string | null
           evolution_message_id: string | null
+          failed_at: string | null
+          file_name: string | null
+          file_size: number | null
           id: string
           is_internal_note: boolean
+          media_error_message: string | null
+          media_failed_at: string | null
           media_mime_type: string | null
+          media_retry_count: number | null
+          media_status: string | null
           media_url: string | null
           message_type: string
           metadata: Json | null
           participant_jid: string | null
           participant_name: string | null
+          queued_at: string | null
           quoted_message_id: string | null
+          read_at: string | null
+          sent_at: string | null
           sent_by_user_id: string | null
           source: string
           status: string | null
+          storage_path: string | null
           tenant_id: string
         }
         Insert: {
           content?: string | null
           conversation_id: string
+          correlation_id?: string | null
           created_at?: string
+          delivered_at?: string | null
           direction: string
+          error_code?: string | null
           error_message?: string | null
           evolution_message_id?: string | null
+          failed_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
           id?: string
           is_internal_note?: boolean
+          media_error_message?: string | null
+          media_failed_at?: string | null
           media_mime_type?: string | null
+          media_retry_count?: number | null
+          media_status?: string | null
           media_url?: string | null
           message_type?: string
           metadata?: Json | null
           participant_jid?: string | null
           participant_name?: string | null
+          queued_at?: string | null
           quoted_message_id?: string | null
+          read_at?: string | null
+          sent_at?: string | null
           sent_by_user_id?: string | null
           source?: string
           status?: string | null
+          storage_path?: string | null
           tenant_id?: string
         }
         Update: {
           content?: string | null
           conversation_id?: string
+          correlation_id?: string | null
           created_at?: string
+          delivered_at?: string | null
           direction?: string
+          error_code?: string | null
           error_message?: string | null
           evolution_message_id?: string | null
+          failed_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
           id?: string
           is_internal_note?: boolean
+          media_error_message?: string | null
+          media_failed_at?: string | null
           media_mime_type?: string | null
+          media_retry_count?: number | null
+          media_status?: string | null
           media_url?: string | null
           message_type?: string
           metadata?: Json | null
           participant_jid?: string | null
           participant_name?: string | null
+          queued_at?: string | null
           quoted_message_id?: string | null
+          read_at?: string | null
+          sent_at?: string | null
           sent_by_user_id?: string | null
           source?: string
           status?: string | null
+          storage_path?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -21117,22 +21159,36 @@ export type Database = {
         Returns: {
           content: string | null
           conversation_id: string
+          correlation_id: string | null
           created_at: string
+          delivered_at: string | null
           direction: string
+          error_code: string | null
           error_message: string | null
           evolution_message_id: string | null
+          failed_at: string | null
+          file_name: string | null
+          file_size: number | null
           id: string
           is_internal_note: boolean
+          media_error_message: string | null
+          media_failed_at: string | null
           media_mime_type: string | null
+          media_retry_count: number | null
+          media_status: string | null
           media_url: string | null
           message_type: string
           metadata: Json | null
           participant_jid: string | null
           participant_name: string | null
+          queued_at: string | null
           quoted_message_id: string | null
+          read_at: string | null
+          sent_at: string | null
           sent_by_user_id: string | null
           source: string
           status: string | null
+          storage_path: string | null
           tenant_id: string
         }[]
         SetofOptions: {
@@ -21243,6 +21299,7 @@ export type Database = {
       normalize_phone: { Args: { p: string }; Returns: string }
       normalize_phone_e164: { Args: { raw: string }; Returns: string }
       normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
+      normalize_wa_jid: { Args: { raw_jid: string }; Returns: string }
       preview_seed_data: { Args: never; Returns: Json }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
@@ -21305,6 +21362,10 @@ export type Database = {
           slug: string
           status: string
         }[]
+      }
+      resolve_wa_conversation: {
+        Args: { p_instance_id: string; p_remote_jid: string }
+        Returns: string
       }
       rpc_post_sale_guarantees_expiring: {
         Args: { p_tenant_id?: string }

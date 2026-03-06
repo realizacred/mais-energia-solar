@@ -20,6 +20,8 @@ import { renderFormattedText } from "./WaFormatting";
 
 const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: string; label: string }> = {
   pending: { icon: Clock, className: "text-muted-foreground/50", label: "Enviando..." },
+  queued: { icon: Clock, className: "text-muted-foreground/50", label: "Na fila" },
+  sending: { icon: Clock, className: "text-muted-foreground/60", label: "Enviando..." },
   sent: { icon: Check, className: "text-muted-foreground/70", label: "Enviado" },
   delivered: { icon: CheckCheck, className: "text-muted-foreground/70", label: "Entregue" },
   read: { icon: CheckCheck, className: "text-info", label: "Lido" },
@@ -30,7 +32,12 @@ const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 /** Check if media permanently failed to download */
 function isMediaFailed(msg: WaMessage): boolean {
-  return !msg.media_url && !!(msg.metadata as any)?.media_failed;
+  return msg.media_status === "failed" || (!msg.media_url && !!(msg.metadata as any)?.media_failed);
+}
+
+/** Check if media is still being fetched */
+function isMediaPending(msg: WaMessage): boolean {
+  return !msg.media_url && (msg.media_status === "pending" || msg.media_status === "fetching");
 }
 
 interface WaMessageBubbleProps {
@@ -76,7 +83,7 @@ export function WaMessageBubble({
       return (
         <div className="flex items-center gap-2 text-xs text-destructive/70 py-2">
           <FileWarning className="h-3.5 w-3.5" />
-          <span>Mídia não disponível</span>
+          <span>{msg.media_error_message || "Mídia não disponível"}</span>
         </div>
       );
     }
