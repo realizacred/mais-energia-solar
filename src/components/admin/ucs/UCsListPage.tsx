@@ -2,7 +2,7 @@
  * UCsListPage — Main list page for Unidades Consumidoras.
  * Improved with filter tabs + badge counts, pagination, and better UX.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { unitService, type UCRecord } from "@/services/unitService";
@@ -62,7 +62,7 @@ export default function UCsListPage() {
     return {
       all: active.length,
       no_concessionaria: active.filter(u => !u.concessionaria_id && !u.concessionaria_nome).length,
-      no_billing: active.filter(u => !u.concessionaria_nome).length, // proxy for missing billing config
+      no_billing: 0, // placeholder — requires billing settings join (future enhancement)
       archived: allUcs.filter(u => u.is_archived).length,
     };
   }, [allUcs]);
@@ -75,7 +75,8 @@ export default function UCsListPage() {
         result = result.filter(u => !u.is_archived && (!u.concessionaria_id && !u.concessionaria_nome));
         break;
       case "no_billing":
-        result = result.filter(u => !u.is_archived && !u.concessionaria_nome);
+        // Currently no client-side billing data — show all active as fallback
+        result = result.filter(u => !u.is_archived);
         break;
       case "archived":
         result = result.filter(u => u.is_archived);
@@ -91,7 +92,7 @@ export default function UCsListPage() {
   const pagedUcs = filteredUcs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Reset page when filters change
-  useMemo(() => setPage(1), [quickFilter, tipoFilter, search]);
+  useEffect(() => setPage(1), [quickFilter, tipoFilter, search]);
 
   const archiveMut = useMutation({
     mutationFn: (id: string) => unitService.archive(id),
