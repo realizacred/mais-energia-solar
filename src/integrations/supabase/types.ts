@@ -5418,7 +5418,7 @@ export type Database = {
           started_at?: string
           status?: string
           sync_type: string
-          tenant_id: string
+          tenant_id?: string
         }
         Update: {
           error_summary?: string | null

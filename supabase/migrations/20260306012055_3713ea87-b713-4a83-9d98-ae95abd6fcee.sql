@@ -1,0 +1,1 @@
+ALTER TABLE public.integration_sync_runs ALTER COLUMN tenant_id SET DEFAULT current_tenant_id();
