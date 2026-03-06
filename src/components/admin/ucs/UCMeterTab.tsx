@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Gauge, Link2, Link2Off, Wifi, WifiOff, ArrowLeftRight, History } from "lucide-react";
+import { Gauge, Link2, Link2Off, ArrowLeftRight, History } from "lucide-react";
 import { MeterLinkDialog } from "../meters/MeterLinkDialog";
 import { useState } from "react";
 
