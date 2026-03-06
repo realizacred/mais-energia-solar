@@ -650,6 +650,86 @@ export function useWaMessages(conversationId?: string) {
     },
   });
 
+  // ── Retry failed message ──
+  const retryMessage = useMutation({
+    mutationFn: async (failedMsg: WaMessage) => {
+      if (!conversationId) throw new Error("No conversation selected");
+      if (failedMsg.status !== "failed") throw new Error("Mensagem não está em estado de falha");
+
+      // Get conversation details
+      const { data: conv } = await supabase
+        .from("wa_conversations")
+        .select("instance_id, remote_jid, tenant_id")
+        .eq("id", conversationId)
+        .single();
+      if (!conv) throw new Error("Conversation not found");
+
+      // Reset the SAME message record to pending (reuse, don't duplicate)
+      const now = new Date().toISOString();
+      const { error: resetErr } = await supabase
+        .from("wa_messages")
+        .update({
+          status: "pending",
+          error_message: null,
+          error_code: null,
+          failed_at: null,
+          queued_at: now,
+        } as any)
+        .eq("id", failedMsg.id)
+        .eq("status", "failed"); // Atomic guard: only if still failed
+
+      if (resetErr) throw resetErr;
+
+      // Optimistic local update
+      setAllMessages(prev =>
+        prev.map(m => m.id === failedMsg.id ? { ...m, status: "pending", error_message: null } : m)
+      );
+
+      // Re-queue to outbox with NEW idempotency key (old one is consumed)
+      const newIdempKey = `inbox_retry:${conv.tenant_id}:${failedMsg.id}:${Date.now()}`;
+
+      // Get sender name for prefix
+      let senderName: string | null = null;
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("nome")
+          .eq("user_id", user.id)
+          .single();
+        senderName = profile?.nome || null;
+      }
+
+      const outboxContent =
+        senderName && failedMsg.message_type === "text"
+          ? `*${senderName}:*\n${failedMsg.content || ""}`
+          : failedMsg.content || "";
+
+      await (supabase.rpc as any)("enqueue_wa_outbox_item", {
+        p_tenant_id: conv.tenant_id,
+        p_instance_id: conv.instance_id,
+        p_remote_jid: conv.remote_jid,
+        p_message_type: failedMsg.message_type || "text",
+        p_content: outboxContent,
+        p_media_url: failedMsg.media_url || null,
+        p_conversation_id: conversationId,
+        p_message_id: failedMsg.id,
+        p_idempotency_key: newIdempKey,
+        p_status: "pending",
+      });
+
+      // Trigger outbox
+      supabase.functions.invoke("process-wa-outbox").catch(() => {});
+
+      return failedMsg.id;
+    },
+    onSuccess: () => {
+      toast({ title: "Reenviando mensagem..." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao reenviar", description: err.message, variant: "destructive" });
+    },
+  });
+
   return {
     messages: allMessages,
     loading: initialQuery.isLoading,
