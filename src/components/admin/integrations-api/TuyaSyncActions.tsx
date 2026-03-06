@@ -35,11 +35,38 @@ export function TuyaSyncActions({ configId, configName }: Props) {
     refetchInterval: loadingAction ? 3000 : false,
   });
 
+  function formatResult(action: string, result: any): string {
+    if (action === "test") {
+      if (result?.success) return "Conexão estabelecida com sucesso!";
+      const msg = result?.message || "Falha na autenticação";
+      if (/sign invalid/i.test(msg)) return "Client Secret inválido. Verifique e tente novamente.";
+      if (/clientId/i.test(msg)) return "Client ID inválido. Verifique e tente novamente.";
+      return msg;
+    }
+    if (result?.total !== undefined) {
+      const parts: string[] = [];
+      if (result.created) parts.push(`${result.created} criados`);
+      if (result.updated) parts.push(`${result.updated} atualizados`);
+      if (result.processed) parts.push(`${result.processed} processados`);
+      if (result.failed) parts.push(`${result.failed} com erro`);
+      return parts.length ? parts.join(", ") : `${result.total} itens processados`;
+    }
+    return "Operação concluída.";
+  }
+
   async function runAction(action: string, label: string, fn: () => Promise<any>) {
     setLoadingAction(action);
     try {
       const result = await fn();
-      toast({ title: `${label}: Sucesso`, description: JSON.stringify(result) });
+      const isSuccess = action === "test" ? result?.success !== false : true;
+      const description = formatResult(action, result);
+
+      toast({
+        title: isSuccess ? `${label}: Sucesso ✓` : `${label}: Falhou`,
+        description,
+        variant: isSuccess ? "default" : "destructive",
+      });
+
       qc.invalidateQueries({ queryKey: ["integrations_api_configs"] });
       qc.invalidateQueries({ queryKey: ["tuya_meter_count", configId] });
       qc.invalidateQueries({ queryKey: ["tuya_sync_logs", configId] });
