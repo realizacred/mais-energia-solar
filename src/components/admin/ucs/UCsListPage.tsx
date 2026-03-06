@@ -2,6 +2,7 @@
  * UCsListPage — Main list page for Unidades Consumidoras.
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { unitService, type UCRecord } from "@/services/unitService";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
