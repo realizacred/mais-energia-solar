@@ -67,6 +67,7 @@ export function WaMessageBubble({
   onReactionPickerToggle,
   onSendReaction,
   onMediaPreview,
+  onRetry,
 }: WaMessageBubbleProps) {
   const isOut = msg.direction === "out";
   const isNote = msg.is_internal_note;
