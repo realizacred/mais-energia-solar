@@ -140,7 +140,7 @@ export function ApiConfigDialog({ open, onOpenChange, editingConfig, onSuccess }
             <p className="text-xs font-medium text-muted-foreground">Credenciais {isEdit && "(deixe em branco para manter as atuais)"}</p>
             <div className="space-y-1.5">
               <Label className="text-xs">Client ID / Access ID</Label>
-              <Input value={form.client_id} onChange={(e) => setForm(f => ({ ...f, client_id: e.target.value }))} placeholder={isEdit ? "••••••••" : "Insira o Client ID"} />
+              <Input value={form.client_id} onChange={(e) => setForm(f => ({ ...f, client_id: e.target.value }))} placeholder={isEdit ? "••••••••" : "Insira o Client ID"} autoComplete="new-password" data-lpignore="true" data-form-type="other" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Client Secret / Access Secret</Label>
@@ -151,6 +151,9 @@ export function ApiConfigDialog({ open, onOpenChange, editingConfig, onSuccess }
                   onChange={(e) => setForm(f => ({ ...f, client_secret: e.target.value }))}
                   placeholder={isEdit ? "••••••••" : "Insira o Client Secret"}
                   className="pr-10"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-form-type="other"
                 />
                 <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
