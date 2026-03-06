@@ -1,6 +1,5 @@
 /**
  * UCsListPage — Main list page for Unidades Consumidoras.
- * Features: search, filters by tipo_uc, archive toggle, CRUD actions.
  */
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Archive, Eye, Edit, Trash2, Zap, Building2, ArrowDownToLine } from "lucide-react";
+import { Plus, Search, Archive, Edit, Building2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UCFormDialog } from "./UCFormDialog";
 
