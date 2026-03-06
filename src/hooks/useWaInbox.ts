@@ -599,7 +599,7 @@ export function useWaMessages(conversationId?: string) {
         });
       }
 
-      // Update conversation preview + last_message_id
+      // Update conversation preview + last_message_id + direction
       await supabase
         .from("wa_conversations")
         .update({
@@ -608,6 +608,7 @@ export function useWaMessages(conversationId?: string) {
             ? "[Nota interna]"
             : content.substring(0, 100),
           last_message_id: msg.id,
+          last_message_direction: "out",
         })
         .eq("id", conversationId);
 
