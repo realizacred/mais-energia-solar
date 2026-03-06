@@ -62,6 +62,9 @@ wall_clock_limit = 120
 [functions.evolution-webhook]
 verify_jwt = false
 
+[functions.wati-webhook]
+verify_jwt = false
+
 [functions.process-webhook-events]
 verify_jwt = false
 
