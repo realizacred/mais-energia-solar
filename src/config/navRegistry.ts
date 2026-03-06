@@ -86,6 +86,12 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "depositos", label_default: "Depósitos", group_default: "Estoque", order_default: 1, icon: "Warehouse", description: "Cadastro e gestão de locais de armazenamento", keywords: ["depósito", "almoxarifado", "veículo", "local", "armazém"], criticality: "normal", permission: "admin_only" },
   { nav_key: "categorias-estoque", label_default: "Categorias", group_default: "Estoque", order_default: 2, icon: "Tag", description: "Categorias e subcategorias de itens de estoque", keywords: ["categoria", "subcategoria", "classificação", "tipo"], criticality: "normal", permission: "admin_only" },
 
+  // ── Medidores ──
+  { nav_key: "medidores", label_default: "Medidores", group_default: "Medidores", order_default: 0, icon: "Gauge", description: "Dispositivos de medição IoT sincronizados", keywords: ["medidor", "meter", "tuya", "iot", "dispositivo", "sensor"], criticality: "normal", permission: "admin_only" },
+
+  // ── Unidades Consumidoras ──
+  { nav_key: "ucs", label_default: "Unidades Consumidoras", group_default: "Unidades Consumidoras", order_default: 0, icon: "Building2", description: "Gestão de UCs, faturas, medidores e vínculos", keywords: ["UC", "unidade", "consumidora", "geradora", "beneficiária", "fatura", "concessionária"], criticality: "normal", permission: "admin_only" },
+
   // ── SolarMarket (importação) ──
   { nav_key: "solarmarket", label_default: "SolarMarket Importação", group_default: "Integrações", order_default: 4.5, icon: "Sun", description: "Importar clientes, projetos e propostas do SolarMarket", keywords: ["solarmarket", "importar", "cliente", "projeto", "proposta", "sincronizar"], criticality: "normal", permission: "admin_only" },
 
@@ -184,6 +190,8 @@ export const NAV_SECTION_DEFAULTS: NavSectionMeta[] = [
   { label: "Pós-Venda", icon: "Wrench", order: 3.5, indicatorBg: "bg-sidebar-operations", activeClass: "bg-sidebar-operations/12 text-sidebar-operations font-semibold border-l-2 border-sidebar-operations", hoverClass: "hover:bg-sidebar-operations/6", labelClass: "text-sidebar-operations", defaultOpen: false },
   { label: "Operações", icon: "Wrench", order: 4, indicatorBg: "bg-sidebar-operations", activeClass: "bg-sidebar-operations/12 text-sidebar-operations font-semibold border-l-2 border-sidebar-operations", hoverClass: "hover:bg-sidebar-operations/6", labelClass: "text-sidebar-operations", defaultOpen: false },
   { label: "Estoque", icon: "Package", order: 4.5, indicatorBg: "bg-sidebar-operations", activeClass: "bg-sidebar-operations/12 text-sidebar-operations font-semibold border-l-2 border-sidebar-operations", hoverClass: "hover:bg-sidebar-operations/6", labelClass: "text-sidebar-operations", defaultOpen: false },
+  { label: "Medidores", icon: "Gauge", order: 4.6, indicatorBg: "bg-sidebar-commercial", activeClass: "bg-sidebar-commercial/12 text-sidebar-commercial font-semibold border-l-2 border-sidebar-commercial", hoverClass: "hover:bg-sidebar-commercial/6", labelClass: "text-sidebar-commercial", defaultOpen: false },
+  { label: "Unidades Consumidoras", icon: "Building2", order: 4.7, indicatorBg: "bg-sidebar-clients", activeClass: "bg-sidebar-clients/12 text-sidebar-clients font-semibold border-l-2 border-sidebar-clients", hoverClass: "hover:bg-sidebar-clients/6", labelClass: "text-sidebar-clients", defaultOpen: false },
   { label: "Financeiro", icon: "Wallet", order: 5, indicatorBg: "bg-sidebar-finance", activeClass: "bg-sidebar-finance/12 text-sidebar-finance font-semibold border-l-2 border-sidebar-finance", hoverClass: "hover:bg-sidebar-finance/6", labelClass: "text-sidebar-finance", defaultOpen: false },
   { label: "Equipe", icon: "Users", order: 6, indicatorBg: "bg-sidebar-cadastros", activeClass: "bg-sidebar-cadastros/12 text-sidebar-cadastros font-semibold border-l-2 border-sidebar-cadastros", hoverClass: "hover:bg-sidebar-cadastros/6", labelClass: "text-sidebar-cadastros", defaultOpen: false },
   { label: "IA", icon: "Bot", order: 7, indicatorBg: "bg-sidebar-ai", activeClass: "bg-sidebar-ai/12 text-sidebar-ai font-semibold border-l-2 border-sidebar-ai", hoverClass: "hover:bg-sidebar-ai/6", labelClass: "text-sidebar-ai", defaultOpen: false },
