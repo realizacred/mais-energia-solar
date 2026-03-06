@@ -157,6 +157,7 @@ export function WaChatPanel({
   onToggleMute,
   onToggleHide,
   prefillMessage,
+  onRetryMessage,
 }: WaChatPanelProps) {
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [showLeadInfo, setShowLeadInfo] = useState(false);
