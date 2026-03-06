@@ -273,7 +273,7 @@ async function reconcileOutboundEcho(
   evolutionMessageId: string,
   content: string | null,
 ): Promise<{ reconciled: boolean; localMsgId?: string }> {
-  // 1. Already exists with this evolution_message_id? → skip entirely
+  // ── PRIORITY 1: Already exists with this evolution_message_id? → skip entirely
   const { data: existingByEvoId } = await supabase
     .from("wa_messages")
     .select("id")
@@ -284,8 +284,11 @@ async function reconcileOutboundEcho(
     return { reconciled: true, localMsgId: existingByEvoId.id };
   }
 
-  // 2. Find local outbound without evolution_message_id, with correlation_id
   const cutoff = new Date(Date.now() - 120_000).toISOString();
+
+  // ── PRIORITY 2: Match by correlation_id — the CANONICAL dedup mechanism.
+  // When send-whatsapp-message or inbox composer inserts a local message,
+  // it sets correlation_id. We look for unlinked outbound messages.
   const { data: candidates } = await supabase
     .from("wa_messages")
     .select("id, content, correlation_id")
@@ -301,16 +304,20 @@ async function reconcileOutboundEcho(
     return { reconciled: false };
   }
 
-  // 3. Content-based match as strict fallback (exact trim match of first 80 chars)
+  // 2a. Any candidate with a correlation_id that matches content is a strong match.
+  // Since Evolution doesn't echo our correlation_id back, we match by content
+  // but ONLY among candidates that HAVE a correlation_id (i.e., originated from our system).
   const normalizedContent = (content || "").trim().substring(0, 80);
-  const match = candidates.find((m: any) => {
-    const mContent = (m.content || "").trim();
-    // Exact match on first 80 chars
-    return mContent.substring(0, 80) === normalizedContent && normalizedContent.length > 0;
-  });
+  
+  // Prefer candidates WITH correlation_id (our messages) over those without
+  const withCorrelation = candidates.filter((m: any) => m.correlation_id);
+  const searchPool = withCorrelation.length > 0 ? withCorrelation : candidates;
+
+  const match = normalizedContent.length > 0
+    ? searchPool.find((m: any) => (m.content || "").trim().substring(0, 80) === normalizedContent)
+    : null;
 
   if (match) {
-    // Link the evolution_message_id + update status
     const now = new Date().toISOString();
     await supabase.from("wa_messages")
       .update({ 
@@ -320,10 +327,12 @@ async function reconcileOutboundEcho(
       })
       .eq("id", match.id);
     
-    console.log(`[DEDUP] reconciled local=${match.id} ← evo=${evolutionMessageId} (correlation_id=${match.correlation_id || 'none'})`);
+    console.log(`[DEDUP] reconciled local=${match.id} ← evo=${evolutionMessageId} method=${match.correlation_id ? "correlation_id+content" : "content_fallback"}`);
     return { reconciled: true, localMsgId: match.id };
   }
 
+  // ── FALLBACK: No content match. Log for audit trail.
+  console.warn(`[DEDUP] no_match conv=${conversationId} evo=${evolutionMessageId} content_len=${normalizedContent.length} candidates=${candidates.length}`);
   return { reconciled: false };
 }
 
