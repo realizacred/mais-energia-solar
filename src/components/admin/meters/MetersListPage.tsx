@@ -119,7 +119,7 @@ export default function MetersListPage() {
                 {meters.map((m) => {
                   const linkedUC = getLinkedUC(m.id);
                   return (
-                    <TableRow key={m.id} className="group">
+                    <TableRow key={m.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/medidores/${m.id}`)}>
                       <TableCell className="font-medium">{m.name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{m.model || "—"}</TableCell>
                       <TableCell>
