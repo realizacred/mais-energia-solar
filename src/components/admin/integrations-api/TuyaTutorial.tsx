@@ -10,9 +10,9 @@ import { ChevronDown, ChevronUp, ExternalLink, CheckCircle2, BookOpen, AlertTria
 const STEPS = [
   {
     num: 1,
-    title: "Criar conta no Tuya IoT Platform",
-    desc: 'Acesse iot.tuya.com e crie uma conta de desenvolvedor. Escolha o plano "Trial" (gratuito para desenvolvimento).',
-    link: "https://iot.tuya.com",
+    title: "Criar conta no Tuya Developer Platform",
+    desc: 'Acesse platform.tuya.com e crie uma conta de desenvolvedor. Escolha o plano "Trial" (gratuito para desenvolvimento).',
+    link: "https://platform.tuya.com",
   },
   {
     num: 2,
