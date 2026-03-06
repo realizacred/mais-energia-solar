@@ -31,6 +31,7 @@ const UC_TYPE_COLORS: Record<string, "default" | "success" | "info"> = {
 };
 
 export default function UCsListPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
