@@ -5598,7 +5598,7 @@ export type Database = {
           region?: string | null
           settings?: Json
           status?: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           updated_by?: string | null
         }
