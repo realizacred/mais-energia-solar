@@ -360,6 +360,7 @@ export function WaChatPanel({
         onReactionPickerToggle={setReactionPickerMsgId}
         onSendReaction={onSendReaction}
         onMediaPreview={setMediaPreview}
+        onRetry={onRetryMessage}
       />
     );
   };
