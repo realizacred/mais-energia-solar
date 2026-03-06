@@ -22,7 +22,6 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
 
   try {
-    // ── ATOMIC CLAIM: uses FOR UPDATE SKIP LOCKED inside the RPC ──
     const { data: jobs, error } = await supabase.rpc("claim_wa_bg_jobs", {
       max_jobs: MAX_JOBS_PER_RUN,
     });
@@ -71,13 +70,17 @@ Deno.serve(async (req) => {
           })
           .eq("id", job.id);
 
-        // When media_fetch permanently fails, mark the message so UI shows error instead of infinite loading
+        // When media_fetch permanently fails, update formal media_status
         if (isFinal && job.job_type === "media_fetch" && job.payload?.evolution_message_id) {
+          const now = new Date().toISOString();
           await supabase
             .from("wa_messages")
             .update({ 
+              media_status: "failed",
+              media_error_message: `Falha permanente após ${MAX_ATTEMPTS} tentativas: ${String(err).substring(0, 200)}`,
+              media_failed_at: now,
+              media_retry_count: nextAttempt,
               error_message: "Mídia não disponível — falha ao baixar do provedor",
-              metadata: { media_failed: true },
             })
             .eq("evolution_message_id", job.payload.evolution_message_id)
             .is("media_url", null);
@@ -127,7 +130,6 @@ async function processJob(supabase: any, job: any) {
   }
 }
 
-// ── Helper: get Evolution API instance details ──
 async function getInstanceDetails(supabase: any, instanceId: string) {
   const { data } = await supabase
     .from("wa_instances")
@@ -145,21 +147,26 @@ async function getInstanceDetails(supabase: any, instanceId: string) {
   };
 }
 
-// ── JOB: Media Fetch (idempotent: skips if media_url already set) ──
+// ── JOB: Media Fetch (with formal media_status transitions) ──
 async function jobMediaFetch(supabase: any, instanceId: string, tenantId: string, p: any) {
   const messageId = p.evolution_message_id;
 
   // IDEMPOTENCY: skip if media already uploaded
   const { data: existing } = await supabase
     .from("wa_messages")
-    .select("media_url")
+    .select("media_url, media_status")
     .eq("evolution_message_id", messageId)
     .maybeSingle();
 
-  if (existing?.media_url) {
-    console.log(`[wa-bg-worker] media_fetch SKIP (already uploaded): ${messageId}`);
+  if (existing?.media_url || existing?.media_status === "ready") {
+    console.log(`[wa-bg-worker] media_fetch SKIP (already ready): ${messageId}`);
     return;
   }
+
+  // Transition: pending → fetching
+  await supabase.from("wa_messages")
+    .update({ media_status: "fetching", media_retry_count: (existing?.media_retry_count || 0) + 1 })
+    .eq("evolution_message_id", messageId);
 
   const inst = await getInstanceDetails(supabase, instanceId);
   if (!inst || !inst.apiUrl || !inst.instanceKey) return;
@@ -197,7 +204,7 @@ async function jobMediaFetch(supabase: any, instanceId: string, tenantId: string
   };
   const cleanMime = mediaMime.split(";")[0].trim();
   const ext = extMap[mediaMime] || extMap[cleanMime] || cleanMime.split("/")[1] || "bin";
-  const filePath = `${tenantId}/media/${messageId}.${ext}`;
+  const storagePath = `${tenantId}/media/${messageId}.${ext}`;
 
   const binaryStr = atob(base64);
   const bytes = new Uint8Array(binaryStr.length);
@@ -207,20 +214,28 @@ async function jobMediaFetch(supabase: any, instanceId: string, tenantId: string
 
   const { error: uploadError } = await supabase.storage
     .from("wa-attachments")
-    .upload(filePath, bytes, { contentType: mediaMime, upsert: true });
+    .upload(storagePath, bytes, { contentType: mediaMime, upsert: true });
 
   if (uploadError) throw new Error(`Upload error: ${uploadError.message}`);
 
   const { data: publicUrl } = supabase.storage
     .from("wa-attachments")
-    .getPublicUrl(filePath);
+    .getPublicUrl(storagePath);
 
   const mediaUrl = publicUrl?.publicUrl || null;
   if (mediaUrl) {
+    // Transition: fetching → ready (with all metadata)
     await supabase.from("wa_messages")
-      .update({ media_url: mediaUrl })
+      .update({ 
+        media_url: mediaUrl,
+        media_status: "ready",
+        storage_path: storagePath,
+        media_mime_type: mediaMime,
+        file_name: p.file_name || `${messageId}.${ext}`,
+        file_size: bytes.length,
+      })
       .eq("evolution_message_id", messageId);
-    console.log(`[wa-bg-worker] Media stored: ${messageType} -> ${filePath}`);
+    console.log(`[wa-bg-worker] Media stored: ${messageType} -> ${storagePath} (${bytes.length} bytes)`);
   }
 }
 
@@ -259,7 +274,7 @@ async function jobProfilePic(supabase: any, instanceId: string, p: any) {
     body: JSON.stringify({ number: p.remote_jid }),
   });
 
-  if (!res.ok) return; // Not critical
+  if (!res.ok) return;
 
   const data = await res.json();
   const picUrl = data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || null;
@@ -272,7 +287,7 @@ async function jobProfilePic(supabase: any, instanceId: string, p: any) {
   }
 }
 
-// ── JOB: Push Notification (idempotent via idempotency_key on wa_bg_jobs) ──
+// ── JOB: Push Notification ──
 async function jobPushNotification(supabase: any, tenantId: string, instanceId: string, p: any) {
   const pushUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`;
   const res = await fetch(pushUrl, {
@@ -291,7 +306,7 @@ async function jobPushNotification(supabase: any, tenantId: string, instanceId: 
       direction: p.direction,
     }),
   });
-  await res.text(); // consume body
+  await res.text();
 }
 
 // ── JOB: Auto-Assign ──
@@ -302,12 +317,11 @@ async function jobAutoAssign(supabase: any, instanceId: string, tenantId: string
     .eq("id", p.conversation_id)
     .maybeSingle();
 
-  if (!convCheck || convCheck.assigned_to) return; // Already assigned — idempotent
+  if (!convCheck || convCheck.assigned_to) return;
 
   let ownerId: string | null = null;
   let assignSource = "unknown";
 
-  // Check #CANAL tag
   if (!p.from_me && p.content) {
     const canalMatch = p.content.match(/#CANAL:([a-zA-Z0-9_-]+)/);
     if (canalMatch) {
@@ -354,7 +368,6 @@ async function jobAutoAssign(supabase: any, instanceId: string, tenantId: string
   }
 
   if (ownerId) {
-    // Use IS NULL guard for idempotency
     await supabase
       .from("wa_conversations")
       .update({ assigned_to: ownerId, status: "open" })
@@ -365,7 +378,7 @@ async function jobAutoAssign(supabase: any, instanceId: string, tenantId: string
   }
 }
 
-// ── JOB: Auto-Reply (idempotent: checks cooldown + uses unique idempotency_key on outbox) ──
+// ── JOB: Auto-Reply ──
 async function jobAutoReply(supabase: any, instanceId: string, tenantId: string, p: any) {
   const { data: autoReplyConfig } = await supabase
     .from("whatsapp_automation_config")
@@ -380,6 +393,8 @@ async function jobAutoReply(supabase: any, instanceId: string, tenantId: string,
     .replace(/\{nome\}/g, p.contact_name || "")
     .replace(/\{telefone\}/g, p.phone || "");
 
+  const correlationId = crypto.randomUUID();
+
   const { data: outMsg } = await supabase.from("wa_messages").insert({
     conversation_id: p.conversation_id,
     direction: "out",
@@ -389,6 +404,8 @@ async function jobAutoReply(supabase: any, instanceId: string, tenantId: string,
     status: "pending",
     tenant_id: tenantId,
     source: "auto_reply",
+    correlation_id: correlationId,
+    queued_at: new Date().toISOString(),
   }).select("id").single();
 
   if (outMsg) {
@@ -404,7 +421,6 @@ async function jobAutoReply(supabase: any, instanceId: string, tenantId: string,
       p_idempotency_key: idempKey,
     });
 
-    // Fire-and-forget outbox processing
     try {
       const outboxUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-wa-outbox`;
       fetch(outboxUrl, {

@@ -8,12 +8,49 @@ const corsHeaders = {
 
 const BATCH_SIZE = 50;
 
+// ── Status priority (monotonic — never downgrade) ──
+const STATUS_PRIORITY: Record<string, number> = {
+  pending: 0, queued: 1, sending: 2, sent: 3, delivered: 4, read: 5, failed: -1,
+};
+
 // ── Structured Timing Logger ──
 function timingLog(step: string, t0: number, extra?: Record<string, unknown>) {
   const elapsed = Date.now() - t0;
   const payload = { step, elapsed_ms: elapsed, ts: new Date().toISOString(), ...extra };
   console.log(`[TIMING] ${JSON.stringify(payload)}`);
   return elapsed;
+}
+
+// ── Canonical JID normalizer (mirrors DB function) ──
+function normalizeJid(rawJid: string): string {
+  if (!rawJid) return rawJid;
+  if (rawJid.includes("@g.us")) return rawJid;
+  
+  const [numPart] = rawJid.split("@");
+  let digits = numPart.replace(/\D/g, "");
+  
+  // BR: ensure 13-digit format (55 + DD + 9 + 8 digits)
+  if (digits.startsWith("55") && digits.length === 12) {
+    digits = digits.slice(0, 4) + "9" + digits.slice(4);
+  }
+  
+  return `${digits}@s.whatsapp.net`;
+}
+
+// ── Alt JIDs for BR phone lookup ──
+function getAltJids(remoteJid: string): string[] {
+  const canonical = normalizeJid(remoteJid);
+  const jids = [remoteJid];
+  if (canonical !== remoteJid) jids.push(canonical);
+  
+  // Also try without 9th digit
+  const digits = canonical.split("@")[0];
+  if (digits.startsWith("55") && digits.length === 13) {
+    const without9 = `55${digits.slice(2, 4)}${digits.slice(5)}`;
+    jids.push(`${without9}@s.whatsapp.net`);
+  }
+  
+  return [...new Set(jids)];
 }
 
 Deno.serve(async (req) => {
@@ -81,7 +118,6 @@ Deno.serve(async (req) => {
         const enqueued = await processEvent(supabase, event);
         jobsEnqueued += enqueued;
         
-        // Mark processed IMMEDIATELY after DB insert — no extra awaits
         await supabase
           .from("wa_webhook_events")
           .update({ processed: true, processed_at: new Date().toISOString() })
@@ -102,11 +138,6 @@ Deno.serve(async (req) => {
         errors++;
       }
     }
-
-    // ══════════════════════════════════════════════════════════════
-    // NO Promise.allSettled — NO waiting for background tasks.
-    // All deferred work is in wa_bg_jobs, processed by wa-bg-worker.
-    // ══════════════════════════════════════════════════════════════
 
     // Fire-and-forget: trigger the background worker
     if (jobsEnqueued > 0) {
@@ -157,11 +188,6 @@ interface WebhookEvent {
   created_at: string;
 }
 
-/**
- * Process a single event. Returns the number of background jobs enqueued.
- * CRITICAL PATH ONLY: conversation upsert + message insert.
- * Everything else → wa_bg_jobs.
- */
 async function processEvent(supabase: any, event: WebhookEvent): Promise<number> {
   const { event_type, payload, instance_id, tenant_id } = event;
 
@@ -210,10 +236,6 @@ function parseMessageTimestamp(msg: any): Date {
   return new Date(epochMs);
 }
 
-/**
- * Enqueue a background job with idempotency.
- * Returns 1 if enqueued, 0 if duplicate (already exists).
- */
 async function enqueueJob(
   supabase: any,
   tenantId: string,
@@ -239,10 +261,95 @@ async function enqueueJob(
 }
 
 /**
- * Handle messages.upsert — CRITICAL PATH.
- * Rule: DB INSERT must ALWAYS happen FIRST. No external calls before insert.
- * All background work → wa_bg_jobs table.
+ * CANONICAL DEDUPLICATION for outbound echo messages.
+ * Priority:
+ * 1. Match by correlation_id (best — set by our send flow)
+ * 2. Match by evolution_message_id (provider already linked)
+ * 3. Fuzzy content match as last-resort fallback (strict: same conv, ≤60s, exact content)
  */
+async function reconcileOutboundEcho(
+  supabase: any,
+  conversationId: string,
+  evolutionMessageId: string,
+  content: string | null,
+): Promise<{ reconciled: boolean; localMsgId?: string }> {
+  // 1. Already exists with this evolution_message_id? → skip entirely
+  const { data: existingByEvoId } = await supabase
+    .from("wa_messages")
+    .select("id")
+    .eq("evolution_message_id", evolutionMessageId)
+    .maybeSingle();
+  
+  if (existingByEvoId) {
+    return { reconciled: true, localMsgId: existingByEvoId.id };
+  }
+
+  // 2. Find local outbound without evolution_message_id, with correlation_id
+  const cutoff = new Date(Date.now() - 120_000).toISOString();
+  const { data: candidates } = await supabase
+    .from("wa_messages")
+    .select("id, content, correlation_id")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "out")
+    .is("evolution_message_id", null)
+    .eq("is_internal_note", false)
+    .gte("created_at", cutoff)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (!candidates || candidates.length === 0) {
+    return { reconciled: false };
+  }
+
+  // 3. Content-based match as strict fallback (exact trim match of first 80 chars)
+  const normalizedContent = (content || "").trim().substring(0, 80);
+  const match = candidates.find((m: any) => {
+    const mContent = (m.content || "").trim();
+    // Exact match on first 80 chars
+    return mContent.substring(0, 80) === normalizedContent && normalizedContent.length > 0;
+  });
+
+  if (match) {
+    // Link the evolution_message_id + update status
+    const now = new Date().toISOString();
+    await supabase.from("wa_messages")
+      .update({ 
+        evolution_message_id: evolutionMessageId, 
+        status: "sent",
+        sent_at: now,
+      })
+      .eq("id", match.id);
+    
+    console.log(`[DEDUP] reconciled local=${match.id} ← evo=${evolutionMessageId} (correlation_id=${match.correlation_id || 'none'})`);
+    return { reconciled: true, localMsgId: match.id };
+  }
+
+  return { reconciled: false };
+}
+
+/**
+ * Resolve conversation using canonical JID normalization.
+ * Tries all JID variants to prevent duplicate conversations.
+ */
+async function resolveConversation(
+  supabase: any,
+  instanceId: string,
+  remoteJid: string,
+): Promise<{ id: string; unread_count: number; status: string; is_group: boolean; cliente_nome: string | null; profile_picture_url: string | null; last_message_at: string | null } | null> {
+  const altJids = getAltJids(remoteJid);
+  
+  const { data } = await supabase
+    .from("wa_conversations")
+    .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
+    .eq("instance_id", instanceId)
+    .in("remote_jid", altJids)
+    .limit(1)
+    .maybeSingle();
+  
+  return data;
+}
+
+// ── Main message handler ──
 async function handleMessageUpsert(
   supabase: any,
   instanceId: string,
@@ -275,35 +382,16 @@ async function handleMessageUpsert(
     const contactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
-    // Only use data already in payload — NEVER block on external API call
     const groupSubject: string | null = isGroup
       ? (msg.groupMetadata?.subject || msg.messageContextInfo?.messageSecret?.groupSubject || payload.groupSubject || payload.subject || msg.subject || null)
       : null;
 
     const eventDate = parseMessageTimestamp(msg);
+    const altJids = getAltJids(remoteJid);
 
-    // BR phone normalization
-    const altJids: string[] = [remoteJid];
-    if (!isGroup) {
-      const digits = phone;
-      if (digits.startsWith("55") && digits.length === 13) {
-        const without9 = `55${digits.slice(2, 4)}${digits.slice(5)}`;
-        altJids.push(`${without9}@s.whatsapp.net`);
-      } else if (digits.startsWith("55") && digits.length === 12) {
-        const with9 = `55${digits.slice(2, 4)}9${digits.slice(4)}`;
-        altJids.push(`${with9}@s.whatsapp.net`);
-      }
-    }
-
-    // ── STEP 1: Upsert conversation (CRITICAL PATH) ──
+    // ── STEP 1: Resolve/upsert conversation using canonical JID ──
     const t0_conv = Date.now();
-    const { data: existingConv } = await supabase
-      .from("wa_conversations")
-      .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
-      .eq("instance_id", instanceId)
-      .in("remote_jid", altJids)
-      .limit(1)
-      .maybeSingle();
+    const existingConv = await resolveConversation(supabase, instanceId, remoteJid);
 
     let conversationId: string;
 
@@ -334,10 +422,8 @@ async function handleMessageUpsert(
       if (!fromMe) {
         updates.unread_count = (existingConv.unread_count || 0) + 1;
         if (!isGroup && contactName) {
-          // Check contacts table for a user-saved name (priority over push name)
           const phoneE164 = `+${phone}`;
-          const phoneAlt = altJids.length > 1 ? `+${altJids[1].replace("@s.whatsapp.net", "")}` : null;
-          const phonesToCheck = phoneAlt ? [phoneE164, phoneAlt] : [phoneE164];
+          const phonesToCheck = altJids.map(j => `+${j.split("@")[0]}`);
           const { data: savedContact } = await supabase
             .from("contacts")
             .select("name, display_name")
@@ -382,12 +468,10 @@ async function handleMessageUpsert(
           .eq("id", conversationId);
       }
     } else {
-      // For new conversations, check contacts table for a saved name
+      // New conversation — use canonical JID
       let displayName = isGroup ? (groupSubject || null) : contactName;
       if (!isGroup && phone) {
-        const phoneE164 = `+${phone}`;
-        const phoneAlt = altJids.length > 1 ? `+${altJids[1].replace("@s.whatsapp.net", "")}` : null;
-        const phonesToCheck = phoneAlt ? [phoneE164, phoneAlt] : [phoneE164];
+        const phonesToCheck = altJids.map(j => `+${j.split("@")[0]}`);
         const { data: savedContact } = await supabase
           .from("contacts")
           .select("name, display_name")
@@ -399,12 +483,14 @@ async function handleMessageUpsert(
         if (savedName) displayName = savedName;
       }
       
+      const canonicalJid = isGroup ? remoteJid : normalizeJid(remoteJid);
+      
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
         .upsert({
           instance_id: instanceId,
           tenant_id: tenantId,
-          remote_jid: remoteJid,
+          remote_jid: canonicalJid,
           cliente_telefone: phone,
           cliente_nome: displayName,
           is_group: isGroup,
@@ -424,7 +510,6 @@ async function handleMessageUpsert(
       }
       conversationId = newConv.id;
 
-      // Enqueue background job to fetch profile picture for new conversations
       if (!isGroup) {
         try {
           await supabase.from("wa_bg_jobs").insert({
@@ -434,69 +519,36 @@ async function handleMessageUpsert(
             payload: { conversation_id: newConv.id, remote_jid: remoteJid },
             status: "pending",
           });
-        } catch (_) { /* non-critical */ }
+        } catch (_) {}
       }
     }
     timingLog("conversation_upsert", t0_conv, { conversationId, isNew: !existingConv });
 
-    // ── STEP 2: INSERT MESSAGE (CRITICAL PATH — always first, no external calls) ──
+    // ── STEP 2: DEDUP + INSERT MESSAGE ──
     const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || messageContent?.stickerMessage?.mimetype || null;
     const inlineMediaUrl: string | null = msg.mediaUrl || null;
+    
+    // Extract file metadata
+    const docMsg = messageContent?.documentMessage;
+    const fileName = docMsg?.fileName || null;
+    const fileSize = docMsg?.fileLength ? Number(docMsg.fileLength) : null;
 
-    // ── DEDUP: For fromMe messages, check if a locally-sent message already exists ──
-    // This prevents duplicates when send-whatsapp-message or inbox sendMessage
-    // already inserted the message, and the webhook echoes it back.
+    // ── CANONICAL DEDUP for outbound echo ──
     if (fromMe && evolutionMessageId) {
-      // First check: already exists with this evolution_message_id?
-      const { data: existingByEvoId } = await supabase
-        .from("wa_messages")
-        .select("id")
-        .eq("evolution_message_id", evolutionMessageId)
-        .maybeSingle();
-      
-      if (existingByEvoId) {
-        // Already exists — just update status if needed
-        timingLog("dedup_skip_evo_id", Date.now(), { evolutionMessageId });
+      const { reconciled } = await reconcileOutboundEcho(
+        supabase, conversationId, evolutionMessageId, content
+      );
+      if (reconciled) {
+        timingLog("dedup_reconciled", t0_msg, { evolutionMessageId });
         continue;
       }
-
-      // Second check: recent outbound message in same conversation without evolution_message_id
-      // (inserted by send-whatsapp-message or inbox composer before outbox processed)
-      const { data: recentOutbound } = await supabase
-        .from("wa_messages")
-        .select("id, content, source")
-        .eq("conversation_id", conversationId)
-        .eq("direction", "out")
-        .is("evolution_message_id", null)
-        .eq("is_internal_note", false)
-        .gte("created_at", new Date(Date.now() - 120_000).toISOString()) // within 2 minutes
-        .order("created_at", { ascending: false })
-        .limit(5);
-      
-      if (recentOutbound && recentOutbound.length > 0) {
-        // Find a content match (fuzzy: trim + first 80 chars)
-        const normalizedContent = (content || "").trim().substring(0, 80);
-        const match = recentOutbound.find((m: any) => {
-          const mContent = (m.content || "").trim();
-          // Match if content starts with the same text (accounts for sender name prefix)
-          return mContent.substring(0, 80) === normalizedContent 
-            || normalizedContent.includes(mContent.substring(0, 50))
-            || mContent.includes(normalizedContent.substring(0, 50));
-        });
-        
-        if (match) {
-          // Link the existing local message with the evolution_message_id
-          await supabase.from("wa_messages")
-            .update({ evolution_message_id: evolutionMessageId, status: "sent" })
-            .eq("id", match.id);
-          
-          timingLog("dedup_linked_local", Date.now(), { 
-            localMsgId: match.id, evolutionMessageId, source: match.source 
-          });
-          continue;
-        }
-      }
     }
+
+    // Determine media_status
+    const hasMedia = ["image", "video", "audio", "document", "gif", "sticker"].includes(messageType);
+    const mediaStatus = hasMedia
+      ? (inlineMediaUrl ? "ready" : "pending")
+      : "none";
 
     const t0_insert = Date.now();
     const { error: msgInsertError } = await supabase.from("wa_messages").upsert({
@@ -508,13 +560,18 @@ async function handleMessageUpsert(
       content,
       media_url: inlineMediaUrl,
       media_mime_type: mediaMimeType,
+      media_status: mediaStatus,
+      file_name: fileName,
+      file_size: fileSize,
       status: fromMe ? "sent" : "delivered",
+      sent_at: fromMe ? eventDate.toISOString() : null,
+      delivered_at: !fromMe ? eventDate.toISOString() : null,
       participant_jid: participantJid,
       participant_name: participantName,
       metadata: { raw_key: key },
     }, { onConflict: "evolution_message_id", ignoreDuplicates: true });
 
-    const insertMs = timingLog("db_insert", t0_insert, { evolutionMessageId, messageType });
+    timingLog("db_insert", t0_insert, { evolutionMessageId, messageType });
 
     if (msgInsertError) {
       console.warn(`[process-webhook-events] Message upsert warning: ${msgInsertError.message}`);
@@ -523,22 +580,15 @@ async function handleMessageUpsert(
     // ── TIMING: webhook queue → DB insert latency ──
     if (webhookCreatedAt) {
       const webhookMs = new Date(webhookCreatedAt).getTime();
-      const totalLatency = Date.now() - webhookMs;
       timingLog("webhook_to_db_insert", webhookMs, {
-        latency_ms: totalLatency,
+        latency_ms: Date.now() - webhookMs,
         evolutionMessageId,
         messageType,
       });
     }
 
-    // ══════════════════════════════════════════════════════════════
-    // CRITICAL PATH ENDS HERE.
-    // Everything below enqueues jobs into wa_bg_jobs.
-    // NO awaits on external APIs. NO Promise.allSettled.
-    // ══════════════════════════════════════════════════════════════
-
     // ── ENQUEUE: Media fetch job ──
-    if (!inlineMediaUrl && ["image", "video", "audio", "document", "gif", "sticker"].includes(messageType) && evolutionMessageId) {
+    if (!inlineMediaUrl && hasMedia && evolutionMessageId) {
       jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "media_fetch", {
         evolution_message_id: evolutionMessageId,
         message_type: messageType === "gif" ? "video" : messageType,
@@ -546,11 +596,11 @@ async function handleMessageUpsert(
         raw_key: key,
         remote_jid: remoteJid,
         from_me: fromMe,
+        file_name: fileName,
       }, `media:${evolutionMessageId}`);
     }
 
     // ── ENQUEUE: Group name fetch job ──
-    // P0-5 FIX: Check if name is null OR starts with "Grupo "
     if (isGroup && !groupSubject) {
       const needsGroupName = !existingConv 
         || existingConv.cliente_nome == null 
@@ -579,9 +629,8 @@ async function handleMessageUpsert(
       }, `push:${evolutionMessageId}`);
     }
 
-    // ── ENQUEUE: Auto-assign job (only new conversations, non-group) ──
-    const isNewConversation = !existingConv;
-    if (!isGroup && isNewConversation) {
+    // ── ENQUEUE: Auto-assign job ──
+    if (!isGroup && !existingConv) {
       jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "auto_assign", {
         conversation_id: conversationId,
         remote_jid: remoteJid,
@@ -592,8 +641,8 @@ async function handleMessageUpsert(
       }, `assign:${conversationId}`);
     }
 
-    // ── ENQUEUE: Auto-reply job (new conversations, inbound, non-group) ──
-    if (isNewConversation && !fromMe && !isGroup) {
+    // ── ENQUEUE: Auto-reply job ──
+    if (!existingConv && !fromMe && !isGroup) {
       jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "auto_reply", {
         conversation_id: conversationId,
         remote_jid: remoteJid,
@@ -602,7 +651,7 @@ async function handleMessageUpsert(
       }, `reply:${conversationId}`);
     }
 
-    // ── Satisfaction rating check (lightweight, stays inline) ──
+    // ── Satisfaction rating check ──
     if (!fromMe && content) {
       const trimmed = content.trim();
       const rating = parseInt(trimmed, 10);
@@ -674,13 +723,6 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
 async function handleMessageUpdate(supabase: any, payload: any) {
   const data = payload.data || payload;
   const updates = Array.isArray(data) ? data : [data];
-
-  const statusPriority: Record<string, number> = {
-    pending: 0,
-    sent: 1,
-    delivered: 2,
-    read: 3,
-  };
   
   for (const update of updates) {
     const evolutionId = update.keyId || update.key?.id || update.id;
@@ -710,37 +752,32 @@ async function handleMessageUpdate(supabase: any, payload: any) {
       .eq("evolution_message_id", evolutionId)
       .maybeSingle();
 
-    if (fetchErr) {
-      console.warn(`[process-webhook-events] Failed to fetch message ${evolutionId}:`, fetchErr.message);
-      continue;
-    }
-
-    if (!currentMsg) continue;
+    if (fetchErr || !currentMsg) continue;
 
     const currentStatus = currentMsg.status || "pending";
-    const currentPriority = statusPriority[currentStatus] ?? -1;
-    const newPriority = statusPriority[newStatus] ?? -1;
+    const currentPriority = STATUS_PRIORITY[currentStatus] ?? -1;
+    const newPriority = STATUS_PRIORITY[newStatus] ?? -1;
 
-    // Ignore stale/out-of-order status events (never downgrade status)
-    if (newPriority < currentPriority) {
-      console.log(`[process-webhook-events] Ignored stale status for ${evolutionId}: ${newStatus} < ${currentStatus}`);
-      continue;
-    }
+    // Never downgrade status (monotonic progression) — failed is special (-1)
+    if (newStatus !== "failed" && newPriority <= currentPriority) continue;
+    // Never overwrite "failed" with lower status
+    if (currentStatus === "failed") continue;
 
-    if (newPriority === currentPriority) continue;
+    const now = new Date().toISOString();
+    const statusUpdate: Record<string, unknown> = { status: newStatus };
+    
+    // Set specific timestamps
+    if (newStatus === "sent" && !currentMsg.sent_at) statusUpdate.sent_at = now;
+    if (newStatus === "delivered") statusUpdate.delivered_at = now;
+    if (newStatus === "read") statusUpdate.read_at = now;
+    if (newStatus === "failed") statusUpdate.failed_at = now;
 
-    const { data: updated, error } = await supabase
+    await supabase
       .from("wa_messages")
-      .update({ status: newStatus })
-      .eq("id", currentMsg.id)
-      .select("id")
-      .maybeSingle();
+      .update(statusUpdate)
+      .eq("id", currentMsg.id);
 
-    if (updated) {
-      console.log(`[process-webhook-events] Message ${evolutionId} status -> ${newStatus}`);
-    } else if (error) {
-      console.warn(`[process-webhook-events] Failed to update message ${evolutionId}:`, error.message);
-    }
+    console.log(`[process-webhook-events] Message ${evolutionId} status: ${currentStatus} → ${newStatus}`);
   }
 }
 
@@ -764,7 +801,6 @@ async function handleConnectionUpdate(supabase: any, instanceId: string, payload
 
   console.log(`[process-webhook-events] Instance ${instanceId} connection: ${state} -> ${dbStatus}`);
 
-  // Auto-reconnect: if disconnected, trigger immediate reconnect attempt
   if (dbStatus === "disconnected" || dbStatus === "error") {
     try {
       const { data: inst } = await supabase
@@ -829,14 +865,15 @@ async function handleContactsUpsert(
       if (name) updates.cliente_nome = name;
       if (profilePicUrl) updates.profile_picture_url = profilePicUrl;
 
+      // Try all JID variants
+      const altJids = getAltJids(jid);
       await supabase
         .from("wa_conversations")
         .update(updates)
         .eq("instance_id", instanceId)
-        .eq("remote_jid", jid);
+        .in("remote_jid", altJids);
     }
 
-    // Profile picture → enqueue as background job
     if (!profilePicUrl && !jid.endsWith("@g.us")) {
       jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "profile_pic", {
         remote_jid: jid,
