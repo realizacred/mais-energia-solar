@@ -52,6 +52,7 @@ interface WaMessageBubbleProps {
   onReactionPickerToggle: (msgId: string | null) => void;
   onSendReaction: (messageId: string, reaction: string) => void;
   onMediaPreview: (data: { url: string; type: "image" | "video" | "audio" | "document"; caption?: string }) => void;
+  onRetry?: (msg: WaMessage) => void;
 }
 
 export function WaMessageBubble({
