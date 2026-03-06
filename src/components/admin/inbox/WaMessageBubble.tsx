@@ -30,7 +30,12 @@ const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 /** Check if media permanently failed to download */
 function isMediaFailed(msg: WaMessage): boolean {
-  return !msg.media_url && !!(msg.metadata as any)?.media_failed;
+  return msg.media_status === "failed" || (!msg.media_url && !!(msg.metadata as any)?.media_failed);
+}
+
+/** Check if media is still being fetched */
+function isMediaPending(msg: WaMessage): boolean {
+  return !msg.media_url && (msg.media_status === "pending" || msg.media_status === "fetching");
 }
 
 interface WaMessageBubbleProps {
