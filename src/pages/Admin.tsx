@@ -552,6 +552,12 @@ export default function Admin() {
                 <Route path="depositos" element={<DepositosPage />} />
                 <Route path="categorias-estoque" element={<CategoriasEstoquePage />} />
                 
+                {/* Medidores */}
+                <Route path="medidores" element={<MetersListPage />} />
+                
+                {/* Unidades Consumidoras */}
+                <Route path="ucs" element={<UCsListPage />} />
+                
                 {/* Financeiro */}
                 <Route path="recebimentos" element={<RecebimentosManager />} />
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
