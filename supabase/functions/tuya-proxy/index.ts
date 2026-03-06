@@ -217,9 +217,12 @@ Deno.serve(async (req) => {
     }
 
     const creds = config.credentials as Record<string, string>;
-    const clientId = creds.client_id;
-    const clientSecret = creds.client_secret;
-    const baseUrl = config.base_url || "https://openapi.tuyaeu.com";
+    const clientId = (creds.client_id || "").trim();
+    const clientSecret = (creds.client_secret || "").trim();
+    const baseUrl = (config.base_url || "https://openapi.tuyaeu.com").trim();
+
+    console.log(`[tuya-proxy] Config: clientId=${clientId.slice(0, 6)}***, baseUrl=${baseUrl}, action=${action}`);
+    console.log(`[tuya-proxy] Secret len=${clientSecret.length}, first4=${clientSecret.slice(0, 4)}`);
 
     if (!clientId || !clientSecret) {
       return new Response(JSON.stringify({ error: "Missing Tuya credentials in config" }), {
@@ -233,6 +236,7 @@ Deno.serve(async (req) => {
 
     // Obtain valid token
     const token = await getAccessToken(baseUrl, clientId, clientSecret, existingToken);
+    console.log(`[tuya-proxy] Token obtained OK, uid=${token.uid}`);
 
     // Persist token if changed
     if (token.access_token !== existingToken?.access_token) {
