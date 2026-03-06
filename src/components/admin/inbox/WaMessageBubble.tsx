@@ -20,6 +20,8 @@ import { renderFormattedText } from "./WaFormatting";
 
 const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: string; label: string }> = {
   pending: { icon: Clock, className: "text-muted-foreground/50", label: "Enviando..." },
+  queued: { icon: Clock, className: "text-muted-foreground/50", label: "Na fila" },
+  sending: { icon: Clock, className: "text-muted-foreground/60", label: "Enviando..." },
   sent: { icon: Check, className: "text-muted-foreground/70", label: "Enviado" },
   delivered: { icon: CheckCheck, className: "text-muted-foreground/70", label: "Entregue" },
   read: { icon: CheckCheck, className: "text-info", label: "Lido" },
