@@ -255,3 +255,6 @@ verify_jwt = false
 
 [functions.google-contacts-integration]
 verify_jwt = false
+
+[functions.tuya-proxy]
+verify_jwt = false

@@ -560,6 +560,7 @@ export default function Admin() {
                 
                 {/* Medidores */}
                 <Route path="medidores" element={<MetersListPage />} />
+                <Route path="medidores/:id" element={<MeterDetailPage />} />
                 
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />

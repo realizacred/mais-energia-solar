@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import { Search, Gauge, Wifi, WifiOff, ArrowLeftRight, Eye, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MeterLinkDialog } from "./MeterLinkDialog";
