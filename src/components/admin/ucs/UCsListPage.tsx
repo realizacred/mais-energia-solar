@@ -140,8 +140,8 @@ export default function UCsListPage() {
               </TableHeader>
               <TableBody>
                 {ucs.map((uc) => (
-                  <TableRow key={uc.id} className="group">
-                    <TableCell className="font-medium">{uc.nome}</TableCell>
+                  <TableRow key={uc.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/ucs/${uc.id}`)}>
+                    <TableCell className="font-medium text-primary">{uc.nome}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{uc.codigo_uc}</TableCell>
                     <TableCell>
                       <Badge variant={UC_TYPE_COLORS[uc.tipo_uc] || "default"} className="text-xs">
