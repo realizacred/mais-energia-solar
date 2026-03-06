@@ -81,7 +81,7 @@ export function WaMessageBubble({
       return (
         <div className="flex items-center gap-2 text-xs text-destructive/70 py-2">
           <FileWarning className="h-3.5 w-3.5" />
-          <span>Mídia não disponível</span>
+          <span>{msg.media_error_message || "Mídia não disponível"}</span>
         </div>
       );
     }
