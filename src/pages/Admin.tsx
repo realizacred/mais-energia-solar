@@ -561,6 +561,10 @@ export default function Admin() {
                 
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />
+                <Route path="ucs/:id" element={<UCDetailPage />} />
+                
+                {/* Integrações > APIs */}
+                <Route path="integracoes-apis" element={<ApisPage />} />
                 
                 {/* Financeiro */}
                 <Route path="recebimentos" element={<RecebimentosManager />} />
