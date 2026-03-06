@@ -470,7 +470,13 @@ export function useWaMessages(conversationId?: string) {
           const newMsg = payload.new as any;
           const [withName] = await resolveNames([newMsg]);
           setAllMessages(prev => {
-            if (prev.some(m => m.id === withName.id)) return prev;
+            // Deterministic dedup: check by id, correlation_id, or evolution_message_id
+            const isDuplicate = prev.some(m => 
+              m.id === withName.id ||
+              (withName.correlation_id && (m as any).correlation_id === withName.correlation_id) ||
+              (withName.evolution_message_id && m.evolution_message_id === withName.evolution_message_id)
+            );
+            if (isDuplicate) return prev;
             return [...prev, withName];
           });
           // Play sound + vibrate for incoming messages
