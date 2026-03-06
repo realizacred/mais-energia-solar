@@ -325,6 +325,8 @@ const TAB_TITLES: Record<string, string> = {
   "tarifa-versoes": "Versões de tarifa",
   "saude-tarifaria": "Saúde tarifária",
   "aneel-sync-status": "Status do Sync ANEEL",
+  medidores: "Medidores",
+  ucs: "Unidades Consumidoras",
 };
 
 /** N8n placeholder component */
