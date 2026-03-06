@@ -443,6 +443,61 @@ async function handleMessageUpsert(
     const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || messageContent?.stickerMessage?.mimetype || null;
     const inlineMediaUrl: string | null = msg.mediaUrl || null;
 
+    // ── DEDUP: For fromMe messages, check if a locally-sent message already exists ──
+    // This prevents duplicates when send-whatsapp-message or inbox sendMessage
+    // already inserted the message, and the webhook echoes it back.
+    if (fromMe && evolutionMessageId) {
+      // First check: already exists with this evolution_message_id?
+      const { data: existingByEvoId } = await supabase
+        .from("wa_messages")
+        .select("id")
+        .eq("evolution_message_id", evolutionMessageId)
+        .maybeSingle();
+      
+      if (existingByEvoId) {
+        // Already exists — just update status if needed
+        timingLog("dedup_skip_evo_id", Date.now(), { evolutionMessageId });
+        continue;
+      }
+
+      // Second check: recent outbound message in same conversation without evolution_message_id
+      // (inserted by send-whatsapp-message or inbox composer before outbox processed)
+      const { data: recentOutbound } = await supabase
+        .from("wa_messages")
+        .select("id, content, source")
+        .eq("conversation_id", conversationId)
+        .eq("direction", "out")
+        .is("evolution_message_id", null)
+        .eq("is_internal_note", false)
+        .gte("created_at", new Date(Date.now() - 120_000).toISOString()) // within 2 minutes
+        .order("created_at", { ascending: false })
+        .limit(5);
+      
+      if (recentOutbound && recentOutbound.length > 0) {
+        // Find a content match (fuzzy: trim + first 80 chars)
+        const normalizedContent = (content || "").trim().substring(0, 80);
+        const match = recentOutbound.find((m: any) => {
+          const mContent = (m.content || "").trim();
+          // Match if content starts with the same text (accounts for sender name prefix)
+          return mContent.substring(0, 80) === normalizedContent 
+            || normalizedContent.includes(mContent.substring(0, 50))
+            || mContent.includes(normalizedContent.substring(0, 50));
+        });
+        
+        if (match) {
+          // Link the existing local message with the evolution_message_id
+          await supabase.from("wa_messages")
+            .update({ evolution_message_id: evolutionMessageId, status: "sent" })
+            .eq("id", match.id);
+          
+          timingLog("dedup_linked_local", Date.now(), { 
+            localMsgId: match.id, evolutionMessageId, source: match.source 
+          });
+          continue;
+        }
+      }
+    }
+
     const t0_insert = Date.now();
     const { error: msgInsertError } = await supabase.from("wa_messages").upsert({
       conversation_id: conversationId,
