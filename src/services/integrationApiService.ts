@@ -53,6 +53,7 @@ export const integrationApiService = {
     return (data || []).map((d: any) => ({
       ...d,
       credentials: maskCredentials(d.credentials || {}),
+      settings: sanitizeSettings(d.settings || {}),
     })) as IntegrationApiConfig[];
   },
 
