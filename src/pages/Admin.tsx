@@ -58,6 +58,8 @@ const InstaladorManager = lazy(() => import("@/components/admin/InstaladorManage
 const EstoquePage = lazy(() => import("@/components/admin/estoque/EstoquePage"));
 const DepositosPage = lazy(() => import("@/components/admin/estoque/DepositosPage").then(m => ({ default: m.DepositosPage })));
 const CategoriasEstoquePage = lazy(() => import("@/components/admin/estoque/CategoriasPage"));
+const UCsListPage = lazy(() => import("@/components/admin/ucs/UCsListPage"));
+const MetersListPage = lazy(() => import("@/components/admin/meters/MetersListPage"));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
