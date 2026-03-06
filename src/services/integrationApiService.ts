@@ -67,6 +67,7 @@ export const integrationApiService = {
     return {
       ...data,
       credentials: maskCredentials(data.credentials || {}),
+      settings: sanitizeSettings(data.settings || {}),
     } as IntegrationApiConfig;
   },
 
