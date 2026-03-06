@@ -26,7 +26,8 @@ export interface BillingEmailSettings {
   unit_id: string;
   billing_capture_email: string | null;
   forward_to_email: string | null;
-  pdf_password: string | null;
+  /** Never returned from read — write-only via secure RPC */
+  pdf_password?: string | null;
   email_billing_enabled: boolean;
   setup_status: string;
   notes: string | null;

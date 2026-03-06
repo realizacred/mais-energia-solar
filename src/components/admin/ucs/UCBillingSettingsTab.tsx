@@ -40,7 +40,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
       setForm({
         billing_capture_email: settings.billing_capture_email || "",
         forward_to_email: settings.forward_to_email || "",
-        pdf_password: settings.pdf_password || "",
+        pdf_password: "", // write-only — never returned from API
         email_billing_enabled: settings.email_billing_enabled,
         notes: settings.notes || "",
       });
