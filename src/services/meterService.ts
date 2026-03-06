@@ -95,22 +95,14 @@ export const meterService = {
   },
 
   async linkToUnit(unitId: string, meterId: string, linkType: string = "principal") {
-    // Deactivate existing active link for this meter (principal)
-    if (linkType === "principal") {
-      await supabase
-        .from("unit_meter_links")
-        .update({ is_active: false, ended_at: new Date().toISOString() } as any)
-        .eq("meter_device_id", meterId)
-        .eq("is_active", true)
-        .eq("link_type", "principal");
-    }
-    const { data, error } = await supabase
-      .from("unit_meter_links")
-      .insert({ unit_id: unitId, meter_device_id: meterId, link_type: linkType } as any)
-      .select("id, unit_id, meter_device_id, link_type, started_at, ended_at, is_active, notes")
-      .single();
+    // Use atomic RPC to prevent duplicate active principal links
+    const { data, error } = await supabase.rpc("link_meter_to_unit", {
+      p_unit_id: unitId,
+      p_meter_device_id: meterId,
+      p_link_type: linkType,
+    });
     if (error) throw error;
-    return data as UnitMeterLink;
+    return { id: data, unit_id: unitId, meter_device_id: meterId, link_type: linkType, started_at: new Date().toISOString(), ended_at: null, is_active: true, notes: null } as UnitMeterLink;
   },
 
   async unlinkFromUnit(linkId: string) {

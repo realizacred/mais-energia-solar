@@ -2,6 +2,7 @@
  * UCsListPage — Main list page for Unidades Consumidoras.
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { unitService, type UCRecord } from "@/services/unitService";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -30,6 +31,7 @@ const UC_TYPE_COLORS: Record<string, "default" | "success" | "info"> = {
 };
 
 export default function UCsListPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -138,8 +140,8 @@ export default function UCsListPage() {
               </TableHeader>
               <TableBody>
                 {ucs.map((uc) => (
-                  <TableRow key={uc.id} className="group">
-                    <TableCell className="font-medium">{uc.nome}</TableCell>
+                  <TableRow key={uc.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/ucs/${uc.id}`)}>
+                    <TableCell className="font-medium text-primary">{uc.nome}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{uc.codigo_uc}</TableCell>
                     <TableCell>
                       <Badge variant={UC_TYPE_COLORS[uc.tipo_uc] || "default"} className="text-xs">
