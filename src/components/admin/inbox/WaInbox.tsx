@@ -141,6 +141,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     isLoadingMore,
     hasOlderMessages,
     loadOlderMessages,
+    retryMessage,
   } = useWaMessages(selectedConv?.id);
 
   const { lastReadMessageId, markAsRead } = useWaReadTracking(selectedConv?.id, user?.id);
@@ -757,6 +758,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
                   onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
                   prefillMessage={prefillMessage}
+                  onRetryMessage={(msg) => retryMessage(msg)}
                 />
               </>
             ) : preContactData ? (
@@ -874,6 +876,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
                 onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
                 prefillMessage={prefillMessage}
+                onRetryMessage={(msg) => retryMessage(msg)}
               />
             )}
           </div>
