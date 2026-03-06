@@ -67,7 +67,7 @@ export function UCInvoicesTab({ unitId }: Props) {
       {isLoading ? (
         <div className="py-8 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
       ) : invoices.length === 0 ? (
-        <EmptyState icon="FileText" title="Nenhuma fatura" description="Registre manualmente ou configure o recebimento por e-mail." />
+        <EmptyState icon={FileText} title="Nenhuma fatura" description="Registre manualmente ou configure o recebimento por e-mail." />
       ) : (
         <div className="overflow-x-auto">
           <Table>

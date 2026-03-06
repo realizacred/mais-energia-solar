@@ -114,13 +114,13 @@ export default function UCsListPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : error ? (
-          <EmptyState icon="AlertTriangle" title="Erro ao carregar" description={String(error)} />
+          <EmptyState icon={AlertTriangle} title="Erro ao carregar" description={String(error)} />
         ) : ucs.length === 0 ? (
           <EmptyState
-            icon="Building2"
+            icon={Building2}
             title="Nenhuma UC cadastrada"
             description="Cadastre sua primeira unidade consumidora para começar a gerenciar faturas e medidores."
-            action={<Button onClick={handleCreate} size="sm"><Plus className="w-4 h-4 mr-1" /> Nova UC</Button>}
+            action={{ label: "Nova UC", onClick: handleCreate, icon: Plus }}
           />
         ) : (
           <div className="overflow-x-auto">

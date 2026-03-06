@@ -90,10 +90,10 @@ export default function MetersListPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : error ? (
-          <EmptyState icon="AlertTriangle" title="Erro ao carregar" description={String(error)} />
+          <EmptyState icon={AlertTriangle} title="Erro ao carregar" description={String(error)} />
         ) : meters.length === 0 ? (
           <EmptyState
-            icon="Gauge"
+            icon={Gauge}
             title="Nenhum medidor encontrado"
             description="Medidores serão importados automaticamente ao configurar uma integração de API (ex: Tuya) em Integrações > APIs."
           />

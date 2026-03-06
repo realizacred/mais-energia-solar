@@ -116,14 +116,10 @@ export function UCMeterTab({ unitId }: Props) {
         </Card>
       ) : (
         <EmptyState
-          icon="Gauge"
+          icon={Gauge}
           title="Nenhum medidor vinculado"
           description="Vincule um medidor IoT para acompanhar consumo e geração em tempo real."
-          action={
-            <Button size="sm" onClick={() => setLinkDialogOpen(true)}>
-              <Link2 className="w-4 h-4 mr-1" /> Vincular Medidor
-            </Button>
-          }
+          action={{ label: "Vincular Medidor", onClick: () => setLinkDialogOpen(true), icon: Link2 }}
         />
       )}
 
