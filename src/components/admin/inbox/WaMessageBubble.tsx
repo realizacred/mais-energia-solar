@@ -9,6 +9,9 @@ import {
   AlertCircle,
   Reply,
   Download,
+  MapPin,
+  RefreshCw,
+  FileWarning,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -24,6 +27,11 @@ const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: str
 };
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+/** Check if media permanently failed to download */
+function isMediaFailed(msg: WaMessage): boolean {
+  return !msg.media_url && !!(msg.metadata as any)?.media_failed;
+}
 
 interface WaMessageBubbleProps {
   msg: WaMessage;
@@ -54,13 +62,31 @@ export function WaMessageBubble({
 }: WaMessageBubbleProps) {
   const isOut = msg.direction === "out";
   const isNote = msg.is_internal_note;
+  const mediaFailed = isMediaFailed(msg);
 
-  // ✅ FIX: Use visibleMessages for date separator comparison (not raw messages)
   const showDate = idx === 0 ||
     format(new Date(visibleMessages[idx - 1].created_at), "yyyy-MM-dd") !== format(new Date(msg.created_at), "yyyy-MM-dd");
 
   const statusCfg = isOut && msg.status ? MESSAGE_STATUS_CONFIG[msg.status] || null : null;
   const quotedMsg = msg.quoted_message_id ? messagesMap.get(msg.quoted_message_id) : null;
+
+  /** Render media loading or failed state */
+  const renderMediaPlaceholder = (label: string) => {
+    if (mediaFailed) {
+      return (
+        <div className="flex items-center gap-2 text-xs text-destructive/70 py-2">
+          <FileWarning className="h-3.5 w-3.5" />
+          <span>Mídia não disponível</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
+        <Clock className="h-3.5 w-3.5" />
+        <span>Carregando {label}…</span>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -145,7 +171,6 @@ export function WaMessageBubble({
               {msg.participant_name}
             </p>
           )}
-          {/* Attendant name moved to bottom (near timestamp) */}
           {isNote && (
             <div className="flex items-center gap-1 mb-1 text-[10px] text-warning font-medium">
               <StickyNote className="h-3 w-3" />
@@ -153,7 +178,9 @@ export function WaMessageBubble({
             </div>
           )}
 
-          {/* Media content */}
+          {/* ── Media content ── */}
+
+          {/* IMAGE */}
           {msg.message_type === "image" && msg.media_url && (
             <div
               className="cursor-pointer hover:opacity-90 transition-opacity"
@@ -162,16 +189,12 @@ export function WaMessageBubble({
               <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover" />
             </div>
           )}
-          {msg.message_type === "image" && !msg.media_url && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Carregando imagem…</span>
-            </div>
-          )}
+          {msg.message_type === "image" && !msg.media_url && renderMediaPlaceholder("imagem")}
           {msg.message_type === "image" && msg.content && (
             <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
           )}
-          {/* GIF - autoplay loop */}
+
+          {/* GIF */}
           {msg.message_type === "gif" && (
             msg.media_url ? (
               <div
@@ -187,15 +210,13 @@ export function WaMessageBubble({
                   className="rounded-lg max-w-full max-h-48 object-cover"
                 />
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-xs opacity-80">
-                <span>🎞️</span> GIF
-              </div>
-            )
+            ) : renderMediaPlaceholder("GIF")
           )}
           {msg.message_type === "gif" && msg.content && (
             <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
           )}
+
+          {/* VIDEO */}
           {msg.message_type === "video" && (
             msg.media_url ? (
               <div
@@ -211,40 +232,45 @@ export function WaMessageBubble({
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Carregando vídeo…</span>
-              </div>
-            )
+            ) : renderMediaPlaceholder("vídeo")
           )}
+
+          {/* AUDIO */}
           {msg.message_type === "audio" && (
             msg.media_url ? (
               <audio controls preload="metadata" className="max-w-[240px] h-10" src={msg.media_url}>
                 Seu navegador não suporta áudio.
               </audio>
-            ) : (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Carregando áudio…</span>
-              </div>
-            )
+            ) : renderMediaPlaceholder("áudio")
           )}
+
+          {/* DOCUMENT — with download button */}
           {msg.message_type === "document" && (
             msg.media_url ? (
-              <div
-                className="flex items-center gap-2 text-xs opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
-                onClick={() => msg.media_url && onMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
-              >
-                <span>📄</span> {msg.content || "Documento"}
+              <div className="flex items-center gap-2 text-xs">
+                <div
+                  className="flex items-center gap-2 flex-1 min-w-0 opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={() => msg.media_url && onMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
+                >
+                  <span>📄</span>
+                  <span className="truncate">{msg.content || "Documento"}</span>
+                </div>
+                <a
+                  href={msg.media_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  title="Baixar"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </a>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse py-2">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Carregando documento…</span>
-              </div>
-            )
+            ) : renderMediaPlaceholder("documento")
           )}
+
+          {/* STICKER */}
           {msg.message_type === "sticker" && (
             msg.media_url ? (
               <div
@@ -257,12 +283,39 @@ export function WaMessageBubble({
               <div className="text-2xl">🏷️</div>
             )
           )}
+
+          {/* LOCATION — with Google Maps link */}
           {msg.message_type === "location" && (
+            (() => {
+              const coords = msg.content?.split(",");
+              const lat = coords?.[0]?.trim();
+              const lng = coords?.[1]?.trim();
+              const mapUrl = lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : null;
+              return (
+                <a
+                  href={mapUrl || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors"
+                >
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span>
+                    {lat && lng ? `${lat}, ${lng}` : "Localização"}
+                  </span>
+                </a>
+              );
+            })()
+          )}
+
+          {/* CONTACT */}
+          {msg.message_type === "contact" && (
             <div className="flex items-center gap-2 text-xs opacity-80">
-              <span>📍</span> Localização
+              <span>👤</span> Contato compartilhado
             </div>
           )}
-          {(msg.message_type === "text" || !["audio", "document", "sticker", "location", "image", "video", "gif"].includes(msg.message_type)) && msg.content && (
+
+          {/* TEXT (or unknown types with content) */}
+          {(msg.message_type === "text" || !["audio", "document", "sticker", "location", "image", "video", "gif", "contact"].includes(msg.message_type)) && msg.content && (
             <p className="whitespace-pre-wrap break-words">{renderFormattedText(msg.content)}</p>
           )}
           {(msg.message_type === "video" || msg.message_type === "gif") && msg.content && (
@@ -273,6 +326,13 @@ export function WaMessageBubble({
           {isOut && msg.sent_by_name && !isNote && (
             <p className="text-[10px] text-muted-foreground/50 mt-0.5">
               Enviado por {msg.sent_by_name}
+            </p>
+          )}
+
+          {/* Failed message error */}
+          {msg.status === "failed" && msg.error_message && (
+            <p className="text-[10px] text-destructive mt-0.5 truncate" title={msg.error_message}>
+              ⚠ {msg.error_message.substring(0, 60)}
             </p>
           )}
 
