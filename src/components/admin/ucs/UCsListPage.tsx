@@ -2,7 +2,7 @@
  * UCsListPage — Main list page for Unidades Consumidoras.
  * Improved with filter tabs + badge counts, pagination, and better UX.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { unitService, type UCRecord } from "@/services/unitService";
