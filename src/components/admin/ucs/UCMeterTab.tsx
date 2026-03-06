@@ -141,9 +141,80 @@ export function UCMeterTab({ unitId }: Props) {
         </Card>
       )}
 
-      {linkDialogOpen && activeMeter && (
-        <MeterLinkDialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen} meter={activeMeter} />
+      {linkDialogOpen && (
+        <UCMeterLinkDialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen} unitId={unitId} />
       )}
     </div>
+  );
+}
+
+/** Dialog to pick a meter and link to this UC */
+function UCMeterLinkDialog({ open, onOpenChange, unitId }: { open: boolean; onOpenChange: (o: boolean) => void; unitId: string }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [selectedMeter, setSelectedMeter] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const { data: meters = [] } = useQuery({
+    queryKey: ["available_meters", search],
+    queryFn: async () => {
+      const available = await meterService.getAvailableMeters();
+      if (!search) return available;
+      const s = search.toLowerCase();
+      return available.filter(m => m.name.toLowerCase().includes(s) || m.external_device_id.toLowerCase().includes(s));
+    },
+  });
+
+  async function handleLink() {
+    if (!selectedMeter) return;
+    setSaving(true);
+    try {
+      await meterService.linkToUnit(unitId, selectedMeter, "principal");
+      toast({ title: "Medidor vinculado com sucesso" });
+      qc.invalidateQueries({ queryKey: ["unit_meter_links", unitId] });
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Vincular Medidor</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar medidor..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <div className="max-h-[240px] overflow-y-auto border rounded-lg">
+            {meters.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Nenhum medidor disponível</p>
+            ) : (
+              meters.map(m => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setSelectedMeter(m.id)}
+                  className={`w-full text-left px-3 py-2.5 text-sm border-b last:border-b-0 transition-colors ${
+                    selectedMeter === m.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"
+                  }`}
+                >
+                  <span className="font-medium">{m.name}</span>
+                  <span className="ml-2 text-xs text-muted-foreground font-mono">{m.external_device_id.slice(0, 12)}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleLink} disabled={!selectedMeter || saving}>{saving ? "Vinculando..." : "Vincular"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
