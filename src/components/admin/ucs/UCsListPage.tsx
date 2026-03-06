@@ -75,7 +75,8 @@ export default function UCsListPage() {
         result = result.filter(u => !u.is_archived && (!u.concessionaria_id && !u.concessionaria_nome));
         break;
       case "no_billing":
-        result = result.filter(u => !u.is_archived && !u.concessionaria_nome);
+        // Currently no client-side billing data — show all active as fallback
+        result = result.filter(u => !u.is_archived);
         break;
       case "archived":
         result = result.filter(u => u.is_archived);
