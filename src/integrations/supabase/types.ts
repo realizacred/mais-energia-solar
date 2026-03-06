@@ -5565,6 +5565,71 @@ export type Database = {
           },
         ]
       }
+      integrations_api_configs: {
+        Row: {
+          base_url: string | null
+          created_at: string
+          created_by: string | null
+          credentials: Json
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          last_tested_at: string | null
+          name: string
+          provider: string
+          region: string | null
+          settings: Json
+          status: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          base_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          credentials?: Json
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          last_tested_at?: string | null
+          name: string
+          provider?: string
+          region?: string | null
+          settings?: Json
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          base_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          credentials?: Json
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          last_tested_at?: string | null
+          name?: string
+          provider?: string
+          region?: string | null
+          settings?: Json
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_api_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_chat_members: {
         Row: {
           chat_id: string
@@ -20361,6 +20426,69 @@ export type Database = {
           },
         ]
       }
+      unit_billing_email_settings_safe: {
+        Row: {
+          billing_capture_email: string | null
+          created_at: string | null
+          email_billing_enabled: boolean | null
+          forward_to_email: string | null
+          has_pdf_password: boolean | null
+          id: string | null
+          notes: string | null
+          setup_status:
+            | Database["public"]["Enums"]["billing_setup_status"]
+            | null
+          tenant_id: string | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_capture_email?: string | null
+          created_at?: string | null
+          email_billing_enabled?: boolean | null
+          forward_to_email?: string | null
+          has_pdf_password?: never
+          id?: string | null
+          notes?: string | null
+          setup_status?:
+            | Database["public"]["Enums"]["billing_setup_status"]
+            | null
+          tenant_id?: string | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_capture_email?: string | null
+          created_at?: string | null
+          email_billing_enabled?: boolean | null
+          forward_to_email?: string | null
+          has_pdf_password?: never
+          id?: string | null
+          notes?: string | null
+          setup_status?:
+            | Database["public"]["Enums"]["billing_setup_status"]
+            | null
+          tenant_id?: string | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_billing_email_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_billing_email_settings_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: true
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       acquire_conversation_lock: {
@@ -21083,6 +21211,14 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: boolean
       }
+      link_meter_to_unit: {
+        Args: {
+          p_link_type?: string
+          p_meter_device_id: string
+          p_unit_id: string
+        }
+        Returns: string
+      }
       move_deal_to_owner: {
         Args: { _deal_id: string; _to_owner_id: string }
         Returns: Json
@@ -21192,6 +21328,10 @@ export type Database = {
           p_to_user_id: string
         }
         Returns: Json
+      }
+      set_billing_pdf_password: {
+        Args: { p_password: string; p_unit_id: string }
+        Returns: undefined
       }
       sm_match_clients_to_leads: {
         Args: { p_tenant_id: string }
