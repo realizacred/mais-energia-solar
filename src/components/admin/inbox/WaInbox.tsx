@@ -758,6 +758,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
                   onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
                   prefillMessage={prefillMessage}
+                  onRetryMessage={(msg) => retryMessage(msg)}
                 />
               </>
             ) : preContactData ? (
