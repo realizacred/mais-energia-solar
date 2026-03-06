@@ -338,11 +338,25 @@ export function WaMessageBubble({
             </p>
           )}
 
-          {/* Failed message error */}
-          {msg.status === "failed" && msg.error_message && (
-            <p className="text-[10px] text-destructive mt-0.5 truncate" title={msg.error_message}>
-              ⚠ {msg.error_message.substring(0, 60)}
-            </p>
+          {/* Failed message error + retry */}
+          {msg.status === "failed" && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {msg.error_message && (
+                <p className="text-[10px] text-destructive truncate flex-1" title={msg.error_message}>
+                  ⚠ {msg.error_message.substring(0, 60)}
+                </p>
+              )}
+              {onRetry && msg.direction === "out" && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRetry(msg); }}
+                  className="flex items-center gap-0.5 text-[10px] text-primary hover:text-primary/80 font-medium shrink-0 transition-colors"
+                  title="Tentar reenviar"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Reenviar
+                </button>
+              )}
+            </div>
           )}
 
           {/* Timestamp & status */}
