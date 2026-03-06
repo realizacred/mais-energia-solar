@@ -413,7 +413,7 @@ export function useWaMessages(conversationId?: string) {
       if (!conversationId) return [];
       const { data, error } = await supabase
         .from("wa_messages")
-        .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, error_message, metadata, created_at")
+        .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
