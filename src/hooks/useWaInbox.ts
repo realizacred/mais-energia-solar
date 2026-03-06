@@ -496,7 +496,14 @@ export function useWaMessages(conversationId?: string) {
         (payload) => {
           const updated = payload.new as any;
           setAllMessages(prev =>
-            prev.map(m => m.id === updated.id ? { ...m, ...updated } : m)
+            prev.map(m => {
+              // Match by id or correlation_id for optimistic update reconciliation
+              if (m.id === updated.id) return { ...m, ...updated };
+              if (updated.correlation_id && (m as any).correlation_id === updated.correlation_id) {
+                return { ...m, ...updated };
+              }
+              return m;
+            })
           );
         }
       )
