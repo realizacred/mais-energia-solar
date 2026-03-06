@@ -753,11 +753,12 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Insert outbound message in wa_messages — with source marker
-        // to prevent dedup issues when webhook echoes this message back.
-        // The source='send_wa_direct' marker helps process-webhook-events
-        // skip duplicate insertion for fromMe messages that already exist.
+        // Insert outbound message with correlation_id for canonical dedup.
+        // When the webhook echoes this message back, process-webhook-events
+        // reconciles via correlation_id → evolution_message_id link.
         if (createdConvId) {
+          const correlationId = crypto.randomUUID();
+          const now = new Date().toISOString();
           const { error: msgErr } = await supabaseAdmin
             .from("wa_messages")
             .insert({
@@ -768,12 +769,15 @@ Deno.serve(async (req) => {
               content: mensagem,
               sent_by_user_id: assignedTo,
               status: "sent",
+              sent_at: now,
               source: "send_wa_direct",
+              correlation_id: correlationId,
             });
           if (msgErr) {
             console.error("[send-wa] Message insert failed:", msgErr);
           } else {
             messageSaved = true;
+            console.log(`[send-wa] Message saved with correlation_id=${correlationId}`);
           }
         }
 

@@ -549,7 +549,8 @@ export function useWaMessages(conversationId?: string) {
         quotedEvolutionId = quotedMsg?.evolution_message_id || null;
       }
 
-      // Insert message locally
+      // Insert message locally with correlation_id for canonical dedup
+      const correlationId = crypto.randomUUID();
       const { data: msg, error: msgError } = await supabase
         .from("wa_messages")
         .insert({
@@ -562,7 +563,9 @@ export function useWaMessages(conversationId?: string) {
           is_internal_note: isInternalNote,
           status: isInternalNote ? "sent" : "pending",
           quoted_message_id: quotedMessageId || null,
-        })
+          correlation_id: correlationId,
+          queued_at: new Date().toISOString(),
+        } as any)
         .select()
         .single();
 
