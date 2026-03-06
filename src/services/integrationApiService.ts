@@ -36,6 +36,13 @@ function maskCredentials(creds: Record<string, any>): Record<string, any> {
   return masked;
 }
 
+/** Strip sensitive token data from settings before sending to client */
+function sanitizeSettings(settings: Record<string, any>): Record<string, any> {
+  if (!settings || typeof settings !== "object") return {};
+  const { token_info, access_token, refresh_token, ...safe } = settings;
+  return safe;
+}
+
 export const integrationApiService = {
   async list() {
     const { data, error } = await (supabase as any)
@@ -46,6 +53,7 @@ export const integrationApiService = {
     return (data || []).map((d: any) => ({
       ...d,
       credentials: maskCredentials(d.credentials || {}),
+      settings: sanitizeSettings(d.settings || {}),
     })) as IntegrationApiConfig[];
   },
 
@@ -59,6 +67,7 @@ export const integrationApiService = {
     return {
       ...data,
       credentials: maskCredentials(data.credentials || {}),
+      settings: sanitizeSettings(data.settings || {}),
     } as IntegrationApiConfig;
   },
 
