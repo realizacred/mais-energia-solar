@@ -33,7 +33,9 @@ export interface BillingEmailSettings {
 }
 
 const INVOICE_COLS = `id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at`;
-const BILLING_COLS = `id, unit_id, billing_capture_email, forward_to_email, pdf_password, email_billing_enabled, setup_status, notes`;
+// Use safe view that hides pdf_password — only exposes has_pdf_password boolean
+const BILLING_COLS = `id, unit_id, billing_capture_email, forward_to_email, email_billing_enabled, setup_status, notes`;
+const BILLING_TABLE = "unit_billing_email_settings";
 
 export const invoiceService = {
   async listByUnit(unitId: string) {
