@@ -115,7 +115,7 @@ interface WaChatPanelProps {
   isAccepting?: boolean;
   isReleasing?: boolean;
   currentUserId?: string;
-  vendedores: { id: string; nome: string; user_id: string | null }[]; // TODO: rename to consultores
+  vendedores: { id: string; nome: string; user_id: string | null }[];
   lastReadMessageId?: string | null;
   onMarkAsRead?: (messageId: string) => void;
   isMuted?: boolean;
@@ -123,6 +123,7 @@ interface WaChatPanelProps {
   onToggleMute?: () => void;
   onToggleHide?: () => void;
   prefillMessage?: string | null;
+  onRetryMessage?: (msg: WaMessage) => void;
 }
 
 export function WaChatPanel({
