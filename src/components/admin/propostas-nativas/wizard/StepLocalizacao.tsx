@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home, Navigation } from "lucide-react";
+import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home, Navigation, ZoomIn, X, Trash2, Camera } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -115,6 +115,15 @@ export function StepLocalizacao({
   const [distKm, setDistKm] = useState<number | null>(null);
   const [distDialogOpen, setDistDialogOpen] = useState(false);
   const [distManualInput, setDistManualInput] = useState<string>("");
+
+  // Snapshots from GoogleMapView — displayed below address card
+  const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
+  const [snapshotPreviewIdx, setSnapshotPreviewIdx] = useState<number | null>(null);
+
+  const handleSnapshotsChange = useCallback((snaps: string[]) => {
+    setMapSnapshots(snaps);
+    onMapSnapshotsChange?.(snaps);
+  }, [onMapSnapshotsChange]);
 
   // Reverse geocoded address from map click
   const [reverseGeoResult, setReverseGeoResult] = useState<Partial<ProjectAddress> | null>(null);
@@ -728,6 +737,74 @@ export function StepLocalizacao({
             </div>
           </CardContent>
         </Card>
+
+        {/* ─── Snapshots gallery (below address card, aligned) ────── */}
+        {mapSnapshots.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <Camera className="h-3 w-3" />
+              Snapshots do mapa ({mapSnapshots.length})
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {mapSnapshots.map((src, idx) => (
+                <div
+                  key={idx}
+                  className="relative group rounded-lg overflow-hidden border border-border/50 shadow-sm w-[100px] h-[75px] cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
+                  onClick={() => setSnapshotPreviewIdx(idx)}
+                >
+                  <img src={src} alt={`Snapshot ${idx + 1}`} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <ZoomIn className="h-4 w-4 text-white" />
+                  </div>
+                  <button
+                    className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const updated = mapSnapshots.filter((_, i) => i !== idx);
+                      setMapSnapshots(updated);
+                      onMapSnapshotsChange?.(updated);
+                    }}
+                    title="Remover snapshot"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Snapshot preview dialog */}
+        <Dialog open={snapshotPreviewIdx !== null} onOpenChange={() => setSnapshotPreviewIdx(null)}>
+          <DialogContent className="max-w-3xl p-2">
+            {snapshotPreviewIdx !== null && mapSnapshots[snapshotPreviewIdx] && (
+              <div className="space-y-2">
+                <img
+                  src={mapSnapshots[snapshotPreviewIdx]}
+                  alt={`Snapshot ${snapshotPreviewIdx + 1}`}
+                  className="w-full rounded-lg"
+                />
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs text-muted-foreground">
+                    Snapshot {snapshotPreviewIdx + 1} de {mapSnapshots.length}
+                  </span>
+                  <Button
+                    variant="destructive" size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => {
+                      const updated = mapSnapshots.filter((_, i) => i !== snapshotPreviewIdx);
+                      setMapSnapshots(updated);
+                      onMapSnapshotsChange?.(updated);
+                      setSnapshotPreviewIdx(null);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" /> Remover
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* ═══ RIGHT COLUMN — Map ═══ */}
@@ -758,7 +835,7 @@ export function StepLocalizacao({
                 cidade={cidade}
                 estado={estado}
                 onMapClick={handleMapClick}
-                onSnapshotsChange={onMapSnapshotsChange}
+                onSnapshotsChange={handleSnapshotsChange}
               />
             </Suspense>
           </CardContent>
