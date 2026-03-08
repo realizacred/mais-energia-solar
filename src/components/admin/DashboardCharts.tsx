@@ -239,6 +239,6 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

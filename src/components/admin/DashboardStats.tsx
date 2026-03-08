@@ -241,6 +241,6 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
           </ResponsiveContainer>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
