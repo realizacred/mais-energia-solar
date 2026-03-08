@@ -210,6 +210,7 @@ export function useIsBackgroundSyncActive() {
 export function useSmClients(syncRunning?: boolean) {
   return useQuery<SmClient[]>({
     queryKey: ["sm-clients"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       return fetchAllRows<SmClient>({
         table: "solar_market_clients",
