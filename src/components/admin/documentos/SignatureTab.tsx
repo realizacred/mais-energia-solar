@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatPhone } from "@/lib/validations";
-import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import type React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
