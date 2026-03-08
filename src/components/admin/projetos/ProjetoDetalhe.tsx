@@ -1,11 +1,10 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
-import { formatProjetoLabel, formatPropostaLabel } from "@/lib/format-entity-labels";
+import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useMotivosPerda } from "@/hooks/useDistribution";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -38,45 +37,18 @@ import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { ProjetoChatTab } from "./ProjetoChatTab";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
+import {
+  ProjetoDetalheProvider,
+  useProjetoDetalhe,
+  type DealDetail,
+  type StageHistory,
+  type StageInfo,
+  type PipelineInfo,
+  type TabId,
+  type EtiquetaItem,
+} from "@/contexts/ProjetoDetalheContext";
 
-// ─── Types ──────────────────────────────────────────
-interface DealDetail {
-  id: string;
-  title: string;
-  value: number;
-  kwp: number | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  owner_id: string;
-  pipeline_id: string;
-  stage_id: string;
-  customer_id: string | null;
-  expected_close_date: string | null;
-  motivo_perda_id: string | null;
-  motivo_perda_obs: string | null;
-  deal_num: number | null;
-}
-
-interface StageHistory {
-  id: string;
-  deal_id: string;
-  from_stage_id: string | null;
-  to_stage_id: string;
-  moved_at: string;
-  moved_by: string | null;
-  metadata: any;
-}
-
-interface StageInfo {
-  id: string;
-  name: string;
-  position: number;
-  is_closed: boolean;
-  is_won: boolean;
-  probability: number;
-}
-
+// ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
   id: string;
   titulo: string;
@@ -106,11 +78,6 @@ interface StorageFile {
   metadata: { size?: number; mimetype?: string } | null;
 }
 
-interface PipelineInfo {
-  id: string;
-  name: string;
-}
-
 interface Props {
   dealId: string;
   onBack: () => void;
@@ -118,291 +85,38 @@ interface Props {
 }
 
 const TABS = [
-  { id: "gerenciamento", label: "Gerenciamento", icon: Settings, color: "text-secondary" },
-  { id: "chat", label: "Chat Whatsapp", icon: MessageSquare, color: "text-success" },
-  { id: "propostas", label: "Propostas", icon: FileText, color: "text-primary" },
-  
-  { id: "vinculo", label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
-  { id: "documentos", label: "Documentos", icon: FolderOpen, color: "text-warning" },
+  { id: "gerenciamento" as TabId, label: "Gerenciamento", icon: Settings, color: "text-secondary" },
+  { id: "chat" as TabId, label: "Chat Whatsapp", icon: MessageSquare, color: "text-success" },
+  { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary" },
+  { id: "vinculo" as TabId, label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
+  { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning" },
 ] as const;
 
-type TabId = typeof TABS[number]["id"];
-
 export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
+  return (
+    <ProjetoDetalheProvider dealId={dealId} onBack={onBack} initialPipelineId={initialPipelineId}>
+      <ProjetoDetalheContent />
+    </ProjetoDetalheProvider>
+  );
+}
+
+function ProjetoDetalheContent() {
+  const ctx = useProjetoDetalhe();
   const navigate = useNavigate();
-  const [deal, setDeal] = useState<DealDetail | null>(null);
-  const [history, setHistory] = useState<StageHistory[]>([]);
-  const [stages, setStages] = useState<StageInfo[]>([]);
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [customerCpfCnpj, setCustomerCpfCnpj] = useState("");
-  const [customerAddress, setCustomerAddress] = useState("");
-  const [customerEmpresa, setCustomerEmpresa] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabId>("gerenciamento");
-  const [pipelines, setPipelines] = useState<PipelineInfo[]>([]);
-  const [allStagesMap, setAllStagesMap] = useState<Map<string, StageInfo[]>>(new Map());
-  const [propostasCount, setPropostasCount] = useState(0);
-  const [docsCount, setDocsCount] = useState(0);
-  const [userNamesMap, setUserNamesMap] = useState<Map<string, string>>(new Map());
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteBlocking, setDeleteBlocking] = useState<string[]>([]);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmConsultorId, setConfirmConsultorId] = useState<string | null>(null);
-  const [confirmConsultorName, setConfirmConsultorName] = useState("");
-  // Loss dialog state
-  const [lossDialogOpen, setLossDialogOpen] = useState(false);
-  const [lossMotivo, setLossMotivo] = useState("");
-  const [lossObs, setLossObs] = useState("");
-  const [lossSaving, setLossSaving] = useState(false);
-  const { motivos, loading: loadingMotivos } = useMotivosPerda();
-  const [dealEtiquetas, setDealEtiquetas] = useState<{id: string; nome: string; cor: string; short: string | null; icon: string | null}[]>([]);
-  const [allEtiquetas, setAllEtiquetas] = useState<{id: string; nome: string; cor: string; short: string | null; icon: string | null}[]>([]);
-  const [etiquetaPopoverOpen, setEtiquetaPopoverOpen] = useState(false);
 
-  const isClosed = deal?.status === "won" || deal?.status === "lost";
-
-  // ─── Delete logic (unchanged) ──────────────────
-  const handleDeleteProject = async () => {
-    if (!deal) return;
-    setDeleting(true);
-    try {
-      const propRes = deal.customer_id
-        ? await supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", deal.customer_id)
-        : { count: 0 };
-      const histRes = await supabase.from("deal_stage_history").select("id", { count: "exact", head: true }).eq("deal_id", deal.id);
-      const checkRes = await supabase.from("checklists_instalador").select("id", { count: "exact", head: true }).eq("projeto_id", deal.id);
-
-      const depEntries: [string, number][] = [
-        ["Propostas", propRes.count ?? 0],
-        ["Histórico de etapas", histRes.count ?? 0],
-        ["Checklists de instalação", checkRes.count ?? 0],
-      ];
-      const blocking: string[] = [];
-      depEntries.forEach(([name, count]) => {
-        if (count > 0) blocking.push(`${name} (${count})`);
-      });
-
-      if (blocking.length > 0) {
-        setDeleteBlocking(blocking);
-        setDeleteDialogOpen(true);
-        setDeleting(false);
-        return;
-      }
-
-      await supabase.from("deal_kanban_projection").delete().eq("deal_id", deal.id);
-      const { error } = await supabase.from("deals").delete().eq("id", deal.id);
-      if (error) throw error;
-
-      toast({ title: "Projeto excluído com sucesso!" });
-      onBack();
-    } catch (err: any) {
-      toast({ title: "Erro ao excluir projeto", description: err?.message || "Tente novamente.", variant: "destructive" });
-    } finally {
-      setDeleting(false);
-    }
-  };
-  // ─── Refresh proposals count on focus (after wizard navigation)
-  // Query propostas_nativas.deal_id directly (no projetos indirection)
-  useEffect(() => {
-    const refreshCount = async () => {
-      const { count } = await supabase
-        .from("propostas_nativas")
-        .select("id", { count: "exact", head: true })
-        .eq("deal_id", dealId);
-      setPropostasCount(count || 0);
-    };
-    refreshCount(); // initial count
-    const handleFocus = () => refreshCount();
-    const handleVisibility = () => { if (document.visibilityState === "visible") refreshCount(); };
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [dealId]);
-
-  // ─── Load deal data (unchanged) ────────────────
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const [dealRes, historyRes] = await Promise.all([
-          supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num").eq("id", dealId).single(),
-          supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
-        ]);
-
-        if (dealRes.error) throw dealRes.error;
-        const d = dealRes.data as DealDetail;
-        setDeal(d);
-        const historyData = (historyRes.data || []) as StageHistory[];
-        setHistory(historyData);
-
-        const movedByIds = [...new Set(historyData.map(h => h.moved_by).filter(Boolean))] as string[];
-        if (movedByIds.length > 0) {
-          supabase.from("profiles").select("user_id, nome").in("user_id", movedByIds)
-            .then(({ data: profiles }) => {
-              if (profiles) {
-                const map = new Map<string, string>();
-                (profiles as any[]).forEach(p => map.set(p.user_id, p.nome));
-                setUserNamesMap(map);
-              }
-            });
-        }
-
-        const [stagesRes, customerRes, ownerRes, pipelinesRes, allStagesRes] = await Promise.all([
-          supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", d.pipeline_id).order("position"),
-          d.customer_id ? supabase.from("clientes").select("nome, telefone, email, cpf_cnpj, empresa, rua, numero, bairro, cidade, estado, cep").eq("id", d.customer_id).single() : Promise.resolve({ data: null }),
-          supabase.from("consultores").select("nome").eq("id", d.owner_id).single(),
-          supabase.from("pipelines").select("id, name").eq("is_active", true).order("name"),
-          supabase.from("pipeline_stages").select("id, name, position, pipeline_id, is_closed, is_won, probability").order("position"),
-        ]);
-
-        setStages((stagesRes.data || []) as StageInfo[]);
-        if (customerRes.data) {
-          const c = customerRes.data as any;
-          setCustomerName(c.nome);
-          setCustomerPhone(c.telefone || "");
-          setCustomerEmail(c.email || "");
-          setCustomerCpfCnpj(c.cpf_cnpj || "");
-          setCustomerEmpresa(c.empresa || "");
-          const parts = [c.rua, c.numero ? `n° ${c.numero}` : null, c.bairro, c.cidade ? `${c.cidade} (${c.estado || ""})` : null, c.cep ? `CEP: ${c.cep}` : null].filter(Boolean);
-          setCustomerAddress(parts.join(", "));
-        }
-        if (ownerRes.data) setOwnerName((ownerRes.data as any).nome);
-        if (pipelinesRes.data) setPipelines(pipelinesRes.data as PipelineInfo[]);
-        if (allStagesRes.data) {
-          const map = new Map<string, StageInfo[]>();
-          (allStagesRes.data as any[]).forEach(s => {
-            const arr = map.get(s.pipeline_id) || [];
-            arr.push({ id: s.id, name: s.name, position: s.position, is_closed: s.is_closed, is_won: s.is_won, probability: s.probability });
-            map.set(s.pipeline_id, arr);
-          });
-          setAllStagesMap(map);
-        }
-
-        // Proposals count is handled by the focus/visibility useEffect above
-
-        supabase.from("profiles").select("tenant_id").limit(1).single().then(({ data: profile }) => {
-          if (profile) {
-            supabase.storage.from("projeto-documentos").list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 })
-              .then(({ data: files }) => setDocsCount(files?.length || 0));
-          }
-        });
-      } catch (err) {
-        console.error("ProjetoDetalhe:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [dealId]);
-
-  const refreshCustomer = async () => {
-    if (!deal?.customer_id) return;
-    const { data: c } = await supabase.from("clientes").select("nome, telefone, email, cpf_cnpj, empresa, rua, numero, bairro, cidade, estado, cep").eq("id", deal.customer_id).single();
-    if (c) {
-      const cl = c as any;
-      setCustomerName(cl.nome);
-      setCustomerPhone(cl.telefone || "");
-      setCustomerEmail(cl.email || "");
-      setCustomerCpfCnpj(cl.cpf_cnpj || "");
-      setCustomerEmpresa(cl.empresa || "");
-      const parts = [cl.rua, cl.numero ? `n° ${cl.numero}` : null, cl.bairro, cl.cidade ? `${cl.cidade} (${cl.estado || ""})` : null, cl.cep ? `CEP: ${cl.cep}` : null].filter(Boolean);
-      setCustomerAddress(parts.join(", "));
-    }
-  };
-
-  // ─── Load etiquetas ────────────────────────────
-  const loadEtiquetas = async () => {
-    const [relRes, allRes] = await Promise.all([
-      supabase.from("projeto_etiqueta_rel").select("etiqueta_id").eq("projeto_id", dealId),
-      supabase.from("projeto_etiquetas").select("id, nome, cor, short, icon").eq("ativo", true).order("ordem"),
-    ]);
-    const allEts = (allRes.data || []) as any[];
-    setAllEtiquetas(allEts);
-    const relIds = new Set((relRes.data || []).map((r: any) => r.etiqueta_id));
-    setDealEtiquetas(allEts.filter(e => relIds.has(e.id)));
-  };
-
-  useEffect(() => { loadEtiquetas(); }, [dealId]);
-
-  const toggleEtiqueta = async (etId: string) => {
-    try {
-      const has = dealEtiquetas.some(e => e.id === etId);
-      if (has) {
-        const { error } = await supabase.from("projeto_etiqueta_rel").delete().eq("projeto_id", dealId).eq("etiqueta_id", etId);
-        if (error) { console.error("Erro ao remover etiqueta:", error); return; }
-      } else {
-        const { error } = await supabase.from("projeto_etiqueta_rel").insert({ projeto_id: dealId, etiqueta_id: etId } as any);
-        if (error) { console.error("Erro ao adicionar etiqueta:", error); return; }
-      }
-      await loadEtiquetas();
-    } catch (err) {
-      console.error("toggleEtiqueta error:", err);
-    }
-  };
-
-  // ─── Realtime subscription for auto-refresh ────
-  useEffect(() => {
-    const channel = supabase
-      .channel(`deal-${dealId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "deals", filter: `id=eq.${dealId}` }, () => {
-        silentRefresh();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "deal_stage_history", filter: `deal_id=eq.${dealId}` }, () => {
-        silentRefresh();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [dealId]);
-
-  const currentStage = useMemo(() => stages.find(s => s.id === deal?.stage_id), [stages, deal]);
-  const currentStageIndex = useMemo(() => stages.findIndex(s => s.id === deal?.stage_id), [stages, deal]);
-  const currentPipeline = useMemo(() => pipelines.find(p => p.id === deal?.pipeline_id), [pipelines, deal]);
-
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-
-  // formatBRL imported from @/lib/formatters at file top
-
-  const getStageNameById = (id: string | null) => {
-    if (!id) return "—";
-    // Search current pipeline stages first
-    const found = stages.find(s => s.id === id);
-    if (found) return found.name;
-    // Search ALL pipelines stages (for cross-pipeline history)
-    for (const [, pStages] of allStagesMap) {
-      const s = pStages.find(st => st.id === id);
-      if (s) return s.name;
-    }
-    return "—";
-  };
-
-  const updateDealLocal = (patch: Partial<DealDetail>) => {
-    setDeal(prev => prev ? { ...prev, ...patch } : prev);
-  };
-
-  const silentRefresh = async () => {
-    try {
-      const { data: d } = await supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num").eq("id", dealId).single();
-      if (d) {
-        setDeal(d as DealDetail);
-        const [stagesRes, historyRes, ownerRes] = await Promise.all([
-          supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", (d as any).pipeline_id).order("position"),
-          supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
-          supabase.from("consultores").select("nome").eq("id", (d as any).owner_id).single(),
-        ]);
-        setStages((stagesRes.data || []) as StageInfo[]);
-        setHistory((historyRes.data || []) as StageHistory[]);
-        if (ownerRes.data) setOwnerName((ownerRes.data as any).nome);
-      }
-    } catch { /* silent */ }
-  };
+  const {
+    deal, loading, activeTab, setActiveTab, stages,
+    customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
+    ownerName, pipelines, allStagesMap, userNamesMap,
+    currentStage, currentPipeline, projectCode,
+    dealEtiquetas, allEtiquetas, etiquetaPopoverOpen, setEtiquetaPopoverOpen, toggleEtiqueta,
+    deleteDialogOpen, setDeleteDialogOpen, deleteBlocking, deleting, handleDeleteProject, setDeleteBlocking,
+    confirmConsultorId, setConfirmConsultorId, handleConfirmConsultor,
+    lossDialogOpen, setLossDialogOpen, lossMotivo, setLossMotivo, lossObs, setLossObs, lossSaving,
+    motivos, loadingMotivos, handleConfirmLoss,
+    isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
+    dealId, onBack, initialPipelineId,
+  } = ctx;
 
   if (loading) {
     return (
@@ -421,16 +135,6 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
       </div>
     );
   }
-
-  const tabBadge = (tabId: string) => {
-    if (tabId === "propostas") return propostasCount;
-    if (tabId === "documentos") return docsCount;
-    
-    return null;
-  };
-
-  const _projetoLabel = formatProjetoLabel({ id: deal.id, deal_num: deal.deal_num });
-  const projectCode = _projetoLabel.primary;
 
   return (
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
@@ -604,7 +308,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
         >
           {activeTab === "gerenciamento" && (
             <GerenciamentoTab
-              deal={deal} history={history} stages={stages}
+              deal={deal} history={ctx.history} stages={stages}
               customerName={customerName} customerPhone={customerPhone}
               customerEmail={customerEmail} customerCpfCnpj={customerCpfCnpj}
               customerEmpresa={customerEmpresa}
@@ -648,22 +352,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setConfirmConsultorId(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={async () => {
-              if (!confirmConsultorId || !deal) return;
-              const prev = deal.owner_id;
-              const newId = confirmConsultorId;
-              setConfirmConsultorId(null);
-              updateDealLocal({ owner_id: newId });
-              try {
-                const { error } = await supabase.from("deals").update({ owner_id: newId }).eq("id", deal.id);
-                if (error) throw error;
-                toast({ title: "Consultor alterado" });
-                silentRefresh();
-              } catch (err: any) {
-                updateDealLocal({ owner_id: prev });
-                toast({ title: "Erro", description: err.message, variant: "destructive" });
-              }
-            }}>
+            <AlertDialogAction onClick={handleConfirmConsultor}>
               Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -737,63 +426,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
             <Button
               variant="destructive"
               disabled={!lossMotivo || lossSaving}
-              onClick={async () => {
-                if (!lossMotivo) return;
-                setLossSaving(true);
-                const prevStatus = deal.status;
-                const prevStageId = deal.stage_id;
-                const lostStage = stages.find(s => s.is_closed && !s.is_won);
-                const update: any = {
-                  status: "lost",
-                  motivo_perda_id: lossMotivo,
-                  motivo_perda_obs: lossObs.trim() || null,
-                };
-                if (lostStage) update.stage_id = lostStage.id;
-                updateDealLocal(update);
-                try {
-                  const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
-                  if (error) throw error;
-
-                  // CASCADE: Mark all project proposals as "perdida"
-                  await supabase.from("propostas_nativas")
-                    .update({ status: "perdida" })
-                    .eq("projeto_id", deal.id);
-
-                  // CASCADE: Cancel pending commissions linked to this project
-                  await supabase.from("comissoes")
-                    .update({ status: "cancelada", observacoes: "Projeto marcado como perdido" })
-                    .eq("projeto_id", deal.id)
-                    .eq("status", "pendente");
-
-                  // CASCADE: Mark linked lead as "Perdido"
-                  if (deal.customer_id) {
-                    const { data: cli } = await supabase
-                      .from("clientes")
-                      .select("lead_id")
-                      .eq("id", deal.customer_id)
-                      .single();
-
-                    if (cli?.lead_id) {
-                      await supabase.from("leads")
-                        .update({
-                          status_id: "a07b8727-0331-4431-a7c1-30a8d2b2326b",
-                          motivo_perda_id: lossMotivo,
-                          motivo_perda_obs: lossObs.trim() || null,
-                        })
-                        .eq("id", cli.lead_id);
-                    }
-                  }
-
-                  toast({ title: "Projeto marcado como perdido" });
-                  setLossDialogOpen(false);
-                  silentRefresh();
-                } catch (err: any) {
-                  updateDealLocal({ status: prevStatus, stage_id: prevStageId });
-                  toast({ title: "Erro", description: err.message, variant: "destructive" });
-                } finally {
-                  setLossSaving(false);
-                }
-              }}
+              onClick={handleConfirmLoss}
             >
               {lossSaving && <Spinner size="sm" className="mr-2" />}
               Registrar Perda
