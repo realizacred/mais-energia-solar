@@ -95,6 +95,7 @@ export function usePostSaleVisits(filters?: { status?: string; tipo?: string }) 
 export function usePostSaleUpsells() {
   return useQuery<PostSaleUpsell[]>({
     queryKey: ["post-sale-upsells"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_upsell_opportunities")
