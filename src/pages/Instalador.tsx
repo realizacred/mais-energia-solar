@@ -35,18 +35,26 @@
    const [targetInstaladorId, setTargetInstaladorId] = useState<string | null>(null);
    const [instaladorName, setInstaladorName] = useState<string | null>(null);
  
-    // Theme-color for instalador context (no manifest swap — single manifest strategy)
+    // Swap manifest + theme-color for instalador PWA
     useEffect(() => {
+      // Manifest swap
+      const link = document.querySelector('link[rel="manifest"]');
+      const originalManifest = link?.getAttribute("href") || "/manifest.webmanifest";
+      link?.setAttribute("href", "/instalador-manifest.json");
+
+      // Theme color
       let themeMeta = document.querySelector('meta[name="theme-color"]');
       if (!themeMeta) {
         themeMeta = document.createElement("meta");
         themeMeta.setAttribute("name", "theme-color");
         document.head.appendChild(themeMeta);
       }
-      const original = themeMeta.getAttribute("content") || "#e8760d";
+      const originalTheme = themeMeta.getAttribute("content") || "#e8760d";
       themeMeta.setAttribute("content", "#f59e0b");
+
       return () => {
-        themeMeta?.setAttribute("content", original);
+        link?.setAttribute("href", originalManifest);
+        themeMeta?.setAttribute("content", originalTheme);
       };
     }, []);
 
