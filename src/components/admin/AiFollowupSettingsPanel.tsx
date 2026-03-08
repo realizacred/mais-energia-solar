@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Spinner } from "@/components/ui-kit/Spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
