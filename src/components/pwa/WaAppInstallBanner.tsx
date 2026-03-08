@@ -54,7 +54,7 @@ export function WaAppInstallBanner() {
 
   return (
     <div className="shrink-0 mx-3 mt-2 animate-in slide-in-from-top-4 fade-in duration-300 select-none touch-action-manipulation">
-      <div className="bg-success/5 border border-success/20 rounded-xl p-3 relative">
+      <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-3 relative">
         <button
           onClick={handleDismiss}
           className="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -65,8 +65,8 @@ export function WaAppInstallBanner() {
 
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
-            <div className="h-9 w-9 rounded-full bg-success/15 flex items-center justify-center">
-              <MessageCircle className="h-4 w-4 text-success" />
+            <div className="h-9 w-9 rounded-full bg-secondary/15 flex items-center justify-center">
+              <MessageCircle className="h-4 w-4 text-secondary" />
             </div>
           </div>
 
@@ -83,7 +83,7 @@ export function WaAppInstallBanner() {
                 <Button
                   size="sm"
                   onClick={handleInstall}
-                  className="h-7 text-xs bg-success hover:bg-success/90 text-white"
+                  className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground"
                 >
                   <Download className="h-3.5 w-3.5 mr-1.5" />
                   Instalar
