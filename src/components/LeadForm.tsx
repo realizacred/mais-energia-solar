@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User, Phone, MapPin, Home, Zap, BarChart3, MessageSquare, Send, CheckCircle, FileText } from "lucide-react";
