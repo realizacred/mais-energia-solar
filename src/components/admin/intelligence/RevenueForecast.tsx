@@ -57,6 +57,7 @@ export function RevenueForecast({ forecast, ticketMedio }: RevenueForecastProps)
     <div className="space-y-4">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} transition={{ duration: 0.15 }}>
         <Card className="border-l-4 border-l-primary">
           <CardContent className="pt-4 pb-3 px-4">
             <div className="flex items-center gap-2 mb-1">
@@ -67,6 +68,7 @@ export function RevenueForecast({ forecast, ticketMedio }: RevenueForecastProps)
             <p className="text-[10px] text-muted-foreground">Considerando probabilidades</p>
           </CardContent>
         </Card>
+        </motion.div>
 
         <Card className="border-l-4 border-l-destructive">
           <CardContent className="pt-4 pb-3 px-4">
