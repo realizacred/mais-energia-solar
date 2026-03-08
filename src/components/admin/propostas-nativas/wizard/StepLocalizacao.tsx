@@ -116,6 +116,15 @@ export function StepLocalizacao({
   const [distDialogOpen, setDistDialogOpen] = useState(false);
   const [distManualInput, setDistManualInput] = useState<string>("");
 
+  // Snapshots from GoogleMapView — displayed below address card
+  const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
+  const [snapshotPreviewIdx, setSnapshotPreviewIdx] = useState<number | null>(null);
+
+  const handleSnapshotsChange = useCallback((snaps: string[]) => {
+    setMapSnapshots(snaps);
+    onMapSnapshotsChange?.(snaps);
+  }, [onMapSnapshotsChange]);
+
   // Reverse geocoded address from map click
   const [reverseGeoResult, setReverseGeoResult] = useState<Partial<ProjectAddress> | null>(null);
 
