@@ -61,7 +61,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
 
   return (
     <ScrollArea className="w-full max-w-full">
-      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content", width: "100%" }}>
         {columns.map(col => {
           const isOver = dragOverCol === col.id;
 
