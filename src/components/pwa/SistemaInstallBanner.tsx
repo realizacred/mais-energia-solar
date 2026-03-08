@@ -21,12 +21,12 @@ export function SistemaInstallBanner() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as any).standalone === true;
 
-    // Only show if user came from /sistema
-    const cameFromSistema = sessionStorage.getItem(CAME_FROM_SISTEMA_KEY) === "1";
+    // Show on mobile for any admin user (no need to come from /sistema specifically)
+    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 
-    console.log("[PWA Banner Sistema]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone, cameFromSistema });
+    console.log("[PWA Banner Sistema]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone, isMobile });
 
-    if (isInstalled || isStandalone || !cameFromSistema) {
+    if (isInstalled || isStandalone || !isMobile) {
       setDismissed(true);
       return;
     }
