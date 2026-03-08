@@ -497,11 +497,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="telefone">Telefone *</Label>
-                    <Input
+                    <PhoneInput
                       id="telefone"
                       value={formData.telefone}
-                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                      required
+                      onChange={(raw) => setFormData({ ...formData, telefone: raw })}
                     />
                   </div>
                   <div className="space-y-2">
