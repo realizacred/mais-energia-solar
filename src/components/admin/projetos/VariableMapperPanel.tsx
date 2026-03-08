@@ -172,7 +172,12 @@ export function VariableMapperPanel({ dealId, customerId, projetoId, onGenerateC
   const readyPercent = Math.round(((totalCount - missingCount) / totalCount) * 100);
 
   if (loading) {
-    return <div className="flex justify-center py-12"><LoadingSpinner /></div>;
+    return (
+      <div className="space-y-3 py-6">
+        <Skeleton className="h-5 w-48" />
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
+      </div>
+    );
   }
 
   return (

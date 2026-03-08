@@ -152,7 +152,7 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
         <MessageSquarePlus className="h-10 w-10" />
         <p className="text-sm text-center">Nenhuma discussão interna.<br />Crie uma para discutir com a equipe.</p>
         <Button onClick={createThread} disabled={creatingThread} size="sm">
-          {creatingThread ? <Spinner size="sm" className="mr-2" /> : <MessageSquarePlus className="h-4 w-4 mr-2" />}
+          {creatingThread ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MessageSquarePlus className="h-4 w-4 mr-2" />}
           Iniciar discussão
         </Button>
       </div>

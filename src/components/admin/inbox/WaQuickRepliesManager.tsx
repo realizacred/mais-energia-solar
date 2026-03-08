@@ -396,7 +396,15 @@ export function WaQuickRepliesManager() {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center p-8">Carregando...</div>;
+    return (
+      <Card className="p-6 space-y-4">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-72" />
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+        </div>
+      </Card>
+    );
   }
 
   return (

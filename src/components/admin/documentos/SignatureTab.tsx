@@ -225,7 +225,9 @@ function SignersList() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-6"><LoadingSpinner /></div>
+          <div className="space-y-2 py-4">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
+          </div>
         ) : !signers || signers.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">Nenhum signatário cadastrado</p>
         ) : (

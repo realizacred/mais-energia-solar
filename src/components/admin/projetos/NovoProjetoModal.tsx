@@ -384,23 +384,14 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                     className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
                   />
                 </Field>
-                <Field label="CPF/CNPJ" error={errors["cliente.cpfCnpj"]}>
-                  <Input
-                    placeholder="000.000.000-00"
+                <Field label="">
+                  <CpfCnpjInput
                     value={cliente.cpfCnpj}
-                    maxLength={18}
-                    onChange={e => {
-                      const formatted = formatCpfCnpj(e.target.value);
-                      updateCliente("cpfCnpj", formatted);
-                      if (formatted && !isValidCpfCnpj(formatted)) {
-                        setErrors(prev => ({ ...prev, "cliente.cpfCnpj": true }));
-                      } else {
-                        setErrors(prev => { const n = { ...prev }; delete n["cliente.cpfCnpj"]; return n; });
-                      }
-                    }}
-                    className={`h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors ${errors["cliente.cpfCnpj"] ? "border-destructive" : ""}`}
+                    onChange={(val) => updateCliente("cpfCnpj", val)}
+                    label="CPF/CNPJ"
+                    showValidation
+                    className=""
                   />
-                  {errors["cliente.cpfCnpj"] && <p className="text-xs text-destructive mt-1">CPF/CNPJ inválido</p>}
                 </Field>
               </div>
 

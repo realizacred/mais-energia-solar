@@ -153,9 +153,11 @@ export function AiFollowupSettingsPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-        Carregando...
+      <div className="space-y-4 p-6">
+        <Skeleton className="h-5 w-56" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
+        </div>
       </div>
     );
   }

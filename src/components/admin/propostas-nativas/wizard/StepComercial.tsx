@@ -75,10 +75,12 @@ export function StepComercial({ comercial, onComercialChange }: Props) {
             <Label className="text-xs">Empresa</Label>
             <Input value={comercial.empresa_nome} onChange={e => update("empresa_nome", e.target.value)} className="h-9" />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">CNPJ/CPF</Label>
-            <Input value={comercial.empresa_cnpj_cpf} onChange={e => update("empresa_cnpj_cpf", formatCpfCnpj(e.target.value))} className="h-9" maxLength={CPF_CNPJ_MAX_LENGTH} />
-          </div>
+          <CpfCnpjInput
+            value={comercial.empresa_cnpj_cpf}
+            onChange={(val) => update("empresa_cnpj_cpf", val)}
+            label="CNPJ/CPF"
+            showValidation
+          />
           <div className="space-y-1.5">
             <Label className="text-xs">Estado</Label>
             <Select value={comercial.empresa_estado} onValueChange={v => update("empresa_estado", v)}>

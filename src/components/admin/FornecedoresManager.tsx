@@ -308,10 +308,12 @@ export function FornecedoresManager() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                  <div className="space-y-1.5">
-                    <Label>CNPJ</Label>
-                    <Input value={form.cnpj} onChange={e => setForm(p => ({ ...p, cnpj: formatCpfCnpj(e.target.value) }))} placeholder="00.000.000/0000-00" maxLength={18} />
-                  </div>
+                  <CpfCnpjInput
+                    value={form.cnpj || ""}
+                    onChange={(val) => setForm(p => ({ ...p, cnpj: val }))}
+                    label="CNPJ"
+                    showValidation
+                  />
                   <div className="space-y-1.5">
                     <Label>Inscrição Estadual</Label>
                     <Input value={form.inscricao_estadual} onChange={e => setForm(p => ({ ...p, inscricao_estadual: e.target.value }))} />

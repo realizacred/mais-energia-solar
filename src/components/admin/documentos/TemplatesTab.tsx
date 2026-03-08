@@ -67,7 +67,9 @@ export function TemplatesTab() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex justify-center py-12"><LoadingSpinner /></div>
+        <div className="space-y-2 py-4">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+        </div>
       ) : active.length === 0 ? (
         <div className="text-center py-16 space-y-2">
           <FileText className="h-10 w-10 mx-auto text-muted-foreground/40" />
