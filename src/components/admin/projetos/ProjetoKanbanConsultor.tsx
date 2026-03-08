@@ -149,7 +149,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                 "bg-card/60",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
-              style={{ flex: "1 0 240px", minWidth: 240 }}
+              style={{ flex: "1 0 240px", minWidth: 240, maxWidth: 400 }}
               onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(col.id); }}
               onDragLeave={() => setDragOverCol(null)}
               onDrop={e => handleDrop(e, col.id)}

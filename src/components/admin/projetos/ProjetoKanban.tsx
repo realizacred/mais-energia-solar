@@ -74,7 +74,7 @@ export function ProjetoKanban({ etapas, projetosByEtapa, onMoveProjeto, onViewPr
                 "rounded-xl border border-border/60 bg-card transition-colors",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
-              style={{ flex: "1 0 240px", minWidth: 240 }}
+              style={{ flex: "1 0 240px", minWidth: 240, maxWidth: 400 }}
               onDragOver={e => handleDragOver(e, etapa.id)}
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, etapa.id)}
