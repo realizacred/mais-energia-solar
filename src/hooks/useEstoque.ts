@@ -202,6 +202,7 @@ export function useEstoqueLocais() {
 export function useEstoqueMovimentos(filters?: { item_id?: string; tipo?: string }) {
   return useQuery<EstoqueMovimento[]>({
     queryKey: ["estoque-movimentos", filters],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       let query = (supabase as any)
         .from("estoque_movimentos")
