@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home, Navigation } from "lucide-react";
+import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home, Navigation, ZoomIn, X, Trash2, Camera } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

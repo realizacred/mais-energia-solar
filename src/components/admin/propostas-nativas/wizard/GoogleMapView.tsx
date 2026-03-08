@@ -566,63 +566,6 @@ export default function GoogleMapView({
           </p>
         )}
       </div>
-
-      {/* ─── Snapshots gallery ────────────────────── */}
-      {snapshots.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            📸 Snapshots do mapa ({snapshots.length})
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {snapshots.map((src, idx) => (
-              <div
-                key={idx}
-                className="relative group rounded-lg overflow-hidden border border-border/50 shadow-sm w-[100px] h-[75px] cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
-                onClick={() => setPreviewIdx(idx)}
-              >
-                <img src={src} alt={`Snapshot ${idx + 1}`} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                  <ZoomIn className="h-4 w-4 text-white" />
-                </div>
-                <button
-                  className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
-                  onClick={(e) => { e.stopPropagation(); handleDeleteSnapshot(idx); }}
-                  title="Remover snapshot"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ─── Snapshot preview dialog ─────────────── */}
-      <Dialog open={previewIdx !== null} onOpenChange={() => setPreviewIdx(null)}>
-        <DialogContent className="max-w-3xl p-2">
-          {previewIdx !== null && snapshots[previewIdx] && (
-            <div className="space-y-2">
-              <img
-                src={snapshots[previewIdx]}
-                alt={`Snapshot ${previewIdx + 1}`}
-                className="w-full rounded-lg"
-              />
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs text-muted-foreground">
-                  Snapshot {previewIdx + 1} de {snapshots.length}
-                </span>
-                <Button
-                  variant="destructive" size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => handleDeleteSnapshot(previewIdx)}
-                >
-                  <Trash2 className="h-3 w-3" /> Remover
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
