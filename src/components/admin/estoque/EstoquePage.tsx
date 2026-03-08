@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useEstoqueRealtime } from "@/hooks/useEstoqueRealtime";
 import {
   Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Plus,
   ScanBarcode, QrCode, ArrowRightLeft, ShieldCheck, Download, Warehouse, Wrench,
