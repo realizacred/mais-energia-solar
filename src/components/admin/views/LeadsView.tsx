@@ -251,6 +251,6 @@ export function LeadsView() {
         onOpenChange={setIsConvertOpen}
         onSuccess={fetchOrcamentos}
       />
-    </div>
+    </motion.div>
   );
 }

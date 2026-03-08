@@ -165,7 +165,7 @@ export function ProjetosManager() {
   }
 
   return (
-    <div className="space-y-4 max-w-full overflow-x-hidden">
+    <motion.div className="space-y-4 max-w-full overflow-x-hidden" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <PageHeader
         icon={FolderKanban}
         title="Projetos"
