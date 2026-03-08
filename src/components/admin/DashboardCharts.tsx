@@ -142,13 +142,11 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={leadsByMonth}>
-                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }}
-                  formatter={(value) => [value, "Leads"]}
-                />
-                <Bar dataKey="leads" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="leads" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
