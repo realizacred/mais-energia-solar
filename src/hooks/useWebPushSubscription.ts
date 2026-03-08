@@ -105,13 +105,11 @@ export function useWebPushSubscription() {
         return false;
       }
 
-      // Get or register SW
+      // Get existing SW registration (VitePWA's)
       let reg = swRegistrationRef.current;
       if (!reg) {
-        reg = await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+        reg = await navigator.serviceWorker.ready;
         swRegistrationRef.current = reg;
-        // Wait for activation
-        await navigator.serviceWorker.ready;
       }
 
       // Subscribe to push manager
