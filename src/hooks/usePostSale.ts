@@ -77,6 +77,7 @@ export function usePostSalePlans() {
 export function usePostSaleVisits(filters?: { status?: string; tipo?: string }) {
   return useQuery<PostSaleVisit[]>({
     queryKey: ["post-sale-visits", filters],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       let q = (supabase as any)
         .from("post_sale_visits")
