@@ -428,7 +428,7 @@ export function AiFollowupSettingsPanel() {
 
       {/* Save */}
       <Button onClick={handleSave} disabled={saving || !hasAiFollowup} className="gap-2">
-        {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         Salvar Configurações de IA
       </Button>
     </div>

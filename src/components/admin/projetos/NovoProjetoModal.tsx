@@ -204,7 +204,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
     const newErrors: Record<string, boolean> = {};
     if (!cliente.nome.trim()) newErrors["cliente.nome"] = true;
     if (!cliente.telefone.trim()) newErrors["cliente.telefone"] = true;
-    if (cliente.cpfCnpj && !isValidCpfCnpj(cliente.cpfCnpj)) newErrors["cliente.cpfCnpj"] = true;
+    if (cliente.cpfCnpj && cliente.cpfCnpj.replace(/\D/g, "").length >= 11) {
+      // CpfCnpjInput handles validation visually; skip manual check here
+    }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
     setSubmitting(true);

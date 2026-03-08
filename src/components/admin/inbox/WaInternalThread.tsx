@@ -223,7 +223,7 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
             disabled={!newMessage.trim() || sendMutation.isPending}
             onClick={() => sendMutation.mutate(newMessage.trim())}
           >
-            {sendMutation.isPending ? <Spinner size="sm" /> : <Send className="h-4 w-4" />}
+            {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       )}
