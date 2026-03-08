@@ -91,7 +91,21 @@ export function GenerateFileDialog({
         const response = await supabase.functions.invoke("template-preview", {
           body: { template_id: selectedTemplate, proposta_id: propostaId },
         });
-        if (response.error) throw new Error(response.error.message || "Erro ao gerar DOCX");
+        if (response.error) {
+          // Try to extract detailed error from response data
+          let errorMsg = response.error.message || "Erro ao gerar DOCX";
+          try {
+            if (response.data && typeof response.data === "object" && "error" in response.data) {
+              errorMsg = (response.data as any).error;
+            } else if (typeof response.data === "string") {
+              const parsed = JSON.parse(response.data);
+              if (parsed?.error) errorMsg = parsed.error;
+            }
+          } catch {
+            // keep original errorMsg
+          }
+          throw new Error(errorMsg);
+        }
 
         const blob = response.data instanceof Blob
           ? response.data
