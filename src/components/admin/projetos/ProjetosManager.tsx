@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -164,7 +165,7 @@ export function ProjetosManager() {
   }
 
   return (
-    <div className="space-y-4 max-w-full overflow-x-hidden">
+    <motion.div className="space-y-4 max-w-full overflow-x-hidden" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <PageHeader
         icon={FolderKanban}
         title="Projetos"
@@ -472,6 +473,6 @@ export function ProjetosManager() {
           <EtiquetasManager />
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }

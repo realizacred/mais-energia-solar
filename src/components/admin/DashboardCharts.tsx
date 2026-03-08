@@ -1,9 +1,24 @@
 import { useMemo } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 import { TrendingUp, MapPin, Users, Calendar } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} className="text-muted-foreground">
+          {p.name}: <span className="font-semibold text-foreground">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
 
 interface Lead {
   id: string;
@@ -114,7 +129,7 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
   }, [leads]);
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <motion.div className="grid md:grid-cols-2 gap-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       {/* Leads por Mês */}
       <Card>
         <CardHeader className="pb-2">
@@ -127,13 +142,11 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={leadsByMonth}>
-                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }}
-                  formatter={(value) => [value, "Leads"]}
-                />
-                <Bar dataKey="leads" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="leads" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -167,7 +180,7 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }} formatter={(value) => [value, "Leads"]} />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -186,14 +199,12 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={vendorPerformance} layout="vertical">
-                <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis type="category" dataKey="name" fontSize={11} tickLine={false} axisLine={false} width={80} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }}
-                  formatter={(value, name) => [value, name === "leads" ? "Leads" : "kWh"]}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Bar dataKey="leads" fill="hsl(var(--secondary))" radius={[0, 4, 4, 0]} name="Leads" />
+                <Bar dataKey="leads" fill="hsl(var(--secondary))" radius={[0, 4, 4, 0]} name="Leads" maxBarSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -212,12 +223,10 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={kwhByMonth}>
-                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }}
-                  formatter={(value) => [`${Number(value).toLocaleString()} kWh`, "Total"]}
-                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <Tooltip content={<CustomTooltip />} />
                 <Line 
                   type="monotone" 
                   dataKey="kwh" 
@@ -230,6 +239,6 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

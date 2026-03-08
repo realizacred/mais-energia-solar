@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,7 +142,7 @@ export function LeadsView() {
   }, [orcamentos]);
 
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <PageHeader
         icon={ClipboardList}
         title="Leads"
@@ -250,6 +251,6 @@ export function LeadsView() {
         onOpenChange={setIsConvertOpen}
         onSuccess={fetchOrcamentos}
       />
-    </div>
+    </motion.div>
   );
 }

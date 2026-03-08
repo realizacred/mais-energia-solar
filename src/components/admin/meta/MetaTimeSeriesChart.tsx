@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
 import {
@@ -52,17 +53,15 @@ export function MetaTimeSeriesChart({ daily, isLoading }: Props) {
           </CardTitle>
           <div className="flex gap-1">
             {TABS.map((tab) => (
-              <button
+              <Button
                 key={tab.key}
+                variant={metric === tab.key ? "default" : "ghost"}
+                size="sm"
                 onClick={() => setMetric(tab.key)}
-                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                  metric === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
+                className="h-7 px-2.5 text-xs"
               >
                 {tab.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -84,7 +83,7 @@ export function MetaTimeSeriesChart({ daily, isLoading }: Props) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
               <YAxis
                 fontSize={11}
                 tickLine={false}

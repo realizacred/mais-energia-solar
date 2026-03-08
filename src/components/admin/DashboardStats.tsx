@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -8,6 +9,27 @@ import { Users, Zap, MapPin, TrendingUp, Calendar } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  }),
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} className="text-muted-foreground">
+          {p.name}: <span className="font-semibold text-foreground">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
 interface Lead {
   id: string;
   nome: string;
@@ -128,23 +150,20 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
   const uniqueStates = new Set(leads.map(l => l.estado)).size;
   const avgConsumption = leads.length > 0 ? Math.round(totalKwh / leads.length) : 0;
 
-  const tooltipStyle = {
-    borderRadius: "8px",
-    border: "1px solid hsl(var(--border))",
-    background: "hsl(var(--card))",
-    color: "hsl(var(--foreground))",
-    boxShadow: "var(--shadow-md)",
-    fontSize: "12px",
-  };
-
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       {/* KPI Cards — Command Center */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <KpiCard icon={Users} label="Total de leads" value={leads.length} accentColor="secondary" />
-        <KpiCard icon={Zap} label="kWh total" value={totalKwh.toLocaleString()} accentColor="success" />
-        <KpiCard icon={MapPin} label="Estados" value={uniqueStates} accentColor="secondary" />
-        <KpiCard icon={TrendingUp} label="Crescimento" value={`${growthRate > 0 ? "+" : ""}${growthRate}%`} accentColor={growthRate >= 0 ? "success" : "destructive"} />
+        {[
+          { icon: Users, label: "Total de leads", value: leads.length, accent: "secondary" as const },
+          { icon: Zap, label: "kWh total", value: totalKwh.toLocaleString(), accent: "success" as const },
+          { icon: MapPin, label: "Estados", value: uniqueStates, accent: "secondary" as const },
+          { icon: TrendingUp, label: "Crescimento", value: `${growthRate > 0 ? "+" : ""}${growthRate}%`, accent: growthRate >= 0 ? "success" as const : "destructive" as const },
+        ].map((kpi, i) => (
+          <motion.div key={kpi.label} custom={i} initial="hidden" animate="visible" variants={cardVariants}>
+            <KpiCard icon={kpi.icon} label={kpi.label} value={kpi.value} accentColor={kpi.accent} />
+          </motion.div>
+        ))}
       </div>
 
       {/* Charts */}
@@ -162,8 +181,8 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="leads" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} name="Leads" />
+              <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="leads" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} name="Leads" maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -185,7 +204,7 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -207,12 +226,12 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="leads" stroke="hsl(var(--secondary))" strokeWidth={2} dot={{ fill: "hsl(var(--secondary))", strokeWidth: 2 }} name="Leads" />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
