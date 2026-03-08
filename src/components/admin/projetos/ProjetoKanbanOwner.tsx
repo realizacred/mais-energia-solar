@@ -61,7 +61,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
 
   return (
     <ScrollArea className="w-full max-w-full">
-      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content", width: "100%" }}>
         {columns.map(col => {
           const isOver = dragOverCol === col.id;
 
@@ -69,11 +69,11 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
             <div
               key={col.id}
               className={cn(
-                "w-[260px] sm:w-[280px] xl:w-[300px] flex-shrink-0 rounded-2xl border border-border/60 transition-all flex flex-col",
+                "rounded-2xl border border-border/60 transition-all flex flex-col",
                 "bg-card",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
-              style={{ boxShadow: "var(--shadow-sm)" }}
+              style={{ flex: "1 0 240px", minWidth: 240, boxShadow: "var(--shadow-sm)" }}
               onDragOver={e => handleDragOver(e, col.id)}
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, col.id)}
