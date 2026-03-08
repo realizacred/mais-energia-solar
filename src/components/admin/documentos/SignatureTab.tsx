@@ -384,10 +384,12 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
             <Label className="text-xs">Signatário possui CPF</Label>
           </div>
           {hasCpf && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">CPF</Label>
-              <Input value={cpf} onChange={(e) => setCpf(formatCpfCnpj(e.target.value))} className="h-9 text-sm" placeholder="000.000.000-00" maxLength={14} />
-            </div>
+            <CpfCnpjInput
+              value={cpf}
+              onChange={setCpf}
+              label="CPF"
+              showValidation
+            />
           )}
           <div className="space-y-1.5">
             <Label className="text-xs">Data de nascimento</Label>
