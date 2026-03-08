@@ -121,6 +121,7 @@ export interface PostSaleDashboardStats {
 export function usePostSaleDashboard() {
   return useQuery<PostSaleDashboardStats>({
     queryKey: ["post-sale-dashboard"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
       const in30d = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];

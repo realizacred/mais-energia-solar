@@ -250,6 +250,7 @@ export function useProjetoMateriais(projetoId: string | undefined) {
   return useQuery<ProjetoMaterial[]>({
     queryKey: ["projeto-materiais", projetoId],
     enabled: !!projetoId,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("projeto_materiais")

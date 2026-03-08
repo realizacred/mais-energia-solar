@@ -27,6 +27,7 @@ async function resolveTenantId(userId: string): Promise<string> {
 export function useEstoqueCategorias() {
   return useQuery<EstoqueCategoria[]>({
     queryKey: ["estoque-categorias"],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("estoque_categorias")

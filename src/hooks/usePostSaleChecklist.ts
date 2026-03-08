@@ -57,6 +57,7 @@ export function useVisitChecklist(visitId: string | undefined) {
   return useQuery<VisitChecklistEntry[]>({
     queryKey: ["ps-visit-checklist", visitId],
     enabled: !!visitId,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_visit_checklist")

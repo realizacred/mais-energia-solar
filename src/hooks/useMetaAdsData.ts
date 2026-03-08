@@ -64,6 +64,7 @@ export function useMetaAdsData(days = 30) {
 
   return useQuery({
     queryKey: ["meta-ads-full", since],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("facebook_ad_metrics")

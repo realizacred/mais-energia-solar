@@ -313,6 +313,7 @@ export function useSmProposals(syncRunning?: boolean) {
 export function useSmSyncLogs() {
   return useQuery<SmSyncLog[]>({
     queryKey: ["sm-sync-logs"],
+    staleTime: 1000 * 30,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solar_market_sync_logs")

@@ -61,6 +61,7 @@ export function useAppointments(filters?: {
   const { data: appointments = [], isLoading } = useQuery({
     queryKey,
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       let query = supabase
         .from("appointments" as any)
