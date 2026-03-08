@@ -473,6 +473,6 @@ export function ProjetosManager() {
           <EtiquetasManager />
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }
