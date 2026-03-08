@@ -403,8 +403,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 </Field>
               </div>
 
-              <Field label="Telefone *" error={errors["cliente.telefone"]}>
+              <Field label="Telefone *" error={errors["cliente.telefone"]} htmlFor="cliente-telefone">
                 <Input
+                  id="cliente-telefone"
                   placeholder="(00) 00000-0000"
                   value={cliente.telefone}
                   onChange={e => {
