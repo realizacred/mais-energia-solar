@@ -52,7 +52,7 @@ export function InstaladorInstallBanner() {
   if (dismissed) return null;
 
   return (
-    <div className="mx-4 mb-4 animate-in slide-in-from-top-4 fade-in duration-300">
+    <div className="mx-4 mb-4 animate-in slide-in-from-top-4 fade-in duration-300 select-none touch-action-manipulation">
       <div className="bg-warning/5 border border-warning/20 rounded-xl p-4 relative">
         <button
           onClick={handleDismiss}

@@ -61,7 +61,7 @@ export function SistemaInstallBanner() {
   if (dismissed) return null;
 
   return (
-    <div className="mx-3 mb-3 animate-in slide-in-from-top-4 fade-in duration-300">
+    <div className="mx-3 mb-3 animate-in slide-in-from-top-4 fade-in duration-300 select-none touch-action-manipulation">
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 relative">
         <button
           onClick={handleDismiss}
