@@ -1,6 +1,6 @@
 import { Briefcase } from "lucide-react";
-import { formatCpfCnpj, CPF_CNPJ_MAX_LENGTH } from "@/lib/cpfCnpjUtils";
 import { Input } from "@/components/ui/input";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
