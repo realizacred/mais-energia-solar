@@ -65,8 +65,8 @@ export function WaAppInstallBanner() {
 
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
-            <div className="h-9 w-9 rounded-full bg-success/15 flex items-center justify-center">
-              <MessageCircle className="h-4 w-4 text-success" />
+            <div className="h-9 w-9 rounded-full bg-secondary/15 flex items-center justify-center">
+              <MessageCircle className="h-4 w-4 text-secondary" />
             </div>
           </div>
 
