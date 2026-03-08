@@ -216,8 +216,9 @@ function ConversationItem({
       onMouseLeave={() => setHovered(false)}
       aria-selected={isSelected}
       className={cn(
-        "w-full text-left px-3 py-2.5 transition-all duration-150 overflow-hidden",
+        "w-full text-left px-3 py-2.5 transition-all duration-150 overflow-hidden select-none",
         "border-b border-border/20 border-l-2",
+        "touch-action-manipulation",
         isSelected
           ? "bg-primary/[0.06] border-l-primary"
           : "border-l-transparent hover:bg-muted/40",
