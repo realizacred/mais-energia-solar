@@ -44,6 +44,7 @@ export default function ApiKeyConfigPage({
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["integration-config", serviceKey],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("integration_configs")

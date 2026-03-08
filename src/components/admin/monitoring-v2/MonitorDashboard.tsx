@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import {
   Sun, Zap, AlertTriangle, WifiOff, Activity, Gauge,
   BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3,
@@ -35,16 +36,19 @@ export default function MonitorDashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["monitor-dashboard-stats"],
     queryFn: getDashboardStats,
+    staleTime: 1000 * 30,
   });
 
   const { data: plants = [] } = useQuery({
     queryKey: ["monitor-plants-health"],
     queryFn: listPlantsWithHealth,
+    staleTime: 1000 * 30,
   });
 
   const { data: openAlerts = [] } = useQuery({
     queryKey: ["monitor-alerts-open"],
     queryFn: () => listAlerts({ isOpen: true }),
+    staleTime: 1000 * 30,
   });
 
   const todayBr = getTodayBrasilia();
@@ -52,12 +56,14 @@ export default function MonitorDashboard() {
   const { data: readings = [] } = useQuery({
     queryKey: ["monitor-readings-30d"],
     queryFn: () => listAllReadings(thirtyDaysAgoStr, todayBr),
+    staleTime: 1000 * 30,
   });
 
   const { data: financials } = useQuery({
     queryKey: ["monitor-financials", stats?.energy_today_kwh, stats?.energy_month_kwh],
     queryFn: () => getFinancials(stats?.energy_today_kwh || 0, stats?.energy_month_kwh || 0),
     enabled: !!stats,
+    staleTime: 1000 * 30,
   });
 
   const monthStartStr = getMonthStartBrasilia();
@@ -66,6 +72,7 @@ export default function MonitorDashboard() {
   const { data: monthReadings = [] } = useQuery({
     queryKey: ["monitor-readings-month", prEndDate],
     queryFn: () => listAllReadings(monthStartStr, prEndDate),
+    staleTime: 1000 * 30,
   });
 
   const { data: prData = [] } = useQuery({
@@ -78,14 +85,31 @@ export default function MonitorDashboard() {
       monthReadings
     ),
     enabled: plants.length > 0 && monthReadings.length > 0,
+    staleTime: 1000 * 30,
   });
 
   const { data: integrations = [] } = useQuery({
     queryKey: ["monitor-integrations"],
     queryFn: listIntegrations,
+    staleTime: 1000 * 30,
   });
 
-  if (isLoading) return <LoadingState message="Carregando dashboard..." />;
+  if (isLoading) return (
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Card key={i} className="p-5">
+            <Skeleton className="h-8 w-24 mb-2" />
+            <Skeleton className="h-4 w-32" />
+          </Card>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    </div>
+  );
 
   const isEmpty = !stats || stats.total_plants === 0;
 

@@ -780,9 +780,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   <MessageCircle className="h-4 w-4" />
                   Iniciar Conversa
                 </a>
-                <button onClick={() => setPreContactData(null)} className="text-xs text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="sm" onClick={() => setPreContactData(null)} className="text-xs text-muted-foreground hover:text-foreground">
                   Voltar
-                </button>
+                </Button>
               </div>
             ) : (
               <WaConversationList

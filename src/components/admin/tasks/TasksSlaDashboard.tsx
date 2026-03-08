@@ -122,6 +122,7 @@ function TasksManager() {
       const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const filtered = tasks.filter((t) => {
@@ -369,6 +370,7 @@ function SlaDashboard() {
       const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   // SLA compliance per vendor
@@ -537,6 +539,7 @@ function SlaRulesManager() {
       const { data } = await supabase.from("lead_status").select("id, nome, ordem").order("ordem");
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const handleSave = async () => {

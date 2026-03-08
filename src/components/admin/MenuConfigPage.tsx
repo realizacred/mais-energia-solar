@@ -172,6 +172,7 @@ export function MenuConfigPage() {
   const { data: overrides = [], isLoading } = useQuery({
     queryKey: ["nav-overrides-admin", user?.id],
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
     queryFn: async (): Promise<NavOverrideRow[]> => {
       const { data, error } = await supabase
         .from("nav_overrides")
