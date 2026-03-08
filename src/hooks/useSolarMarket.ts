@@ -194,6 +194,7 @@ async function fetchAllRows<T>(params: {
 export function useIsBackgroundSyncActive() {
   return useQuery<boolean>({
     queryKey: ["sm-bg-sync-active"],
+    staleTime: 1000 * 30,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("solar_market_sync_logs")
