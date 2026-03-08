@@ -30,6 +30,10 @@ export interface CepAddress {
   uf: string;           // estado
   ibge: string;
   erro?: boolean;
+  /** Aliases for convenience */
+  rua: string;
+  cidade: string;
+  estado: string;
 }
 
 interface UseCepLookupReturn {
