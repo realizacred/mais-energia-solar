@@ -35,16 +35,19 @@ export default function MonitorDashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["monitor-dashboard-stats"],
     queryFn: getDashboardStats,
+    staleTime: 1000 * 30,
   });
 
   const { data: plants = [] } = useQuery({
     queryKey: ["monitor-plants-health"],
     queryFn: listPlantsWithHealth,
+    staleTime: 1000 * 30,
   });
 
   const { data: openAlerts = [] } = useQuery({
     queryKey: ["monitor-alerts-open"],
     queryFn: () => listAlerts({ isOpen: true }),
+    staleTime: 1000 * 30,
   });
 
   const todayBr = getTodayBrasilia();
@@ -52,12 +55,14 @@ export default function MonitorDashboard() {
   const { data: readings = [] } = useQuery({
     queryKey: ["monitor-readings-30d"],
     queryFn: () => listAllReadings(thirtyDaysAgoStr, todayBr),
+    staleTime: 1000 * 30,
   });
 
   const { data: financials } = useQuery({
     queryKey: ["monitor-financials", stats?.energy_today_kwh, stats?.energy_month_kwh],
     queryFn: () => getFinancials(stats?.energy_today_kwh || 0, stats?.energy_month_kwh || 0),
     enabled: !!stats,
+    staleTime: 1000 * 30,
   });
 
   const monthStartStr = getMonthStartBrasilia();
@@ -66,6 +71,7 @@ export default function MonitorDashboard() {
   const { data: monthReadings = [] } = useQuery({
     queryKey: ["monitor-readings-month", prEndDate],
     queryFn: () => listAllReadings(monthStartStr, prEndDate),
+    staleTime: 1000 * 30,
   });
 
   const { data: prData = [] } = useQuery({
@@ -78,11 +84,13 @@ export default function MonitorDashboard() {
       monthReadings
     ),
     enabled: plants.length > 0 && monthReadings.length > 0,
+    staleTime: 1000 * 30,
   });
 
   const { data: integrations = [] } = useQuery({
     queryKey: ["monitor-integrations"],
     queryFn: listIntegrations,
+    staleTime: 1000 * 30,
   });
 
   if (isLoading) return <LoadingState message="Carregando dashboard..." />;
