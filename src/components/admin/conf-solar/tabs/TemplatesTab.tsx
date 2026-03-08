@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, X } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye } from "lucide-react";
 
 interface TemplateRow {
   id: string;
