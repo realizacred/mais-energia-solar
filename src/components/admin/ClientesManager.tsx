@@ -41,6 +41,7 @@ import {
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
