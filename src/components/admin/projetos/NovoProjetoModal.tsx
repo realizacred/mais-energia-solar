@@ -249,8 +249,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 />
               </Field>
 
-              <Field label="Descrição">
+              <Field label="Descrição" htmlFor="projeto-descricao">
                 <Textarea
+                  id="projeto-descricao"
                   placeholder="Escreva aqui..."
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
