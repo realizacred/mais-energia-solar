@@ -629,12 +629,14 @@ function SectionHeader({ icon, label, color }: { icon: React.ReactNode; label: s
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: boolean; children: React.ReactNode }) {
+function Field({ label, error, htmlFor, children }: { label: string; error?: boolean; htmlFor?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <Label className={cn("text-[11px] font-semibold tracking-wide", error ? "text-destructive" : "text-muted-foreground")}>
-        {label}
-      </Label>
+      {label && (
+        <Label htmlFor={htmlFor} className={cn("text-[11px] font-semibold tracking-wide", error ? "text-destructive" : "text-muted-foreground")}>
+          {label}
+        </Label>
+      )}
       {children}
     </div>
   );
