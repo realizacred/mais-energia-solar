@@ -83,7 +83,7 @@ export function WaAppInstallBanner() {
                 <Button
                   size="sm"
                   onClick={handleInstall}
-                  className="h-7 text-xs bg-success hover:bg-success/90 text-white"
+                  className="h-7 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground"
                 >
                   <Download className="h-3.5 w-3.5 mr-1.5" />
                   Instalar
