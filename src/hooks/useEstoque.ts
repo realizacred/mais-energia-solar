@@ -150,6 +150,7 @@ async function resolveTenantId(userId: string): Promise<string> {
 export function useEstoqueItens() {
   return useQuery<EstoqueItem[]>({
     queryKey: ["estoque-itens"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("estoque_itens").select("*").order("nome");
