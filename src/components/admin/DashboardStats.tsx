@@ -167,7 +167,7 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
           { icon: Users, label: "Total de leads", value: leads.length, accent: "secondary" as const },
           { icon: Zap, label: "kWh total", value: totalKwh.toLocaleString(), accent: "success" as const },
           { icon: MapPin, label: "Estados", value: uniqueStates, accent: "secondary" as const },
-          { icon: TrendingUp, label: "Crescimento", value: `${growthRate > 0 ? "+" : ""}${growthRate}%`, accent: (growthRate >= 0 ? "success" : "destructive") as const },
+          { icon: TrendingUp, label: "Crescimento", value: `${growthRate > 0 ? "+" : ""}${growthRate}%`, accent: growthRate >= 0 ? "success" as const : "destructive" as const },
         ].map((kpi, i) => (
           <motion.div key={kpi.label} custom={i} initial="hidden" animate="visible" variants={cardVariants}>
             <KpiCard icon={kpi.icon} label={kpi.label} value={kpi.value} accentColor={kpi.accent} />
