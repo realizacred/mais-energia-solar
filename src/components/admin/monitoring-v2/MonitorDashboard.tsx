@@ -93,7 +93,22 @@ export default function MonitorDashboard() {
     staleTime: 1000 * 30,
   });
 
-  if (isLoading) return <LoadingState message="Carregando dashboard..." />;
+  if (isLoading) return (
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Card key={i} className="p-5">
+            <Skeleton className="h-8 w-24 mb-2" />
+            <Skeleton className="h-4 w-32" />
+          </Card>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    </div>
+  );
 
   const isEmpty = !stats || stats.total_plants === 0;
 
