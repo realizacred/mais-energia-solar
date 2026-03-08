@@ -135,7 +135,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
   // ── Desktop ──
   return (
     <ScrollArea className="w-full max-w-full">
-      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content" }}>
+      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content", width: "100%" }}>
         {ownerColumns.map(col => {
           const isOver = dragOverCol === col.id;
           const totalKwp = col.deals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
