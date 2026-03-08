@@ -438,22 +438,38 @@ Deno.serve(async (req) => {
     console.log(`[template-preview] Variables mapped: ${Object.keys(vars).length} keys`);
 
     // ── 7. BAIXAR O DOCX DO STORAGE ───────────────────────
+    // The bucket is PRIVATE, so we extract the storage path from the URL
+    // and use the admin client to download instead of a public fetch.
     console.log(`[template-preview] Downloading DOCX from: ${template.file_url}`);
 
-    let docxResponse: Response;
+    let templateBuffer: Uint8Array;
     try {
-      docxResponse = await fetch(template.file_url);
+      // Extract bucket and path from the stored URL
+      // URL format: https://<ref>.supabase.co/storage/v1/object/public/<bucket>/<path>
+      const urlObj = new URL(template.file_url);
+      const storagePath = urlObj.pathname.replace(/^\/storage\/v1\/object\/(?:public|sign)\//, "");
+      // storagePath = "proposta-templates/<tenant>/<filename>"
+      const firstSlash = storagePath.indexOf("/");
+      const bucketName = storagePath.substring(0, firstSlash);
+      const filePath = decodeURIComponent(storagePath.substring(firstSlash + 1));
+
+      console.log(`[template-preview] Downloading via Storage API: bucket=${bucketName}, path=${filePath}`);
+
+      const { data: fileData, error: dlError } = await adminClient.storage
+        .from(bucketName)
+        .download(filePath);
+
+      if (dlError || !fileData) {
+        console.error("[template-preview] Storage download error:", dlError?.message);
+        return jsonError(`Erro ao baixar template DOCX: ${dlError?.message || "arquivo não encontrado"}`, 500);
+      }
+
+      templateBuffer = new Uint8Array(await fileData.arrayBuffer());
+      console.log(`[template-preview] DOCX downloaded: ${templateBuffer.byteLength} bytes`);
     } catch (fetchErr: any) {
-      console.error("[template-preview] Fetch error:", fetchErr?.message);
+      console.error("[template-preview] Download error:", fetchErr?.message);
       return jsonError(`Erro ao baixar template: ${fetchErr?.message}`, 500);
     }
-    if (!docxResponse.ok) {
-      const body = await docxResponse.text().catch(() => "");
-      console.error("[template-preview] Fetch non-ok:", docxResponse.status, body);
-      return jsonError(`Erro ao baixar template DOCX: ${docxResponse.status}`, 500);
-    }
-    const templateBuffer = new Uint8Array(await docxResponse.arrayBuffer());
-    console.log(`[template-preview] DOCX downloaded: ${templateBuffer.byteLength} bytes`);
 
     // ── 8. PROCESSAR TEMPLATE ─────────────────────────────
     console.log(`[template-preview] Processing DOCX with JSZip-based replacer`);
