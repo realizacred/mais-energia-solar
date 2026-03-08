@@ -341,3 +341,47 @@ Não criar novos arquivos.
 Não criar documentação paralela.
 
 Apenas devolver o conteúdo final do AGENTS.md.
+
+
+### 19. APROVEITAMENTO DE TELA (REGRA GLOBAL)
+
+O sistema deve utilizar **100% da largura disponível do painel administrativo**.
+
+Dashboards, kanbans, tabelas e grids devem ocupar toda a área útil do `MainContentContainer`.
+
+Nunca limitar a largura do conteúdo principal.
+
+É proibido em páginas admin:
+
+max-w-3xl  
+max-w-4xl  
+max-w-5xl  
+max-w-6xl  
+max-w-7xl  
+max-w-screen-lg  
+max-w-screen-xl  
+container  
+container mx-auto  
+
+Esses padrões são aceitáveis apenas em:
+
+- modais
+- dialogs
+- páginas públicas/landing pages
+
+Nunca em páginas internas do CRM.
+
+Use sempre:
+
+w-full  
+flex-1  
+min-w-0  
+p-4 md:p-6  
+
+Objetivo:
+
+- evitar desperdício de espaço
+- evitar colunas cortadas
+- permitir grids maiores
+- melhorar leitura de tabelas e kanban
+- aproveitar melhor monitores grandes
