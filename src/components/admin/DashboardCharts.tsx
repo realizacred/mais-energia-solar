@@ -129,7 +129,7 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
   }, [leads]);
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <motion.div className="grid md:grid-cols-2 gap-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       {/* Leads por Mês */}
       <Card>
         <CardHeader className="pb-2">
