@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { markCameFromSistema } from "@/components/pwa/SistemaInstallBanner";
 
 /**
  * PWA entry point for the full system.
