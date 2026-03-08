@@ -450,7 +450,7 @@ export function ValidacaoVendasManager() {
                           : false;
 
                         return (
-                          <TableRow key={cliente.id}>
+                          <TableRow key={cliente.id} className="hover:bg-muted/30 transition-colors">
                             <TableCell>
                               <div>
                                 <p className="font-medium">{cliente.nome}</p>
