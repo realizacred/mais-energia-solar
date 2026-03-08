@@ -68,7 +68,7 @@ self.addEventListener("push", (event) => {
 
   const notificationTag = tag || `wa-push-${conversationId || Date.now()}`;
 
-  const options: NotificationOptions = {
+  const options: any = {
     body,
     icon,
     badge,
