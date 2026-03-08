@@ -117,6 +117,7 @@ export function RevenueForecast({ forecast, ticketMedio }: RevenueForecastProps)
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="name"
                   fontSize={12}

@@ -83,7 +83,7 @@ export function MetaTimeSeriesChart({ daily, isLoading }: Props) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+              <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
               <YAxis
                 fontSize={11}
                 tickLine={false}
