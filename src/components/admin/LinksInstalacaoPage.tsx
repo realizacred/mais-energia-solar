@@ -183,25 +183,38 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
                   <Download className="h-5 w-5 text-primary" />
                   Apps PWA
                 </CardTitle>
+                <CardDescription>
+                  Links diretos para instalar cada app no celular
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <PwaAppRow
-                  icon={<MessageCircle className="h-5 w-5 text-primary" />}
+                  icon={<MessageCircle className="h-5 w-5 text-success" />}
                   label="📱 Mensagens WhatsApp"
                   url={waAppUrl}
                   copiedId={copiedId}
                   copyKey="wa-pwa"
                   onCopy={handleCopy}
+                  bgClass="bg-success/10"
+                />
+                <PwaAppRow
+                  icon={<Smartphone className="h-5 w-5 text-primary" />}
+                  label="🏢 Sistema Completo"
+                  url={sistemaAppUrl}
+                  copiedId={copiedId}
+                  copyKey="sistema-pwa"
+                  onCopy={handleCopy}
+                  bgClass="bg-primary/10"
                 />
                 {isAdminView && (
                   <PwaAppRow
-                    icon={<Wrench className="h-5 w-5 text-accent-foreground" />}
+                    icon={<Wrench className="h-5 w-5 text-warning" />}
                     label="🔧 Portal do Instalador"
                     url={instaladorAppUrl}
                     copiedId={copiedId}
                     copyKey="inst-pwa"
                     onCopy={handleCopy}
-                    bgClass="bg-accent/50"
+                    bgClass="bg-warning/10"
                   />
                 )}
               </CardContent>
