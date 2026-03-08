@@ -176,6 +176,7 @@ export function useEstoqueSaldos() {
 export function useEstoqueSaldosLocal() {
   return useQuery<EstoqueSaldoLocal[]>({
     queryKey: ["estoque-saldos-local"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("estoque_saldos_local").select("*").order("item_nome");
