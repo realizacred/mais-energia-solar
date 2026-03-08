@@ -1,11 +1,10 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
-import { formatProjetoLabel, formatPropostaLabel } from "@/lib/format-entity-labels";
+import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useMotivosPerda } from "@/hooks/useDistribution";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -38,45 +37,18 @@ import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { ProjetoChatTab } from "./ProjetoChatTab";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
+import {
+  ProjetoDetalheProvider,
+  useProjetoDetalhe,
+  type DealDetail,
+  type StageHistory,
+  type StageInfo,
+  type PipelineInfo,
+  type TabId,
+  type EtiquetaItem,
+} from "@/contexts/ProjetoDetalheContext";
 
-// ─── Types ──────────────────────────────────────────
-interface DealDetail {
-  id: string;
-  title: string;
-  value: number;
-  kwp: number | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  owner_id: string;
-  pipeline_id: string;
-  stage_id: string;
-  customer_id: string | null;
-  expected_close_date: string | null;
-  motivo_perda_id: string | null;
-  motivo_perda_obs: string | null;
-  deal_num: number | null;
-}
-
-interface StageHistory {
-  id: string;
-  deal_id: string;
-  from_stage_id: string | null;
-  to_stage_id: string;
-  moved_at: string;
-  moved_by: string | null;
-  metadata: any;
-}
-
-interface StageInfo {
-  id: string;
-  name: string;
-  position: number;
-  is_closed: boolean;
-  is_won: boolean;
-  probability: number;
-}
-
+// ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
   id: string;
   titulo: string;
@@ -106,11 +78,6 @@ interface StorageFile {
   metadata: { size?: number; mimetype?: string } | null;
 }
 
-interface PipelineInfo {
-  id: string;
-  name: string;
-}
-
 interface Props {
   dealId: string;
   onBack: () => void;
@@ -118,15 +85,12 @@ interface Props {
 }
 
 const TABS = [
-  { id: "gerenciamento", label: "Gerenciamento", icon: Settings, color: "text-secondary" },
-  { id: "chat", label: "Chat Whatsapp", icon: MessageSquare, color: "text-success" },
-  { id: "propostas", label: "Propostas", icon: FileText, color: "text-primary" },
-  
-  { id: "vinculo", label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
-  { id: "documentos", label: "Documentos", icon: FolderOpen, color: "text-warning" },
+  { id: "gerenciamento" as TabId, label: "Gerenciamento", icon: Settings, color: "text-secondary" },
+  { id: "chat" as TabId, label: "Chat Whatsapp", icon: MessageSquare, color: "text-success" },
+  { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary" },
+  { id: "vinculo" as TabId, label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
+  { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning" },
 ] as const;
-
-type TabId = typeof TABS[number]["id"];
 
 export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   const navigate = useNavigate();
