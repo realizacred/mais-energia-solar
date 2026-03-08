@@ -641,7 +641,11 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       </div>
 
       {loading ? (
-        <LoadingState />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
       ) : filteredClientes.length === 0 ? (
         <EmptyState
           icon={Users}
