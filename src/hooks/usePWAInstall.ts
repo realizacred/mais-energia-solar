@@ -62,18 +62,27 @@ export function usePWAInstall() {
 
   const promptInstall = useCallback(async () => {
     const prompt = getDeferredPrompt();
+    console.log("[PWA] promptInstall called, hasPrompt:", !!prompt);
     if (!prompt) return false;
 
     savePWAReturnUrl();
 
-    prompt.prompt();
-    const { outcome } = await prompt.userChoice;
+    try {
+      prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      console.log("[PWA] userChoice outcome:", outcome);
 
-    if (outcome === "accepted") {
-      setIsInstalled(true);
-      setCanInstall(false);
+      if (outcome === "accepted") {
+        setIsInstalled(true);
+        setCanInstall(false);
+        clearDeferredPrompt();
+        return true;
+      }
+    } catch (err) {
+      console.error("[PWA] prompt.prompt() failed:", err);
+      // Prompt was already used or expired — clear it
       clearDeferredPrompt();
-      return true;
+      setCanInstall(false);
     }
 
     return false;
