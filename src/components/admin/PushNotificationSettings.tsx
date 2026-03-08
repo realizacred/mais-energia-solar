@@ -143,7 +143,7 @@ export function PushNotificationSettings() {
     let hasSubscription = false;
     if (swSupported && pushSupported) {
       try {
-        const reg = await navigator.serviceWorker.getRegistration("/");
+        const reg = swReg || await navigator.serviceWorker.getRegistration("/");
         if (reg) {
           const sub = await (reg as any).pushManager.getSubscription();
           hasSubscription = !!sub;
@@ -153,6 +153,12 @@ export function PushNotificationSettings() {
             detail: hasSubscription
               ? `Ativo — endpoint: ...${sub!.endpoint.slice(-30)}`
               : "Nenhuma inscrição ativa neste dispositivo",
+          });
+        } else {
+          results.push({
+            label: "Inscrição Push (PushManager)",
+            status: "warn",
+            detail: "SW não disponível para verificar Push",
           });
         }
       } catch {
