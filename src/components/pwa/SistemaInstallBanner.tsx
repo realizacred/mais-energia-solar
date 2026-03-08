@@ -21,12 +21,9 @@ export function SistemaInstallBanner() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as any).standalone === true;
 
-    // Show on mobile for any admin user (no need to come from /sistema specifically)
-    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    console.log("[PWA Banner Sistema]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone });
 
-    console.log("[PWA Banner Sistema]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone, isMobile });
-
-    if (isInstalled || isStandalone || !isMobile) {
+    if (isInstalled || isStandalone) {
       setDismissed(true);
       return;
     }
