@@ -371,8 +371,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 )}
               </Field>
 
-              <Field label="Email">
+              <Field label="Email" htmlFor="cliente-email">
                 <Input
+                  id="cliente-email"
                   type="email"
                   placeholder="email@exemplo.com"
                   value={cliente.email}
