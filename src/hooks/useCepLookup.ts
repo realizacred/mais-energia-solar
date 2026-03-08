@@ -80,7 +80,7 @@ export function useCepLookup(): UseCepLookupReturn {
     }
   }, []);
 
-  return { fetchCep, loading, error, clearError };
+  return { fetchCep, lookup: fetchCep, loading, error, clearError };
 }
 
 /**
