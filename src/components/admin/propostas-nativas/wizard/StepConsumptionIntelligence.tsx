@@ -746,7 +746,7 @@ function PremissasContent({
 
       {/* Sistema Solar — shared */}
       <p className="text-sm font-bold pt-1">Sistema Solar</p>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-[11px]">Sobredimensionamento</Label>
           <div className="relative">
