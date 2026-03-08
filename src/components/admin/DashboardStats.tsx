@@ -235,7 +235,7 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="leads" stroke="hsl(var(--secondary))" strokeWidth={2} dot={{ fill: "hsl(var(--secondary))", strokeWidth: 2 }} name="Leads" />
             </LineChart>
           </ResponsiveContainer>
