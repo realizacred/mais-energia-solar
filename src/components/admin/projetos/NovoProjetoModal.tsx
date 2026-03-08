@@ -355,8 +355,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
             <div className="space-y-3.5 lg:border-l-2 lg:border-r-2 lg:border-border/40 lg:px-5">
               <SectionHeader icon={<Phone className="h-3.5 w-3.5" />} label="Cliente" color="secondary" />
 
-              <Field label="Nome do cliente *" error={errors["cliente.nome"]}>
+              <Field label="Nome do cliente *" error={errors["cliente.nome"]} htmlFor="cliente-nome">
                 <Input
+                  id="cliente-nome"
                   placeholder="Digite o nome do cliente"
                   value={cliente.nome}
                   onChange={e => updateCliente("nome", autoCapitalize(e.target.value))}
