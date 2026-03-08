@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm } from "react-hook-form";
 import { usePaybackEngine, type PaybackResult } from "@/hooks/usePaybackEngine";
 import { useSolarPremises, SOLAR_DEFAULTS } from "@/hooks/useSolarPremises";
