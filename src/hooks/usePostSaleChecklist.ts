@@ -36,6 +36,7 @@ export interface VisitChecklistEntry {
 export function useChecklistTemplates(tipo?: string) {
   return useQuery<ChecklistTemplate[]>({
     queryKey: ["ps-checklist-templates", tipo],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       let q = (supabase as any)
         .from("post_sale_checklist_templates")
