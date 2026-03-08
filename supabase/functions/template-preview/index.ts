@@ -440,8 +440,16 @@ Deno.serve(async (req) => {
     // ── 7. BAIXAR O DOCX DO STORAGE ───────────────────────
     console.log(`[template-preview] Downloading DOCX from: ${template.file_url}`);
 
-    const docxResponse = await fetch(template.file_url);
+    let docxResponse: Response;
+    try {
+      docxResponse = await fetch(template.file_url);
+    } catch (fetchErr: any) {
+      console.error("[template-preview] Fetch error:", fetchErr?.message);
+      return jsonError(`Erro ao baixar template: ${fetchErr?.message}`, 500);
+    }
     if (!docxResponse.ok) {
+      const body = await docxResponse.text().catch(() => "");
+      console.error("[template-preview] Fetch non-ok:", docxResponse.status, body);
       return jsonError(`Erro ao baixar template DOCX: ${docxResponse.status}`, 500);
     }
     const templateBuffer = new Uint8Array(await docxResponse.arrayBuffer());
