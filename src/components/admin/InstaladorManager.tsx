@@ -413,8 +413,9 @@ export function InstaladorManager() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>Meta de Serviços/Mês</Label>
+                      <Label htmlFor="meta_servicos_mensal">Meta de Serviços/Mês</Label>
                       <Input
+                        id="meta_servicos_mensal"
                         type="number"
                         value={config.meta_servicos_mensal}
                         onChange={(e) =>
@@ -423,8 +424,9 @@ export function InstaladorManager() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Meta Avaliações Positivas (%)</Label>
+                      <Label htmlFor="meta_avaliacoes_positivas">Meta Avaliações Positivas (%)</Label>
                       <Input
+                        id="meta_avaliacoes_positivas"
                         type="number"
                         min={0}
                         max={100}
@@ -435,8 +437,9 @@ export function InstaladorManager() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Meta Tempo Médio (minutos)</Label>
+                      <Label htmlFor="meta_tempo_medio">Meta Tempo Médio (minutos)</Label>
                       <Input
+                        id="meta_tempo_medio"
                         type="number"
                         value={config.meta_tempo_medio_minutos}
                         onChange={(e) =>
