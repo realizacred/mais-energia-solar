@@ -282,6 +282,7 @@ export function useSmFunnelStages(funnelId?: number) {
 export function useSmCustomFields() {
   return useQuery<SmCustomField[]>({
     queryKey: ["sm-custom-fields"],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       return fetchAllRows<SmCustomField>({
         table: "solar_market_custom_fields",
