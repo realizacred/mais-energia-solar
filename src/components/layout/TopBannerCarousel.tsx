@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSiteBanners } from "@/hooks/useSiteBanners";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
