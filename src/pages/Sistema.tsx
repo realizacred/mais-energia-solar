@@ -18,8 +18,10 @@ export default function Sistema() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
 
-  // Swap manifest for sistema PWA
+  // Swap manifest for sistema PWA & mark session
   useEffect(() => {
+    markCameFromSistema();
+
     const link = document.querySelector('link[rel="manifest"]');
     const original = link?.getAttribute("href") || "/manifest.webmanifest";
     link?.setAttribute("href", "/sistema-manifest.json");
