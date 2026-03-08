@@ -225,6 +225,7 @@ export function useSmClients(syncRunning?: boolean) {
 export function useSmProjects(syncRunning?: boolean) {
   return useQuery<SmProject[]>({
     queryKey: ["sm-projects"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProject>({
