@@ -86,16 +86,49 @@ export function PushNotificationSettings() {
 
     // 3. Service Worker
     let swOk = false;
+    let swReg: ServiceWorkerRegistration | null = null;
     if (swSupported) {
       try {
-        const reg = await navigator.serviceWorker.getRegistration("/");
-        swOk = !!reg?.active;
+        // First try getRegistration, then fallback to .ready which waits for activation
+        swReg = await navigator.serviceWorker.getRegistration("/") || null;
+        
+        if (swReg?.active) {
+          swOk = true;
+        } else if (swReg?.installing || swReg?.waiting) {
+          // SW exists but not yet active — wait briefly for it
+          try {
+            swReg = await Promise.race([
+              navigator.serviceWorker.ready,
+              new Promise<ServiceWorkerRegistration>((_, reject) => 
+                setTimeout(() => reject(new Error("timeout")), 3000)
+              ),
+            ]) as ServiceWorkerRegistration;
+            swOk = !!swReg?.active;
+          } catch {
+            // Timed out waiting for activation
+          }
+        } else {
+          // No registration at all — try .ready as last resort
+          try {
+            swReg = await Promise.race([
+              navigator.serviceWorker.ready,
+              new Promise<ServiceWorkerRegistration>((_, reject) => 
+                setTimeout(() => reject(new Error("timeout")), 3000)
+              ),
+            ]) as ServiceWorkerRegistration;
+            swOk = !!swReg?.active;
+          } catch {
+            // No SW available
+          }
+        }
+        
+        const swState = swReg?.active?.state || swReg?.installing?.state || swReg?.waiting?.state || "none";
         results.push({
           label: "Service Worker",
           status: swOk ? "ok" : "warn",
           detail: swOk
-            ? `Ativo — scope: ${reg?.scope}`
-            : "Não registrado ou inativo",
+            ? `Ativo — scope: ${swReg?.scope}`
+            : `Estado: ${swState} — recarregue a página`,
         });
       } catch {
         results.push({
@@ -110,7 +143,7 @@ export function PushNotificationSettings() {
     let hasSubscription = false;
     if (swSupported && pushSupported) {
       try {
-        const reg = await navigator.serviceWorker.getRegistration("/");
+        const reg = swReg || await navigator.serviceWorker.getRegistration("/");
         if (reg) {
           const sub = await (reg as any).pushManager.getSubscription();
           hasSubscription = !!sub;
@@ -120,6 +153,12 @@ export function PushNotificationSettings() {
             detail: hasSubscription
               ? `Ativo — endpoint: ...${sub!.endpoint.slice(-30)}`
               : "Nenhuma inscrição ativa neste dispositivo",
+          });
+        } else {
+          results.push({
+            label: "Inscrição Push (PushManager)",
+            status: "warn",
+            detail: "SW não disponível para verificar Push",
           });
         }
       } catch {
