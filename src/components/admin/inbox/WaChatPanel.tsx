@@ -383,6 +383,11 @@ export function WaChatPanel({
           {/* Row 1: Avatar + Name + Action icons */}
           <div className="px-3 pt-2 pb-1.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
+              {onBack && (
+                <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 md:hidden" onClick={onBack}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
               <WaProfileAvatar
                 profilePictureUrl={conversation.profile_picture_url}
                 isGroup={conversation.is_group}
