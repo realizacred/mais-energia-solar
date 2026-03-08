@@ -73,7 +73,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                 "bg-card",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
-              style={{ flex: "1 0 240px", minWidth: 240, boxShadow: "var(--shadow-sm)" }}
+              style={{ flex: "1 0 240px", minWidth: 240, maxWidth: 400, boxShadow: "var(--shadow-sm)" }}
               onDragOver={e => handleDragOver(e, col.id)}
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, col.id)}

@@ -426,7 +426,7 @@ function ResizableKanbanColumn({
         "bg-surface-2",
         isOver && "ring-2 ring-primary/30 bg-primary/5"
       )}
-      style={{ flex: "1 0 240px", minWidth: 240, maxWidth: resizedWidth > 280 ? resizedWidth : undefined }}
+      style={{ flex: "1 0 240px", minWidth: 240, maxWidth: Math.max(400, resizedWidth > 280 ? resizedWidth : 400) }}
       onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; onDragOver(stage.id); }}
       onDragLeave={() => onDragLeave()}
       onDrop={e => onDrop(e, stage.id)}
