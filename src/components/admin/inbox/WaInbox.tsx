@@ -728,6 +728,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
             {selectedConv ? (
               <>
                 <WaChatPanel
+                  onBack={() => setSelectedConv(null)}
                   conversation={selectedConv}
                   messages={messages}
                   loading={msgsLoading}
