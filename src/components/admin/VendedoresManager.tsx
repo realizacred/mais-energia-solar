@@ -21,8 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
-import { Spinner } from "@/components/ui-kit/Spinner";
-import { LoadingState } from "@/components/ui-kit";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Vendedor {
   id: string;
