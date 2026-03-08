@@ -746,7 +746,7 @@ function PremissasContent({
 
       {/* Sistema Solar — shared */}
       <p className="text-sm font-bold pt-1">Sistema Solar</p>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-[11px]">Sobredimensionamento</Label>
           <div className="relative">
@@ -799,7 +799,7 @@ function EquipamentosPreFilter({ pd, consumoTotal, potenciaIdealByTopo }: {
       </div>
 
       {/* Criteria grid */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-lg border border-border p-3 space-y-1">
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Consumo Rede</p>
           <p className="text-lg font-bold">{consumoTotal.toLocaleString("pt-BR")} <span className="text-xs font-normal text-muted-foreground">kWh/mês</span></p>

@@ -324,7 +324,7 @@ export default function PropostaPublica() {
       {/* Proposal Preview */}
       {html && (
         <div className="max-w-4xl mx-auto py-6 px-4">
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm overflow-hidden">
             <iframe
               srcDoc={html}
               title="Proposta"

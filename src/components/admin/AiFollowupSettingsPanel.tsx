@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Spinner } from "@/components/ui-kit/Spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
@@ -18,6 +18,7 @@ import {
 import {
   Brain,
   Save,
+  Loader2,
   RefreshCw,
   ShieldCheck,
   Zap,
@@ -153,9 +154,11 @@ export function AiFollowupSettingsPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-        Carregando...
+      <div className="space-y-4 p-6">
+        <Skeleton className="h-5 w-56" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
+        </div>
       </div>
     );
   }
@@ -426,7 +429,7 @@ export function AiFollowupSettingsPanel() {
 
       {/* Save */}
       <Button onClick={handleSave} disabled={saving || !hasAiFollowup} className="gap-2">
-        {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         Salvar Configurações de IA
       </Button>
     </div>

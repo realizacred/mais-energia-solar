@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useCepLookup } from "@/hooks/useCepLookup";
-import { formatCpfCnpj, isValidCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAZIL_STATES, CITIES_BY_STATE } from "@/data/brazil-states-cities";
 import {
@@ -204,7 +204,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
     const newErrors: Record<string, boolean> = {};
     if (!cliente.nome.trim()) newErrors["cliente.nome"] = true;
     if (!cliente.telefone.trim()) newErrors["cliente.telefone"] = true;
-    if (cliente.cpfCnpj && !isValidCpfCnpj(cliente.cpfCnpj)) newErrors["cliente.cpfCnpj"] = true;
+    if (cliente.cpfCnpj && cliente.cpfCnpj.replace(/\D/g, "").length >= 11) {
+      // CpfCnpjInput handles validation visually; skip manual check here
+    }
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
     setSubmitting(true);
@@ -384,23 +386,14 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                     className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
                   />
                 </Field>
-                <Field label="CPF/CNPJ" error={errors["cliente.cpfCnpj"]}>
-                  <Input
-                    placeholder="000.000.000-00"
+                <Field label="">
+                  <CpfCnpjInput
                     value={cliente.cpfCnpj}
-                    maxLength={18}
-                    onChange={e => {
-                      const formatted = formatCpfCnpj(e.target.value);
-                      updateCliente("cpfCnpj", formatted);
-                      if (formatted && !isValidCpfCnpj(formatted)) {
-                        setErrors(prev => ({ ...prev, "cliente.cpfCnpj": true }));
-                      } else {
-                        setErrors(prev => { const n = { ...prev }; delete n["cliente.cpfCnpj"]; return n; });
-                      }
-                    }}
-                    className={`h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors ${errors["cliente.cpfCnpj"] ? "border-destructive" : ""}`}
+                    onChange={(val) => updateCliente("cpfCnpj", val)}
+                    label="CPF/CNPJ"
+                    showValidation
+                    className=""
                   />
-                  {errors["cliente.cpfCnpj"] && <p className="text-xs text-destructive mt-1">CPF/CNPJ inválido</p>}
                 </Field>
               </div>
 

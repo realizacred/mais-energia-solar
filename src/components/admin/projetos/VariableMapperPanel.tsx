@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { valorPorExtenso, formatCurrency } from "@/utils/valorPorExtenso";
 import { cn } from "@/lib/utils";
 
@@ -172,7 +172,12 @@ export function VariableMapperPanel({ dealId, customerId, projetoId, onGenerateC
   const readyPercent = Math.round(((totalCount - missingCount) / totalCount) * 100);
 
   if (loading) {
-    return <div className="flex justify-center py-12"><LoadingSpinner /></div>;
+    return (
+      <div className="space-y-3 py-6">
+        <Skeleton className="h-5 w-48" />
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
+      </div>
+    );
   }
 
   return (

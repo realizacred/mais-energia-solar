@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatPhone } from "@/lib/validations";
-import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import type React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Signer, AuthMethod, SignatureSettings } from "./types";
 
 // ── Shared helper ────────────────────────────────────────────
@@ -123,7 +123,14 @@ function SignatureConfig() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (isLoading) return <div className="flex justify-center py-8"><LoadingSpinner /></div>;
+  if (isLoading) return (
+    <Card className="p-6 space-y-4">
+      <Skeleton className="h-5 w-48" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full rounded-lg" />)}
+      </div>
+    </Card>
+  );
 
   return (
     <Card>
@@ -218,7 +225,9 @@ function SignersList() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-6"><LoadingSpinner /></div>
+          <div className="space-y-2 py-4">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
+          </div>
         ) : !signers || signers.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">Nenhum signatário cadastrado</p>
         ) : (
@@ -384,10 +393,12 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
             <Label className="text-xs">Signatário possui CPF</Label>
           </div>
           {hasCpf && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">CPF</Label>
-              <Input value={cpf} onChange={(e) => setCpf(formatCpfCnpj(e.target.value))} className="h-9 text-sm" placeholder="000.000.000-00" maxLength={14} />
-            </div>
+            <CpfCnpjInput
+              value={cpf}
+              onChange={setCpf}
+              label="CPF"
+              showValidation
+            />
           )}
           <div className="space-y-1.5">
             <Label className="text-xs">Data de nascimento</Label>

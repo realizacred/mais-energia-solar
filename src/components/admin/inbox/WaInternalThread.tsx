@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquarePlus, Send, CheckCircle2 } from "lucide-react";
-import { Spinner } from "@/components/ui-kit/Spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -138,7 +139,12 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
     },
   });
 
-  if (loadingThreads) return <div className="flex items-center justify-center p-8"><Spinner /></div>;
+  if (loadingThreads) return (
+    <div className="space-y-3 p-6">
+      <Skeleton className="h-5 w-40" />
+      {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+    </div>
+  );
 
   if (!activeThread) {
     return (
@@ -146,7 +152,7 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
         <MessageSquarePlus className="h-10 w-10" />
         <p className="text-sm text-center">Nenhuma discussão interna.<br />Crie uma para discutir com a equipe.</p>
         <Button onClick={createThread} disabled={creatingThread} size="sm">
-          {creatingThread ? <Spinner size="sm" className="mr-2" /> : <MessageSquarePlus className="h-4 w-4 mr-2" />}
+          {creatingThread ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MessageSquarePlus className="h-4 w-4 mr-2" />}
           Iniciar discussão
         </Button>
       </div>
@@ -178,7 +184,7 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
       {/* Messages */}
       <ScrollArea className="flex-1 p-3">
         <div className="space-y-3">
-          {loadingMessages && <Spinner />}
+          {loadingMessages && <Loader2 className="h-4 w-4 animate-spin mx-auto" />}
           {messages?.map((msg) => (
             <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.sender_id === user?.id ? "items-end" : "items-start"}`}>
               <span className="text-xs text-muted-foreground">{(msg as any).sender_name}</span>
@@ -217,7 +223,7 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
             disabled={!newMessage.trim() || sendMutation.isPending}
             onClick={() => sendMutation.mutate(newMessage.trim())}
           >
-            {sendMutation.isPending ? <Spinner size="sm" /> : <Send className="h-4 w-4" />}
+            {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       )}

@@ -132,7 +132,7 @@ export default function ProjectGallery() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card"
                   onClick={() => navigateProject("prev")}
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -140,7 +140,7 @@ export default function ProjectGallery() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card"
                   onClick={() => navigateProject("next")}
                 >
                   <ChevronRight className="w-6 h-6" />
