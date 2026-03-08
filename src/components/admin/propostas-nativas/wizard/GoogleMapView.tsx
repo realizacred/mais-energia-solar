@@ -379,7 +379,6 @@ export default function GoogleMapView({
   // ─── Delete snapshot ─────────────────────────────
   const handleDeleteSnapshot = useCallback((idx: number) => {
     setSnapshots(prev => prev.filter((_, i) => i !== idx));
-    setPreviewIdx(null);
   }, []);
 
   // ─── Loading / Error states ──────────────────────
