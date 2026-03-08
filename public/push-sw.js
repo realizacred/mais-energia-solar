@@ -2,7 +2,17 @@
  * Push Notification Service Worker
  * Handles push events and notification clicks with deep-linking.
  * This file lives in /public so it's served at the root scope.
+ *
+ * IMPORTANT: includes a fetch handler so Chrome still considers
+ * the PWA installable when this SW is active alongside VitePWA's sw.js.
  */
+
+// Fetch handler — required by Chrome for PWA installability.
+// We simply pass through to the network (VitePWA's sw.js handles caching).
+self.addEventListener("fetch", (event) => {
+  // No-op: let the request go to the network naturally.
+  // This handler's mere existence satisfies Chrome's install criteria.
+});
 
 // Listen for push events from the server
 self.addEventListener("push", (event) => {
