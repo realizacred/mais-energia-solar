@@ -54,9 +54,9 @@ export function WaMediaPreview({ mediaPreview, onClose }: WaMediaPreviewProps) {
               <a href={mediaPreview?.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-white/10 transition-colors">
                 <Maximize2 className="h-5 w-5 text-white/80" />
               </a>
-              <button onClick={() => { setZoom(1); onClose(); }} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                <X className="h-5 w-5 text-white/80" />
-              </button>
+              <Button variant="ghost" size="icon-sm" onClick={() => { setZoom(1); onClose(); }} className="text-white/80 hover:bg-white/10">
+                <X className="h-5 w-5" />
+              </Button>
             </div>
           </div>
 
