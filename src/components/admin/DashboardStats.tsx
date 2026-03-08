@@ -160,13 +160,19 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       {/* KPI Cards — Command Center */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <KpiCard icon={Users} label="Total de leads" value={leads.length} accentColor="secondary" />
-        <KpiCard icon={Zap} label="kWh total" value={totalKwh.toLocaleString()} accentColor="success" />
-        <KpiCard icon={MapPin} label="Estados" value={uniqueStates} accentColor="secondary" />
-        <KpiCard icon={TrendingUp} label="Crescimento" value={`${growthRate > 0 ? "+" : ""}${growthRate}%`} accentColor={growthRate >= 0 ? "success" : "destructive"} />
+        {[
+          { icon: Users, label: "Total de leads", value: leads.length, accent: "secondary" as const },
+          { icon: Zap, label: "kWh total", value: totalKwh.toLocaleString(), accent: "success" as const },
+          { icon: MapPin, label: "Estados", value: uniqueStates, accent: "secondary" as const },
+          { icon: TrendingUp, label: "Crescimento", value: `${growthRate > 0 ? "+" : ""}${growthRate}%`, accent: (growthRate >= 0 ? "success" : "destructive") as const },
+        ].map((kpi, i) => (
+          <motion.div key={kpi.label} custom={i} initial="hidden" animate="visible" variants={cardVariants}>
+            <KpiCard icon={kpi.icon} label={kpi.label} value={kpi.value} accentColor={kpi.accent} />
+          </motion.div>
+        ))}
       </div>
 
       {/* Charts */}
