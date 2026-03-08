@@ -694,6 +694,15 @@
   }
 }
 
+/* ===== UTILITIES ===== */
+@layer utilities {
+  .touch-action-manipulation {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+  }
+}
+
 /* ===== ANIMATIONS ===== */
 @layer utilities {
   @keyframes fade-in {
