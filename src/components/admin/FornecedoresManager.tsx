@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatPhone } from "@/lib/validations";
-import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { Plus, Trash2, Pencil, Truck, Building2, Globe, Phone, Mail, MapPin } from "lucide-react";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { supabase } from "@/integrations/supabase/client";
