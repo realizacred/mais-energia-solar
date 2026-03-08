@@ -69,12 +69,19 @@ export function useCepLookup(): UseCepLookupReturn {
         throw new Error(`Erro HTTP ${res.status}`);
       }
 
-      const data: CepAddress = await res.json();
+      const raw = await res.json();
 
-      if (data.erro) {
+      if (raw.erro) {
         setError("CEP não encontrado");
         return null;
       }
+
+      const data: CepAddress = {
+        ...raw,
+        rua: raw.logradouro ?? "",
+        cidade: raw.localidade ?? "",
+        estado: raw.uf ?? "",
+      };
 
       return data;
     } catch (err) {
