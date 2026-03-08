@@ -504,8 +504,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 </div>
 
                 <div className="grid grid-cols-[1fr_64px] gap-2.5">
-                  <Field label="Endereço">
+                  <Field label="Endereço" htmlFor="cliente-endereco">
                     <Input
+                      id="cliente-endereco"
                       placeholder="Rua, Avenida..."
                       value={cliente.endereco}
                       onChange={e => updateCliente("endereco", autoCapitalize(e.target.value))}
