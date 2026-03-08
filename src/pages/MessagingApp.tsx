@@ -87,6 +87,8 @@ export default function MessagingApp() {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-background w-full max-w-full overflow-x-hidden">
+      {/* Install banner */}
+      <WaAppInstallBanner />
       {/* Main content */}
       <div className="flex-1 min-h-0 overflow-hidden relative">
         {activeTab === "messages" && (
