@@ -5,6 +5,7 @@ import type { PlantWithHealth } from "@/services/monitoring/monitorTypes";
 import { type PlantUiStatus, resolveHealthToUiStatus, formatRelativeSeenAt } from "@/services/monitoring/plantStatusEngine";
 import { cn } from "@/lib/utils";
 import { Map, Satellite } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   plants: PlantWithHealth[];
