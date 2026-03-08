@@ -51,18 +51,26 @@ export default function MessagingApp() {
     setActiveTab("messages");
   }, []);
 
-  // Theme-color for messaging context
+  // Swap manifest + theme-color for messaging PWA
   useEffect(() => {
+    // Manifest swap
+    const link = document.querySelector('link[rel="manifest"]');
+    const originalManifest = link?.getAttribute("href") || "/manifest.webmanifest";
+    link?.setAttribute("href", "/app-manifest.json");
+
+    // Theme color
     let themeMeta = document.querySelector('meta[name="theme-color"]');
     if (!themeMeta) {
       themeMeta = document.createElement("meta");
       themeMeta.setAttribute("name", "theme-color");
       document.head.appendChild(themeMeta);
     }
-    const original = themeMeta.getAttribute("content") || "#e8760d";
+    const originalTheme = themeMeta.getAttribute("content") || "#e8760d";
     themeMeta.setAttribute("content", "#16a34a");
+
     return () => {
-      themeMeta?.setAttribute("content", original);
+      link?.setAttribute("href", originalManifest);
+      themeMeta?.setAttribute("content", originalTheme);
     };
   }, []);
 
