@@ -316,16 +316,27 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
 
   if (loading) {
     return (
-      <Card>
-        <CardContent>
-          <LoadingState className="py-8" />
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="p-5">
+              <Skeleton className="h-8 w-24 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </Card>
+          ))}
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <PageHeader icon={Bell} title="Follow-Up" description="Acompanhe leads e orçamentos que precisam de atenção" />
       {/* Ranking de Vendedores */}
       <Card className="rounded-xl border-2 border-border/60">
         <CardHeader>
