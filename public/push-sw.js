@@ -1,19 +1,31 @@
 /**
- * DEPRECATED — This file is kept only to cleanly unregister itself.
- * All push + caching logic now lives in the unified VitePWA service worker (sw.js).
- * When the browser fetches this file (from a previous registration), it will
- * unregister itself so the VitePWA SW takes over permanently.
+ * DEPRECATED — Legacy stub.
+ * This file exists ONLY to cleanly unregister itself when a browser
+ * that previously cached push-sw.js fetches it again.
+ *
+ * All push + caching logic lives in the unified VitePWA service worker (sw.js).
+ * DO NOT add any logic here.
  */
-self.addEventListener("install", () => {
+
+// Skip waiting so activate fires immediately
+self.addEventListener("install", function () {
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+// On activate: unregister this worker and refresh all open tabs
+self.addEventListener("activate", function (event) {
   event.waitUntil(
-    self.registration.unregister().then(() => {
-      return self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => client.navigate(client.url));
+    self.registration.unregister().then(function () {
+      return self.clients.matchAll({ type: "window" }).then(function (clients) {
+        clients.forEach(function (client) {
+          client.navigate(client.url);
+        });
       });
     })
   );
+});
+
+// No-op fetch handler (required for some browsers to consider this a valid SW)
+self.addEventListener("fetch", function () {
+  // Intentionally empty — this SW should never serve requests
 });
