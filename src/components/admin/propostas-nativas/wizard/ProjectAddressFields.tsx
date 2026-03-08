@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { MapPin, Copy, Loader2, AlertTriangle, Navigation } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
