@@ -767,7 +767,7 @@ export function StepLocalizacao({
                 cidade={cidade}
                 estado={estado}
                 onMapClick={handleMapClick}
-                onSnapshotsChange={onMapSnapshotsChange}
+                onSnapshotsChange={handleSnapshotsChange}
               />
             </Suspense>
           </CardContent>
