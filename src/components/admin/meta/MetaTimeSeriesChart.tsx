@@ -53,17 +53,15 @@ export function MetaTimeSeriesChart({ daily, isLoading }: Props) {
           </CardTitle>
           <div className="flex gap-1">
             {TABS.map((tab) => (
-              <button
+              <Button
                 key={tab.key}
+                variant={metric === tab.key ? "default" : "ghost"}
+                size="sm"
                 onClick={() => setMetric(tab.key)}
-                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                  metric === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
+                className="h-7 px-2.5 text-xs"
               >
                 {tab.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
