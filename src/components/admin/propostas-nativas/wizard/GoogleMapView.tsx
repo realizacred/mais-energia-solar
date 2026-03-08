@@ -3,7 +3,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, Map, Satellite, Pencil, Trash2, Camera, Circle, Square,
-  Minus, MapPin as MarkerIcon, X, ZoomIn, Info, Navigation,
+  Minus, MapPin as MarkerIcon, X, Info, Navigation,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
