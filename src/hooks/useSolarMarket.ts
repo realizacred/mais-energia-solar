@@ -296,6 +296,7 @@ export function useSmCustomFields() {
 export function useSmProposals(syncRunning?: boolean) {
   return useQuery<SmProposal[]>({
     queryKey: ["sm-proposals"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProposal>({
