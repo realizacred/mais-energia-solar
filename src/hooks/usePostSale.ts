@@ -62,6 +62,7 @@ export interface PostSaleUpsell {
 export function usePostSalePlans() {
   return useQuery<PostSalePlan[]>({
     queryKey: ["post-sale-plans"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_plans")
