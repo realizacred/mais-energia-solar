@@ -2,6 +2,7 @@
  * UCFormDialog — Create/Edit UC dialog with sections, CEP auto-fill, and input masks.
  */
 import { useState, useEffect, useCallback } from "react";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
