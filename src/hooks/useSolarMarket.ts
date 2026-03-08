@@ -194,6 +194,7 @@ async function fetchAllRows<T>(params: {
 export function useIsBackgroundSyncActive() {
   return useQuery<boolean>({
     queryKey: ["sm-bg-sync-active"],
+    staleTime: 1000 * 30,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("solar_market_sync_logs")
@@ -209,6 +210,7 @@ export function useIsBackgroundSyncActive() {
 export function useSmClients(syncRunning?: boolean) {
   return useQuery<SmClient[]>({
     queryKey: ["sm-clients"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       return fetchAllRows<SmClient>({
         table: "solar_market_clients",
@@ -223,6 +225,7 @@ export function useSmClients(syncRunning?: boolean) {
 export function useSmProjects(syncRunning?: boolean) {
   return useQuery<SmProject[]>({
     queryKey: ["sm-projects"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProject>({
@@ -239,6 +242,7 @@ export function useSmProjects(syncRunning?: boolean) {
 export function useSmFunnels() {
   return useQuery<SmFunnel[]>({
     queryKey: ["sm-funnels"],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       return fetchAllRows<SmFunnel>({
         table: "solar_market_funnels",
@@ -252,6 +256,7 @@ export function useSmFunnels() {
 export function useSmFunnelStages(funnelId?: number) {
   return useQuery<SmFunnelStage[]>({
     queryKey: ["sm-funnel-stages", funnelId],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       const allRows: SmFunnelStage[] = [];
       let from = 0;
@@ -277,6 +282,7 @@ export function useSmFunnelStages(funnelId?: number) {
 export function useSmCustomFields() {
   return useQuery<SmCustomField[]>({
     queryKey: ["sm-custom-fields"],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       return fetchAllRows<SmCustomField>({
         table: "solar_market_custom_fields",
@@ -290,6 +296,7 @@ export function useSmCustomFields() {
 export function useSmProposals(syncRunning?: boolean) {
   return useQuery<SmProposal[]>({
     queryKey: ["sm-proposals"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProposal>({
@@ -306,6 +313,7 @@ export function useSmProposals(syncRunning?: boolean) {
 export function useSmSyncLogs() {
   return useQuery<SmSyncLog[]>({
     queryKey: ["sm-sync-logs"],
+    staleTime: 1000 * 30,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solar_market_sync_logs")

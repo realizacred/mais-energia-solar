@@ -18,6 +18,7 @@ export function usePostSaleAttachments(visitId: string | undefined) {
   return useQuery<PostSaleAttachment[]>({
     queryKey: ["ps-attachments", visitId],
     enabled: !!visitId,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_attachments")

@@ -36,6 +36,7 @@ export interface VisitChecklistEntry {
 export function useChecklistTemplates(tipo?: string) {
   return useQuery<ChecklistTemplate[]>({
     queryKey: ["ps-checklist-templates", tipo],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       let q = (supabase as any)
         .from("post_sale_checklist_templates")
@@ -56,6 +57,7 @@ export function useVisitChecklist(visitId: string | undefined) {
   return useQuery<VisitChecklistEntry[]>({
     queryKey: ["ps-visit-checklist", visitId],
     enabled: !!visitId,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_visit_checklist")

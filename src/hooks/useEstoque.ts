@@ -150,6 +150,7 @@ async function resolveTenantId(userId: string): Promise<string> {
 export function useEstoqueItens() {
   return useQuery<EstoqueItem[]>({
     queryKey: ["estoque-itens"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("estoque_itens").select("*").order("nome");
@@ -162,6 +163,7 @@ export function useEstoqueItens() {
 export function useEstoqueSaldos() {
   return useQuery<EstoqueSaldo[]>({
     queryKey: ["estoque-saldos"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("estoque_saldos").select("*").order("nome");
@@ -174,6 +176,7 @@ export function useEstoqueSaldos() {
 export function useEstoqueSaldosLocal() {
   return useQuery<EstoqueSaldoLocal[]>({
     queryKey: ["estoque-saldos-local"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("estoque_saldos_local").select("*").order("item_nome");
@@ -186,6 +189,7 @@ export function useEstoqueSaldosLocal() {
 export function useEstoqueLocais() {
   return useQuery<EstoqueLocal[]>({
     queryKey: ["estoque-locais"],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("estoque_locais").select("*").eq("ativo", true).order("nome");
@@ -198,6 +202,7 @@ export function useEstoqueLocais() {
 export function useEstoqueMovimentos(filters?: { item_id?: string; tipo?: string }) {
   return useQuery<EstoqueMovimento[]>({
     queryKey: ["estoque-movimentos", filters],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       let query = (supabase as any)
         .from("estoque_movimentos")
@@ -222,6 +227,7 @@ export function useEstoqueMovimentos(filters?: { item_id?: string; tipo?: string
 export function useEstoqueReservas(statusFilter?: string) {
   return useQuery<EstoqueReserva[]>({
     queryKey: ["estoque-reservas", statusFilter],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       let query = (supabase as any)
         .from("estoque_reservas")
@@ -244,6 +250,7 @@ export function useProjetoMateriais(projetoId: string | undefined) {
   return useQuery<ProjetoMaterial[]>({
     queryKey: ["projeto-materiais", projetoId],
     enabled: !!projetoId,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("projeto_materiais")

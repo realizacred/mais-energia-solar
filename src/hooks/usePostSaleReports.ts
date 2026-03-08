@@ -16,6 +16,7 @@ export function useVisitReport(visitId: string | undefined) {
   return useQuery<PostSaleReport | null>({
     queryKey: ["ps-report", visitId],
     enabled: !!visitId,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_reports")

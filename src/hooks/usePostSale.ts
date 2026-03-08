@@ -62,6 +62,7 @@ export interface PostSaleUpsell {
 export function usePostSalePlans() {
   return useQuery<PostSalePlan[]>({
     queryKey: ["post-sale-plans"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_plans")
@@ -76,6 +77,7 @@ export function usePostSalePlans() {
 export function usePostSaleVisits(filters?: { status?: string; tipo?: string }) {
   return useQuery<PostSaleVisit[]>({
     queryKey: ["post-sale-visits", filters],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       let q = (supabase as any)
         .from("post_sale_visits")
@@ -93,6 +95,7 @@ export function usePostSaleVisits(filters?: { status?: string; tipo?: string }) 
 export function usePostSaleUpsells() {
   return useQuery<PostSaleUpsell[]>({
     queryKey: ["post-sale-upsells"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_sale_upsell_opportunities")
@@ -118,6 +121,7 @@ export interface PostSaleDashboardStats {
 export function usePostSaleDashboard() {
   return useQuery<PostSaleDashboardStats>({
     queryKey: ["post-sale-dashboard"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
       const in30d = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
