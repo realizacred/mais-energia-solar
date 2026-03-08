@@ -5,6 +5,7 @@ import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHora
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatPhone, formatName } from "@/lib/validations";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
