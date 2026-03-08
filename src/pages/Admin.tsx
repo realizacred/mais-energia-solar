@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, ShieldAlert } from "lucide-react";
+import { SistemaInstallBanner } from "@/components/pwa/SistemaInstallBanner";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
