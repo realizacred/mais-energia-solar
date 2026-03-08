@@ -53,20 +53,13 @@ export default function LeadForm() {
   const mediaConsumo = form.watch("media_consumo");
   const consumoPrevisto = form.watch("consumo_previsto");
 
+  const { lookup: lookupCep } = useCepLookup();
+
   const handleCEPBlur = async (cep: string) => {
-    const cleanCEP = cep.replace(/\D/g, "");
-    if (cleanCEP.length !== 8) return;
-
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
-      const data = await response.json();
-
-      if (!data.erro) {
-        form.setValue("estado", data.uf);
-        form.setValue("cidade", data.localidade);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
+    const result = await lookupCep(cep);
+    if (result) {
+      if (result.estado) form.setValue("estado", result.estado);
+      if (result.cidade) form.setValue("cidade", result.cidade);
     }
   };
 

@@ -87,31 +87,28 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
     setForm(f => ({ ...f, cep: masked }));
   };
 
+  const { lookup: lookupCep } = useCepLookup();
+
   const fetchCep = useCallback(async () => {
-    const digits = form.cep.replace(/\D/g, "");
-    if (digits.length !== 8) return;
     setFetchingCep(true);
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (data.erro) {
+    const result = await lookupCep(form.cep);
+    if (result === null) {
+      const digits = form.cep.replace(/\D/g, "");
+      if (digits.length === 8) {
         toast({ title: "CEP não encontrado", variant: "destructive" });
-        return;
       }
+    } else {
       setForm(f => ({
         ...f,
-        logradouro: data.logradouro || f.logradouro,
-        bairro: data.bairro || f.bairro,
-        cidade: data.localidade || f.cidade,
-        estado: data.uf || f.estado,
-        complemento: data.complemento || f.complemento,
+        logradouro: result.rua || f.logradouro,
+        bairro: result.bairro || f.bairro,
+        cidade: result.cidade || f.cidade,
+        estado: result.estado || f.estado,
+        complemento: result.complemento || f.complemento,
       }));
-    } catch {
-      toast({ title: "Erro ao buscar CEP", variant: "destructive" });
-    } finally {
-      setFetchingCep(false);
     }
-  }, [form.cep, toast]);
+    setFetchingCep(false);
+  }, [form.cep, toast, lookupCep]);
 
   // Auto-fetch on CEP complete
   useEffect(() => {

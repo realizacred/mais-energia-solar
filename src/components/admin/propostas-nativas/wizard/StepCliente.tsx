@@ -394,6 +394,7 @@ function StepClienteForm({
   };
 
   const [fetchingCep, setFetchingCep] = useState(false);
+  const { lookup: lookupCep } = useCepLookup();
 
   const update = (field: keyof ClienteData, value: string) => {
     if (field === "estado" && value !== cliente.estado) {
@@ -403,31 +404,25 @@ function StepClienteForm({
     }
   };
 
-  // CEP auto-fill via ViaCEP
+  // CEP auto-fill via useCepLookup
   useEffect(() => {
     const cepDigits = cliente.cep.replace(/\D/g, "");
     if (cepDigits.length !== 8) return;
 
     const t = setTimeout(async () => {
       setFetchingCep(true);
-      try {
-        const res = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
-        const data = await res.json();
-        if (!data.erro) {
-          onClienteChange({
-            ...cliente,
-            endereco: data.logradouro || cliente.endereco,
-            bairro: data.bairro || cliente.bairro,
-            cidade: data.localidade || cliente.cidade,
-            estado: data.uf || cliente.estado,
-            complemento: data.complemento || cliente.complemento,
-          });
-        }
-      } catch {
-        // ViaCEP offline — ignore
-      } finally {
-        setFetchingCep(false);
+      const result = await lookupCep(cepDigits);
+      if (result) {
+        onClienteChange({
+          ...cliente,
+          endereco: result.rua || cliente.endereco,
+          bairro: result.bairro || cliente.bairro,
+          cidade: result.cidade || cliente.cidade,
+          estado: result.estado || cliente.estado,
+          complemento: result.complemento || cliente.complemento,
+        });
       }
+      setFetchingCep(false);
     }, 400);
     return () => clearTimeout(t);
   }, [cliente.cep]);

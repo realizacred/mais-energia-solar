@@ -270,17 +270,13 @@ export default function Calculadora() {
   }, [solarPremises]);
 
   // ─── CEP auto-fill ────────────────────────────────────────
+  const { lookup: lookupCep } = useCepLookup();
   const handleCEPBlur = async (cep: string) => {
-    const clean = cep.replace(/\D/g, "");
-    if (clean.length !== 8) return;
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
-      const data = await res.json();
-      if (!data.erro) {
-        step1Form.setValue("estado", data.uf);
-        step1Form.setValue("cidade", data.localidade);
-      }
-    } catch {}
+    const result = await lookupCep(cep);
+    if (result) {
+      if (result.estado) step1Form.setValue("estado", result.estado);
+      if (result.cidade) step1Form.setValue("cidade", result.cidade);
+    }
   };
 
   // ─── Calculations ─────────────────────────────────────────

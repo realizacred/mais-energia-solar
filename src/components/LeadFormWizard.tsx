@@ -284,23 +284,22 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     return touchedFields.has(field) && !errors[field as keyof LeadFormData] && Boolean(value);
   };
 
-  // CEP lookup: debounce, AbortController, in-memory cache
-  const cepCacheRef = useRef<Map<string, { uf: string; localidade: string; bairro: string; logradouro: string }>>(new Map());
-  const cepAbortRef = useRef<AbortController | null>(null);
+  // CEP lookup via useCepLookup (with built-in cache + abort)
+  const { lookup: lookupCep } = useCepLookup();
   const cepDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Flag to prevent Estado onValueChange from clearing cidade after CEP auto-fill
   const cepJustFilledRef = useRef(false);
 
-  const applyCepData = (data: { uf: string; localidade: string; bairro: string; logradouro: string }) => {
+  const applyCepData = (data: { estado: string; cidade: string; bairro: string; rua: string }) => {
     cepJustFilledRef.current = true;
-    setValue("estado", data.uf);
-    setValue("cidade", data.localidade);
+    setValue("estado", data.estado);
+    setValue("cidade", data.cidade);
     setValue("bairro", data.bairro || "");
-    setValue("rua", data.logradouro || "");
+    setValue("rua", data.rua || "");
     markFieldTouched("estado");
     markFieldTouched("cidade");
     if (data.bairro) markFieldTouched("bairro");
-    if (data.logradouro) markFieldTouched("rua");
+    if (data.rua) markFieldTouched("rua");
     // Reset flag after React processes the state updates
     setTimeout(() => { cepJustFilledRef.current = false; }, 100);
   };
@@ -328,53 +327,23 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       return;
     }
 
-    // Check cache first
-    const cached = cepCacheRef.current.get(cleanCEP);
-    if (cached) {
-      applyCepData(cached);
+    const result = await lookupCep(cleanCEP);
+    if (result === null) {
+      toast({
+        title: "CEP não encontrado",
+        description: "Verifique o CEP digitado. Campo limpo para nova digitação.",
+        variant: "destructive",
+      });
+      setValue("cep", "");
       return;
     }
 
-    // Abort only a previous in-flight request
-    if (cepAbortRef.current) cepAbortRef.current.abort();
-
-    const controller = new AbortController();
-    cepAbortRef.current = controller;
-
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`, {
-        signal: controller.signal,
-      });
-      const data = await response.json();
-
-      if (data.erro) {
-        toast({
-          title: "CEP não encontrado",
-          description: "Verifique o CEP digitado. Campo limpo para nova digitação.",
-          variant: "destructive",
-        });
-        setValue("cep", "");
-        return;
-      }
-
-      // Cache the result
-      const cepData = {
-        uf: data.uf,
-        localidade: data.localidade,
-        bairro: data.bairro || "",
-        logradouro: data.logradouro || "",
-      };
-      cepCacheRef.current.set(cleanCEP, cepData);
-      applyCepData(cepData);
-    } catch (error: any) {
-      if (error?.name === "AbortError") return;
-      console.error("Erro ao buscar CEP:", error);
-      toast({
-        title: "Erro ao buscar CEP",
-        description: "Não foi possível consultar o CEP. Preencha o endereço manualmente.",
-        variant: "destructive",
-      });
-    }
+    applyCepData({
+      estado: result.estado || "",
+      cidade: result.cidade || "",
+      bairro: result.bairro || "",
+      rua: result.rua || "",
+    });
   };
 
   // Canonical field arrays per step — single source of truth
