@@ -115,6 +115,7 @@ const App = () => (
               <Route path="/app" element={<TenantGuardGate><MessagingApp /></TenantGuardGate>} />
               <Route path="/app/debug" element={<TenantGuardGate><AppDebug /></TenantGuardGate>} />
               <Route path="/sistema" element={<TenantGuardGate><Sistema /></TenantGuardGate>} />
+              <Route path="/pwa-debug" element={<PWADebugPage />} />
 
               {/* DEV-only sandbox (stripped in prod build) */}
               {import.meta.env.DEV && (
