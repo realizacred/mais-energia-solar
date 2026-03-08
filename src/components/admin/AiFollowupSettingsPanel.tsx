@@ -18,6 +18,7 @@ import {
 import {
   Brain,
   Save,
+  Loader2,
   RefreshCw,
   ShieldCheck,
   Zap,
