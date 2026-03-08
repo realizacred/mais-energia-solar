@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface Vendedor {
   id: string;
