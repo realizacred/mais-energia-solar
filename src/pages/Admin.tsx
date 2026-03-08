@@ -21,7 +21,7 @@ import { NotificationsDropdown } from "@/components/admin/NotificationsDropdown"
 import { AgendaSheet } from "@/components/admin/AgendaSheet";
 import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 import { HelpDropdown } from "@/components/admin/HelpDropdown";
-import { ShieldAlert } from "lucide-react";
+import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
 import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
 
 // Lazy load admin sub-pages for better code splitting
