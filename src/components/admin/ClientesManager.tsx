@@ -814,7 +814,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         open={viewOpen}
         onOpenChange={setViewOpen}
       />
-    </div>
+    </motion.div>
   );
 }
 
