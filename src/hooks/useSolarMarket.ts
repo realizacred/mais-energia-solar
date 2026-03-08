@@ -242,6 +242,7 @@ export function useSmProjects(syncRunning?: boolean) {
 export function useSmFunnels() {
   return useQuery<SmFunnel[]>({
     queryKey: ["sm-funnels"],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       return fetchAllRows<SmFunnel>({
         table: "solar_market_funnels",
