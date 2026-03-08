@@ -230,18 +230,18 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Vendedor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="font-semibold text-foreground">Código</TableHead>
+                  <TableHead className="font-semibold text-foreground">Cliente</TableHead>
+                  <TableHead className="font-semibold text-foreground">Telefone</TableHead>
+                  <TableHead className="font-semibold text-foreground">Vendedor</TableHead>
+                  <TableHead className="font-semibold text-foreground">Status</TableHead>
+                  <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.id} className={bgClass}>
+                  <TableRow key={item.id} className={cn(bgClass, "hover:bg-muted/30 transition-colors")}>
                     <TableCell><Badge variant="outline" className="font-mono text-xs">{item.code || "-"}</Badge></TableCell>
                     <TableCell>
                       <div>

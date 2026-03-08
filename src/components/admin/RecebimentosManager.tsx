@@ -509,13 +509,13 @@ export function RecebimentosManager() {
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Progresso</TableHead>
-                <TableHead>Forma Acordada</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground">Cliente</TableHead>
+                <TableHead className="font-semibold text-foreground">Valor</TableHead>
+                <TableHead className="font-semibold text-foreground">Progresso</TableHead>
+                <TableHead className="font-semibold text-foreground">Forma Acordada</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -524,7 +524,7 @@ export function RecebimentosManager() {
                 const progresso = calcularProgresso(recebimento);
 
                 return (
-                  <TableRow key={recebimento.id}>
+                  <TableRow key={recebimento.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell>
                       <div>
                         <p className="font-medium">{recebimento.clientes?.nome}</p>

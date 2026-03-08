@@ -532,21 +532,21 @@ export function ValidacaoVendasManager() {
                 />
               ) : (
                 <div className="overflow-x-auto">
-                  <Table className="premium-table">
+                  <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Vendedor</TableHead>
-                        <TableHead>Localização</TableHead>
-                        <TableHead className="text-right">Potência</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                        <TableHead>Data Conversão</TableHead>
-                        <TableHead>Status</TableHead>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead className="font-semibold text-foreground">Cliente</TableHead>
+                        <TableHead className="font-semibold text-foreground">Vendedor</TableHead>
+                        <TableHead className="font-semibold text-foreground">Localização</TableHead>
+                        <TableHead className="font-semibold text-foreground text-right">Potência</TableHead>
+                        <TableHead className="font-semibold text-foreground text-right">Valor</TableHead>
+                        <TableHead className="font-semibold text-foreground">Data Conversão</TableHead>
+                        <TableHead className="font-semibold text-foreground">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {historyItems.map((cliente) => (
-                        <TableRow key={cliente.id}>
+                        <TableRow key={cliente.id} className="hover:bg-muted/30 transition-colors">
                           <TableCell>
                             <div>
                               <p className="font-medium">{cliente.nome}</p>

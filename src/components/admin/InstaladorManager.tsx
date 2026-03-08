@@ -339,19 +339,19 @@ export function InstaladorManager() {
                   {/* Full Table */}
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-16">#</TableHead>
-                        <TableHead>Instalador</TableHead>
-                        <TableHead className="text-center">Serviços</TableHead>
-                        <TableHead className="text-center">Concluídos</TableHead>
-                        <TableHead className="text-center">Avaliações +</TableHead>
-                        <TableHead className="text-center">Tempo Médio</TableHead>
-                        <TableHead className="text-right">Pontos</TableHead>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead className="w-16 font-semibold text-foreground">#</TableHead>
+                        <TableHead className="font-semibold text-foreground">Instalador</TableHead>
+                        <TableHead className="text-center font-semibold text-foreground">Serviços</TableHead>
+                        <TableHead className="text-center font-semibold text-foreground">Concluídos</TableHead>
+                        <TableHead className="text-center font-semibold text-foreground">Avaliações +</TableHead>
+                        <TableHead className="text-center font-semibold text-foreground">Tempo Médio</TableHead>
+                        <TableHead className="text-right font-semibold text-foreground">Pontos</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {performance.map((entry, idx) => (
-                        <TableRow key={entry.instalador_id}>
+                        <TableRow key={entry.instalador_id} className="hover:bg-muted/30 transition-colors">
                           <TableCell>
                             <Badge variant={idx < 3 ? "default" : "outline"}>
                               {idx + 1}º

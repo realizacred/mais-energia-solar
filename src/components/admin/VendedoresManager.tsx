@@ -578,20 +578,20 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Contato</TableHead>
-                    <TableHead>Usuário Vinculado</TableHead>
-                    <TableHead>Comissão</TableHead>
-                    <TableHead>Leads</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Link</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="font-semibold text-foreground">Nome</TableHead>
+                    <TableHead className="font-semibold text-foreground">Contato</TableHead>
+                    <TableHead className="font-semibold text-foreground">Usuário Vinculado</TableHead>
+                    <TableHead className="font-semibold text-foreground">Comissão</TableHead>
+                    <TableHead className="font-semibold text-foreground">Leads</TableHead>
+                    <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="font-semibold text-foreground">Link</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {vendedores.map((vendedor) => (
-                    <TableRow key={vendedor.id} className={!vendedor.ativo ? "opacity-50" : ""}>
+                    <TableRow key={vendedor.id} className={cn("hover:bg-muted/30 transition-colors", !vendedor.ativo && "opacity-50")}>
                       <TableCell className="font-medium">{vendedor.nome}</TableCell>
                       <TableCell>
                         <div className="space-y-1">
