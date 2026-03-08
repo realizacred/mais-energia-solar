@@ -42,6 +42,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { useCepLookup } from "@/hooks/useCepLookup";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
@@ -511,10 +512,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
-                    <Input
+                    <CpfCnpjInput
                       id="cpf_cnpj"
                       value={formData.cpf_cnpj}
-                      onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
+                      onChange={(v) => setFormData({ ...formData, cpf_cnpj: v })}
                     />
                   </div>
                   <div className="space-y-2">
