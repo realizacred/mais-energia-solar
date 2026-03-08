@@ -100,6 +100,7 @@ export function RevenueForecast({ forecast, ticketMedio }: RevenueForecastProps)
         </Card>
         </motion.div>
 
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} transition={{ duration: 0.15 }}>
         <Card className="border-l-4 border-l-secondary">
           <CardContent className="pt-4 pb-3 px-4">
             <div className="flex items-center gap-2 mb-1">
@@ -110,6 +111,7 @@ export function RevenueForecast({ forecast, ticketMedio }: RevenueForecastProps)
             <p className="text-[10px] text-muted-foreground">{totalLeads} leads na base</p>
           </CardContent>
         </Card>
+        </motion.div>
       </div>
 
       {/* Chart */}
