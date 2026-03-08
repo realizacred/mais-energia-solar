@@ -524,8 +524,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   </Field>
                 </div>
 
-                <Field label="Complemento">
+                <Field label="Complemento" htmlFor="cliente-complemento">
                   <Input
+                    id="cliente-complemento"
                     placeholder="Apto, Bloco..."
                     value={cliente.complemento}
                     onChange={e => updateCliente("complemento", autoCapitalize(e.target.value))}
