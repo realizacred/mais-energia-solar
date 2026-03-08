@@ -150,15 +150,6 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
   const uniqueStates = new Set(leads.map(l => l.estado)).size;
   const avgConsumption = leads.length > 0 ? Math.round(totalKwh / leads.length) : 0;
 
-  const tooltipStyle = {
-    borderRadius: "8px",
-    border: "1px solid hsl(var(--border))",
-    background: "hsl(var(--card))",
-    color: "hsl(var(--foreground))",
-    boxShadow: "var(--shadow-md)",
-    fontSize: "12px",
-  };
-
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       {/* KPI Cards — Command Center */}
