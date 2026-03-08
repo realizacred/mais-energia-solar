@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHorariosEdit";
 import { supabase } from "@/integrations/supabase/client";
