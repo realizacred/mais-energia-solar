@@ -184,7 +184,7 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
       {/* Messages */}
       <ScrollArea className="flex-1 p-3">
         <div className="space-y-3">
-          {loadingMessages && <Spinner />}
+          {loadingMessages && <Loader2 className="h-4 w-4 animate-spin mx-auto" />}
           {messages?.map((msg) => (
             <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.sender_id === user?.id ? "items-end" : "items-start"}`}>
               <span className="text-xs text-muted-foreground">{(msg as any).sender_name}</span>
