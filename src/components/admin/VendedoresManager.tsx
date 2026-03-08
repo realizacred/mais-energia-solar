@@ -945,6 +945,6 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </motion.div>
   );
 }
