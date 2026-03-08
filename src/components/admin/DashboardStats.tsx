@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -8,6 +9,27 @@ import { Users, Zap, MapPin, TrendingUp, Calendar } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+  }),
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} className="text-muted-foreground">
+          {p.name}: <span className="font-semibold text-foreground">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
 interface Lead {
   id: string;
   nome: string;
