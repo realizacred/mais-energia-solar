@@ -50,6 +50,9 @@ export default function Auth() {
         vendedor: "Faça login para acessar o Portal do Consultor",
         consultor: "Faça login para acessar o Portal do Consultor",
         admin: "Faça login para acessar o Painel Administrativo",
+        sistema: "Faça login para acessar o Sistema",
+        instalador: "Faça login para acessar o Portal do Instalador",
+        app: "Faça login para acessar as Mensagens",
       };
       toast({
         title: "Login necessário",
