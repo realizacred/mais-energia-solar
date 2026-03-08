@@ -343,7 +343,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
   return (
     <>
       <ScrollArea className="w-full">
-        <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content" }}>
+        <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content", width: "100%" }}>
           {sortedStages.map(stage => (
             <ResizableKanbanColumn
               key={stage.id}
