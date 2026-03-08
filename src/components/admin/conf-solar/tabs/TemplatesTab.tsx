@@ -187,7 +187,7 @@ export function TemplatesTab() {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex-1 overflow-auto bg-white rounded-b-xl">
+            <div className="flex-1 overflow-auto bg-card rounded-b-xl">
               <iframe srcDoc={previewHtml} title="Preview" className="w-full border-0" style={{ height: 600, pointerEvents: "none" }} />
             </div>
           </div>

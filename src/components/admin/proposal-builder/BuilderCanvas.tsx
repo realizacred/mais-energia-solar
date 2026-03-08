@@ -65,7 +65,7 @@ export function BuilderCanvas({ state, onSelect, onHover, onDropBlock }: Builder
         <div className="flex justify-center p-6 min-h-full">
           <div
             className={cn(
-              "bg-white shadow-lg transition-all duration-300 min-h-[600px]",
+              "bg-card shadow-lg transition-all duration-300 min-h-[600px]",
               state.device !== "desktop" && "rounded-xl"
             )}
             style={{
