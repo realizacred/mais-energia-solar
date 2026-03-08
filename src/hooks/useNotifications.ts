@@ -77,7 +77,7 @@ export function useNotifications() {
           .select("id, title, starts_at, status")
           .gte("starts_at", now.toISOString())
           .lte("starts_at", in4h)
-          .in("status", ["scheduled", "confirmed"])
+          .in("status", ["scheduled"])
           .order("starts_at", { ascending: true })
           .limit(5);
         if (appts) {
