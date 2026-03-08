@@ -537,25 +537,21 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                     <Input
                       id="cep"
                       value={formData.cep}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
                         setFormData({ ...formData, cep: raw });
                         if (raw.length === 8) {
-                          fetch(`https://viacep.com.br/ws/${raw}/json/`)
-                            .then(r => r.json())
-                            .then(data => {
-                              if (!data.erro) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  rua: data.logradouro || prev.rua,
-                                  bairro: data.bairro || prev.bairro,
-                                  cidade: data.localidade || prev.cidade,
-                                  estado: data.uf || prev.estado,
-                                  complemento: data.complemento || prev.complemento,
-                                }));
-                              }
-                            })
-                            .catch(() => {});
+                          const result = await lookupCep(raw);
+                          if (result) {
+                            setFormData(prev => ({
+                              ...prev,
+                              rua: result.rua || prev.rua,
+                              bairro: result.bairro || prev.bairro,
+                              cidade: result.cidade || prev.cidade,
+                              estado: result.estado || prev.estado,
+                              complemento: result.complemento || prev.complemento,
+                            }));
+                          }
                         }
                       }}
                       placeholder="00000000"
