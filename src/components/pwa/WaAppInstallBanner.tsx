@@ -14,10 +14,11 @@ export function WaAppInstallBanner() {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    // Already installed as PWA — hide
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as any).standalone === true;
+
+    console.log("[PWA Banner WA]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone });
 
     if (isInstalled || isStandalone) {
       setDismissed(true);
@@ -34,7 +35,7 @@ export function WaAppInstallBanner() {
     }
 
     setDismissed(false);
-  }, [isInstalled]);
+  }, [isInstalled, canInstall]);
 
   const handleDismiss = () => {
     localStorage.setItem(DISMISS_KEY, Date.now().toString());

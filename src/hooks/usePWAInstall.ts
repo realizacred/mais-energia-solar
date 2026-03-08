@@ -47,12 +47,15 @@ export function usePWAInstall() {
   useEffect(() => {
     // Subscribe to changes from the global singleton
     const unsub = onPromptChange((e) => {
+      console.log("[PWA] onPromptChange →", { hasPrompt: !!e });
       setCanInstall(!!e);
       if (!e) setIsInstalled(true);
     });
 
     // Sync initial state (prompt may have arrived before mount)
-    setCanInstall(!!getDeferredPrompt());
+    const initial = !!getDeferredPrompt();
+    console.log("[PWA] usePWAInstall mount →", { isInstalled, canInstall: initial, isIOS, isAndroid });
+    setCanInstall(initial);
 
     return unsub;
   }, []);
