@@ -34,6 +34,8 @@ export interface CepAddress {
 
 interface UseCepLookupReturn {
   fetchCep: (cep: string) => Promise<CepAddress | null>;
+  /** Alias for fetchCep — keeps backward compat */
+  lookup: (cep: string) => Promise<CepAddress | null>;
   loading: boolean;
   error: string | null;
   clearError: () => void;
