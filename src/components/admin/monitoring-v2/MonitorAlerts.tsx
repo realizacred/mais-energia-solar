@@ -50,11 +50,13 @@ export default function MonitorAlerts() {
         isOpen: filterOpen,
         severity: filterSeverity !== "all" ? filterSeverity : undefined,
       }),
+    staleTime: 1000 * 30,
   });
 
   const { data: plants = [] } = useQuery({
     queryKey: ["monitor-plants-health"],
     queryFn: listPlantsWithHealth,
+    staleTime: 1000 * 30,
   });
 
   // LEGACY JOIN: monitor_events.plant_id = monitor_plants.id
@@ -74,6 +76,7 @@ export default function MonitorAlerts() {
       });
       return map;
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   // Pre-fetch HSP for unique plant locations
@@ -97,6 +100,7 @@ export default function MonitorAlerts() {
       return result;
     },
     enabled: uniqueLocations.size > 0,
+    staleTime: 1000 * 60 * 5,
   });
 
   const plantMap = new Map(plants.map((p) => [p.id, p]));

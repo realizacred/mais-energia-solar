@@ -97,13 +97,14 @@ export default function MessagingApp() {
               </Suspense>
               <div className="border-t border-border/40 pt-4">
                 <p className="text-xs text-muted-foreground mb-3">Conectado como <span className="font-medium text-foreground">{user.email}</span></p>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => supabase.auth.signOut()}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive py-2.5 text-sm font-medium transition-colors"
+                  className="w-full flex items-center justify-center gap-2 border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive"
                 >
                   <LogOut className="h-4 w-4" />
                   Sair da conta
-                </button>
+                </Button>
               </div>
             </div>
           </div>

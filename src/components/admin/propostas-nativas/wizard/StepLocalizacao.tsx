@@ -845,12 +845,14 @@ function IrradiacaoMensalDialog({
         </div>
 
         <div className="flex justify-end pt-1">
-          <button
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-foreground"
             onClick={() => onOpenChange(false)}
           >
             Fechar
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

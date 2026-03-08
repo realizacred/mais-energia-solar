@@ -135,26 +135,30 @@ export function MonitorPlantsMap({ plants, onSelectPlant }: Props) {
       <div ref={mapRef} className="w-full h-full" style={{ minHeight: 450 }} />
       {/* Tile mode toggle */}
       <div className="absolute top-3 right-3 z-[1000] flex gap-1 p-1 rounded-lg bg-card/90 backdrop-blur-sm border border-border/60 shadow-md">
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setTileMode("street")}
           className={cn(
-            "p-1.5 rounded-md transition-colors",
-            tileMode === "street" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            "p-1.5 h-auto rounded-md",
+            tileMode === "street" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
           title="Mapa"
         >
           <Map className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setTileMode("satellite")}
           className={cn(
-            "p-1.5 rounded-md transition-colors",
-            tileMode === "satellite" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            "p-1.5 h-auto rounded-md",
+            tileMode === "satellite" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
           title="Satélite"
         >
           <Satellite className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

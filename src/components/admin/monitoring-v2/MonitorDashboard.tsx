@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import {
   Sun, Zap, AlertTriangle, WifiOff, Activity, Gauge,
   BatteryCharging, TrendingUp, Leaf, DollarSign, BarChart3,

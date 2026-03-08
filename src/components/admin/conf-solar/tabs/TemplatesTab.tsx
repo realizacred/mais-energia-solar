@@ -179,21 +179,16 @@ export function TemplatesTab() {
       </CardContent>
 
       {/* Preview Modal */}
-      {previewHtml && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6" onClick={() => setPreviewHtml(null)}>
-          <div className="bg-card rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <p className="text-sm font-semibold">Preview do Template</p>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewHtml(null)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-auto bg-card rounded-b-xl">
-              <iframe srcDoc={previewHtml} title="Preview" className="w-full border-0" style={{ height: 600, pointerEvents: "none" }} />
-            </div>
+      <Dialog open={!!previewHtml} onOpenChange={(open) => { if (!open) setPreviewHtml(null); }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 py-3 border-b border-border">
+            <DialogTitle className="text-sm font-semibold">Preview do Template</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <iframe srcDoc={previewHtml || ""} title="Preview" className="w-full border-0" style={{ height: 600, pointerEvents: "none" }} />
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

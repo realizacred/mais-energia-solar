@@ -54,6 +54,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
       const { data } = await supabase.from("concessionarias").select("id, nome, estado").eq("ativo", true).order("nome");
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   useEffect(() => {

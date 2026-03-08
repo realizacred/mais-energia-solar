@@ -539,6 +539,7 @@ function SlaRulesManager() {
       const { data } = await supabase.from("lead_status").select("id, nome, ordem").order("ordem");
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const handleSave = async () => {
