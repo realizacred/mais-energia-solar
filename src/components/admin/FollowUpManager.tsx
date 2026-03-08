@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, Clock, Phone, CheckCircle, Bell, MessageCircle, Users, FileText, Timer, Award, Send } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { LoadingState } from "@/components/ui-kit";
+import { PageHeader } from "@/components/ui-kit";
 import { differenceInDays, parseISO } from "date-fns";
 
 interface FollowUpItem {
