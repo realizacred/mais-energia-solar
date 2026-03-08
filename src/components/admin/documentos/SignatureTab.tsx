@@ -123,7 +123,14 @@ function SignatureConfig() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (isLoading) return <div className="flex justify-center py-8"><LoadingSpinner /></div>;
+  if (isLoading) return (
+    <Card className="p-6 space-y-4">
+      <Skeleton className="h-5 w-48" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full rounded-lg" />)}
+      </div>
+    </Card>
+  );
 
   return (
     <Card>
