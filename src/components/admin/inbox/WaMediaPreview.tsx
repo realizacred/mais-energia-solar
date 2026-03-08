@@ -39,13 +39,13 @@ export function WaMediaPreview({ mediaPreview, onClose }: WaMediaPreviewProps) {
             <div className="flex items-center gap-1">
               {canZoom && (
                 <>
-                  <button onClick={handleZoomOut} disabled={zoom <= 0.5} className="p-2 rounded-full hover:bg-white/10 transition-colors disabled:opacity-30">
-                    <ZoomOut className="h-5 w-5 text-white/80" />
-                  </button>
+                  <Button variant="ghost" size="icon-sm" onClick={handleZoomOut} disabled={zoom <= 0.5} className="text-white/80 hover:bg-white/10 disabled:opacity-30">
+                    <ZoomOut className="h-5 w-5" />
+                  </Button>
                   <span className="text-white/70 text-xs min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
-                  <button onClick={handleZoomIn} disabled={zoom >= 3} className="p-2 rounded-full hover:bg-white/10 transition-colors disabled:opacity-30">
-                    <ZoomIn className="h-5 w-5 text-white/80" />
-                  </button>
+                  <Button variant="ghost" size="icon-sm" onClick={handleZoomIn} disabled={zoom >= 3} className="text-white/80 hover:bg-white/10 disabled:opacity-30">
+                    <ZoomIn className="h-5 w-5" />
+                  </Button>
                 </>
               )}
               <a href={mediaPreview?.url} download target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-white/10 transition-colors">
