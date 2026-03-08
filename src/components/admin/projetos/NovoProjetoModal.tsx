@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { formatCpfCnpj, isValidCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAZIL_STATES, CITIES_BY_STATE } from "@/data/brazil-states-cities";
@@ -174,26 +175,23 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [cliente.nome]);
 
+  const { lookup: lookupCep } = useCepLookup();
+
   const buscarCep = useCallback(async (cepRaw: string) => {
-    const digits = cepRaw.replace(/\D/g, "");
-    if (digits.length !== 8) return;
     setBuscandoCep(true);
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (!data.erro) {
-        setCliente(prev => ({
-          ...prev,
-          estado: data.uf || prev.estado,
-          cidade: data.localidade || prev.cidade,
-          bairro: data.bairro || prev.bairro,
-          endereco: data.logradouro || prev.endereco,
-          complemento: data.complemento || prev.complemento,
-        }));
-      }
-    } catch {}
-    finally { setBuscandoCep(false); }
-  }, []);
+    const result = await lookupCep(cepRaw);
+    if (result) {
+      setCliente(prev => ({
+        ...prev,
+        estado: result.estado || prev.estado,
+        cidade: result.cidade || prev.cidade,
+        bairro: result.bairro || prev.bairro,
+        endereco: result.rua || prev.endereco,
+        complemento: result.complemento || prev.complemento,
+      }));
+    }
+    setBuscandoCep(false);
+  }, [lookupCep]);
 
   const handleCepChange = useCallback((raw: string) => {
     let v = raw.replace(/\D/g, "").slice(0, 8);

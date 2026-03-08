@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { MapPin, Copy, Loader2, AlertTriangle, Navigation } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -118,39 +119,35 @@ export function ProjectAddressFields({
     if (sameAsClient) setSameAsClient(false);
   }, [address, onAddressChange, sameAsClient]);
 
-  // ── CEP auto-fill via ViaCEP ──
+  // ── CEP auto-fill via useCepLookup ──
+  const { lookup: lookupCep } = useCepLookup();
   const handleCepBlur = useCallback(async (cep: string) => {
     const digits = cep.replace(/\D/g, "");
     if (digits.length !== 8) return;
 
     setCepLoading(true);
-    try {
-      const resp = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await resp.json();
-      if (data.erro) {
-        toast.error("CEP não encontrado", { description: `O CEP ${formatCEP(digits)} não existe ou não foi encontrado.` });
-        return;
-      }
-      const updated: ProjectAddress = {
-        cep: formatCEP(digits),
-        rua: data.logradouro || "",
-        bairro: data.bairro || "",
-        cidade: data.localidade || "",
-        uf: data.uf || "",
-        complemento: data.complemento || "",
-        numero: "",
-        lat: null,
-        lon: null,
-      };
-      onAddressChange(updated);
-      if (sameAsClient) setSameAsClient(false);
-      forwardGeocodeRef.current?.(updated);
-    } catch {
-      toast.error("Erro ao buscar CEP", { description: "Não foi possível consultar o ViaCEP. Preencha manualmente." });
-    } finally {
+    const result = await lookupCep(digits);
+    if (result === null) {
+      toast.error("CEP não encontrado", { description: `O CEP ${formatCEP(digits)} não existe ou não foi encontrado.` });
       setCepLoading(false);
+      return;
     }
-  }, [onAddressChange, sameAsClient]);
+    const updated: ProjectAddress = {
+      cep: formatCEP(digits),
+      rua: result.rua || "",
+      bairro: result.bairro || "",
+      cidade: result.cidade || "",
+      uf: result.estado || "",
+      complemento: result.complemento || "",
+      numero: "",
+      lat: null,
+      lon: null,
+    };
+    onAddressChange(updated);
+    if (sameAsClient) setSameAsClient(false);
+    forwardGeocodeRef.current?.(updated);
+    setCepLoading(false);
+  }, [onAddressChange, sameAsClient, lookupCep]);
 
   // ── Forward geocoding: address text → coordinates ──
   // Tries Google Maps API first, falls back to Nominatim

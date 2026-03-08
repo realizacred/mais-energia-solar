@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -149,22 +150,16 @@ export function ConvertLeadToClientDialog({
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
 
-  // CEP lookup via ViaCEP
+  // CEP lookup via useCepLookup
+  const { lookup: lookupCep } = useCepLookup();
   const handleCEPBlur = useCallback(async (cepValue: string) => {
-    const digits = cepValue.replace(/\D/g, "");
-    if (digits.length !== 8) return;
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (data.erro) return;
-      if (data.uf) form.setValue("estado", data.uf, { shouldValidate: true });
-      if (data.localidade) form.setValue("cidade", data.localidade, { shouldValidate: true });
-      if (data.bairro) form.setValue("bairro", data.bairro);
-      if (data.logradouro) form.setValue("rua", data.logradouro);
-    } catch {
-      // silently ignore fetch errors
-    }
-  }, [form]);
+    const result = await lookupCep(cepValue);
+    if (!result) return;
+    if (result.estado) form.setValue("estado", result.estado, { shouldValidate: true });
+    if (result.cidade) form.setValue("cidade", result.cidade, { shouldValidate: true });
+    if (result.bairro) form.setValue("bairro", result.bairro);
+    if (result.rua) form.setValue("rua", result.rua);
+  }, [form, lookupCep]);
 
   // Track online status
   useEffect(() => {
