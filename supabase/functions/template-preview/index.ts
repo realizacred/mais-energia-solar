@@ -237,9 +237,11 @@ Deno.serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) return jsonError("Token inválido", 401);
-    const userId = claimsData.claims.sub as string;
+    
+    // Use getUser instead of getClaims for broader compatibility
+    const { data: userData, error: userErr } = await callerClient.auth.getUser(token);
+    if (userErr || !userData?.user) return jsonError("Token inválido", 401);
+    const userId = userData.user.id;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
