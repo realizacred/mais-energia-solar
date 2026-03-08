@@ -1,0 +1,41 @@
+{
+  "id": "/sistema",
+  "name": "Mais Energia Solar",
+  "short_name": "MaisEnergia",
+  "description": "Sistema de gestão - orçamentos, projetos e atendimento",
+  "theme_color": "#e8760d",
+  "background_color": "#0D1B3E",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/sistema",
+  "scope": "/",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "pwa-screenshot-menu.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Sistema de Gestão"
+    }
+  ]
+}
