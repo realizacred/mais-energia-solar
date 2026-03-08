@@ -212,6 +212,7 @@ function ConversationItem({
   return (
     <button
       onClick={() => onSelect(conv)}
+      onContextMenu={(e) => e.preventDefault()}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       aria-selected={isSelected}
