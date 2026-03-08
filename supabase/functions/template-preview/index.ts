@@ -1,5 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import JSZip from "https://esm.sh/jszip@3.10.1";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import JSZip from "npm:jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -237,11 +237,9 @@ Deno.serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    
-    // Use getUser instead of getClaims for broader compatibility
-    const { data: userData, error: userErr } = await callerClient.auth.getUser(token);
-    if (userErr || !userData?.user) return jsonError("Token inválido", 401);
-    const userId = userData.user.id;
+    const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) return jsonError("Token inválido", 401);
+    const userId = claimsData.claims.sub as string;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
@@ -442,8 +440,16 @@ Deno.serve(async (req) => {
     // ── 7. BAIXAR O DOCX DO STORAGE ───────────────────────
     console.log(`[template-preview] Downloading DOCX from: ${template.file_url}`);
 
-    const docxResponse = await fetch(template.file_url);
+    let docxResponse: Response;
+    try {
+      docxResponse = await fetch(template.file_url);
+    } catch (fetchErr: any) {
+      console.error("[template-preview] Fetch error:", fetchErr?.message);
+      return jsonError(`Erro ao baixar template: ${fetchErr?.message}`, 500);
+    }
     if (!docxResponse.ok) {
+      const body = await docxResponse.text().catch(() => "");
+      console.error("[template-preview] Fetch non-ok:", docxResponse.status, body);
       return jsonError(`Erro ao baixar template DOCX: ${docxResponse.status}`, 500);
     }
     const templateBuffer = new Uint8Array(await docxResponse.arrayBuffer());
