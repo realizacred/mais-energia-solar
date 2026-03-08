@@ -112,7 +112,7 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 overflow-x-auto px-3 py-2.5 no-scrollbar bg-card/80 border-b border-border/30">
+      <div className="flex items-center gap-2 overflow-x-auto px-3 py-2.5 no-scrollbar bg-card/80 border-b border-border/30 select-none touch-action-manipulation">
         {statItems.map((stat) => (
           <div
             key={stat.label}
