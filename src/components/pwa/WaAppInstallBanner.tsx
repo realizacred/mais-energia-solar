@@ -77,8 +77,8 @@ export function WaAppInstallBanner() {
               Acesse suas conversas direto da tela inicial.
             </p>
 
-            <div className="mt-2">
-              {canInstall ? (
+            <div className="mt-2 space-y-2">
+              {canInstall && (
                 <Button
                   size="sm"
                   onClick={handleInstall}
@@ -87,21 +87,24 @@ export function WaAppInstallBanner() {
                   <Download className="h-3.5 w-3.5 mr-1.5" />
                   Instalar
                 </Button>
-              ) : isIOS ? (
+              )}
+              {!canInstall && isIOS && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Share className="h-3.5 w-3.5 flex-shrink-0" />
                   <span>
                     Toque em <strong>Compartilhar</strong> → <strong>Adicionar à Tela de Início</strong>
                   </span>
                 </div>
-              ) : isAndroid ? (
+              )}
+              {!canInstall && isAndroid && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <MoreVertical className="h-3.5 w-3.5 flex-shrink-0" />
                   <span>
-                    No menu, toque em <strong>"Instalar app"</strong>
+                    No menu (<strong>⋮</strong>), toque em <strong>"Instalar app"</strong> ou <strong>"Adicionar à tela inicial"</strong>
                   </span>
                 </div>
-              ) : (
+              )}
+              {!canInstall && !isIOS && !isAndroid && (
                 <p className="text-xs text-muted-foreground">
                   No menu do navegador, toque em <strong>"Instalar app"</strong>
                 </p>
