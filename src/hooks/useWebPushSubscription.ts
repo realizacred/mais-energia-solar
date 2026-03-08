@@ -25,6 +25,11 @@ export function useWebPushSubscription() {
   const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   // Check support and existing subscription on mount
+  // IMPORTANT: We do NOT register a separate push-sw.js anymore.
+  // VitePWA already registers sw.js at scope "/". Registering a second SW
+  // at the same scope would REPLACE VitePWA's SW, breaking PWA installability
+  // (Chrome requires a SW with fetch handler for beforeinstallprompt).
+  // Instead, we use navigator.serviceWorker.ready to get the existing registration.
   useEffect(() => {
     const check = async () => {
       const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
@@ -42,12 +47,13 @@ export function useWebPushSubscription() {
       }));
 
       try {
-        const reg = await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+        // Use the existing VitePWA service worker registration
+        const reg = await navigator.serviceWorker.ready;
         swRegistrationRef.current = reg;
 
         let isSubscribed = false;
         if (earlyPermission === "granted") {
-          const existingSub = await (reg as any).pushManager.getSubscription();
+          const existingSub = await reg.pushManager.getSubscription();
           isSubscribed = !!existingSub;
         }
 
@@ -59,7 +65,7 @@ export function useWebPushSubscription() {
           isReady: true,
         });
       } catch (e) {
-        console.warn("[useWebPushSubscription] SW registration failed:", e);
+        console.warn("[useWebPushSubscription] SW ready failed:", e);
         setState(prev => ({ ...prev, isSupported: true, permission: Notification.permission, isReady: true }));
       }
     };
