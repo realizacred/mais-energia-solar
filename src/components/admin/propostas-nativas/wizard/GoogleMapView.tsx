@@ -55,7 +55,7 @@ export default function GoogleMapView({
   const [activeDrawing, setActiveDrawing] = useState<DrawingMode>(null);
   const [snapshotting, setSnapshotting] = useState(false);
   const [snapshots, setSnapshots] = useState<string[]>([]);
-  const [previewIdx, setPreviewIdx] = useState<number | null>(null);
+  
   const [inStreetView, setInStreetView] = useState(false);
   const [drawingReady, setDrawingReady] = useState(false);
   const apiKeyRef = useRef<string | null>(null);
