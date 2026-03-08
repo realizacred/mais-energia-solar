@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquarePlus, Send, CheckCircle2 } from "lucide-react";
-import { Spinner } from "@/components/ui-kit/Spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
