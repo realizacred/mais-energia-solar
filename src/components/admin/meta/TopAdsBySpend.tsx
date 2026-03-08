@@ -16,9 +16,9 @@ interface Props {
 }
 
 const MEDAL_COLORS = [
-  "bg-amber-500 text-white",
-  "bg-gray-400 text-white",
-  "bg-orange-600 text-white",
+  "bg-amber-500 text-amber-50",
+  "bg-muted-foreground/60 text-background",
+  "bg-orange-600 text-orange-50",
   "bg-muted text-muted-foreground",
   "bg-muted text-muted-foreground",
 ];

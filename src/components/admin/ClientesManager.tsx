@@ -657,20 +657,20 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         <SectionCard icon={Users} title="Clientes" variant="neutral" noPadding>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Projeto</TableHead>
-                <TableHead>Docs</TableHead>
-                <TableHead>Lead</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground">Cliente</TableHead>
+                <TableHead className="font-semibold text-foreground">Contato</TableHead>
+                <TableHead className="font-semibold text-foreground">Projeto</TableHead>
+                <TableHead className="font-semibold text-foreground">Docs</TableHead>
+                <TableHead className="font-semibold text-foreground">Lead</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredClientes.map((cliente) => (
                 <TableRow
                   key={cliente.id}
-                  className={onSelectCliente ? "cursor-pointer hover:bg-muted" : ""}
+                  className={onSelectCliente ? "cursor-pointer hover:bg-muted/30 transition-colors" : "hover:bg-muted/30 transition-colors"}
                   onClick={() => onSelectCliente?.(cliente)}
                 >
                   <TableCell>
