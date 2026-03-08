@@ -340,8 +340,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 </Select>
               </Field>
 
-              <Field label="Notas">
+              <Field label="Notas" htmlFor="projeto-notas">
                 <Textarea
+                  id="projeto-notas"
                   placeholder="Notas do projeto..."
                   value={notas}
                   onChange={e => setNotas(e.target.value)}
