@@ -422,11 +422,11 @@ function ResizableKanbanColumn({
   return (
     <div
       className={cn(
-        "flex-shrink-0 rounded-xl border border-border/60 transition-all flex flex-col relative",
+        "rounded-xl border border-border/60 transition-all flex flex-col relative",
         "bg-surface-2",
         isOver && "ring-2 ring-primary/30 bg-primary/5"
       )}
-      style={{ width, minWidth: 240 }}
+      style={{ flex: "1 0 240px", minWidth: 240, maxWidth: resizedWidth > 280 ? resizedWidth : undefined }}
       onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; onDragOver(stage.id); }}
       onDragLeave={() => onDragLeave()}
       onDrop={e => onDrop(e, stage.id)}
