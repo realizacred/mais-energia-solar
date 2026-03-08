@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
         background_color: "#0D1B3E",
         display: "standalone",
         orientation: "portrait",
-        start_url: "/inbox",
+        start_url: "/app",
         scope: "/",
         categories: ["business", "productivity"],
         prefer_related_applications: false,

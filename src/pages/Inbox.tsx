@@ -1,29 +1,15 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { WaInbox } from "@/components/admin/inbox/WaInbox";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 /**
- * Standalone fullscreen WhatsApp Inbox page — designed as the PWA entry point.
- * Renders the WaInbox in vendor mode for the logged-in user.
+ * Legacy /inbox route — redirects to /app which has the full bottom navigation.
  */
 export default function Inbox() {
-  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth", { replace: true });
-    }
-  }, [user, loading, navigate]);
+    navigate("/app", { replace: true });
+  }, [navigate]);
 
-  if (loading) return <LoadingSpinner />;
-  if (!user) return null;
-
-  return (
-    <div className="h-[100dvh] flex flex-col bg-background w-full max-w-full overflow-x-hidden">
-      <WaInbox vendorMode vendorUserId={user.id} />
-    </div>
-  );
+  return null;
 }
