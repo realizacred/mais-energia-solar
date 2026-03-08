@@ -39,6 +39,7 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
   const appUrl = getPublicUrl();
   const installUrl = `${appUrl}/instalar`;
   const waAppUrl = `${appUrl}/app`;
+  const sistemaAppUrl = `${appUrl}/sistema`;
   const instaladorAppUrl = `${appUrl}/instalador`;
 
   const handleCopy = (text: string, id: string) => {
