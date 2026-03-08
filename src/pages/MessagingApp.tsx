@@ -5,6 +5,7 @@ import { WaInbox } from "@/components/admin/inbox/WaInbox";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { MessageCircle, Settings, Contact as ContactIcon, MessageCirclePlus, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const PushNotificationSettings = lazy(() =>
   import("@/components/admin/PushNotificationSettings").then((m) => ({
