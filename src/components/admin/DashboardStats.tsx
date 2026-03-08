@@ -160,7 +160,16 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
           { icon: MapPin, label: "Estados", value: uniqueStates, accent: "secondary" as const },
           { icon: TrendingUp, label: "Crescimento", value: `${growthRate > 0 ? "+" : ""}${growthRate}%`, accent: growthRate >= 0 ? "success" as const : "destructive" as const },
         ].map((kpi, i) => (
-          <motion.div key={kpi.label} custom={i} initial="hidden" animate="visible" variants={cardVariants}>
+          <motion.div
+            key={kpi.label}
+            custom={i}
+            initial="hidden"
+            animate="visible"
+            variants={cardVariants}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            transition={{ duration: 0.15 }}
+          >
             <KpiCard icon={kpi.icon} label={kpi.label} value={kpi.value} accentColor={kpi.accent} />
           </motion.div>
         ))}
