@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { markCameFromSistema } from "@/components/pwa/SistemaInstallBanner";
 
 /**
  * PWA entry point for the full system.
@@ -17,8 +18,10 @@ export default function Sistema() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
 
-  // Swap manifest for sistema PWA
+  // Swap manifest for sistema PWA & mark session
   useEffect(() => {
+    markCameFromSistema();
+
     const link = document.querySelector('link[rel="manifest"]');
     const original = link?.getAttribute("href") || "/manifest.webmanifest";
     link?.setAttribute("href", "/sistema-manifest.json");

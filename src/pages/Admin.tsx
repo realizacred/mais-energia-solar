@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, ShieldAlert } from "lucide-react";
+import { SistemaInstallBanner } from "@/components/pwa/SistemaInstallBanner";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,7 +21,6 @@ import { NotificationsDropdown } from "@/components/admin/NotificationsDropdown"
 import { AgendaSheet } from "@/components/admin/AgendaSheet";
 import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 import { HelpDropdown } from "@/components/admin/HelpDropdown";
-import { ShieldAlert } from "lucide-react";
 import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
 
 // Lazy load admin sub-pages for better code splitting
@@ -490,6 +490,7 @@ export default function Admin() {
             </div>
           </header>
 
+          <SistemaInstallBanner />
           <TrialBanner />
           <FeatureDiscoveryLayer />
           <main className="flex-1 admin-content overflow-x-hidden animate-fade-in">
