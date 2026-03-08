@@ -700,6 +700,15 @@
     touch-action: manipulation;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .touch-action-manipulation *,
+  .touch-action-manipulation *::before,
+  .touch-action-manipulation *::after {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
 
