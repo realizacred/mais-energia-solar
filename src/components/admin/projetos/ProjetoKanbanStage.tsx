@@ -411,7 +411,7 @@ function ResizableKanbanColumn({
   onViewProjeto, onNewProject, onAutomationConfig,
   getStageNameById, dynamicEtiquetas,
 }: ResizableKanbanColumnProps) {
-  const { width, onMouseDown } = useResizableColumn(280);
+  const { width: resizedWidth, onMouseDown } = useResizableColumn(280);
   const hasActiveAutomation = stageAutomations.length > 0;
   const hasRestriction = permission && permission !== "todos";
 
