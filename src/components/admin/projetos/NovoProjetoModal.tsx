@@ -513,8 +513,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                       className="h-8 text-xs bg-card border-border/50"
                     />
                   </Field>
-                  <Field label="Nº">
+                  <Field label="Nº" htmlFor="cliente-numero">
                     <Input
+                      id="cliente-numero"
                       placeholder="Nº"
                       value={cliente.numero}
                       onChange={e => updateCliente("numero", e.target.value)}
