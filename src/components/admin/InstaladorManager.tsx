@@ -413,8 +413,9 @@ export function InstaladorManager() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>Meta de Serviços/Mês</Label>
+                      <Label htmlFor="meta_servicos_mensal">Meta de Serviços/Mês</Label>
                       <Input
+                        id="meta_servicos_mensal"
                         type="number"
                         value={config.meta_servicos_mensal}
                         onChange={(e) =>
@@ -423,8 +424,9 @@ export function InstaladorManager() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Meta Avaliações Positivas (%)</Label>
+                      <Label htmlFor="meta_avaliacoes_positivas">Meta Avaliações Positivas (%)</Label>
                       <Input
+                        id="meta_avaliacoes_positivas"
                         type="number"
                         min={0}
                         max={100}
@@ -435,8 +437,9 @@ export function InstaladorManager() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Meta Tempo Médio (minutos)</Label>
+                      <Label htmlFor="meta_tempo_medio">Meta Tempo Médio (minutos)</Label>
                       <Input
+                        id="meta_tempo_medio"
                         type="number"
                         value={config.meta_tempo_medio_minutos}
                         onChange={(e) =>
@@ -453,8 +456,9 @@ export function InstaladorManager() {
                     <h3 className="font-medium mb-4">Pontuação</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label>Pontos por Serviço Concluído</Label>
+                        <Label htmlFor="pontos_por_servico">Pontos por Serviço Concluído</Label>
                         <Input
+                          id="pontos_por_servico"
                           type="number"
                           value={config.pontos_por_servico}
                           onChange={(e) =>
@@ -463,8 +467,9 @@ export function InstaladorManager() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Pontos por Avaliação Positiva</Label>
+                        <Label htmlFor="pontos_por_avaliacao">Pontos por Avaliação Positiva</Label>
                         <Input
+                          id="pontos_por_avaliacao"
                           type="number"
                           value={config.pontos_por_avaliacao_positiva}
                           onChange={(e) =>
@@ -473,8 +478,9 @@ export function InstaladorManager() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Bônus Meta Atingida</Label>
+                        <Label htmlFor="bonus_meta">Bônus Meta Atingida</Label>
                         <Input
+                          id="bonus_meta"
                           type="number"
                           value={config.bonus_meta_atingida}
                           onChange={(e) =>

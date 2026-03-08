@@ -239,8 +239,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
             <div className="space-y-3.5 lg:pr-5">
               <SectionHeader icon={<Users className="h-3.5 w-3.5" />} label="Projeto" color="primary" />
 
-              <Field label="Nome do projeto">
+              <Field label="Nome do projeto" htmlFor="projeto-nome">
                 <Input
+                  id="projeto-nome"
                   placeholder="Nome do projeto"
                   value={nome}
                   onChange={e => setNome(autoCapitalize(e.target.value))}
@@ -248,8 +249,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 />
               </Field>
 
-              <Field label="Descrição">
+              <Field label="Descrição" htmlFor="projeto-descricao">
                 <Textarea
+                  id="projeto-descricao"
                   placeholder="Escreva aqui..."
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
@@ -338,8 +340,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 </Select>
               </Field>
 
-              <Field label="Notas">
+              <Field label="Notas" htmlFor="projeto-notas">
                 <Textarea
+                  id="projeto-notas"
                   placeholder="Notas do projeto..."
                   value={notas}
                   onChange={e => setNotas(e.target.value)}
@@ -352,8 +355,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
             <div className="space-y-3.5 lg:border-l-2 lg:border-r-2 lg:border-border/40 lg:px-5">
               <SectionHeader icon={<Phone className="h-3.5 w-3.5" />} label="Cliente" color="secondary" />
 
-              <Field label="Nome do cliente *" error={errors["cliente.nome"]}>
+              <Field label="Nome do cliente *" error={errors["cliente.nome"]} htmlFor="cliente-nome">
                 <Input
+                  id="cliente-nome"
                   placeholder="Digite o nome do cliente"
                   value={cliente.nome}
                   onChange={e => updateCliente("nome", autoCapitalize(e.target.value))}
@@ -367,8 +371,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 )}
               </Field>
 
-              <Field label="Email">
+              <Field label="Email" htmlFor="cliente-email">
                 <Input
+                  id="cliente-email"
                   type="email"
                   placeholder="email@exemplo.com"
                   value={cliente.email}
@@ -378,8 +383,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
               </Field>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Empresa">
+                <Field label="Empresa" htmlFor="cliente-empresa">
                   <Input
+                    id="cliente-empresa"
                     placeholder="Nome da empresa"
                     value={cliente.empresa}
                     onChange={e => updateCliente("empresa", autoCapitalize(e.target.value))}
@@ -397,8 +403,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 </Field>
               </div>
 
-              <Field label="Telefone *" error={errors["cliente.telefone"]}>
+              <Field label="Telefone *" error={errors["cliente.telefone"]} htmlFor="cliente-telefone">
                 <Input
+                  id="cliente-telefone"
                   placeholder="(00) 00000-0000"
                   value={cliente.telefone}
                   onChange={e => {
@@ -424,9 +431,10 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-2.5">
-                  <Field label="CEP">
+                  <Field label="CEP" htmlFor="cliente-cep">
                     <div className="relative">
                       <Input
+                        id="cliente-cep"
                         placeholder="00000-000"
                         value={cliente.cep}
                         onChange={e => handleCepChange(e.target.value)}
@@ -437,8 +445,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                       )}
                     </div>
                   </Field>
-                  <Field label="Bairro">
+                  <Field label="Bairro" htmlFor="cliente-bairro">
                     <Input
+                      id="cliente-bairro"
                       placeholder="Bairro"
                       value={cliente.bairro}
                       onChange={e => updateCliente("bairro", autoCapitalize(e.target.value))}
@@ -495,16 +504,18 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 </div>
 
                 <div className="grid grid-cols-[1fr_64px] gap-2.5">
-                  <Field label="Endereço">
+                  <Field label="Endereço" htmlFor="cliente-endereco">
                     <Input
+                      id="cliente-endereco"
                       placeholder="Rua, Avenida..."
                       value={cliente.endereco}
                       onChange={e => updateCliente("endereco", autoCapitalize(e.target.value))}
                       className="h-8 text-xs bg-card border-border/50"
                     />
                   </Field>
-                  <Field label="Nº">
+                  <Field label="Nº" htmlFor="cliente-numero">
                     <Input
+                      id="cliente-numero"
                       placeholder="Nº"
                       value={cliente.numero}
                       onChange={e => updateCliente("numero", e.target.value)}
@@ -513,8 +524,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   </Field>
                 </div>
 
-                <Field label="Complemento">
+                <Field label="Complemento" htmlFor="cliente-complemento">
                   <Input
+                    id="cliente-complemento"
                     placeholder="Apto, Bloco..."
                     value={cliente.complemento}
                     onChange={e => updateCliente("complemento", autoCapitalize(e.target.value))}
@@ -629,12 +641,14 @@ function SectionHeader({ icon, label, color }: { icon: React.ReactNode; label: s
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: boolean; children: React.ReactNode }) {
+function Field({ label, error, htmlFor, children }: { label: string; error?: boolean; htmlFor?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <Label className={cn("text-[11px] font-semibold tracking-wide", error ? "text-destructive" : "text-muted-foreground")}>
-        {label}
-      </Label>
+      {label && (
+        <Label htmlFor={htmlFor} className={cn("text-[11px] font-semibold tracking-wide", error ? "text-destructive" : "text-muted-foreground")}>
+          {label}
+        </Label>
+      )}
       {children}
     </div>
   );

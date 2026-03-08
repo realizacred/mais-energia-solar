@@ -7,9 +7,10 @@ interface SearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  "aria-label"?: string;
 }
 
-export function SearchInput({ value, onChange, placeholder = "Buscar...", className }: SearchInputProps) {
+export function SearchInput({ value, onChange, placeholder = "Buscar...", className, "aria-label": ariaLabel }: SearchInputProps) {
   return (
     <div className={cn("relative flex-1 max-w-sm", className)}>
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -18,6 +19,7 @@ export function SearchInput({ value, onChange, placeholder = "Buscar...", classN
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="pl-9"
+        aria-label={ariaLabel || placeholder}
       />
     </div>
   );
