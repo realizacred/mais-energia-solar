@@ -91,7 +91,7 @@ export function PushNotificationSettings() {
         const reg = await navigator.serviceWorker.getRegistration("/");
         swOk = !!reg?.active;
         results.push({
-          label: "Service Worker (push-sw.js)",
+          label: "Service Worker",
           status: swOk ? "ok" : "warn",
           detail: swOk
             ? `Ativo — scope: ${reg?.scope}`
