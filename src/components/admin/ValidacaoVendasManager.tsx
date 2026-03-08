@@ -428,15 +428,15 @@ export function ValidacaoVendasManager() {
                 />
               ) : (
                 <div className="overflow-x-auto">
-                  <Table className="premium-table">
+                  <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Vendedor</TableHead>
-                        <TableHead>Localização</TableHead>
-                        <TableHead className="text-right">Potência</TableHead>
-                        <TableHead className="text-right">Valor Venda</TableHead>
-                        <TableHead>Data</TableHead>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead className="font-semibold text-foreground">Cliente</TableHead>
+                        <TableHead className="font-semibold text-foreground">Vendedor</TableHead>
+                        <TableHead className="font-semibold text-foreground">Localização</TableHead>
+                        <TableHead className="font-semibold text-foreground text-right">Potência</TableHead>
+                        <TableHead className="font-semibold text-foreground text-right">Valor Venda</TableHead>
+                        <TableHead className="font-semibold text-foreground">Data</TableHead>
                         <TableHead className="w-44"></TableHead>
                       </TableRow>
                     </TableHeader>
