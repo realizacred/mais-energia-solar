@@ -725,12 +725,10 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="telefone">Telefone *</Label>
-                <Input
+                <PhoneInput
                   id="telefone"
                   value={formData.telefone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, telefone: formatPhone(e.target.value) }))}
-                  placeholder="(00) 00000-0000"
-                  maxLength={15}
+                  onChange={(raw) => setFormData(prev => ({ ...prev, telefone: raw }))}
                 />
               </div>
               <div className="space-y-2">
