@@ -239,8 +239,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
             <div className="space-y-3.5 lg:pr-5">
               <SectionHeader icon={<Users className="h-3.5 w-3.5" />} label="Projeto" color="primary" />
 
-              <Field label="Nome do projeto">
+              <Field label="Nome do projeto" htmlFor="projeto-nome">
                 <Input
+                  id="projeto-nome"
                   placeholder="Nome do projeto"
                   value={nome}
                   onChange={e => setNome(autoCapitalize(e.target.value))}
