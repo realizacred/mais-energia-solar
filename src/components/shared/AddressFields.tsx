@@ -207,8 +207,8 @@ export function AddressFields({
                 </SelectTrigger>
                 <SelectContent>
                   {ESTADOS_BRASIL.map((uf) => (
-                    <SelectItem key={uf} value={uf}>
-                      {uf}
+                    <SelectItem key={uf.sigla} value={uf.sigla}>
+                      {uf.sigla}
                     </SelectItem>
                   ))}
                 </SelectContent>

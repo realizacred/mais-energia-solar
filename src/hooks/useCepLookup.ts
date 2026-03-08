@@ -30,10 +30,16 @@ export interface CepAddress {
   uf: string;           // estado
   ibge: string;
   erro?: boolean;
+  /** Aliases for convenience */
+  rua: string;
+  cidade: string;
+  estado: string;
 }
 
 interface UseCepLookupReturn {
   fetchCep: (cep: string) => Promise<CepAddress | null>;
+  /** Alias for fetchCep — keeps backward compat */
+  lookup: (cep: string) => Promise<CepAddress | null>;
   loading: boolean;
   error: string | null;
   clearError: () => void;
@@ -63,12 +69,19 @@ export function useCepLookup(): UseCepLookupReturn {
         throw new Error(`Erro HTTP ${res.status}`);
       }
 
-      const data: CepAddress = await res.json();
+      const raw = await res.json();
 
-      if (data.erro) {
+      if (raw.erro) {
         setError("CEP não encontrado");
         return null;
       }
+
+      const data: CepAddress = {
+        ...raw,
+        rua: raw.logradouro ?? "",
+        cidade: raw.localidade ?? "",
+        estado: raw.uf ?? "",
+      };
 
       return data;
     } catch (err) {
@@ -80,7 +93,7 @@ export function useCepLookup(): UseCepLookupReturn {
     }
   }, []);
 
-  return { fetchCep, loading, error, clearError };
+  return { fetchCep, lookup: fetchCep, loading, error, clearError };
 }
 
 /**
