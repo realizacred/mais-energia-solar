@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  GripVertical,
   Phone,
   MapPin,
   Zap,
-  User,
   Clock,
   MoreHorizontal,
   Eye,
@@ -62,12 +61,10 @@ interface KanbanCardProps {
   onLose?: (lead: Lead) => void;
 }
 
-// Estimated kWp from consumption (rough: consumo/130)
 function estimateKwp(consumo: number): number {
   return Math.round((consumo / 130) * 10) / 10;
 }
 
-// Estimated project value (rough: kWp * 5000)
 function estimateValue(kwp: number): number {
   return kwp * 5000;
 }
@@ -86,7 +83,6 @@ export function KanbanCard({
   const kwp = lead.potencia_kwp || estimateKwp(lead.media_consumo);
   const valor = lead.valor_projeto || estimateValue(kwp);
 
-  // Inactivity: 48h+ without update
   const lastActivity = lead.ultimo_contato || lead.created_at;
   const hoursSinceActivity = differenceInHours(new Date(), new Date(lastActivity));
   const isInactive = hoursSinceActivity >= 48;
@@ -99,114 +95,127 @@ export function KanbanCard({
   };
 
   return (
-    <div
+    <motion.div
       draggable
-      onDragStart={(e) => onDragStart(e, lead)}
+      onDragStart={(e) => onDragStart(e as unknown as React.DragEvent, lead)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      transition={{ duration: 0.15 }}
       className={cn(
-        "group relative bg-card rounded-lg border border-border/50 cursor-grab active:cursor-grabbing",
-        "transition-all duration-200 ease-out",
-        isDragging && "opacity-40 scale-95",
-        !isDragging && "hover:border-border",
+        "group relative bg-card rounded-lg border border-border p-3 shadow-sm cursor-grab active:cursor-grabbing",
+        "hover:shadow-md hover:border-primary/30 transition-all duration-200",
+        isDragging && "opacity-50 rotate-1 shadow-lg"
       )}
-      style={{ boxShadow: isDragging ? "var(--shadow-lg)" : "var(--shadow-xs)" }}
     >
-      <div className="p-3 space-y-1.5">
-        {/* Line 1: Name (strong) */}
-        <div className="flex items-start justify-between gap-1.5">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+      <div className="space-y-1.5">
+        {/* Line 1: Lead code + urgency badge */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono text-muted-foreground">
+            {lead.lead_code || "—"}
+          </span>
+          <div className="flex items-center gap-1">
             {isInactive && (
-              <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0 mt-1.5" />
+              <Badge className="text-[10px] h-4 bg-destructive/10 text-destructive border-destructive/20">
+                <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                Urgente
+              </Badge>
             )}
             {!lead.visto && !isInactive && (
-              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
             )}
-            <p className="text-sm font-semibold truncate text-foreground leading-tight">{lead.nome}</p>
-          </div>
+            <div className={cn(
+              "flex items-center gap-0.5 shrink-0 transition-opacity duration-150",
+              isHovered ? "opacity-100" : "opacity-0"
+            )}>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onViewDetails?.(lead); }}>
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ver detalhes</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-          <div className={cn(
-            "flex items-center gap-0.5 shrink-0 transition-opacity duration-150",
-            isHovered ? "opacity-100" : "opacity-0"
-          )}>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onViewDetails?.(lead); }}>
-                    <Eye className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Ver detalhes</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <MoreHorizontal className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => onQuickAction?.(lead, "whatsapp")}>
-                  <MessageSquare className="h-4 w-4 mr-2" /> Enviar WhatsApp
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onQuickAction?.(lead, "call")}>
-                  <Phone className="h-4 w-4 mr-2" /> Ligar
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onQuickAction?.(lead, "markContacted")}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Marcar como contatado
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-success" onClick={() => onWin?.(lead)}>
-                  <Trophy className="h-4 w-4 mr-2" /> Ganhar
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive" onClick={() => onLose?.(lead)}>
-                  <XCircle className="h-4 w-4 mr-2" /> Perder
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <KanbanCardMenu lead={lead} onQuickAction={onQuickAction} onWin={onWin} onLose={onLose} />
+            </div>
           </div>
         </div>
 
-        {/* Line 2: Value + kWp (secondary emphasis) */}
-        <div className="flex items-center gap-3 text-xs">
-          <span className="flex items-center gap-1 font-semibold text-foreground">
+        {/* Line 2: Name */}
+        <p className="text-sm font-semibold text-foreground truncate">{lead.nome}</p>
+
+        {/* Line 3: Compact infos — city + kWh */}
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1 truncate">
+            <MapPin className="w-3 h-3 shrink-0" />
+            {lead.cidade}/{lead.estado}
+          </span>
+          <span className="flex items-center gap-1">
+            <Zap className="w-3 h-3" />
+            {lead.media_consumo} kWh
+          </span>
+        </div>
+
+        {/* Line 4: Footer — value + consultant + time */}
+        <div className="flex items-center justify-between pt-0.5">
+          <span className="text-xs font-semibold text-primary flex items-center gap-1">
             <DollarSign className="w-3 h-3 text-success" />
             {formatBRLCompact(valor)}
           </span>
-          <span className="flex items-center gap-1 text-muted-foreground">
-            <Zap className="w-3 h-3" />
-            {kwp} kWp
-          </span>
-        </div>
-
-        {/* Line 3: Time + location (compact) */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1 truncate">
-            <MapPin className="w-3 h-3 shrink-0" />
-            {lead.cidade}, {lead.estado}
-          </span>
-          <span className="flex items-center gap-1 shrink-0 tabular-nums">
-            <Clock className="w-3 h-3" />
-            {getTimeAgo()}
-          </span>
-        </div>
-
-        {/* Line 4: Status badge (small, solid) */}
-        <div className="flex items-center justify-between pt-0.5">
-          {lead.consultor && (
-            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
-              {lead.consultor.split(" ")[0]}
+          <div className="flex items-center gap-2">
+            {lead.consultor && (
+              <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+                {lead.consultor.split(" ")[0]}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground tabular-nums flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {getTimeAgo()}
             </span>
-          )}
-          {lead.status_nome && (
-            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-medium">
-              {lead.status_nome}
-            </Badge>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
+  );
+}
+
+/** Extracted dropdown menu to keep the main component clean */
+function KanbanCardMenu({
+  lead,
+  onQuickAction,
+  onWin,
+  onLose,
+}: Pick<KanbanCardProps, "lead" | "onQuickAction" | "onWin" | "onLose">) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-6 w-6">
+          <MoreHorizontal className="h-3 w-3" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={() => onQuickAction?.(lead, "whatsapp")}>
+          <MessageSquare className="h-4 w-4 mr-2" /> Enviar WhatsApp
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onQuickAction?.(lead, "call")}>
+          <Phone className="h-4 w-4 mr-2" /> Ligar
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onQuickAction?.(lead, "markContacted")}>
+          <CheckCircle2 className="h-4 w-4 mr-2" /> Marcar como contatado
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-success" onClick={() => onWin?.(lead)}>
+          <Trophy className="h-4 w-4 mr-2" /> Ganhar
+        </DropdownMenuItem>
+        <DropdownMenuItem className="text-destructive" onClick={() => onLose?.(lead)}>
+          <XCircle className="h-4 w-4 mr-2" /> Perder
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
