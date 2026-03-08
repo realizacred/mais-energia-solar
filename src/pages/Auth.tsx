@@ -61,10 +61,18 @@ export default function Auth() {
   useEffect(() => {
     const checkUserRoleAndRedirect = async () => {
       if (!loading && user && !isRecoveryFlow) {
-        // If user came from /app (messaging PWA), always go back there
+        // If user came from a specific PWA route, always go back there
         const redirectFrom = searchParams.get("from");
         if (redirectFrom === "app") {
           navigate("/app", { replace: true });
+          return;
+        }
+        if (redirectFrom === "sistema") {
+          navigate("/sistema", { replace: true });
+          return;
+        }
+        if (redirectFrom === "instalador") {
+          navigate("/instalador", { replace: true });
           return;
         }
 
