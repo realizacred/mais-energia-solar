@@ -256,6 +256,7 @@ export function useSmFunnels() {
 export function useSmFunnelStages(funnelId?: number) {
   return useQuery<SmFunnelStage[]>({
     queryKey: ["sm-funnel-stages", funnelId],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       const allRows: SmFunnelStage[] = [];
       let from = 0;
