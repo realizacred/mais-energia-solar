@@ -62,7 +62,7 @@ export function ProjetoKanban({ etapas, projetosByEtapa, onMoveProjeto, onViewPr
 
   return (
     <ScrollArea className="w-full">
-      <div className="flex gap-3 pb-4" style={{ minWidth: "min-content" }}>
+      <div className="flex gap-3 pb-4" style={{ minWidth: "min-content", width: "100%" }}>
         {etapas.map(etapa => {
           const items = projetosByEtapa.get(etapa.id) || [];
           const isOver = dragOverEtapa === etapa.id;
