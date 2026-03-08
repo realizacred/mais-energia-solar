@@ -15,7 +15,11 @@ export function InstaladorInstallBanner() {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    if (isInstalled) {
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true;
+
+    if (isInstalled || isStandalone) {
       setDismissed(true);
       return;
     }
