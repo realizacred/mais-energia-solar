@@ -520,9 +520,7 @@
   /* Admin content container — responsive wrapper for all admin pages */
   /* NOTE: .admin-content is defined in the icon/kanban section below */
 
-  /* Admin page section — constrained width for form-heavy pages */
-  .admin-section-narrow { @apply mx-auto w-full; max-width: 720px; }
-  .admin-section-medium { @apply mx-auto w-full; max-width: 960px; }
+  /* Admin page sections removed — admin pages must use full width per AGENTS.md §19 */
 
   /* 2-column settings layout — form + contextual panel */
   .admin-layout-settings {
