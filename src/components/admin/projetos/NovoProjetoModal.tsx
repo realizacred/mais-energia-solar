@@ -431,9 +431,10 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-2.5">
-                  <Field label="CEP">
+                  <Field label="CEP" htmlFor="cliente-cep">
                     <div className="relative">
                       <Input
+                        id="cliente-cep"
                         placeholder="00000-000"
                         value={cliente.cep}
                         onChange={e => handleCepChange(e.target.value)}
