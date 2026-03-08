@@ -124,6 +124,7 @@ interface WaChatPanelProps {
   onToggleHide?: () => void;
   prefillMessage?: string | null;
   onRetryMessage?: (msg: WaMessage) => void;
+  onBack?: () => void;
 }
 
 export function WaChatPanel({
