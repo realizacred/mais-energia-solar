@@ -122,6 +122,7 @@ function TasksManager() {
       const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const filtered = tasks.filter((t) => {
