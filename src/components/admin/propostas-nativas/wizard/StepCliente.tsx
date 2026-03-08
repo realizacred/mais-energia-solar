@@ -517,10 +517,9 @@ function StepClienteForm({
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">CPF/CNPJ</Label>
-            <Input
+            <CpfCnpjInput
               value={cliente.cnpj_cpf}
-              onChange={e => update("cnpj_cpf", e.target.value)}
-              placeholder="000.000.000-00"
+              onChange={v => update("cnpj_cpf", v)}
               className={`h-9 ${duplicateWarnings.some(w => w.field === "cnpj_cpf") ? "border-warning focus-visible:ring-warning" : ""}`}
             />
           </div>

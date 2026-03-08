@@ -511,10 +511,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
-                    <Input
+                    <CpfCnpjInput
                       id="cpf_cnpj"
                       value={formData.cpf_cnpj}
-                      onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
+                      onChange={(v) => setFormData({ ...formData, cpf_cnpj: v })}
                     />
                   </div>
                   <div className="space-y-2">
