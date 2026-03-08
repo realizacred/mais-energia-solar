@@ -642,6 +642,6 @@ export function RecebimentosManager() {
           onUpdate={fetchRecebimentos}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
