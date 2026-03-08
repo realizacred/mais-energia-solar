@@ -54,7 +54,7 @@ export function WaAppInstallBanner() {
 
   return (
     <div className="shrink-0 mx-3 mt-2 animate-in slide-in-from-top-4 fade-in duration-300 select-none touch-action-manipulation">
-      <div className="bg-success/5 border border-success/20 rounded-xl p-3 relative">
+      <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-3 relative">
         <button
           onClick={handleDismiss}
           className="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors"
