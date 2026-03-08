@@ -454,7 +454,7 @@ export function CsvImportPanel() {
   const progressPct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
 
       {/* ═══════════ STEP 1: Create Version ═══════════ */}
       <Card>

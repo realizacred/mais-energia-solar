@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHorariosEdit";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatPhone, formatName } from "@/lib/validations";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +22,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { LoadingState } from "@/components/ui-kit";
 
 interface Vendedor {
   id: string;
@@ -542,11 +544,17 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   };
 
   if (loading) {
-    return <LoadingState className="py-12" />;
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 w-full rounded-lg" />
+        ))}
+      </div>
+    );
   }
 
   return (
-    <>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <SectionCard
         icon={Users}
         title={`Consultores (${vendedores.length})`}
@@ -717,12 +725,10 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="telefone">Telefone *</Label>
-                <Input
+                <PhoneInput
                   id="telefone"
                   value={formData.telefone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, telefone: formatPhone(e.target.value) }))}
-                  placeholder="(00) 00000-0000"
-                  maxLength={15}
+                  onChange={(raw) => setFormData(prev => ({ ...prev, telefone: raw }))}
                 />
               </div>
               <div className="space-y-2">
@@ -939,6 +945,6 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </motion.div>
   );
 }

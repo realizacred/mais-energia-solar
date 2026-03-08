@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSiteBanners } from "@/hooks/useSiteBanners";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -98,13 +99,15 @@ export function TopBannerCarousel() {
                   </span>
                 )}
                 {slides[current].botao_texto && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleCtaClick(slides[current].botao_link)}
-                    className="shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-primary-foreground text-[11px] sm:text-xs font-bold transition-all duration-200 hover:scale-105 backdrop-blur-sm border border-white/10"
+                    className="shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-primary-foreground text-[11px] sm:text-xs font-bold backdrop-blur-sm border border-white/10"
                   >
                     {slides[current].botao_texto}
                     <ArrowRight className="w-3 h-3" />
-                  </button>
+                  </Button>
                 )}
               </motion.div>
             </AnimatePresence>

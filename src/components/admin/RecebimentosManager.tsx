@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -312,7 +313,7 @@ export function RecebimentosManager() {
   const totalRecebido = recebimentos.reduce((acc, r) => acc + calcularTotalPago(r.pagamentos), 0);
 
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <PageHeader
         icon={Receipt}
         title="Recebimentos"
@@ -641,6 +642,6 @@ export function RecebimentosManager() {
           onUpdate={fetchRecebimentos}
         />
       )}
-    </div>
+    </motion.div>
   );
 }

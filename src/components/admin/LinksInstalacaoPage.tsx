@@ -219,7 +219,7 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="bg-white p-4 rounded-xl">
+            <div className="bg-background p-4 rounded-xl">
               <QRCodeSVG value={qrLink} size={220} level="M" />
             </div>
             <p className="text-xs text-muted-foreground font-mono text-center break-all max-w-[280px]">{qrLink}</p>

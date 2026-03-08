@@ -454,7 +454,7 @@ export function StepDocumento({
               <p className="text-sm text-muted-foreground animate-pulse">Renderizando proposta...</p>
             </div>
           ) : htmlPreview ? (
-            <div className="border border-border/50 rounded-xl overflow-hidden bg-white shadow-sm">
+            <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
               <iframe
                 srcDoc={htmlPreview}
                 title="Proposta Preview"

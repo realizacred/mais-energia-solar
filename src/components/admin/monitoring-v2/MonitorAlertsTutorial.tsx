@@ -53,7 +53,7 @@ const CHECKLIST = [
 
 export default function MonitorAlertsTutorial() {
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <PageHeader
         title="Entenda seus Alertas"
         description="Guia completo sobre como monitoramos sua usina solar e quando geramos alertas"

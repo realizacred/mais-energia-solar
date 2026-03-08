@@ -344,7 +344,7 @@
                      <img
                        src={selectedChecklist.assinatura_cliente_url}
                        alt="Assinatura Cliente"
-                       className="w-full h-24 object-contain bg-white border rounded"
+                        className="w-full h-24 object-contain bg-background border border-border rounded"
                      />
                    </div>
                  )}
@@ -356,7 +356,7 @@
                      <img
                        src={selectedChecklist.assinatura_instalador_url}
                        alt="Assinatura Instalador"
-                       className="w-full h-24 object-contain bg-white border rounded"
+                       className="w-full h-24 object-contain bg-background border border-border rounded"
                      />
                    </div>
                  )}

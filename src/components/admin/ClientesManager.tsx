@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -38,11 +39,12 @@ import {
   Eye,
   FileText,
 } from "lucide-react";
-import { Spinner } from "@/components/ui-kit/Spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { useCepLookup } from "@/hooks/useCepLookup";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
@@ -417,7 +419,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <PageHeader
         icon={Users}
         title="Clientes"
@@ -495,11 +497,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="telefone">Telefone *</Label>
-                    <Input
+                    <PhoneInput
                       id="telefone"
                       value={formData.telefone}
-                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                      required
+                      onChange={(raw) => setFormData({ ...formData, telefone: raw })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -640,7 +641,11 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       </div>
 
       {loading ? (
-        <LoadingState />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
       ) : filteredClientes.length === 0 ? (
         <EmptyState
           icon={Users}
@@ -809,7 +814,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         open={viewOpen}
         onOpenChange={setViewOpen}
       />
-    </div>
+    </motion.div>
   );
 }
 
