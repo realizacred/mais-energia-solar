@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useEstoqueRealtime } from "@/hooks/useEstoqueRealtime";
 import {
   Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Plus,
   ScanBarcode, QrCode, ArrowRightLeft, ShieldCheck, Download, Warehouse, Wrench,
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function EstoquePage() {
+  useEstoqueRealtime();
   const [tab, setTab] = useState("itens");
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
