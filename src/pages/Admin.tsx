@@ -491,6 +491,7 @@ export default function Admin() {
             </div>
           </header>
 
+          <SistemaInstallBanner />
           <TrialBanner />
           <FeatureDiscoveryLayer />
           <main className="flex-1 admin-content overflow-x-hidden animate-fade-in">
