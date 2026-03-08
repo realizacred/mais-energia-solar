@@ -39,7 +39,7 @@ import {
   Eye,
   FileText,
 } from "lucide-react";
-import { Spinner } from "@/components/ui-kit/Spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { useCepLookup } from "@/hooks/useCepLookup";
