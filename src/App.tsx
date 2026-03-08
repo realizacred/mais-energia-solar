@@ -37,6 +37,7 @@ const Inbox = lazy(() => import("./pages/Inbox"));
 const MessagingApp = lazy(() => import("./pages/MessagingApp"));
 const AppDebug = lazy(() => import("./pages/AppDebug"));
 const Sistema = lazy(() => import("./pages/Sistema"));
+const PWADebugPage = lazy(() => import("./pages/PWADebugPage"));
 const OAuthGoogleCallback = lazy(() => import("./pages/OAuthGoogleCallback"));
 const GoogleContactsCallbackPage = lazy(() => import("./pages/admin/GoogleContactsCallbackPage"));
 const IntegrationsSandbox = lazy(() => import("./dev/IntegrationsSandboxRoute"));
@@ -114,6 +115,7 @@ const App = () => (
               <Route path="/app" element={<TenantGuardGate><MessagingApp /></TenantGuardGate>} />
               <Route path="/app/debug" element={<TenantGuardGate><AppDebug /></TenantGuardGate>} />
               <Route path="/sistema" element={<TenantGuardGate><Sistema /></TenantGuardGate>} />
+              <Route path="/pwa-debug" element={<PWADebugPage />} />
 
               {/* DEV-only sandbox (stripped in prod build) */}
               {import.meta.env.DEV && (
