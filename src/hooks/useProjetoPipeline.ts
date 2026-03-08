@@ -220,6 +220,46 @@ export function useProjetoPipeline() {
 
   useEffect(() => { fetchAll(); }, []);
 
+  // ⚠️ HARDENING: Realtime subscription for cross-user sync on projetos
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('projetos-pipeline-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projetos' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            try {
+              const enriched = await fetchProjetos(filters);
+              setProjetos(enriched);
+            } catch (e) { console.error("Realtime projetos refresh:", e); }
+          }, 700);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projeto_etiqueta_rel' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            try {
+              const enriched = await fetchProjetos(filters);
+              setProjetos(enriched);
+            } catch (e) { console.error("Realtime etiqueta rel refresh:", e); }
+          }, 700);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [filters, fetchProjetos]);
+
   // Re-fetch projetos when filters change (but not on initial load)
   const applyFilters = useCallback(async (newFilters: Partial<ProjetoFiltersState>) => {
     const merged = { ...filters, ...newFilters };
