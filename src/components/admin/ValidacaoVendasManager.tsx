@@ -23,6 +23,7 @@ import {
   TrendingUp, Zap, AlertTriangle, History, Filter, FileText,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
