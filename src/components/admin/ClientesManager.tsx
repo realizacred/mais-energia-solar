@@ -41,6 +41,8 @@ import {
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
+import { useCepLookup } from "@/hooks/useCepLookup";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
@@ -94,6 +96,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const { hasPermission } = useUserPermissions();
+  const { lookup: lookupCep } = useCepLookup();
   const canDeleteClients = hasPermission("delete_clients");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -509,10 +512,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
-                    <Input
+                    <CpfCnpjInput
                       id="cpf_cnpj"
                       value={formData.cpf_cnpj}
-                      onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
+                      onChange={(v) => setFormData({ ...formData, cpf_cnpj: v })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -535,25 +538,21 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                     <Input
                       id="cep"
                       value={formData.cep}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
                         setFormData({ ...formData, cep: raw });
                         if (raw.length === 8) {
-                          fetch(`https://viacep.com.br/ws/${raw}/json/`)
-                            .then(r => r.json())
-                            .then(data => {
-                              if (!data.erro) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  rua: data.logradouro || prev.rua,
-                                  bairro: data.bairro || prev.bairro,
-                                  cidade: data.localidade || prev.cidade,
-                                  estado: data.uf || prev.estado,
-                                  complemento: data.complemento || prev.complemento,
-                                }));
-                              }
-                            })
-                            .catch(() => {});
+                          const result = await lookupCep(raw);
+                          if (result) {
+                            setFormData(prev => ({
+                              ...prev,
+                              rua: result.rua || prev.rua,
+                              bairro: result.bairro || prev.bairro,
+                              cidade: result.cidade || prev.cidade,
+                              estado: result.estado || prev.estado,
+                              complemento: result.complemento || prev.complemento,
+                            }));
+                          }
                         }
                       }}
                       placeholder="00000000"
