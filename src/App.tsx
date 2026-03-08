@@ -36,6 +36,7 @@ const WaChannelPage = lazy(() => import("./pages/WaChannelPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const MessagingApp = lazy(() => import("./pages/MessagingApp"));
 const AppDebug = lazy(() => import("./pages/AppDebug"));
+const Sistema = lazy(() => import("./pages/Sistema"));
 const OAuthGoogleCallback = lazy(() => import("./pages/OAuthGoogleCallback"));
 const GoogleContactsCallbackPage = lazy(() => import("./pages/admin/GoogleContactsCallbackPage"));
 const IntegrationsSandbox = lazy(() => import("./dev/IntegrationsSandboxRoute"));
