@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useCepLookup } from "@/hooks/useCepLookup";
-import { formatCpfCnpj, isValidCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAZIL_STATES, CITIES_BY_STATE } from "@/data/brazil-states-cities";
 import {
