@@ -159,7 +159,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+      <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle>{editingUC ? "Editar UC" : "Nova Unidade Consumidora"}</DialogTitle>
         </DialogHeader>
@@ -171,7 +171,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
               <Zap className="w-4 h-4 text-primary" />
               Dados da UC
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Código da UC <span className="text-destructive">*</span></Label>
                 <Input value={form.codigo_uc} onChange={set("codigo_uc")} placeholder="Ex: 0012345678" autoComplete="off" />
@@ -211,7 +211,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
               <FileText className="w-4 h-4 text-primary" />
               Classificação Tarifária
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Grupo</Label>
                 <Select value={form.classificacao_grupo} onValueChange={set("classificacao_grupo")}>
@@ -243,7 +243,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
               <MapPin className="w-4 h-4 text-primary" />
               Endereço
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">CEP</Label>
                 <div className="relative">
