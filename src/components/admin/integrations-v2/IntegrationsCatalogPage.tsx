@@ -467,7 +467,6 @@ export default function IntegrationsCatalogPage() {
             })()
           )}
         </div>
-        </div>
       </div>
 
       {/* ─── Drawer ─── */}
