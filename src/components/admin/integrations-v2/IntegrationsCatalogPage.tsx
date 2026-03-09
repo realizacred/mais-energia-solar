@@ -394,15 +394,21 @@ export default function IntegrationsCatalogPage() {
               description="Tente outro termo de busca ou filtro."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filtered.map((provider) => (
+            (() => {
+              // Split monitoring into functional vs stub groups
+              const isMonitoringView = selectedCategory === "monitoring" || selectedCategory === "all";
+              const monitoringFunctional = filtered.filter(p => p.category === "monitoring" && FUNCTIONAL_MONITORING_IDS.has(p.id));
+              const monitoringStub = filtered.filter(p => p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id));
+              const nonMonitoring = filtered.filter(p => p.category !== "monitoring");
+
+              const renderCard = (provider: IntegrationProvider, isStubGroup = false) => (
                 <IntegrationProviderCard
                   key={provider.id}
                   provider={provider}
                   connStatus={getConnectionStatus(provider.id)}
                   plantCount={getPlantCount(provider.id)}
                   lastSync={getLastSync(provider.id)}
-                  onConfigure={() => handleConfigure(provider)}
+                  onConfigure={() => !isStubGroup && handleConfigure(provider)}
                   onSync={() => {
                     setSyncingProviderId(provider.id);
                     const mapped = CANONICAL_TO_LEGACY[provider.id] || provider.id;
@@ -410,10 +416,57 @@ export default function IntegrationsCatalogPage() {
                   }}
                   onDisconnect={() => disconnectMut.mutate(provider.id)}
                   syncing={syncingProviderId === provider.id}
+                  disabled={isStubGroup}
                 />
-              ))}
-            </div>
+              );
+
+              return (
+                <div className="space-y-8">
+                  {/* Functional monitoring providers */}
+                  {monitoringFunctional.length > 0 && (
+                    <div>
+                      {isMonitoringView && (monitoringFunctional.length > 0 || monitoringStub.length > 0) && (
+                        <div className="flex items-center gap-2 mb-4">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                          <h3 className="text-sm font-semibold text-foreground">Disponíveis agora</h3>
+                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                            {monitoringFunctional.length}
+                          </Badge>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {monitoringFunctional.map(p => renderCard(p))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Non-monitoring providers */}
+                  {nonMonitoring.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {nonMonitoring.map(p => renderCard(p))}
+                    </div>
+                  )}
+
+                  {/* Stub monitoring providers */}
+                  {monitoringStub.length > 0 && isMonitoringView && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Wrench className="h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold text-muted-foreground">Em implementação</h3>
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
+                          {monitoringStub.length}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 opacity-60">
+                        {monitoringStub.map(p => renderCard(p, true))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
+        </div>
         </div>
       </div>
 
