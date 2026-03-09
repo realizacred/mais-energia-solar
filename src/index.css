@@ -682,9 +682,8 @@
 
   /* Admin content with better surface separation */
   .admin-content {
-    @apply p-4 sm:p-6 lg:p-8 space-y-6 w-full;
+    @apply p-4 md:p-6 space-y-6 w-full;
     max-width: 100%;
-    background: hsl(var(--surface-2));
   }
 
   /* Remove padding when wizard is inside admin-content */
