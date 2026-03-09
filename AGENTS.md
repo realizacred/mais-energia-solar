@@ -388,3 +388,36 @@ Objetivos:
 - melhorar leitura de tabelas e kanban
 - aproveitar melhor monitores grandes
 - manter responsividade sem centralização artificial
+
+---
+
+## 16. PADRÃO DE BOTÕES — Regra obrigatória
+
+- Ação principal (+ Novo, + Criar, + Adicionar, Salvar, Confirmar, Gerar): variant="default" — SEMPRE sólido laranja, nunca outline
+- Ação secundária (Filtrar, Exportar, Importar, Atualizar, Visualizar): variant="outline"
+- Ação destrutiva (Excluir, Remover, Cancelar contrato, Deletar): variant="destructive"
+- Navegação e fechamento (Voltar, Fechar, Cancelar): variant="ghost"
+- Ação de sucesso (Aprovar, Concluir, Marcar como pago, Ganhar): variant="success"
+- Ação de alerta (Pausar, Pendente, Revisar): variant="warning"
+
+NUNCA usar variant="outline" em botão de ação principal.
+NUNCA usar elemento button HTML nativo — sempre Button de @/components/ui/button.
+
+---
+
+## 17. staleTime OBRIGATÓRIO em todo useQuery
+
+- Dados de monitoramento em tempo real: staleTime: 1000 * 30
+- Dados normais (listas, formulários): staleTime: 1000 * 60 * 5
+- Dados estáticos (configurações, planos, permissões): staleTime: 1000 * 60 * 15
+
+NUNCA criar useQuery sem staleTime.
+
+---
+
+## 18. REGRA DE OVERLAYS E FUNDOS
+
+- bg-black/XX — permitido apenas em overlays de media player e componentes shadcn nativos
+- bg-white sólido — permitido apenas em canvas de assinatura (SignaturePad) — necessário para funcionar
+- bg-white/XX com opacidade — permitido em overlays sobre gradientes e heroes institucionais
+- Para todos os outros casos usar bg-card, bg-background ou bg-muted
