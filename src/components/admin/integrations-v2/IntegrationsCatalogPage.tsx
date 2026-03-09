@@ -43,6 +43,7 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   webhooks_generic: lazy(() => import("@/components/admin/WebhookManager")),
   asaas: lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig }))),
   public_api: lazy(() => import("@/pages/admin/OpenAIConfigPage")),
+  tuya_iot: lazy(() => import("@/components/admin/integrations-api/ApisPage")),
 };
 
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
