@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save } from "lucide-react";
+import { Save, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -104,11 +104,16 @@ export function PropostaConfigPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-foreground">Configurações de Proposta</h1>
-        <p className="text-sm text-muted-foreground">
-          Defina regras de validade e exibição das propostas comerciais.
-        </p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+          <Settings className="w-5 h-5" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Configurações de Proposta</h1>
+          <p className="text-sm text-muted-foreground">
+            Defina regras de validade e exibição das propostas comerciais.
+          </p>
+        </div>
       </div>
 
       <Card>

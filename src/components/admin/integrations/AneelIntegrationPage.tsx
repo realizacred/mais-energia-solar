@@ -346,14 +346,16 @@ export function AneelIntegrationPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Zap className="w-6 h-6 text-primary" />
-            Integração ANEEL
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Sincronização semanal de tarifas homologadas · Versionamento auditável · Motor GD II/III 2026
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <Zap className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Integração ANEEL</h1>
+            <p className="text-sm text-muted-foreground">
+              Sincronização semanal de tarifas homologadas · Versionamento auditável · Motor GD II/III 2026
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => handleSync(true)} disabled={syncing} className="gap-2">

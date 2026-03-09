@@ -282,14 +282,16 @@ export function AneelSyncStatusPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Activity className="w-6 h-6 text-primary" />
-            Status do Sync ANEEL
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Monitoramento em tempo real da sincronização de tarifas
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <Activity className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Status do Sync ANEEL</h1>
+            <p className="text-sm text-muted-foreground">
+              Monitoramento em tempo real da sincronização de tarifas
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
