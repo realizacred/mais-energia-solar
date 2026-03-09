@@ -373,7 +373,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
                           <span>{vendedor.tempoMedioResposta}d média</span>
                         </div>
                         {vendedor.urgentes > 0 && vendedor.telefone && (
-                          <Button size="sm" variant="destructive" onClick={() => cobrarVendedor(vendedor)} className="gap-1">
+                          <Button size="sm" variant="outline" onClick={() => cobrarVendedor(vendedor)} className="gap-1">
                             <Send className="w-3 h-3" />Cobrar
                           </Button>
                         )}
