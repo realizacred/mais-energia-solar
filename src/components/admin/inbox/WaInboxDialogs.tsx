@@ -106,7 +106,7 @@ export function WaAssignDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Atribuir Conversa</DialogTitle>
         </DialogHeader>
