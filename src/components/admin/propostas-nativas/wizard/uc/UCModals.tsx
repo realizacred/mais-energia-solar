@@ -107,7 +107,7 @@ export function UCConfigModal({ open, onOpenChange, uc, index, onSave }: UCConfi
         </div>
         <div className="flex items-center justify-end gap-3 pt-2 border-t">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
-          <Button onClick={() => { onSave(local); onOpenChange(false); }} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
+          <Button variant="default" onClick={() => { onSave(local); onOpenChange(false); }} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
         </div>
       </DialogContent>
     </Dialog>
