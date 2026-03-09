@@ -50,6 +50,7 @@ import {
   MapPin,
   Zap,
   Truck,
+  Database,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -89,27 +90,22 @@ export interface SidebarSection {
  * Legacy sidebar config — fallback only.
  * The actual menu structure comes from src/config/navRegistry.ts via useNavConfig().
  *
- * Sections (20):
+ * Sections (15):
  *  1. Painel
  *  2. Comercial
  *  3. Atendimento
  *  4. Clientes
  *  5. Pós-Venda
  *  6. Operações
- *  7. Estoque
- *  8. Financeiro
- *  9. Equipe
- * 10. IA
- * 11. Monitoramento
- * 12. Integrações
- * 13. Site
- * 14. Meta
- * 15. Cadastros
- * 16. Medidores
- * 17. Unidades Consumidoras
- * 18. Projetos & Propostas
- * 19. Configurações
- * 20. Administração
+ *  7. Financeiro
+ *  8. Equipe
+ *  9. IA
+ * 10. Monitoramento
+ * 11. Integrações
+ * 12. Site
+ * 13. Cadastros
+ * 14. Configurações
+ * 15. Administração
  */
 export const SIDEBAR_SECTIONS: SidebarSection[] = [
   // ─── 1. PAINEL ─────────────────────────────────────────────
@@ -146,7 +142,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "projetos", title: "Projetos", icon: FolderKanban, description: "Pipeline de projetos", keywords: ["projeto", "pipeline", "funil", "kanban", "etapa", "proposta"] },
       { id: "followup", title: "Acompanhamentos", icon: Bell, description: "Retornos e lembretes", keywords: ["lembrete", "retorno", "agendamento", "tarefa"] },
       { id: "distribuicao", title: "Distribuição de Leads", icon: RotateCcw, description: "Regras automáticas", keywords: ["fila", "round-robin", "atribuição", "regras"], separator: true },
-      { id: "sla-breaches", title: "Alertas de Prazo", icon: AlertTriangle, description: "Violações de prazo", keywords: ["prazo", "atraso", "violação", "alerta"] },
+      { id: "sla-breaches", title: "SLA & Breaches", icon: AlertTriangle, description: "Violações de prazo", keywords: ["prazo", "atraso", "violação", "alerta"] },
       { id: "inteligencia", title: "Inteligência Comercial", icon: Brain, description: "Scoring & Previsão", keywords: ["score", "previsão", "IA", "análise", "ranking"], separator: true },
       { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso", keywords: ["aprovação", "solicitação", "pendente"] },
     ],
@@ -165,13 +161,15 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: true,
     items: [
       { id: "inbox", title: "Central WhatsApp", icon: MessageCircle, description: "Inbox de atendimento", keywords: ["chat", "mensagem", "conversa", "WhatsApp"] },
-      { id: "whatsapp", title: "Automação WhatsApp", icon: Bot, description: "Respostas automáticas e boas-vindas", keywords: ["API", "automação", "webhook", "bot"], separator: true },
-      { id: "followup-wa", title: "Regras de Follow-up", icon: Bell, description: "Automação de acompanhamento WA", keywords: ["automação", "regra", "configurar", "agendamento"] },
       { id: "followup-queue", title: "Fila de Follow-ups", icon: CalendarClock, description: "Clientes aguardando retorno", keywords: ["pendente", "fila", "aguardando", "retorno"] },
+      { id: "followup-wa", title: "Regras de Follow-up", icon: Bell, description: "Automação de acompanhamento WA", keywords: ["automação", "regra", "configurar", "agendamento"] },
+      { id: "metricas-atendimento", title: "Métricas de Atendimento", icon: BarChart3, description: "Performance por consultor", keywords: ["métricas", "performance", "tempo", "resposta"] },
+      { id: "regras-retorno", title: "Regras de Retorno", icon: RotateCcw, description: "Regras de retorno automático", keywords: ["retorno", "regra", "automático"] },
+      { id: "followup-wa-queue", title: "Fila de Retorno", icon: CalendarClock, description: "Fila de retornos pendentes", keywords: ["retorno", "fila", "pendente"] },
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"], separator: true },
+      { id: "whatsapp", title: "Automação WhatsApp", icon: Bot, description: "Respostas automáticas e boas-vindas", keywords: ["API", "automação", "webhook", "bot"] },
       { id: "wa-etiquetas", title: "Etiquetas WhatsApp", icon: Tag, description: "Tags para conversas", keywords: ["tag", "etiqueta", "classificação", "organizar"] },
       { id: "respostas-rapidas", title: "Respostas Rápidas", icon: Sparkles, description: "Templates de mensagens", keywords: ["template", "atalho", "mensagem", "rápida"] },
-      { id: "metricas-atendimento", title: "Métricas de Atendimento", icon: BarChart3, description: "Performance por consultor", keywords: ["métricas", "performance", "tempo", "resposta"] },
     ],
   },
 
@@ -189,12 +187,33 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "clientes", title: "Gestão de Clientes", icon: UserCheck, description: "Cadastro e documentos", keywords: ["cliente", "contrato", "documentação", "CPF"] },
       { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto", keywords: ["checklist", "documento", "verificação", "projeto"] },
-      { id: "avaliacoes", title: "Avaliações (NPS)", icon: Star, description: "Pesquisas de satisfação", keywords: ["NPS", "CSAT", "feedback", "satisfação", "nota"] },
+      { id: "avaliacoes", title: "Avaliações NPS", icon: Star, description: "Pesquisas de satisfação", keywords: ["NPS", "CSAT", "feedback", "satisfação", "nota"] },
       { id: "servicos", title: "Agenda de Serviços", icon: CalendarClock, description: "Visitas e agendamentos", keywords: ["agenda", "visita", "instalação", "técnico"] },
+      { id: "documentos-assinaturas", title: "Documentos & Assinaturas", icon: FileText, description: "Templates e assinatura eletrônica", keywords: ["documento", "contrato", "assinatura", "template"] },
     ],
   },
 
-  // ─── 5. OPERAÇÕES ──────────────────────────────────────────
+  // ─── 5. PÓS-VENDA ─────────────────────────────────────────
+  {
+    label: "Pós-Venda",
+    labelIcon: Wrench,
+    indicatorBg: "bg-sidebar-operations",
+    indicatorClass: "sidebar-indicator-operations",
+    iconColor: "text-sidebar-operations",
+    activeClass: "bg-sidebar-operations/12 text-sidebar-operations font-semibold border-l-2 border-sidebar-operations",
+    hoverClass: "hover:bg-sidebar-operations/6",
+    labelClass: "text-sidebar-operations",
+    defaultOpen: false,
+    items: [
+      { id: "pos-venda", title: "Dashboard", icon: BarChart3, description: "Visão geral do pós-venda", keywords: ["pós-venda", "preventiva", "dashboard"] },
+      { id: "pos-venda-visitas", title: "Preventivas", icon: CalendarClock, description: "Visitas técnicas e preventivas", keywords: ["preventiva", "visita", "limpeza"] },
+      { id: "pos-venda-planos", title: "Planos", icon: FileText, description: "Planos de manutenção", keywords: ["plano", "manutenção", "periodicidade"] },
+      { id: "pos-venda-checklists", title: "Checklists", icon: ClipboardList, description: "Templates de checklist", keywords: ["checklist", "template", "inspeção"] },
+      { id: "pos-venda-upsell", title: "Oportunidades", icon: TrendingUp, description: "Vendas adicionais e upgrades", keywords: ["upsell", "bateria", "expansão"] },
+    ],
+  },
+
+  // ─── 6. OPERAÇÕES ──────────────────────────────────────────
   {
     label: "Operações",
     labelIcon: Wrench,
@@ -207,12 +226,13 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "instaladores", title: "Instaladores", icon: Wrench, description: "Equipe de campo", keywords: ["técnico", "instalador", "equipe", "campo"] },
+      { id: "estoque", title: "Estoque", icon: Package, description: "Materiais e insumos", keywords: ["estoque", "material", "inventário"] },
       { id: "validacao", title: "Validação de Vendas", icon: ClipboardCheck, description: "Aprovar vendas realizadas", keywords: ["aprovação", "validar", "conferência"] },
       { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList, description: "Prazos e pendências", keywords: ["tarefa", "prazo", "SLA", "pendência"] },
     ],
   },
 
-  // ─── 6. FINANCEIRO ─────────────────────────────────────────
+  // ─── 7. FINANCEIRO ─────────────────────────────────────────
   {
     label: "Financeiro",
     labelIcon: Wallet,
@@ -227,12 +247,14 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "recebimentos", title: "Recebimentos", icon: DollarSign, description: "Controle de pagamentos", keywords: ["pagamento", "parcela", "receber", "financeiro"] },
       { id: "inadimplencia", title: "Inadimplência", icon: AlertTriangle, description: "Parcelas atrasadas", keywords: ["atraso", "devedor", "cobrança", "inadimplente"] },
       { id: "comissoes", title: "Comissões", icon: Wallet, description: "Comissões dos consultores", keywords: ["comissão", "consultor", "bonificação", "percentual"] },
+      { id: "fiscal", title: "Fiscal", icon: FileText, description: "Notas fiscais e XML", keywords: ["nota", "fiscal", "NF", "NFS-e", "XML"] },
       { id: "financiamento", title: "Financiamentos", icon: Building2, description: "Bancos e taxas", keywords: ["banco", "taxa", "parcela", "crédito", "financiar"], separator: true },
       { id: "engenharia", title: "Premissas Fiscais", icon: Calculator, description: "ICMS, fio B, payback", keywords: ["ICMS", "fio B", "payback", "retorno", "tributo"] },
+      { id: "politica-precos", title: "Política de Preços", icon: Shield, description: "Regras de precificação", keywords: ["precificação", "margem", "comissão", "custo", "política"] },
     ],
   },
 
-  // ─── 7. EQUIPE ─────────────────────────────────────────────
+  // ─── 8. EQUIPE ─────────────────────────────────────────────
   {
     label: "Equipe",
     labelIcon: Users,
@@ -249,7 +271,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 8. IA ─────────────────────────────────────────────────
+  // ─── 9. IA ─────────────────────────────────────────────────
   {
     label: "IA",
     labelIcon: Bot,
@@ -266,7 +288,29 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 9. INTEGRAÇÕES ────────────────────────────────────────
+  // ─── 10. MONITORAMENTO ─────────────────────────────────────
+  {
+    label: "Monitoramento",
+    labelIcon: Sun,
+    indicatorBg: "bg-sidebar-commercial",
+    indicatorClass: "sidebar-indicator-commercial",
+    iconColor: "text-sidebar-commercial",
+    activeClass: "bg-sidebar-commercial/12 text-sidebar-commercial font-semibold border-l-2 border-sidebar-commercial",
+    hoverClass: "hover:bg-sidebar-commercial/6",
+    labelClass: "text-sidebar-commercial",
+    defaultOpen: false,
+    items: [
+      { id: "monitoramento", title: "Visão Geral", icon: BarChart3, description: "Dashboard de monitoramento", keywords: ["monitoramento", "solar", "dashboard", "energia"] },
+      { id: "monitoramento/usinas", title: "Usinas", icon: Sun, description: "Mapa e lista de usinas", keywords: ["usina", "planta", "mapa", "lista"] },
+      { id: "monitoramento/alertas", title: "Alertas", icon: AlertTriangle, description: "Central de alertas", keywords: ["alerta", "offline", "falha", "inversor"] },
+      { id: "monitoramento/relatorios", title: "Relatórios", icon: FileText, description: "Relatórios de geração", keywords: ["relatório", "geração", "performance"] },
+      { id: "monitoramento/integracoes", title: "Integrações", icon: Plug, description: "Provedores de monitoramento", keywords: ["provider", "solarman", "solaredge"] },
+      { id: "solarmarket-config", title: "SolarMarket Config", icon: Sun, description: "API Key para cotações", keywords: ["solarmarket", "cotação", "api"], separator: true },
+      { id: "solarmarket", title: "SolarMarket Importação", icon: Sun, description: "Importar clientes e projetos", keywords: ["solarmarket", "importar", "cliente"] },
+    ],
+  },
+
+  // ─── 11. INTEGRAÇÕES ────────────────────────────────────────
   {
     label: "Integrações",
     labelIcon: Cable,
@@ -280,13 +324,10 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "integracoes", title: "Catálogo de Integrações", icon: Cable, description: "Todas as integrações", keywords: ["integração", "catálogo", "provider", "conectar"] },
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"], separator: true },
-      { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP", keywords: ["n8n", "automação", "workflow", "MCP"] },
-      { id: "google-maps-config", title: "Google Maps", icon: MapPin, description: "API Key para mapas", keywords: ["google", "maps", "mapa", "api"] },
-      { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts", keywords: ["instagram", "post", "rede social", "feed"] },
     ],
   },
 
-  // ─── 10. SITE ──────────────────────────────────────────────
+  // ─── 12. SITE ──────────────────────────────────────────────
   {
     label: "Site",
     labelIcon: Globe,
@@ -301,13 +342,14 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "site-config", title: "Conteúdo & Visual", icon: Globe, description: "Layout e textos do site", keywords: ["site", "landing", "visual", "layout", "marca"] },
       { id: "site-servicos", title: "Serviços", icon: Wrench, description: "Serviços oferecidos", keywords: ["serviço", "oferta", "landing"] },
       { id: "obras", title: "Portfólio", icon: Sun, description: "Projetos realizados", keywords: ["portfólio", "obra", "projeto", "foto"] },
+      { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts", keywords: ["instagram", "post", "rede social", "feed"] },
     ],
   },
 
-  // ─── 11. CADASTROS ─────────────────────────────────────────
+  // ─── 13. CADASTROS ─────────────────────────────────────────
   {
     label: "Cadastros",
-    labelIcon: Package,
+    labelIcon: Database,
     indicatorBg: "bg-sidebar-cadastros",
     indicatorClass: "sidebar-indicator-cadastros",
     iconColor: "text-sidebar-cadastros",
@@ -329,7 +371,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 12. CONFIGURAÇÕES ─────────────────────────────────────
+  // ─── 14. CONFIGURAÇÕES ─────────────────────────────────────
   {
     label: "Configurações",
     labelIcon: Settings,
@@ -348,7 +390,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 13. ADMINISTRAÇÃO ─────────────────────────────────────
+  // ─── 15. ADMINISTRAÇÃO ─────────────────────────────────────
   {
     label: "Administração",
     labelIcon: Shield,
@@ -366,6 +408,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações", keywords: ["log", "auditoria", "histórico", "alteração"] },
       { id: "notificacoes-config", title: "Notificações", icon: Bell, description: "Configurar notificações", keywords: ["notificação", "push", "alerta", "configurar"], separator: true },
       { id: "links-instalacao", title: "Links & Captação", icon: Smartphone, description: "Links de captação e QR Codes", keywords: ["PWA", "link", "instalação", "app", "captação", "qr"] },
+      { id: "google-maps-config", title: "Google Maps", icon: MapPin, description: "API Key para mapas", keywords: ["google", "maps", "mapa", "api"] },
       { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade"] },
       { id: "changelog", title: "Atualizações", icon: HistoryIcon, description: "Histórico de atualizações", keywords: ["changelog", "atualização", "novidade", "versão"] },
       { id: "data-reset", title: "Limpeza de Dados", icon: Trash2, description: "Reset seletivo por segmento", keywords: ["reset", "limpeza", "deletar", "remover"] },
