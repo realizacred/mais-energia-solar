@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Plus, Trash2, ClipboardList, GripVertical } from "lucide-react";
 
 const TIPOS = [
