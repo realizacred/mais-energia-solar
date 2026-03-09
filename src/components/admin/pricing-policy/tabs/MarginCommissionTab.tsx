@@ -287,8 +287,8 @@ export function MarginCommissionTab() {
             <div className="flex items-center gap-2"><Switch checked={marginForm.is_active} onCheckedChange={(v) => setMarginForm((f) => ({ ...f, is_active: v }))} /><Label className="text-xs text-muted-foreground">Ativo</Label></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMarginDialog(false)}>Cancelar</Button>
-            <Button onClick={saveMargin} disabled={marginSaving || !marginForm.name.trim()} className="gap-2">{marginSaving && <Loader2 className="h-4 w-4 animate-spin" />}{marginEditId ? "Salvar" : "Criar"}</Button>
+            <Button variant="ghost" onClick={() => setMarginDialog(false)}>Cancelar</Button>
+            <Button variant="default" onClick={saveMargin} disabled={marginSaving || !marginForm.name.trim()} className="gap-2">{marginSaving && <Loader2 className="h-4 w-4 animate-spin" />}{marginEditId ? "Salvar" : "Criar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
