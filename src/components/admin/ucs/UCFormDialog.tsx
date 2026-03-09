@@ -159,16 +159,16 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+      <DialogContent className="max-w-6xl w-[96vw] max-h-[calc(100dvh-2rem)] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle>{editingUC ? "Editar UC" : "Nova Unidade Consumidora"}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {/* ── Row 1: Dados da UC + Classificação lado a lado ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Dados da UC */}
-            <section className="rounded-lg border bg-card p-4 space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Dados da UC — 3/5 da largura */}
+            <section className="lg:col-span-3 rounded-lg border bg-card p-4 space-y-3 min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Zap className="w-4 h-4 text-primary" />
                 Dados da UC
@@ -208,7 +208,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
 
             {/* Classificação Tarifária + Observações */}
-            <section className="rounded-lg border bg-card p-4 space-y-3">
+            <section className="lg:col-span-2 rounded-lg border bg-card p-4 space-y-3 min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <FileText className="w-4 h-4 text-primary" />
                 Classificação Tarifária
