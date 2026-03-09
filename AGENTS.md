@@ -421,3 +421,15 @@ NUNCA criar useQuery sem staleTime.
 - bg-white sólido — permitido apenas em canvas de assinatura (SignaturePad) — necessário para funcionar
 - bg-white/XX com opacidade — permitido em overlays sobre gradientes e heroes institucionais
 - Para todos os outros casos usar bg-card, bg-background ou bg-muted
+
+---
+
+## 23. TAMANHOS DE MODAIS (DialogContent) POR COMPLEXIDADE
+
+- Formulário simples (até 4 campos): max-w-md
+- Formulário médio (até 8 campos): max-w-2xl
+- Formulário com 2 colunas ou seções: max-w-4xl
+- Formulário completo com endereço + múltiplas seções: max-w-5xl
+- Wizard / multi-step: max-w-4xl
+
+NUNCA usar max-w-2xl em formulários com layout de 2 colunas — vai quebrar o grid.
