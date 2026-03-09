@@ -12,7 +12,9 @@ import { CheckCircle2, Clock, Eye, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { PostSaleNewVisitDialog } from "./PostSaleNewVisitDialog";
+import { CalendarClock } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pendente: "bg-warning/10 text-warning border-warning/30",
