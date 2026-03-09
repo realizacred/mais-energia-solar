@@ -58,7 +58,17 @@ export function PostSaleVisitsList() {
 
   return (
     <div className="space-y-4">
-      {/* Filters + New button */}
+      <PageHeader
+        icon={CalendarClock}
+        title="Preventivas"
+        description="Gerencie visitas preventivas e corretivas"
+        actions={
+          <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
+            <Plus className="h-4 w-4" /> Nova Visita
+          </Button>
+        }
+      />
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-40 h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
