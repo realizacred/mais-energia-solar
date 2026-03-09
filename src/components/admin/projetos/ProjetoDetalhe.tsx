@@ -1161,7 +1161,7 @@ function GerenciamentoTab({
 
       {/* Dialog: Nova Nota */}
       <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Nota</DialogTitle>
             <DialogDescription>Adicione uma observação ou anotação a este projeto.</DialogDescription>
