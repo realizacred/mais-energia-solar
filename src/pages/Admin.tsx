@@ -329,7 +329,6 @@ const TAB_TITLES: Record<string, string> = {
   "aneel-sync-status": "Status do Sync ANEEL",
   medidores: "Medidores",
   ucs: "Unidades Consumidoras",
-  "integracoes-apis": "APIs & Integrações",
 };
 
 /** N8n placeholder component */
