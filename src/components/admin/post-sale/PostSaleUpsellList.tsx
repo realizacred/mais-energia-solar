@@ -38,13 +38,17 @@ export function PostSaleUpsellList() {
   const getClienteName = (u: any) => u.cliente?.nome ?? u.nome_avulso ?? "—";
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div />
-        <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
-          <Plus className="h-4 w-4" /> Nova Oportunidade
-        </Button>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        icon={TrendingUp}
+        title="Oportunidades"
+        description="Gerencie oportunidades de upsell para clientes existentes"
+        actions={
+          <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
+            <Plus className="h-4 w-4" /> Nova Oportunidade
+          </Button>
+        }
+      />
 
       <SectionCard title="Oportunidades de Upsell" description={`${upsells.length} oportunidades`}>
         {upsells.length === 0 ? (
