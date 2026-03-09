@@ -146,7 +146,7 @@ export function ContactsList({ onSelectContact, onQuickChat, onNewContact, selec
                 : "Adicione contatos para iniciar conversas"}
             </p>
             {!search && (
-              <Button size="sm" variant="outline" onClick={onNewContact}>
+              <Button size="sm" variant="default" onClick={onNewContact}>
                 <UserPlus className="h-4 w-4 mr-1" />
                 Adicionar contato
               </Button>
@@ -354,7 +354,7 @@ export function RecallDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
+          <Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={loading || !isValid}>
@@ -458,7 +458,7 @@ function ContactEditDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={saveMutation.isPending}>
+          <Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={saveMutation.isPending}>
             Cancelar
           </Button>
           <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>

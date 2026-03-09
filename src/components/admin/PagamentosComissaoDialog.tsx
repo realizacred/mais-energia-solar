@@ -302,7 +302,7 @@
                    </div>
  
                    <div className="flex justify-end gap-3">
-                     <Button type="button" variant="outline" onClick={resetForm}>
+                     <Button type="button" variant="ghost" onClick={resetForm}>
                        Cancelar
                      </Button>
                      <Button type="submit" disabled={saving}>

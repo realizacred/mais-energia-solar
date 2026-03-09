@@ -135,7 +135,7 @@ function SidebarItemButton({
 
         {/* Star button — visible on hover */}
         {!collapsed && (
-          <button
+          <Button variant="destructive"
             type="button"
             onClick={(e) => {
               e.stopPropagation();
@@ -155,7 +155,7 @@ function SidebarItemButton({
               className="h-3 w-3"
               fill={isFav ? "currentColor" : "none"}
             />
-          </button>
+          </Button>
         )}
 
         {badgeCount > 0 && !collapsed && (

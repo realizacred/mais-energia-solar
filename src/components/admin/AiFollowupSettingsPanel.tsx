@@ -188,7 +188,7 @@ export function AiFollowupSettingsPanel() {
         className={!hasAiFollowup ? "opacity-50 pointer-events-none" : ""}
       >
           <div className="grid gap-3">
-            <button
+            <Button variant="success"
               type="button"
               onClick={() => setSettings({ ...settings, modo: "assistido" })}
               className={`flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-colors ${
@@ -207,7 +207,7 @@ export function AiFollowupSettingsPanel() {
               {settings.modo === "assistido" && (
                 <Badge variant="default" className="ml-auto shrink-0">Ativo</Badge>
               )}
-            </button>
+            </Button>
 
             <button
               type="button"

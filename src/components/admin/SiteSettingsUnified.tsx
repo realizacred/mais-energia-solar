@@ -240,7 +240,7 @@ export function SiteSettingsUnified() {
             {savingBrand ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar Visual
           </Button>
-          <Button size="sm" onClick={saveSite} disabled={savingSite} className="gap-1.5" variant="secondary">
+          <Button size="sm" onClick={saveSite} disabled={savingSite} className="gap-1.5" variant="default">
             {savingSite ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar Conteúdo
           </Button>

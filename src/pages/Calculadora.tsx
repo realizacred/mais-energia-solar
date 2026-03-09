@@ -422,7 +422,7 @@ export default function Calculadora() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/">
-                <Button variant="outline" className="gap-2 w-full sm:w-auto">
+                <Button variant="ghost" className="gap-2 w-full sm:w-auto">
                   <ArrowLeft className="w-4 h-4" />
                   Voltar ao Início
                 </Button>
@@ -454,7 +454,7 @@ export default function Calculadora() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header showCalculadora={false}>
         <Link to="/">
-          <Button variant="default" size="sm" className="gap-2">
+          <Button variant="ghost" size="sm" className="gap-2">
             <ArrowRight className="w-4 h-4 rotate-180" />
             <span className="hidden sm:inline">Voltar</span>
           </Button>
@@ -729,7 +729,7 @@ export default function Calculadora() {
                   </div>
 
                   <div className="flex gap-3">
-                    <Button variant="outline" onClick={goBack} className="gap-2">
+                    <Button variant="ghost" onClick={goBack} className="gap-2">
                       <ArrowLeft className="w-4 h-4" />
                       Voltar
                     </Button>

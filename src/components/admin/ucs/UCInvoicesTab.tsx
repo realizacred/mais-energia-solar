@@ -111,7 +111,7 @@ export function UCInvoicesTab({ unitId }: Props) {
             <div className="space-y-1"><Label className="text-xs">Injeção (kWh)</Label><Input type="number" step="0.1" value={form.energy_injected_kwh} onChange={(e) => setForm(f => ({ ...f, energy_injected_kwh: e.target.value }))} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={() => createMut.mutate()} disabled={createMut.isPending}>{createMut.isPending ? "Salvando..." : "Salvar"}</Button>
           </DialogFooter>
         </DialogContent>

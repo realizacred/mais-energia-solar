@@ -463,7 +463,7 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
             )}
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+            <Button variant="ghost" onClick={() => setPreviewOpen(false)}>
               Cancelar
             </Button>
             <Button

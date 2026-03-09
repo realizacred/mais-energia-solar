@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { formatBRLCompact as formatBRL, formatBRLCompact as formatBRLCard } from "@/lib/formatters";
 import { getEtiquetaConfig } from "@/lib/etiquetas";
 import { useState } from "react";
@@ -102,7 +103,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
 
               {/* ── New Project Button ── */}
               <div className="px-3 py-2">
-                <button
+                <Button
                   onClick={() => onCreateProjeto?.(col.id)}
                   className={cn(
                     "w-full h-9 rounded-xl border-2 border-dashed border-primary/30",
@@ -114,7 +115,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Novo projeto
-                </button>
+                </Button>
               </div>
 
               {/* ── Cards ── */}

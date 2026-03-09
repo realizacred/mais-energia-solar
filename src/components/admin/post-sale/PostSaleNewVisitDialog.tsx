@@ -140,7 +140,7 @@ export function PostSaleNewVisitDialog({ open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }}>Cancelar</Button>
           <Button onClick={handleSave} disabled={!canSave || createVisit.isPending}>
             {createVisit.isPending ? "Salvando..." : "Criar visita"}
           </Button>

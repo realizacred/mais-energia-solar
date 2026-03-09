@@ -790,7 +790,7 @@ export function BaseMeteorologicaPage() {
                 </div>
                 <div className="flex items-end">
                   <Button
-                    variant="destructive"
+                    variant="default"
                     size="sm"
                     onClick={handlePurge}
                     disabled={purgeConfirm !== "LIMPAR" || purging}

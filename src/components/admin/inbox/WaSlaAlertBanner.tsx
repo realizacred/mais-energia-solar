@@ -181,7 +181,7 @@ export function WaSlaAlertBanner({
                       {onPauseSla && (
                         <Button
                           size="icon"
-                          variant="ghost"
+                          variant="warning"
                           className="h-7 w-7"
                           onClick={() => onPauseSla(alert.conversation_id, 4)}
                           title="Pausar SLA por 4h"

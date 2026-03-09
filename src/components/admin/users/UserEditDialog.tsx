@@ -463,13 +463,13 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                     return (
                       <Badge key={role} variant="outline" className={`${roleInfo?.color || ""} gap-1`}>
                         {roleInfo?.label || role}
-                        <button
+                        <Button variant="destructive"
                           onClick={() => handleRemoveRole(role)}
                           className="ml-1 hover:text-destructive transition-colors"
                           title="Remover perfil"
                         >
                           <Trash2 className="w-3 h-3" />
-                        </button>
+                        </Button>
                       </Badge>
                     );
                   })
@@ -490,7 +490,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                   </Select>
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="default"
                     onClick={handleAddRole}
                     disabled={!selectedNewRole || isAddingRole}
                     className="gap-1"
@@ -614,7 +614,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                 )}
                 {!isSelf && (
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={() => setShowDeleteConfirm(true)}
                   >
@@ -627,7 +627,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose}>
               Fechar
             </Button>
             {(nameChanged || emailChanged) && (

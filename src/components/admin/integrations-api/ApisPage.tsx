@@ -139,7 +139,7 @@ export default function ApisPage() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(cfg)} title="Editar">
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(cfg.id)} title="Remover">
+                        <Button variant="destructive" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(cfg.id)} title="Remover">
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>

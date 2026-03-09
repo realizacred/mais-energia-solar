@@ -274,7 +274,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
               className="font-mono text-xs"
             />
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button variant="secondary" onClick={handleBulkImport} disabled={!rawText.trim() || bulkImporting} className="gap-2">
                 {bulkImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {bulkImporting ? "Importando..." : "Importação Rápida (servidor)"}
@@ -356,8 +356,8 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
             </div>
 
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setParsed(null)}>Voltar</Button>
-              <Button onClick={handleImport} disabled={validRows.length === 0 || importing}>
+              <Button variant="ghost" onClick={() => setParsed(null)}>Voltar</Button>
+              <Button variant="outline" onClick={handleImport} disabled={validRows.length === 0 || importing}>
                 {importing ? "Importando..." : `Importar ${validRows.length} módulos`}
               </Button>
             </DialogFooter>

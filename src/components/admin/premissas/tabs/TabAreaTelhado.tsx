@@ -137,7 +137,7 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
                 className="flex-1 h-8 text-xs border-border/50 bg-background"
               />
             </div>
-            <Button variant="outline" size="sm" onClick={addNew} disabled={!newName.trim()} className="h-8 text-xs w-full">
+            <Button variant="default" size="sm" onClick={addNew} disabled={!newName.trim()} className="h-8 text-xs w-full">
               Adicionar
             </Button>
           </CardContent>
@@ -345,7 +345,7 @@ function RoofCard({
 
             {/* Remove */}
             <div className="flex justify-end pt-1">
-              <Button variant="ghost" size="sm" className="text-xs h-7 text-destructive hover:text-destructive gap-1" onClick={onRemove}>
+              <Button variant="destructive" size="sm" className="text-xs h-7 text-destructive hover:text-destructive gap-1" onClick={onRemove}>
                 <Trash2 className="h-3 w-3" />
                 Remover
               </Button>

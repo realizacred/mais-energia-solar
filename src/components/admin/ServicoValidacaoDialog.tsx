@@ -313,7 +313,7 @@ export function ServicoValidacaoDialog({
                 <XCircle className="h-4 w-4" />
                 Solicitar Revisão
               </Button>
-              <Button
+              <Button variant="success"
                 onClick={() => handleValidar(true)}
                 disabled={validando}
                 className="gap-2"

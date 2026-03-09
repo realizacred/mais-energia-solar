@@ -374,7 +374,7 @@ export function WhatsAppAutomationTemplates() {
             <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-50" />
             <p>{search || filterTipo !== "todos" ? "Nenhum template encontrado com esses filtros" : "Nenhum template de automação configurado"}</p>
             {!search && filterTipo === "todos" && (
-              <Button variant="outline" className="mt-4" onClick={handleNewTemplate}>
+              <Button variant="default" className="mt-4" onClick={handleNewTemplate}>
                 Criar primeiro template
               </Button>
             )}
@@ -519,7 +519,7 @@ export function WhatsAppAutomationTemplates() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSaveTemplate} disabled={!formNome || !formMensagem}>

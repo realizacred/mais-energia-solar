@@ -419,7 +419,7 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Fechar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Fechar</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando…" : signer ? "Salvar" : "Cadastrar"}</Button>
         </DialogFooter>
       </DialogContent>

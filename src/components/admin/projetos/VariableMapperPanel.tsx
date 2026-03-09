@@ -195,7 +195,7 @@ export function VariableMapperPanel({ dealId, customerId, projetoId, onGenerateC
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={loadData}>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={loadData}>
             <RefreshCw className="h-3 w-3" /> Atualizar
           </Button>
           {onGenerateContract && (

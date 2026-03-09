@@ -417,7 +417,7 @@ export default function GoogleMapView({
           <div className="absolute top-2 left-2 z-20">
             <Button
               size="sm"
-              variant="secondary"
+              variant="ghost"
               className="gap-1.5 shadow-lg text-xs h-8"
               onClick={handleExitStreetView}
             >

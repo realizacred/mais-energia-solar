@@ -209,7 +209,7 @@ export function EmailTemplatesPage() {
         <div className="text-center py-12 text-muted-foreground">
           <Mail className="h-10 w-10 mx-auto opacity-20 mb-3" />
           <p className="text-sm">Nenhum modelo de e-mail criado.</p>
-          <Button variant="link" onClick={startNew} className="mt-2">
+          <Button variant="default" onClick={startNew} className="mt-2">
             Criar primeiro modelo
           </Button>
         </div>

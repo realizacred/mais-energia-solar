@@ -103,7 +103,7 @@ export default function Checklist() {
             {/* Desktop nav - só mostra opções completas se logado */}
             <div className="hidden md:flex items-center gap-2">
               <Button
-                variant={view === "form" ? "secondary" : "ghost"}
+                variant="default"form" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => setView("form")}
                 className="gap-1"
@@ -149,7 +149,7 @@ export default function Checklist() {
           <div className="md:hidden border-t border-primary-foreground/20 py-2">
             <div className="container mx-auto px-4 space-y-1">
               <Button
-                variant="ghost"
+                variant="default"
                 size="sm"
                 onClick={() => {
                   setView("form");
@@ -220,7 +220,7 @@ export default function Checklist() {
                 <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-50" />
              <p>Nenhum registro encontrado</p>
                  <Button
-                   variant="link"
+                   variant="default"
                    onClick={() => setView("form")}
                    className="mt-2"
                  >

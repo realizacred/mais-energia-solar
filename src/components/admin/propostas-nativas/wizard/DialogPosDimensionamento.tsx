@@ -160,7 +160,7 @@ export function DialogPosDimensionamento({
           </Button>
           {onSaveDraft && (
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
               onClick={async () => {
                 try {
@@ -177,7 +177,7 @@ export function DialogPosDimensionamento({
           )}
           {onSaveActive && (
             <Button
-              variant="secondary"
+              variant="default"
               size="sm"
               className="gap-1.5"
               onClick={async () => {

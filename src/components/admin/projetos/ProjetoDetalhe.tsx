@@ -422,7 +422,7 @@ function ProjetoDetalheContent() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
             <Button
               variant="destructive"
               disabled={!lossMotivo || lossSaving}
@@ -1176,7 +1176,7 @@ function GerenciamentoTab({
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveNote} disabled={!noteText.trim() || savingNote}>
               {savingNote ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Salvar nota
@@ -1279,7 +1279,7 @@ function GerenciamentoTab({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setActivityDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveActivity} disabled={!activityTitle.trim() || savingActivity}>
               {savingActivity ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Criar atividade
@@ -2031,7 +2031,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
+                <Button variant="ghost" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
                 <Button onClick={handleGenerate} disabled={!selectedTemplateId || generating}>
                   {generating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                   Gerar

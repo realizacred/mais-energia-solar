@@ -194,7 +194,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
             <span className="text-sm font-semibold">Tarifas por Subgrupo</span>
             <Badge variant="outline" className="text-[10px]">{tarifas.length} subgrupos</Badge>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => { resetForm(); setDialogOpen(true); }}>
+          <Button variant="default" size="sm" className="gap-1.5 text-xs h-7" onClick={() => { resetForm(); setDialogOpen(true); }}>
             <Plus className="w-3 h-3" />
             Adicionar
           </Button>

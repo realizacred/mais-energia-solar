@@ -247,7 +247,7 @@ export function AssignVendorDialog({
         <DialogFooter className="flex-col sm:flex-row gap-2">
           {displayName && (
             <Button
-              variant="outline"
+              variant="destructive"
               onClick={handleRemoveVendor}
               disabled={saving}
               className="text-destructive hover:text-destructive"
@@ -256,7 +256,7 @@ export function AssignVendorDialog({
             </Button>
           )}
           <div className="flex gap-2 ml-auto">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
               Cancelar
             </Button>
             <Button onClick={handleAssign} disabled={saving || !selectedVendedorId}>

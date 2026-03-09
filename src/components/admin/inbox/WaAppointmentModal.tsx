@@ -234,7 +234,7 @@ export function WaAppointmentModal({
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-1">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isCreating}

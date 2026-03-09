@@ -566,12 +566,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       </div>
 
       {/* + Adicionar Custo */}
-      <button
+      <Button
         onClick={addCusto}
         className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
       >
         <Plus className="h-3.5 w-3.5" /> Adicionar Custo
-      </button>
+      </Button>
 
       {/* ── Edit Modal ── */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>

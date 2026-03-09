@@ -173,7 +173,7 @@ export function ProjetoPipelineTemplates({ open, onOpenChange, onCreateFromTempl
 
             <div className="border-t border-border/40 pt-3">
               <Button
-                variant="outline"
+                variant="default"
                 className="w-full justify-start gap-2 text-sm text-muted-foreground"
                 onClick={() => setMode("blank")}
               >
@@ -233,7 +233,7 @@ export function ProjetoPipelineTemplates({ open, onOpenChange, onCreateFromTempl
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedTemplate(null)}>Voltar</Button>
+              <Button variant="ghost" onClick={() => setSelectedTemplate(null)}>Voltar</Button>
               <Button onClick={handleConfirmTemplate}>
                 Criar Funil
               </Button>
@@ -261,7 +261,7 @@ export function ProjetoPipelineTemplates({ open, onOpenChange, onCreateFromTempl
               </p>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setMode("select")}>Voltar</Button>
+              <Button variant="ghost" onClick={() => setMode("select")}>Voltar</Button>
               <Button onClick={handleConfirmBlank} disabled={!blankName.trim()}>
                 Criar Funil
               </Button>

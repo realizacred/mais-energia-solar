@@ -46,7 +46,7 @@ export function ProjetoMateriaisPanel({ projetoId }: Props) {
   return (
     <SectionCard icon={Package} title="Materiais do Projeto">
       <div className="flex gap-2 mb-4">
-        <Button size="sm" variant="outline" onClick={() => setAddDialog(true)}>
+        <Button size="sm" variant="default" onClick={() => setAddDialog(true)}>
           <Plus className="h-4 w-4 mr-1" />Adicionar Material
         </Button>
         {hasReservados && (
@@ -57,7 +57,7 @@ export function ProjetoMateriaisPanel({ projetoId }: Props) {
             >
               <CheckCircle className="h-4 w-4 mr-1" />Consumir Todos
             </Button>
-            <Button size="sm" variant="destructive"
+            <Button size="sm" variant="ghost"
               disabled={cancelarReservas.isPending}
               onClick={() => cancelarReservas.mutate(projetoId)}
             >

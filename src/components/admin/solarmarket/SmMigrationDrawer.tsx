@@ -576,11 +576,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setConfirmOpen(false); setConfirmText(""); }}>
+            <Button variant="ghost" onClick={() => { setConfirmOpen(false); setConfirmText(""); }}>
               Cancelar
             </Button>
             <Button
-              variant="destructive"
+              variant="default"
               disabled={confirmText !== "MIGRAR"}
               onClick={handleExecuteConfirm}
             >

@@ -242,7 +242,7 @@ export function PolicyVersionSelector({
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
+                      <Button variant="destructive" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" />
                         Excluir
                       </Button>

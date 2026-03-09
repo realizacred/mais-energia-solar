@@ -757,7 +757,7 @@ function MesAMesModal({ uc, tipo, onUpdate, onClose }: {
           ))}
         </div>
         <DialogFooter>
-          <Button size="sm" onClick={onClose}>Fechar</Button>
+          <Button variant="ghost" size="sm" onClick={onClose}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -78,7 +78,7 @@ export function WaTransferDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isTransferring}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isTransferring}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={!toUser || isTransferring}>
             {isTransferring ? "Transferindo..." : "Transferir"}
           </Button>
@@ -122,7 +122,7 @@ export function WaAssignDialog({
           </Select>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => { onAssign(null); onOpenChange(false); }}>
+          <Button variant="destructive" onClick={() => { onAssign(null); onOpenChange(false); }}>
             Remover Atribuição
           </Button>
           <Button onClick={() => { onAssign(selected); onOpenChange(false); }} disabled={!selected}>

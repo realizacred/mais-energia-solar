@@ -309,7 +309,7 @@ export function LoadingConfigAdmin() {
                     <img src={customLoaderUrl} alt="Custom loader" className="h-10 w-10 object-contain" />
                   </div>
                   <Button
-                    variant="ghost"
+                    variant="destructive"
                     size="sm"
                     onClick={() => setCustomLoaderUrl(null)}
                     className="text-destructive hover:text-destructive gap-1"

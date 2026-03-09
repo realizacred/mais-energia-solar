@@ -163,7 +163,7 @@ export function ApiConfigDialog({ open, onOpenChange, editingConfig, onSuccess }
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : isEdit ? "Salvar" : "Criar"}</Button>
         </DialogFooter>
       </DialogContent>

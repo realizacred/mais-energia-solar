@@ -226,7 +226,7 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
           ))}
 
           {/* Add Layout */}
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs w-full" onClick={addArranjo}>
+          <Button variant="default" size="sm" className="gap-1.5 text-xs w-full" onClick={addArranjo}>
             <Plus className="h-3 w-3" /> Adicionar Layout
           </Button>
 

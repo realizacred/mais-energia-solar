@@ -470,7 +470,7 @@ export function CostComponentsTab({ versionId, isReadOnly }: Props) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving || !form.name.trim()} className="gap-2">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? "Salvar" : "Adicionar"}

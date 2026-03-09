@@ -55,7 +55,7 @@ export function TemplateFormBuilder({ fields, onChange }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Campos do formulário</p>
-        <Button type="button" variant="outline" size="sm" onClick={addField} className="h-7 text-xs gap-1">
+        <Button type="button" variant="default" size="sm" onClick={addField} className="h-7 text-xs gap-1">
           <Plus className="h-3 w-3" /> Adicionar campo
         </Button>
       </div>

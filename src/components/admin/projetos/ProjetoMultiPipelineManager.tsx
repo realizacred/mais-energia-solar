@@ -183,7 +183,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
         {availablePipelines.length > 0 && (
           <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+              <Button variant="default" size="sm" className="h-7 text-xs gap-1">
                 <Plus className="h-3 w-3" />
                 Adicionar a funil
               </Button>

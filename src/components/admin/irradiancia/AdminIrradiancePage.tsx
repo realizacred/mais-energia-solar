@@ -548,14 +548,14 @@ export function CsvImportPanel() {
             </Button>
 
             {canImport && (
-              <Button onClick={importNow} size="sm" className="gap-1.5">
+              <Button variant="outline" onClick={importNow} size="sm" className="gap-1.5">
                 <Zap className="h-3.5 w-3.5" />
                 Importar Agora
               </Button>
             )}
 
             {state === "uploading" && (
-              <Button variant="destructive" size="sm" onClick={() => { abortRef.current = true; }} className="gap-1.5">
+              <Button variant="ghost" size="sm" onClick={() => { abortRef.current = true; }} className="gap-1.5">
                 <X className="h-3.5 w-3.5" /> Cancelar
               </Button>
             )}

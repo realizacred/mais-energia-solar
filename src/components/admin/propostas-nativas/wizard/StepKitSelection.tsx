@@ -308,7 +308,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 {t.label}
               </button>
             ))}
-            <button
+            <Button
               onClick={() => { setTab("manual"); setShowChoiceModal(true); }}
               className={cn(
                 "px-5 py-2.5 text-sm font-medium border-b-2 transition-colors",
@@ -318,7 +318,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               )}
             >
               + Criar manualmente
-            </button>
+            </Button>
           </div>
 
           {/* Toolbar */}
@@ -499,7 +499,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               )}
 
               {manualKits.length > 0 && (
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
+                <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
                   <Plus className="h-3 w-3" /> Criar outro kit
                 </Button>
               )}
@@ -538,7 +538,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             <DialogTitle className="text-base text-center">Escolha uma opção para prosseguir</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 mt-2">
-            <button
+            <Button
               onClick={() => { setShowChoiceModal(false); setManualMode("equipamentos"); }}
               className="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all text-center"
             >
@@ -548,8 +548,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               <p className="text-xs leading-tight">
                 Criar a partir de <strong className="text-primary">equipamentos disponíveis</strong> nos distribuidores
               </p>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => { setShowChoiceModal(false); setManualMode("zero"); }}
               className="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 hover:bg-muted/30 transition-all text-center"
             >
@@ -559,7 +559,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               <p className="text-xs leading-tight">
                 <strong>Criar do zero,</strong> informando o nome dos equipamentos e distribuidores
               </p>
-            </button>
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

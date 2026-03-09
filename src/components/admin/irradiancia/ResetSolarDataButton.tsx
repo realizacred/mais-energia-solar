@@ -124,7 +124,7 @@ export function ResetSolarDataButton({ onComplete }: Props) {
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
           <Button
-            variant="destructive"
+            variant="default"
             onClick={handleReset}
             disabled={!canConfirm}
             className="gap-1.5"

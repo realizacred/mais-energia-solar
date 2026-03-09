@@ -321,13 +321,13 @@ export function IntegrationProviderDrawer({
           <div className="px-6 py-4 border-t border-border/50 bg-muted/10">
             <div className="flex gap-3">
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => handleOpenChange(false)}
                 className="flex-1 h-10 rounded-xl text-sm"
               >
                 Cancelar
               </Button>
-              <Button
+              <Button variant="outline"
                 onClick={handleSubmit}
                 disabled={!isValid || saving}
                 className="flex-1 h-10 rounded-xl text-sm font-semibold gap-2"

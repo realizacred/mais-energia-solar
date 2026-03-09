@@ -322,7 +322,7 @@
               </div>
  
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
                 <Button onClick={handleSaveRule} disabled={!formName || !formActionValue}>

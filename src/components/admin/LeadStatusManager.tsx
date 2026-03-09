@@ -324,7 +324,7 @@ export function LeadStatusManager() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
@@ -346,7 +346,7 @@ export function LeadStatusManager() {
             <strong>{statusToDelete?.nome}</strong>? Esta ação não pode ser desfeita.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button variant="ghost" onClick={() => setDeleteDialogOpen(false)}>
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={saving}>

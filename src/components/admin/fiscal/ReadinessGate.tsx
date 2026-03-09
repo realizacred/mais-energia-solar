@@ -57,7 +57,7 @@ export function ReadinessGate({ onStatusChange }: { onStatusChange?: (canIssue: 
             {data?.overall === "green" ? "Pronto para emitir" : data?.overall === "yellow" ? "Atenção: itens pendentes" : "Bloqueado: itens obrigatórios"}
           </span>
         </div>
-        <Button variant="ghost" size="sm" onClick={fetchStatus} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={fetchStatus} className="gap-1.5">
           <RefreshCw className="h-3.5 w-3.5" /> Atualizar
         </Button>
       </div>
