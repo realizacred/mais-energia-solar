@@ -1043,8 +1043,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         <DialogFooter>
           {step === "validate" && (
             <>
-              <Button variant="outline" size="sm" onClick={reset}>Voltar</Button>
-              <Button size="sm" onClick={handleProceedToPreview} disabled={!canProceed} className="gap-1.5">
+              <Button variant="ghost" size="sm" onClick={reset}>Voltar</Button>
+              <Button variant="default" size="sm" onClick={handleProceedToPreview} disabled={!canProceed} className="gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {canProceed
                   ? `Prosseguir (${validation?.validRows.toLocaleString("pt-BR") ?? 0} registros)`
