@@ -171,7 +171,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
               <Zap className="w-4 h-4 text-primary" />
               Dados da UC
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Código da UC <span className="text-destructive">*</span></Label>
                 <Input value={form.codigo_uc} onChange={set("codigo_uc")} placeholder="Ex: 0012345678" autoComplete="off" />
