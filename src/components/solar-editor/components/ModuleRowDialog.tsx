@@ -24,7 +24,7 @@ export function ModuleRowDialog({ isOpen, onClose, onGenerate }: ModuleRowDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Gerar Fileira de Módulos</DialogTitle>
         </DialogHeader>

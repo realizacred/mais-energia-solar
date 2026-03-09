@@ -423,7 +423,7 @@ function ContactEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-sm" onPointerDownOutside={(e) => e.stopPropagation()}>
+      <DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-4 w-4 text-muted-foreground" />
