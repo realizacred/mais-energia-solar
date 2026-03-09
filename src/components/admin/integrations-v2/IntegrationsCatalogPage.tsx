@@ -29,6 +29,19 @@ import { PROVIDER_REGISTRY, toIntegrationProvider, LEGACY_ID_MAP } from "@/servi
 import { IntegrationProviderCard } from "./IntegrationProviderCard";
 import { IntegrationProviderDrawer } from "./IntegrationProviderDrawer";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Wrench } from "lucide-react";
+
+/** IDs of monitoring providers that are actually functional (connect + sync) */
+const FUNCTIONAL_MONITORING_IDS = new Set([
+  // Tier 1 — canonical adapters
+  "solarman_business", "sofar", "solis_cloud", "fox_ess", "solax", "saj", "enphase",
+  // Tier 2 — monolith production
+  "solaredge", "deye_cloud", "growatt", "growatt_server", "hoymiles",
+  "sungrow", "huawei", "goodwe", "fronius", "livoltek", "livoltek_cf",
+  // Tier 3 — beta functional
+  "shinemonitor", "apsystems", "kstar", "intelbras", "ecosolys",
+]);
 
 /**
  * Providers that have dedicated configuration components.
