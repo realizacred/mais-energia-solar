@@ -450,7 +450,7 @@ export function MesAMesDialog({ open, onOpenChange, title, values, onSave }: Mes
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{title} — Mês a mês</DialogTitle>
         </DialogHeader>
