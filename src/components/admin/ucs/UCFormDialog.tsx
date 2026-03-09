@@ -164,118 +164,118 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
           <DialogTitle>{editingUC ? "Editar UC" : "Nova Unidade Consumidora"}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
-          {/* ── Section 1: Dados da UC ── */}
-          <section className="rounded-lg border bg-card p-4 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Zap className="w-4 h-4 text-primary" />
-              Dados da UC
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Código da UC <span className="text-destructive">*</span></Label>
-                <Input value={form.codigo_uc} onChange={set("codigo_uc")} placeholder="Ex: 0012345678" autoComplete="off" />
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {/* ── Row 1: Dados da UC + Classificação lado a lado ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Dados da UC */}
+            <section className="rounded-lg border bg-card p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Zap className="w-4 h-4 text-primary" />
+                Dados da UC
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nome / Denominação <span className="text-destructive">*</span></Label>
-                <Input value={form.nome} onChange={set("nome")} placeholder="Nome da unidade" autoComplete="off" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Código da UC <span className="text-destructive">*</span></Label>
+                  <Input value={form.codigo_uc} onChange={set("codigo_uc")} placeholder="Ex: 0012345678" autoComplete="off" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nome / Denominação <span className="text-destructive">*</span></Label>
+                  <Input value={form.nome} onChange={set("nome")} placeholder="Nome da unidade" autoComplete="off" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Tipo da UC</Label>
+                  <Select value={form.tipo_uc} onValueChange={set("tipo_uc")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="consumo">Consumo</SelectItem>
+                      <SelectItem value="gd_geradora">GD Geradora</SelectItem>
+                      <SelectItem value="beneficiaria">Beneficiária</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Concessionária</Label>
+                  <Select value={form.concessionaria_id} onValueChange={set("concessionaria_id")}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {concessionarias.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome} {c.estado ? `(${c.estado})` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo da UC</Label>
-                <Select value={form.tipo_uc} onValueChange={set("tipo_uc")}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="consumo">Consumo</SelectItem>
-                    <SelectItem value="gd_geradora">GD Geradora</SelectItem>
-                    <SelectItem value="beneficiaria">Beneficiária</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Concessionária</Label>
-                <Select value={form.concessionaria_id} onValueChange={set("concessionaria_id")}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {concessionarias.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome} {c.estado ? `(${c.estado})` : ""}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </section>
+            </section>
 
-          {/* ── Section 2: Classificação Tarifária ── */}
-          <section className="rounded-lg border bg-card p-4 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <FileText className="w-4 h-4 text-primary" />
-              Classificação Tarifária
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Grupo</Label>
-                <Select value={form.classificacao_grupo} onValueChange={set("classificacao_grupo")}>
-                  <SelectTrigger><SelectValue placeholder="Ex: B1" /></SelectTrigger>
-                  <SelectContent>
-                    {GRUPOS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            {/* Classificação Tarifária + Observações */}
+            <section className="rounded-lg border bg-card p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <FileText className="w-4 h-4 text-primary" />
+                Classificação Tarifária
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Subgrupo</Label>
-                <Input value={form.classificacao_subgrupo} onChange={set("classificacao_subgrupo")} placeholder="Ex: Residencial" autoComplete="off" />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Grupo</Label>
+                  <Select value={form.classificacao_grupo} onValueChange={set("classificacao_grupo")}>
+                    <SelectTrigger><SelectValue placeholder="Ex: B1" /></SelectTrigger>
+                    <SelectContent>
+                      {GRUPOS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Subgrupo</Label>
+                  <Input value={form.classificacao_subgrupo} onChange={set("classificacao_subgrupo")} placeholder="Ex: Residencial" autoComplete="off" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Modalidade Tarifária</Label>
+                  <Select value={form.modalidade_tarifaria} onValueChange={set("modalidade_tarifaria")}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {MODALIDADES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Modalidade Tarifária</Label>
-                <Select value={form.modalidade_tarifaria} onValueChange={set("modalidade_tarifaria")}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {MODALIDADES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="pt-1 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold">Observações</Label>
+                  {editingUC && (
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground">Ativo</Label>
+                      <Switch checked={form.ativo} onCheckedChange={(v) => setForm(f => ({ ...f, ativo: v }))} />
+                    </div>
+                  )}
+                </div>
+                <Textarea value={form.observacoes} onChange={set("observacoes")} rows={2} placeholder="Notas internas..." />
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
 
-          {/* ── Section 3: Endereço ── */}
-          <section className="rounded-lg border bg-card p-4 space-y-4">
+          {/* ── Row 2: Endereço em linha única ── */}
+          <section className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <MapPin className="w-4 h-4 text-primary" />
               Endereço
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">CEP</Label>
                 <div className="relative">
-                  <Input
-                    value={form.cep}
-                    onChange={handleCepChange}
-                    placeholder="00000-000"
-                    maxLength={9}
-                    autoComplete="off"
-                  />
-                  {fetchingCep && (
-                    <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
-                  )}
+                  <Input value={form.cep} onChange={handleCepChange} placeholder="00000-000" maxLength={9} autoComplete="off" />
+                  {fetchingCep && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
                   {!fetchingCep && form.cep.replace(/\D/g, "").length === 8 && (
-                    <Search
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary"
-                      onClick={fetchCep}
-                    />
+                    <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" onClick={fetchCep} />
                   )}
                 </div>
               </div>
-              <div className="space-y-1.5 md:col-span-2">
+              <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Logradouro</Label>
                 <Input value={form.logradouro} onChange={set("logradouro")} autoComplete="off" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Número</Label>
                 <Input value={form.numero} onChange={set("numero")} autoComplete="off" />
-              </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <Label className="text-xs">Complemento</Label>
-                <Input value={form.complemento} onChange={set("complemento")} autoComplete="off" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Bairro</Label>
@@ -295,20 +295,6 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                 </Select>
               </div>
             </div>
-          </section>
-
-          {/* ── Section 4: Observações & Status ── */}
-          <section className="rounded-lg border bg-card p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold">Observações</Label>
-              {editingUC && (
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">Ativo</Label>
-                  <Switch checked={form.ativo} onCheckedChange={(v) => setForm(f => ({ ...f, ativo: v }))} />
-                </div>
-              )}
-            </div>
-            <Textarea value={form.observacoes} onChange={set("observacoes")} rows={3} placeholder="Notas internas sobre esta UC..." />
           </section>
         </div>
 
