@@ -33,7 +33,7 @@ import { StepCamposCustomizados } from "./wizard/StepCamposCustomizados";
 import { StepKitSelection } from "./wizard/StepKitSelection";
 import { StepAdicionais, type AdicionalItem } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
-import { StepFinancialCenter, calcPrecoFinal } from "./wizard/StepFinancialCenter";
+import { StepVenda, calcPrecoFinal } from "./wizard/StepVenda";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot } from "./wizard/hooks/useWizardPersistence";
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
@@ -1395,7 +1395,7 @@ export function ProposalWizard() {
 
       case STEP_KEYS.VENDA:
         return wrap("venda", (
-          <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
+          <StepVenda venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
         ));
 
       case STEP_KEYS.PAGAMENTO:
