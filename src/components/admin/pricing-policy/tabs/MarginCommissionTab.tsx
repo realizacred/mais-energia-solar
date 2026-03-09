@@ -324,8 +324,8 @@ export function MarginCommissionTab() {
             <div className="flex items-center gap-2"><Switch checked={commissionForm.is_active} onCheckedChange={(v) => setCommissionForm((f) => ({ ...f, is_active: v }))} /><Label className="text-xs text-muted-foreground">Ativo</Label></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCommissionDialog(false)}>Cancelar</Button>
-            <Button onClick={saveCommission} disabled={commissionSaving || !commissionForm.name.trim()} className="gap-2">{commissionSaving && <Loader2 className="h-4 w-4 animate-spin" />}{commissionEditId ? "Salvar" : "Criar"}</Button>
+            <Button variant="ghost" onClick={() => setCommissionDialog(false)}>Cancelar</Button>
+            <Button variant="default" onClick={saveCommission} disabled={commissionSaving || !commissionForm.name.trim()} className="gap-2">{commissionSaving && <Loader2 className="h-4 w-4 animate-spin" />}{commissionEditId ? "Salvar" : "Criar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

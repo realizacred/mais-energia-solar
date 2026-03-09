@@ -83,8 +83,8 @@ export function MeterLinkDialog({ open, onOpenChange, meter }: Props) {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleLink} disabled={!selectedUC || saving}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="default" onClick={handleLink} disabled={!selectedUC || saving}>
             <Zap className="w-4 h-4 mr-1" />
             {saving ? "Vinculando..." : "Vincular"}
           </Button>

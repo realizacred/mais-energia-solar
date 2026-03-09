@@ -400,8 +400,8 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleSave}>Salvar</Button>
+            <Button variant="ghost" size="sm" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="default" size="sm" onClick={handleSave}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
