@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { FileText, Plus } from "lucide-react";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { FileText, Plus, Shield } from "lucide-react";
 import { PostSaleNewPlanDialog } from "./PostSaleNewPlanDialog";
 
 const STATUS_COLORS: Record<string, string> = {
