@@ -108,16 +108,27 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
         {/* Custos adicionais + desconto */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs">Comissão (R$)</Label>
-            <Input type="number" min={0} value={venda.custo_comissao || ""} onChange={e => update("custo_comissao", Number(e.target.value))} placeholder="0,00" className="h-9" />
+            <Label className="text-xs">Comissão</Label>
+            <CurrencyInput value={venda.custo_comissao || 0} onChange={v => update("custo_comissao", v)} className="h-9" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Outros custos (R$)</Label>
-            <Input type="number" min={0} value={venda.custo_outros || ""} onChange={e => update("custo_outros", Number(e.target.value))} placeholder="0,00" className="h-9" />
+            <Label className="text-xs">Outros custos</Label>
+            <CurrencyInput value={venda.custo_outros || 0} onChange={v => update("custo_outros", v)} className="h-9" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Desconto (%) <span className="text-muted-foreground font-normal">máx {descontoMax}%</span></Label>
-            <Input type="number" min={0} max={descontoMax} value={venda.desconto_percentual || ""} onChange={e => update("desconto_percentual", Math.min(Number(e.target.value), descontoMax))} placeholder="0" className="h-9" />
+            <Input 
+              type="number" 
+              min={0} 
+              max={descontoMax} 
+              value={venda.desconto_percentual === 0 ? "" : venda.desconto_percentual} 
+              onChange={e => {
+                const val = e.target.value === "" ? 0 : Number(e.target.value);
+                update("desconto_percentual", Math.min(val, descontoMax));
+              }} 
+              placeholder="0" 
+              className="h-9" 
+            />
           </div>
         </div>
 
