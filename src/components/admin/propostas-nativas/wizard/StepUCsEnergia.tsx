@@ -632,8 +632,8 @@ function UCConfigModal({ uc, onUpdate, onClose }: {
           )}
         </div>
         <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>Fechar</Button>
-          <Button size="sm" onClick={onClose}>Salvar</Button>
+          <Button variant="ghost" size="sm" onClick={onClose}>Fechar</Button>
+          <Button variant="default" size="sm" onClick={onClose}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
