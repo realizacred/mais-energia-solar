@@ -208,7 +208,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
 
             {/* Classificação Tarifária + Observações */}
-            <section className="rounded-lg border bg-card p-4 space-y-3">
+            <section className="lg:col-span-2 rounded-lg border bg-card p-4 space-y-3 min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <FileText className="w-4 h-4 text-primary" />
                 Classificação Tarifária
