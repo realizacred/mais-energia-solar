@@ -458,7 +458,7 @@ export default function Admin() {
   return (
     <SidebarProvider>
       <TourProvider>
-      <div className="min-h-screen flex w-full bg-muted/30">
+      <div className="min-h-screen flex w-full bg-background">
         <AdminSidebar
           activeTab={activeTab}
           userEmail={user?.email}
@@ -467,7 +467,7 @@ export default function Admin() {
           data-tour="sidebar"
         />
         
-        <SidebarInset className="flex-1 min-w-0">
+        <SidebarInset className="flex-1 min-w-0 bg-background">
           <header className="sticky top-0 z-50 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-background/80 backdrop-blur-md border-b border-border/40">
             <SidebarTrigger className="-ml-1 h-8 w-8 shrink-0">
               <Menu className="h-4 w-4" />
