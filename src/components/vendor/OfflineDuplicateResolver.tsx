@@ -196,7 +196,7 @@ export function OfflineDuplicateResolver({ vendedorNome }: OfflineDuplicateResol
                     <div className="flex flex-col sm:flex-row gap-2 pt-2">
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="default"
                         onClick={() => handleCreateNew(duplicate.leadId)}
                         disabled={resolvingId === duplicate.leadId}
                         className="gap-2 flex-1"

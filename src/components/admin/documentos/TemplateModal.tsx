@@ -229,7 +229,7 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
         </div>
 
         <DialogFooter className="pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving || uploading}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving || uploading}>
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={saving || uploading}>

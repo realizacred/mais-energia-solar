@@ -308,7 +308,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       ))
                     )}
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
                       onClick={() => onNewProject?.({
@@ -529,7 +529,7 @@ function ResizableKanbanColumn({
 
       {/* ── New Project Button ── */}
       <div className="px-2.5 py-1.5">
-        <button
+        <Button
           onClick={() => onNewProject?.({
             pipelineId: stage.pipeline_id,
             stageId: stage.id,
@@ -545,7 +545,7 @@ function ResizableKanbanColumn({
         >
           <Plus className="h-3 w-3" />
           Novo projeto
-        </button>
+        </Button>
       </div>
 
       {/* ── Cards ── */}

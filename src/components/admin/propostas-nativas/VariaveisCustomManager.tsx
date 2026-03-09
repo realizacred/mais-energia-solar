@@ -278,7 +278,7 @@ export function VariaveisCustomManager() {
         <div className="text-center py-12 text-muted-foreground">
           <Variable className="h-10 w-10 mx-auto opacity-20 mb-3" />
           <p className="text-sm">Nenhuma variável customizada criada.</p>
-          <Button variant="link" onClick={startNew} className="mt-2">Criar primeira variável</Button>
+          <Button variant="default" onClick={startNew} className="mt-2">Criar primeira variável</Button>
         </div>
       ) : (
         <div className="space-y-2">

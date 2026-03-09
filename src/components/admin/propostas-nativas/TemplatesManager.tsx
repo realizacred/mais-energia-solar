@@ -526,7 +526,7 @@ export function TemplatesManager() {
         <div className="text-center py-12 text-muted-foreground">
           <FileText className="h-10 w-10 mx-auto opacity-20 mb-3" />
           <p className="text-sm">Nenhum template {tipoTab === "html" ? "WEB" : "DOCX"} criado.</p>
-          <Button variant="link" onClick={startNew} className="mt-2">
+          <Button variant="default" onClick={startNew} className="mt-2">
             Criar primeiro template {tipoTab.toUpperCase()}
           </Button>
         </div>

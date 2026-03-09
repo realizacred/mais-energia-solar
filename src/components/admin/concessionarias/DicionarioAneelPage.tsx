@@ -583,7 +583,7 @@ export function DicionarioAneelPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+            <Button variant="ghost" onClick={() => setEditDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>

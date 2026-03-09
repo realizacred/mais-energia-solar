@@ -540,7 +540,7 @@ export function AuditTabContent({
                       <td className="px-3 py-2">
                         {!field.hasVariable && onRequestCreateVariable && (
                           <Button
-                            variant="ghost"
+                            variant="default"
                             size="sm"
                             className="h-6 px-2 text-[10px] gap-1 text-primary hover:text-primary hover:bg-primary/10"
                             onClick={() => onRequestCreateVariable({

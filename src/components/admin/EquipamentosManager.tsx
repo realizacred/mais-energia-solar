@@ -439,7 +439,7 @@ export function EquipamentosManager() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDisjuntorDialogOpen(false)}>
+              <Button variant="ghost" onClick={() => setDisjuntorDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button onClick={handleSaveDisjuntor}>Salvar</Button>
@@ -482,7 +482,7 @@ export function EquipamentosManager() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setTransformadorDialogOpen(false)}>
+              <Button variant="ghost" onClick={() => setTransformadorDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button onClick={handleSaveTransformador}>Salvar</Button>

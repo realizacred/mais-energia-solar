@@ -321,7 +321,7 @@ export function IrradianciaPage() {
                       {supportsApiImport && (
                         <Button
                           size="sm"
-                          variant={activeVersion ? "outline" : "default"}
+                          variant={isFetching ? "outline" : "default"}
                           className="gap-1.5 text-xs h-8"
                           disabled={!!fetchingDs}
                           onClick={() => handleFetchDataset(ds.code)}

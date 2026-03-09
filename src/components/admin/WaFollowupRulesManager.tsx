@@ -414,7 +414,7 @@ export function WaFollowupRulesManager() {
             <p className="text-xs text-muted-foreground/70 mt-1">
               Crie regras para acompanhar conversas sem resposta automaticamente.
             </p>
-            <Button onClick={openCreate} variant="outline" className="mt-4 gap-2">
+            <Button onClick={openCreate} variant="default" className="mt-4 gap-2">
               <Plus className="h-4 w-4" />
               Criar primeira regra
             </Button>

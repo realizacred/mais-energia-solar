@@ -504,7 +504,7 @@ export function ValidacaoVendasManager() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant="default"
+                                  variant="success"
                                   className="bg-success hover:bg-success/90 text-success-foreground"
                                   onClick={() => openApprovalDialog(cliente)}
                                 >
@@ -801,7 +801,7 @@ export function ValidacaoVendasManager() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApprovalDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setApprovalDialogOpen(false)}>Cancelar</Button>
             <Button
               onClick={handleApprove}
               disabled={approving === selectedCliente?.id || !isApprovalValid}
@@ -849,9 +849,9 @@ export function ValidacaoVendasManager() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectionDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setRejectionDialogOpen(false)}>Cancelar</Button>
             <Button
-              variant="destructive"
+              variant="default"
               onClick={handleReject}
               disabled={rejecting || !motivoRejeicao.trim()}
             >

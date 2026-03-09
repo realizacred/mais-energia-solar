@@ -353,7 +353,7 @@ export function WaInstancesManager() {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSyncInstance(null)} disabled={isSyncing}>
+            <Button variant="ghost" onClick={() => setSyncInstance(null)} disabled={isSyncing}>
               Cancelar
             </Button>
             <Button

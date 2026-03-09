@@ -756,7 +756,7 @@ export function StepLocalizacao({
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <ZoomIn className="h-4 w-4 text-white" />
                   </div>
-                  <button
+                  <Button variant="destructive"
                     className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -767,7 +767,7 @@ export function StepLocalizacao({
                     title="Remover snapshot"
                   >
                     <X className="h-3 w-3" />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>

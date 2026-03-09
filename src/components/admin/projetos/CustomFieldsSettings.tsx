@@ -644,14 +644,14 @@ export function CustomFieldsSettings() {
             <>
               {/* Back button */}
               {!editingField && (
-                <button
+                <Button variant="ghost"
                   type="button"
                   onClick={() => setFieldWizardStep("type")}
                   className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Voltar
-                </button>
+                </Button>
               )}
 
               {/* Selected type indicator */}
@@ -835,7 +835,7 @@ export function CustomFieldsSettings() {
               )}
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
+                <Button variant="ghost" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
                 <Button onClick={handleSaveField} disabled={!fieldForm.title.trim() || !fieldForm.field_key.trim() || saving}>
                   {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                   {editingField ? "Salvar" : "Cadastrar"}
@@ -847,7 +847,7 @@ export function CustomFieldsSettings() {
           {/* Footer for step 1 */}
           {fieldWizardStep === "type" && (
             <DialogFooter>
-              <Button variant="outline" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
+              <Button variant="ghost" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
             </DialogFooter>
           )}
         </DialogContent>
@@ -927,7 +927,7 @@ export function CustomFieldsSettings() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Fechar</Button>
+            <Button variant="ghost" onClick={() => setActivityDialogOpen(false)}>Fechar</Button>
             <Button onClick={handleSaveActivity} disabled={!activityForm.title.trim() || saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {editingActivity ? "Salvar" : "Cadastrar"}
@@ -950,7 +950,7 @@ export function CustomFieldsSettings() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMotivoDialogOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setMotivoDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveMotivo} disabled={!motivoForm.nome.trim() || saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {editingMotivo ? "Salvar" : "Criar"}

@@ -930,7 +930,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+            <Button variant="ghost" onClick={() => setInviteDialogOpen(false)}>
               Fechar
             </Button>
             <Button

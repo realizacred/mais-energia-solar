@@ -130,7 +130,7 @@ export function PostSaleChecklistsPage() {
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setCreateOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreate} disabled={createTemplate.isPending || !newNome.trim()}>Criar</Button>
           </DialogFooter>
         </DialogContent>

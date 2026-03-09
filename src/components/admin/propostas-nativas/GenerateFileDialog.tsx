@@ -212,7 +212,7 @@ export function GenerateFileDialog({
                 className="hidden"
                 onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
               />
-              <Button
+              <Button variant="outline"
                 type="button"
                 size="sm"
                 onClick={() => uploadRef.current?.click()}

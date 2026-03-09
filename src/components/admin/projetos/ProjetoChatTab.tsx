@@ -144,7 +144,7 @@ function ConversationCard({
   return (
     <Card className="overflow-hidden">
       {/* Header - clickable to expand */}
-      <button
+      <Button variant="warning"
         onClick={onToggle}
         className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-muted/30 transition-colors"
       >
@@ -171,7 +171,7 @@ function ConversationCard({
           </div>
           {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </div>
-      </button>
+      </Button>
 
       {/* Expanded: Full message history */}
       {isExpanded && (

@@ -581,7 +581,7 @@ export function ImportContaEnergiaDialog({ open, onOpenChange, onDataExtracted }
         <DialogFooter className="gap-2">
           {step === "review" && (
             <>
-              <Button variant="outline" onClick={() => { setStep("upload"); setExtractedData(null); }}>Voltar</Button>
+              <Button variant="ghost" onClick={() => { setStep("upload"); setExtractedData(null); }}>Voltar</Button>
               <Button onClick={proceedToMatch} className="gap-2">
                 <ArrowRight className="w-4 h-4" />
                 Selecionar Concessionária
@@ -590,7 +590,7 @@ export function ImportContaEnergiaDialog({ open, onOpenChange, onDataExtracted }
           )}
           {step === "match" && (
             <>
-              <Button variant="outline" onClick={() => setStep("review")}>Voltar</Button>
+              <Button variant="ghost" onClick={() => setStep("review")}>Voltar</Button>
               <Button onClick={proceedToDiff} disabled={!selectedConcId} className="gap-2">
                 <ArrowRight className="w-4 h-4" />
                 Comparar Valores
@@ -599,8 +599,8 @@ export function ImportContaEnergiaDialog({ open, onOpenChange, onDataExtracted }
           )}
           {step === "diff" && (
             <>
-              <Button variant="outline" onClick={() => setStep("match")}>Voltar</Button>
-              <Button
+              <Button variant="ghost" onClick={() => setStep("match")}>Voltar</Button>
+              <Button variant="outline"
                 onClick={handleUpdate}
                 disabled={updating || diffFields.filter(f => f.enabled).length === 0}
                 className="gap-2"
@@ -611,7 +611,7 @@ export function ImportContaEnergiaDialog({ open, onOpenChange, onDataExtracted }
             </>
           )}
           {step === "done" && (
-            <Button onClick={() => { onOpenChange(false); resetState(); }}>Fechar</Button>
+            <Button variant="ghost" onClick={() => { onOpenChange(false); resetState(); }}>Fechar</Button>
           )}
         </DialogFooter>
       </DialogContent>

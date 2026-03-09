@@ -458,7 +458,7 @@ export function ProposalDetail() {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground">Versão não encontrada.</p>
-        <Button variant="link" onClick={() => navigate(-1)}>Voltar</Button>
+        <Button variant="ghost" onClick={() => navigate(-1)}>Voltar</Button>
       </div>
     );
   }
@@ -544,7 +544,7 @@ export function ProposalDetail() {
           {/* Aceitar / Remover Aceite toggle */}
           {isActionable && !isRejected && (
             isAccepted ? (
-              <Button size="sm" variant="outline" className="gap-1.5 border-success/40 text-success" onClick={() => updatePropostaStatus("enviada")} disabled={updatingStatus}>
+              <Button size="sm" variant="destructive" className="gap-1.5 border-success/40 text-success" onClick={() => updatePropostaStatus("enviada")} disabled={updatingStatus}>
                 <CheckCircle2 className="h-3.5 w-3.5" /> Remover Aceite
               </Button>
             ) : (
@@ -557,7 +557,7 @@ export function ProposalDetail() {
           {/* Rejeitar / Remover Rejeição toggle */}
           {isActionable && !isAccepted && (
             isRejected ? (
-              <Button size="sm" variant="outline" className="gap-1.5 border-destructive/40 text-destructive" onClick={() => updatePropostaStatus("enviada")} disabled={updatingStatus}>
+              <Button size="sm" variant="destructive" className="gap-1.5 border-destructive/40 text-destructive" onClick={() => updatePropostaStatus("enviada")} disabled={updatingStatus}>
                 <XCircle className="h-3.5 w-3.5" /> Remover Rejeição
               </Button>
             ) : (

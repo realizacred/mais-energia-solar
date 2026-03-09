@@ -52,7 +52,7 @@ export default function SuperAdmin() {
             <p className="text-sm text-muted-foreground text-center">
               Apenas Super Admins podem acessar esta área.
             </p>
-            <Button onClick={() => navigate("/admin")} variant="outline">Voltar ao Admin</Button>
+            <Button onClick={() => navigate("/admin")} variant="ghost">Voltar ao Admin</Button>
           </CardContent>
         </Card>
       </div>

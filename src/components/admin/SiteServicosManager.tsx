@@ -151,7 +151,7 @@ export function SiteServicosManager() {
             <p className="text-sm text-muted-foreground/60 mb-4">
               Adicione serviços para exibir na seção do site
             </p>
-            <Button onClick={openNew} variant="outline" className="gap-2">
+            <Button onClick={openNew} variant="default" className="gap-2">
               <Plus className="h-4 w-4" /> Adicionar primeiro serviço
             </Button>
           </CardContent>

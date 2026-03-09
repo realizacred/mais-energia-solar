@@ -117,7 +117,7 @@ export function PostSaleVisitsList() {
                           <Eye className="h-3.5 w-3.5" /> Abrir
                         </Button>
                         {(v.status === "pendente" || v.status === "agendado") && (
-                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setSelectedVisit(v)}>
+                          <Button size="sm" variant="success" className="h-7 text-xs gap-1" onClick={() => setSelectedVisit(v)}>
                             <CheckCircle2 className="h-3.5 w-3.5" /> Concluir
                           </Button>
                         )}

@@ -72,7 +72,7 @@ export function ItemQRCodeDialog({ open, onOpenChange, item }: ItemQRCodeDialogP
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
           <Button onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-1.5" />
             Imprimir

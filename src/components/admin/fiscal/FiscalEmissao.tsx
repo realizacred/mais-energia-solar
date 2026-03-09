@@ -328,7 +328,7 @@ function InvoiceDetailDialog({ invoice, open, onClose, onUpdated }: { invoice: a
               </Button>
             )}
             {(invoice?.status === "scheduled" || invoice?.status === "synchronized" || invoice?.status === "authorized") && (
-              <Button size="sm" variant="destructive" onClick={handleCancel} disabled={canceling} className="gap-1.5">
+              <Button size="sm" variant="ghost" onClick={handleCancel} disabled={canceling} className="gap-1.5">
                 {canceling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
                 Cancelar Nota
               </Button>

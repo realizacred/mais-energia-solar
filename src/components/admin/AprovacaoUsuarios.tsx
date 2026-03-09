@@ -247,7 +247,7 @@ export function AprovacaoUsuarios() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
+                          <Button variant="success"
                             size="sm"
                             onClick={() => handleApprove(user)}
                             disabled={actionLoading === user.user_id}

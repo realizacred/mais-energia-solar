@@ -177,7 +177,7 @@ export function ProjetoFunilSelector({
 
       {/* Create new via template */}
       <Button
-        variant="ghost"
+        variant="default"
         size="sm"
         className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 shrink-0"
         onClick={() => setTemplateDialogOpen(true)}

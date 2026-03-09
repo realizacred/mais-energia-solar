@@ -130,7 +130,7 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
 
                       {/* Remove */}
                       <Button
-                        variant="ghost"
+                        variant="destructive"
                         size="sm"
                         className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
                         onClick={() => removeKit(kit.id)}

@@ -327,7 +327,7 @@ export function ReleaseChecklist() {
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              variant="outline"
+              variant="default"
               onClick={() => handleSave("em_andamento")}
               disabled={saving || !versao.trim()}
               className="flex-1 gap-2"
@@ -335,7 +335,7 @@ export function ReleaseChecklist() {
               {saving ? <Spinner size="sm" /> : <Clock className="h-4 w-4" />}
               Salvar Progresso
             </Button>
-            <Button
+            <Button variant="success"
               onClick={() => {
                 if (!allRequiredChecked) {
                   toast({
@@ -467,10 +467,10 @@ export function ReleaseChecklist() {
             )}
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowGoLiveDialog(false)} disabled={saving}>
+            <Button variant="ghost" onClick={() => setShowGoLiveDialog(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button
+            <Button variant="success"
               onClick={() => handleSave("aprovado")}
               disabled={saving}
               className="bg-success hover:bg-success/90 text-success-foreground gap-2"

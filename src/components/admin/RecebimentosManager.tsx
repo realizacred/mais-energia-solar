@@ -482,7 +482,7 @@ export function RecebimentosManager() {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={saving}>

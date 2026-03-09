@@ -395,7 +395,7 @@
            </div>
  
            <DialogFooter>
-             <Button variant="outline" onClick={() => setEditingVendedor(null)}>
+             <Button variant="ghost" onClick={() => setEditingVendedor(null)}>
                Cancelar
              </Button>
              <Button onClick={handleSaveMeta} disabled={saving} className="gap-2">

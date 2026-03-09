@@ -655,7 +655,7 @@ export function WaQuickRepliesManager() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setCatDialogOpen(false)}>Cancelar</Button>
+                  <Button variant="ghost" onClick={() => setCatDialogOpen(false)}>Cancelar</Button>
                   <Button onClick={handleSaveCat} disabled={catSaving}>
                     {catSaving ? "Salvando..." : "Salvar"}
                   </Button>
@@ -837,7 +837,7 @@ export function WaQuickRepliesManager() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
               <Button onClick={handleSave} disabled={saveMutation.isPending || uploading}>
                 {saveMutation.isPending || uploading ? "Salvando..." : "Salvar"}
               </Button>

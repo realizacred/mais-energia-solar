@@ -542,8 +542,8 @@ export default function LeadsPipeline() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={confirmLoss} disabled={!lossReasonId}>Confirmar descarte</Button>
+            <Button variant="ghost" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
+            <Button variant="default" onClick={confirmLoss} disabled={!lossReasonId}>Confirmar descarte</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -146,7 +146,7 @@ export function ReagendarDialog({ servico, isOpen, onClose, onSuccess }: Reagend
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="ghost" onClick={handleClose}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={saving || !novaData}>

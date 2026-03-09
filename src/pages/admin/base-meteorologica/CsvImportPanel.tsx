@@ -412,13 +412,13 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
           </Button>
         )}
         {state === "validated" && (
-          <Button size="sm" onClick={() => handleImport(false)} className="gap-1.5 text-xs">
+          <Button variant="outline" size="sm" onClick={() => handleImport(false)} className="gap-1.5 text-xs">
             <Upload className="h-3.5 w-3.5" />
             Importar {mergedPoints.length.toLocaleString("pt-BR")} pontos
           </Button>
         )}
         {state === "uploading" && (
-          <Button size="sm" variant="destructive" onClick={() => { abortRef.current = true; }} className="gap-1.5 text-xs">
+          <Button size="sm" variant="ghost" onClick={() => { abortRef.current = true; }} className="gap-1.5 text-xs">
             <X className="h-3.5 w-3.5" /> Cancelar
           </Button>
         )}

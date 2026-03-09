@@ -620,7 +620,7 @@ export function ObrasManager() {
                   placeholder="Digite e pressione Enter..."
                   className="flex-1"
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => addTag(tagInput)} disabled={!tagInput.trim()}>
+                <Button type="button" variant="default" size="sm" onClick={() => addTag(tagInput)} disabled={!tagInput.trim()}>
                   Adicionar
                 </Button>
               </div>
@@ -705,7 +705,7 @@ export function ObrasManager() {
           <DialogHeader><DialogTitle>Excluir Obra?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Esta ação não pode ser desfeita.</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>Excluir</Button>
           </DialogFooter>
         </DialogContent>

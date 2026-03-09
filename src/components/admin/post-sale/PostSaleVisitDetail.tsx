@@ -145,10 +145,10 @@ export function PostSaleVisitDetail() {
               <CalendarClock className="h-3.5 w-3.5" /> Agendar
             </Button>
           )}
-          <Button size="sm" className="gap-1" onClick={() => setConclusionOpen(true)}>
+          <Button variant="success" size="sm" className="gap-1" onClick={() => setConclusionOpen(true)}>
             <CheckCircle2 className="h-3.5 w-3.5" /> Concluir
           </Button>
-          <Button size="sm" variant="destructive" className="gap-1" onClick={() => updateStatus.mutate({ id: visit.id, status: "cancelado" })}>
+          <Button size="sm" variant="ghost" className="gap-1" onClick={() => updateStatus.mutate({ id: visit.id, status: "cancelado" })}>
             <XCircle className="h-3.5 w-3.5" /> Cancelar
           </Button>
         </div>
@@ -295,8 +295,8 @@ export function PostSaleVisitDetail() {
           <DialogHeader><DialogTitle>Concluir visita</DialogTitle></DialogHeader>
           <Textarea placeholder="Observações da visita..." value={conclusionNotes} onChange={e => setConclusionNotes(e.target.value)} rows={3} />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConclusionOpen(false)}>Cancelar</Button>
-            <Button onClick={handleConcluir} disabled={updateStatus.isPending}>
+            <Button variant="ghost" onClick={() => setConclusionOpen(false)}>Cancelar</Button>
+            <Button variant="success" onClick={handleConcluir} disabled={updateStatus.isPending}>
               {updateStatus.isPending ? "Salvando..." : "Concluir"}
             </Button>
           </DialogFooter>

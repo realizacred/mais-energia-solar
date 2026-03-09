@@ -325,7 +325,7 @@ export function VariaveisDisponiveisPage() {
             ) : dbCustomVars.length === 0 ? (
               <div className="text-center py-10 text-muted-foreground">
                 <p className="text-xs">Nenhuma variável customizada cadastrada.</p>
-                <Button variant="link" size="sm" onClick={openNewModal} className="mt-1 text-xs">Criar primeira variável</Button>
+                <Button variant="default" size="sm" onClick={openNewModal} className="mt-1 text-xs">Criar primeira variável</Button>
               </div>
             ) : (
               <div className="overflow-x-auto">

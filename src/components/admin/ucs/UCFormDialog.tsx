@@ -314,7 +314,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
 
         <Separator />
         <DialogFooter className="px-6 pb-6 pt-3 flex-col-reverse sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {saving ? "Salvando..." : editingUC ? "Salvar Alterações" : "Criar UC"}

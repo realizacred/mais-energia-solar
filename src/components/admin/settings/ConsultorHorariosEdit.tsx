@@ -198,7 +198,7 @@ export function ConsultorHorariosEdit({ consultorId }: { consultorId: string }) 
       </div>
 
       {/* Botão salvar único */}
-      <Button size="sm" variant="outline" onClick={handleSave} disabled={saving} className="w-full gap-1 h-7 text-xs">
+      <Button size="sm" variant="default" onClick={handleSave} disabled={saving} className="w-full gap-1 h-7 text-xs">
         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
         Salvar Configurações
       </Button>

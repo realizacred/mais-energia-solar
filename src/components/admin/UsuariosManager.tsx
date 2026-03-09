@@ -539,13 +539,13 @@ export function UsuariosManager() {
                                   className={`${roleInfo?.color || ""} gap-1`}
                                 >
                                   {roleInfo?.label || role}
-                                  <button
+                                  <Button variant="destructive"
                                     onClick={() => handleRemoveRole(user.user_id, role)}
                                     className="ml-1 hover:text-destructive"
                                     title="Remover perfil"
                                   >
                                     <Trash2 className="w-3 h-3" />
-                                  </button>
+                                  </Button>
                                 </Badge>
                               );
                             })
@@ -577,7 +577,7 @@ export function UsuariosManager() {
                         <div className="flex items-center justify-end gap-2">
                           {getAvailableRoles(user).length > 0 && (
                             <Button
-                              variant="outline"
+                              variant="default"
                               size="sm"
                               onClick={() => openAddRoleDialog(user)}
                               className="gap-1"
@@ -638,7 +638,7 @@ export function UsuariosManager() {
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleAddRole} disabled={!selectedRole || saving}>

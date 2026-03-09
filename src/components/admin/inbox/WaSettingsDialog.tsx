@@ -112,7 +112,7 @@ function ConnectionTab() {
               <History className={`h-3.5 w-3.5 ${syncingId === inst.id ? "animate-spin" : ""}`} />
             </Button>
             <Button
-              variant="ghost"
+              variant="destructive"
               size="icon-sm"
               title="Remover instância"
               className="text-destructive hover:text-destructive"

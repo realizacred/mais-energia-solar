@@ -26,7 +26,7 @@ export default function NotFound() {
             A página que você está procurando não existe ou foi movida.
           </p>
           <Link to="/">
-            <Button size="lg" className="gap-2">
+            <Button variant="ghost" size="lg" className="gap-2">
               <Home className="w-4 h-4" />
               Voltar ao Início
             </Button>

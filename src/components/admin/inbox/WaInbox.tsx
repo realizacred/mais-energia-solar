@@ -838,12 +838,12 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   <MessageCircle className="h-4 w-4" />
                   Iniciar Conversa no WhatsApp
                 </a>
-                <button
+                <Button variant="ghost"
                   onClick={() => setPreContactData(null)}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Fechar
-                </button>
+                </Button>
               </div>
             ) : (
               <WaChatPanel

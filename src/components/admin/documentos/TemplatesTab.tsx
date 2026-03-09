@@ -74,7 +74,7 @@ export function TemplatesTab() {
         <div className="text-center py-16 space-y-2">
           <FileText className="h-10 w-10 mx-auto text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground">Nenhum template cadastrado</p>
-          <Button variant="outline" size="sm" onClick={() => { setEditing(null); setModalOpen(true); }}>
+          <Button variant="default" size="sm" onClick={() => { setEditing(null); setModalOpen(true); }}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Criar primeiro template
           </Button>
         </div>
