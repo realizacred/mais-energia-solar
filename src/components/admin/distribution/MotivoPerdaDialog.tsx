@@ -101,7 +101,7 @@ export function MotivoPerdaDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             variant="destructive"
             onClick={handleSubmit}

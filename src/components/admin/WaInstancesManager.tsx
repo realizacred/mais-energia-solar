@@ -520,8 +520,8 @@ function InstanceFormDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!nome.trim() || !instanceKey.trim() || saving}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="default" onClick={handleSubmit} disabled={!nome.trim() || !instanceKey.trim() || saving}>
             {saving && <Spinner size="sm" />}
             {instance ? "Salvar" : "Criar Instância"}
           </Button>

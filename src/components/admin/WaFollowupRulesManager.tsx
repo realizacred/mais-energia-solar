@@ -634,8 +634,8 @@ export function WaFollowupRulesManager() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={closeForm}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
+            <Button variant="ghost" onClick={closeForm}>Cancelar</Button>
+            <Button variant="default" onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
               {saveMutation.isPending ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
               {editingRule ? "Salvar" : "Criar Regra"}
             </Button>

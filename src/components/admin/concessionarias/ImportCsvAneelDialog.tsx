@@ -1054,8 +1054,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
           )}
           {step === "preview" && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setStep("validate")}>Voltar</Button>
-              <Button size="sm" onClick={handleImport} disabled={importing || parsed.length === 0} className="gap-1.5">
+              <Button variant="ghost" size="sm" onClick={() => setStep("validate")}>Voltar</Button>
+              <Button variant="default" size="sm" onClick={handleImport} disabled={importing || parsed.length === 0} className="gap-1.5">
                 <Upload className="w-3.5 h-3.5" />
                 Importar {parsed.length.toLocaleString("pt-BR")} registros
               </Button>

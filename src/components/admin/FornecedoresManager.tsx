@@ -396,8 +396,8 @@ export function FornecedoresManager() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="default" onClick={handleSave} disabled={saving}>
               {saving ? "Salvando..." : editing ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>

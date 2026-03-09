@@ -715,8 +715,8 @@ function RateioModal({ open, onOpenChange, ucs, rateioManual, onRateioManualChan
           )}
         </div>
         <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Voltar</Button>
-          <Button size="sm" onClick={() => onOpenChange(false)}>Salvar</Button>
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Voltar</Button>
+          <Button variant="default" size="sm" onClick={() => onOpenChange(false)}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

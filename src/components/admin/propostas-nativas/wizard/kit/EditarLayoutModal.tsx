@@ -251,8 +251,8 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button>
-          <Button onClick={handleSave}>Salvar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Voltar</Button>
+          <Button variant="default" onClick={handleSave}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

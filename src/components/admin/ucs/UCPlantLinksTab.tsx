@@ -211,8 +211,8 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={() => createMut.mutate()} disabled={createMut.isPending || !form.plant_id}>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="default" onClick={() => createMut.mutate()} disabled={createMut.isPending || !form.plant_id}>
               {createMut.isPending ? "Vinculando..." : "Vincular"}
             </Button>
           </DialogFooter>

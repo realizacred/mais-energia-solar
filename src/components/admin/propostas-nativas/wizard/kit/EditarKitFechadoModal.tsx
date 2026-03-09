@@ -146,8 +146,8 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button>
-          <Button onClick={handleSave} disabled={selected.length === 0}>Salvar</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Voltar</Button>
+          <Button variant="default" onClick={handleSave} disabled={selected.length === 0}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
