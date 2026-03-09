@@ -387,7 +387,7 @@ export function VariaveisDisponiveisPage() {
 
             {/* Modal de Edição/Criação */}
             <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle className="text-base">Variável Customizada</DialogTitle>
                 </DialogHeader>
