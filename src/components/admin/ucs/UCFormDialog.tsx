@@ -243,7 +243,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
               <MapPin className="w-4 h-4 text-primary" />
               Endereço
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">CEP</Label>
                 <div className="relative">
