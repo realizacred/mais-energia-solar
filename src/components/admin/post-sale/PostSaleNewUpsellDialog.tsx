@@ -123,8 +123,8 @@ export function PostSaleNewUpsellDialog({ open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={!canSave || createUpsell.isPending}>
+          <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }}>Cancelar</Button>
+          <Button variant="default" onClick={handleSave} disabled={!canSave || createUpsell.isPending}>
             {createUpsell.isPending ? "Salvando..." : "Criar oportunidade"}
           </Button>
         </DialogFooter>

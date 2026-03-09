@@ -260,8 +260,8 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2 px-6 py-4 border-t">
             {editing ? (
               <>
-                <Button variant="outline" onClick={cancelEdit} disabled={saving}>Cancelar</Button>
-                <Button onClick={handleSave} disabled={saving}>
+                <Button variant="ghost" onClick={cancelEdit} disabled={saving}>Cancelar</Button>
+                <Button variant="default" onClick={handleSave} disabled={saving}>
                   {saving ? <Spinner size="sm" className="mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                   Salvar
                 </Button>

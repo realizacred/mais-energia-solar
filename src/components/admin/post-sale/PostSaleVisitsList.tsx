@@ -152,8 +152,8 @@ export function PostSaleVisitsList() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedVisit(null)}>Cancelar</Button>
-            <Button onClick={handleConcluir} disabled={updateStatus.isPending}>
+            <Button variant="ghost" onClick={() => setSelectedVisit(null)}>Cancelar</Button>
+            <Button variant="success" onClick={handleConcluir} disabled={updateStatus.isPending}>
               {updateStatus.isPending ? "Salvando..." : "Concluir"}
             </Button>
           </DialogFooter>

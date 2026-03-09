@@ -212,8 +212,8 @@ function UCMeterLinkDialog({ open, onOpenChange, unitId }: { open: boolean; onOp
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleLink} disabled={!selectedMeter || saving}>{saving ? "Vinculando..." : "Vincular"}</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="default" onClick={handleLink} disabled={!selectedMeter || saving}>{saving ? "Vinculando..." : "Vincular"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -621,8 +621,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancelar</Button>
-            <Button onClick={applyEditModal}>Aplicar</Button>
+            <Button variant="ghost" onClick={() => setShowEditModal(false)}>Cancelar</Button>
+            <Button variant="default" onClick={applyEditModal}>Aplicar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
