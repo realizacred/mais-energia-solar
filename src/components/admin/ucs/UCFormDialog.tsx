@@ -159,30 +159,30 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-[96vw] max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+      <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle>{editingUC ? "Editar UC" : "Nova Unidade Consumidora"}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {/* ── Row 1: Dados da UC + Classificação lado a lado ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            {/* Dados da UC — 3/5 da largura */}
-            <section className="lg:col-span-3 rounded-lg border bg-card p-4 space-y-3 min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Dados da UC */}
+            <section className="rounded-lg border bg-card p-4 space-y-3 min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Zap className="w-4 h-4 text-primary" />
                 Dados da UC
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Código da UC <span className="text-destructive">*</span></Label>
                   <Input value={form.codigo_uc} onChange={set("codigo_uc")} placeholder="Ex: 0012345678" autoComplete="off" />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Nome / Denominação <span className="text-destructive">*</span></Label>
                   <Input value={form.nome} onChange={set("nome")} placeholder="Nome da unidade" autoComplete="off" />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Tipo da UC</Label>
                   <Select value={form.tipo_uc} onValueChange={set("tipo_uc")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -193,7 +193,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Concessionária</Label>
                   <Select value={form.concessionaria_id} onValueChange={set("concessionaria_id")}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -208,13 +208,13 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
 
             {/* Classificação Tarifária + Observações */}
-            <section className="lg:col-span-2 rounded-lg border bg-card p-4 space-y-3 min-w-0">
+            <section className="rounded-lg border bg-card p-4 space-y-3 min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <FileText className="w-4 h-4 text-primary" />
                 Classificação Tarifária
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Grupo</Label>
                   <Select value={form.classificacao_grupo} onValueChange={set("classificacao_grupo")}>
                     <SelectTrigger><SelectValue placeholder="Ex: B1" /></SelectTrigger>
@@ -223,11 +223,11 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Subgrupo</Label>
                   <Input value={form.classificacao_subgrupo} onChange={set("classificacao_subgrupo")} placeholder="Ex: Residencial" autoComplete="off" />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0 col-span-2">
                   <Label className="text-xs">Modalidade Tarifária</Label>
                   <Select value={form.modalidade_tarifaria} onValueChange={set("modalidade_tarifaria")}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -252,14 +252,14 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
           </div>
 
-          {/* ── Row 2: Endereço em linha única ── */}
+          {/* ── Row 2: Endereço largura total ── */}
           <section className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <MapPin className="w-4 h-4 text-primary" />
               Endereço
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs">CEP</Label>
                 <div className="relative">
                   <Input value={form.cep} onChange={handleCepChange} placeholder="00000-000" maxLength={9} autoComplete="off" />
@@ -269,23 +269,27 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                   )}
                 </div>
               </div>
-              <div className="space-y-1.5 col-span-2">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs">Logradouro</Label>
                 <Input value={form.logradouro} onChange={set("logradouro")} autoComplete="off" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs">Número</Label>
                 <Input value={form.numero} onChange={set("numero")} autoComplete="off" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-xs">Complemento</Label>
+                <Input value={form.complemento} onChange={set("complemento")} autoComplete="off" />
+              </div>
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs">Bairro</Label>
                 <Input value={form.bairro} onChange={set("bairro")} autoComplete="off" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs">Cidade</Label>
                 <Input value={form.cidade} onChange={set("cidade")} autoComplete="off" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs">Estado</Label>
                 <Select value={form.estado} onValueChange={set("estado")}>
                   <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
