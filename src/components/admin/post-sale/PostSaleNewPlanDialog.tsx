@@ -60,7 +60,7 @@ export function PostSaleNewPlanDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Novo Plano de Manutenção</DialogTitle>
         </DialogHeader>

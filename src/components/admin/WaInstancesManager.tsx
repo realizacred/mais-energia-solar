@@ -449,7 +449,7 @@ function InstanceFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{instance ? "Editar Instância" : "Nova Instância WhatsApp"}</DialogTitle>
         </DialogHeader>
