@@ -87,11 +87,6 @@ export function PostSaleVisitsList() {
             {Object.entries(TIPO_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="ml-auto">
-          <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
-            <Plus className="h-4 w-4" /> Nova Visita
-          </Button>
-        </div>
       </div>
 
       <SectionCard title="Visitas" description={`${visits.length} registros`}>
