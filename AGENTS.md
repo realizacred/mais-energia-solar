@@ -428,10 +428,12 @@ NUNCA criar useQuery sem staleTime.
 
 - Formulário simples até 4 campos: max-w-md
 - Formulário médio até 8 campos: max-w-2xl
-- Formulário com 2 colunas ou seções: w-[90vw] max-w-[1100px]
-- Formulário completo com endereço e múltiplas seções: w-[90vw] max-w-[1100px]
-- Wizard multi-step: w-[90vw] max-w-[1100px]
+- Formulário com 2 colunas ou seções: w-[90vw] max-w-[1100px] sm:max-w-[1100px]
+- Formulário completo com endereço e múltiplas seções: w-[90vw] max-w-[1100px] sm:max-w-[1100px]
+- Wizard multi-step: w-[90vw] max-w-[1100px] sm:max-w-[1100px]
 
 REGRA: Sempre usar w-[90vw] para aproveitar a tela toda em notebooks e monitores.
+REGRA: Sempre incluir sm:max-w-[1100px] junto com max-w-[1100px] para sobrescrever o default sm:max-w-lg do DialogContent base.
 NUNCA usar max-w-2xl ou max-w-4xl em formulários com 2 ou mais colunas.
 NUNCA criar scroll interno em modal — todo conteúdo deve estar visível.
+Grids internos devem usar grid-cols-1 como base e expandir em lg: para garantir responsividade mobile.
