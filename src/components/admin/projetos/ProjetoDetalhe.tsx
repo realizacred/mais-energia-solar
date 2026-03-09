@@ -962,7 +962,7 @@ function GerenciamentoTab({
 
           {/* ── Inline Edit Dialog ── */}
           <Dialog open={inlineEditOpen} onOpenChange={setInlineEditOpen}>
-            <DialogContent className="sm:max-w-[400px]">
+            <DialogContent className="max-w-[400px]">
               <DialogHeader>
                 <DialogTitle>{inlineEditLabel ? `Adicionar ${inlineEditLabel}` : "Editar"}</DialogTitle>
               </DialogHeader>
