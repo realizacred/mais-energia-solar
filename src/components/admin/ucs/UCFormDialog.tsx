@@ -211,7 +211,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
               <FileText className="w-4 h-4 text-primary" />
               Classificação Tarifária
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Grupo</Label>
                 <Select value={form.classificacao_grupo} onValueChange={set("classificacao_grupo")}>
