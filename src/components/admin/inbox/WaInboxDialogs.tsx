@@ -236,7 +236,7 @@ export function WaLinkLeadDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Vincular Lead</DialogTitle>
         </DialogHeader>

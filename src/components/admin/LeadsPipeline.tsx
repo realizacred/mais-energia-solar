@@ -510,7 +510,7 @@ export default function LeadsPipeline() {
 
       {/* Loss Dialog */}
       <Dialog open={lossDialogOpen} onOpenChange={setLossDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Motivo do descarte</DialogTitle>
             <DialogDescription>

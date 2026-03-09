@@ -938,7 +938,7 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Motivo de Perda ═══ */}
       <Dialog open={motivoDialogOpen} onOpenChange={setMotivoDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>{editingMotivo ? "Editar Motivo" : "Novo Motivo de Perda"}</DialogTitle>
             <DialogDescription>Defina o motivo de perda</DialogDescription>

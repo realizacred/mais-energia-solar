@@ -1187,7 +1187,7 @@ function GerenciamentoTab({
 
       {/* Dialog: Nova Atividade */}
       <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Atividade</DialogTitle>
             <DialogDescription>Crie uma tarefa ou atividade para este projeto.</DialogDescription>
