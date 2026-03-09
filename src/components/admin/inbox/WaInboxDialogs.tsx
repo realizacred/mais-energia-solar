@@ -56,7 +56,7 @@ export function WaTransferDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!isTransferring) onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Transferir Conversa</DialogTitle>
         </DialogHeader>
