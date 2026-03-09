@@ -12,7 +12,9 @@ import { CheckCircle2, Clock, Eye, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { PostSaleNewVisitDialog } from "./PostSaleNewVisitDialog";
+import { CalendarClock } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pendente: "bg-warning/10 text-warning border-warning/30",
@@ -56,7 +58,17 @@ export function PostSaleVisitsList() {
 
   return (
     <div className="space-y-4">
-      {/* Filters + New button */}
+      <PageHeader
+        icon={CalendarClock}
+        title="Preventivas"
+        description="Gerencie visitas preventivas e corretivas"
+        actions={
+          <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
+            <Plus className="h-4 w-4" /> Nova Visita
+          </Button>
+        }
+      />
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-40 h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
@@ -75,11 +87,6 @@ export function PostSaleVisitsList() {
             {Object.entries(TIPO_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="ml-auto">
-          <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
-            <Plus className="h-4 w-4" /> Nova Visita
-          </Button>
-        </div>
       </div>
 
       <SectionCard title="Visitas" description={`${visits.length} registros`}>
@@ -136,7 +143,7 @@ export function PostSaleVisitsList() {
 
       {/* Conclusion dialog */}
       <Dialog open={!!selectedVisit} onOpenChange={(o) => !o && setSelectedVisit(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Concluir visita</DialogTitle>
           </DialogHeader>

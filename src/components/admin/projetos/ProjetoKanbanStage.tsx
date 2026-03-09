@@ -599,7 +599,7 @@ function AutomationDialog({ stageId, pipelineId, sortedStages, getStageNameById,
   if (!stageId || !pipelineId) return null;
   return (
     <Dialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
         <DialogHeader className="pb-2 border-b border-border/40">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Zap className="h-4 w-4 text-primary" />

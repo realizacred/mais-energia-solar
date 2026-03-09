@@ -32,7 +32,7 @@ export function UCConfigModal({ open, onOpenChange, uc, index, onSave }: UCConfi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base">{index + 1}. {local.is_geradora ? "Unidade (Geradora)" : `Unidade ${local.nome || ""}`}</DialogTitle>
         </DialogHeader>
@@ -267,7 +267,7 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, geracaoMensal, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Rateio de Créditos</DialogTitle>
         </DialogHeader>
@@ -450,7 +450,7 @@ export function MesAMesDialog({ open, onOpenChange, title, values, onSave }: Mes
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{title} — Mês a mês</DialogTitle>
         </DialogHeader>

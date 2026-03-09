@@ -190,7 +190,7 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
               <DialogTrigger asChild>
                 <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Nova Empresa</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
+              <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>Criar Nova Empresa</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <div>

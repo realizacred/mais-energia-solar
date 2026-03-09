@@ -225,7 +225,7 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
 
       {/* QR Code Dialog (shared across tabs) */}
       <Dialog open={!!qrData} onOpenChange={(open) => !open && setQrData(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5" />

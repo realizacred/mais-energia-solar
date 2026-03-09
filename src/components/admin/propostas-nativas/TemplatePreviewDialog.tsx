@@ -295,7 +295,7 @@ export function TemplatePreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[950px] max-h-[85vh] flex flex-col p-0">
+      <DialogContent className="max-w-[950px] max-h-[85vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-5 pb-3">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base font-bold flex items-center gap-2">

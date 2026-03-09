@@ -55,7 +55,7 @@ export function ItemQRCodeDialog({ open, onOpenChange, item }: ItemQRCodeDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xs">
+      <DialogContent className="max-w-xs">
         <DialogHeader>
           <DialogTitle>QR Code - Etiqueta</DialogTitle>
         </DialogHeader>

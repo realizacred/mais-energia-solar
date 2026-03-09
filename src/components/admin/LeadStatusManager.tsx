@@ -282,7 +282,7 @@ export function LeadStatusManager() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
               {editingStatus ? "Editar Status" : "Novo Status"}
@@ -337,7 +337,7 @@ export function LeadStatusManager() {
 
       {/* Delete Confirmation */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Excluir Status</DialogTitle>
           </DialogHeader>

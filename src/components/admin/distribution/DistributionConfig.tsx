@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Trash2, Settings, RotateCcw, MapPin, Users } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,20 +29,16 @@ export function DistributionConfig() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-            <Settings className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold">Distribuição de Leads</h2>
-            <p className="text-sm text-muted-foreground">Configure regras de distribuição automática</p>
-          </div>
-        </div>
-        <Button onClick={() => { setEditingRule(null); setShowCreate(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> Nova Regra
-        </Button>
-      </div>
+      <PageHeader
+        icon={Settings}
+        title="Distribuição de Leads"
+        description="Configure regras de distribuição automática"
+        actions={
+          <Button onClick={() => { setEditingRule(null); setShowCreate(true); }} className="gap-2">
+            <Plus className="h-4 w-4" /> Nova Regra
+          </Button>
+        }
+      />
 
       {/* Active Rules */}
       {loading ? (

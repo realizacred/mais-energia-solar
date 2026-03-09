@@ -439,7 +439,7 @@ export function ReleaseChecklist() {
 
       {/* Go Live Confirmation Dialog */}
       <Dialog open={showGoLiveDialog} onOpenChange={setShowGoLiveDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Rocket className="h-5 w-5 text-success" />

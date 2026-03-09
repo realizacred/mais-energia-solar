@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { FileText, Plus } from "lucide-react";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { FileText, Plus, Shield } from "lucide-react";
 import { PostSaleNewPlanDialog } from "./PostSaleNewPlanDialog";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,13 +30,17 @@ export function PostSalePlansList() {
   const getClienteName = (p: any) => p.cliente?.nome ?? p.nome_avulso ?? "—";
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div />
-        <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
-          <Plus className="h-4 w-4" /> Novo Plano
-        </Button>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        icon={Shield}
+        title="Planos Pós-Venda"
+        description="Gerencie planos de manutenção dos clientes"
+        actions={
+          <Button size="sm" className="h-9 gap-1.5" onClick={() => setShowNew(true)}>
+            <Plus className="h-4 w-4" /> Novo Plano
+          </Button>
+        }
+      />
 
       <SectionCard title="Planos Pós-Venda" description={`${plans.length} planos cadastrados`}>
         {plans.length === 0 ? (
