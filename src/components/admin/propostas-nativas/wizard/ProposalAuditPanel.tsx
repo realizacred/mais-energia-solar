@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { ClipboardList, ChevronDown, ChevronRight, Database, FileJson, Search } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { WizardSnapshot } from "./hooks/useWizardPersistence";
@@ -193,90 +192,88 @@ export function ProposalAuditPanel({ snapshot, propostaId, versaoId, projetoId, 
         </div>
       </div>
 
-      <ScrollArea className="max-h-[80vh]">
-        <div className="p-2 space-y-1">
-          {/* DB IDs Section */}
-          {dbIds.length > 0 && (
-            <div className="border rounded-md overflow-hidden">
-              <button
-                className="w-full flex items-center gap-2 px-2 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
-                onClick={() => toggleSection("__db_ids")}
-              >
-                {!collapsedSections.has("__db_ids") ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                <Database className="h-3 w-3 text-primary" />
-                <span className="text-xs font-semibold">IDs do Banco de Dados</span>
-                <Badge variant="outline" className="text-[9px] ml-auto">{dbIds.length}</Badge>
-              </button>
-              {!collapsedSections.has("__db_ids") && (
-                <div className="divide-y">
-                  {dbIds.map(entry => (
-                    <div key={entry.key} className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/20">
-                      <span className="text-muted-foreground font-medium w-28 shrink-0">{entry.label}</span>
-                      <code className="text-[10px] text-muted-foreground/60 w-24 shrink-0">{entry.key}</code>
-                      <Badge variant={entry.value ? "secondary" : "destructive"} className="text-[10px] font-mono ml-auto truncate max-w-[200px]">
-                        {entry.value || "NULL"}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+      <div className="p-2 space-y-1">
+        {/* DB IDs Section */}
+        {dbIds.length > 0 && (
+          <div className="border rounded-md overflow-hidden">
+            <button
+              className="w-full flex items-center gap-2 px-2 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+              onClick={() => toggleSection("__db_ids")}
+            >
+              {!collapsedSections.has("__db_ids") ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              <Database className="h-3 w-3 text-primary" />
+              <span className="text-xs font-semibold">IDs do Banco de Dados</span>
+              <Badge variant="outline" className="text-[9px] ml-auto">{dbIds.length}</Badge>
+            </button>
+            {!collapsedSections.has("__db_ids") && (
+              <div className="divide-y">
+                {dbIds.map(entry => (
+                  <div key={entry.key} className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/20">
+                    <span className="text-muted-foreground font-medium w-28 shrink-0">{entry.label}</span>
+                    <code className="text-[10px] text-muted-foreground/60 w-24 shrink-0">{entry.key}</code>
+                    <Badge variant={entry.value ? "secondary" : "destructive"} className="text-[10px] font-mono ml-auto truncate max-w-[200px]">
+                      {entry.value || "NULL"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* Snapshot Sections */}
-          {Object.entries(groupedFields).map(([category, fields]) => (
-            <div key={category} className="border rounded-md overflow-hidden">
-              <button
-                className="w-full flex items-center gap-2 px-2 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
-                onClick={() => toggleSection(category)}
-              >
-                {!collapsedSections.has(category) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                <FileJson className="h-3 w-3 text-primary" />
-                <span className="text-xs font-semibold">{category}</span>
-                <Badge variant="outline" className="text-[9px] ml-auto">{fields.length}</Badge>
-              </button>
-              {!collapsedSections.has(category) && (
-                <div className="divide-y">
-                  {fields.map(field => {
-                    const isComplex = typeof field.value === "object" && field.value !== null;
-                    const isExpanded = expandedFields.has(field.key);
+        {/* Snapshot Sections */}
+        {Object.entries(groupedFields).map(([category, fields]) => (
+          <div key={category} className="border rounded-md overflow-hidden">
+            <button
+              className="w-full flex items-center gap-2 px-2 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+              onClick={() => toggleSection(category)}
+            >
+              {!collapsedSections.has(category) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              <FileJson className="h-3 w-3 text-primary" />
+              <span className="text-xs font-semibold">{category}</span>
+              <Badge variant="outline" className="text-[9px] ml-auto">{fields.length}</Badge>
+            </button>
+            {!collapsedSections.has(category) && (
+              <div className="divide-y">
+                {fields.map(field => {
+                  const isComplex = typeof field.value === "object" && field.value !== null;
+                  const isExpanded = expandedFields.has(field.key);
 
-                    return (
-                      <div key={field.key} className="hover:bg-muted/20">
-                        <div
-                          className={`flex items-center gap-2 px-3 py-1.5 text-xs ${isComplex ? "cursor-pointer" : ""}`}
-                          onClick={() => isComplex && toggleField(field.key)}
-                        >
-                          {isComplex && (isExpanded ? <ChevronDown className="h-2.5 w-2.5 shrink-0" /> : <ChevronRight className="h-2.5 w-2.5 shrink-0" />)}
-                          {!isComplex && <span className="w-2.5 shrink-0" />}
-                          <span className="text-muted-foreground font-medium w-40 shrink-0 truncate" title={field.label}>{field.label}</span>
-                          <code className="text-[10px] text-muted-foreground/50 w-32 shrink-0 truncate" title={field.key}>{field.key}</code>
-                          <Badge variant={getValueBadge(field.value)} className="text-[10px] ml-auto truncate max-w-[250px]">
-                            {formatValue(field.value)}
-                          </Badge>
-                        </div>
-                        {isComplex && isExpanded && (
-                          <div className="px-4 py-2 bg-muted/10 border-t">
-                            <pre className="text-[10px] text-muted-foreground font-mono whitespace-pre-wrap break-all max-h-[200px] overflow-auto">
-                              {JSON.stringify(field.value, null, 2)}
-                            </pre>
-                          </div>
-                        )}
+                  return (
+                    <div key={field.key} className="hover:bg-muted/20">
+                      <div
+                        className={`flex items-center gap-2 px-3 py-1.5 text-xs ${isComplex ? "cursor-pointer" : ""}`}
+                        onClick={() => isComplex && toggleField(field.key)}
+                      >
+                        {isComplex && (isExpanded ? <ChevronDown className="h-2.5 w-2.5 shrink-0" /> : <ChevronRight className="h-2.5 w-2.5 shrink-0" />)}
+                        {!isComplex && <span className="w-2.5 shrink-0" />}
+                        <span className="text-muted-foreground font-medium w-40 shrink-0 truncate" title={field.label}>{field.label}</span>
+                        <code className="text-[10px] text-muted-foreground/50 w-32 shrink-0 truncate" title={field.key}>{field.key}</code>
+                        <Badge variant={getValueBadge(field.value)} className="text-[10px] ml-auto truncate max-w-[250px]">
+                          {formatValue(field.value)}
+                        </Badge>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
+                      {isComplex && isExpanded && (
+                        <div className="px-4 py-2 bg-muted/10 border-t">
+                          <pre className="text-[10px] text-muted-foreground font-mono whitespace-pre-wrap break-all max-h-[500px] overflow-auto">
+                            {JSON.stringify(field.value, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
 
-          {!snapshot && (
-            <div className="text-center py-8 text-muted-foreground text-xs">
-              Nenhum snapshot disponível. Salve a proposta para visualizar os dados.
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+        {!snapshot && (
+          <div className="text-center py-8 text-muted-foreground text-xs">
+            Nenhum snapshot disponível. Salve a proposta para visualizar os dados.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
