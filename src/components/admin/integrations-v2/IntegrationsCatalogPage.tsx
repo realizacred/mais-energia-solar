@@ -416,7 +416,6 @@ export default function IntegrationsCatalogPage() {
                   }}
                   onDisconnect={() => disconnectMut.mutate(provider.id)}
                   syncing={syncingProviderId === provider.id}
-                  disabled={isStubGroup}
                 />
               );
 
