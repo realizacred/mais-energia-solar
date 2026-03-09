@@ -1,8 +1,26 @@
 const fs = require('fs');
-const glob = require('glob');
 const path = require('path');
 
-const files = glob.sync('src/{components/admin,components/vendor,pages}/**/*.tsx');
+function getFiles(dir, filesList = []) {
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const name = dir + '/' + file;
+    if (fs.statSync(name).isDirectory()) {
+      getFiles(name, filesList);
+    } else if (name.endsWith('.tsx') && !name.includes('node_modules')) {
+      filesList.push(name);
+    }
+  }
+  return filesList;
+}
+
+const dirsToScan = ['src/components/admin', 'src/components/vendor', 'src/pages'];
+const files = [];
+for (const dir of dirsToScan) {
+  if (fs.existsSync(dir)) {
+    getFiles(dir, files);
+  }
+}
 
 const buttonRegex = /<([B|b]utton)([^>]*)>(.*?)<\/\1>/gs;
 
