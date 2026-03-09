@@ -267,7 +267,7 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, geracaoMensal, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Rateio de Créditos</DialogTitle>
         </DialogHeader>
