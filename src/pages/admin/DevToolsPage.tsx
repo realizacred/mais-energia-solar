@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FlaskConical, Trash2 } from "lucide-react";
+import { FlaskConical, Trash2, Wrench } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
