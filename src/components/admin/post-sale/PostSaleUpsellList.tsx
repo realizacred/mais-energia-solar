@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { TrendingUp, Plus } from "lucide-react";
 import { PostSaleNewUpsellDialog } from "./PostSaleNewUpsellDialog";
 
