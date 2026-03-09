@@ -1,197 +1,502 @@
-Atualize o arquivo existente `AGENTS.md` do projeto para criar a versão mais robusta e clara possível, preservando toda a estrutura boa já existente e melhorando o conteúdo.
-
-IMPORTANTE:
-- NÃO criar novos arquivos
-- NÃO remover seções importantes já existentes
-- NÃO mudar o design system
-- NÃO alterar stack
-- NÃO quebrar regras já definidas
-- APENAS reorganizar, consolidar e fortalecer o AGENTS.md
-
-OBJETIVO DO AGENTS.md:
-Garantir que qualquer IA ou desenvolvedor mantenha consistência no frontend, arquitetura de código e integração com o backend.
-
-O arquivo deve continuar focado em:
-- padrão visual
-- padrão de componentes
-- padrão de layout
-- organização de código
-- regras de segurança para desenvolvimento
+# AGENTS.md — Mais Energia Solar CRM
+# Padrões obrigatórios para toda tela nova ou editada
 
 ---
 
-ADICIONE OU GARANTA QUE EXISTAM AS SEGUINTES SEÇÕES:
+## 1. IDENTIDADE VISUAL — nunca quebre isso
 
-### 1. DESIGN SYSTEM
-Manter exatamente os padrões atuais:
-
-Stack obrigatória:
-React 18  
-TypeScript  
-Tailwind CSS  
-shadcn/ui  
-Framer Motion  
-Recharts  
-
-Fontes:
-Inter (corpo)  
-Plus Jakarta Sans (títulos)
-
-Paleta:
-Solar Orange `hsl(var(--primary))`
-Structural Blue `hsl(var(--secondary))`
-
-Regras:
-- nunca usar cores hardcoded
-- sempre usar tokens semânticos
-- suportar dark mode
+Stack: React 18 + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion + Recharts
+Fontes: `Inter` (corpo) e `Plus Jakarta Sans` (títulos/display)
+Paleta: Solar Orange `hsl(var(--primary))` + Structural Blue `hsl(var(--secondary))`
+Design: moderno, denso, sem espaço desperdiçado, dark-mode first quando possível
 
 ---
 
-### 2. DARK MODE
+## 2. DARK MODE
 
-Todos os componentes devem suportar dark mode.
+O projeto tem dark mode configurado. Toda tela nova deve suportar os dois modos.
 
-Usar sempre:
+```
+// SEMPRE use variáveis semânticas, nunca cores hardcoded
+bg-background        text-foreground
+bg-card              text-card-foreground
+bg-muted             text-muted-foreground
+border-border
 
-bg-background  
-text-foreground  
-bg-card  
-text-card-foreground  
-bg-muted  
-text-muted-foreground  
-border-border  
+// Para elementos com hover
+hover:bg-accent      hover:text-accent-foreground
 
-Nunca usar:
-
-bg-white  
-text-black  
-text-gray-*  
-border-gray-*
-
----
-
-### 3. COMPONENTES PADRÃO
-
-Sempre reutilizar componentes existentes.
-
-Exemplos obrigatórios:
-
-Card  
-Button  
-Badge  
-Table  
-Dialog  
-Sheet  
-
-Inputs obrigatórios:
-
-CpfCnpjInput  
-AddressFields  
-PhoneInput  
-DateInput  
-CurrencyInput  
-UnitInput  
-
-Nunca criar inputs customizados duplicando esses.
+// NUNCA use
+bg-white             → use bg-card ou bg-background
+text-black           → use text-foreground
+text-gray-500        → use text-muted-foreground
+border-gray-200      → use border-border
+```
 
 ---
 
-### 4. TABELAS
+## 3. CARDS — padrão obrigatório
 
-Sempre usar o componente Table do shadcn.
+### KPI Card (número de destaque)
+```tsx
+<Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
+  <CardContent className="flex items-center gap-4 p-5">
+    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+      <Icon className="w-5 h-5" />
+    </div>
+    <div>
+      <p className="text-2xl font-bold tracking-tight text-foreground leading-none">R$ 124.500</p>
+      <p className="text-sm text-muted-foreground mt-1">Receita do mês</p>
+      <p className="text-xs text-success mt-1 flex items-center gap-1">
+        <TrendingUp className="w-3 h-3" /> +12% vs mês anterior
+      </p>
+    </div>
+  </CardContent>
+</Card>
+```
 
-Nunca criar tabela usando div.
+### Card de seção com header
+```tsx
+<Card className="bg-card border-border shadow-sm">
+  <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
+    <div>
+      <CardTitle className="text-base font-semibold text-foreground">Título</CardTitle>
+      <p className="text-sm text-muted-foreground mt-0.5">Subtítulo ou descrição</p>
+    </div>
+    <Button variant="outline" size="sm">Ação</Button>
+  </CardHeader>
+  <CardContent className="pt-4">
+    {/* conteúdo */}
+  </CardContent>
+</Card>
+```
 
-Tabelas devem:
-
-- suportar hover
-- suportar estado vazio
-- ter actions via DropdownMenu
-- manter layout consistente
-
----
-
-### 5. GRÁFICOS
-
-Sempre usar Recharts.
-
-Cores devem vir das variáveis:
-
---primary  
---secondary  
---success  
---warning  
---info  
---destructive  
-
-Nunca usar cores hardcoded.
-
----
-
-### 6. APROVEITAMENTO DE TELA
-
-O sistema deve usar o máximo da área útil.
-
-Nunca usar:
-
-max-w-4xl  
-max-w-3xl  
-container mx-auto  
-
-Fora de modais.
-
-Layouts devem usar grids densos.
-
----
-
-### 7. ANIMAÇÕES
-
-Usar Framer Motion.
-
-Cards e listas devem animar entrada.
-
-Hover deve ser sutil e rápido.
+### Card de status / item de lista
+```tsx
+<div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
+  <div className="flex items-center gap-3">
+    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+      <Icon className="w-4 h-4 text-primary" />
+    </div>
+    <div>
+      <p className="text-sm font-medium text-foreground">Nome</p>
+      <p className="text-xs text-muted-foreground">Detalhe</p>
+    </div>
+  </div>
+  <Badge variant="outline">Status</Badge>
+</div>
+```
 
 ---
 
-### 8. LOADING STATES
+## 4. TABELAS — padrão obrigatório
 
-Toda tela async deve ter skeleton.
+Sempre usar o componente Table do shadcn. Nunca criar tabela com div ou HTML nativo.
 
-Nunca deixar tela vazia.
+```tsx
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+
+<div className="rounded-lg border border-border overflow-hidden">
+  <Table>
+    <TableHeader>
+      <TableRow className="bg-muted/50 hover:bg-muted/50">
+        <TableHead className="font-semibold text-foreground w-[200px]">Cliente</TableHead>
+        <TableHead className="font-semibold text-foreground">Status</TableHead>
+        <TableHead className="font-semibold text-foreground text-right">Valor</TableHead>
+        <TableHead className="w-[60px]" />
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {items.map((item) => (
+        <TableRow
+          key={item.id}
+          className="hover:bg-muted/30 cursor-pointer transition-colors"
+          onClick={() => handleOpen(item)}
+        >
+          <TableCell className="font-medium text-foreground">{item.nome}</TableCell>
+          <TableCell>
+            <Badge variant="outline" className="text-xs">
+              {item.status}
+            </Badge>
+          </TableCell>
+          <TableCell className="text-right font-mono text-sm">
+            {formatBRLCompact(item.valor)}
+          </TableCell>
+          <TableCell>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</div>
+```
+
+### Estado vazio de tabela
+```tsx
+{items.length === 0 && (
+  <div className="flex flex-col items-center justify-center py-12 text-center">
+    <Icon className="w-10 h-10 text-muted-foreground/40 mb-3" />
+    <p className="text-sm font-medium text-muted-foreground">Nenhum item encontrado</p>
+    <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou adicione um novo</p>
+  </div>
+)}
+```
 
 ---
 
-### 9. PADRÃO DE QUERIES
+## 5. GRÁFICOS — padrão Recharts
+
+Sempre usar as variáveis CSS da paleta. Nunca cores hardcoded.
+
+```tsx
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+
+const CHART_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--secondary))",
+  "hsl(var(--success))",
+  "hsl(var(--warning))",
+  "hsl(var(--info))",
+  "hsl(var(--destructive))",
+]
+
+// Tooltip customizado — sempre usar este padrão
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} className="text-muted-foreground">
+          {p.name}: <span className="font-semibold text-foreground">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  )
+}
+
+// Area chart (uso principal — tendências e receita)
+<ResponsiveContainer width="100%" height={220}>
+  <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+    <defs>
+      <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
+        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+      </linearGradient>
+    </defs>
+    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+    <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+    <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+    <Tooltip content={<CustomTooltip />} />
+    <Area type="monotone" dataKey="valor" stroke="hsl(var(--primary))" fill="url(#grad)" strokeWidth={2} dot={false} />
+  </AreaChart>
+</ResponsiveContainer>
+
+// Bar chart
+<ResponsiveContainer width="100%" height={200}>
+  <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+    <XAxis dataKey="nome" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+    <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+    <Tooltip content={<CustomTooltip />} />
+    <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={40} />
+  </BarChart>
+</ResponsiveContainer>
+```
+
+---
+
+## 6. APROVEITAMENTO DE TELA — regras de layout
+
+```
+// Painéis de conteúdo — padding padrão
+p-4 md:p-6          (nunca p-8 ou mais em telas de lista)
+
+// Grids de cards KPI
+grid-cols-2 md:grid-cols-4 gap-4
+
+// Grids de seções
+grid-cols-1 lg:grid-cols-3 gap-4
+
+// Grids de formulários
+grid-cols-1 sm:grid-cols-2 gap-4
+
+// Nunca limitar largura do painel
+max-w-4xl, max-w-3xl   → PROIBIDO fora de modais/dialogs
+container mx-auto      → PROIBIDO em páginas admin
+
+// Header de página padrão
+<div className="flex items-center justify-between mb-6">
+  <div>
+    <h1 className="text-xl font-bold text-foreground">Título da Página</h1>
+    <p className="text-sm text-muted-foreground mt-0.5">Subtítulo</p>
+  </div>
+  <div className="flex items-center gap-2">
+    <Button variant="outline" size="sm">Filtros</Button>
+    <Button size="sm">+ Novo</Button>
+  </div>
+</div>
+```
+
+---
+
+## 7. ANIMAÇÕES — Framer Motion
+
+O projeto usa framer-motion. Sempre animar entradas de cards e listas.
+
+```tsx
+import { motion } from "framer-motion"
+
+// Entrada de cards em grid — stagger
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+  }),
+}
+
+{items.map((item, i) => (
+  <motion.div key={item.id} custom={i} initial="hidden" animate="visible" variants={cardVariants}>
+    {/* card */}
+  </motion.div>
+))}
+
+// Entrada de página
+<motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+  {/* conteúdo da página */}
+</motion.div>
+
+// Hover em item interativo
+<motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} transition={{ duration: 0.15 }}>
+```
+
+---
+
+## 8. BADGES E STATUS
+
+```tsx
+// Status de projeto/lead
+const statusConfig = {
+  ativo:      { label: "Ativo",      className: "bg-success/10 text-success border-success/20" },
+  pendente:   { label: "Pendente",   className: "bg-warning/10 text-warning border-warning/20" },
+  cancelado:  { label: "Cancelado",  className: "bg-destructive/10 text-destructive border-destructive/20" },
+  concluido:  { label: "Concluído",  className: "bg-info/10 text-info border-info/20" },
+}
+
+<Badge variant="outline" className={`text-xs ${statusConfig[status].className}`}>
+  {statusConfig[status].label}
+</Badge>
+```
+
+---
+
+## 9. KANBAN CARDS
+
+```tsx
+// Card do pipeline — denso, com todas as infos visíveis
+<div className={cn(
+  "group relative bg-card border border-border rounded-lg p-3 shadow-sm",
+  "hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer",
+  isDragging && "opacity-50 rotate-1 shadow-lg"
+)}>
+  {/* topo: código + badge urgência */}
+  <div className="flex items-center justify-between mb-2">
+    <span className="text-xs font-mono text-muted-foreground">{lead.lead_code}</span>
+    {isUrgente && <Badge className="text-[10px] h-4 bg-destructive/10 text-destructive border-destructive/20">Urgente</Badge>}
+  </div>
+
+  {/* nome */}
+  <p className="text-sm font-semibold text-foreground truncate mb-1">{lead.nome}</p>
+
+  {/* infos compactas */}
+  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{lead.cidade}/{lead.estado}</span>
+    <span className="flex items-center gap-1"><Zap className="w-3 h-3" />{lead.media_consumo} kWh</span>
+  </div>
+
+  {/* rodapé: valor + consultor + tempo */}
+  <div className="flex items-center justify-between">
+    <span className="text-xs font-semibold text-primary">{formatBRLCompact(lead.valor_projeto)}</span>
+    <span className="text-xs text-muted-foreground">{diasAtras}d atrás</span>
+  </div>
+</div>
+```
+
+---
+
+## 10. PLANILHAS E GRIDS DENSOS (relatórios financeiros)
+
+```tsx
+// Para telas de planilha tipo Excel — usar tabela densa
+<div className="rounded-lg border border-border overflow-auto">
+  <Table>
+    <TableHeader className="sticky top-0 z-10">
+      <TableRow className="bg-muted hover:bg-muted">
+        <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground h-9 px-3">Col</TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {rows.map((row) => (
+        <TableRow key={row.id} className="h-9 hover:bg-muted/40 transition-colors">
+          <TableCell className="px-3 py-1 text-sm">{row.valor}</TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+</div>
+
+// Linha de totais no rodapé
+<div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-t border-border rounded-b-lg">
+  <span className="text-sm font-semibold text-foreground">Total</span>
+  <span className="text-sm font-bold text-primary">{formatBRL(total)}</span>
+</div>
+```
+
+---
+
+## 11. MODAIS E DRAWERS
+
+```tsx
+// Dialog padrão
+<Dialog>
+  <DialogContent className="max-w-2xl">
+    <DialogHeader>
+      <DialogTitle className="flex items-center gap-2 text-lg">
+        <Icon className="w-5 h-5 text-primary" />
+        Título do Modal
+      </DialogTitle>
+      <DialogDescription>Descrição breve</DialogDescription>
+    </DialogHeader>
+    <div className="space-y-4 py-2">
+      {/* conteúdo */}
+    </div>
+    <DialogFooter>
+      <Button variant="outline">Cancelar</Button>
+      <Button>Confirmar</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+// Sheet (drawer lateral — para detalhes)
+<Sheet>
+  <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+    <SheetHeader className="border-b border-border pb-4 mb-4">
+      <SheetTitle>Título</SheetTitle>
+    </SheetHeader>
+    {/* conteúdo */}
+  </SheetContent>
+</Sheet>
+```
+
+---
+
+## 12. LOADING STATES
+
+Toda tela com dados async deve ter skeleton. Nunca deixar em branco.
+
+```tsx
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Skeleton de card KPI
+{loading ? (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {Array.from({ length: 4 }).map((_, i) => (
+      <Card key={i} className="p-5">
+        <Skeleton className="h-8 w-24 mb-2" />
+        <Skeleton className="h-4 w-32" />
+      </Card>
+    ))}
+  </div>
+) : (
+  // cards reais
+)}
+
+// Skeleton de tabela
+{loading ? (
+  <div className="space-y-2">
+    {Array.from({ length: 6 }).map((_, i) => (
+      <Skeleton key={i} className="h-12 w-full rounded-lg" />
+    ))}
+  </div>
+) : (
+  // tabela real
+)}
+```
+
+---
+
+## 13. INPUTS — componentes obrigatórios
+
+Não criar campos do zero. Usar sempre:
+
+```
+CPF / CNPJ     → import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput"
+Endereço+CEP   → import { AddressFields } from "@/components/shared/AddressFields"
+Busca de CEP   → import { useCepLookup } from "@/hooks/useCepLookup"
+Telefone       → import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput"
+Data           → import { DateInput } from "@/components/ui-kit/inputs/DateInput"
+Valor R$       → import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput"
+Unidade        → import { UnitInput } from "@/components/ui-kit/inputs/UnitInput"
+Botões         → import { Button } from "@/components/ui/button"
+```
+
+---
+
+## 14. BANCO DE DADOS — regras críticas
+
+- Nunca reescrever queries ao fazer ajuste visual
+- Nunca remover campos sem verificar se são salvos no banco
+- Sempre usar os tipos de `@/integrations/supabase/types`
+- RLS já configurado — não adicionar lógica de permissão no frontend
+- Para novas queries: sempre usar o hook existente ou criar um novo em `src/hooks/`
+- Nomes de tabelas: ver `src/integrations/supabase/types.ts` (323 tabelas mapeadas)
+
+---
+
+## 15. ESTRUTURA DE PASTAS
+
+```
+src/
+  components/
+    shared/           ← componentes reutilizáveis (CEP, CPF, Endereço)
+    ui/               ← shadcn/ui — NÃO modificar
+    ui-kit/inputs/    ← inputs customizados — usar sempre
+    admin/            ← telas do painel admin
+    vendor/           ← portal do consultor
+  hooks/              ← verificar antes de criar novo hook
+  pages/              ← rotas principais
+  lib/                ← utilitários (cpfCnpjUtils, formatters, etc)
+  services/           ← lógica de integrações e monitoring
+```
+
+---
+
+## 16. QUERIES — padrão obrigatório
 
 Nunca fazer query Supabase diretamente em componentes React.
-
-Queries devem ficar em:
-
-src/hooks/
-
-Exemplos:
-
-useLeads  
-useProjects  
-usePlants  
-useMonitorData  
-
+Queries devem ficar em `src/hooks/`.
 Componentes devem apenas consumir hooks.
 
 ---
 
-### 10. SERVIÇOS
+## 17. SERVIÇOS
 
 Lógica de negócio nunca deve ficar no componente.
-
-Deve ficar em:
-
-src/services/
+Deve ficar em `src/services/`.
 
 Responsabilidades:
-
 - integração com APIs
 - cálculos de negócio
 - transformação de dados
@@ -199,20 +504,9 @@ Responsabilidades:
 
 ---
 
-### 11. TIPOS
-
-Sempre usar tipos gerados do Supabase:
-
-@/integrations/supabase/types
-
-Nunca duplicar interfaces se o tipo já existe.
-
----
-
-### 12. SAFE QUERY PATTERNS
+## 18. SAFE QUERY PATTERNS
 
 Sempre que aplicável:
-
 - respeitar tenant isolation
 - evitar selects desnecessários
 - não quebrar RLS
@@ -220,221 +514,154 @@ Sempre que aplicável:
 
 ---
 
-### 13. PADRÃO DE INTEGRAÇÕES
+## 19. FORMATADORES
 
-Integrações devem ficar em:
+Nunca formatar valores manualmente. Usar utilitários em `src/lib/formatters`:
 
-src/services/integrations/
-
-Organizar por provider.
-
-Separar:
-
-client  
-mapper  
-provider metadata  
-health/status  
-
-Nunca misturar integração com UI.
-
----
-
-### 14. MONITORAMENTO SOLAR
-
-Status das plantas segue padrão único:
-
-offline  
-mais de 2h sem comunicação
-
-stale  
-mais de 30min sem leitura
-
-warning  
-anomalia de geração
-
-ok  
-dados atualizados
-
-Nunca calcular status diretamente em componente.
-
-Centralizar lógica.
-
----
-
-### 15. FORMATADORES
-
-Nunca formatar valores manualmente.
-
-Usar utilitários em:
-
-src/lib/formatters
-
-Exemplos:
-
-formatBRL  
-formatKwh  
-formatPercent  
-formatDateBR  
+```
+formatBRL        formatKwh
+formatPercent    formatDateBR
 formatBRLCompact
+```
 
 ---
 
-### 16. PRINCÍPIOS DE ENGENHARIA
+## 20. PRINCÍPIOS DE ENGENHARIA
 
-Seguir sempre:
-
-SRP  
-DRY  
-SSOT  
-KISS  
-YAGNI  
-SOLID quando aplicável  
+Seguir sempre: SRP, DRY, SSOT, KISS, YAGNI, SOLID quando aplicável.
 
 Separar UI de lógica de negócio.
 
-Serviços devem concentrar regras e APIs.
-
-Código deve ser:
-
-- simples
-- previsível
-- testável
-- reutilizável
-
----
-
-### 17. FAIL SAFE RULE
-
 Antes de modificar código:
-
 1. auditar o estado atual
 2. entender como já funciona
 3. preservar o que está correto
 4. alterar apenas o necessário
-5. evitar reescrever arquivos sem necessidade
-
-Preferir patches incrementais.
+5. preferir patches incrementais
 
 ---
 
-### 18. OBJETIVO DO AGENTE
+## 21. APROVEITAMENTO DE TELA — REGRA GLOBAL
 
-Este arquivo existe para:
+O sistema deve utilizar **100% da largura disponível** do painel administrativo.
 
-- manter consistência visual
-- manter consistência arquitetural
-- evitar regressões
-- permitir desenvolvimento rápido sem bagunça
+É PROIBIDO em páginas admin:
+```
+max-w-3xl / max-w-4xl / max-w-5xl / max-w-6xl / max-w-7xl
+max-w-screen-lg / max-w-screen-xl
+container / container mx-auto
+```
 
-Toda nova tela ou alteração deve seguir estas regras.
+Permitido apenas em: modais, dialogs, drawers, páginas públicas, landing pages.
 
----
-
-RESULTADO FINAL:
-
-Entregar o AGENTS.md completo revisado.
-
-Não explicar.
-
-Não criar novos arquivos.
-
-Não criar documentação paralela.
-
-Apenas devolver o conteúdo final do AGENTS.md.
-
+Usar sempre no conteúdo principal:
+```
+w-full    flex-1    min-w-0    p-4 md:p-6
+```
 
 ---
 
-### 19. APROVEITAMENTO DE TELA (REGRA GLOBAL)
+## 22. PADRÃO DE BOTÕES — Regra obrigatória
 
-O sistema deve utilizar **100% da largura disponível do painel administrativo**.
+- Ação principal (+ Novo, + Criar, Salvar, Confirmar): `variant="default"` — SEMPRE sólido laranja
+- Ação secundária (Filtrar, Exportar, Atualizar): `variant="outline"`
+- Ação destrutiva (Excluir, Remover, Deletar): `variant="destructive"`
+- Navegação e fechamento (Voltar, Fechar, Cancelar): `variant="ghost"`
+- Ação de sucesso (Aprovar, Concluir, Marcar como pago): `variant="success"`
+- Ação de alerta (Pausar, Pendente, Revisar): `variant="warning"`
 
-Dashboards, kanbans, tabelas, listas e grids devem ocupar toda a área útil do `MainContentContainer`.
+NUNCA usar `variant="outline"` em botão de ação principal.
+NUNCA usar `<button>` HTML nativo — sempre `Button` de `@/components/ui/button`.
 
-Nunca limitar a largura do conteúdo principal em páginas admin.
-
-É proibido em páginas internas/admin:
-
-max-w-3xl  
-max-w-4xl  
-max-w-5xl  
-max-w-6xl  
-max-w-7xl  
-max-w-screen-lg  
-max-w-screen-xl  
-container  
-container mx-auto  
-
-Esses padrões são aceitáveis apenas em:
-
-- modais
-- dialogs
-- drawers
-- páginas públicas
-- landing pages
-
-Use sempre no conteúdo principal:
-
-w-full  
-flex-1  
-min-w-0  
-p-4 md:p-6  
-
-Objetivos:
-
-- evitar desperdício de espaço
-- evitar colunas cortadas
-- permitir grids maiores
-- melhorar leitura de tabelas e kanban
-- aproveitar melhor monitores grandes
-- manter responsividade sem centralização artificial
+### Botões dentro de cards e fundos coloridos
+- Botão dentro de card laranja ou fundo primário: `variant="outline" className="bg-background"`
+- Botão de ação rápida dentro de kanban card: `variant="ghost" size="sm"`
+- Botão de adicionar item em coluna: `variant="outline" size="sm" className="w-full border-dashed"`
+- NUNCA usar `variant="default"` dentro de elemento com fundo laranja/primário
 
 ---
 
-## 20. PADRÃO DE BOTÕES — Regra obrigatória
+## 23. staleTime OBRIGATÓRIO em todo useQuery
 
-- Ação principal (+ Novo, + Criar, + Adicionar, Salvar, Confirmar, Gerar): variant="default" — SEMPRE sólido laranja, nunca outline
-- Ação secundária (Filtrar, Exportar, Importar, Atualizar, Visualizar): variant="outline"
-- Ação destrutiva (Excluir, Remover, Cancelar contrato, Deletar): variant="destructive"
-- Navegação e fechamento (Voltar, Fechar, Cancelar): variant="ghost"
-- Ação de sucesso (Aprovar, Concluir, Marcar como pago, Ganhar): variant="success"
-- Ação de alerta (Pausar, Pendente, Revisar): variant="warning"
-
-NUNCA usar variant="outline" em botão de ação principal.
-NUNCA usar elemento button HTML nativo — sempre Button de @/components/ui/button.
-
----
-
-## 21. staleTime OBRIGATÓRIO em todo useQuery
-
-- Dados de monitoramento em tempo real: staleTime: 1000 * 30
-- Dados normais (listas, formulários): staleTime: 1000 * 60 * 5
-- Dados estáticos (configurações, planos, permissões): staleTime: 1000 * 60 * 15
+- Dados de monitoramento em tempo real: `staleTime: 1000 * 30`
+- Dados normais (listas, formulários): `staleTime: 1000 * 60 * 5`
+- Dados estáticos (configurações, planos, permissões): `staleTime: 1000 * 60 * 15`
 
 NUNCA criar useQuery sem staleTime.
 
 ---
 
-## 22. REGRA DE OVERLAYS E FUNDOS
+## 24. REGRA DE OVERLAYS E FUNDOS
 
-- bg-black/XX — permitido apenas em overlays de media player e componentes shadcn nativos
-- bg-white sólido — permitido apenas em canvas de assinatura (SignaturePad) — necessário para funcionar
-- bg-white/XX com opacidade — permitido em overlays sobre gradientes e heroes institucionais
-- Para todos os outros casos usar bg-card, bg-background ou bg-muted
+- `bg-black/XX` — permitido apenas em overlays de media player e componentes shadcn nativos
+- `bg-white` sólido — permitido apenas em canvas de assinatura (SignaturePad)
+- `bg-white/XX` com opacidade — permitido em overlays sobre gradientes e heroes institucionais
+- Para todos os outros casos usar `bg-card`, `bg-background` ou `bg-muted`
 
 ---
 
-## 23. TAMANHOS DE MODAIS (DialogContent)
+## 25. TAMANHOS DE MODAIS (DialogContent)
 
-- Formulário simples até 4 campos: max-w-md
-- Formulário médio até 8 campos: max-w-2xl
-- Formulário com 2 colunas ou seções: w-[90vw] max-w-[1100px]
-- Formulário completo com endereço e múltiplas seções: w-[90vw] max-w-[1100px]
-- Wizard multi-step: w-[90vw] max-w-[1100px]
+- Formulário simples até 4 campos: `max-w-md`
+- Formulário médio até 8 campos: `max-w-2xl`
+- Formulário com 2 colunas ou seções: `w-[90vw] max-w-[1100px]`
+- Formulário completo com endereço e múltiplas seções: `w-[90vw] max-w-[1100px]`
+- Wizard multi-step: `w-[90vw] max-w-[1100px]`
 
-REGRA: Sempre usar w-[90vw] para aproveitar a tela toda em notebooks e monitores.
-REGRA: O DialogContent base usa `max-w-lg` (sem prefixo sm:) para que tailwind-merge funcione corretamente. Basta passar `max-w-2xl`, `max-w-3xl` ou `max-w-[1100px]` no className que o merge sobrescreve automaticamente.
-NUNCA adicionar `sm:max-w-lg` no DialogContent base — isso impede o merge correto.
-NUNCA usar max-w-2xl ou max-w-4xl em formulários com 2 ou mais colunas.
+REGRA: Sempre usar `w-[90vw]` para aproveitar a tela toda em notebooks e monitores.
+NUNCA usar `max-w-2xl` ou `max-w-4xl` em formulários com 2 ou mais colunas.
 NUNCA criar scroll interno em modal — todo conteúdo deve estar visível.
-Grids internos devem usar grid-cols-1 como base e expandir em lg: para garantir responsividade mobile.
+
+---
+
+## 26. PADRÃO DE HEADER DE PÁGINA
+
+Toda página admin deve ter header padronizado. Referência: ComissoesManager.tsx.
+
+```tsx
+<div className="flex items-center justify-between mb-6">
+  <div className="flex items-center gap-3">
+    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+      <Icon className="w-5 h-5" />
+    </div>
+    <div>
+      <h1 className="text-xl font-bold text-foreground">Título da Página</h1>
+      <p className="text-sm text-muted-foreground">Subtítulo descritivo</p>
+    </div>
+  </div>
+  <div className="flex items-center gap-2">
+    <Button variant="outline" size="sm">Exportar</Button>
+    <Button size="sm">+ Novo</Button>
+  </div>
+</div>
+```
+
+NUNCA usar ícone cinza no header principal.
+SEMPRE ícone com `bg-primary/10 text-primary`.
+
+---
+
+## 27. PADRÃO DE CARDS KPI
+
+Um único padrão para TODOS os cards de número/métrica no sistema:
+
+```tsx
+<Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
+  <CardContent className="flex items-center gap-4 p-5">
+    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+      <Icon className="w-5 h-5" />
+    </div>
+    <div>
+      <p className="text-2xl font-bold tracking-tight text-foreground leading-none">R$ 0,00</p>
+      <p className="text-sm text-muted-foreground mt-1">Label do card</p>
+    </div>
+  </CardContent>
+</Card>
+```
+
+PROIBIDO:
+- Cards com fundo colorido sólido (laranja, azul, verde)
+- Cards com borda inferior colorida
+- Cards sem borda lateral esquerda
+- Cards com ícone cinza/muted
+- Misturar estilos de KPI na mesma tela
