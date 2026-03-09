@@ -665,3 +665,18 @@ PROIBIDO:
 - Cards sem borda lateral esquerda
 - Cards com ícone cinza/muted
 - Misturar estilos de KPI na mesma tela
+
+---
+
+## 28. SWITCHES E TOGGLES
+
+Todos os switches/toggles do sistema devem seguir:
+
+- Cor ativa: bg-primary (laranja) — NUNCA azul ou hardcoded
+- Cor inativa: bg-muted
+- Verificar src/components/ui/switch.tsx — deve usar bg-primary quando checked
+
+Containers que envolvem switches devem:
+- Ter padding suficiente: px-3 py-2
+- NUNCA usar overflow-hidden no elemento pai direto do switch
+- Garantir que o switch não seja cortado pela borda do container
