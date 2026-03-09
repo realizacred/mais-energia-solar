@@ -458,7 +458,7 @@ export default function Admin() {
   return (
     <SidebarProvider>
       <TourProvider>
-      <div className="min-h-screen flex w-full bg-muted/30">
+      <div className="min-h-screen flex w-full bg-background">
         <AdminSidebar
           activeTab={activeTab}
           userEmail={user?.email}
