@@ -866,7 +866,7 @@ function IrradiacaoMensalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">
             Irradiação solar diária média mensal no plano horizontal (kWh/m².dia)

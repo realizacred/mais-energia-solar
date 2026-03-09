@@ -593,7 +593,7 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Campo Customizado (Wizard) ═══ */}
       <Dialog open={fieldDialogOpen} onOpenChange={(open) => { setFieldDialogOpen(open); if (!open) setFieldWizardStep("type"); }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingField
@@ -855,7 +855,7 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Tipo de Atividade ═══ */}
       <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingActivity ? "Editar Tipo" : "Criar Tipo de Atividade"}</DialogTitle>
             <DialogDescription>Defina o nome, visibilidade e ícone</DialogDescription>
@@ -938,7 +938,7 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Motivo de Perda ═══ */}
       <Dialog open={motivoDialogOpen} onOpenChange={setMotivoDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>{editingMotivo ? "Editar Motivo" : "Novo Motivo de Perda"}</DialogTitle>
             <DialogDescription>Defina o motivo de perda</DialogDescription>

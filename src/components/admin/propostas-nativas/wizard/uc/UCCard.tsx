@@ -532,7 +532,7 @@ function TarifaEditDialog({ open, onOpenChange, uc, index, isGD3, isGrupoA, onCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base">{ucLabel}</DialogTitle>
         </DialogHeader>

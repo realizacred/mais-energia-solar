@@ -985,7 +985,7 @@ export function ProposalDetail() {
 
       {/* ══════════ VALIDADE DIALOG ══════════ */}
       <Dialog open={validadeDialogOpen} onOpenChange={setValidadeDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">Alterar validade da proposta</DialogTitle>
           </DialogHeader>

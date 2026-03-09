@@ -376,7 +376,7 @@ function ProjetoDetalheContent() {
 
       {/* ── Loss reason dialog ── */}
       <Dialog open={lossDialogOpen} onOpenChange={setLossDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <XCircle className="h-5 w-5 text-destructive" />
@@ -962,7 +962,7 @@ function GerenciamentoTab({
 
           {/* ── Inline Edit Dialog ── */}
           <Dialog open={inlineEditOpen} onOpenChange={setInlineEditOpen}>
-            <DialogContent className="sm:max-w-[400px]">
+            <DialogContent className="max-w-[400px]">
               <DialogHeader>
                 <DialogTitle>{inlineEditLabel ? `Adicionar ${inlineEditLabel}` : "Editar"}</DialogTitle>
               </DialogHeader>
@@ -1161,7 +1161,7 @@ function GerenciamentoTab({
 
       {/* Dialog: Nova Nota */}
       <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Nota</DialogTitle>
             <DialogDescription>Adicione uma observação ou anotação a este projeto.</DialogDescription>
@@ -1187,7 +1187,7 @@ function GerenciamentoTab({
 
       {/* Dialog: Nova Atividade */}
       <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Atividade</DialogTitle>
             <DialogDescription>Crie uma tarefa ou atividade para este projeto.</DialogDescription>

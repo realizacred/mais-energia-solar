@@ -136,7 +136,7 @@ export function ProjetoPipelineTemplates({ open, onOpenChange, onCreateFromTempl
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); else onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-base">Novo Funil</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">

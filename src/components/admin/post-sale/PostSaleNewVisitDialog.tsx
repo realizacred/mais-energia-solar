@@ -73,7 +73,7 @@ export function PostSaleNewVisitDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Nova Visita</DialogTitle>
         </DialogHeader>

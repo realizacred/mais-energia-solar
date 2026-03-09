@@ -322,7 +322,7 @@ export function WaInstancesManager() {
 
       {/* Sync History Dialog */}
       <Dialog open={!!syncInstance} onOpenChange={(v) => !v && setSyncInstance(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5 text-primary" />
@@ -449,7 +449,7 @@ function InstanceFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{instance ? "Editar Instância" : "Nova Instância WhatsApp"}</DialogTitle>
         </DialogHeader>

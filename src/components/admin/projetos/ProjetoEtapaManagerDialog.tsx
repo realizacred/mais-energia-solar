@@ -44,7 +44,7 @@ export function ProjetoEtapaManagerDialog({
 
   return (
     <Dialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
         <DialogHeader className="pb-2 border-b border-border/40">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Layers className="h-4.5 w-4.5 text-primary" />

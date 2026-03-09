@@ -83,7 +83,7 @@ export function DialogPosDimensionamento({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-base font-bold">Alterar Proposta</DialogTitle>
         </DialogHeader>
