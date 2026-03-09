@@ -29,6 +29,19 @@ import { PROVIDER_REGISTRY, toIntegrationProvider, LEGACY_ID_MAP } from "@/servi
 import { IntegrationProviderCard } from "./IntegrationProviderCard";
 import { IntegrationProviderDrawer } from "./IntegrationProviderDrawer";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Wrench } from "lucide-react";
+
+/** IDs of monitoring providers that are actually functional (connect + sync) */
+const FUNCTIONAL_MONITORING_IDS = new Set([
+  // Tier 1 — canonical adapters
+  "solarman_business", "sofar", "solis_cloud", "fox_ess", "solax", "saj", "enphase",
+  // Tier 2 — monolith production
+  "solaredge", "deye_cloud", "growatt", "growatt_server", "hoymiles",
+  "sungrow", "huawei", "goodwe", "fronius", "livoltek", "livoltek_cf",
+  // Tier 3 — beta functional
+  "shinemonitor", "apsystems", "kstar", "intelbras", "ecosolys",
+]);
 
 /**
  * Providers that have dedicated configuration components.
@@ -233,7 +246,13 @@ export default function IntegrationsCatalogPage() {
         case "inactive": passTab = !isActive; break;
       }
       if (passTab) {
-        counts[p.category] = (counts[p.category] || 0) + 1;
+        // For monitoring sidebar count, only count functional providers
+        if (p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id)) {
+          // Still count for "all" total but not for the monitoring category counter
+          counts["_all_monitoring"] = (counts["_all_monitoring"] || 0) + 1;
+        } else {
+          counts[p.category] = (counts[p.category] || 0) + 1;
+        }
       }
     });
     return counts;
@@ -375,15 +394,21 @@ export default function IntegrationsCatalogPage() {
               description="Tente outro termo de busca ou filtro."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filtered.map((provider) => (
+            (() => {
+              // Split monitoring into functional vs stub groups
+              const isMonitoringView = selectedCategory === "monitoring" || selectedCategory === "all";
+              const monitoringFunctional = filtered.filter(p => p.category === "monitoring" && FUNCTIONAL_MONITORING_IDS.has(p.id));
+              const monitoringStub = filtered.filter(p => p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id));
+              const nonMonitoring = filtered.filter(p => p.category !== "monitoring");
+
+              const renderCard = (provider: IntegrationProvider, isStubGroup = false) => (
                 <IntegrationProviderCard
                   key={provider.id}
                   provider={provider}
                   connStatus={getConnectionStatus(provider.id)}
                   plantCount={getPlantCount(provider.id)}
                   lastSync={getLastSync(provider.id)}
-                  onConfigure={() => handleConfigure(provider)}
+                  onConfigure={() => !isStubGroup && handleConfigure(provider)}
                   onSync={() => {
                     setSyncingProviderId(provider.id);
                     const mapped = CANONICAL_TO_LEGACY[provider.id] || provider.id;
@@ -392,8 +417,53 @@ export default function IntegrationsCatalogPage() {
                   onDisconnect={() => disconnectMut.mutate(provider.id)}
                   syncing={syncingProviderId === provider.id}
                 />
-              ))}
-            </div>
+              );
+
+              return (
+                <div className="space-y-8">
+                  {/* Functional monitoring providers */}
+                  {monitoringFunctional.length > 0 && (
+                    <div>
+                      {isMonitoringView && (monitoringFunctional.length > 0 || monitoringStub.length > 0) && (
+                        <div className="flex items-center gap-2 mb-4">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                          <h3 className="text-sm font-semibold text-foreground">Disponíveis agora</h3>
+                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                            {monitoringFunctional.length}
+                          </Badge>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {monitoringFunctional.map(p => renderCard(p))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Non-monitoring providers */}
+                  {nonMonitoring.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {nonMonitoring.map(p => renderCard(p))}
+                    </div>
+                  )}
+
+                  {/* Stub monitoring providers */}
+                  {monitoringStub.length > 0 && isMonitoringView && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Wrench className="h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold text-muted-foreground">Em implementação</h3>
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
+                          {monitoringStub.length}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 opacity-60">
+                        {monitoringStub.map(p => renderCard(p, true))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
       </div>
