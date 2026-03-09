@@ -322,7 +322,7 @@ export function WaInstancesManager() {
 
       {/* Sync History Dialog */}
       <Dialog open={!!syncInstance} onOpenChange={(v) => !v && setSyncInstance(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5 text-primary" />
