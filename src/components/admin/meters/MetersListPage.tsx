@@ -64,6 +64,7 @@ export default function MetersListPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <PageHeader
+        icon={Gauge}
         title="Medidores"
         description="Dispositivos de medição IoT sincronizados via API"
       />
