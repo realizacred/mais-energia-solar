@@ -855,7 +855,7 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Tipo de Atividade ═══ */}
       <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingActivity ? "Editar Tipo" : "Criar Tipo de Atividade"}</DialogTitle>
             <DialogDescription>Defina o nome, visibilidade e ícone</DialogDescription>
