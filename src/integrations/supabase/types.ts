@@ -19444,6 +19444,7 @@ export type Database = {
           idempotency_key: string
           instance_id: string
           max_retries: number
+          media_filename: string | null
           media_url: string | null
           message_id: string | null
           message_type: string
@@ -19468,6 +19469,7 @@ export type Database = {
           idempotency_key: string
           instance_id: string
           max_retries?: number
+          media_filename?: string | null
           media_url?: string | null
           message_id?: string | null
           message_type?: string
@@ -19492,6 +19494,7 @@ export type Database = {
           idempotency_key?: string
           instance_id?: string
           max_retries?: number
+          media_filename?: string | null
           media_url?: string | null
           message_id?: string | null
           message_type?: string
@@ -20696,22 +20699,40 @@ export type Database = {
         Args: { _delta?: number; _metric_key: string }
         Returns: undefined
       }
-      enqueue_wa_outbox_item: {
-        Args: {
-          p_content: string
-          p_conversation_id?: string
-          p_idempotency_key?: string
-          p_instance_id: string
-          p_media_url?: string
-          p_message_id?: string
-          p_message_type: string
-          p_remote_jid: string
-          p_scheduled_at?: string
-          p_status?: string
-          p_tenant_id: string
-        }
-        Returns: string
-      }
+      enqueue_wa_outbox_item:
+        | {
+            Args: {
+              p_content: string
+              p_conversation_id?: string
+              p_idempotency_key?: string
+              p_instance_id: string
+              p_media_url?: string
+              p_message_id?: string
+              p_message_type: string
+              p_remote_jid: string
+              p_scheduled_at?: string
+              p_status?: string
+              p_tenant_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_content: string
+              p_conversation_id?: string
+              p_idempotency_key?: string
+              p_instance_id: string
+              p_media_filename?: string
+              p_media_url?: string
+              p_message_id?: string
+              p_message_type: string
+              p_remote_jid: string
+              p_scheduled_at?: string
+              p_status?: string
+              p_tenant_id: string
+            }
+            Returns: string
+          }
       estoque_cancelar_reserva: {
         Args: { p_reserva_id: string; p_user_id?: string }
         Returns: string
