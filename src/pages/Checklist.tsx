@@ -103,7 +103,7 @@ export default function Checklist() {
             {/* Desktop nav - só mostra opções completas se logado */}
             <div className="hidden md:flex items-center gap-2">
               <Button
-                variant="default"form" ? "secondary" : "ghost"}
+                variant={view === "form" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => setView("form")}
                 className="gap-1"
