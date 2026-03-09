@@ -123,13 +123,16 @@ export function EmailTemplatesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Mail className="h-5 w-5 text-primary" /> Modelos de E-mail
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Crie templates de e-mail com variáveis do catálogo central para envio de propostas.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <Mail className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Modelos de E-mail</h1>
+            <p className="text-sm text-muted-foreground">
+              Crie templates de e-mail com variáveis do catálogo central para envio de propostas.
+            </p>
+          </div>
         </div>
         <Button onClick={startNew} className="gap-1.5" disabled={editingId !== null}>
           <Plus className="h-4 w-4" /> Novo Modelo
