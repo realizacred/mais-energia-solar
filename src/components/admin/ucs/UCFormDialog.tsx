@@ -159,7 +159,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[calc(100dvh-2rem)] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle>{editingUC ? "Editar UC" : "Nova Unidade Consumidora"}</DialogTitle>
         </DialogHeader>
