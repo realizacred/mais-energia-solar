@@ -425,6 +425,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         content: caption || file.name,
         messageType,
         mediaUrl,
+        mediaFilename: file.name,
       });
       console.log("[handleSendMedia] Message sent OK");
     } catch (err: any) {

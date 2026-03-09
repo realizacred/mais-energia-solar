@@ -532,12 +532,14 @@ export function useWaMessages(conversationId?: string) {
       messageType = "text",
       isInternalNote = false,
       mediaUrl,
+      mediaFilename,
       quotedMessageId,
     }: {
       content: string;
       messageType?: string;
       isInternalNote?: boolean;
       mediaUrl?: string;
+      mediaFilename?: string;
       quotedMessageId?: string;
     }) => {
       if (!conversationId) throw new Error("No conversation selected");
@@ -611,6 +613,7 @@ export function useWaMessages(conversationId?: string) {
           p_message_type: messageType,
           p_content: outboxContent,
           p_media_url: mediaUrl || null,
+          p_media_filename: mediaFilename || null,
           p_conversation_id: conversationId,
           p_message_id: msg.id,
           p_idempotency_key: idempKey,

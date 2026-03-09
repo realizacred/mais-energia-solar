@@ -253,7 +253,13 @@ async function sendEvolutionMessage(
       break;
     case "document":
       endpoint = `/message/sendMedia/${instanceKey}`;
-      body = { number, mediatype: "document", media: item.media_url, caption: item.content || "" };
+      body = {
+        number,
+        mediatype: "document",
+        media: item.media_url,
+        caption: item.content || "",
+        fileName: item.media_filename || item.content || "documento",
+      };
       break;
     case "audio":
       endpoint = `/message/sendWhatsAppAudio/${instanceKey}`;
