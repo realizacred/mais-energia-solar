@@ -391,7 +391,7 @@ Objetivos:
 
 ---
 
-## 16. PADRÃO DE BOTÕES — Regra obrigatória
+## 20. PADRÃO DE BOTÕES — Regra obrigatória
 
 - Ação principal (+ Novo, + Criar, + Adicionar, Salvar, Confirmar, Gerar): variant="default" — SEMPRE sólido laranja, nunca outline
 - Ação secundária (Filtrar, Exportar, Importar, Atualizar, Visualizar): variant="outline"
@@ -405,7 +405,7 @@ NUNCA usar elemento button HTML nativo — sempre Button de @/components/ui/butt
 
 ---
 
-## 17. staleTime OBRIGATÓRIO em todo useQuery
+## 21. staleTime OBRIGATÓRIO em todo useQuery
 
 - Dados de monitoramento em tempo real: staleTime: 1000 * 30
 - Dados normais (listas, formulários): staleTime: 1000 * 60 * 5
@@ -415,7 +415,7 @@ NUNCA criar useQuery sem staleTime.
 
 ---
 
-## 18. REGRA DE OVERLAYS E FUNDOS
+## 22. REGRA DE OVERLAYS E FUNDOS
 
 - bg-black/XX — permitido apenas em overlays de media player e componentes shadcn nativos
 - bg-white sólido — permitido apenas em canvas de assinatura (SignaturePad) — necessário para funcionar
