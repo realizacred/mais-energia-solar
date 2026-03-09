@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { ClipboardList, ChevronDown, ChevronRight, Database, FileJson, Search } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { WizardSnapshot } from "./hooks/useWizardPersistence";
