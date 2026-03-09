@@ -62,7 +62,7 @@ export function DirectorAlerts({ insights }: Props) {
             </Badge>
           )}
         </div>
-        <Button variant="outline"
+        <Button
           onClick={() => generateInsight("alert")}
           disabled={isGenerating}
           size="sm"
