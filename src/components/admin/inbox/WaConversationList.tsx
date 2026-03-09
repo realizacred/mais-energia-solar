@@ -514,7 +514,7 @@ export function WaConversationList({
           </Select>
         )}
         {/* Group & Hidden toggles */}
-        <div className="flex items-center gap-3 pt-0.5">
+        <div className="flex items-center gap-3 px-1 py-1 overflow-visible">
           {onShowGroupsChange && (
             <label className="flex items-center gap-1.5 cursor-pointer">
               <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3" />
