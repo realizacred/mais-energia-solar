@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Plus, Trash2, ClipboardList, GripVertical } from "lucide-react";
 
 const TIPOS = [
@@ -55,12 +56,16 @@ export function PostSaleChecklistsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Templates de Checklist</h2>
-        <Button size="sm" className="gap-1" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-3.5 w-3.5" /> Novo Template
-        </Button>
-      </div>
+      <PageHeader
+        icon={ClipboardList}
+        title="Checklists"
+        description="Templates de checklist para visitas técnicas"
+        actions={
+          <Button size="sm" className="gap-1" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> Novo Template
+          </Button>
+        }
+      />
 
       {templates.length === 0 ? (
         <EmptyState icon={ClipboardList} title="Nenhum template" description="Crie um template de checklist para usar nas visitas." />
