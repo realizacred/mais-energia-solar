@@ -201,7 +201,7 @@ export function EtiquetasManager() {
         title={editingId ? "Editar etiqueta" : "Nova etiqueta"}
         onSubmit={handleSave}
         submitLabel={editingId ? "Salvar" : "Criar"}
-        className="sm:max-w-md"
+        className="max-w-md"
       >
             <div className="space-y-2">
               <Label className="text-xs font-medium">Nome</Label>

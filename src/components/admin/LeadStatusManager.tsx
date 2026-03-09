@@ -337,7 +337,7 @@ export function LeadStatusManager() {
 
       {/* Delete Confirmation */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Excluir Status</DialogTitle>
           </DialogHeader>
