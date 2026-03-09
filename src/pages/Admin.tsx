@@ -62,7 +62,6 @@ const UCsListPage = lazy(() => import("@/components/admin/ucs/UCsListPage"));
 const UCDetailPage = lazy(() => import("@/components/admin/ucs/UCDetailPage"));
 const MetersListPage = lazy(() => import("@/components/admin/meters/MetersListPage"));
 const MeterDetailPage = lazy(() => import("@/components/admin/meters/MeterDetailPage"));
-const ApisPage = lazy(() => import("@/components/admin/integrations-api/ApisPage"));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
@@ -330,7 +329,6 @@ const TAB_TITLES: Record<string, string> = {
   "aneel-sync-status": "Status do Sync ANEEL",
   medidores: "Medidores",
   ucs: "Unidades Consumidoras",
-  "integracoes-apis": "APIs & Integrações",
 };
 
 /** N8n placeholder component */
@@ -566,9 +564,6 @@ export default function Admin() {
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />
                 <Route path="ucs/:id" element={<UCDetailPage />} />
-                
-                {/* Integrações > APIs */}
-                <Route path="integracoes-apis" element={<ApisPage />} />
                 
                 {/* Financeiro */}
                 <Route path="recebimentos" element={<RecebimentosManager />} />

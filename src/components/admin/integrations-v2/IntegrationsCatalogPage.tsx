@@ -43,6 +43,7 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   webhooks_generic: lazy(() => import("@/components/admin/WebhookManager")),
   asaas: lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig }))),
   public_api: lazy(() => import("@/pages/admin/OpenAIConfigPage")),
+  tuya_iot: lazy(() => import("@/components/admin/integrations-api/ApisPage")),
 };
 
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
@@ -94,7 +95,25 @@ export default function IntegrationsCatalogPage() {
   const providers = useMemo(() => {
     const nonMonitoring = dbProviders.filter((p) => p.category !== "monitoring");
     const monitoringFromRegistry = PROVIDER_REGISTRY.map(toIntegrationProvider);
-    return [...nonMonitoring, ...monitoringFromRegistry];
+    
+    const tuyaProvider: IntegrationProvider = {
+      id: "tuya_iot",
+      category: "api",
+      label: "Tuya Smart (IoT)",
+      description: "Plataforma IoT para medidores inteligentes",
+      status: "available",
+      auth_type: "oauth2",
+      credential_schema: [],
+      tutorial: { steps: [] },
+      capabilities: {},
+      platform_managed_keys: false,
+      popularity: 100,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      logo_key: null,
+    };
+    
+    return [...nonMonitoring, ...monitoringFromRegistry, tuyaProvider];
   }, [dbProviders]);
 
   const { data: connections = [] } = useQuery({

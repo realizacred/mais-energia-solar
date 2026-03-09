@@ -147,7 +147,6 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   // Todas as config individuais (OpenAI, Gemini, Google Maps, WhatsApp, etc.)
   // continuam acessíveis via rotas /admin/*, mas o acesso é pelo catálogo.
   { nav_key: "catalogo-integracoes", label_default: "Todas as Integrações", group_default: "Integrações", order_default: 0, icon: "Plug", description: "Catálogo completo de integrações disponíveis", keywords: ["integração", "catálogo", "provider", "conectar", "solar", "crm", "pagamento", "webhook", "openai", "gemini", "whatsapp", "meta", "google", "maps", "agenda", "instagram", "automação", "webhook", "asaas"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "integracoes-apis", label_default: "APIs", group_default: "Integrações", order_default: 0.5, icon: "Zap", description: "Configuração de APIs externas (Tuya, IoT)", keywords: ["api", "tuya", "iot", "medidor", "configuração", "credencial"], criticality: "normal", permission: "admin_only" },
   { nav_key: "saude-integracoes", label_default: "Saúde das Integrações", group_default: "Integrações", order_default: 1, icon: "Activity", description: "Status em tempo real de todas as conexões externas", keywords: ["saúde", "health", "status", "integração", "monitoramento", "conexão"], criticality: "normal", permission: "admin_only" },
 
   // ── Projetos & Propostas (configurações operacionais) ──
