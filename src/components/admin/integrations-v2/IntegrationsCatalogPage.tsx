@@ -246,7 +246,13 @@ export default function IntegrationsCatalogPage() {
         case "inactive": passTab = !isActive; break;
       }
       if (passTab) {
-        counts[p.category] = (counts[p.category] || 0) + 1;
+        // For monitoring sidebar count, only count functional providers
+        if (p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id)) {
+          // Still count for "all" total but not for the monitoring category counter
+          counts["_all_monitoring"] = (counts["_all_monitoring"] || 0) + 1;
+        } else {
+          counts[p.category] = (counts[p.category] || 0) + 1;
+        }
       }
     });
     return counts;
