@@ -424,12 +424,14 @@ NUNCA criar useQuery sem staleTime.
 
 ---
 
-## 23. TAMANHOS DE MODAIS (DialogContent) POR COMPLEXIDADE
+## 23. TAMANHOS DE MODAIS (DialogContent)
 
-- Formulário simples (até 4 campos): max-w-md
-- Formulário médio (até 8 campos): max-w-2xl
-- Formulário com 2 colunas ou seções: max-w-4xl
-- Formulário completo com endereço + múltiplas seções: max-w-5xl
-- Wizard / multi-step: max-w-4xl
+- Formulário simples até 4 campos: max-w-md
+- Formulário médio até 8 campos: max-w-2xl
+- Formulário com 2 colunas ou seções: w-[90vw] max-w-[1100px]
+- Formulário completo com endereço e múltiplas seções: w-[90vw] max-w-[1100px]
+- Wizard multi-step: w-[90vw] max-w-[1100px]
 
-NUNCA usar max-w-2xl em formulários com layout de 2 colunas — vai quebrar o grid.
+REGRA: Sempre usar w-[90vw] para aproveitar a tela toda em notebooks e monitores.
+NUNCA usar max-w-2xl ou max-w-4xl em formulários com 2 ou mais colunas.
+NUNCA criar scroll interno em modal — todo conteúdo deve estar visível.
