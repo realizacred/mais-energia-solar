@@ -44,32 +44,6 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
   cancelada: { label: "Cancelada", variant: "destructive", icon: XCircle, color: "text-destructive" },
 };
 
-// ── Small info pill ─────────────────────
-function InfoPill({ icon: Icon, label, value, className }: { icon: any; label: string; value: string | number; className?: string }) {
-  return (
-    <div className={cn("flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2", className)}>
-      <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-      <div className="min-w-0">
-        <p className="text-[10px] text-muted-foreground leading-none mb-0.5">{label}</p>
-        <p className="text-sm font-semibold text-foreground truncate">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-// ── Action link item ─────────────────────
-function ActionLink({ icon: Icon, label, onClick, disabled, iconColor }: { icon: any; label: string; onClick: () => void; disabled?: boolean; iconColor?: string }) {
-  return (
-    <button
-      className="flex items-center gap-2 text-xs text-foreground/80 hover:text-primary transition-colors py-1.5 disabled:opacity-40 disabled:pointer-events-none group w-full text-left"
-      onClick={onClick}
-      disabled={disabled}
-    >
-      <Icon className={cn("h-3.5 w-3.5 shrink-0", iconColor || "text-primary")} />
-      <span className="group-hover:underline underline-offset-2">{label}</span>
-    </button>
-  );
-}
 
 export function ProposalDetail() {
   const { propostaId, versaoId } = useParams();
