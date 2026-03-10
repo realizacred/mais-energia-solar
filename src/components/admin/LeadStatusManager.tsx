@@ -76,7 +76,7 @@ export function LeadStatusManager() {
   const openCreate = () => {
     setEditingStatus(null);
     setNome("");
-    setCor("#3b82f6");
+    setCor("");
     setDialogOpen(true);
   };
 
