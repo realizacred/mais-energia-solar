@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Settings, Save, Calculator, Zap, Leaf, DollarSign, Calendar, Info } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { LoadingState } from "@/components/ui-kit";
+import { motion } from "framer-motion";
 
 interface CalcFields {
   id?: string;
@@ -94,7 +95,6 @@ export default function CalculadoraConfig() {
           .eq("id", config.id);
         if (error) throw error;
       } else {
-        // tenant_premises requires tenant_id — resolved by RLS trigger
         const { data, error } = await supabase
           .from("tenant_premises")
           .insert([payload] as any)
@@ -126,125 +126,165 @@ export default function CalculadoraConfig() {
   };
 
   if (loading) {
-    return <LoadingState message="Carregando configuração..." />;
+    return (
+      <div className="p-4 md:p-6 space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <div>
+            <Skeleton className="h-6 w-64 mb-1" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+        </div>
+        <Skeleton className="h-14 w-full rounded-lg" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!config) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="p-4 md:p-6 text-center py-8 text-muted-foreground">
         Configuração não encontrada.
       </div>
     );
   }
 
   return (
-    <SectionCard icon={Calculator} title="Configuração da Calculadora Solar" description="Ajuste os parâmetros utilizados nos cálculos de economia e investimento" variant="blue">
-        <Alert className="border-info/20 bg-info/5">
-          <Info className="w-4 h-4 text-info" />
-          <AlertDescription className="text-sm text-foreground">
-            <strong>Configurações Unificadas com Propostas.</strong>{" "}
-            Estes valores são compartilhados com o módulo de Premissas Técnicas.
-            Alterações aqui serão refletidas nas propostas e simulações.
-          </AlertDescription>
-        </Alert>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="tarifa" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-success" />
-              Tarifa Média (R$/kWh)
-            </Label>
-            <Input
-              id="tarifa"
-              type="number"
-              step="0.01"
-              value={config.tarifa}
-              onChange={(e) => updateField("tarifa", parseFloat(e.target.value) || 0)}
-            />
-            <p className="text-xs text-muted-foreground">Valor médio cobrado pelas concessionárias</p>
+    <motion.div
+      className="p-4 md:p-6 space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* §26 Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <Calculator className="w-5 h-5" />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="custo" className="flex items-center gap-2">
-              <Settings className="w-4 h-4 text-secondary" />
-              Custo por kWp (R$)
-            </Label>
-            <Input
-              id="custo"
-              type="number"
-              step="100"
-              value={config.custo_por_kwp}
-              onChange={(e) => updateField("custo_por_kwp", parseFloat(e.target.value) || 0)}
-            />
-            <p className="text-xs text-muted-foreground">Custo médio de instalação por kWp</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="geracao" className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
-              Geração Mensal (kWh/kWp)
-            </Label>
-            <Input
-              id="geracao"
-              type="number"
-              value={config.geracao_mensal_por_kwp}
-              onChange={(e) => updateField("geracao_mensal_por_kwp", parseInt(e.target.value) || 0)}
-            />
-            <p className="text-xs text-muted-foreground">kWh gerados por kWp instalado/mês</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="co2" className="flex items-center gap-2">
-              <Leaf className="w-4 h-4 text-success" />
-              CO₂ por kWh (kg)
-            </Label>
-            <Input
-              id="co2"
-              type="number"
-              step="0.001"
-              value={config.kg_co2_por_kwh}
-              onChange={(e) => updateField("kg_co2_por_kwh", parseFloat(e.target.value) || 0)}
-            />
-            <p className="text-xs text-muted-foreground">kg de CO₂ por kWh na rede elétrica</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="economia" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-success" />
-              Percentual Economia (%)
-            </Label>
-            <Input
-              id="economia"
-              type="number"
-              min="0"
-              max="100"
-              value={config.percentual_economia}
-              onChange={(e) => updateField("percentual_economia", parseInt(e.target.value) || 0)}
-            />
-            <p className="text-xs text-muted-foreground">% de economia na conta de luz</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="vida" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-secondary" />
-              Vida Útil (anos)
-            </Label>
-            <Input
-              id="vida"
-              type="number"
-              value={config.vida_util_sistema}
-              onChange={(e) => updateField("vida_util_sistema", parseInt(e.target.value) || 0)}
-            />
-            <p className="text-xs text-muted-foreground">Vida útil estimada do sistema</p>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Configuração da Calculadora Solar</h1>
+            <p className="text-sm text-muted-foreground">Ajuste os parâmetros utilizados nos cálculos de economia e investimento</p>
           </div>
         </div>
+      </div>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving} className="gap-2">
-            {saving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
-            Salvar Configuração
-          </Button>
-        </div>
-    </SectionCard>
+      {/* Info alert */}
+      <Alert className="border-info/20 bg-info/5">
+        <Info className="w-4 h-4 text-info" />
+        <AlertDescription className="text-sm text-foreground">
+          <strong>Configurações Unificadas com Propostas.</strong>{" "}
+          Estes valores são compartilhados com o módulo de Premissas Técnicas.
+          Alterações aqui serão refletidas nas propostas e simulações.
+        </AlertDescription>
+      </Alert>
+
+      {/* Fields grid */}
+      <Card className="bg-card border-border shadow-sm">
+        <CardContent className="pt-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="tarifa" className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <DollarSign className="w-4 h-4 text-success" />
+                Tarifa Média (R$/kWh)
+              </Label>
+              <Input
+                id="tarifa"
+                type="number"
+                step="0.01"
+                value={config.tarifa}
+                onChange={(e) => updateField("tarifa", parseFloat(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">Valor médio cobrado pelas concessionárias</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="custo" className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Settings className="w-4 h-4 text-secondary" />
+                Custo por kWp (R$)
+              </Label>
+              <Input
+                id="custo"
+                type="number"
+                step="100"
+                value={config.custo_por_kwp}
+                onChange={(e) => updateField("custo_por_kwp", parseFloat(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">Custo médio de instalação por kWp</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="geracao" className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Zap className="w-4 h-4 text-primary" />
+                Geração Mensal (kWh/kWp)
+              </Label>
+              <Input
+                id="geracao"
+                type="number"
+                value={config.geracao_mensal_por_kwp}
+                onChange={(e) => updateField("geracao_mensal_por_kwp", parseInt(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">kWh gerados por kWp instalado/mês</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="co2" className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Leaf className="w-4 h-4 text-success" />
+                CO₂ por kWh (kg)
+              </Label>
+              <Input
+                id="co2"
+                type="number"
+                step="0.001"
+                value={config.kg_co2_por_kwh}
+                onChange={(e) => updateField("kg_co2_por_kwh", parseFloat(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">kg de CO₂ por kWh na rede elétrica</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="economia" className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <DollarSign className="w-4 h-4 text-success" />
+                Percentual Economia (%)
+              </Label>
+              <Input
+                id="economia"
+                type="number"
+                min="0"
+                max="100"
+                value={config.percentual_economia}
+                onChange={(e) => updateField("percentual_economia", parseInt(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">% de economia na conta de luz</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vida" className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Calendar className="w-4 h-4 text-secondary" />
+                Vida Útil (anos)
+              </Label>
+              <Input
+                id="vida"
+                type="number"
+                value={config.vida_util_sistema}
+                onChange={(e) => updateField("vida_util_sistema", parseInt(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">Vida útil estimada do sistema</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving} className="gap-2">
+          {saving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
+          Salvar Configuração
+        </Button>
+      </div>
+    </motion.div>
   );
 }
