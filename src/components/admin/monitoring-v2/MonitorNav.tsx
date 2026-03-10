@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Sun, AlertTriangle, FileText, Plug, DollarSign, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -26,24 +27,26 @@ export function MonitorNav() {
   const activeTab = getActiveTab(location.pathname);
 
   return (
-    <nav className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border/60 overflow-x-auto">
+    <nav className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border overflow-x-auto">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive = activeTab === item.key;
         return (
-          <button
+          <Button
             key={item.key}
+            variant="ghost"
+            size="sm"
             onClick={() => navigate(`/admin/monitoramento${item.path ? `/${item.path}` : ""}`)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200",
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 h-auto",
               isActive
-                ? "bg-card text-foreground shadow-sm border border-border/60"
+                ? "bg-card text-foreground shadow-sm border border-border hover:bg-card"
                 : "text-muted-foreground hover:text-foreground hover:bg-card/50"
             )}
           >
             <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground/70")} />
             <span className="hidden sm:inline">{item.label}</span>
-          </button>
+          </Button>
         );
       })}
     </nav>

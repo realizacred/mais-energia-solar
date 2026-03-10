@@ -157,7 +157,7 @@ export default function MonitorDashboard() {
           icon={Sun}
         />
         {lastSync && (
-          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-2xl px-3 py-2 border border-border/60 shrink-0">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-2xl px-3 py-2 border border-border shrink-0">
             <div className="flex items-center gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Sync: <strong className="text-foreground">{formatDistanceToNow(lastSync, { addSuffix: true, locale: ptBR })}</strong></span>
@@ -334,7 +334,7 @@ function EnterpriseKpi({ icon: Icon, label, value, subtitle, accentColor = "mute
       onClick={onClick}
       className={cn(
         "relative rounded-2xl border bg-card p-6 transition-all duration-200 shadow-sm",
-        highlight ? a.borderHighlight : "border-border/50",
+        highlight ? a.borderHighlight : "border-border",
         onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
       )}
     >
@@ -437,7 +437,7 @@ function OperationalSummary({ onlinePerc, alertCount, currentPowerKw, energyToda
 
   return (
     <SectionCard title="Resumo Operacional" icon={BarChart3}>
-      <div className="space-y-0 divide-y divide-border/40">
+      <div className="space-y-0 divide-y divide-border">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
             <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
@@ -471,26 +471,27 @@ function OfflineStandbySection({ plants, navigate }: {
         <SectionCard title={`Offline (${offlinePlants.length})`} icon={WifiOff} variant="warning">
           <div className="space-y-1 max-h-[240px] overflow-y-auto">
             {offlinePlants.slice(0, 20).map((p) => (
-              <button
+              <Button
                 key={p.id}
+                variant="ghost"
                 onClick={() => navigate(`/admin/monitoramento/usinas/${p.id}`)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg h-auto text-left"
               >
                 <span className="text-sm text-foreground truncate">{p.name}</span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="h-2 w-2 rounded-full bg-destructive" />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground font-normal">
                     {p.health?.last_seen_at
                       ? formatDistanceToNow(new Date(p.health.last_seen_at), { addSuffix: true, locale: ptBR })
                       : "sem dados"}
                   </span>
                 </div>
-              </button>
+              </Button>
             ))}
             {offlinePlants.length > 20 && (
-              <button onClick={() => navigate("/admin/monitoramento/usinas?status=offline")} className="w-full text-xs text-primary font-medium py-2 hover:underline">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/admin/monitoramento/usinas?status=offline")} className="w-full text-xs text-primary font-medium">
                 Ver todas ({offlinePlants.length})
-              </button>
+              </Button>
             )}
           </div>
         </SectionCard>
@@ -499,22 +500,23 @@ function OfflineStandbySection({ plants, navigate }: {
         <SectionCard title={`Standby (${standbyPlants.length})`} icon={Moon}>
           <div className="space-y-1 max-h-[240px] overflow-y-auto">
             {standbyPlants.slice(0, 20).map((p) => (
-              <button
+              <Button
                 key={p.id}
+                variant="ghost"
                 onClick={() => navigate(`/admin/monitoramento/usinas/${p.id}`)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg h-auto text-left"
               >
                 <span className="text-sm text-foreground truncate">{p.name}</span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="h-2 w-2 rounded-full bg-warning" />
-                  <span className="text-xs text-muted-foreground">standby</span>
+                  <span className="text-xs text-muted-foreground font-normal">standby</span>
                 </div>
-              </button>
+              </Button>
             ))}
             {standbyPlants.length > 20 && (
-              <button onClick={() => navigate("/admin/monitoramento/usinas?status=standby")} className="w-full text-xs text-primary font-medium py-2 hover:underline">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/admin/monitoramento/usinas?status=standby")} className="w-full text-xs text-primary font-medium">
                 Ver todas ({standbyPlants.length})
-              </button>
+              </Button>
             )}
           </div>
         </SectionCard>
