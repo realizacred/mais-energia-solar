@@ -54,7 +54,7 @@ export function useNotifications() {
           query = query.eq("owner_user_id", user.id);
         }
 
-        const { data: leads } = await query;
+        const { data: leads } = await (query as any);
         if (leads) {
           for (const lead of leads) {
             items.push({
