@@ -400,9 +400,9 @@ export function LoadingConfigAdmin() {
                   onValueChange={(v) => {
                     const f = v as LoaderFinish;
                     setFinish(f);
-                    setAnimStyle(buildAnimationKey(motion, f));
+                    setAnimStyle(buildAnimationKey(motionStyle, f));
                   }}
-                  disabled={motion === "none" || motion === "pulse" || motion === "breathe"}
+                  disabled={motionStyle === "none" || motionStyle === "pulse" || motionStyle === "breathe"}
                 >
                   <SelectTrigger>
                     <SelectValue />
