@@ -27,7 +27,7 @@
  *  7. Financeiro
  *  8. Equipe
  *  9. IA
- * 10. Monitoramento
+ * 10. Energia
  * 11. Integrações
  * 12. Site
  * 13. Cadastros
