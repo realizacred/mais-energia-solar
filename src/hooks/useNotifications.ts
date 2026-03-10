@@ -72,7 +72,7 @@ export function useNotifications() {
       // 2. Unread WhatsApp conversations
       // Admin: all open | Consultant: assigned_to me or unassigned
       try {
-        let query = supabase
+        let q2: any = supabase
           .from("wa_conversations")
           .select("id, cliente_nome, cliente_telefone, unread_count, last_message_at")
           .gt("unread_count", 0)
@@ -81,10 +81,10 @@ export function useNotifications() {
           .limit(10);
 
         if (!isAdmin) {
-          query = query.or(`assigned_to.eq.${user.id},assigned_to.is.null`);
+          q2 = q2.or(`assigned_to.eq.${user.id},assigned_to.is.null`);
         }
 
-        const { data: convs } = await (query as any);
+        const { data: convs } = await q2;
         if (convs) {
           for (const conv of convs) {
             items.push({
