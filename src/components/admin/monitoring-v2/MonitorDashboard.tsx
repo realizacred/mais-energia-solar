@@ -437,7 +437,7 @@ function OperationalSummary({ onlinePerc, alertCount, currentPowerKw, energyToda
 
   return (
     <SectionCard title="Resumo Operacional" icon={BarChart3}>
-      <div className="space-y-0 divide-y divide-border/40">
+      <div className="space-y-0 divide-y divide-border">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
             <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
