@@ -311,7 +311,7 @@ export function LoadingConfigAdmin() {
 
           {/* Custom upload section */}
           {loaderTheme === "custom" && (
-            <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border/30">
+            <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border">
               <Label className="text-sm font-medium">Imagem personalizada</Label>
               <p className="text-xs text-muted-foreground">Upload PNG, SVG ou WebP (máx 500KB). A imagem será animada com o estilo selecionado.</p>
               
