@@ -103,7 +103,7 @@ export function useNotifications() {
       // Admin: all | Consultant: assigned_to me or created_by me
       try {
         const in4h = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
-        let query = supabase
+        let q3: any = supabase
           .from("appointments")
           .select("id, title, starts_at, status")
           .gte("starts_at", now.toISOString())
@@ -113,10 +113,10 @@ export function useNotifications() {
           .limit(5);
 
         if (!isAdmin) {
-          query = query.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
+          q3 = q3.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
         }
 
-        const { data: appts } = await (query as any);
+        const { data: appts } = await q3;
         if (appts) {
           for (const appt of appts) {
             const time = new Date(appt.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
