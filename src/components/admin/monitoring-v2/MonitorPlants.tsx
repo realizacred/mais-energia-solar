@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { MonitorNav } from "./MonitorNav";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -164,6 +165,8 @@ export default function MonitorPlants() {
           </div>
         }
       />
+
+      <MonitorNav />
 
       {/* ═══════════════════════════════════════════════
           📊 RESUMO OPERACIONAL (reacts to filters)

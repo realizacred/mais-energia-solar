@@ -1,5 +1,6 @@
 import React from "react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { MonitorNav } from "./MonitorNav";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import {
   BookOpen,
@@ -60,7 +61,8 @@ export default function MonitorAlertsTutorial() {
         icon={BookOpen}
       />
 
-      {/* O que é PR */}
+      <MonitorNav />
+
       <SectionCard title="O que é Performance Ratio (PR)?" icon={Gauge}>
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>

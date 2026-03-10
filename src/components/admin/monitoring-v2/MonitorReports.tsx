@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { MonitorNav } from "./MonitorNav";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
@@ -210,6 +211,8 @@ export default function MonitorReports() {
           </div>
         }
       />
+
+      <MonitorNav />
 
       {plants.length === 0 ? (
         <EmptyState
