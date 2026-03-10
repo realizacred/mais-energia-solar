@@ -554,151 +554,208 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     );
   }
 
+  const activeCount = vendedores.filter(v => v.ativo).length;
+  const inactiveCount = vendedores.filter(v => !v.ativo).length;
+  const linkedCount = vendedores.filter(v => v.user_id).length;
+
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <SectionCard
-        icon={Users}
-        title={`Consultores (${vendedores.length})`}
-        variant="blue"
-        actions={
-          <Button onClick={openNewDialog} className="gap-2">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+      {/* §26 Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Consultores</h1>
+            <p className="text-sm text-muted-foreground">Gerencie consultores, links e acessos ao portal</p>
+          </div>
+        </div>
+        <Button onClick={openNewDialog} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Novo Consultor
+        </Button>
+      </div>
+
+      {/* §27 KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{vendedores.length}</p>
+              <p className="text-sm text-muted-foreground mt-1">Total</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-success bg-card shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{activeCount}</p>
+              <p className="text-sm text-muted-foreground mt-1">Ativos</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-warning bg-card shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+              <EyeOff className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{inactiveCount}</p>
+              <p className="text-sm text-muted-foreground mt-1">Inativos</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-info bg-card shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
+              <LinkIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{linkedCount}</p>
+              <p className="text-sm text-muted-foreground mt-1">Vinculados</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* §4 Table */}
+      {vendedores.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Users className="w-10 h-10 text-muted-foreground/40 mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">Nenhum consultor cadastrado</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Cadastre o primeiro consultor para começar</p>
+          <Button onClick={openNewDialog} variant="outline" className="mt-4 gap-2">
             <Plus className="w-4 h-4" />
-            Novo Consultor
+            Cadastrar primeiro consultor
           </Button>
-        }
-      >
-          {vendedores.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
-               <p>Nenhum consultor cadastrado</p>
-               <Button onClick={openNewDialog} variant="outline" className="mt-4">
-                Cadastrar primeiro consultor
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="font-semibold text-foreground">Nome</TableHead>
-                    <TableHead className="font-semibold text-foreground">Contato</TableHead>
-                    <TableHead className="font-semibold text-foreground">Usuário Vinculado</TableHead>
-                    <TableHead className="font-semibold text-foreground">Comissão</TableHead>
-                    <TableHead className="font-semibold text-foreground">Leads</TableHead>
-                    <TableHead className="font-semibold text-foreground">Status</TableHead>
-                    <TableHead className="font-semibold text-foreground">Link</TableHead>
-                    <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {vendedores.map((vendedor) => (
-                    <TableRow key={vendedor.id} className={cn("hover:bg-muted/30 transition-colors", !vendedor.ativo && "opacity-50")}>
-                      <TableCell className="font-medium">{vendedor.nome}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Phone className="w-3 h-3 text-muted-foreground" />
-                            {vendedor.telefone}
-                          </div>
-                          {vendedor.email && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Mail className="w-3 h-3" />
-                              {vendedor.email}
-                            </div>
-                          )}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground">Nome</TableHead>
+                <TableHead className="font-semibold text-foreground">Contato</TableHead>
+                <TableHead className="font-semibold text-foreground">Usuário Vinculado</TableHead>
+                <TableHead className="font-semibold text-foreground">Comissão</TableHead>
+                <TableHead className="font-semibold text-foreground">Leads</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-foreground">Link</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vendedores.map((vendedor) => (
+                <TableRow key={vendedor.id} className={cn("hover:bg-muted/30 transition-colors", !vendedor.ativo && "opacity-50")}>
+                  <TableCell className="font-medium text-foreground">{vendedor.nome}</TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-sm text-foreground">
+                        <Phone className="w-3 h-3 text-muted-foreground" />
+                        {vendedor.telefone}
+                      </div>
+                      {vendedor.email && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Mail className="w-3 h-3" />
+                          {vendedor.email}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {vendedor.user_id ? (
-                          <Badge variant="secondary" className="gap-1">
-                            <UserCheck className="w-3 h-3" />
-                            {getUserName(vendedor.user_id) || "Vinculado"}
-                          </Badge>
-                        ) : vendedor.email ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1 text-xs"
-                            disabled={generatingInvite === vendedor.id}
-                            onClick={() => generateInvite(vendedor.id, vendedor.email!, vendedor.telefone)}
-                          >
-                            {generatingInvite === vendedor.id ? (
-                              <Spinner size="sm" />
-                            ) : (
-                              <TicketCheck className="w-3 h-3" />
-                            )}
-                            Enviar Convite
-                          </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {vendedor.user_id ? (
+                      <Badge variant="outline" className="gap-1 bg-success/10 text-success border-success/20">
+                        <UserCheck className="w-3 h-3" />
+                        {getUserName(vendedor.user_id) || "Vinculado"}
+                      </Badge>
+                    ) : vendedor.email ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 text-xs"
+                        disabled={generatingInvite === vendedor.id}
+                        onClick={() => generateInvite(vendedor.id, vendedor.email!, vendedor.telefone)}
+                      >
+                        {generatingInvite === vendedor.id ? (
+                          <Spinner size="sm" />
                         ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
+                          <TicketCheck className="w-3 h-3" />
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="font-mono">
-                          {vendedor.percentual_comissao ?? 0}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                          {leadCounts[vendedor.nome.toLowerCase()] || 0} leads
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={vendedor.ativo}
-                            onCheckedChange={() => handleToggleAtivo(vendedor)}
-                          />
-                          <span className={`text-sm ${vendedor.ativo ? "text-success" : "text-muted-foreground"}`}>
-                            {vendedor.ativo ? "Ativo" : "Inativo"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyLink(vendedor)}
-                          className="gap-2"
-                          disabled={!vendedor.ativo}
-                        >
-                          {copiedId === vendedor.id ? (
-                            <Check className="w-3 h-3 text-success" />
-                          ) : (
-                            <Copy className="w-3 h-3" />
-                          )}
-                          {copiedId === vendedor.id ? "Copiado!" : "Copiar"}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(vendedor)}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => {
-                              setVendedorToDelete(vendedor);
-                              setIsDeleteOpen(true);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-      </SectionCard>
+                        Enviar Convite
+                      </Button>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {vendedor.percentual_comissao ?? 0}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                      {leadCounts[vendedor.nome.toLowerCase()] || 0} leads
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {/* §28 Switch with padding, no overflow-hidden */}
+                    <div className="flex items-center gap-2 px-1">
+                      <Switch
+                        checked={vendedor.ativo}
+                        onCheckedChange={() => handleToggleAtivo(vendedor)}
+                      />
+                      <span className={`text-sm ${vendedor.ativo ? "text-success" : "text-muted-foreground"}`}>
+                        {vendedor.ativo ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyLink(vendedor)}
+                      className="gap-2"
+                      disabled={!vendedor.ativo}
+                    >
+                      {copiedId === vendedor.id ? (
+                        <Check className="w-3 h-3 text-success" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                      {copiedId === vendedor.id ? "Copiado!" : "Copiar"}
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(vendedor)}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          setVendedorToDelete(vendedor);
+                          setIsDeleteOpen(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Add/Edit Dialog */}
       <FormModalTemplate
@@ -751,20 +808,20 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             </div>
             {/* Tipo de acesso */}
             {isNewVendedor && (
-              <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+              <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/30">
                 <Label>Tipo de Acesso ao Portal *</Label>
                 <div className="flex flex-wrap gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="tipoAcesso" value="convite" checked={formData.tipoAcesso === "convite"} onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "convite", user_id: "", senha: "" }))} className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium">Enviar convite</span>
+                    <span className="text-sm font-medium text-foreground">Enviar convite</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="tipoAcesso" value="criar" checked={formData.tipoAcesso === "criar"} onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "criar", user_id: "" }))} className="w-4 h-4 text-primary" />
-                    <span className="text-sm">Criar com senha</span>
+                    <span className="text-sm text-foreground">Criar com senha</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="tipoAcesso" value="vincular" checked={formData.tipoAcesso === "vincular"} onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "vincular", email: "", senha: "" }))} className="w-4 h-4 text-primary" />
-                    <span className="text-sm">Vincular existente</span>
+                    <span className="text-sm text-foreground">Vincular existente</span>
                   </label>
                 </div>
                 {formData.tipoAcesso === "convite" && (
@@ -832,7 +889,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             
             {/* Vincular/Alterar/Desvincular usuário - edição */}
             {editingVendedor && (
-              <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+              <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <Label>Usuário Vinculado</Label>
                   {formData.user_id && (
@@ -843,9 +900,9 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                 </div>
                 {formData.user_id ? (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 p-2 rounded bg-background border">
+                    <div className="flex items-center gap-2 p-2 rounded bg-background border border-border">
                       <UserCheck className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium">{getUserName(formData.user_id) || "Usuário vinculado"}</span>
+                      <span className="text-sm font-medium text-foreground">{getUserName(formData.user_id) || "Usuário vinculado"}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">Este usuário pode acessar o Portal do Consultor. Para alterar, primeiro desvincule.</p>
                   </div>
@@ -880,7 +937,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
             {/* WhatsApp Auto-Message Settings */}
             {editingVendedor && (
-              <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+              <div className="space-y-2 rounded-lg border border-border p-3 bg-muted/30">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">WhatsApp Automático</p>
                 <WaAutoMessageToggle vendedorId={editingVendedor.id} />
               </div>
@@ -911,9 +968,9 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
       {/* Invite Link Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               <TicketCheck className="w-5 h-5 text-primary" />
               Convite Gerado
             </DialogTitle>
