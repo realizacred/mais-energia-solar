@@ -65,7 +65,7 @@ export function LoadingConfigAdmin() {
 
   const [loaderTheme, setLoaderTheme] = useState<LoaderTheme>("sun");
   const [animStyle, setAnimStyle] = useState<LoaderAnimation>("pulse");
-  const [motion, setMotion] = useState<LoaderMotion>("pulse");
+  const [motionStyle, setMotionStyle] = useState<LoaderMotion>("pulse");
   const [finish, setFinish] = useState<LoaderFinish>("continue");
   const [showMessages, setShowMessages] = useState(true);
   const [overlayDelay, setOverlayDelay] = useState(400);
