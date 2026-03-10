@@ -11,7 +11,7 @@ import { getPublicUrl } from "@/lib/getPublicUrl";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
-import { SectionCard } from "@/components/ui-kit/SectionCard";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmailInput } from "@/components/ui/EmailInput";
