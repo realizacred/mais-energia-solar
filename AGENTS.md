@@ -680,3 +680,57 @@ Containers que envolvem switches devem:
 - Ter padding suficiente: px-3 py-2
 - NUNCA usar overflow-hidden no elemento pai direto do switch
 - Garantir que o switch não seja cortado pela borda do container
+
+---
+
+## 29. PADRÃO DE ABAS INTERNAS (Tabs dentro de página)
+
+Quando uma página tem menu de abas interno, a ordem obrigatória é:
+
+1. Header da página (ícone + título + subtítulo) — seção 26
+2. Menu de abas (Tabs horizontais)
+3. Conteúdo da aba ativa
+
+NUNCA colocar o menu de abas antes do header.
+NUNCA colocar o título dentro do conteúdo da aba.
+
+Exemplo correto:
+```tsx
+<div className="p-4 md:p-6">
+  {/* 1. Header sempre primeiro */}
+  <div className="flex items-center gap-3 mb-4">
+    <div className="w-10 h-10 rounded-lg bg-primary/10 
+    text-primary flex items-center justify-center">
+      <Icon className="w-5 h-5" />
+    </div>
+    <div>
+      <h1 className="text-xl font-bold text-foreground">
+        Título
+      </h1>
+      <p className="text-sm text-muted-foreground">
+        Subtítulo
+      </p>
+    </div>
+  </div>
+
+  {/* 2. Abas depois do header */}
+  <Tabs defaultValue="dashboard">
+    <TabsList>
+      <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+      <TabsTrigger value="lista">Lista</TabsTrigger>
+    </TabsList>
+
+    {/* 3. Conteúdo */}
+    <TabsContent value="dashboard">
+      ...
+    </TabsContent>
+  </Tabs>
+</div>
+```
+
+Telas que usam abas internas devem seguir esse padrão:
+- Monitoramento Solar
+- Recebimentos (Recebimentos, Relatórios, Calendário)
+- Qualquer outra tela com TabsList
+
+Não altere nenhuma outra parte do AGENTS.md.
