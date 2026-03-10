@@ -396,7 +396,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const handleSendMedia = async (file: File, caption?: string) => {
     if (!selectedConv) return;
     try {
-      console.log("[handleSendMedia] file:", file.name, "type:", file.type, "size:", file.size);
+      
       const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
       const tid = await getCurrentTenantId();
       if (!tid) throw new Error("Tenant não encontrado");
