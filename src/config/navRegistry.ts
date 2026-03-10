@@ -182,8 +182,6 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "meta-config", label_default: "Configuração", group_default: "_hidden", order_default: 3, icon: "Settings", description: "Credenciais Meta", keywords: ["meta", "config"], criticality: "normal", permission: "admin_only" },
 
   // Standalone items accessible via other routes
-  { nav_key: "medidores", label_default: "Medidores", group_default: "_hidden", order_default: 0, icon: "Gauge", description: "Dispositivos de medição IoT", keywords: ["medidor", "meter", "tuya"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "ucs", label_default: "Unidades Consumidoras", group_default: "_hidden", order_default: 0, icon: "Building2", description: "Gestão de UCs", keywords: ["UC", "unidade", "consumidora"], criticality: "normal", permission: "admin_only" },
   { nav_key: "proposta-comercial", label_default: "Proposta Comercial", group_default: "_hidden", order_default: 0, icon: "FileText", description: "Variáveis e modelos de proposta", keywords: ["proposta", "comercial"], criticality: "normal", permission: "admin_only" },
   { nav_key: "custom-fields", label_default: "Opções Customizáveis", group_default: "_hidden", order_default: 1, icon: "Settings2", description: "Campos customizados", keywords: ["campo", "customizado"], criticality: "normal", permission: "admin_only" },
   { nav_key: "depositos", label_default: "Depósitos", group_default: "_hidden", order_default: 0, icon: "Warehouse", description: "Locais de armazenamento", keywords: ["depósito", "almoxarifado"], criticality: "normal", permission: "admin_only" },
