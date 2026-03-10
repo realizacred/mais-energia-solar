@@ -288,18 +288,11 @@ export function FollowupAnalyticsDashboard() {
                     paddingAngle={3}
                     dataKey="value"
                   >
-                    {metrics.actionPie.map((_, i) => (
+                     {metrics.actionPie.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: 12,
-                    }}
-                  />
+                  <RechartsTooltip content={<ChartTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
                 </PieChart>
               </ResponsiveContainer>
