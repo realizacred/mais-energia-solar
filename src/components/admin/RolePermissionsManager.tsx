@@ -309,6 +309,7 @@ export function RolePermissionsManager() {
       if (error) throw error;
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   // Build merged state: DB overrides defaults
