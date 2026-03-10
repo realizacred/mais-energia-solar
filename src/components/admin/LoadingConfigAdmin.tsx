@@ -19,6 +19,7 @@ import { RotatingLoadingMessage } from "@/components/loading/LoadingMessage";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { Save, RotateCcw, Palette, MessageCircle, Brain, Eye, Upload, X } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { motion } from "framer-motion";
 
 const CONTEXT_LABELS: Record<string, string> = {
   general: "Geral",
@@ -64,7 +65,7 @@ export function LoadingConfigAdmin() {
 
   const [loaderTheme, setLoaderTheme] = useState<LoaderTheme>("sun");
   const [animStyle, setAnimStyle] = useState<LoaderAnimation>("pulse");
-  const [motion, setMotion] = useState<LoaderMotion>("pulse");
+  const [motionStyle, setMotionStyle] = useState<LoaderMotion>("pulse");
   const [finish, setFinish] = useState<LoaderFinish>("continue");
   const [showMessages, setShowMessages] = useState(true);
   const [overlayDelay, setOverlayDelay] = useState(400);
@@ -90,7 +91,7 @@ export function LoadingConfigAdmin() {
       const anim = (currentConfig.sun_loader_style as LoaderAnimation) || "pulse";
       setAnimStyle(anim);
       const parsed = parseAnimationKey(anim);
-      setMotion(parsed.motion);
+      setMotionStyle(parsed.motion);
       setFinish(parsed.finish);
       setShowMessages(currentConfig.show_messages);
       setOverlayDelay(currentConfig.overlay_delay_ms);
@@ -206,7 +207,7 @@ export function LoadingConfigAdmin() {
   const handleReset = useCallback(() => {
     setLoaderTheme("sun");
     setAnimStyle("pulse");
-    setMotion("pulse");
+    setMotionStyle("pulse");
     setFinish("continue");
     setShowMessages(true);
     setOverlayDelay(400);
@@ -226,12 +227,22 @@ export function LoadingConfigAdmin() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <motion.div
+      className="p-4 md:p-6 space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* §26 Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Loading & Mensagens</h2>
-          <p className="text-sm text-muted-foreground">Configure a experiência de carregamento do sistema</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <Palette className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Loading & Mensagens</h1>
+            <p className="text-sm text-muted-foreground">Configure a experiência de carregamento do sistema</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
@@ -246,7 +257,7 @@ export function LoadingConfigAdmin() {
       </div>
 
       {/* Tema do Loader */}
-      <Card>
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Palette className="h-4 w-4 text-primary" />
@@ -261,15 +272,16 @@ export function LoadingConfigAdmin() {
               const isActive = loaderTheme === opt.value;
               const disabled = opt.value === "logo" && !logoUrl;
               return (
-                <button
+                <Button
                   key={opt.value}
                   type="button"
+                  variant="outline"
                   disabled={disabled}
                   onClick={() => setLoaderTheme(opt.value)}
-                  className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-left
+                  className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-left h-auto
                     ${isActive
                       ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border/50 hover:border-border hover:bg-muted/30"}
+                      : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"}
                     ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
                   `}
                 >
@@ -283,29 +295,29 @@ export function LoadingConfigAdmin() {
                     />
                   </div>
                   <div className="text-center">
-                    <span className="text-sm font-medium">{opt.emoji} {opt.label}</span>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{opt.description}</p>
+                    <span className="text-sm font-medium text-foreground">{opt.emoji} {opt.label}</span>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 font-normal">{opt.description}</p>
                   </div>
                   {isActive && (
                     <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
                   )}
                   {disabled && (
-                    <p className="text-[10px] text-destructive">Configure o logo em Brand Settings</p>
+                    <p className="text-[10px] text-destructive font-normal">Configure o logo em Brand Settings</p>
                   )}
-                </button>
+                </Button>
               );
             })}
           </div>
 
           {/* Custom upload section */}
           {loaderTheme === "custom" && (
-            <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border/30">
+            <div className="space-y-3 p-4 rounded-lg bg-muted/20 border border-border">
               <Label className="text-sm font-medium">Imagem personalizada</Label>
               <p className="text-xs text-muted-foreground">Upload PNG, SVG ou WebP (máx 500KB). A imagem será animada com o estilo selecionado.</p>
               
               {customLoaderUrl ? (
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border/50">
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border">
                     <img src={customLoaderUrl} alt="Custom loader" className="h-10 w-10 object-contain" />
                   </div>
                   <Button
@@ -361,9 +373,9 @@ export function LoadingConfigAdmin() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <span className="text-xs font-medium text-muted-foreground">① Movimento</span>
-                <Select value={motion} onValueChange={(v) => {
+                <Select value={motionStyle} onValueChange={(v) => {
                   const m = v as LoaderMotion;
-                  setMotion(m);
+                  setMotionStyle(m);
                   // Auto-set sensible finish defaults
                   const defaultFinish: LoaderFinish = m === "none" ? "none" : m === "pulse" || m === "breathe" ? "continue" : "stop";
                   setFinish(defaultFinish);
@@ -389,9 +401,9 @@ export function LoadingConfigAdmin() {
                   onValueChange={(v) => {
                     const f = v as LoaderFinish;
                     setFinish(f);
-                    setAnimStyle(buildAnimationKey(motion, f));
+                    setAnimStyle(buildAnimationKey(motionStyle, f));
                   }}
-                  disabled={motion === "none" || motion === "pulse" || motion === "breathe"}
+                  disabled={motionStyle === "none" || motionStyle === "pulse" || motionStyle === "breathe"}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -423,7 +435,7 @@ export function LoadingConfigAdmin() {
       </Card>
 
       {/* Mensagens */}
-      <Card>
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4 text-info" />
@@ -499,7 +511,7 @@ export function LoadingConfigAdmin() {
       </Card>
 
       {/* IA Opcional */}
-      <Card>
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-sidebar-ai" />
@@ -562,7 +574,7 @@ export function LoadingConfigAdmin() {
       </Card>
 
       {/* Preview */}
-      <Card>
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Eye className="h-4 w-4 text-info" />
@@ -588,7 +600,7 @@ export function LoadingConfigAdmin() {
           </div>
 
           {showPreview && (
-            <div className="relative flex flex-col items-center justify-center gap-3 py-12 rounded-xl bg-muted/20 border border-border/30">
+            <div className="relative flex flex-col items-center justify-center gap-3 py-12 rounded-xl bg-muted/20 border border-border">
               <ThemeLoader
                 theme={loaderTheme}
                 animation={animStyle}
@@ -603,6 +615,6 @@ export function LoadingConfigAdmin() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
