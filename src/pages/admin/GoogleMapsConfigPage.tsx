@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import {
@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
+import { motion } from "framer-motion";
 
 export default function GoogleMapsConfigPage() {
   const queryClient = useQueryClient();
@@ -37,6 +38,7 @@ export default function GoogleMapsConfigPage() {
       if (error) throw error;
       return data;
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const maskedKey = config?.api_key
@@ -46,7 +48,6 @@ export default function GoogleMapsConfigPage() {
   const saveMutation = useMutation({
     mutationFn: async ({ key, active }: { key?: string; active?: boolean }) => {
       if (key !== undefined) {
-        // Force token refresh to avoid stale session
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
         if (authErr || !user) throw new Error("Sessão expirada. Faça login novamente.");
 
@@ -117,23 +118,52 @@ export default function GoogleMapsConfigPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <PageHeader icon={MapPin} title="Google Maps" description="Configure sua API Key do Google Maps" />
-        <Card className="rounded-xl animate-pulse"><CardContent className="p-6 h-32" /></Card>
+      <div className="p-4 md:p-6 space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-lg" />
+          <div>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-72 mt-1" />
+          </div>
+        </div>
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        icon={MapPin}
-        title="Google Maps"
-        description="Configure sua API Key do Google Maps para exibir mapas e geocodificação no sistema"
-      />
+    <motion.div
+      className="p-4 md:p-6 space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* §26 Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <MapPin className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Google Maps</h1>
+            <p className="text-sm text-muted-foreground">Configure sua API Key para mapas e geocodificação</p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/admin/saude-integracoes")}
+          className="gap-1.5"
+        >
+          <ShieldCheck className="h-4 w-4" />
+          Saúde das Integrações
+        </Button>
+      </div>
 
       {/* ── Status da Conexão ─────────────────── */}
-      <Card className="rounded-xl">
+      <Card className="bg-card border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -143,7 +173,7 @@ export default function GoogleMapsConfigPage() {
                   : "bg-muted-foreground/40"
               }`} />
               <div>
-                <p className="text-sm font-medium">
+                <p className="text-sm font-medium text-foreground">
                   {config?.is_active && config?.api_key
                     ? connectionStatus === "error"
                       ? "Erro na conexão"
@@ -160,80 +190,69 @@ export default function GoogleMapsConfigPage() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {config?.api_key && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => testMutation.mutate()}
-                  disabled={testMutation.isPending}
-                >
-                  {testMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  ) : connectionStatus === "connected" ? (
-                    <CheckCircle2 className="h-4 w-4 text-success mr-1.5" />
-                  ) : connectionStatus === "error" ? (
-                    <XCircle className="h-4 w-4 text-destructive mr-1.5" />
-                  ) : (
-                    <Activity className="h-4 w-4 mr-1.5" />
-                  )}
-                  Testar Conexão
-                </Button>
-              )}
+            {config?.api_key && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={() => navigate("/admin/saude-integracoes")}
+                onClick={() => testMutation.mutate()}
+                disabled={testMutation.isPending}
+                className="gap-1.5"
               >
-                <ShieldCheck className="h-4 w-4 mr-1.5" />
-                Saúde das Integrações
+                {testMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : connectionStatus === "connected" ? (
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                ) : connectionStatus === "error" ? (
+                  <XCircle className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Activity className="h-4 w-4" />
+                )}
+                Testar Conexão
               </Button>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* ── Configuração da Chave ─────────────────── */}
-      <Card className="rounded-xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">Chave de API</CardTitle>
-              <CardDescription>
-                Insira sua API Key do Google Maps para habilitar mapas e geocodificação nas propostas
-              </CardDescription>
-            </div>
-            {config?.id && (
-              <div className="flex items-center gap-3">
-                <Badge variant={config.is_active ? "default" : "secondary"}>
-                  {config.is_active ? "Ativa" : "Inativa"}
-                </Badge>
-                <Switch
-                  checked={config.is_active}
-                  onCheckedChange={(active) => saveMutation.mutate({ active })}
-                  disabled={saveMutation.isPending}
-                />
-              </div>
-            )}
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
+          <div>
+            <CardTitle className="text-base font-semibold text-foreground">Chave de API</CardTitle>
+            <CardDescription>
+              Insira sua API Key do Google Maps para habilitar mapas e geocodificação nas propostas
+            </CardDescription>
           </div>
+          {config?.id && (
+            <div className="flex items-center gap-3">
+              <Badge variant={config.is_active ? "default" : "secondary"}>
+                {config.is_active ? "Ativa" : "Inativa"}
+              </Badge>
+              <Switch
+                checked={config.is_active}
+                onCheckedChange={(active) => saveMutation.mutate({ active })}
+                disabled={saveMutation.isPending}
+              />
+            </div>
+          )}
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-4">
           {/* Chave salva */}
           {maskedKey && !hasEdited && (
-            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border">
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-border">
               <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-              <span className="text-sm font-mono flex-1">
+              <span className="text-sm font-mono flex-1 text-foreground">
                 {showSavedKey ? config?.api_key : maskedKey}
               </span>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowSavedKey(!showSavedKey)}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowSavedKey(!showSavedKey)}>
                 {showSavedKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
           )}
 
-          {/* Input — texto visível, não password */}
+          {/* Input */}
           <div className="space-y-2">
-            <Label>{maskedKey ? "Nova chave (substituir)" : "Chave de API"}</Label>
+            <Label className="text-foreground">{maskedKey ? "Nova chave (substituir)" : "Chave de API"}</Label>
             <div className="flex gap-2">
               <Input
                 type="text"
@@ -248,9 +267,9 @@ export default function GoogleMapsConfigPage() {
               <Button onClick={() => {
                 if (!apiKey.trim()) return;
                 saveMutation.mutate({ key: apiKey.trim() });
-              }} disabled={!apiKey.trim() || saveMutation.isPending}>
+              }} disabled={!apiKey.trim() || saveMutation.isPending} className="gap-1.5">
                 {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                <span className="ml-1.5">Salvar</span>
+                Salvar
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -260,7 +279,7 @@ export default function GoogleMapsConfigPage() {
 
           {/* Metadados */}
           {config?.updated_at && (
-            <div className="text-xs text-muted-foreground pt-2 border-t">
+            <div className="text-xs text-muted-foreground pt-2 border-t border-border">
               Última atualização: {format(new Date(config.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
             </div>
           )}
@@ -268,20 +287,20 @@ export default function GoogleMapsConfigPage() {
       </Card>
 
       {/* ── Tutorial Passo a Passo ─────────────────── */}
-      <Card className="rounded-xl">
-        <CardHeader>
-          <div className="flex items-center gap-2">
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader className="border-b border-border pb-3">
+          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Como obter sua API Key do Google Maps</CardTitle>
-          </div>
+            Como obter sua API Key do Google Maps
+          </CardTitle>
           <CardDescription>
             Siga o passo a passo abaixo para criar e configurar sua chave de API
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="step-1">
-              <AccordionTrigger className="text-sm font-medium">
+              <AccordionTrigger className="text-sm font-medium text-foreground">
                 1️⃣ Criar projeto no Google Cloud
               </AccordionTrigger>
               <AccordionContent className="space-y-2 text-sm text-muted-foreground">
@@ -291,7 +310,7 @@ export default function GoogleMapsConfigPage() {
             </AccordionItem>
 
             <AccordionItem value="step-2">
-              <AccordionTrigger className="text-sm font-medium">
+              <AccordionTrigger className="text-sm font-medium text-foreground">
                 2️⃣ Ativar a Geocoding API
               </AccordionTrigger>
               <AccordionContent className="space-y-2 text-sm text-muted-foreground">
@@ -310,7 +329,7 @@ export default function GoogleMapsConfigPage() {
             </AccordionItem>
 
             <AccordionItem value="step-3">
-              <AccordionTrigger className="text-sm font-medium">
+              <AccordionTrigger className="text-sm font-medium text-foreground">
                 3️⃣ Criar a chave de API
               </AccordionTrigger>
               <AccordionContent className="space-y-2 text-sm text-muted-foreground">
@@ -326,7 +345,7 @@ export default function GoogleMapsConfigPage() {
             </AccordionItem>
 
             <AccordionItem value="step-4">
-              <AccordionTrigger className="text-sm font-medium">
+              <AccordionTrigger className="text-sm font-medium text-foreground">
                 4️⃣ Configurar restrições (recomendado)
               </AccordionTrigger>
               <AccordionContent className="space-y-2 text-sm text-muted-foreground">
@@ -349,7 +368,7 @@ export default function GoogleMapsConfigPage() {
             </AccordionItem>
 
             <AccordionItem value="step-5">
-              <AccordionTrigger className="text-sm font-medium">
+              <AccordionTrigger className="text-sm font-medium text-foreground">
                 5️⃣ Configurar faturamento
               </AccordionTrigger>
               <AccordionContent className="space-y-2 text-sm text-muted-foreground">
@@ -364,7 +383,7 @@ export default function GoogleMapsConfigPage() {
             </AccordionItem>
 
             <AccordionItem value="step-6">
-              <AccordionTrigger className="text-sm font-medium">
+              <AccordionTrigger className="text-sm font-medium text-foreground">
                 6️⃣ Colar a chave aqui e salvar
               </AccordionTrigger>
               <AccordionContent className="space-y-2 text-sm text-muted-foreground">
@@ -379,6 +398,6 @@ export default function GoogleMapsConfigPage() {
           </Accordion>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
