@@ -774,32 +774,11 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           {/* Desktop: Chat Panel or Pre-Contact Card */}
           <div className="hidden md:flex flex-1 min-w-0 overflow-x-hidden">
             {!selectedConv && preContactData ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-muted/5 to-muted/20 gap-4">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-warning/15 to-warning/5 border border-warning/10 flex items-center justify-center shadow-lg shadow-warning/5">
-                  <MessageCircle className="h-9 w-9 text-warning/60" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground/70">Novo Lead — Pré-Contato</h3>
-                <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-                  <strong>{preContactData.nome}</strong> ainda não iniciou conversa no WhatsApp.
-                </p>
-                <p className="text-xs text-muted-foreground">{preContactData.phone}</p>
-                <a
-                  href={`https://wa.me/${preContactData.phone.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-success/90 transition-colors shadow-md"
-                  onClick={() => setPreContactData(null)}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Iniciar Conversa no WhatsApp
-                </a>
-                <Button variant="ghost"
-                  onClick={() => setPreContactData(null)}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Fechar
-                </Button>
-              </div>
+              <WaPreContactCard
+                nome={preContactData.nome}
+                phone={preContactData.phone}
+                onClose={() => setPreContactData(null)}
+              />
             ) : (
               <WaChatPanel
                 conversation={selectedConv}
