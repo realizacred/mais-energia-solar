@@ -157,7 +157,7 @@ export default function MonitorDashboard() {
           icon={Sun}
         />
         {lastSync && (
-          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-2xl px-3 py-2 border border-border/60 shrink-0">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-2xl px-3 py-2 border border-border shrink-0">
             <div className="flex items-center gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Sync: <strong className="text-foreground">{formatDistanceToNow(lastSync, { addSuffix: true, locale: ptBR })}</strong></span>
