@@ -5,10 +5,32 @@
 
 ## 1. IDENTIDADE VISUAL — nunca quebre isso
 
-Stack: React 18 + TypeScript + Tailwind CSS + shadcn/ui + Framer Motion + Recharts
-Fontes: `Inter` (corpo) e `Plus Jakarta Sans` (títulos/display)
-Paleta: Solar Orange `hsl(var(--primary))` + Structural Blue `hsl(var(--secondary))`
-Design: moderno, denso, sem espaço desperdiçado, dark-mode first quando possível
+### ⚠️ SISTEMA SAAS MULTI-TENANT
+Cada empresa cliente configura sua própria identidade visual em `/admin/site-config`.
+Cor primária, logo e nome variam por tenant. Nunca assuma uma cor específica como "a cor do sistema".
+
+### REGRA ABSOLUTA — NUNCA hardcode cores
+NUNCA use: `orange-*`, `blue-*`, `#FF6600`, `#3b82f6`, `text-orange-500`, `bg-blue-600` ou qualquer cor fixa como identidade visual.
+
+SEMPRE use variáveis semânticas:
+- `bg-primary` / `text-primary` / `border-primary` — ação principal, CTAs
+- `bg-primary/10` — fundo suave para ícones e badges
+- `bg-secondary` / `text-secondary` — elementos secundários
+- `bg-card`, `bg-background`, `border-border` — superfícies
+- `text-foreground`, `text-muted-foreground` — textos
+- `bg-success`, `bg-warning`, `bg-destructive`, `bg-info` — estados semânticos
+
+### Stack
+- React 18 + TypeScript
+- Tailwind CSS + shadcn/ui
+- Framer Motion, Recharts, Supabase
+
+### Fontes
+- Interface: `Inter` (corpo) + `Plus Jakarta Sans` (títulos/display)
+- Código: `JetBrains Mono`
+
+### Design
+Moderno, denso, sem espaço desperdiçado, dark-mode first quando possível.
 
 ---
 
