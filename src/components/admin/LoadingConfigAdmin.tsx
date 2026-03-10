@@ -207,7 +207,7 @@ export function LoadingConfigAdmin() {
   const handleReset = useCallback(() => {
     setLoaderTheme("sun");
     setAnimStyle("pulse");
-    setMotion("pulse");
+    setMotionStyle("pulse");
     setFinish("continue");
     setShowMessages(true);
     setOverlayDelay(400);
