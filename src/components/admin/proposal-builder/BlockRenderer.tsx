@@ -168,7 +168,7 @@ export function BlockRenderer({ node, device, mode, selectedId, hoveredId, onSel
       className={cn(
         "relative transition-all",
         mode === "edit" && "cursor-pointer",
-        mode === "edit" && isHovered && !isSelected && "outline outline-1 outline-dashed outline-blue-400/40",
+        mode === "edit" && isHovered && !isSelected && "outline outline-1 outline-dashed outline-primary/40",
         mode === "edit" && isSelected && "outline outline-2 outline-primary ring-2 ring-primary/20",
         !block.isVisible && mode === "edit" && "opacity-40",
       )}

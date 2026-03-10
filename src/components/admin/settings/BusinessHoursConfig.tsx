@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Clock, Plus, Trash2, Loader2, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -104,8 +105,11 @@ export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <CardContent className="py-8 space-y-3">
+          <Skeleton className="h-6 w-40" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-lg" />
+          ))}
         </CardContent>
       </Card>
     );

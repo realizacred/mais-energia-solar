@@ -264,10 +264,10 @@ export function FornecedoresManager() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(f)}>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(f)} aria-label="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleting(f)}>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleting(f)} aria-label="Excluir">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>

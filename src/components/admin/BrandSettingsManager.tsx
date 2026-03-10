@@ -42,7 +42,7 @@ function hslToHex(hslStr: string): string {
     };
     return `#${f(0)}${f(8)}${f(4)}`;
   } catch {
-    return "#ff6b00";
+    return "";
   }
 }
 

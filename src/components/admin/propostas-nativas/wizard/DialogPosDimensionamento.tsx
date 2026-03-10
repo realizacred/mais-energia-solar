@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Zap, DollarSign, Loader2 } from "lucide-react";
+import { User, Building2, Zap, DollarSign } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -134,9 +135,10 @@ export function DialogPosDimensionamento({
 
         {/* ── Custom Fields (pos_dimensionamento) */}
         {loading ? (
-          <div className="flex items-center justify-center py-4 text-muted-foreground gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-xs">Carregando campos...</span>
+          <div className="space-y-3 py-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full rounded-lg" />
+            ))}
           </div>
         ) : fields.length > 0 ? (
           <div className="space-y-3">

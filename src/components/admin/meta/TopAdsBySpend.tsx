@@ -16,9 +16,9 @@ interface Props {
 }
 
 const MEDAL_COLORS = [
-  "bg-amber-500 text-amber-50",
+  "bg-primary text-primary-foreground",
   "bg-muted-foreground/60 text-background",
-  "bg-orange-600 text-orange-50",
+  "bg-primary/80 text-primary-foreground",
   "bg-muted text-muted-foreground",
   "bg-muted text-muted-foreground",
 ];
@@ -30,7 +30,7 @@ export function TopAdsBySpend({ ads, isLoading }: Props) {
     <Card className="h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-amber-500" />
+          <Trophy className="h-4 w-4 text-primary" />
           Top Anúncios por Investimento
         </CardTitle>
       </CardHeader>

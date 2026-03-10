@@ -50,7 +50,7 @@ export function LeadStatusManager() {
 
   // Form state
   const [nome, setNome] = useState("");
-  const [cor, setCor] = useState("#3b82f6");
+  const [cor, setCor] = useState("");
 
   const fetchStatuses = async () => {
     try {
@@ -76,7 +76,7 @@ export function LeadStatusManager() {
   const openCreate = () => {
     setEditingStatus(null);
     setNome("");
-    setCor("#3b82f6");
+    setCor("");
     setDialogOpen(true);
   };
 
@@ -311,7 +311,7 @@ export function LeadStatusManager() {
                 <Input
                   value={cor}
                   onChange={(e) => setCor(e.target.value)}
-                  placeholder="#3b82f6"
+                  placeholder="Ex: #6366f1"
                   className="flex-1 font-mono text-sm"
                 />
                 <span
