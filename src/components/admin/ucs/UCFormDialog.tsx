@@ -160,20 +160,25 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-[1100px] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-0">
-          <DialogTitle>{editingUC ? "Editar UC" : "Nova Unidade Consumidora"}</DialogTitle>
+        <DialogHeader className="px-6 pt-6 pb-2">
+          <DialogTitle className="flex items-center gap-2.5 text-lg">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+              <Zap className="w-4 h-4" />
+            </div>
+            {editingUC ? "Editar Unidade Consumidora" : "Nova Unidade Consumidora"}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="px-6 py-5 space-y-5">
           {/* ── Row 1: Dados da UC + Classificação lado a lado ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Dados da UC */}
-            <section className="rounded-lg border bg-card p-4 space-y-3 min-w-0">
+            <section className="rounded-lg border border-border bg-card p-5 space-y-4 min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Zap className="w-4 h-4 text-primary" />
                 Dados da UC
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Código da UC <span className="text-destructive">*</span></Label>
                   <Input value={form.codigo_uc} onChange={set("codigo_uc")} placeholder="Ex: 0012345678" autoComplete="off" />
@@ -208,12 +213,12 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
 
             {/* Classificação Tarifária + Observações */}
-            <section className="rounded-lg border bg-card p-4 space-y-3 min-w-0">
+            <section className="rounded-lg border border-border bg-card p-5 space-y-4 min-w-0">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <FileText className="w-4 h-4 text-primary" />
                 Classificação Tarifária
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Grupo</Label>
                   <Select value={form.classificacao_grupo} onValueChange={set("classificacao_grupo")}>
@@ -241,24 +246,24 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-semibold">Observações</Label>
                   {editingUC && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-1">
                       <Label className="text-xs text-muted-foreground">Ativo</Label>
                       <Switch checked={form.ativo} onCheckedChange={(v) => setForm(f => ({ ...f, ativo: v }))} />
                     </div>
                   )}
                 </div>
-                <Textarea value={form.observacoes} onChange={set("observacoes")} rows={2} placeholder="Notas internas..." />
+                <Textarea value={form.observacoes} onChange={set("observacoes")} rows={3} placeholder="Notas internas..." />
               </div>
             </section>
           </div>
 
-          {/* ── Row 2: Endereço largura total, 7 colunas ── */}
-          <section className="rounded-lg border bg-card p-4 space-y-3">
+          {/* ── Row 2: Endereço largura total ── */}
+          <section className="rounded-lg border border-border bg-card p-5 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <MapPin className="w-4 h-4 text-primary" />
               Endereço
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
               <div className="space-y-1.5 min-w-0 col-span-1">
                 <Label className="text-xs">CEP</Label>
                 <div className="relative">
@@ -298,8 +303,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
           </section>
         </div>
 
-        <Separator />
-        <DialogFooter className="px-6 pb-6 pt-3 flex-col-reverse sm:flex-row gap-2">
+        <DialogFooter className="px-6 pb-6 pt-3 border-t border-border flex-col-reverse sm:flex-row gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
