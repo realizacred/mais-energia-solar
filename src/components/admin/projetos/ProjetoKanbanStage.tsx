@@ -308,7 +308,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       ))
                     )}
                     <Button
-                      variant="default"
+                      variant="outline"
                       size="sm"
                       className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
                       onClick={() => onNewProject?.({
