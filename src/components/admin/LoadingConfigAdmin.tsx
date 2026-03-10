@@ -511,7 +511,7 @@ export function LoadingConfigAdmin() {
       </Card>
 
       {/* IA Opcional */}
-      <Card>
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-sidebar-ai" />
