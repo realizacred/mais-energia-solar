@@ -471,26 +471,27 @@ function OfflineStandbySection({ plants, navigate }: {
         <SectionCard title={`Offline (${offlinePlants.length})`} icon={WifiOff} variant="warning">
           <div className="space-y-1 max-h-[240px] overflow-y-auto">
             {offlinePlants.slice(0, 20).map((p) => (
-              <button
+              <Button
                 key={p.id}
+                variant="ghost"
                 onClick={() => navigate(`/admin/monitoramento/usinas/${p.id}`)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg h-auto text-left"
               >
                 <span className="text-sm text-foreground truncate">{p.name}</span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="h-2 w-2 rounded-full bg-destructive" />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground font-normal">
                     {p.health?.last_seen_at
                       ? formatDistanceToNow(new Date(p.health.last_seen_at), { addSuffix: true, locale: ptBR })
                       : "sem dados"}
                   </span>
                 </div>
-              </button>
+              </Button>
             ))}
             {offlinePlants.length > 20 && (
-              <button onClick={() => navigate("/admin/monitoramento/usinas?status=offline")} className="w-full text-xs text-primary font-medium py-2 hover:underline">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/admin/monitoramento/usinas?status=offline")} className="w-full text-xs text-primary font-medium">
                 Ver todas ({offlinePlants.length})
-              </button>
+              </Button>
             )}
           </div>
         </SectionCard>
