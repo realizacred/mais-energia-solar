@@ -91,7 +91,7 @@ export function LoadingConfigAdmin() {
       const anim = (currentConfig.sun_loader_style as LoaderAnimation) || "pulse";
       setAnimStyle(anim);
       const parsed = parseAnimationKey(anim);
-      setMotion(parsed.motion);
+      setMotionStyle(parsed.motion);
       setFinish(parsed.finish);
       setShowMessages(currentConfig.show_messages);
       setOverlayDelay(currentConfig.overlay_delay_ms);
