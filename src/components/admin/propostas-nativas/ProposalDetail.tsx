@@ -3,21 +3,17 @@ import { formatKwp, formatKwhValue } from "@/lib/formatters/index";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, FileText, Loader2, RefreshCw, Send, CheckCircle2,
-  XCircle, AlertTriangle, Clock, Download, Link2, MessageCircle,
-  Copy, Mail, Wrench, Zap, DollarSign, TrendingUp,
-  Pencil, Eye, BarChart3, Info, ExternalLink, SunMedium,
-  CalendarDays, User, MapPin, Hash, Settings2,
+  ArrowLeft, FileText, Loader2, Send, CheckCircle2,
+  XCircle, AlertTriangle, Clock,
+  Wrench, Zap, DollarSign, TrendingUp,
+  Eye, BarChart3, Info, SunMedium,
+  User, MapPin, Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -32,6 +28,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { ProposalViewsCard } from "./ProposalViewsCard";
 import { GenerateFileDialog } from "./GenerateFileDialog";
+import { InfoPill } from "./InfoPill";
+import { ProposalAnalysis } from "./ProposalAnalysis";
+import { ProposalActionCards } from "./ProposalActionCards";
 import { cn } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any; color: string }> = {
