@@ -391,33 +391,51 @@ function SlaDashboard() {
   return (
     <div className="space-y-4">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{stats.active}</p>
-            <p className="text-xs text-muted-foreground">Tarefas Ativas</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+              <ClipboardCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{stats.active}</p>
+              <p className="text-sm text-muted-foreground mt-1">Tarefas Ativas</p>
+            </div>
           </CardContent>
         </Card>
-        <Card className={stats.overdue > 0 ? "border-destructive/30" : ""}>
-          <CardContent className="p-4 text-center">
-            <p className={`text-2xl font-bold ${stats.overdue > 0 ? "text-destructive" : "text-foreground"}`}>
-              {stats.overdue}
-            </p>
-            <p className="text-xs text-muted-foreground">Vencidas</p>
+        <Card className={`border-l-[3px] bg-card shadow-sm hover:shadow-md transition-shadow ${stats.overdue > 0 ? "border-l-destructive" : "border-l-primary"}`}>
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${stats.overdue > 0 ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className={`text-2xl font-bold tracking-tight leading-none ${stats.overdue > 0 ? "text-destructive" : "text-foreground"}`}>{stats.overdue}</p>
+              <p className="text-sm text-muted-foreground mt-1">Vencidas</p>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-success">{stats.slaComplianceRate}%</p>
-            <p className="text-xs text-muted-foreground">Cumprimento SLA</p>
+        <Card className="border-l-[3px] border-l-success bg-card shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-success leading-none">{stats.slaComplianceRate}%</p>
+              <p className="text-sm text-muted-foreground mt-1">Cumprimento SLA</p>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">
-              {stats.avgCompletionMinutes > 0 ? `${Math.round(stats.avgCompletionMinutes / 60)}h` : "—"}
-            </p>
-            <p className="text-xs text-muted-foreground">Tempo Médio</p>
+        <Card className="border-l-[3px] border-l-info bg-card shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
+              <Timer className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
+                {stats.avgCompletionMinutes > 0 ? `${Math.round(stats.avgCompletionMinutes / 60)}h` : "—"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Tempo Médio</p>
+            </div>
           </CardContent>
         </Card>
       </div>

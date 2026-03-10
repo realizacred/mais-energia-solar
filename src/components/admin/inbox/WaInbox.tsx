@@ -667,7 +667,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
       {/* Chat Layout */}
       <div
-        className={`bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden ${
+        className={`bg-card rounded-xl border border-border/40 shadow-sm ${
           vendorMode ? "flex-1 min-h-0" : ""
         }`}
         style={vendorMode ? undefined : { height: "calc(100vh - 300px)", minHeight: "500px" }}
