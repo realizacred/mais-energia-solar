@@ -427,7 +427,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         mediaUrl,
         mediaFilename: file.name,
       });
-      console.log("[handleSendMedia] Message sent OK");
+      
     } catch (err: any) {
       console.error("[handleSendMedia] Failed:", err);
       toast({ title: "Erro ao enviar arquivo", description: err.message, variant: "destructive" });
