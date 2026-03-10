@@ -320,8 +320,6 @@ export async function sendAutoWelcomeMessage(params: {
       const cooldownKey = getCooldownKey(leadId, phoneDigits);
       setCooldown(cooldownKey);
       
-      console.log(`[sendAutoWelcomeMessage] ✅ Enviado via instance=${result.instance_used || "?"} (${result.instance_source || "?"}) conv=${result.conversation_id || "?"}`);
-      
       // Store instance info for diagnostics
       try {
         const diag = loadPipelineDiag();
