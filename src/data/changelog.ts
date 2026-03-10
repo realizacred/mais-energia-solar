@@ -2,6 +2,10 @@
  * Changelog do Sistema — Fonte de verdade única.
  * Toda atualização significativa deve ser registrada aqui.
  * Formato: mais recente primeiro.
+ *
+ * REGRA (ver AGENTS.md §31): Ao concluir qualquer feature, melhoria,
+ * correção ou mudança de infra significativa, o AI Agent DEVE adicionar
+ * uma entrada aqui com version bump, data, título, descrição e details.
  */
 
 export interface ChangelogEntry {
@@ -14,6 +18,46 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.14.0",
+    date: "2026-03-10",
+    title: "Padronização Visual Completa (AGENTS.md Compliance)",
+    type: "improvement",
+    description: "Auditoria e refatoração de múltiplas telas admin para conformidade total com AGENTS.md: headers §26, padding §6, animações §7, cards §3 e skeletons §12.",
+    details: [
+      "Página Release Checklist refatorada com header padrão e Skeleton loading",
+      "Página Google Maps Config refatorada com motion.div e staleTime",
+      "Página Links & Captação refatorada com componentes modulares",
+      "Página Notificações Config refatorada com Switch auto-save",
+      "Página Changelog refatorada com timeline animada",
+    ],
+  },
+  {
+    version: "2.13.0",
+    date: "2026-03-05",
+    title: "Pós-Venda: Dashboard e Preventivas",
+    type: "feature",
+    description: "Módulo completo de pós-venda com dashboard de indicadores, gestão de manutenções preventivas e planos de manutenção.",
+    details: [
+      "Dashboard com KPIs de instalações ativas, preventivas pendentes e NPS",
+      "CRUD de manutenções preventivas com agendamento recorrente",
+      "Gestão de planos de manutenção vinculados a clientes",
+      "Checklists de pós-venda com templates configuráveis",
+    ],
+  },
+  {
+    version: "2.12.0",
+    date: "2026-02-28",
+    title: "Monitoramento Solar e Integrações",
+    type: "feature",
+    description: "Painel de monitoramento de usinas solares com integração a inversores, alertas automáticos e relatórios de geração.",
+    details: [
+      "Dashboard de monitoramento com gráficos de geração em tempo real",
+      "Cadastro de usinas com vinculação a clientes e projetos",
+      "Sistema de alertas configuráveis por limiar de geração",
+      "Integração com SolarMarket para importação de dados",
+    ],
+  },
   {
     version: "2.11.0",
     date: "2026-02-16",

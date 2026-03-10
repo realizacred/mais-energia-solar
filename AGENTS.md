@@ -751,3 +751,41 @@ O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.t
 13. **CADASTROS** — Disjuntores & Transf., Módulos Fotovoltaicos, Inversores, Baterias, Fornecedores, Concessionárias, Dicionário ANEEL, Versões de Tarifa, Saúde Tarifária, Status Sync ANEEL, Premissas, Base Meteorológica
 14. **CONFIGURAÇÕES** — Calculadora Solar, Status de Leads, Motivos de Perda, Loading & Mensagens
 15. **ADMINISTRAÇÃO** — Empresa, Usuários & Permissões, Permissões por Papel, Auditoria, Notificações, Links & Captação, Google Maps, Release Notes, Atualizações, Personalizar Menus, Limpeza de Dados
+
+---
+
+## 31. CHANGELOG OBRIGATÓRIO
+
+Toda alteração significativa (feature, melhoria, correção, segurança ou infra) **DEVE** gerar uma entrada no arquivo `src/data/changelog.ts`.
+
+Regras:
+- Arquivo `src/data/changelog.ts` é a **Fonte Única de Verdade (SSOT)** do histórico de atualizações
+- Entradas devem ser inseridas **no topo** do array `CHANGELOG` (mais recente primeiro)
+- Cada entrada deve conter: `version` (semver), `date` (YYYY-MM-DD), `title`, `description`, `type` e opcionalmente `details[]`
+- Incrementar versão seguindo SemVer: major (breaking), minor (feature/improvement), patch (bugfix)
+- O campo `details` deve listar os itens concretos alterados (máximo 5-6 bullets)
+- Agrupar múltiplas correções pequenas em uma única entrada quando feitas na mesma sessão
+
+Tipos válidos:
+- `feature` — funcionalidade nova
+- `improvement` — melhoria em funcionalidade existente
+- `bugfix` — correção de bug
+- `security` — hardening, RLS, permissões
+- `infra` — migrations, edge functions, CI/CD
+
+Exemplo:
+```ts
+{
+  version: "2.15.0",
+  date: "2026-03-15",
+  title: "Título curto e descritivo",
+  type: "feature",
+  description: "Uma frase resumindo o que mudou e por quê.",
+  details: [
+    "Detalhe concreto 1",
+    "Detalhe concreto 2",
+  ],
+}
+```
+
+NUNCA esquecer de atualizar o changelog ao finalizar uma implementação significativa.
