@@ -50,7 +50,7 @@ export function LeadStatusManager() {
 
   // Form state
   const [nome, setNome] = useState("");
-  const [cor, setCor] = useState("#3b82f6");
+  const [cor, setCor] = useState("");
 
   const fetchStatuses = async () => {
     try {
