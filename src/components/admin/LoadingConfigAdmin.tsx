@@ -600,7 +600,7 @@ export function LoadingConfigAdmin() {
           </div>
 
           {showPreview && (
-            <div className="relative flex flex-col items-center justify-center gap-3 py-12 rounded-xl bg-muted/20 border border-border/30">
+            <div className="relative flex flex-col items-center justify-center gap-3 py-12 rounded-xl bg-muted/20 border border-border">
               <ThemeLoader
                 theme={loaderTheme}
                 animation={animStyle}
