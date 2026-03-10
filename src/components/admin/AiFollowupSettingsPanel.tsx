@@ -188,19 +188,20 @@ export function AiFollowupSettingsPanel() {
         className={!hasAiFollowup ? "opacity-50 pointer-events-none" : ""}
       >
           <div className="grid gap-3">
-            <Button variant="success"
+            <Button
+              variant="outline"
               type="button"
               onClick={() => setSettings({ ...settings, modo: "assistido" })}
-              className={`flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-colors ${
+              className={`flex items-start gap-3 p-4 h-auto rounded-lg border-2 text-left transition-colors ${
                 settings.modo === "assistido"
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-muted-foreground/30"
               }`}
             >
               <ShieldCheck className={`h-5 w-5 mt-0.5 ${settings.modo === "assistido" ? "text-primary" : "text-muted-foreground"}`} />
-              <div>
-                <p className="font-medium">Modo Assistido</p>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Modo Assistido</p>
+                <p className="text-sm text-muted-foreground font-normal">
                   A IA sugere mensagens, mas o consultor precisa aprovar antes do envio. Recomendado.
                 </p>
               </div>
@@ -209,44 +210,46 @@ export function AiFollowupSettingsPanel() {
               )}
             </Button>
 
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={() => setSettings({ ...settings, modo: "automatico" })}
-              className={`flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-colors ${
+              className={`flex items-start gap-3 p-4 h-auto rounded-lg border-2 text-left transition-colors ${
                 settings.modo === "automatico"
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-muted-foreground/30"
               }`}
             >
               <Zap className={`h-5 w-5 mt-0.5 ${settings.modo === "automatico" ? "text-primary" : "text-muted-foreground"}`} />
-              <div>
-                <p className="font-medium">Modo Automático</p>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Modo Automático</p>
+                <p className="text-sm text-muted-foreground font-normal">
                   A IA envia mensagens automaticamente sem aprovação. Use com cautela.
                 </p>
               </div>
               {settings.modo === "automatico" && (
                 <Badge variant="default" className="ml-auto shrink-0">Ativo</Badge>
               )}
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={() => setSettings({ ...settings, modo: "desativado" })}
-              className={`flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-colors ${
+              className={`flex items-start gap-3 p-4 h-auto rounded-lg border-2 text-left transition-colors ${
                 settings.modo === "desativado"
                   ? "border-destructive bg-destructive/5"
                   : "border-border hover:border-muted-foreground/30"
               }`}
             >
               <Info className={`h-5 w-5 mt-0.5 ${settings.modo === "desativado" ? "text-destructive" : "text-muted-foreground"}`} />
-              <div>
-                <p className="font-medium">Desativado</p>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Desativado</p>
+                <p className="text-sm text-muted-foreground font-normal">
                   Nenhuma sugestão será gerada pela IA.
                 </p>
               </div>
-            </button>
+            </Button>
           </div>
       </SectionCard>
 

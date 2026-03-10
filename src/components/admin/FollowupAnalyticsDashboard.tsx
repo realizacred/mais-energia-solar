@@ -25,6 +25,20 @@ const COLORS = [
   "hsl(var(--muted-foreground))",
 ];
 
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} className="text-muted-foreground">
+          {p.name}: <span className="font-semibold text-foreground">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
 export function FollowupAnalyticsDashboard() {
   // Fetch followup logs (last 30 days)
   const { data: logs, isLoading } = useQuery({
@@ -257,20 +271,13 @@ export function FollowupAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={metrics.dailyChart} barGap={2}>
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} width={30} />
-                <RechartsTooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: 12,
-                  }}
-                />
-                <Bar dataKey="sent" name="Enviados" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="responded" name="Respondidos" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="ai" name="IA" fill="hsl(var(--info))" radius={[3, 3, 0, 0]} />
+              <BarChart data={metrics.dailyChart} barGap={2} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={30} axisLine={false} tickLine={false} />
+                <RechartsTooltip content={<ChartTooltip />} />
+                <Bar dataKey="sent" name="Enviados" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="responded" name="Respondidos" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="ai" name="IA" fill="hsl(var(--info))" radius={[3, 3, 0, 0]} maxBarSize={40} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
               </BarChart>
             </ResponsiveContainer>
@@ -295,18 +302,11 @@ export function FollowupAnalyticsDashboard() {
                     paddingAngle={3}
                     dataKey="value"
                   >
-                    {metrics.actionPie.map((_, i) => (
+                     {metrics.actionPie.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: 12,
-                    }}
-                  />
+                  <RechartsTooltip content={<ChartTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -362,28 +362,28 @@ export function FollowupAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-border/20">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-border">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-success" />
-                  <span className="text-sm">Respostas obtidas</span>
+                  <span className="text-sm text-foreground">Respostas obtidas</span>
                 </div>
                 <Badge variant="outline" className="font-bold">{metrics.totalResponded}</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-border/20">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-border">
                 <div className="flex items-center gap-2">
                   <Brain className="h-4 w-4 text-primary" />
-                  <span className="text-sm">IA aprovada pelo consultor</span>
+                  <span className="text-sm text-foreground">IA aprovada pelo consultor</span>
                 </div>
                 <Badge variant="outline" className="font-bold">{metrics.aiApproved}</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-border/20">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-border">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm">IA rejeitada</span>
+                  <span className="text-sm text-foreground">IA rejeitada</span>
                 </div>
                 <Badge variant="outline" className="font-bold">{metrics.aiRejected}</Badge>
               </div>
-              <div className="pt-2 border-t border-border/30">
+              <div className="pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Total no dataset</span>
                   <span className="text-sm font-bold text-foreground">{metrics.datasetSize} registros</span>
