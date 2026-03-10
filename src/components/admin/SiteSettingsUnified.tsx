@@ -39,7 +39,7 @@ function hslToHex(hslStr: string): string {
       return Math.round(255 * color).toString(16).padStart(2, "0");
     };
     return `#${f(0)}${f(8)}${f(4)}`;
-  } catch { return "#ff6b00"; }
+  } catch { return ""; }
 }
 
 function hexToHsl(hex: string): string {

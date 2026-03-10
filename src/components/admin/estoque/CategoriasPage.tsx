@@ -79,10 +79,10 @@ export function CategoriasPage() {
                         <ChevronRight className="h-3 w-3 text-muted-foreground" />
                         <span className="text-sm flex-1">{sub.nome}</span>
                         <span className="text-[10px] text-muted-foreground">{sub.slug}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditItem(sub)}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditItem(sub)} aria-label="Editar">
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteId(sub.id)}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteId(sub.id)} aria-label="Excluir">
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>

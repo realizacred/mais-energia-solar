@@ -311,7 +311,7 @@ export function LeadStatusManager() {
                 <Input
                   value={cor}
                   onChange={(e) => setCor(e.target.value)}
-                  placeholder="#3b82f6"
+                  placeholder="Ex: #6366f1"
                   className="flex-1 font-mono text-sm"
                 />
                 <span

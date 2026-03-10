@@ -30,7 +30,7 @@ export function TopAdsBySpend({ ads, isLoading }: Props) {
     <Card className="h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-amber-500" />
+          <Trophy className="h-4 w-4 text-primary" />
           Top Anúncios por Investimento
         </CardTitle>
       </CardHeader>

@@ -84,8 +84,11 @@ export function SmtpConfigCard() {
   if (loading) {
     return (
       <Card className="border-border/60">
-        <CardContent className="py-8 flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <CardContent className="py-8 space-y-3">
+          <Skeleton className="h-5 w-48" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-lg" />
+          ))}
         </CardContent>
       </Card>
     );
