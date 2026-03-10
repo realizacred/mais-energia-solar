@@ -19,6 +19,8 @@ import { WaSlaAlertBanner } from "./WaSlaAlertBanner";
 import { WaFollowupWidget } from "@/components/admin/widgets/WaFollowupWidget";
 import { WaSettingsDialog } from "./WaSettingsDialog";
 import { WaStartConversationDialog } from "./WaStartConversationDialog";
+import { WaPreContactCard } from "./WaPreContactCard";
+import { WaInboxHeader } from "./WaInboxHeader";
 import { Button } from "@/components/ui/button";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
