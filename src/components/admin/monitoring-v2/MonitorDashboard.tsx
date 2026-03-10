@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import {
-  Sun, Zap, Activity, Gauge, WifiOff,
+  Sun, Zap, Activity, Gauge, WifiOff, AlertTriangle,
   BatteryCharging, BarChart3, CloudSun, Wrench,
   RefreshCw, Clock, Moon,
 } from "lucide-react";
