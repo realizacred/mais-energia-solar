@@ -51,6 +51,9 @@ import {
   Zap,
   Truck,
   Database,
+  Gauge,
+  LayoutList,
+  Sliders,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -100,7 +103,7 @@ export interface SidebarSection {
  *  7. Financeiro
  *  8. Equipe
  *  9. IA
- * 10. Monitoramento
+ * 10. Energia
  * 11. Integrações
  * 12. Site
  * 13. Cadastros
@@ -288,10 +291,10 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 10. MONITORAMENTO ─────────────────────────────────────
+  // ─── 10. ENERGIA ───────────────────────────────────────────
   {
-    label: "Monitoramento",
-    labelIcon: Sun,
+    label: "Energia",
+    labelIcon: Zap,
     indicatorBg: "bg-sidebar-commercial",
     indicatorClass: "sidebar-indicator-commercial",
     iconColor: "text-sidebar-commercial",
@@ -300,11 +303,13 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-commercial",
     defaultOpen: false,
     items: [
-      { id: "monitoramento", title: "Visão Geral", icon: BarChart3, description: "Dashboard de monitoramento", keywords: ["monitoramento", "solar", "dashboard", "energia"] },
+      { id: "ucs", title: "Unidades Consumidoras", icon: Building2, description: "Gestão de UCs", keywords: ["UC", "unidade", "consumidora", "energia", "concessionária"] },
+      { id: "medidores", title: "Medidores", icon: Gauge, description: "Dispositivos IoT de medição", keywords: ["medidor", "meter", "tuya", "IoT", "smart meter"] },
+      { id: "monitoramento", title: "Monitoramento Solar", icon: BarChart3, description: "Dashboard de monitoramento", keywords: ["monitoramento", "solar", "dashboard", "energia"], separator: true },
       { id: "monitoramento/usinas", title: "Usinas", icon: Sun, description: "Mapa e lista de usinas", keywords: ["usina", "planta", "mapa", "lista"] },
       { id: "monitoramento/alertas", title: "Alertas", icon: AlertTriangle, description: "Central de alertas", keywords: ["alerta", "offline", "falha", "inversor"] },
       { id: "monitoramento/relatorios", title: "Relatórios", icon: FileText, description: "Relatórios de geração", keywords: ["relatório", "geração", "performance"] },
-      { id: "monitoramento/integracoes", title: "Integrações", icon: Plug, description: "Provedores de monitoramento", keywords: ["provider", "solarman", "solaredge"] },
+      { id: "monitoramento/integracoes", title: "Integrações Monitoramento", icon: Plug, description: "Provedores de monitoramento", keywords: ["provider", "solarman", "solaredge"] },
       { id: "solarmarket-config", title: "SolarMarket Config", icon: Sun, description: "API Key para cotações", keywords: ["solarmarket", "cotação", "api"], separator: true },
       { id: "solarmarket", title: "SolarMarket Importação", icon: Sun, description: "Importar clientes e projetos", keywords: ["solarmarket", "importar", "cliente"] },
     ],
@@ -323,6 +328,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "integracoes", title: "Catálogo de Integrações", icon: Cable, description: "Todas as integrações", keywords: ["integração", "catálogo", "provider", "conectar"] },
+      { id: "saude-integracoes", title: "Saúde das Integrações", icon: Activity, description: "Status de conexões externas", keywords: ["saúde", "health", "status", "integração"] },
+      { id: "meta-dashboard", title: "Meta Ads Dashboard", icon: BarChart3, description: "Métricas de campanhas Meta/Facebook", keywords: ["meta", "facebook", "ads", "campanha", "anúncio"] },
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"], separator: true },
     ],
   },
@@ -368,6 +375,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "tarifa-versoes", title: "Versões de Tarifa", icon: HistoryIcon, description: "Versionamento e rollback", keywords: ["versão", "tarifa", "rollback", "diff"] },
       { id: "saude-tarifaria", title: "Saúde Tarifária", icon: Activity, description: "Alertas e governança", keywords: ["saúde", "alerta", "vigência", "governança"] },
       { id: "aneel-sync-status", title: "Status Sync ANEEL", icon: Zap, description: "Monitoramento do sync", keywords: ["sync", "aneel", "status", "log"] },
+      { id: "premissas", title: "Premissas", icon: Sliders, description: "Parâmetros financeiros e técnicos", keywords: ["premissas", "financeiras", "telhado", "irradiância"], separator: true },
+      { id: "meteorologia", title: "Base Meteorológica", icon: Database, description: "Dados de irradiância solar", keywords: ["irradiância", "solar", "INPE", "NASA", "GHI"] },
     ],
   },
 
@@ -411,6 +420,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "google-maps-config", title: "Google Maps", icon: MapPin, description: "API Key para mapas", keywords: ["google", "maps", "mapa", "api"] },
       { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade"] },
       { id: "changelog", title: "Atualizações", icon: HistoryIcon, description: "Histórico de atualizações", keywords: ["changelog", "atualização", "novidade", "versão"] },
+      { id: "menus", title: "Personalizar Menus", icon: LayoutList, description: "Reorganizar itens do menu", keywords: ["menu", "sidebar", "organizar", "personalizar"] },
       { id: "data-reset", title: "Limpeza de Dados", icon: Trash2, description: "Reset seletivo por segmento", keywords: ["reset", "limpeza", "deletar", "remover"] },
     ],
   },
