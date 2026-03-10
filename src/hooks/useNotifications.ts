@@ -43,7 +43,7 @@ export function useNotifications() {
       // 1. New leads (last 24h)
       // Admin: all leads | Consultant: only assigned leads (owner_user_id)
       try {
-        let query = supabase
+        let q: any = supabase
           .from("leads")
           .select("id, nome, created_at")
           .gte("created_at", last24h)
@@ -51,7 +51,7 @@ export function useNotifications() {
           .limit(10);
 
         if (!isAdmin) {
-          query = query.eq("owner_user_id", user.id);
+          q = q.eq("owner_user_id", user.id);
         }
 
         const { data: leads } = await (query as any);
