@@ -5,27 +5,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { Play } from "lucide-react";
 import { useTenantPlan } from "@/hooks/useTenantPlan";
 import { usePlanGuard } from "@/components/plan/PlanGuard";
-import { Lock, Brain } from "lucide-react";
+import { PageHeader } from "@/components/ui-kit";
 import {
-  Bell,
-  Plus,
-  Pencil,
-  Trash2,
-  
-  Clock,
-  MessageCircle,
-  UserX,
-  Pause,
-  Save,
-  X,
-  Zap,
-  AlertTriangle,
-  ArrowUpDown,
+  Bell, Plus, Pencil, Trash2, Clock, MessageCircle, UserX, Pause, Save, X,
+  Zap, AlertTriangle, ArrowUpDown, Play, Lock, Brain,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,21 +21,11 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -91,29 +68,26 @@ const CENARIO_CONFIG = {
     description: "Enviamos mensagem e o cliente não respondeu",
     icon: UserX,
     color: "text-warning",
-    bg: "bg-warning/10",
   },
   equipe_sem_resposta: {
     label: "Equipe sem resposta",
     description: "Cliente mandou mensagem e ninguém respondeu",
     icon: AlertTriangle,
     color: "text-destructive",
-    bg: "bg-destructive/10",
   },
   conversa_parada: {
     label: "Conversa parada",
     description: "Nenhuma interação após um período",
     icon: Pause,
     color: "text-muted-foreground",
-    bg: "bg-muted/50",
   },
 };
 
-const PRIORIDADE_CONFIG: Record<string, { label: string; color: string }> = {
-  baixa: { label: "Baixa", color: "bg-muted text-muted-foreground" },
-  media: { label: "Média", color: "bg-info/20 text-info" },
-  alta: { label: "Alta", color: "bg-warning/20 text-warning" },
-  urgente: { label: "Urgente", color: "bg-destructive/20 text-destructive" },
+const PRIORIDADE_CONFIG: Record<string, { label: string; className: string }> = {
+  baixa: { label: "Baixa", className: "bg-muted/10 text-muted-foreground border-muted-foreground/20" },
+  media: { label: "Média", className: "bg-info/10 text-info border-info/20" },
+  alta: { label: "Alta", className: "bg-warning/10 text-warning border-warning/20" },
+  urgente: { label: "Urgente", className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const DEFAULT_FORM: RuleFormData = {
@@ -142,7 +116,6 @@ export function WaFollowupRulesManager() {
   const [formData, setFormData] = useState<RuleFormData>(DEFAULT_FORM);
   const [timeUnit, setTimeUnit] = useState<TimeUnit>("horas");
 
-  // Manual trigger mutation
   const processNowMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("process-wa-followups");
@@ -173,9 +146,9 @@ export function WaFollowupRulesManager() {
       if (error) throw error;
       return data as FollowupRule[];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
-  // Stats from queue
   const { data: queueStats } = useQuery({
     queryKey: ["wa-followup-queue-stats"],
     queryFn: async () => {
@@ -188,7 +161,7 @@ export function WaFollowupRulesManager() {
       const respondidos = (data || []).filter((q) => q.status === "respondido").length;
       return { pendentes, enviados, respondidos, total: data?.length || 0 };
     },
-    staleTime: 30 * 1000,
+    staleTime: 1000 * 30,
   });
 
   const saveMutation = useMutation({
@@ -324,80 +297,92 @@ export function WaFollowupRulesManager() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Auto-Reply Config */}
       <WaAutoReplyConfig />
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-warning/20 to-warning/5 border border-warning/10">
-            <Bell className="h-6 w-6 text-warning" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Regras de Follow-up</h2>
-            <p className="text-sm text-muted-foreground">
-              Configure quando e como acompanhar conversas sem resposta
-              {hasAiFollowup && (
-                <Badge variant="outline" className="ml-2 text-[10px] gap-0.5 align-middle">
-                  <Brain className="h-2.5 w-2.5" />
-                  IA Ativa
-                </Badge>
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => processNowMutation.mutate()}
-            disabled={processNowMutation.isPending}
-            className="gap-2"
-          >
-            {processNowMutation.isPending ? (
-              <Spinner size="sm" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )}
-            Processar Agora
-          </Button>
-          <Button onClick={openCreate} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nova Regra
-          </Button>
-        </div>
-      </div>
 
-      {/* Stats */}
+      {/* §26 Header */}
+      <PageHeader
+        icon={Bell}
+        title="Regras de Retorno"
+        description={
+          <>
+            Configure quando e como acompanhar conversas sem resposta
+            {hasAiFollowup && (
+              <Badge variant="outline" className="ml-2 text-[10px] gap-0.5 align-middle">
+                <Brain className="h-2.5 w-2.5" />
+                IA Ativa
+              </Badge>
+            )}
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => processNowMutation.mutate()}
+              disabled={processNowMutation.isPending}
+              className="gap-2"
+            >
+              {processNowMutation.isPending ? <Spinner size="sm" /> : <Play className="h-4 w-4" />}
+              Processar Agora
+            </Button>
+            <Button size="sm" onClick={openCreate} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Nova Regra
+            </Button>
+          </div>
+        }
+      />
+
+      {/* §27 KPI Cards */}
       {queueStats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-warning/10 border border-border/20">
-            <Clock className="h-4 w-4 text-warning shrink-0" />
-            <div>
-              <p className="text-lg font-bold text-foreground leading-none">{queueStats.pendentes}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Pendentes</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-info/10 border border-border/20">
-            <Zap className="h-4 w-4 text-info shrink-0" />
-            <div>
-              <p className="text-lg font-bold text-foreground leading-none">{queueStats.enviados}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Enviados</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-success/10 border border-border/20">
-            <MessageCircle className="h-4 w-4 text-success shrink-0" />
-            <div>
-              <p className="text-lg font-bold text-foreground leading-none">{queueStats.respondidos}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Respondidos</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/50 border border-border/20">
-            <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
-            <div>
-              <p className="text-lg font-bold text-foreground leading-none">{rules.filter(r => r.ativo).length}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Regras ativas</p>
-            </div>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="border-l-[3px] border-l-warning bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 shrink-0">
+                <Clock className="w-5 h-5 text-warning" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{queueStats.pendentes}</p>
+                <p className="text-sm text-muted-foreground mt-1">Pendentes</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-[3px] border-l-info bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 shrink-0">
+                <Zap className="w-5 h-5 text-info" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{queueStats.enviados}</p>
+                <p className="text-sm text-muted-foreground mt-1">Enviados</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-[3px] border-l-success bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 shrink-0">
+                <MessageCircle className="w-5 h-5 text-success" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{queueStats.respondidos}</p>
+                <p className="text-sm text-muted-foreground mt-1">Respondidos</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+                <ArrowUpDown className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{rules.filter(r => r.ativo).length}</p>
+                <p className="text-sm text-muted-foreground mt-1">Regras ativas</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -407,19 +392,15 @@ export function WaFollowupRulesManager() {
           <Spinner size="md" />
         </div>
       ) : rules.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Bell className="h-10 w-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground">Nenhuma regra configurada</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              Crie regras para acompanhar conversas sem resposta automaticamente.
-            </p>
-            <Button onClick={openCreate} variant="default" className="mt-4 gap-2">
-              <Plus className="h-4 w-4" />
-              Criar primeira regra
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Bell className="w-10 h-10 text-muted-foreground/40 mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">Nenhuma regra configurada</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Crie regras para acompanhar conversas sem resposta automaticamente.</p>
+          <Button onClick={openCreate} className="mt-4 gap-2">
+            <Plus className="h-4 w-4" />
+            Criar primeira regra
+          </Button>
+        </div>
       ) : (
         <div className="space-y-3">
           {rules.map((rule) => {
@@ -428,25 +409,25 @@ export function WaFollowupRulesManager() {
             const CenarioIcon = cenario.icon;
 
             return (
-              <Card key={rule.id} className={`transition-opacity ${!rule.ativo ? "opacity-50" : ""}`}>
+              <Card key={rule.id} className={`bg-card border-border shadow-sm transition-opacity ${!rule.ativo ? "opacity-50" : ""}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
-                    <div className={`p-2 rounded-lg ${cenario.bg} shrink-0`}>
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
                       <CenarioIcon className={`h-5 w-5 ${cenario.color}`} />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-sm truncate">{rule.nome}</h3>
-                        <Badge className={`text-[10px] px-1.5 py-0 ${prio.color}`}>{prio.label}</Badge>
+                        <h3 className="font-semibold text-sm text-foreground truncate">{rule.nome}</h3>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 ${prio.className}`}>{prio.label}</Badge>
                         {rule.envio_automatico && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5">
+                          <Badge variant="outline" className="text-[10px] px-1.5 gap-0.5">
                             <Zap className="h-2.5 w-2.5" />
                             Auto
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2">
+                      <p className="text-xs text-muted-foreground mb-1">
                         {cenario.label} · Prazo: <strong>{formatPrazo(rule.prazo_minutos)}</strong>
                         {rule.max_tentativas > 1 && ` · Até ${rule.max_tentativas} tentativas`}
                       </p>
@@ -460,7 +441,7 @@ export function WaFollowupRulesManager() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 px-1">
                       <Switch
                         checked={rule.ativo}
                         onCheckedChange={(v) => toggleMutation.mutate({ id: rule.id, ativo: v })}
@@ -490,33 +471,37 @@ export function WaFollowupRulesManager() {
         </div>
       )}
 
-      {/* Form Dialog */}
+      {/* §25 Form Dialog — max-w-2xl, no scroll interno */}
       <Dialog open={showForm} onOpenChange={(open) => !open && closeForm()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingRule ? "Editar Regra" : "Nova Regra de Follow-up"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Bell className="w-5 h-5 text-primary" />
+              {editingRule ? "Editar Regra" : "Nova Regra de Follow-up"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Nome *</Label>
-              <Input
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                placeholder="Ex: Follow-up cliente 24h"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nome *</Label>
+                <Input
+                  value={formData.nome}
+                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  placeholder="Ex: Follow-up cliente 24h"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Input
+                  value={formData.descricao || ""}
+                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value || null })}
+                  placeholder="Descrição opcional da regra"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Descrição</Label>
-              <Input
-                value={formData.descricao || ""}
-                onChange={(e) => setFormData({ ...formData, descricao: e.target.value || null })}
-                placeholder="Descrição opcional da regra"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Cenário</Label>
                 <Select value={formData.cenario} onValueChange={(v) => setFormData({ ...formData, cenario: v })}>
@@ -551,7 +536,7 @@ export function WaFollowupRulesManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Prazo</Label>
                 <div className="flex gap-2">
@@ -598,7 +583,8 @@ export function WaFollowupRulesManager() {
               </div>
             </div>
 
-            <div className={`flex items-center justify-between p-3 rounded-lg border ${!hasAiFollowup ? "opacity-60" : ""}`}>
+            {/* §28 Switch container — px-3 py-2, sem overflow-hidden */}
+            <div className={`flex items-center justify-between px-3 py-2 rounded-lg border border-border ${!hasAiFollowup ? "opacity-60" : ""}`}>
               <div>
                 <Label className="text-sm font-medium flex items-center gap-1.5">
                   Envio automático
@@ -635,7 +621,7 @@ export function WaFollowupRulesManager() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={closeForm}>Cancelar</Button>
-            <Button variant="default" onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
+            <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
               {saveMutation.isPending ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
               {editingRule ? "Salvar" : "Criar Regra"}
             </Button>
