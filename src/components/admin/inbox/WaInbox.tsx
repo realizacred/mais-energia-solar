@@ -403,7 +403,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       const ext = file.name.split(".").pop() || "bin";
       const filePath = tenantPath(tid, selectedConv.id, `${Date.now()}.${ext}`);
       
-      console.log("[handleSendMedia] Uploading to:", filePath);
+      
       const { error: uploadError } = await supabase.storage
         .from("wa-attachments")
         .upload(filePath, file);
