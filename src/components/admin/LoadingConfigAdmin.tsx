@@ -372,9 +372,9 @@ export function LoadingConfigAdmin() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <span className="text-xs font-medium text-muted-foreground">① Movimento</span>
-                <Select value={motion} onValueChange={(v) => {
+                <Select value={motionStyle} onValueChange={(v) => {
                   const m = v as LoaderMotion;
-                  setMotion(m);
+                  setMotionStyle(m);
                   // Auto-set sensible finish defaults
                   const defaultFinish: LoaderFinish = m === "none" ? "none" : m === "pulse" || m === "breathe" ? "continue" : "stop";
                   setFinish(defaultFinish);
