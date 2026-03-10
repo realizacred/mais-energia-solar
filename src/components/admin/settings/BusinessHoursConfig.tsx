@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Clock, Plus, Trash2, Loader2, Save } from "lucide-react";
+import { Clock, Plus, Trash2, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
