@@ -19,7 +19,7 @@ import { RotatingLoadingMessage } from "@/components/loading/LoadingMessage";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { Save, RotateCcw, Palette, MessageCircle, Brain, Eye, Upload, X } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { motion } from "framer-motion";
+import { motion as mtn } from "framer-motion";
 
 const CONTEXT_LABELS: Record<string, string> = {
   general: "Geral",
