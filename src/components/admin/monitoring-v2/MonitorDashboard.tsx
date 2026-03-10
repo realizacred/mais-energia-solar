@@ -500,22 +500,23 @@ function OfflineStandbySection({ plants, navigate }: {
         <SectionCard title={`Standby (${standbyPlants.length})`} icon={Moon}>
           <div className="space-y-1 max-h-[240px] overflow-y-auto">
             {standbyPlants.slice(0, 20).map((p) => (
-              <button
+              <Button
                 key={p.id}
+                variant="ghost"
                 onClick={() => navigate(`/admin/monitoramento/usinas/${p.id}`)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg h-auto text-left"
               >
                 <span className="text-sm text-foreground truncate">{p.name}</span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="h-2 w-2 rounded-full bg-warning" />
-                  <span className="text-xs text-muted-foreground">standby</span>
+                  <span className="text-xs text-muted-foreground font-normal">standby</span>
                 </div>
-              </button>
+              </Button>
             ))}
             {standbyPlants.length > 20 && (
-              <button onClick={() => navigate("/admin/monitoramento/usinas?status=standby")} className="w-full text-xs text-primary font-medium py-2 hover:underline">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/admin/monitoramento/usinas?status=standby")} className="w-full text-xs text-primary font-medium">
                 Ver todas ({standbyPlants.length})
-              </button>
+              </Button>
             )}
           </div>
         </SectionCard>
