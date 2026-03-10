@@ -168,6 +168,7 @@ export default function MonitorPlants() {
 
       <MonitorNav />
 
+      {/* ═══════════════════════════════════════════════
           📊 RESUMO OPERACIONAL (reacts to filters)
       ═══════════════════════════════════════════════ */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">

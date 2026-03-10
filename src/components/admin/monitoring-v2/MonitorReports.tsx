@@ -214,6 +214,7 @@ export default function MonitorReports() {
 
       <MonitorNav />
 
+      {plants.length === 0 ? (
         <EmptyState
           icon={Sun}
           title="Nenhuma usina cadastrada"
