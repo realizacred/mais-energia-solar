@@ -683,15 +683,15 @@ Containers que envolvem switches devem:
 
 ---
 
-## 29. PADRÃO DE ABAS INTERNAS (Tabs dentro de página)
+## 29. PADRÃO DE ABAS INTERNAS
 
 Quando uma página tem menu de abas interno, a ordem obrigatória é:
 
 1. Header da página (ícone + título + subtítulo) — seção 26
-2. Menu de abas (Tabs horizontais)
+2. Menu de abas (TabsList horizontal)
 3. Conteúdo da aba ativa
 
-NUNCA colocar o menu de abas antes do header.
+NUNCA colocar TabsList antes do header.
 NUNCA colocar o título dentro do conteúdo da aba.
 
 Exemplo correto:
@@ -728,9 +728,26 @@ Exemplo correto:
 </div>
 ```
 
-Telas que usam abas internas devem seguir esse padrão:
-- Monitoramento Solar
-- Recebimentos (Recebimentos, Relatórios, Calendário)
-- Qualquer outra tela com TabsList
+Telas que usam esse padrão: Monitoramento Solar, Recebimentos e qualquer tela com TabsList interno.
 
-Não altere nenhuma outra parte do AGENTS.md.
+---
+
+## 30. ESTRUTURA DO MENU — 15 seções
+
+O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.ts` é a Fonte Única de Verdade (SSOT).
+
+1. **PAINEL** — Painel Geral, Performance
+2. **COMERCIAL** — Leads, Pipeline, Projetos, Acompanhamentos, Distribuição de Leads, SLA & Breaches, Inteligência Comercial, Aprovações
+3. **ATENDIMENTO** — Central WhatsApp, Fila de Follow-ups, Regras de Follow-up, Métricas de Atendimento, Regras de Retorno, Fila de Retorno, Instâncias WhatsApp, Automação WhatsApp, Etiquetas WhatsApp, Respostas Rápidas
+4. **CLIENTES** — Gestão de Clientes, Documentação, Avaliações NPS, Agenda de Serviços, Documentos & Assinaturas
+5. **PÓS-VENDA** — Dashboard, Preventivas, Planos, Checklists, Oportunidades
+6. **OPERAÇÕES** — Instaladores, Estoque, Validação de Vendas, Tarefas & SLA
+7. **FINANCEIRO** — Recebimentos, Inadimplência, Comissões, Fiscal, Financiamentos, Premissas Fiscais, Política de Preços
+8. **EQUIPE** — Consultores, Gamificação
+9. **IA** — Copilot IA, Configuração de IA
+10. **ENERGIA** — Unidades Consumidoras, Medidores, Monitoramento Solar, Usinas, Alertas, Relatórios, Integrações Monitoramento, SolarMarket Config, SolarMarket Importação
+11. **INTEGRAÇÕES** — Catálogo de Integrações, Saúde das Integrações, Meta Ads Dashboard, Webhooks
+12. **SITE** — Conteúdo & Visual, Serviços, Portfólio, Instagram
+13. **CADASTROS** — Disjuntores & Transf., Módulos Fotovoltaicos, Inversores, Baterias, Fornecedores, Concessionárias, Dicionário ANEEL, Versões de Tarifa, Saúde Tarifária, Status Sync ANEEL, Premissas, Base Meteorológica
+14. **CONFIGURAÇÕES** — Calculadora Solar, Status de Leads, Motivos de Perda, Loading & Mensagens
+15. **ADMINISTRAÇÃO** — Empresa, Usuários & Permissões, Permissões por Papel, Auditoria, Notificações, Links & Captação, Google Maps, Release Notes, Atualizações, Personalizar Menus, Limpeza de Dados
