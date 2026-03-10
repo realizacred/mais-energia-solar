@@ -84,7 +84,7 @@ export function useNotifications() {
           query = query.or(`assigned_to.eq.${user.id},assigned_to.is.null`);
         }
 
-        const { data: convs } = await query;
+        const { data: convs } = await (query as any);
         if (convs) {
           for (const conv of convs) {
             items.push({
