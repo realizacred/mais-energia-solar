@@ -119,7 +119,7 @@ export default function MonitorDashboard() {
           {/* ═══ KPI ROW 2 — metrics ═══ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <EnterpriseKpi
-              icon={Zap} label="Com Alerta"
+              icon={AlertTriangle} label="Com Alerta"
               value={String(alertCount)}
               accentColor={alertCount > 0 ? "destructive" : "muted"}
               highlight={alertCount > 0}
