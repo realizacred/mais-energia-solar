@@ -226,12 +226,22 @@ export function LoadingConfigAdmin() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <motion.div
+      className="p-4 md:p-6 space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* §26 Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Loading & Mensagens</h2>
-          <p className="text-sm text-muted-foreground">Configure a experiência de carregamento do sistema</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <Palette className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Loading & Mensagens</h1>
+            <p className="text-sm text-muted-foreground">Configure a experiência de carregamento do sistema</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
