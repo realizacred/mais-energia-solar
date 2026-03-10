@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { MessageCircle, MessageCirclePlus, Settings } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
@@ -19,6 +19,8 @@ import { WaSlaAlertBanner } from "./WaSlaAlertBanner";
 import { WaFollowupWidget } from "@/components/admin/widgets/WaFollowupWidget";
 import { WaSettingsDialog } from "./WaSettingsDialog";
 import { WaStartConversationDialog } from "./WaStartConversationDialog";
+import { WaPreContactCard } from "./WaPreContactCard";
+import { WaInboxHeader } from "./WaInboxHeader";
 import { Button } from "@/components/ui/button";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
@@ -585,43 +587,11 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "space-y-4"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-success/10 border border-success/20">
-              <MessageCircle className="h-6 w-6 text-success" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Central de Atendimento</h2>
-              <p className="text-sm text-muted-foreground">
-                {instances.length > 0 && (
-                  <span className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${instances.some(i => i.status === "connected") ? "bg-success animate-pulse" : "bg-destructive"}`} />
-                    {instances.filter(i => i.status === "connected").length}/{instances.length} instâncias online
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => setShowStartChat(true)}
-              title="Iniciar nova conversa"
-            >
-              <MessageCirclePlus className="h-4 w-4 mr-1" />
-              Nova conversa
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowSettings(true)}
-              title="Configurações WhatsApp"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <WaInboxHeader
+          instances={instances}
+          onNewChat={() => setShowStartChat(true)}
+          onSettings={() => setShowSettings(true)}
+        />
       )}
 
       {/* Stats - only in admin mode */}
@@ -764,28 +734,12 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 />
               </>
             ) : preContactData ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-3">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-warning/15 to-warning/5 border border-warning/10 flex items-center justify-center">
-                  <MessageCircle className="h-7 w-7 text-warning/60" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground/70">Pré-Contato</h3>
-                <p className="text-sm text-muted-foreground">
-                  <strong>{preContactData.nome}</strong> ainda não iniciou conversa.
-                </p>
-                <a
-                  href={`https://wa.me/${preContactData.phone.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-success/90 transition-colors"
-                  onClick={() => setPreContactData(null)}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Iniciar Conversa
-                </a>
-                <Button variant="ghost" size="sm" onClick={() => setPreContactData(null)} className="text-xs text-muted-foreground hover:text-foreground">
-                  Voltar
-                </Button>
-              </div>
+              <WaPreContactCard
+                nome={preContactData.nome}
+                phone={preContactData.phone}
+                onClose={() => setPreContactData(null)}
+                compact
+              />
             ) : (
               <WaConversationList
                 conversations={filteredConvs}
@@ -820,32 +774,11 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           {/* Desktop: Chat Panel or Pre-Contact Card */}
           <div className="hidden md:flex flex-1 min-w-0 overflow-x-hidden">
             {!selectedConv && preContactData ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-muted/5 to-muted/20 gap-4">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-warning/15 to-warning/5 border border-warning/10 flex items-center justify-center shadow-lg shadow-warning/5">
-                  <MessageCircle className="h-9 w-9 text-warning/60" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground/70">Novo Lead — Pré-Contato</h3>
-                <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-                  <strong>{preContactData.nome}</strong> ainda não iniciou conversa no WhatsApp.
-                </p>
-                <p className="text-xs text-muted-foreground">{preContactData.phone}</p>
-                <a
-                  href={`https://wa.me/${preContactData.phone.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-success/90 transition-colors shadow-md"
-                  onClick={() => setPreContactData(null)}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Iniciar Conversa no WhatsApp
-                </a>
-                <Button variant="ghost"
-                  onClick={() => setPreContactData(null)}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Fechar
-                </Button>
-              </div>
+              <WaPreContactCard
+                nome={preContactData.nome}
+                phone={preContactData.phone}
+                onClose={() => setPreContactData(null)}
+              />
             ) : (
               <WaChatPanel
                 conversation={selectedConv}
