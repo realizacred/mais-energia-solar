@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -210,26 +210,27 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
   const renderItemsTable = (items: FollowUpItem[], variant: 'urgent' | 'pending') => {
     if (items.length === 0) return null;
     const isUrgent = variant === 'urgent';
-    const bgClass = isUrgent ? "bg-destructive/5" : "bg-warning/5";
-    const borderClass = isUrgent ? "border-destructive/50" : "border-warning/50";
     const Icon = isUrgent ? Bell : Clock;
     const iconClass = isUrgent ? "text-destructive" : "text-warning";
-    const titleClass = isUrgent ? "text-destructive" : "text-warning";
     const title = isUrgent ? "Urgentes" : "Pendentes";
     const description = isUrgent ? `Há mais de ${diasAlerta * 2} dias sem contato.` : `Entre ${diasAlerta} e ${diasAlerta * 2} dias sem contato.`;
 
     return (
-      <Card className={borderClass}>
-        <CardHeader className="pb-3">
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <Icon className={`w-5 h-5 ${iconClass}`} />
-            <CardTitle className={titleClass}>{title}</CardTitle>
-            <Badge variant="secondary" className="ml-auto">{items.length}</Badge>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
+              <Icon className={cn("w-4 h-4", iconClass)} />
+            </div>
+            <div>
+              <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+              <CardDescription className="text-xs">{description}</CardDescription>
+            </div>
           </div>
-          <CardDescription>{description}</CardDescription>
+          <Badge variant="secondary">{items.length}</Badge>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="pt-4">
+          <div className="rounded-lg border border-border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -243,20 +244,20 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.id} className={cn(bgClass, "hover:bg-muted/30 transition-colors")}>
+                  <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell><Badge variant="outline" className="font-mono text-xs">{item.code || "-"}</Badge></TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{item.nome}</p>
+                        <p className="font-medium text-foreground">{item.nome}</p>
                         <p className="text-xs text-muted-foreground">{item.cidade}, {item.estado}</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <a href={`tel:${item.telefone}`} className="flex items-center gap-1 text-primary hover:underline">
+                      <a href={`tel:${item.telefone}`} className="flex items-center gap-1 text-primary hover:underline text-sm">
                         <Phone className="w-3 h-3" />{item.telefone}
                       </a>
                     </TableCell>
-                    <TableCell>{item.consultor || "-"}</TableCell>
+                    <TableCell className="text-sm text-foreground">{item.consultor || "-"}</TableCell>
                     <TableCell>{getStatusBadge(item)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -277,37 +278,37 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
   };
 
   const renderStats = (categories: ReturnType<typeof categorizeItems>) => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card className="rounded-xl border-2 border-destructive/40 bg-destructive/5">
-        <CardContent className="flex items-center gap-4 p-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <Card className="border-l-[3px] border-l-destructive bg-card shadow-sm hover:shadow-md transition-shadow">
+        <CardContent className="flex items-center gap-4 p-5">
           <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5 text-destructive" />
           </div>
           <div>
-            <p className="text-2xl font-bold">{categories.urgentLeads.length}</p>
-            <p className="text-xs text-muted-foreground">Urgentes ({diasAlerta * 2}+ dias)</p>
+            <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{categories.urgentLeads.length}</p>
+            <p className="text-sm text-muted-foreground mt-1">Urgentes ({diasAlerta * 2}+ dias)</p>
           </div>
         </CardContent>
       </Card>
-      <Card className="rounded-xl border-2 border-warning/40 bg-warning/5">
-        <CardContent className="flex items-center gap-4 p-4">
+      <Card className="border-l-[3px] border-l-warning bg-card shadow-sm hover:shadow-md transition-shadow">
+        <CardContent className="flex items-center gap-4 p-5">
           <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5 text-warning" />
           </div>
           <div>
-            <p className="text-2xl font-bold">{categories.pendingLeads.length}</p>
-            <p className="text-xs text-muted-foreground">Pendentes ({diasAlerta}+ dias)</p>
+            <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{categories.pendingLeads.length}</p>
+            <p className="text-sm text-muted-foreground mt-1">Pendentes ({diasAlerta}+ dias)</p>
           </div>
         </CardContent>
       </Card>
-      <Card className="rounded-xl border border-border bg-card">
-        <CardContent className="flex items-center gap-4 p-4">
+      <Card className="border-l-[3px] border-l-success bg-card shadow-sm hover:shadow-md transition-shadow">
+        <CardContent className="flex items-center gap-4 p-5">
           <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
             <CheckCircle className="w-5 h-5 text-success" />
           </div>
           <div>
-            <p className="text-2xl font-bold">{categories.upToDateLeads.length}</p>
-            <p className="text-xs text-muted-foreground">Em dia</p>
+            <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{categories.upToDateLeads.length}</p>
+            <p className="text-sm text-muted-foreground mt-1">Em dia</p>
           </div>
         </CardContent>
       </Card>
@@ -317,7 +318,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <Card key={i} className="p-5">
               <Skeleton className="h-8 w-24 mb-2" />
@@ -336,120 +337,128 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
 
   return (
     <div className="space-y-6">
-      <PageHeader icon={Bell} title="Follow-Up" description="Acompanhe leads e orçamentos que precisam de atenção" />
-      {/* Ranking de Vendedores */}
-      <Card className="rounded-xl border-2 border-border/60">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-warning" />
-            <CardTitle>Ranking de Atendimento por Vendedor</CardTitle>
-          </div>
-          <CardDescription>Performance de atendimento e KPIs</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {vendorStats.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">Nenhum consultor com leads/orçamentos.</p>
-          ) : (
-            <div className="space-y-4">
-              {vendorStats.map((vendedor, index) => {
-                const total = vendedor.total || 1;
-                const urgentPercent = (vendedor.urgentes / total) * 100;
-                const pendingPercent = (vendedor.pendentes / total) * 100;
-                const okPercent = (vendedor.emDia / total) * 100;
+      {/* 1. Header — seção 26 */}
+      <PageHeader icon={Bell} title="Acompanhamentos" description="Acompanhe leads e orçamentos que precisam de atenção" />
 
-                return (
-                  <div key={vendedor.nome} className="p-4 rounded-xl border border-border/60 bg-card" style={{ boxShadow: "var(--shadow-xs)" }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-bold text-muted-foreground">#{index + 1}</span>
-                        <div>
-                          <p className="font-semibold">{vendedor.nome}</p>
-                          <p className="text-xs text-muted-foreground">{vendedor.total} atribuídos</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <Timer className="w-4 h-4 text-muted-foreground" />
-                          <span>{vendedor.tempoMedioResposta}d média</span>
-                        </div>
-                        {vendedor.urgentes > 0 && vendedor.telefone && (
-                          <Button size="sm" variant="outline" onClick={() => cobrarVendedor(vendedor)} className="gap-1">
-                            <Send className="w-3 h-3" />Cobrar
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted flex overflow-hidden">
-                      <div className="bg-destructive h-full" style={{ width: `${urgentPercent}%` }} />
-                      <div className="bg-warning h-full" style={{ width: `${pendingPercent}%` }} />
-                      <div className="bg-success h-full" style={{ width: `${okPercent}%` }} />
-                    </div>
-                    <div className="flex justify-between mt-2 text-xs">
-                      <span className="text-destructive">{vendedor.urgentes} urgentes</span>
-                      <span className="text-warning">{vendedor.pendentes} pendentes</span>
-                      <span className="text-success">{vendedor.emDia} em dia</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Tabs: Orçamentos / Leads */}
+      {/* 2. Tabs — seção 29: Header → Tabs → Conteúdo */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList>
           <TabsTrigger value="orcamentos" className="gap-2">
-            <FileText className="w-4 h-4 text-primary" />Orçamentos
+            <FileText className="w-4 h-4" />Orçamentos
             {(orcamentosCategories.urgentLeads.length + orcamentosCategories.pendingLeads.length) > 0 && (
               <Badge variant="destructive" className="ml-1">{orcamentosCategories.urgentLeads.length + orcamentosCategories.pendingLeads.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="leads" className="gap-2">
-            <Users className="w-4 h-4 text-secondary" />Leads
+            <Users className="w-4 h-4" />Leads
             {(leadsCategories.urgentLeads.length + leadsCategories.pendingLeads.length) > 0 && (
               <Badge variant="secondary" className="ml-1">{leadsCategories.urgentLeads.length + leadsCategories.pendingLeads.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="ranking" className="gap-2">
+            <Award className="w-4 h-4" />Ranking
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="orcamentos" className="space-y-6 mt-6">
+        {/* 3. Conteúdo */}
+        <TabsContent value="orcamentos" className="space-y-6 mt-4">
           {renderStats(orcamentosCategories)}
           {renderItemsTable(orcamentosCategories.urgentLeads, 'urgent')}
           {renderItemsTable(orcamentosCategories.pendingLeads, 'pending')}
           {orcamentosCategories.urgentLeads.length === 0 && orcamentosCategories.pendingLeads.length === 0 && (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                <CheckCircle className="w-12 h-12 text-success mb-3" />
-                <p className="text-lg font-medium">Todos os orçamentos estão em dia!</p>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <CheckCircle className="w-10 h-10 text-muted-foreground/40 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">Todos os orçamentos estão em dia!</p>
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="leads" className="space-y-6 mt-6">
+        <TabsContent value="leads" className="space-y-6 mt-4">
           {renderStats(leadsCategories)}
           {renderItemsTable(leadsCategories.urgentLeads, 'urgent')}
           {renderItemsTable(leadsCategories.pendingLeads, 'pending')}
           {leadsCategories.urgentLeads.length === 0 && leadsCategories.pendingLeads.length === 0 && (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                <CheckCircle className="w-12 h-12 text-success mb-3" />
-                <p className="text-lg font-medium">Todos os leads estão em dia!</p>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <CheckCircle className="w-10 h-10 text-muted-foreground/40 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">Todos os leads estão em dia!</p>
+            </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="ranking" className="mt-4">
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
+                  <Award className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold text-foreground">Ranking de Atendimento</CardTitle>
+                  <CardDescription className="text-xs">Performance de atendimento e KPIs por vendedor</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {vendorStats.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Users className="w-10 h-10 text-muted-foreground/40 mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum consultor com leads/orçamentos</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {vendorStats.map((vendedor, index) => {
+                    const total = vendedor.total || 1;
+                    const urgentPercent = (vendedor.urgentes / total) * 100;
+                    const pendingPercent = (vendedor.pendentes / total) * 100;
+                    const okPercent = (vendedor.emDia / total) * 100;
+
+                    return (
+                      <div key={vendedor.nome} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-xs font-bold text-primary">#{index + 1}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">{vendedor.nome}</p>
+                            <p className="text-xs text-muted-foreground">{vendedor.total} atribuídos · {vendedor.tempoMedioResposta}d média</p>
+                            <div className="h-1.5 rounded-full bg-muted flex overflow-hidden mt-1.5">
+                              <div className="bg-destructive h-full" style={{ width: `${urgentPercent}%` }} />
+                              <div className="bg-warning h-full" style={{ width: `${pendingPercent}%` }} />
+                              <div className="bg-success h-full" style={{ width: `${okPercent}%` }} />
+                            </div>
+                            <div className="flex gap-3 mt-1 text-[10px]">
+                              <span className="text-destructive font-medium">{vendedor.urgentes} urgentes</span>
+                              <span className="text-warning font-medium">{vendedor.pendentes} pendentes</span>
+                              <span className="text-success font-medium">{vendedor.emDia} em dia</span>
+                            </div>
+                          </div>
+                        </div>
+                        {vendedor.urgentes > 0 && vendedor.telefone && (
+                          <Button size="sm" variant="outline" onClick={() => cobrarVendedor(vendedor)} className="gap-1 shrink-0 ml-3">
+                            <Send className="w-3 h-3" />Cobrar
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
       {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrar Contato - {selectedItem?.nome}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Phone className="w-5 h-5 text-primary" />
+              Registrar Contato
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">Cliente: <span className="font-medium text-foreground">{selectedItem?.nome}</span></p>
             <div className="space-y-2">
               <Label htmlFor="proxima_acao">Próxima Ação</Label>
               <Textarea id="proxima_acao" value={formData.proxima_acao} onChange={(e) => setFormData(p => ({ ...p, proxima_acao: e.target.value }))} placeholder="Ex: Ligar novamente, enviar proposta..." rows={3} />
@@ -458,10 +467,13 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
               <Label htmlFor="data_proxima_acao">Data da Próxima Ação</Label>
               <Input id="data_proxima_acao" type="date" value={formData.data_proxima_acao} onChange={(e) => setFormData(p => ({ ...p, data_proxima_acao: e.target.value }))} />
             </div>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving && <Spinner size="sm" className="mr-2" />}Confirmar Contato
-            </Button>
           </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Spinner size="sm" className="mr-2" />}Confirmar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
