@@ -69,11 +69,11 @@ export function TasksSlaDashboard() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-info/20 to-info/5 border border-info/10">
-          <ClipboardCheck className="h-6 w-6 text-info" />
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+          <ClipboardCheck className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-foreground">Tarefas & SLA</h2>
+          <h1 className="text-xl font-bold text-foreground">Tarefas & SLA</h1>
           <p className="text-sm text-muted-foreground">Gestão operacional com prazos e escalonamento</p>
         </div>
       </div>
