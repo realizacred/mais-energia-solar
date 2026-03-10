@@ -27,7 +27,7 @@
  *  7. Financeiro
  *  8. Equipe
  *  9. IA
- * 10. Monitoramento
+ * 10. Energia
  * 11. Integrações
  * 12. Site
  * 13. Cadastros
@@ -120,14 +120,15 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "diretor", label_default: "Copilot IA", group_default: "IA", order_default: 0, icon: "Sparkles", description: "Análises inteligentes e sugestões automáticas", keywords: ["IA", "copilot", "sugestão", "automático", "inteligência", "assistente"], criticality: "normal", permission: "all" },
   { nav_key: "ai-config", label_default: "Configuração de IA", group_default: "IA", order_default: 1, icon: "Brain", description: "Modelo, temperatura e regras de IA", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"], criticality: "normal", permission: "admin_only" },
 
-  // ── 10. Monitoramento ──
-  { nav_key: "monitoramento", label_default: "Visão Geral", group_default: "Monitoramento", order_default: 0, icon: "BarChart3", description: "Dashboard de monitoramento solar em tempo real", keywords: ["monitoramento", "solar", "dashboard", "energia", "geração", "usina"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "monitoramento/usinas", label_default: "Usinas", group_default: "Monitoramento", order_default: 1, icon: "Sun", description: "Mapa e lista de usinas fotovoltaicas", keywords: ["usina", "planta", "mapa", "lista", "solar"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "monitoramento/alertas", label_default: "Alertas", group_default: "Monitoramento", order_default: 2, icon: "AlertTriangle", description: "Central de alertas das usinas", keywords: ["alerta", "offline", "falha", "inversor", "comunicação"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "monitoramento/relatorios", label_default: "Relatórios", group_default: "Monitoramento", order_default: 3, icon: "FileText", description: "Relatórios de geração e performance", keywords: ["relatório", "geração", "performance", "csv", "exportar"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "monitoramento/integracoes", label_default: "Integrações", group_default: "Monitoramento", order_default: 4, icon: "Plug", description: "Configuração de provedores de monitoramento", keywords: ["provider", "solarman", "solaredge", "solis", "deye", "integração"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "solarmarket-config", label_default: "SolarMarket Config", group_default: "Monitoramento", order_default: 5, icon: "Sun", description: "API Key para cotações de equipamentos", keywords: ["solarmarket", "cotação", "api", "key"], criticality: "normal", permission: "admin_only", separator: true },
-  { nav_key: "solarmarket", label_default: "SolarMarket Importação", group_default: "Monitoramento", order_default: 6, icon: "Sun", description: "Importar clientes, projetos e propostas do SolarMarket", keywords: ["solarmarket", "importar", "cliente", "projeto", "proposta", "sincronizar"], criticality: "normal", permission: "admin_only" },
+  // ── 10. Energia ──
+  { nav_key: "ucs", label_default: "Unidades Consumidoras", group_default: "Energia", order_default: 0, icon: "Building2", description: "Gestão de UCs", keywords: ["UC", "unidade", "consumidora", "energia", "concessionária"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "medidores", label_default: "Medidores", group_default: "Energia", order_default: 1, icon: "Gauge", description: "Dispositivos de medição IoT sincronizados via API", keywords: ["medidor", "meter", "tuya", "IoT", "smart meter"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "monitoramento", label_default: "Monitoramento Solar", group_default: "Energia", order_default: 2, icon: "BarChart3", description: "Dashboard de monitoramento solar em tempo real", keywords: ["monitoramento", "solar", "dashboard", "energia", "geração", "usina"], criticality: "normal", permission: "admin_only", separator: true },
+  { nav_key: "monitoramento/usinas", label_default: "Usinas", group_default: "Energia", order_default: 3, icon: "Sun", description: "Mapa e lista de usinas fotovoltaicas", keywords: ["usina", "planta", "mapa", "lista", "solar"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "monitoramento/alertas", label_default: "Alertas", group_default: "Energia", order_default: 4, icon: "AlertTriangle", description: "Central de alertas das usinas", keywords: ["alerta", "offline", "falha", "inversor", "comunicação"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "monitoramento/relatorios", label_default: "Relatórios", group_default: "Energia", order_default: 5, icon: "FileText", description: "Relatórios de geração e performance", keywords: ["relatório", "geração", "performance", "csv", "exportar"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "solarmarket-config", label_default: "SolarMarket Config", group_default: "Energia", order_default: 6, icon: "Sun", description: "API Key para cotações de equipamentos", keywords: ["solarmarket", "cotação", "api", "key"], criticality: "normal", permission: "admin_only", separator: true },
+  { nav_key: "solarmarket", label_default: "SolarMarket Importação", group_default: "Energia", order_default: 7, icon: "Sun", description: "Importar clientes, projetos e propostas do SolarMarket", keywords: ["solarmarket", "importar", "cliente", "projeto", "proposta", "sincronizar"], criticality: "normal", permission: "admin_only" },
 
   // ── 11. Integrações ──
   { nav_key: "catalogo-integracoes", label_default: "Catálogo de Integrações", group_default: "Integrações", order_default: 0, icon: "Plug", description: "Catálogo completo de integrações disponíveis", keywords: ["integração", "catálogo", "provider", "conectar", "solar", "crm", "pagamento", "webhook", "openai", "gemini", "whatsapp", "meta", "google", "maps", "agenda", "instagram", "automação", "webhook", "asaas"], criticality: "normal", permission: "admin_only" },
@@ -181,8 +182,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "meta-config", label_default: "Configuração", group_default: "_hidden", order_default: 3, icon: "Settings", description: "Credenciais Meta", keywords: ["meta", "config"], criticality: "normal", permission: "admin_only" },
 
   // Standalone items accessible via other routes
-  { nav_key: "medidores", label_default: "Medidores", group_default: "_hidden", order_default: 0, icon: "Gauge", description: "Dispositivos de medição IoT", keywords: ["medidor", "meter", "tuya"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "ucs", label_default: "Unidades Consumidoras", group_default: "_hidden", order_default: 0, icon: "Building2", description: "Gestão de UCs", keywords: ["UC", "unidade", "consumidora"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "monitoramento/integracoes", label_default: "Integrações Monitoramento", group_default: "_hidden", order_default: 0, icon: "Plug", description: "Configuração de provedores de monitoramento", keywords: ["provider", "solarman", "solaredge", "solis", "deye", "integração"], criticality: "normal", permission: "admin_only" },
   { nav_key: "proposta-comercial", label_default: "Proposta Comercial", group_default: "_hidden", order_default: 0, icon: "FileText", description: "Variáveis e modelos de proposta", keywords: ["proposta", "comercial"], criticality: "normal", permission: "admin_only" },
   { nav_key: "custom-fields", label_default: "Opções Customizáveis", group_default: "_hidden", order_default: 1, icon: "Settings2", description: "Campos customizados", keywords: ["campo", "customizado"], criticality: "normal", permission: "admin_only" },
   { nav_key: "depositos", label_default: "Depósitos", group_default: "_hidden", order_default: 0, icon: "Warehouse", description: "Locais de armazenamento", keywords: ["depósito", "almoxarifado"], criticality: "normal", permission: "admin_only" },
@@ -218,7 +218,7 @@ export const NAV_SECTION_DEFAULTS: NavSectionMeta[] = [
   { label: "Financeiro",       icon: "Wallet",         order: 6,   indicatorBg: "bg-sidebar-finance",       activeClass: ACTIVE("finance"),       hoverClass: HOVER("finance"),       labelClass: LABEL("finance"),       defaultOpen: false },
   { label: "Equipe",           icon: "Users",          order: 7,   indicatorBg: "bg-sidebar-cadastros",     activeClass: ACTIVE("cadastros"),     hoverClass: HOVER("cadastros"),     labelClass: LABEL("cadastros"),     defaultOpen: false },
   { label: "IA",               icon: "Bot",            order: 8,   indicatorBg: "bg-sidebar-ai",            activeClass: ACTIVE("ai"),            hoverClass: HOVER("ai"),            labelClass: LABEL("ai"),            defaultOpen: false },
-  { label: "Monitoramento",    icon: "Sun",            order: 9,   indicatorBg: "bg-sidebar-commercial",    activeClass: ACTIVE("commercial"),    hoverClass: HOVER("commercial"),    labelClass: LABEL("commercial"),    defaultOpen: false },
+  { label: "Energia",           icon: "Zap",            order: 9,   indicatorBg: "bg-sidebar-commercial",    activeClass: ACTIVE("commercial"),    hoverClass: HOVER("commercial"),    labelClass: LABEL("commercial"),    defaultOpen: false },
   { label: "Integrações",      icon: "Plug",           order: 10,  indicatorBg: "bg-sidebar-settings",      activeClass: ACTIVE("settings"),      hoverClass: HOVER("settings"),      labelClass: LABEL("settings"),      defaultOpen: false },
   { label: "Site",             icon: "Globe",          order: 11,  indicatorBg: "bg-sidebar-marketing",     activeClass: ACTIVE("marketing"),     hoverClass: HOVER("marketing"),     labelClass: LABEL("marketing"),     defaultOpen: false },
   { label: "Cadastros",        icon: "Database",       order: 12,  indicatorBg: "bg-sidebar-cadastros",     activeClass: ACTIVE("cadastros"),     hoverClass: HOVER("cadastros"),     labelClass: LABEL("cadastros"),     defaultOpen: false },
