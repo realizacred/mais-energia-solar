@@ -420,7 +420,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       else if (file.type.startsWith("video/")) messageType = "video";
       else if (file.type.startsWith("audio/")) messageType = "audio";
       
-      console.log("[handleSendMedia] Sending:", messageType, "url:", mediaUrl);
+      
       await sendMessage({
         content: caption || file.name,
         messageType,
