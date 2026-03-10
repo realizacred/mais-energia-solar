@@ -257,20 +257,13 @@ export function FollowupAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={metrics.dailyChart} barGap={2}>
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} width={30} />
-                <RechartsTooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: 12,
-                  }}
-                />
-                <Bar dataKey="sent" name="Enviados" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="responded" name="Respondidos" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="ai" name="IA" fill="hsl(var(--info))" radius={[3, 3, 0, 0]} />
+              <BarChart data={metrics.dailyChart} barGap={2} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={30} axisLine={false} tickLine={false} />
+                <RechartsTooltip content={<ChartTooltip />} />
+                <Bar dataKey="sent" name="Enviados" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="responded" name="Respondidos" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="ai" name="IA" fill="hsl(var(--info))" radius={[3, 3, 0, 0]} maxBarSize={40} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
               </BarChart>
             </ResponsiveContainer>
