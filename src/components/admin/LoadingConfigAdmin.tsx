@@ -614,6 +614,6 @@ export function LoadingConfigAdmin() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
