@@ -334,7 +334,7 @@ function EnterpriseKpi({ icon: Icon, label, value, subtitle, accentColor = "mute
       onClick={onClick}
       className={cn(
         "relative rounded-2xl border bg-card p-6 transition-all duration-200 shadow-sm",
-        highlight ? a.borderHighlight : "border-border/50",
+        highlight ? a.borderHighlight : "border-border",
         onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
       )}
     >
