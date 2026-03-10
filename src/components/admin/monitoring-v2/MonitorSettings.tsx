@@ -84,7 +84,8 @@ export default function MonitorSettings() {
         }
       />
 
-      {/* Growatt API v1 — dedicated config card */}
+      <MonitorNav />
+
       <GrowattV1ConfigCard />
 
       {integrations.length === 0 ? (

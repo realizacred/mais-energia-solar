@@ -149,7 +149,8 @@ export default function MonitorBilling() {
         }
       />
 
-      {/* Tab switcher */}
+      <MonitorNav />
+
       <div className="flex gap-1 p-0.5 rounded-lg bg-muted/50 border border-border/60 w-fit">
         {[
           { key: "subscriptions" as const, label: "Assinaturas" },

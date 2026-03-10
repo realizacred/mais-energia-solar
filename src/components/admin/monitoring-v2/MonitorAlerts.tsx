@@ -176,7 +176,8 @@ export default function MonitorAlerts() {
         }
       />
 
-      {/* Filters */}
+      <MonitorNav />
+
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-muted/30 border border-border/50 w-fit">
           <FilterPill active={filterOpen === true} onClick={() => setFilterOpen(filterOpen === true ? undefined : true)}>
