@@ -434,7 +434,7 @@ export function WaConversationList({
             className="pl-9 h-9 text-sm bg-muted/30 border-border/30 focus:bg-background"
           />
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Select value={filterStatus} onValueChange={onFilterStatusChange}>
             <SelectTrigger className="h-7 text-[11px] flex-1 border-border/30">
               <SelectValue placeholder="Status" />
