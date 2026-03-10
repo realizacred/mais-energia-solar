@@ -171,6 +171,8 @@ export default function MonitorDashboard() {
         )}
       </div>
 
+      <MonitorNav />
+
       {isEmpty ? (
         <EmptyState icon={Sun} title="Nenhuma usina cadastrada" description="Conecte um provedor de monitoramento para começar." />
       ) : (

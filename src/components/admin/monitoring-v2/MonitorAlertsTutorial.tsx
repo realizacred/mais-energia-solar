@@ -1,5 +1,6 @@
 import React from "react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { MonitorNav } from "./MonitorNav";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import {
   BookOpen,

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import GrowattV1ConfigCard from "@/components/admin/integrations-v2/GrowattV1ConfigCard";
+import { MonitorNav } from "./MonitorNav";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";

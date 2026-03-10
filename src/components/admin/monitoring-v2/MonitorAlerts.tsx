@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { MonitorNav } from "./MonitorNav";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
