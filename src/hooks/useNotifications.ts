@@ -11,27 +11,50 @@ export interface NotificationItem {
   link?: string;
 }
 
+const ADMIN_ROLES = ["admin", "gerente", "financeiro"];
+
 export function useNotifications() {
   const { user } = useAuth();
 
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ["admin-notifications", user?.id],
+  // Check if user is admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ["notification-role-check", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return false;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      return (roles || []).some((r) => ADMIN_ROLES.includes(r.role));
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 15,
+  });
+
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ["admin-notifications", user?.id, isAdmin],
+    queryFn: async () => {
+      if (!user?.id || isAdmin === undefined) return [];
 
       const items: NotificationItem[] = [];
       const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
       // 1. New leads (last 24h)
+      // Admin: all leads | Consultant: only assigned leads (owner_user_id)
       try {
-        const { data: leads } = await supabase
+        let q: any = supabase
           .from("leads")
           .select("id, nome, created_at")
           .gte("created_at", last24h)
           .order("created_at", { ascending: false })
           .limit(10);
+
+        if (!isAdmin) {
+          q = q.eq("owner_user_id", user.id);
+        }
+
+        const { data: leads } = await q;
         if (leads) {
           for (const lead of leads) {
             items.push({
@@ -46,15 +69,22 @@ export function useNotifications() {
         }
       } catch {}
 
-      // 2. Unread WhatsApp conversations (assigned to me or unassigned)
+      // 2. Unread WhatsApp conversations
+      // Admin: all open | Consultant: assigned_to me or unassigned
       try {
-        const { data: convs } = await supabase
+        let q2: any = supabase
           .from("wa_conversations")
           .select("id, cliente_nome, cliente_telefone, unread_count, last_message_at")
           .gt("unread_count", 0)
           .eq("status", "open")
           .order("last_message_at", { ascending: false })
           .limit(10);
+
+        if (!isAdmin) {
+          q2 = q2.or(`assigned_to.eq.${user.id},assigned_to.is.null`);
+        }
+
+        const { data: convs } = await q2;
         if (convs) {
           for (const conv of convs) {
             items.push({
@@ -70,9 +100,10 @@ export function useNotifications() {
       } catch {}
 
       // 3. Upcoming appointments (next 4 hours)
+      // Admin: all | Consultant: assigned_to me or created_by me
       try {
         const in4h = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
-        const { data: appts } = await supabase
+        let q3: any = supabase
           .from("appointments")
           .select("id, title, starts_at, status")
           .gte("starts_at", now.toISOString())
@@ -80,6 +111,12 @@ export function useNotifications() {
           .in("status", ["scheduled"])
           .order("starts_at", { ascending: true })
           .limit(5);
+
+        if (!isAdmin) {
+          q3 = q3.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
+        }
+
+        const { data: appts } = await q3;
         if (appts) {
           for (const appt of appts) {
             const time = new Date(appt.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -95,7 +132,8 @@ export function useNotifications() {
         }
       } catch {}
 
-      // 4. SLA alerts (active, not acknowledged)
+      // 4. SLA alerts
+      // Admin: all | Consultant: only via RLS (already filtered by RLS)
       try {
         const { data: slaAlerts } = await supabase
           .from("wa_sla_alerts" as any)
@@ -122,9 +160,9 @@ export function useNotifications() {
 
       return items;
     },
-    enabled: !!user?.id,
-    staleTime: 30_000, // refresh every 30s
-    refetchInterval: 60_000, // auto-refetch every 60s
+    enabled: !!user?.id && isAdmin !== undefined,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 
   const totalCount = notifications.length;
