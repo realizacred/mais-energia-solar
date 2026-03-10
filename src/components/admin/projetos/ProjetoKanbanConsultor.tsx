@@ -115,7 +115,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                     ))
                   )}
                   <Button
-                    variant="default"
+                    variant="outline"
                     size="sm"
                     className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
                     onClick={() => onNewProject?.(col.id)}
@@ -187,16 +187,11 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
               {!isOrphanColumn(col.id) && (
                 <div className="px-2.5 py-1.5">
                   <Button
+                    variant="outline"
                     onClick={() => onNewProject?.(col.id)}
-                    className={cn(
-                      "w-full h-7 rounded-lg border border-primary/40",
-                      "flex items-center justify-center gap-1.5",
-                      "text-[10px] font-semibold text-primary",
-                      "hover:bg-primary hover:text-primary-foreground hover:border-primary",
-                      "transition-all duration-200"
-                    )}
+                    className="w-full h-7 rounded-lg border-dashed border-primary/40 text-[10px] font-semibold text-primary hover:bg-primary/5 hover:border-primary transition-all duration-200"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-3 w-3 mr-1" />
                     Novo projeto
                   </Button>
                 </div>

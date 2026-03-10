@@ -104,16 +104,11 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
               {/* ── New Project Button ── */}
               <div className="px-3 py-2">
                 <Button
+                  variant="outline"
                   onClick={() => onCreateProjeto?.(col.id)}
-                  className={cn(
-                    "w-full h-9 rounded-xl border-2 border-dashed border-primary/30",
-                    "flex items-center justify-center gap-1.5",
-                    "text-xs font-medium text-primary/70",
-                    "hover:border-primary/50 hover:text-primary hover:bg-primary/5",
-                    "transition-all duration-200"
-                  )}
+                  className="w-full h-9 rounded-xl border-2 border-dashed border-primary/30 text-xs font-medium text-primary/70 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200"
                 >
-                  <Plus className="h-3.5 w-3.5" />
+                  <Plus className="h-3.5 w-3.5 mr-1" />
                   Novo projeto
                 </Button>
               </div>
