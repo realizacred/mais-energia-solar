@@ -305,19 +305,15 @@ export function WaFollowupRulesManager() {
       <PageHeader
         icon={Bell}
         title="Regras de Retorno"
-        description={
-          <>
-            Configure quando e como acompanhar conversas sem resposta
+        description="Configure quando e como acompanhar conversas sem resposta"
+        actions={
+          <div className="flex items-center gap-2">
             {hasAiFollowup && (
-              <Badge variant="outline" className="ml-2 text-[10px] gap-0.5 align-middle">
+              <Badge variant="outline" className="text-[10px] gap-0.5">
                 <Brain className="h-2.5 w-2.5" />
                 IA Ativa
               </Badge>
             )}
-          </>
-        }
-        actions={
-          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
