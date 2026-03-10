@@ -272,15 +272,16 @@ export function LoadingConfigAdmin() {
               const isActive = loaderTheme === opt.value;
               const disabled = opt.value === "logo" && !logoUrl;
               return (
-                <button
+                <Button
                   key={opt.value}
                   type="button"
+                  variant="outline"
                   disabled={disabled}
                   onClick={() => setLoaderTheme(opt.value)}
-                  className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-left
+                  className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-left h-auto
                     ${isActive
                       ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border/50 hover:border-border hover:bg-muted/30"}
+                      : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"}
                     ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
                   `}
                 >
@@ -294,16 +295,16 @@ export function LoadingConfigAdmin() {
                     />
                   </div>
                   <div className="text-center">
-                    <span className="text-sm font-medium">{opt.emoji} {opt.label}</span>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{opt.description}</p>
+                    <span className="text-sm font-medium text-foreground">{opt.emoji} {opt.label}</span>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 font-normal">{opt.description}</p>
                   </div>
                   {isActive && (
                     <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
                   )}
                   {disabled && (
-                    <p className="text-[10px] text-destructive">Configure o logo em Brand Settings</p>
+                    <p className="text-[10px] text-destructive font-normal">Configure o logo em Brand Settings</p>
                   )}
-                </button>
+                </Button>
               );
             })}
           </div>
