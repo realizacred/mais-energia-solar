@@ -424,7 +424,7 @@ export function WaConversationList({
   return (
     <div className="flex flex-col h-full border-r border-border/30 bg-card/50">
       {/* Search & Filters */}
-      <div className="p-3 border-b border-border/30 space-y-2 bg-card">
+      <div className="p-3 border-b border-border/30 space-y-2 bg-card overflow-visible">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -514,7 +514,7 @@ export function WaConversationList({
           </Select>
         )}
         {/* Group & Hidden toggles */}
-        <div className="flex items-center gap-3 px-1 py-1 overflow-visible">
+        <div className="flex items-center gap-3 px-3 py-2">
           {onShowGroupsChange && (
             <label className="flex items-center gap-1.5 cursor-pointer">
               <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3" />
