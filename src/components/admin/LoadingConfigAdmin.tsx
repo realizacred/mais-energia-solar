@@ -435,7 +435,7 @@ export function LoadingConfigAdmin() {
       </Card>
 
       {/* Mensagens */}
-      <Card>
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4 text-info" />
