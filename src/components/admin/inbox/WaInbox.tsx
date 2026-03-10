@@ -587,43 +587,11 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "space-y-4"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-success/10 border border-success/20">
-              <MessageCircle className="h-6 w-6 text-success" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Central de Atendimento</h2>
-              <p className="text-sm text-muted-foreground">
-                {instances.length > 0 && (
-                  <span className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${instances.some(i => i.status === "connected") ? "bg-success animate-pulse" : "bg-destructive"}`} />
-                    {instances.filter(i => i.status === "connected").length}/{instances.length} instâncias online
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => setShowStartChat(true)}
-              title="Iniciar nova conversa"
-            >
-              <MessageCirclePlus className="h-4 w-4 mr-1" />
-              Nova conversa
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowSettings(true)}
-              title="Configurações WhatsApp"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <WaInboxHeader
+          instances={instances}
+          onNewChat={() => setShowStartChat(true)}
+          onSettings={() => setShowSettings(true)}
+        />
       )}
 
       {/* Stats - only in admin mode */}
