@@ -116,7 +116,7 @@ export function useNotifications() {
           query = query.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
         }
 
-        const { data: appts } = await query;
+        const { data: appts } = await (query as any);
         if (appts) {
           for (const appt of appts) {
             const time = new Date(appt.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
