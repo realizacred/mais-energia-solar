@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,11 +22,13 @@ import {
   X,
   ChevronDown,
   Info,
+  Settings2,
 } from "lucide-react";
 import * as Icons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -58,6 +59,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { motion } from "framer-motion";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -149,7 +151,6 @@ function useDragReorder(
       const reordered = [...sectionItems];
       const [moved] = reordered.splice(from, 1);
       reordered.splice(to, 0, moved);
-      // Re-assign sequential orders
       const updated = reordered.map((item, i) => ({ ...item, order: i }));
       onReorder(updated);
     }
@@ -260,7 +261,6 @@ export function MenuConfigPage() {
     [items, updateItem]
   );
 
-  // Save mutation — invalidates ALL nav-override queries for instant refresh
   const saveMutation = useMutation({
     mutationFn: async () => {
       const upserts: Array<{
@@ -305,10 +305,8 @@ export function MenuConfigPage() {
       }
     },
     onSuccess: () => {
-      // Invalidate BOTH admin config AND sidebar queries for instant update
       queryClient.invalidateQueries({ queryKey: ["nav-overrides"] });
       queryClient.invalidateQueries({ queryKey: ["nav-overrides-admin"] });
-      // Force refetch immediately (don't wait for staleTime)
       queryClient.refetchQueries({ queryKey: ["nav-overrides"] });
       setHasChanges(false);
       toast.success("Menu salvo com sucesso! A sidebar foi atualizada.");
@@ -342,8 +340,18 @@ export function MenuConfigPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Spinner size="md" />
+      <div className="p-4 md:p-6 space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-lg" />
+          <div>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-72 mt-1" />
+          </div>
+        </div>
+        <Skeleton className="h-12 w-full rounded-lg" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full rounded-lg" />
+        ))}
       </div>
     );
   }
@@ -351,13 +359,13 @@ export function MenuConfigPage() {
   const criticalityBadge = (c: NavCriticality) => {
     if (c === "system_critical")
       return (
-        <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-destructive/20">
           <ShieldAlert className="h-3 w-3 mr-0.5" /> Sistema
         </Badge>
       );
     if (c === "business_critical")
       return (
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-warning/50 text-warning">
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-warning/10 text-warning border-warning/20">
           <Shield className="h-3 w-3 mr-0.5" /> Negócio
         </Badge>
       );
@@ -366,14 +374,24 @@ export function MenuConfigPage() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Configuração de Menus</h2>
-            <p className="text-muted-foreground text-sm">
-              Arraste os itens para reordenar, personalize nomes e visibilidade
-            </p>
+      <motion.div
+        className="p-4 md:p-6 space-y-6"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* §26 Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+              <Settings2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Personalizar Menus</h1>
+              <p className="text-sm text-muted-foreground">
+                Arraste para reordenar, personalize nomes e visibilidade
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <AlertDialog>
@@ -400,19 +418,21 @@ export function MenuConfigPage() {
               </AlertDialogContent>
             </AlertDialog>
 
-            <Button
-              size="sm"
-              disabled={!hasChanges || saveMutation.isPending}
-              onClick={() => saveMutation.mutate()}
-            >
-              <Save className="h-4 w-4 mr-1" />
-              {saveMutation.isPending ? "Salvando..." : "Salvar Alterações"}
-            </Button>
+            {hasChanges && (
+              <Button
+                size="sm"
+                disabled={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+              >
+                <Save className="h-4 w-4 mr-1" />
+                {saveMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Legend */}
-        <Card className="border-border/50">
+        <Card className="bg-card border-border shadow-sm">
           <CardContent className="py-3 px-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <GripVertical className="h-3.5 w-3.5" /> Arraste para reordenar
@@ -431,42 +451,48 @@ export function MenuConfigPage() {
 
         {/* Sections */}
         <div className="space-y-4">
-          {SECTION_LABELS.map((sectionLabel) => {
+          {SECTION_LABELS.map((sectionLabel, i) => {
             const sectionItems = groupedItems.get(sectionLabel) ?? [];
             if (sectionItems.length === 0) return null;
 
             return (
-              <SectionCard
+              <motion.div
                 key={sectionLabel}
-                sectionLabel={sectionLabel}
-                sectionItems={sectionItems}
-                editingLabel={editingLabel}
-                editingValue={editingValue}
-                onEditStart={(navKey, label) => {
-                  setEditingLabel(navKey);
-                  setEditingValue(label);
-                }}
-                onEditChange={setEditingValue}
-                onEditConfirm={(navKey) => {
-                  updateItem(navKey, { label: editingValue, label_changed: true });
-                  setEditingLabel(null);
-                }}
-                onEditCancel={() => setEditingLabel(null)}
-                onToggleVisibility={toggleVisibility}
-                onChangeGroup={changeGroup}
-                onReorder={handleSectionReorder}
-                criticalityBadge={criticalityBadge}
-              />
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.35 }}
+              >
+                <SectionCard
+                  sectionLabel={sectionLabel}
+                  sectionItems={sectionItems}
+                  editingLabel={editingLabel}
+                  editingValue={editingValue}
+                  onEditStart={(navKey, label) => {
+                    setEditingLabel(navKey);
+                    setEditingValue(label);
+                  }}
+                  onEditChange={setEditingValue}
+                  onEditConfirm={(navKey) => {
+                    updateItem(navKey, { label: editingValue, label_changed: true });
+                    setEditingLabel(null);
+                  }}
+                  onEditCancel={() => setEditingLabel(null)}
+                  onToggleVisibility={toggleVisibility}
+                  onChangeGroup={changeGroup}
+                  onReorder={handleSectionReorder}
+                  criticalityBadge={criticalityBadge}
+                />
+              </motion.div>
             );
           })}
         </div>
 
         {/* Info footer */}
-        <Card className="border-border/50 bg-muted/30">
+        <Card className="bg-muted/30 border-border shadow-sm">
           <CardContent className="py-3 px-4 text-xs text-muted-foreground flex items-start gap-2">
-            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
             <div>
-              <p className="font-medium">Sobre a personalização de menus</p>
+              <p className="font-medium text-foreground">Sobre a personalização de menus</p>
               <ul className="mt-1 space-y-0.5 list-disc list-inside">
                 <li>As rotas e permissões de acesso <strong>nunca</strong> são alteradas pela personalização.</li>
                 <li>Itens críticos do sistema não podem ser ocultados nem movidos.</li>
@@ -477,7 +503,7 @@ export function MenuConfigPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </TooltipProvider>
   );
 }
@@ -521,13 +547,15 @@ function SectionCard({
 
   return (
     <Collapsible defaultOpen>
-      <Card className="border-border/50">
+      <Card className="bg-card border-border shadow-sm">
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer py-3 px-4 hover:bg-muted/30 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <SectionIcon className="h-4 w-4 text-muted-foreground" />
-                <CardTitle className="text-sm font-semibold">{sectionLabel}</CardTitle>
+                <div className="w-6 h-6 rounded flex items-center justify-center bg-primary/10 text-primary">
+                  <SectionIcon className="h-3.5 w-3.5" />
+                </div>
+                <CardTitle className="text-sm font-semibold text-foreground">{sectionLabel}</CardTitle>
                 <Badge variant="outline" className="text-[10px]">
                   {sectionItems.length}
                 </Badge>
@@ -593,22 +621,24 @@ function SectionCard({
                               if (e.key === "Escape") onEditCancel();
                             }}
                           />
-                          <button onClick={() => onEditConfirm(item.nav_key)} className="text-success p-1">
-                            <Check className="h-3.5 w-3.5" />
-                          </button>
-                          <button onClick={onEditCancel} className="text-destructive p-1">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEditConfirm(item.nav_key)}>
+                            <Check className="h-3.5 w-3.5 text-success" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEditCancel}>
+                            <X className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium truncate">{item.label}</span>
-                          <button
+                          <span className="text-sm font-medium text-foreground truncate">{item.label}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={() => onEditStart(item.nav_key, item.label)}
-                            className="text-muted-foreground hover:text-foreground p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Pencil className="h-3 w-3" />
-                          </button>
+                          </Button>
                           {item.label_changed && (
                             <Tooltip>
                               <TooltipTrigger>
@@ -646,17 +676,19 @@ function SectionCard({
                     {/* Visibility toggle */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
                           onClick={() => onToggleVisibility(item.nav_key)}
                           disabled={item.criticality !== "normal"}
-                          className="p-1.5 rounded-md hover:bg-muted/50 disabled:opacity-30 transition-colors shrink-0"
                         >
                           {item.visible ? (
                             <Eye className="h-4 w-4 text-muted-foreground" />
                           ) : (
                             <EyeOff className="h-4 w-4 text-destructive" />
                           )}
-                        </button>
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent>
                         {item.criticality !== "normal"
@@ -664,16 +696,6 @@ function SectionCard({
                           : item.visible ? "Clique para ocultar" : "Clique para exibir"}
                       </TooltipContent>
                     </Tooltip>
-
-                    {/* Edit label button */}
-                    {!isEditing && (
-                      <button
-                        onClick={() => onEditStart(item.nav_key, item.label)}
-                        className="p-1.5 rounded-md hover:bg-muted/50 transition-colors shrink-0"
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
-                    )}
                   </div>
                 );
               })}
