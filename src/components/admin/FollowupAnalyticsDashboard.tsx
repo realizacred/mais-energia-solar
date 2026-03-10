@@ -362,28 +362,28 @@ export function FollowupAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-border/20">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-border">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-success" />
-                  <span className="text-sm">Respostas obtidas</span>
+                  <span className="text-sm text-foreground">Respostas obtidas</span>
                 </div>
                 <Badge variant="outline" className="font-bold">{metrics.totalResponded}</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-border/20">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-border">
                 <div className="flex items-center gap-2">
                   <Brain className="h-4 w-4 text-primary" />
-                  <span className="text-sm">IA aprovada pelo consultor</span>
+                  <span className="text-sm text-foreground">IA aprovada pelo consultor</span>
                 </div>
                 <Badge variant="outline" className="font-bold">{metrics.aiApproved}</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-border/20">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-border">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm">IA rejeitada</span>
+                  <span className="text-sm text-foreground">IA rejeitada</span>
                 </div>
                 <Badge variant="outline" className="font-bold">{metrics.aiRejected}</Badge>
               </div>
-              <div className="pt-2 border-t border-border/30">
+              <div className="pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Total no dataset</span>
                   <span className="text-sm font-bold text-foreground">{metrics.datasetSize} registros</span>
