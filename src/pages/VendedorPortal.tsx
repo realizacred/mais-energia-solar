@@ -121,6 +121,11 @@ export default function VendedorPortal() {
             </Suspense>
           </main>
         </SidebarInset>
+
+        <VendorBottomNav
+          unreadWhatsApp={waUnreadCount}
+          badgeOrcamentos={badgeCounts.orcamentos}
+        />
       </div>
     </SidebarProvider>
   );
