@@ -126,6 +126,7 @@ export async function generateProposal(
 ): Promise<GenerateProposalResult> {
   const { data, error } = await supabase.functions.invoke("proposal-generate", {
     body: payload,
+    headers: { "x-client-timeout": "120" },
   });
 
   if (error) {
