@@ -187,9 +187,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: true,
     items: [
       { id: "clientes", title: "Gestão de Clientes", icon: UserCheck, description: "Cadastro e documentos", keywords: ["cliente", "contrato", "documentação", "CPF"] },
-      { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto", keywords: ["checklist", "documento", "verificação", "projeto"] },
       { id: "avaliacoes", title: "Avaliações NPS", icon: Star, description: "Pesquisas de satisfação", keywords: ["NPS", "CSAT", "feedback", "satisfação", "nota"] },
-      { id: "servicos", title: "Agenda de Serviços", icon: CalendarClock, description: "Visitas e agendamentos", keywords: ["agenda", "visita", "instalação", "técnico"] },
       { id: "documentos-assinaturas", title: "Documentos & Assinaturas", icon: FileText, description: "Templates e assinatura eletrônica", keywords: ["documento", "contrato", "assinatura", "template"] },
     ],
   },
