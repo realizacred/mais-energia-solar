@@ -8,7 +8,7 @@ import { WritingAssistantPreview } from "./WritingAssistantPreview";
 import {
   Send,
   StickyNote,
-  
+  Lock,
   X,
   Bold,
   Italic,
