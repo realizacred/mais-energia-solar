@@ -320,14 +320,14 @@ export function StepPagamento({
             <DollarSign className="h-4 w-4 text-success" />
             <span className="text-muted-foreground">Economia:</span>
             <span className="font-bold text-success">{formatBRL(economiaMensal)}</span>
-            <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{economiaPercent.toFixed(2)}%</Badge>
-            <button onClick={() => setShowGastosModal(true)} className="text-primary underline text-xs hover:opacity-80">Ver mais</button>
+            <Badge className="text-[10px] h-5 px-1.5 bg-success/10 text-success border border-success/30">{economiaPercent.toFixed(2)}%</Badge>
+            <Button variant="link" size="sm" onClick={() => setShowGastosModal(true)} className="text-primary text-xs p-0 h-auto hover:opacity-80">Ver mais</Button>
           </div>
           <div className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4 text-primary" />
             <span className="text-muted-foreground">Retorno:</span>
             <span className="font-bold">{paybackInfo.label}</span>
-            <button onClick={() => setShowFluxoModal(true)} className="text-primary underline text-xs hover:opacity-80">Ver mais</button>
+            <Button variant="link" size="sm" onClick={() => setShowFluxoModal(true)} className="text-primary text-xs p-0 h-auto hover:opacity-80">Ver mais</Button>
           </div>
         </div>
       </div>
@@ -338,11 +338,12 @@ export function StepPagamento({
           {/* Sidebar - Banks */}
           <div className="space-y-1">
             {bancoGroups.map((g, idx) => (
-              <button
+              <Button
                 key={g.banco.id}
+                variant="ghost"
                 onClick={() => setSelectedBancoIdx(idx)}
                 className={cn(
-                  "w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center justify-between transition-colors",
+                  "w-full justify-between px-3 py-2.5 h-auto text-sm transition-colors",
                   selectedBancoIdx === idx
                     ? "bg-primary/10 text-primary border border-primary/30 font-semibold"
                     : "hover:bg-muted/50 text-muted-foreground border border-transparent"
@@ -353,9 +354,9 @@ export function StepPagamento({
                   {g.banco.nome}
                 </span>
                 <Badge variant="outline" className="text-[10px] h-5 px-1.5">{g.opcoes.length}</Badge>
-              </button>
+              </Button>
             ))}
-            <Button variant="default" size="sm" className="w-full text-sm text-primary gap-1 mt-2 h-9" onClick={() => setShowNovoFinanciamento(true)}>
+            <Button variant="outline" size="sm" className="w-full text-sm gap-1 mt-2 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => setShowNovoFinanciamento(true)}>
               <Plus className="h-3.5 w-3.5" /> Novo financiamento
             </Button>
           </div>
@@ -365,7 +366,7 @@ export function StepPagamento({
             {bancoGroups[selectedBancoIdx]?.opcoes.map((op, idx) => (
               <div key={op.id} className="p-4 rounded-xl border border-border/50 bg-card">
                 <div className="flex items-center justify-between mb-3">
-                  <Badge variant="secondary" className="text-xs">Opção {idx + 1}</Badge>
+                  <Badge className="text-xs bg-primary/10 text-primary border border-primary/30 rounded-full px-3 py-0.5 font-semibold">Opção {idx + 1}</Badge>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => removeOpcao(selectedBancoIdx, idx)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -399,7 +400,7 @@ export function StepPagamento({
               </div>
             ))}
 
-            <Button variant="default" size="sm" className="text-sm text-primary gap-1 h-9" onClick={() => addOpcaoToBanco(selectedBancoIdx)}>
+            <Button variant="outline" size="sm" className="text-sm gap-1 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => addOpcaoToBanco(selectedBancoIdx)}>
               <Plus className="h-3.5 w-3.5" /> Adicionar opção
             </Button>
           </div>
