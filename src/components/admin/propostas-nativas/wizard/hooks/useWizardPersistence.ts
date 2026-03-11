@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -88,8 +88,15 @@ interface PersistenceParams {
 
 export function useWizardPersistence() {
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const saveDraft = useCallback(async (params: PersistenceParams) => {
+    // Guard against concurrent saves (double-click / rapid calls)
+    if (savingRef.current) {
+      console.warn("[saveDraft] Already saving, ignoring concurrent call");
+      return null;
+    }
+    savingRef.current = true;
     setSaving(true);
     try {
       let propostaId = params.propostaId;
@@ -254,11 +261,17 @@ export function useWizardPersistence() {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
       return null;
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, []);
 
   const updateProposal = useCallback(async (params: PersistenceParams, setActive: boolean) => {
+    if (savingRef.current) {
+      console.warn("[updateProposal] Already saving, ignoring concurrent call");
+      return null;
+    }
+    savingRef.current = true;
     setSaving(true);
     try {
       if (!params.propostaId || !params.versaoId) {
@@ -350,6 +363,7 @@ export function useWizardPersistence() {
       toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
       return null;
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, []);
