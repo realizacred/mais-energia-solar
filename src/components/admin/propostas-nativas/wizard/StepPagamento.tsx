@@ -320,8 +320,8 @@ export function StepPagamento({
             <DollarSign className="h-4 w-4 text-success" />
             <span className="text-muted-foreground">Economia:</span>
             <span className="font-bold text-success">{formatBRL(economiaMensal)}</span>
-            <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{economiaPercent.toFixed(2)}%</Badge>
-            <button onClick={() => setShowGastosModal(true)} className="text-primary underline text-xs hover:opacity-80">Ver mais</button>
+            <Badge className="text-[10px] h-5 px-1.5 bg-success/10 text-success border border-success/30">{economiaPercent.toFixed(2)}%</Badge>
+            <Button variant="link" size="sm" onClick={() => setShowGastosModal(true)} className="text-primary text-xs p-0 h-auto hover:opacity-80">Ver mais</Button>
           </div>
           <div className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4 text-primary" />
