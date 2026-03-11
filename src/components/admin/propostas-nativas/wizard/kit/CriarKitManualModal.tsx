@@ -779,7 +779,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
               Voltar
             </Button>
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
+              <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
                 Potência: {potenciaTotal.toFixed(2)} kWp
               </Badge>
               <Button size="sm" className="text-xs h-8" onClick={handleSave}>
