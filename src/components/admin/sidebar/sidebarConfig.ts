@@ -228,6 +228,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "estoque", title: "Estoque", icon: Package, description: "Materiais e insumos", keywords: ["estoque", "material", "inventário"] },
       { id: "validacao", title: "Validação de Vendas", icon: ClipboardCheck, description: "Aprovar vendas realizadas", keywords: ["aprovação", "validar", "conferência"] },
       { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList, description: "Prazos e pendências", keywords: ["tarefa", "prazo", "SLA", "pendência"] },
+      { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto", keywords: ["checklist", "documento", "verificação", "projeto"], separator: true },
+      { id: "servicos", title: "Agenda de Serviços", icon: CalendarClock, description: "Visitas e agendamentos", keywords: ["agenda", "visita", "instalação", "técnico"] },
     ],
   },
 
