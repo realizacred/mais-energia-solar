@@ -386,7 +386,9 @@ export function WaInstancesManager() {
   );
 }
 
-// ── Form Dialog ────────────────────────────────────────
+// ── Form Dialog with QR Code Flow ────────────────────────────────────────
+
+type CreateStep = "form" | "qrcode";
 
 function InstanceFormDialog({
   open,
@@ -410,6 +412,17 @@ function InstanceFormDialog({
   const [selectedVendedorIds, setSelectedVendedorIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // QR Code flow state (only for new instances)
+  const [step, setStep] = useState<CreateStep>("form");
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [createdInstanceId, setCreatedInstanceId] = useState<string | null>(null);
+  const [qrStatus, setQrStatus] = useState<"waiting" | "connected" | "expired" | "error">("waiting");
+  const [qrError, setQrError] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   // Reset form when instance changes or dialog opens
   useEffect(() => {
     if (open) {
@@ -418,8 +431,25 @@ function InstanceFormDialog({
       setApiUrl(instance?.evolution_api_url || "https://");
       setApiKey((instance as any)?.api_key || "");
       setSelectedVendedorIds(initialVendedorIds);
+      setStep("form");
+      setQrCode(null);
+      setCreatedInstanceId(null);
+      setQrStatus("waiting");
+      setQrError(null);
+    } else {
+      // Cleanup on close
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     }
   }, [open, instance, initialVendedorIds]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const toggleVendedor = (vendedorId: string) => {
     setSelectedVendedorIds((prev) =>
@@ -429,7 +459,8 @@ function InstanceFormDialog({
     );
   };
 
-  const handleSubmit = async () => {
+  // For editing existing instances — keep old flow
+  const handleSubmitEdit = async () => {
     if (!nome.trim() || !instanceKey.trim() || !apiUrl.trim()) return;
     setSaving(true);
     try {
@@ -447,85 +478,293 @@ function InstanceFormDialog({
     }
   };
 
+  // For new instances — create via edge function + show QR
+  const handleCreateWithQR = async () => {
+    if (!nome.trim() || !apiUrl.trim() || !apiKey.trim()) return;
+    setSaving(true);
+    setQrError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão inválida");
+
+      const { data, error } = await supabase.functions.invoke("create-wa-instance", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: {
+          instance_name: nome.trim(),
+          api_url: apiUrl.trim(),
+          api_key: apiKey.trim(),
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao criar instância");
+
+      setCreatedInstanceId(data.instance_id);
+      setQrCode(data.qr_code_base64 || null);
+      setStep("qrcode");
+      queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
+
+      // Start polling for connection status
+      startQrPolling(data.instance_id);
+    } catch (e: any) {
+      console.error("[create-wa-instance]", e);
+      setQrError(e.message || "Erro ao criar instância");
+      toast({ title: "Erro ao criar instância", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startQrPolling = (instanceId: string) => {
+    // Clear existing timers
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    setQrStatus("waiting");
+
+    // Poll every 3s
+    pollingRef.current = setInterval(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
+        const { data, error } = await supabase.functions.invoke("get-wa-qrcode", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: { instance_id: instanceId },
+        });
+
+        if (error) return;
+
+        if (data?.status === "open") {
+          // Connected!
+          setQrStatus("connected");
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
+          toast({ title: "✅ WhatsApp conectado!" });
+          // Auto-close after 2s
+          setTimeout(() => {
+            onOpenChange(false);
+          }, 2000);
+          return;
+        }
+
+        // Update QR code if available
+        if (data?.qr_code_base64) {
+          setQrCode(data.qr_code_base64);
+        }
+      } catch (e) {
+        console.warn("[qr-polling]", e);
+      }
+    }, 3000);
+
+    // Timeout after 60s
+    timeoutRef.current = setTimeout(() => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      setQrStatus("expired");
+    }, 60000);
+  };
+
+  const handleRegenerateQR = () => {
+    if (!createdInstanceId) return;
+    setQrStatus("waiting");
+    setQrCode(null);
+    startQrPolling(createdInstanceId);
+  };
+
+  // Editing existing instance → old form
+  if (instance) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Instância</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome da Instância *</Label>
+              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
+            </div>
+            <div>
+              <Label>Nome da Instância na Evolution API *</Label>
+              <Input
+                value={instanceKey}
+                onChange={(e) => setInstanceKey(e.target.value)}
+                placeholder="Ex: Escritorio, MaisEnergia"
+                className="font-mono text-sm"
+              />
+            </div>
+            <div>
+              <Label>URL da Evolution API *</Label>
+              <Input
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                placeholder="https://evolution.suaempresa.com"
+                className="font-mono text-sm"
+              />
+            </div>
+            <div>
+              <Label>API Key da Evolution</Label>
+              <Input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Cole aqui a API Key / Global Token"
+                className="font-mono text-sm"
+              />
+            </div>
+            <div>
+              <Label>Vincular a Consultores (opcional)</Label>
+              <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+                {vendedores.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum consultor ativo encontrado.</p>
+                ) : (
+                  vendedores.map((v) => (
+                    <label
+                      key={v.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5 transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedVendedorIds.includes(v.id)}
+                        onCheckedChange={() => toggleVendedor(v.id)}
+                      />
+                      <span className="text-sm">{v.nome}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button variant="default" onClick={handleSubmitEdit} disabled={!nome.trim() || !instanceKey.trim() || saving}>
+              {saving && <Spinner size="sm" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // New instance → 2-step QR flow
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{instance ? "Editar Instância" : "Nova Instância WhatsApp"}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {step === "form" ? (
+              <>
+                <Smartphone className="w-5 h-5 text-primary" />
+                Nova Instância WhatsApp
+              </>
+            ) : (
+              <>
+                <QrCode className="w-5 h-5 text-primary" />
+                Conectar WhatsApp
+              </>
+            )}
+          </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Nome da Instância *</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
-          </div>
-          <div>
-            <Label>Nome da Instância na Evolution API *</Label>
-            <Input
-              value={instanceKey}
-              onChange={(e) => setInstanceKey(e.target.value)}
-              placeholder="Ex: Escritorio, MaisEnergia"
-              className="font-mono text-sm"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              O nome exato como aparece na Evolution API.
-            </p>
-          </div>
-          <div>
-            <Label>URL da Evolution API *</Label>
-            <Input
-              value={apiUrl}
-              onChange={(e) => setApiUrl(e.target.value)}
-              placeholder="https://evolution.suaempresa.com"
-              className="font-mono text-sm"
-            />
-          </div>
-          <div>
-            <Label>API Key da Evolution</Label>
-            <Input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Cole aqui a API Key / Global Token"
-              className="font-mono text-sm"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Opcional. Se vazio, usa a chave global configurada nas secrets do projeto.
-            </p>
-          </div>
-          <div>
-            <Label>Vincular a Consultores (opcional)</Label>
-            <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-              {vendedores.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum consultor ativo encontrado.</p>
-              ) : (
-                vendedores.map((v) => (
-                  <label
-                    key={v.id}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5 transition-colors"
-                  >
-                    <Checkbox
-                      checked={selectedVendedorIds.includes(v.id)}
-                      onCheckedChange={() => toggleVendedor(v.id)}
-                    />
-                    <span className="text-sm">{v.nome}</span>
-                  </label>
-                ))
+
+        {step === "form" ? (
+          <>
+            <div className="space-y-4">
+              <div>
+                <Label>Nome da Instância *</Label>
+                <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Será usado como identificador na Evolution API.
+                </p>
+              </div>
+              <div>
+                <Label>URL da Evolution API *</Label>
+                <Input
+                  value={apiUrl}
+                  onChange={(e) => setApiUrl(e.target.value)}
+                  placeholder="https://evolution.suaempresa.com"
+                  className="font-mono text-sm"
+                />
+              </div>
+              <div>
+                <Label>API Key *</Label>
+                <Input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Cole a API Key / Global Token"
+                  className="font-mono text-sm"
+                />
+              </div>
+              {qrError && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+                  {qrError}
+                </div>
               )}
             </div>
-            {selectedVendedorIds.length > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {selectedVendedorIds.length} consultor(es) selecionado(s)
-              </p>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button onClick={handleCreateWithQR} disabled={!nome.trim() || !apiUrl.trim() || !apiKey.trim() || saving}>
+                {saving ? <Spinner size="sm" className="mr-2" /> : <QrCode className="h-4 w-4 mr-2" />}
+                Criar e Gerar QR Code
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-4 py-4">
+            {qrStatus === "connected" ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
+                  <Check className="w-8 h-8 text-success" />
+                </div>
+                <p className="text-lg font-semibold text-foreground">WhatsApp conectado!</p>
+                <p className="text-sm text-muted-foreground">Fechando automaticamente...</p>
+              </div>
+            ) : qrStatus === "expired" ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center">
+                  <RefreshCw className="w-8 h-8 text-warning" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">QR Code expirado</p>
+                <p className="text-xs text-muted-foreground text-center">
+                  O tempo de escaneamento expirou. Clique abaixo para gerar um novo QR Code.
+                </p>
+                <Button variant="outline" onClick={handleRegenerateQR} className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Gerar Novo QR Code
+                </Button>
+              </div>
+            ) : (
+              <>
+                {qrCode ? (
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <img
+                      src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
+                      alt="QR Code WhatsApp"
+                      className="w-64 h-64 object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-64 h-64 rounded-xl border border-border bg-muted/30 flex items-center justify-center">
+                    <Spinner size="lg" />
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Spinner size="sm" />
+                  <p className="text-sm text-muted-foreground">Aguardando escaneamento...</p>
+                </div>
+                <p className="text-xs text-muted-foreground text-center max-w-xs">
+                  Abra o WhatsApp no celular → Configurações → Aparelhos conectados → Conectar aparelho → Escaneie o QR Code acima
+                </p>
+              </>
             )}
+            <DialogFooter className="w-full mt-2">
+              <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full">
+                Fechar
+              </Button>
+            </DialogFooter>
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button variant="default" onClick={handleSubmit} disabled={!nome.trim() || !instanceKey.trim() || saving}>
-            {saving && <Spinner size="sm" />}
-            {instance ? "Salvar" : "Criar Instância"}
-          </Button>
-        </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
