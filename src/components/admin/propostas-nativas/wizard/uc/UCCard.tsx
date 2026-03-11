@@ -303,7 +303,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">HP <span className="text-destructive">*</span></span>
-                    <button onClick={() => onOpenMesAMes("hp")} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
+                    <Button variant="link" onClick={() => onOpenMesAMes("hp")} className="text-[10px] text-secondary p-0 h-auto flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
                   </div>
                   <div className="relative">
                     <Input type="number" min={0} value={uc.consumo_mensal_p || ""} onChange={e => update("consumo_mensal_p", Number(e.target.value))} className="h-8 text-xs pr-10" />
