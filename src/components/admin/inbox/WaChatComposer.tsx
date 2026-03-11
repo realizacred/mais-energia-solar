@@ -102,6 +102,8 @@ export function WaChatComposer({
   prefillMessage,
   readOnly,
   readOnlyReason,
+  instanceId,
+  remoteJid,
 }: WaChatComposerProps) {
   const [inputValue, setInputValue] = useState("");
   const [slashActive, setSlashActive] = useState(false);
