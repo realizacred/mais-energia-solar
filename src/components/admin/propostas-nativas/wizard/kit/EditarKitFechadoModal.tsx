@@ -58,8 +58,8 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
           {/* Badge kits selecionados */}
           {selected.length > 0 && (
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-primary/20">
-                <Zap className="h-3 w-3 mr-1" />
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-primary text-primary gap-2">
+                <Zap className="h-3 w-3" />
                 Kits selecionados
               </Badge>
             </div>
@@ -99,7 +99,7 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold">{formatBRL(kit.precoTotal * quantidade)}</span>
-                      <Badge variant="outline" className="text-[10px] h-5 bg-primary/5 border-primary/20 text-primary">
+                      <Badge variant="outline" className="text-[10px] h-5 bg-muted text-muted-foreground">
                         {formatBRL(kit.precoWp)} / Wp
                       </Badge>
                     </div>
@@ -130,9 +130,9 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
 
                       {/* Remove */}
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
-                        className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+                        className="h-7 text-xs border-destructive text-destructive hover:bg-destructive/10 gap-1"
                         onClick={() => removeKit(kit.id)}
                       >
                         <Trash2 className="h-3 w-3" /> Remover
