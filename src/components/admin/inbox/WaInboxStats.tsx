@@ -72,6 +72,7 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
       icon: MessageCircle,
       color: "text-success",
       bg: "bg-success/10",
+      borderColor: "border-l-success",
       tooltip: "Conversas em andamento",
     },
     {
@@ -80,6 +81,7 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
       icon: Clock,
       color: "text-warning",
       bg: "bg-warning/10",
+      borderColor: "border-l-warning",
       tooltip: "Aguardando atribuição",
     },
     {
@@ -88,6 +90,7 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
       icon: AlertTriangle,
       color: "text-destructive",
       bg: "bg-destructive/10",
+      borderColor: "border-l-destructive",
       tooltip: "Mensagens não lidas",
     },
     {
@@ -96,6 +99,7 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
       icon: CheckCircle2,
       color: "text-muted-foreground",
       bg: "bg-muted/50",
+      borderColor: "border-l-success",
       tooltip: "Atendimentos finalizados",
     },
     {
@@ -104,6 +108,7 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
       icon: Star,
       color: "text-warning",
       bg: "bg-warning/10",
+      borderColor: "border-l-warning",
       tooltip: satisfactionData?.count
         ? `${satisfactionData.count} avaliações recebidas`
         : "Nenhuma avaliação ainda",
@@ -133,7 +138,7 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
         <Tooltip key={stat.label}>
           <TooltipTrigger asChild>
             <div
-              className={`flex items-center gap-2.5 p-3 rounded-xl ${stat.bg} border border-border/20 cursor-default`}
+              className={`flex items-center gap-2.5 p-3 rounded-xl bg-card border border-border/20 border-l-[3px] ${stat.borderColor} cursor-default shadow-sm`}
             >
               <stat.icon className={`h-4 w-4 ${stat.color} shrink-0`} />
               <div className="min-w-0">
