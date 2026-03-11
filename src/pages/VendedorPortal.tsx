@@ -7,6 +7,8 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { VendorSidebar, VENDOR_TAB_TITLES } from "@/components/vendor/sidebar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
+import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 // Lazy load sub-pages
