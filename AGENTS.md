@@ -55,6 +55,16 @@ text-gray-500        → use text-muted-foreground
 border-gray-200      → use border-border
 ```
 
+### Slider
+- Trilha ativa: SEMPRE `bg-primary`
+- NUNCA usar `blue-*`, `#3b82f6` ou qualquer cor hardcoded em sliders
+- Verificar override no componente Slider do shadcn (`src/components/ui/slider.tsx`)
+
+### Seções dentro de modais
+- NUNCA usar fundo colorido hardcoded para separar seções dentro de modais
+- SEMPRE usar: `bg-muted/30 border border-border rounded-lg`
+- Exemplos proibidos: `bg-orange-50`, `bg-blue-50`, `bg-amber-*`, `bg-green-50`
+
 ---
 
 ## 3. CARDS — padrão obrigatório
