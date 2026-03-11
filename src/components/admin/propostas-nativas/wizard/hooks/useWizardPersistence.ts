@@ -363,6 +363,7 @@ export function useWizardPersistence() {
       toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
       return null;
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, []);
