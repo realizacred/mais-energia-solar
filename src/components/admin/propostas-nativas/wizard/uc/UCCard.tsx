@@ -465,9 +465,9 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
 
       {/* ── Footer ── */}
       <div className="border-t border-border/50 px-3 py-1.5 mt-auto">
-        <button onClick={onOpenConfig} className="text-[10px] text-secondary hover:underline flex items-center gap-1">
+        <Button variant="link" onClick={onOpenConfig} className="text-[10px] text-secondary p-0 h-auto flex items-center gap-1">
           <Settings2 className="h-3 w-3" /> Configurações adicionais
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -130,7 +130,7 @@ export function WaSlaAlertBanner({
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
-          </button>
+          </Button>
         </CollapsibleTrigger>
 
         {/* Alerts List */}
