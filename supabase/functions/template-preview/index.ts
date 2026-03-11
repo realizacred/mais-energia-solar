@@ -8,8 +8,10 @@ const corsHeaders = {
 };
 
 /**
- * Simple DOCX template processor that replaces [variable] placeholders.
- * Works by unzipping the DOCX, finding placeholders in XML files, and replacing them.
+ * Robust DOCX template processor.
+ * Step 1: Normalize split placeholders by merging <w:r> runs within each <w:p>.
+ * Step 2: Simple [key] → value substitution on the normalized XML.
+ * Step 3: Final sweep to blank out any unresolved [placeholder] tags.
  */
 async function processDocxTemplate(
   templateBytes: Uint8Array,
@@ -18,7 +20,6 @@ async function processDocxTemplate(
   const zip = await JSZip.loadAsync(templateBytes);
   const missingVars: string[] = [];
 
-  // Process all XML files in the DOCX (document.xml, headers, footers, etc.)
   const xmlFiles = Object.keys(zip.files).filter(
     (f) => f.endsWith(".xml") || f.endsWith(".xml.rels"),
   );
@@ -30,51 +31,39 @@ async function processDocxTemplate(
     let content = await file.async("string");
     let modified = false;
 
-    // DOCX often splits placeholders across multiple XML runs.
-    // First, try to find and replace simple [var] patterns
+    // ── STEP 1: Normalize split runs paragraph-by-paragraph ──
+    content = normalizeParagraphRuns(content);
+
+    // ── STEP 2: Direct [key] → value substitution ──
     for (const [key, value] of Object.entries(vars)) {
-      // Escape XML special chars in the value
       const safeValue = escapeXml(value);
-
-      // Direct replacement: [key]
-      const simplePattern = `[${key}]`;
-      if (content.includes(simplePattern)) {
-        content = content.replaceAll(simplePattern, safeValue);
+      const pattern = `[${key}]`;
+      if (content.includes(pattern)) {
+        content = content.replaceAll(pattern, safeValue);
         modified = true;
       }
     }
 
-    // Handle split placeholders: Word may split [variable] across XML runs like:
-    // <w:r><w:t>[</w:t></w:r><w:r><w:t>variable</w:t></w:r><w:r><w:t>]</w:t></w:r>
-    // Strategy: extract all text, find placeholders, then rebuild
-    if (!modified || content.includes("[")) {
-      const result = replaceSplitPlaceholders(content, vars);
-      if (result.changed) {
-        content = result.content;
-        modified = true;
-      }
-    }
-
-    // ── FINAL SWEEP: replace any remaining [placeholder] with empty string ──
-    // This ensures unresolved variables don't show raw brackets in the output
+    // ── STEP 3: Final sweep — blank remaining [placeholder] and log missing ──
     const remainingPattern = /\[([^\]]+)\]/g;
     let remaining;
+    const localMissing: string[] = [];
     while ((remaining = remainingPattern.exec(content)) !== null) {
       const varName = remaining[1];
-      // Skip XML-internal bracket patterns (e.g. Content_Types)
+      // Skip XML-internal bracket patterns
       if (varName.includes("xmlns") || varName.includes("Content_Types") || varName.includes("rels")) continue;
-      if (!missingVars.includes(varName)) {
-        missingVars.push(varName);
+      if (!localMissing.includes(varName)) {
+        localMissing.push(varName);
       }
     }
-    // Replace user-facing placeholders (not XML internals)
-    if (missingVars.length > 0) {
-      for (const varName of missingVars) {
-        const pattern = `[${varName}]`;
-        if (content.includes(pattern)) {
-          content = content.replaceAll(pattern, "");
-          modified = true;
-        }
+    for (const varName of localMissing) {
+      const pattern = `[${varName}]`;
+      if (content.includes(pattern)) {
+        content = content.replaceAll(pattern, "");
+        modified = true;
+      }
+      if (!missingVars.includes(varName)) {
+        missingVars.push(varName);
       }
     }
 
@@ -88,146 +77,157 @@ async function processDocxTemplate(
 }
 
 /**
- * Handle placeholders that Word splits across multiple XML <w:r> runs.
+ * Normalize runs inside each <w:p> paragraph so that placeholders
+ * split across multiple <w:r> runs are merged into single runs.
+ *
+ * For every paragraph that contains a bracket character:
+ * 1. Extract all <w:r> runs (preserving inter-run XML like <w:pPr>).
+ * 2. Concatenate the text content of all runs.
+ * 3. If the concatenated text contains [...], identify which runs
+ *    participate in each placeholder span (from '[' to ']').
+ * 4. Merge those runs into a single <w:r>, keeping the <w:rPr>
+ *    of the first run in each group. Runs outside placeholders
+ *    are left untouched.
  */
-function replaceSplitPlaceholders(
-  xml: string,
-  vars: Record<string, string>,
-): { content: string; changed: boolean } {
-  let changed = false;
+function normalizeParagraphRuns(xml: string): string {
+  // Match each <w:p ...>...</w:p> (non-greedy, handles nested tags via [^] not .)
+  const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
 
-  // Find sequences of <w:r>...</w:r> that together form a [placeholder]
-  // We look for text content between <w:t> tags
-  const textPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+  return xml.replace(paraPattern, (paraXml) => {
+    // Quick check: does this paragraph even contain a bracket?
+    if (!paraXml.includes("[")) return paraXml;
 
-  // Collect all text nodes with their positions
-  interface TextNode {
-    fullMatch: string;
-    text: string;
-    start: number;
-    end: number;
-  }
-
-  const textNodes: TextNode[] = [];
-  let match;
-  while ((match = textPattern.exec(xml)) !== null) {
-    textNodes.push({
-      fullMatch: match[0],
-      text: match[1],
-      start: match.index,
-      end: match.index + match[0].length,
-    });
-  }
-
-  // Concatenate all text to find placeholder boundaries
-  const fullText = textNodes.map((n) => n.text).join("");
-
-  // Find all [placeholder] in the concatenated text
-  const placeholderPattern = /\[([^\]]+)\]/g;
-  let placeholderMatch;
-  const replacements: Array<{
-    startNode: number;
-    endNode: number;
-    startOffset: number;
-    endOffset: number;
-    key: string;
-    value: string;
-  }> = [];
-
-  while ((placeholderMatch = placeholderPattern.exec(fullText)) !== null) {
-    const key = placeholderMatch[1];
-    const value = vars[key];
-    if (value === undefined) continue;
-
-    const phStart = placeholderMatch.index;
-    const phEnd = phStart + placeholderMatch[0].length;
-
-    // Map character positions back to text nodes
-    let charPos = 0;
-    let startNodeIdx = -1;
-    let endNodeIdx = -1;
-    let startCharOffset = 0;
-    let endCharOffset = 0;
-
-    for (let i = 0; i < textNodes.length; i++) {
-      const nodeStart = charPos;
-      const nodeEnd = charPos + textNodes[i].text.length;
-
-      if (startNodeIdx === -1 && phStart >= nodeStart && phStart < nodeEnd) {
-        startNodeIdx = i;
-        startCharOffset = phStart - nodeStart;
-      }
-      if (phEnd > nodeStart && phEnd <= nodeEnd) {
-        endNodeIdx = i;
-        endCharOffset = phEnd - nodeStart;
-        break;
-      }
-      charPos = nodeEnd;
+    // Extract runs: each <w:r>...</w:r> or <w:r ...>...</w:r>
+    const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
+    const runs: Array<{ xml: string; text: string; rPr: string }> = [];
+    let runMatch;
+    while ((runMatch = runPattern.exec(paraXml)) !== null) {
+      const runXml = runMatch[0];
+      // Extract <w:rPr>...</w:rPr> if present
+      const rPrMatch = runXml.match(/<w:rPr>[^]*?<\/w:rPr>/);
+      const rPr = rPrMatch ? rPrMatch[0] : "";
+      // Extract text from <w:t ...>text</w:t>
+      const textMatch = runXml.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/);
+      const text = textMatch ? textMatch[1] : "";
+      runs.push({ xml: runXml, text, rPr });
     }
 
-    if (startNodeIdx >= 0 && endNodeIdx >= 0) {
-      replacements.push({
-        startNode: startNodeIdx,
-        endNode: endNodeIdx,
-        startOffset: startCharOffset,
-        endOffset: endCharOffset,
-        key,
-        value: escapeXml(value),
-      });
-    }
-  }
+    if (runs.length === 0) return paraXml;
 
-  // Apply replacements in reverse order to maintain positions
-  for (let r = replacements.length - 1; r >= 0; r--) {
-    const rep = replacements[r];
-    changed = true;
+    // Concatenate all run texts
+    const fullText = runs.map((r) => r.text).join("");
+    if (!fullText.includes("[")) return paraXml;
 
-    if (rep.startNode === rep.endNode) {
-      // Placeholder is within a single node
-      const node = textNodes[rep.startNode];
-      const newText =
-        node.text.substring(0, rep.startOffset) +
-        rep.value +
-        node.text.substring(rep.endOffset);
-      const newXml = node.fullMatch.replace(node.text, newText);
-      xml = xml.substring(0, node.start) + newXml + xml.substring(node.end);
-    } else {
-      // Placeholder spans multiple nodes:
-      // Put the replacement value in the first node, clear the middle nodes, trim the last node
-      for (let i = rep.endNode; i >= rep.startNode; i--) {
-        const node = textNodes[i];
-        let newText: string;
-
-        if (i === rep.startNode) {
-          newText = node.text.substring(0, rep.startOffset) + rep.value;
-        } else if (i === rep.endNode) {
-          newText = node.text.substring(rep.endOffset);
-        } else {
-          newText = "";
-        }
-
-        const newXml = node.fullMatch.replace(
-          />([^<]*)<\/w:t>/,
-          `>${newText}</w:t>`,
-        );
-        xml = xml.substring(0, node.start) + newXml + xml.substring(node.end);
+    // Build a char→run index map
+    // charRunIdx[i] = which run index owns character i
+    const charRunIdx: number[] = [];
+    for (let ri = 0; ri < runs.length; ri++) {
+      for (let ci = 0; ci < runs[ri].text.length; ci++) {
+        charRunIdx.push(ri);
       }
     }
 
-    // Re-scan nodes after modification (positions shifted)
-    textNodes.length = 0;
-    textPattern.lastIndex = 0;
-    while ((match = textPattern.exec(xml)) !== null) {
-      textNodes.push({
-        fullMatch: match[0],
-        text: match[1],
-        start: match.index,
-        end: match.index + match[0].length,
-      });
+    // Find all [placeholder] spans in the concatenated text
+    const phPattern = /\[[^\]]+\]/g;
+    let phMatch;
+    // Track which run ranges need merging: Set<"startRunIdx-endRunIdx">
+    const mergeSpans: Array<[number, number]> = [];
+    while ((phMatch = phPattern.exec(fullText)) !== null) {
+      const startChar = phMatch.index;
+      const endChar = startChar + phMatch[0].length - 1;
+      const startRun = charRunIdx[startChar];
+      const endRun = charRunIdx[endChar];
+      if (startRun !== endRun) {
+        // This placeholder spans multiple runs — needs merging
+        mergeSpans.push([startRun, endRun]);
+      }
     }
-  }
 
-  return { content: xml, changed };
+    if (mergeSpans.length === 0) return paraXml;
+
+    // Merge overlapping/adjacent spans
+    mergeSpans.sort((a, b) => a[0] - b[0]);
+    const merged: Array<[number, number]> = [mergeSpans[0]];
+    for (let i = 1; i < mergeSpans.length; i++) {
+      const prev = merged[merged.length - 1];
+      if (mergeSpans[i][0] <= prev[1]) {
+        prev[1] = Math.max(prev[1], mergeSpans[i][1]);
+      } else {
+        merged.push(mergeSpans[i]);
+      }
+    }
+
+    // Build new runs array by merging identified spans
+    const newRuns: Array<{ xml: string }> = [];
+    let ri = 0;
+    while (ri < runs.length) {
+      const span = merged.find((s) => s[0] === ri);
+      if (span) {
+        // Merge runs[span[0]..span[1]] into one
+        const groupRuns = runs.slice(span[0], span[1] + 1);
+        const combinedText = groupRuns.map((r) => r.text).join("");
+        const rPr = groupRuns[0].rPr; // keep first run's formatting
+        const mergedRunXml = `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
+        newRuns.push({ xml: mergedRunXml });
+        ri = span[1] + 1;
+      } else {
+        newRuns.push({ xml: runs[ri].xml });
+        ri++;
+      }
+    }
+
+    // Rebuild the paragraph: replace runs in the original XML
+    // Strategy: find the first run start and last run end, replace that region
+    const firstRunIdx = paraXml.indexOf(runs[0].xml);
+    const lastRun = runs[runs.length - 1];
+    const lastRunIdx = paraXml.lastIndexOf(lastRun.xml);
+    const lastRunEnd = lastRunIdx + lastRun.xml.length;
+
+    if (firstRunIdx < 0 || lastRunIdx < 0) return paraXml; // safety
+
+    const before = paraXml.substring(0, firstRunIdx);
+    const after = paraXml.substring(lastRunEnd);
+
+    // Preserve any non-run XML between runs (e.g., <w:bookmarkStart>, <w:proofErr>)
+    // by walking through the original paragraph region and keeping inter-run content
+    const runsRegion = paraXml.substring(firstRunIdx, lastRunEnd);
+    const interRunContent: string[] = [];
+    let searchPos = 0;
+    for (let i = 0; i < runs.length; i++) {
+      const pos = runsRegion.indexOf(runs[i].xml, searchPos);
+      if (pos > searchPos) {
+        // There's non-run XML between previous run end and this run start
+        interRunContent.push(runsRegion.substring(searchPos, pos));
+      } else {
+        interRunContent.push("");
+      }
+      searchPos = pos + runs[i].xml.length;
+    }
+    // Any trailing non-run content after last run
+    const trailingContent = searchPos < runsRegion.length ? runsRegion.substring(searchPos) : "";
+
+    // Rebuild: map original run indices to new runs, preserving inter-run content
+    let rebuiltRegion = "";
+    let origIdx = 0;
+    for (const newRun of newRuns) {
+      // Add inter-run content from the original run at origIdx
+      if (origIdx < interRunContent.length) {
+        rebuiltRegion += interRunContent[origIdx];
+      }
+      rebuiltRegion += newRun.xml;
+
+      // Figure out how many original runs this new run consumed
+      const span = merged.find((s) => s[0] === origIdx);
+      if (span) {
+        origIdx = span[1] + 1;
+      } else {
+        origIdx++;
+      }
+    }
+    rebuiltRegion += trailingContent;
+
+    return before + rebuiltRegion + after;
+  });
 }
 
 function escapeXml(str: string): string {
