@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.14.1",
+    date: "2026-03-11",
+    title: "Correção crítica: normalização de grupo tarifário na criação de propostas",
+    type: "bugfix",
+    description: "Corrige erro 'proposta_versoes_grupo_check' que impedia a geração de propostas na etapa 8 do wizard quando o grupo tarifário continha subgrupo (B1, B2, A4, etc).",
+    details: [
+      "RPC create_proposta_nativa_atomic agora normaliza grupo para 'A' ou 'B' antes do INSERT",
+      "sanitizeSnapshot() no frontend também normaliza grupo como defesa em profundidade",
+      "Documentação §33 do AGENTS.md atualizada com regra de normalização em todos os caminhos",
+    ],
+  },
+  {
     version: "2.14.0",
     date: "2026-03-10",
     title: "Padronização Visual Completa (AGENTS.md Compliance)",
