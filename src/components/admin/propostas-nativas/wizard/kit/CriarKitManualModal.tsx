@@ -75,6 +75,7 @@ export interface KitMeta {
   distribuidorNome?: string;
   nomeKit?: string;
   codigoKit?: string;
+  catalogKitId?: string;
   topologia?: string;
   custo?: number;
   sistema?: "on_grid" | "hibrido" | "off_grid";

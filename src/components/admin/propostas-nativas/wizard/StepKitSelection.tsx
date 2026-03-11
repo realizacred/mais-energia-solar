@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu } from "lucide-react";
+import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -90,6 +90,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
 // Mock kits removed — manual mode only for now
 
 export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange }: Props) {
+  // If returning to this step with a kit already selected, stay on "catalogo" but show selection
   const [tab, setTab] = useState<TabType>("catalogo");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS, buscarValor: 0 });
@@ -116,6 +117,14 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [snapshotLoading, setSnapshotLoading] = useState<string | null>(null); // kitId being loaded
   const [confirmReplace, setConfirmReplace] = useState<{ kitId: string; kitName: string } | null>(null);
   const catalogLoaded = useRef(false);
+
+  // Derive selected catalog kit ID from manualKits meta
+  const selectedCatalogKitId = useMemo(() => {
+    if (manualKits.length > 0 && manualKits[0]?.meta?.catalogKitId) {
+      return manualKits[0].meta.catalogKitId;
+    }
+    return null;
+  }, [manualKits]);
 
   // Load catalog kits when tab switches to "catalogo"
   useEffect(() => {
@@ -169,6 +178,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         distribuidorNome: kitName,
         nomeKit: catalogKit?.name || kitName,
         codigoKit: kitId.slice(0, 8).toUpperCase(),
+        catalogKitId: kitId,
         topologia: topoLabel,
         custo: kitCost,
         sistema: "on_grid",
@@ -390,11 +400,24 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {catalogKits.map(kit => {
                     const summary = catalogSummaries.get(kit.id);
+                    const isSelected = selectedCatalogKitId === kit.id;
                     return (
                       <div
                         key={kit.id}
-                        className="rounded-xl border-2 border-border/40 bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between min-h-[200px]"
+                        className={cn(
+                          "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[200px] relative",
+                          isSelected
+                            ? "border-primary shadow-md ring-2 ring-primary/20"
+                            : "border-border/40 hover:border-primary/30"
+                        )}
                       >
+                        {isSelected && (
+                          <div className="absolute top-2 right-2">
+                            <Badge className="bg-primary text-primary-foreground text-[10px] gap-1">
+                              <Check className="h-3 w-3" /> Selecionado
+                            </Badge>
+                          </div>
+                        )}
                         <div className="space-y-3">
                           <div>
                             <p className="text-sm font-bold truncate">{kit.name}</p>
@@ -450,16 +473,19 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                         <div className="mt-3 flex justify-end">
                           <Button
                             size="sm"
-                            className="gap-1.5 h-8 text-xs"
+                            variant={isSelected ? "outline" : "default"}
+                            className={cn("gap-1.5 h-8 text-xs", isSelected && "border-primary text-primary")}
                             disabled={snapshotLoading === kit.id}
                             onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
                           >
                             {snapshotLoading === kit.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isSelected ? (
+                              <Check className="h-3.5 w-3.5" />
                             ) : (
                               <Plus className="h-3.5 w-3.5" />
                             )}
-                            Selecionar
+                            {isSelected ? "Selecionado" : "Selecionar"}
                           </Button>
                         </div>
                       </div>
