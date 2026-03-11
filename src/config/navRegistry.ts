@@ -85,10 +85,8 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
 
   // ── 4. Clientes ──
   { nav_key: "clientes", label_default: "Gestão de Clientes", group_default: "Clientes", order_default: 0, icon: "UserCheck", description: "Cadastro, documentos e histórico de clientes", keywords: ["cliente", "contrato", "documentação", "CPF"], criticality: "normal", permission: "all" },
-  { nav_key: "checklists", label_default: "Documentação", group_default: "Clientes", order_default: 1, icon: "ClipboardList", description: "Checklists e documentos de projeto", keywords: ["checklist", "documento", "verificação", "projeto"], criticality: "normal", permission: "all" },
-  { nav_key: "avaliacoes", label_default: "Avaliações NPS", group_default: "Clientes", order_default: 2, icon: "Star", description: "Pesquisas de satisfação e avaliações", keywords: ["NPS", "CSAT", "feedback", "satisfação", "nota", "indicação"], criticality: "normal", permission: "all" },
-  { nav_key: "servicos", label_default: "Agenda de Serviços", group_default: "Clientes", order_default: 3, icon: "CalendarClock", description: "Visitas técnicas e agendamentos", keywords: ["agenda", "visita", "instalação", "técnico"], criticality: "normal", permission: "all" },
-  { nav_key: "documentos-assinaturas", label_default: "Documentos & Assinaturas", group_default: "Clientes", order_default: 4, icon: "FileText", description: "Templates de documentos e assinatura eletrônica", keywords: ["documento", "contrato", "assinatura", "template", "docx", "pdf", "procuração"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "avaliacoes", label_default: "Avaliações NPS", group_default: "Clientes", order_default: 1, icon: "Star", description: "Pesquisas de satisfação e avaliações", keywords: ["NPS", "CSAT", "feedback", "satisfação", "nota", "indicação"], criticality: "normal", permission: "all" },
+  { nav_key: "documentos-assinaturas", label_default: "Documentos & Assinaturas", group_default: "Clientes", order_default: 2, icon: "FileText", description: "Templates de documentos e assinatura eletrônica", keywords: ["documento", "contrato", "assinatura", "template", "docx", "pdf", "procuração"], criticality: "normal", permission: "admin_only" },
 
   // ── 5. Pós-Venda ──
   { nav_key: "pos-venda", label_default: "Dashboard", group_default: "Pós-Venda", order_default: 0, icon: "BarChart3", description: "Visão geral do pós-venda e preventivas", keywords: ["pós-venda", "preventiva", "dashboard", "garantia", "serviço"], criticality: "normal", permission: "all" },
