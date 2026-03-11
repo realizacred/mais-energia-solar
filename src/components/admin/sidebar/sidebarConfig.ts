@@ -373,8 +373,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas por distribuidora", keywords: ["tarifa", "distribuidora", "concessionária", "ANEEL"], separator: true },
       { id: "dicionario-aneel", title: "Dicionário ANEEL", icon: FileSearch, description: "Mapeamento ANEEL ↔ Concessionárias", keywords: ["aneel", "dicionário", "match", "alias"] },
       { id: "tarifa-versoes", title: "Versões de Tarifa", icon: HistoryIcon, description: "Versionamento e rollback", keywords: ["versão", "tarifa", "rollback", "diff"] },
-      { id: "saude-tarifaria", title: "Saúde Tarifária", icon: Activity, description: "Alertas e governança", keywords: ["saúde", "alerta", "vigência", "governança"] },
-      { id: "aneel-sync-status", title: "Status Sync ANEEL", icon: Zap, description: "Monitoramento do sync", keywords: ["sync", "aneel", "status", "log"] },
       { id: "premissas", title: "Premissas", icon: Sliders, description: "Parâmetros financeiros e técnicos", keywords: ["premissas", "financeiras", "telhado", "irradiância"], separator: true },
       { id: "meteorologia", title: "Base Meteorológica", icon: Database, description: "Dados de irradiância solar", keywords: ["irradiância", "solar", "INPE", "NASA", "GHI"] },
     ],
