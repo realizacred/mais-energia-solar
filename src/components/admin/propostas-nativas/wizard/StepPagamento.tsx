@@ -327,7 +327,7 @@ export function StepPagamento({
             <Calendar className="h-4 w-4 text-primary" />
             <span className="text-muted-foreground">Retorno:</span>
             <span className="font-bold">{paybackInfo.label}</span>
-            <button onClick={() => setShowFluxoModal(true)} className="text-primary underline text-xs hover:opacity-80">Ver mais</button>
+            <Button variant="link" size="sm" onClick={() => setShowFluxoModal(true)} className="text-primary text-xs p-0 h-auto hover:opacity-80">Ver mais</Button>
           </div>
         </div>
       </div>
