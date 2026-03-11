@@ -660,7 +660,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <span className="text-[10px] text-muted-foreground">Avulso?</span>
                   </div>
                   {idx === inversorEntries.length - 1 && (
-                    <Button onClick={() => setInversorEntries(p => [...p, createEmptyInversor()])} className="text-[11px] text-primary font-medium hover:underline">
+                    <Button variant="ghost" size="sm" onClick={() => setInversorEntries(p => [...p, createEmptyInversor()])} className="text-[11px] text-primary font-medium h-6">
                       + Adicionar mais
                     </Button>
                   )}
