@@ -65,7 +65,7 @@ export function TuyaTutorial() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card className="border-orange-200 dark:border-orange-800/40">
+    <Card className="border-primary/20 dark:border-primary/30">
       <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
