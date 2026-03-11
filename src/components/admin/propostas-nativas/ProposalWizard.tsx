@@ -244,6 +244,7 @@ export function ProposalWizard() {
   const { saveDraft, updateProposal, saving } = useWizardPersistence();
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
+  const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
 
   const collectSnapshot = useCallback((): WizardSnapshot => ({
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
@@ -533,6 +534,7 @@ export function ProposalWizard() {
     if (res) {
       setSavedPropostaId(res.propostaId);
       setSavedVersaoId(res.versaoId);
+      if (res.projetoId) setSavedProjetoId(res.projetoId);
     }
   }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, selectedLead, resolvedDealId, dealIdFromUrl, nomeProposta, cliente.nome]);
 
@@ -560,6 +562,7 @@ export function ProposalWizard() {
         if (res) {
           setSavedPropostaId(res.propostaId);
           setSavedVersaoId(res.versaoId);
+          if (res.projetoId) setSavedProjetoId(res.projetoId);
           if (setActive) {
             await updateProposal({
               propostaId: res.propostaId,
@@ -1108,7 +1111,7 @@ export function ProposalWizard() {
       const idempotencyKey = getOrCreateIdempotencyKey(selectedLead.id);
       const payload: GenerateProposalPayload = {
         lead_id: selectedLead.id,
-        projeto_id: projectContext?.dealId || dealIdFromUrl || undefined,
+        projeto_id: savedProjetoId || undefined,
         grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
         idempotency_key: idempotencyKey,
         template_id: templateSelecionado || undefined,
@@ -1575,7 +1578,7 @@ export function ProposalWizard() {
                 snapshot={collectSnapshot()}
                 propostaId={savedPropostaId}
                 versaoId={savedVersaoId}
-                projetoId={projectContext?.dealId || null}
+                projetoId={savedProjetoId || null}
                 dealId={resolvedDealId || dealIdFromUrl || null}
                 clienteId={customerIdFromUrl || null}
                 leadId={selectedLead?.id || leadIdFromUrl || null}
