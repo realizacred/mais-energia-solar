@@ -504,7 +504,7 @@ export function EquipamentosManager() {
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeleteDisjuntor}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className="border-destructive text-destructive hover:bg-destructive/10 border bg-transparent"
               >
                 Excluir
               </AlertDialogAction>
