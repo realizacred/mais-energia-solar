@@ -57,7 +57,7 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
     );
   }
   if (isBeta) {
-    return <Badge className="text-[10px] font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25 px-2 py-0.5">Beta</Badge>;
+    return <Badge className="text-[10px] font-medium bg-warning/15 text-warning border-warning/25 px-2 py-0.5">Beta</Badge>;
   }
   if (isStub || isComingSoon) {
     return <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground border-border/60 px-2 py-0.5">Em breve</Badge>;
