@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const PROVIDER_INFO: Record<string, { label: string; description: string; color: string }> = {
-  tuya: { label: "Tuya Smart", description: "Plataforma IoT para medidores inteligentes", color: "bg-orange-500" },
+  tuya: { label: "Tuya Smart", description: "Plataforma IoT para medidores inteligentes", color: "bg-primary" },
 };
 
 export default function ApisPage() {
