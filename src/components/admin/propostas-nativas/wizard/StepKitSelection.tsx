@@ -535,32 +535,32 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
       {/* Choice Modal: equipamentos vs zero */}
       <Dialog open={showChoiceModal} onOpenChange={setShowChoiceModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[90vw] max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-base text-center">Escolha uma opção para prosseguir</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
             <Button
               variant="default"
               onClick={() => { setShowChoiceModal(false); setManualMode("equipamentos"); }}
-              className="h-auto flex flex-col items-center justify-center gap-3 p-6 rounded-xl transition-all text-center"
+              className="h-auto min-h-[120px] flex flex-col items-center justify-center gap-3 p-6 rounded-xl transition-all text-center border-2 border-primary bg-primary text-primary-foreground"
             >
               <div className="h-12 w-12 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
                 <Package className="h-6 w-6" />
               </div>
-              <p className="text-xs leading-tight">
+              <p className="text-sm leading-tight whitespace-normal">
                 Criar a partir de <strong>equipamentos disponíveis</strong> nos distribuidores
               </p>
             </Button>
             <Button
               variant="outline"
               onClick={() => { setShowChoiceModal(false); setManualMode("zero"); }}
-              className="h-auto flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-primary text-primary hover:bg-primary/10 transition-all text-center"
+              className="h-auto min-h-[120px] flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-primary text-primary hover:bg-primary/10 transition-all text-center"
             >
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Settings2 className="h-6 w-6 text-primary" />
               </div>
-              <p className="text-xs leading-tight">
+              <p className="text-sm leading-tight whitespace-normal">
                 <strong>Criar do zero,</strong> informando o nome dos equipamentos e distribuidores
               </p>
             </Button>
