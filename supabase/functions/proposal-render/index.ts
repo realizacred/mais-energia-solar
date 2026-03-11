@@ -274,8 +274,8 @@ function renderProposalHtml(p: RenderParams): string {
       <thead><tr><th>Serviço</th><th>Categoria</th><th style="text-align:right">Valor</th><th style="text-align:center">Incluso</th></tr></thead>
       <tbody>${servicos.map((s: any) => `
         <tr>
-          <td style="padding:8px;border-bottom:1px solid #eee">${s.descricao}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee">${s.categoria}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${safe(s.descricao)}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${safe(s.categoria)}</td>
           <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${fmt(s.valor)}</td>
           <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${s.incluso_no_preco ? "✓" : "Extra"}</td>
         </tr>`).join("")}</tbody>
