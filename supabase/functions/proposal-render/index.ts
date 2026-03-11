@@ -332,9 +332,9 @@ function renderProposalHtml(p: RenderParams): string {
         </thead>
         <tbody>
           ${showSeries.filter((_: any, i: number) => i < 5 || i === 9 || i === 14 || i === 19 || i === 24).map((s: any) => `
-          <tr${s.fluxo_caixa_acumulado >= 0 ? ' style="color:#16a34a"' : ""}>
-            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-weight:600">${s.ano}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${Math.round(s.geracao_kwh).toLocaleString("pt-BR")}</td>
+          <tr${(s.fluxo_caixa_acumulado ?? 0) >= 0 ? ' style="color:#16a34a"' : ""}>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-weight:600">${safe(s.ano)}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${Math.round(s.geracao_kwh ?? 0).toLocaleString("pt-BR")}</td>
             <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">R$ ${s.tarifa_vigente?.toFixed(3) ?? "-"}</td>
             <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${fmt(s.economia_rs)}</td>
             <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${fmt(s.economia_acumulada_rs)}</td>
