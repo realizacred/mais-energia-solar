@@ -400,7 +400,7 @@ export function StepPagamento({
               </div>
             ))}
 
-            <Button variant="default" size="sm" className="text-sm text-primary gap-1 h-9" onClick={() => addOpcaoToBanco(selectedBancoIdx)}>
+            <Button variant="outline" size="sm" className="text-sm gap-1 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => addOpcaoToBanco(selectedBancoIdx)}>
               <Plus className="h-3.5 w-3.5" /> Adicionar opção
             </Button>
           </div>
