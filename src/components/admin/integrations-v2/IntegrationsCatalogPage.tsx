@@ -280,6 +280,13 @@ export default function IntegrationsCatalogPage() {
           <ArrowLeft className="h-4 w-4" />
           Voltar ao catálogo
         </Button>
+        {/* Tutorial from DB if available */}
+        {inlineProvider.tutorial && (
+          <IntegrationTutorialSection
+            tutorial={inlineProvider.tutorial}
+            providerLabel={inlineProvider.label}
+          />
+        )}
         <Suspense fallback={<LoadingState message={`Carregando ${inlineProvider.label}…`} />}>
           <InlineComponent />
         </Suspense>
