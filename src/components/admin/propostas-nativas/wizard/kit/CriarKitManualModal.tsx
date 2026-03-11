@@ -529,9 +529,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Módulos */}
             {moduloEntries.map((m, idx) => (
-              <div key={m.id} className="rounded-lg border-2 border-primary/20 bg-primary/5 p-3 space-y-2">
+              <div key={m.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-primary">Módulo *</Label>
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><Sun className="h-3 w-3 text-primary" /> Módulo *</Label>
                   {moduloEntries.length > 1 && (
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setModuloEntries(p => p.filter(x => x.id !== m.id))}>
                       <Trash2 className="h-3 w-3" />
