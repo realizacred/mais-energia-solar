@@ -266,7 +266,7 @@
                    </div>
                    <Button
                      size="sm"
-                     variant="destructive"
+                     variant="default"
                      className="gap-1 shrink-0"
                      onClick={() => openWhatsApp(action.lead)}
                    >
