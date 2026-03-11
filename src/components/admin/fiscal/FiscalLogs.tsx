@@ -4,6 +4,7 @@ import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -37,15 +38,12 @@ export function FiscalLogs() {
 
   return (
     <div className="space-y-4">
-      {/* Tab switcher */}
-      <div className="flex gap-2">
-        <button onClick={() => setActiveTab("requests")} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === "requests" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-          Requests ({requests.length})
-        </button>
-        <button onClick={() => setActiveTab("webhooks")} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === "webhooks" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-          Webhooks ({webhooks.length})
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "requests" | "webhooks")}>
+        <TabsList>
+          <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
+          <TabsTrigger value="webhooks">Webhooks ({webhooks.length})</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

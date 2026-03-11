@@ -216,14 +216,14 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="text-secondary hover:text-secondary/80 p-0.5"><AlertCircle className="h-3.5 w-3.5" /></button>
+                <Button variant="ghost" size="icon" className="h-auto w-auto p-0.5 text-secondary hover:text-secondary/80"><AlertCircle className="h-3.5 w-3.5" /></Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Informações da UC</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="text-muted-foreground hover:text-foreground p-0.5"><MoreVertical className="h-3.5 w-3.5" /></button>
+              <Button variant="ghost" size="icon" className="h-auto w-auto p-0.5 text-muted-foreground hover:text-foreground"><MoreVertical className="h-3.5 w-3.5" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem onClick={() => { setTempName(uc.nome); setEditingName(true); }}>
@@ -303,7 +303,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">HP <span className="text-destructive">*</span></span>
-                    <button onClick={() => onOpenMesAMes("hp")} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
+                    <Button variant="link" onClick={() => onOpenMesAMes("hp")} className="text-[10px] text-secondary p-0 h-auto flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
                   </div>
                   <div className="relative">
                     <Input type="number" min={0} value={uc.consumo_mensal_p || ""} onChange={e => update("consumo_mensal_p", Number(e.target.value))} className="h-8 text-xs pr-10" />
@@ -313,7 +313,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">HFP <span className="text-destructive">*</span></span>
-                    <button onClick={() => onOpenMesAMes("hfp")} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
+                    <Button variant="link" onClick={() => onOpenMesAMes("hfp")} className="text-[10px] text-secondary p-0 h-auto flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
                   </div>
                   <div className="relative">
                     <Input type="number" min={0} value={uc.consumo_mensal_fp || ""} onChange={e => update("consumo_mensal_fp", Number(e.target.value))} className="h-8 text-xs pr-10" />
@@ -326,7 +326,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
             <>
               <div className="flex items-center justify-between">
                 <Label className="text-[11px]">Consumo <span className="text-destructive">*</span></Label>
-                <button onClick={() => onOpenMesAMes("consumo")} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
+                <Button variant="link" onClick={() => onOpenMesAMes("consumo")} className="text-[10px] text-secondary p-0 h-auto flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
               </div>
               <div className="relative">
                 <Input type="number" min={0} value={uc.consumo_mensal || ""} onChange={e => update("consumo_mensal", Number(e.target.value))} className="h-8 text-xs pr-10" />
@@ -465,9 +465,9 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
 
       {/* ── Footer ── */}
       <div className="border-t border-border/50 px-3 py-1.5 mt-auto">
-        <button onClick={onOpenConfig} className="text-[10px] text-secondary hover:underline flex items-center gap-1">
+        <Button variant="link" onClick={onOpenConfig} className="text-[10px] text-secondary p-0 h-auto flex items-center gap-1">
           <Settings2 className="h-3 w-3" /> Configurações adicionais
-        </button>
+        </Button>
       </div>
     </div>
   );

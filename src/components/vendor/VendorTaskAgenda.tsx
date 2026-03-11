@@ -156,19 +156,21 @@ export function VendorTaskAgenda() {
                     <CardContent className="p-3">
                       <div className="flex items-start gap-3">
                         {/* Toggle */}
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             if (task.status === "open") updateTaskStatus({ taskId: task.id, status: "doing" });
                             else updateTaskStatus({ taskId: task.id, status: "done" });
                           }}
-                          className="mt-0.5 shrink-0"
+                          className="mt-0.5 shrink-0 h-auto w-auto p-0"
                         >
                           {task.status === "doing" ? (
                             <Play className="h-5 w-5 text-info" />
                           ) : (
                             <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 hover:border-success transition-colors" />
                           )}
-                        </button>
+                        </Button>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">

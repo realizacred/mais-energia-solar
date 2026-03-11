@@ -815,10 +815,10 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                     </div>
                   </ScrollArea>
                   {!showAllRows && totalIssueRows > 20 && (
-                    <button onClick={() => setShowAllRows(true)} className="text-[10px] text-primary hover:underline flex items-center gap-1">
+                    <Button variant="link" onClick={() => setShowAllRows(true)} className="text-[10px] text-primary p-0 h-auto flex items-center gap-1">
                       <ChevronDown className="w-3 h-3" />
                       Mostrar todos os {totalIssueRows} problemas
-                    </button>
+                    </Button>
                   )}
                 </div>
               ) : (
