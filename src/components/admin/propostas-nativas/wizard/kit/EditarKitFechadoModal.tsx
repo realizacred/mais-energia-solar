@@ -99,7 +99,7 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold">{formatBRL(kit.precoTotal * quantidade)}</span>
-                      <Badge variant="outline" className="text-[10px] h-5 bg-primary/5 border-primary/20 text-primary">
+                      <Badge variant="outline" className="text-[10px] h-5 bg-muted text-muted-foreground">
                         {formatBRL(kit.precoWp)} / Wp
                       </Badge>
                     </div>
