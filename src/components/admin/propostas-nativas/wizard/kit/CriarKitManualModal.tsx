@@ -529,9 +529,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Módulos */}
             {moduloEntries.map((m, idx) => (
-              <div key={m.id} className="rounded-lg border-2 border-primary/20 bg-primary/5 p-3 space-y-2">
+              <div key={m.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-primary">Módulo *</Label>
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><Sun className="h-3 w-3 text-primary" /> Módulo *</Label>
                   {moduloEntries.length > 1 && (
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setModuloEntries(p => p.filter(x => x.id !== m.id))}>
                       <Trash2 className="h-3 w-3" />
@@ -581,9 +581,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Inversores (filtered by topologia + sistema) */}
             {inversorEntries.map((inv, idx) => (
-              <div key={inv.id} className="rounded-lg border-2 border-secondary/20 bg-secondary/5 p-3 space-y-2">
+              <div key={inv.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-secondary">{inversorLabel} *</Label>
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><Cpu className="h-3 w-3 text-primary" /> {inversorLabel} *</Label>
                   <div className="flex items-center gap-2">
                     {inversorEntries.length > 1 && (
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setInversorEntries(p => p.filter(x => x.id !== inv.id))}>
@@ -660,7 +660,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <span className="text-[10px] text-muted-foreground">Avulso?</span>
                   </div>
                   {idx === inversorEntries.length - 1 && (
-                    <Button onClick={() => setInversorEntries(p => [...p, createEmptyInversor()])} className="text-[11px] text-primary font-medium hover:underline">
+                    <Button variant="ghost" size="sm" onClick={() => setInversorEntries(p => [...p, createEmptyInversor()])} className="text-[11px] text-primary font-medium h-6">
                       + Adicionar mais
                     </Button>
                   )}
@@ -670,10 +670,10 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Otimizadores (only when topologia = Otimizador) */}
             {showOtimizadores && otimizadorEntries.map((ot, idx) => (
-              <div key={ot.id} className="rounded-lg border-2 border-warning/20 bg-warning/5 p-3 space-y-2">
+              <div key={ot.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-warning flex items-center gap-1.5">
-                    <Zap className="h-3 w-3" /> Otimizador *
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Zap className="h-3 w-3 text-primary" /> Otimizador *
                   </Label>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setOtimizadorEntries(p => p.filter(x => x.id !== ot.id))}>
                     <Trash2 className="h-3 w-3" />
@@ -727,7 +727,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <span className="text-[10px] text-muted-foreground">Avulso?</span>
                   </div>
                   {idx === otimizadorEntries.length - 1 && (
-                    <Button onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])} className="text-[11px] text-warning font-medium hover:underline">
+                    <Button variant="ghost" size="sm" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])} className="text-[11px] text-primary font-medium h-6">
                       + Adicionar mais
                     </Button>
                   )}
@@ -749,7 +749,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <div className="flex items-center gap-2">
                       <Input value={c.nome} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, nome: e.target.value } : x))} className="h-7 text-xs flex-1" placeholder="Nome do componente" />
                       <Input type="number" min="0" value={c.quantidade || ""} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs w-16" placeholder="0" />
-                      <Button onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])} className="text-[11px] text-primary font-medium hover:underline whitespace-nowrap">
+                      <Button variant="ghost" size="sm" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])} className="text-[11px] text-primary font-medium h-6 whitespace-nowrap">
                         + Adicionar mais
                       </Button>
                     </div>
@@ -779,7 +779,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
               Voltar
             </Button>
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
+              <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
                 Potência: {potenciaTotal.toFixed(2)} kWp
               </Badge>
               <Button size="sm" className="text-xs h-8" onClick={handleSave}>
