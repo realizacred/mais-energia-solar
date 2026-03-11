@@ -811,19 +811,26 @@ Telas que usam esse padrão: Monitoramento Solar, Recebimentos e qualquer tela c
 
 O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.ts` é a Fonte Única de Verdade (SSOT).
 
+**Regras de classificação:**
+- **INTEGRAÇÕES** = conexões externas (API, OAuth, webhook, instâncias)
+- **ATENDIMENTO** = usar funcionalidades já conectadas (inbox, filas, regras, métricas)
+- **CLIENTES** = dados do cliente (cadastro, avaliações, documentos)
+- **OPERAÇÕES** = execução e checklists operacionais (instaladores, estoque, validação, checklists de projeto, agenda de serviços)
+- **ENERGIA** = tudo relacionado a energia, tarifas, monitoramento e sincronização ANEEL
+
 1. **PAINEL** — Painel Geral, Performance
 2. **COMERCIAL** — Leads, Pipeline, Projetos, Acompanhamentos, Distribuição de Leads, SLA & Breaches, Inteligência Comercial, Aprovações
-3. **ATENDIMENTO** — Central WhatsApp, Fila de Follow-ups, Regras de Follow-up, Métricas de Atendimento, Regras de Retorno, Fila de Retorno, Instâncias WhatsApp, Automação WhatsApp, Etiquetas WhatsApp, Respostas Rápidas
-4. **CLIENTES** — Gestão de Clientes, Documentação, Avaliações NPS, Agenda de Serviços, Documentos & Assinaturas
+3. **ATENDIMENTO** — Central WhatsApp, Fila de Follow-ups, Regras de Follow-up, Métricas de Atendimento, Regras de Retorno, Fila de Retorno, Etiquetas WhatsApp, Respostas Rápidas
+4. **CLIENTES** — Gestão de Clientes, Avaliações NPS, Documentos & Assinaturas
 5. **PÓS-VENDA** — Dashboard, Preventivas, Planos, Checklists, Oportunidades
-6. **OPERAÇÕES** — Instaladores, Estoque, Validação de Vendas, Tarefas & SLA
+6. **OPERAÇÕES** — Instaladores, Estoque, Validação de Vendas, Tarefas & SLA, Documentação, Agenda de Serviços
 7. **FINANCEIRO** — Recebimentos, Inadimplência, Comissões, Fiscal, Financiamentos, Premissas Fiscais, Política de Preços
 8. **EQUIPE** — Consultores, Gamificação
 9. **IA** — Copilot IA, Configuração de IA
-10. **ENERGIA** — Unidades Consumidoras, Medidores, Monitoramento Solar, Usinas, Alertas, Relatórios, Integrações Monitoramento, SolarMarket Config, SolarMarket Importação
-11. **INTEGRAÇÕES** — Catálogo de Integrações, Saúde das Integrações, Meta Ads Dashboard, Webhooks
+10. **ENERGIA** — Unidades Consumidoras, Medidores, Monitoramento Solar, Usinas, Alertas, Relatórios, Integrações Monitoramento, SolarMarket Config, SolarMarket Importação, Saúde Tarifária, Status Sync ANEEL
+11. **INTEGRAÇÕES** — Catálogo de Integrações, Saúde das Integrações, Meta Ads Dashboard, Webhooks, Instâncias WhatsApp, Automação WhatsApp
 12. **SITE** — Conteúdo & Visual, Serviços, Portfólio, Instagram
-13. **CADASTROS** — Disjuntores & Transf., Módulos Fotovoltaicos, Inversores, Baterias, Fornecedores, Concessionárias, Dicionário ANEEL, Versões de Tarifa, Saúde Tarifária, Status Sync ANEEL, Premissas, Base Meteorológica
+13. **CADASTROS** — Disjuntores & Transf., Módulos Fotovoltaicos, Inversores, Baterias, Fornecedores, Concessionárias, Dicionário ANEEL, Versões de Tarifa, Premissas, Base Meteorológica
 14. **CONFIGURAÇÕES** — Calculadora Solar, Status de Leads, Motivos de Perda, Loading & Mensagens
 15. **ADMINISTRAÇÃO** — Empresa, Usuários & Permissões, Permissões por Papel, Auditoria, Notificações, Links & Captação, Google Maps, Release Notes, Atualizações, Personalizar Menus, Limpeza de Dados
 

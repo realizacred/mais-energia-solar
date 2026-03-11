@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.16.0",
+    date: "2026-03-11",
+    title: "Reorganização de seções do menu lateral",
+    type: "improvement",
+    description: "Itens movidos entre seções para refletir responsabilidades reais: integrações externas em Integrações, execução operacional em Operações, dados de energia em Energia.",
+    details: [
+      "wa-instances e whatsapp movidos de Atendimento → Integrações",
+      "checklists e servicos movidos de Clientes → Operações",
+      "aneel-sync-status e saude-tarifaria movidos de Cadastros → Energia",
+      "AGENTS.md §30 atualizado com regras de classificação",
+      "navRegistry.ts e sidebarConfig.ts sincronizados",
+    ],
+  },
+  {
     version: "2.15.1",
     date: "2026-03-11",
     title: "Fix: bloqueio falso de PDF quando preço total é R$ 0",
