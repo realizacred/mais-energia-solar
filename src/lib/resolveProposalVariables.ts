@@ -244,7 +244,7 @@ function resolveFromContext(
   if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
 
   // ── Financeiro ──
-  if (key === "financeiro.preco_total") return ctx.precoTotal ? fmtCurrency(ctx.precoTotal) : null;
+  if (key === "financeiro.preco_total") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
   if (key === "financeiro.economia_mensal") return ctx.economiaMensal ? fmtCurrency(ctx.economiaMensal) : null;
   if (key === "financeiro.economia_anual") return ctx.economiaAnual ? fmtCurrency(ctx.economiaAnual) : null;
   if (key === "financeiro.economia_25_anos") return ctx.economia25Anos ? fmtCurrency(ctx.economia25Anos) : null;

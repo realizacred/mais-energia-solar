@@ -14,6 +14,25 @@ import {
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+const FRIENDLY_NAMES: Record<string, string> = {
+  "financeiro.preco_total": "Valor total da proposta",
+  "financeiro.economia_mensal": "Economia mensal",
+  "financeiro.economia_anual": "Economia anual",
+  "financeiro.economia_25_anos": "Economia em 25 anos",
+  "financeiro.payback_anos": "Tempo de retorno (payback)",
+  "cliente.nome": "Nome do cliente",
+  "cliente.cidade": "Cidade do cliente",
+  "cliente.estado": "Estado do cliente",
+  "tecnico.potencia_kwp": "Potência do sistema (kWp)",
+  "sistema_solar.potencia_sistema": "Potência do sistema",
+  "sistema_solar.geracao_mensal": "Geração mensal estimada",
+  "conta_energia.co2_evitado_ano": "CO₂ evitado por ano",
+};
+
+const getFriendlyName = (key: string): string =>
+  FRIENDLY_NAMES[key] ??
+  key.replace(/[{}]/g, "").replace(/\./g, " → ");
+
 interface MissingVariablesModalProps {
   open: boolean;
   onClose: () => void;
@@ -40,13 +59,13 @@ export function MissingVariablesModal({
               {reason === "missing_required" && (
                 <>
                   <p className="text-sm">
-                    As seguintes variáveis obrigatórias não puderam ser resolvidas.
-                    Preencha os dados necessários antes de gerar a proposta.
+                    Os seguintes dados não foram preenchidos no wizard.
+                    Volte às etapas anteriores e complete as informações:
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {missingVariables.map((v) => (
-                      <Badge key={v} variant="destructive" className="font-mono text-xs">
-                        {`{{${v}}}`}
+                      <Badge key={v} variant="destructive" className="text-xs">
+                        {getFriendlyName(v)}
                       </Badge>
                     ))}
                   </div>
