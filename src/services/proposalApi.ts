@@ -126,6 +126,7 @@ export async function generateProposal(
 ): Promise<GenerateProposalResult> {
   const { data, error } = await supabase.functions.invoke("proposal-generate", {
     body: payload,
+    headers: { "x-client-timeout": "120" },
   });
 
   if (error) {
@@ -165,6 +166,7 @@ export async function renderProposal(
 ): Promise<RenderProposalResult> {
   const { data, error } = await supabase.functions.invoke("proposal-render", {
     body: { versao_id: versaoId },
+    headers: { "x-client-timeout": "120" },
   });
 
   if (error) {
@@ -207,6 +209,7 @@ export async function sendProposal(
 ): Promise<SendProposalResult> {
   const { data, error } = await supabase.functions.invoke("proposal-send", {
     body: payload,
+    headers: { "x-client-timeout": "120" },
   });
 
   if (error) {

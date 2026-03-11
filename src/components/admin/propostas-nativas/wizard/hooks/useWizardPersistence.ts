@@ -90,6 +90,13 @@ export function useWizardPersistence() {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
+  /** Remove heavy frontend-only fields (base64 images) before DB persistence */
+  const sanitizeSnapshot = (snapshot: any) => {
+    if (!snapshot) return snapshot;
+    const { mapSnapshots, ...rest } = snapshot;
+    return rest;
+  };
+
   const saveDraft = useCallback(async (params: PersistenceParams) => {
     // Guard against concurrent saves (double-click / rapid calls)
     if (savingRef.current) {
@@ -120,7 +127,7 @@ export function useWizardPersistence() {
           p_origem: "native",
           p_potencia_kwp: params.potenciaKwp,
           p_valor_total: params.precoFinal,
-          p_snapshot: params.snapshot as any,
+          p_snapshot: sanitizeSnapshot(params.snapshot) as any,
         };
 
         // Pass client data so the RPC creates/finds the client record
@@ -218,7 +225,7 @@ export function useWizardPersistence() {
               economia_mensal: params.economiaMensal || null,
               geracao_mensal: params.geracaoMensal || null,
               grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-              snapshot: params.snapshot as any,
+              snapshot: sanitizeSnapshot(params.snapshot) as any,
               status: "draft",
               snapshot_locked: false,
             } as any)
@@ -243,7 +250,7 @@ export function useWizardPersistence() {
             economia_mensal: params.economiaMensal || null,
             geracao_mensal: params.geracaoMensal || null,
             grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-            snapshot: params.snapshot as any,
+            snapshot: sanitizeSnapshot(params.snapshot) as any,
             updated_at: new Date().toISOString(),
           } as any)
           .eq("id", versaoId);
@@ -314,7 +321,7 @@ export function useWizardPersistence() {
             economia_mensal: params.economiaMensal || null,
             geracao_mensal: params.geracaoMensal || null,
             grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-            snapshot: params.snapshot as any,
+            snapshot: sanitizeSnapshot(params.snapshot) as any,
             status: setActive ? "generated" : "draft",
             snapshot_locked: setActive,
             gerado_em: setActive ? new Date().toISOString() : null,
@@ -335,7 +342,7 @@ export function useWizardPersistence() {
           economia_mensal: params.economiaMensal || null,
           geracao_mensal: params.geracaoMensal || null,
           grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-          snapshot: params.snapshot,
+          snapshot: sanitizeSnapshot(params.snapshot),
           updated_at: new Date().toISOString(),
         };
         if (setActive) {
