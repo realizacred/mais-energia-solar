@@ -535,22 +535,24 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 mt-2">
             <Button
+              variant="default"
               onClick={() => { setShowChoiceModal(false); setManualMode("equipamentos"); }}
-              className="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all text-center"
+              className="h-auto flex flex-col items-center justify-center gap-3 p-6 rounded-xl transition-all text-center"
             >
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
+              <div className="h-12 w-12 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
+                <Package className="h-6 w-6" />
               </div>
               <p className="text-xs leading-tight">
-                Criar a partir de <strong className="text-primary">equipamentos disponíveis</strong> nos distribuidores
+                Criar a partir de <strong>equipamentos disponíveis</strong> nos distribuidores
               </p>
             </Button>
             <Button
+              variant="outline"
               onClick={() => { setShowChoiceModal(false); setManualMode("zero"); }}
-              className="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/40 hover:bg-muted/30 transition-all text-center"
+              className="h-auto flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-primary text-primary hover:bg-primary/10 transition-all text-center"
             >
-              <div className="h-12 w-12 rounded-lg bg-muted/50 flex items-center justify-center">
-                <Settings2 className="h-6 w-6 text-muted-foreground" />
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Settings2 className="h-6 w-6 text-primary" />
               </div>
               <p className="text-xs leading-tight">
                 <strong>Criar do zero,</strong> informando o nome dos equipamentos e distribuidores
