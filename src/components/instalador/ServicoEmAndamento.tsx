@@ -1047,9 +1047,9 @@ function ChecklistItemWithPhoto({
                   />
                   <Button
                     type="button"
-                    variant="destructive"
+                    variant="outline"
                     size="icon"
-                    className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity border-destructive text-destructive hover:bg-destructive/10"
                     onClick={() => onRemovePhoto(index)}
                   >
                     <Trash2 className="h-3 w-3" />

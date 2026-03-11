@@ -103,7 +103,8 @@ export function MotivoPerdaDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
-            variant="destructive"
+            variant="outline"
+            className="border-destructive text-destructive hover:bg-destructive/10"
             onClick={handleSubmit}
             disabled={!selectedMotivo || recordLoss.isPending}
           >

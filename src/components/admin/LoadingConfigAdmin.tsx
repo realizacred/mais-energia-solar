@@ -321,10 +321,10 @@ export function LoadingConfigAdmin() {
                     <img src={customLoaderUrl} alt="Custom loader" className="h-10 w-10 object-contain" />
                   </div>
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
                     onClick={() => setCustomLoaderUrl(null)}
-                    className="text-destructive hover:text-destructive gap-1"
+                    className="border-destructive text-destructive hover:bg-destructive/10 gap-1"
                   >
                     <X className="h-3 w-3" /> Remover
                   </Button>

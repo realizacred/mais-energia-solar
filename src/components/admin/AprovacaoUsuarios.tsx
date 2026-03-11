@@ -262,10 +262,10 @@ export function AprovacaoUsuarios() {
                           </Button>
                           <Button
                             size="sm"
-                            variant="destructive"
+                            variant="outline"
                             onClick={() => setRejectUserId(user.user_id)}
                             disabled={actionLoading === user.user_id}
-                            className="gap-1"
+                            className="gap-1 border-destructive text-destructive hover:bg-destructive/10"
                           >
                             <XCircle className="w-3 h-3" />
                             Rejeitar
