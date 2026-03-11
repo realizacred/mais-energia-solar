@@ -14,8 +14,9 @@ const corsHeaders = {
 async function processDocxTemplate(
   templateBytes: Uint8Array,
   vars: Record<string, string>,
-): Promise<Uint8Array> {
+): Promise<{ output: Uint8Array; missingVars: string[] }> {
   const zip = await JSZip.loadAsync(templateBytes);
+  const missingVars: string[] = [];
 
   // Process all XML files in the DOCX (document.xml, headers, footers, etc.)
   const xmlFiles = Object.keys(zip.files).filter(
@@ -54,13 +55,36 @@ async function processDocxTemplate(
       }
     }
 
+    // ── FINAL SWEEP: replace any remaining [placeholder] with empty string ──
+    // This ensures unresolved variables don't show raw brackets in the output
+    const remainingPattern = /\[([^\]]+)\]/g;
+    let remaining;
+    while ((remaining = remainingPattern.exec(content)) !== null) {
+      const varName = remaining[1];
+      // Skip XML-internal bracket patterns (e.g. Content_Types)
+      if (varName.includes("xmlns") || varName.includes("Content_Types") || varName.includes("rels")) continue;
+      if (!missingVars.includes(varName)) {
+        missingVars.push(varName);
+      }
+    }
+    // Replace user-facing placeholders (not XML internals)
+    if (missingVars.length > 0) {
+      for (const varName of missingVars) {
+        const pattern = `[${varName}]`;
+        if (content.includes(pattern)) {
+          content = content.replaceAll(pattern, "");
+          modified = true;
+        }
+      }
+    }
+
     if (modified) {
       zip.file(fileName, content);
     }
   }
 
   const output = await zip.generateAsync({ type: "uint8array" });
-  return output;
+  return { output, missingVars };
 }
 
 /**
