@@ -256,7 +256,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold">{formatBRL(precoVenda)}</span>
               {precoWp > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
+                <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground rounded-full px-2 py-0.5 font-medium">
                   {formatBRL(precoWp)} / Wp
                 </Badge>
               )}
@@ -267,20 +267,24 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
             {/* View mode toggle */}
             <div className="flex items-center gap-1 border-l border-border/40 pl-3">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Resumido"
                 onClick={() => setViewMode("resumido")}
-                className={cn("p-1.5 rounded", viewMode === "resumido" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
-                title="Resumido"
+                className={cn("h-8 w-8", viewMode === "resumido" && "bg-primary/10 text-primary")}
               >
                 <SlidersHorizontal className="h-4 w-4" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Detalhado"
                 onClick={() => setViewMode("detalhado")}
-                className={cn("p-1.5 rounded", viewMode === "detalhado" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
-                title="Detalhado"
+                className={cn("h-8 w-8", viewMode === "detalhado" && "bg-primary/10 text-primary")}
               >
                 <List className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -567,8 +571,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
       {/* + Adicionar Custo */}
       <Button
+        variant="outline"
+        size="sm"
         onClick={addCusto}
-        className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+        className="text-xs border-dashed gap-1.5"
       >
         <Plus className="h-3.5 w-3.5" /> Adicionar Custo
       </Button>
