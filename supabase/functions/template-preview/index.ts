@@ -500,7 +500,11 @@ Deno.serve(async (req) => {
 
     let report: Uint8Array;
     try {
-      report = await processDocxTemplate(templateBuffer, vars);
+      const result = await processDocxTemplate(templateBuffer, vars);
+      report = result.output;
+      if (result.missingVars.length > 0) {
+        console.warn(`[template-preview] Missing variables (${result.missingVars.length}):`, result.missingVars);
+      }
       console.log(`[template-preview] Processing OK, output: ${report.length} bytes`);
     } catch (processErr: any) {
       console.error("[template-preview] Processing error:", processErr?.message, processErr?.stack);
