@@ -512,10 +512,11 @@ function SidebarItem({ icon: Icon, label, count, active, onClick }: {
   icon: React.ElementType; label: string; count: number; active: boolean; onClick: () => void;
 }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all text-left",
+        "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all justify-start h-auto",
         active
           ? "bg-primary/10 text-primary font-semibold shadow-sm"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
@@ -529,6 +530,6 @@ function SidebarItem({ icon: Icon, label, count, active, onClick }: {
       )}>
         {count}
       </span>
-    </button>
+    </Button>
   );
 }
