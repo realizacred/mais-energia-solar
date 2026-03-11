@@ -1108,10 +1108,43 @@ export function ProposalWizard() {
     setResult(null);
 
     try {
+      // Ensure draft is saved (creates project if needed) before generating
+      let projetoId = savedProjetoId;
+      if (!projetoId) {
+        const snapshot = collectSnapshot();
+        const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
+        const draftRes = await saveDraft({
+          propostaId: savedPropostaId,
+          versaoId: savedVersaoId,
+          snapshot,
+          potenciaKwp,
+          precoFinal,
+          economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
+          geracaoMensal: geracaoMensalEstimada || undefined,
+          leadId: selectedLead?.id,
+          dealId: resolvedDealId,
+          titulo,
+          cliente: cliente.nome && cliente.celular ? cliente : undefined,
+        });
+        if (draftRes) {
+          setSavedPropostaId(draftRes.propostaId);
+          setSavedVersaoId(draftRes.versaoId);
+          if (draftRes.projetoId) {
+            projetoId = draftRes.projetoId;
+            setSavedProjetoId(draftRes.projetoId);
+          }
+        }
+        if (!projetoId) {
+          toast({ title: "Erro ao criar proposta", description: "Não foi possível criar o projeto associado. Tente salvar o rascunho antes.", variant: "destructive" });
+          setGenerating(false);
+          return;
+        }
+      }
+
       const idempotencyKey = getOrCreateIdempotencyKey(selectedLead.id);
       const payload: GenerateProposalPayload = {
         lead_id: selectedLead.id,
-        projeto_id: savedProjetoId || undefined,
+        projeto_id: projetoId,
         grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
         idempotency_key: idempotencyKey,
         template_id: templateSelecionado || undefined,
