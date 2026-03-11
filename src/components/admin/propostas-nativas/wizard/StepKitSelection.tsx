@@ -343,18 +343,24 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Visualização em grid"
                 onClick={() => setViewMode("grid")}
-                className={cn("p-1.5 rounded", viewMode === "grid" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
+                className={cn("h-8 w-8", viewMode === "grid" && "bg-primary/10 text-primary")}
               >
                 <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Visualização em lista"
                 onClick={() => setViewMode("list")}
-                className={cn("p-1.5 rounded", viewMode === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
+                className={cn("h-8 w-8", viewMode === "list" && "bg-primary/10 text-primary")}
               >
                 <List className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
 

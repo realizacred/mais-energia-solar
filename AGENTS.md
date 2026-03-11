@@ -601,6 +601,13 @@ NUNCA usar `<button>` HTML nativo — sempre `Button` de `@/components/ui/button
 - Botão de adicionar item em coluna: `variant="outline" size="sm" className="w-full border-dashed"`
 - NUNCA usar `variant="default"` dentro de elemento com fundo laranja/primário
 
+### Toggle de Visualização (Grid/Lista)
+- Usar `Button variant="ghost" size="icon"` com `aria-label`
+- Item ativo: `className="bg-primary/10 text-primary"`
+- Item inativo: sem classe extra (herda ghost)
+- NUNCA usar `border-orange` ou cores hardcoded
+- NUNCA usar `<button>` HTML nativo — sempre `Button` do shadcn
+
 ---
 
 ## 23. staleTime OBRIGATÓRIO em todo useQuery
