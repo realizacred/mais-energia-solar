@@ -320,8 +320,10 @@ export default function IntegrationsCatalogPage() {
             ["active", "Ativas"],
             ["inactive", "Disponíveis"],
           ] as [TabFilter, string][]).map(([key, label]) => (
-            <button
+            <Button
               key={key}
+              variant="ghost"
+              size="sm"
               onClick={() => setTab(key)}
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-lg transition-all",
@@ -331,7 +333,7 @@ export default function IntegrationsCatalogPage() {
               )}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
