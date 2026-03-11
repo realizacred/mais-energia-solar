@@ -824,6 +824,16 @@ export function WaChatPanel({
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
           prefillMessage={prefillMessage}
+          readOnly={
+            !isAdmin &&
+            !!conversation.assigned_to &&
+            conversation.assigned_to !== currentUserId
+          }
+          readOnlyReason={
+            conversation.assigned_to && conversation.assigned_to !== currentUserId
+              ? `Conversa atribuída a ${assignedConsultor?.nome || "outro atendente"}`
+              : undefined
+          }
         />
 
         {/* Accept button below composer — only for unassigned conversations */}
