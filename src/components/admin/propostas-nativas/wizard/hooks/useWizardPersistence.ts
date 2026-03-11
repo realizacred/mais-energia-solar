@@ -90,11 +90,19 @@ export function useWizardPersistence() {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
-  /** Remove heavy frontend-only fields (base64 images) before DB persistence */
+  /** Normalize grupo to 'A' or 'B' only — defense in depth (§33 AGENTS.md) */
+  const normalizeGrupo = (g: string | null | undefined): string | null => {
+    if (!g) return null;
+    if (g.startsWith("A")) return "A";
+    if (g.startsWith("B")) return "B";
+    return null;
+  };
+
+  /** Remove heavy frontend-only fields (base64 images) and normalize grupo before DB persistence */
   const sanitizeSnapshot = (snapshot: any) => {
     if (!snapshot) return snapshot;
     const { mapSnapshots, ...rest } = snapshot;
-    return rest;
+    return { ...rest, grupo: normalizeGrupo(rest.grupo) };
   };
 
   const saveDraft = useCallback(async (params: PersistenceParams) => {
