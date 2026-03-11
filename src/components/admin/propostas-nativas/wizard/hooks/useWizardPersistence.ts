@@ -127,7 +127,7 @@ export function useWizardPersistence() {
           p_origem: "native",
           p_potencia_kwp: params.potenciaKwp,
           p_valor_total: params.precoFinal,
-          p_snapshot: params.snapshot as any,
+          p_snapshot: sanitizeSnapshot(params.snapshot) as any,
         };
 
         // Pass client data so the RPC creates/finds the client record
