@@ -696,6 +696,7 @@
   .admin-content:has([data-wa-inbox-active]) {
     @apply flex flex-col;
     height: calc(100vh - 3.5rem); /* subtract sticky header height */
+    gap: 0; /* inbox manages its own spacing via space-y-4 */
   }
 }
 
