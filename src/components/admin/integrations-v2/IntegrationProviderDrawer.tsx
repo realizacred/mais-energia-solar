@@ -192,9 +192,9 @@ export function IntegrationProviderDrawer({
             {/* Credentials Tab */}
             <TabsContent value="credentials" className="mt-0 space-y-4">
               {isComingSoon && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                  <span className="text-sm text-amber-700 dark:text-amber-400">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                  <span className="text-sm text-muted-foreground">
                     Esta integração estará disponível em breve.
                   </span>
                 </div>
