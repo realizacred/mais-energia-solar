@@ -104,12 +104,12 @@ export function TuyaTutorial() {
             ))}
           </div>
 
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 p-3">
+          <div className="rounded-lg bg-warning/10 border border-warning/20 p-3">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Observação</p>
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                <p className="text-xs font-medium text-foreground">Observação</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Nem todos os modelos de medidores Tuya expõem dados de energia exportada (injeção).
                   Medidores como o RMDZW-3PNB 100A geralmente suportam importação, tensão, corrente e potência.
                   A disponibilidade de dados depende do firmware e categoria do dispositivo.
