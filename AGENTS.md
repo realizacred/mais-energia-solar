@@ -906,8 +906,10 @@ SEMPRE testar visualmente em 320px e 1920px.
 ### Persistência (useWizardPersistence.ts)
 - SEMPRE sanitizar snapshot antes de salvar no banco
 - NUNCA incluir `mapSnapshots` (base64) no payload do banco
-- Helper obrigatório: `sanitizeSnapshot()` remove `mapSnapshots`
+- Helper obrigatório: `sanitizeSnapshot()` remove `mapSnapshots` e normaliza `grupo`
 - Coluna `grupo`: SEMPRE normalizar para `"A"` ou `"B"` — NUNCA enviar valores brutos como `"B1"`, `"B2"`
+- A RPC `create_proposta_nativa_atomic` também normaliza `grupo` internamente (migration aplicada)
+- NUNCA enviar grupo raw ao banco por nenhum caminho — tanto frontend quanto RPC devem normalizar
 
 ### Edge Functions (proposalApi.ts)
 - SEMPRE incluir `headers: { "x-client-timeout": "120" }` em `proposal-generate`, `proposal-render`, `proposal-send`
