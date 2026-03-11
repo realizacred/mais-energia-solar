@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { WaMessage, WaConversation } from "@/hooks/useWaInbox";
 import { renderFormattedText } from "./WaFormatting";
+import { WaAudioPlayer } from "./WaAudioPlayer";
 
 const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: string; label: string }> = {
   pending: { icon: Clock, className: "text-muted-foreground/50", label: "Enviando..." },
