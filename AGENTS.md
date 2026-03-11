@@ -1,9 +1,142 @@
 # AGENTS.md — Mais Energia Solar CRM
-# Padrões obrigatórios para toda tela nova ou editada
+
+Padrões obrigatórios para toda tela nova ou editada.
 
 ---
 
-## 1. IDENTIDADE VISUAL — nunca quebre isso
+## 📑 ÍNDICE
+
+- [Bloco 0 — TL;DR Checklist](#bloco-0--tldr-checklist)
+- [Bloco 1 — Regras Bloqueantes](#bloco-1--regras-bloqueantes)
+- [Bloco 2 — Boas Práticas](#bloco-2--boas-práticas)
+- [Bloco 3 — Referência de Padrões (§1–§33)](#bloco-3--referência-de-padrões)
+- [Bloco 4 — Conflitos e Exceções Oficiais](#bloco-4--conflitos-e-exceções-oficiais)
+- [Bloco 5 — Validação Antes de Finalizar](#bloco-5--validação-antes-de-finalizar)
+- [Bloco 6 — Convenções de Nomenclatura](#bloco-6--convenções-de-nomenclatura)
+- [Bloco 7 — Escopo por Área](#bloco-7--escopo-por-área)
+
+---
+
+# Bloco 0 — TL;DR CHECKLIST
+
+Antes de finalizar **qualquer** tarefa, verifique os 15 itens:
+
+- [ ] Cores: `bg-primary`, `text-primary` (nunca hex, nunca `orange-*`, `blue-*`)
+- [ ] Button shadcn (`@/components/ui/button`) — nunca `<button>` nativo
+- [ ] `staleTime` em toda `useQuery` (ver §23)
+- [ ] Queries só em hooks (`src/hooks/`) — nunca em componente (ver §16)
+- [ ] `Skeleton` no loading — nunca spinner solto (ver §12)
+- [ ] Responsive: `grid-cols-1 sm:grid-cols-2` (ver §32)
+- [ ] Modal: `w-[90vw] max-w-[tamanho]` (ver §25)
+- [ ] Header de página **antes** de `TabsList` (ver §29)
+- [ ] Changelog atualizado se mudança funcional (ver §31)
+- [ ] Não modificar `src/components/ui/` (exceto `switch.tsx` e `slider.tsx`)
+- [ ] NUNCA hardcode cor laranja/azul/hex em UI
+- [ ] Sanitizar snapshot antes de salvar proposta (ver §33)
+- [ ] Whitelist explícita de campos UC (ver §33)
+- [ ] `x-client-timeout: "120"` nas edge functions de proposta (ver §33)
+- [ ] INTEGRAÇÕES = conexão externa, não funcionalidade (ver §30)
+
+---
+
+# Bloco 1 — REGRAS BLOQUEANTES
+
+Se descumprido = bug, inconsistência visual ou erro em produção.
+
+### 🚫 BLOQUEANTE — Cores semânticas obrigatórias
+NUNCA use: `orange-*`, `blue-*`, `#FF6600`, `#3b82f6`, `text-orange-500`, `bg-blue-600` ou qualquer cor fixa.
+SEMPRE use variáveis semânticas: `bg-primary`, `text-primary`, `bg-card`, `text-foreground`, `bg-success`, etc.
+→ Ver §1, §2
+
+### 🚫 BLOQUEANTE — Dark mode em toda tela nova
+NUNCA: `bg-white`, `text-black`, `text-gray-500`, `border-gray-200`.
+SEMPRE: `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`.
+→ Ver §2
+
+### 🚫 BLOQUEANTE — Button shadcn obrigatório
+NUNCA usar `<button>` HTML nativo. SEMPRE `Button` de `@/components/ui/button`.
+→ Ver §22
+
+### 🚫 BLOQUEANTE — staleTime em toda useQuery
+Sem staleTime = queries desnecessárias e UX degradada.
+→ Ver §23
+
+### 🚫 BLOQUEANTE — Queries só em hooks
+NUNCA query Supabase em componente React. Sempre em `src/hooks/`.
+→ Ver §16
+
+### 🚫 BLOQUEANTE — Skeleton no loading
+NUNCA deixar tela em branco durante loading. Sempre `Skeleton`.
+→ Ver §12
+
+### 🚫 BLOQUEANTE — Responsividade obrigatória
+Todo componente funciona em 320px–1920px. NUNCA largura fixa em px.
+→ Ver §32
+
+### 🚫 BLOQUEANTE — Modal com w-[90vw]
+NUNCA `max-w-2xl` ou `max-w-4xl` em formulários com 2+ colunas.
+→ Ver §25
+
+### 🚫 BLOQUEANTE — Header antes de TabsList
+A ordem é: header → abas → conteúdo. NUNCA inverter.
+→ Ver §29
+
+### 🚫 BLOQUEANTE — Aproveitamento de tela (admin)
+NUNCA `max-w-*`, `container mx-auto` em páginas admin.
+→ Ver §21
+
+### 🚫 BLOQUEANTE — Não modificar src/components/ui/
+Exceto `switch.tsx` e `slider.tsx` para tokens semânticos.
+→ Ver [Bloco 4](#bloco-4--conflitos-e-exceções-oficiais)
+
+### 🚫 BLOQUEANTE — Proposta: sanitizar + whitelist + timeout
+→ Ver §33
+
+### 🚫 BLOQUEANTE — Multi-tenant: nunca assumir cor fixa
+Cada tenant configura sua identidade em `/admin/site-config`.
+→ Ver §1
+
+---
+
+# Bloco 2 — BOAS PRÁTICAS
+
+Recomendado mas não bloqueia PR.
+
+### 💡 RECOMENDADO — Framer Motion em entradas
+Animar cards e listas com stagger.
+→ Ver §7
+
+### 💡 RECOMENDADO — Tooltip em texto truncado mobile
+→ Ver §32
+
+### 💡 RECOMENDADO — Formatadores centralizados
+Usar `formatBRL`, `formatKwh`, `formatPercent`, `formatDateBR`, `formatBRLCompact` de `src/lib/formatters`.
+→ Ver §19
+
+### 💡 RECOMENDADO — Lógica em services, não em componentes
+→ Ver §17
+
+### 💡 RECOMENDADO — Princípios de engenharia
+SRP, DRY, SSOT, KISS, YAGNI. Patches incrementais.
+→ Ver §20
+
+### 💡 RECOMENDADO — Inputs especializados
+Usar componentes prontos: `CpfCnpjInput`, `PhoneInput`, `CurrencyInput`, `AddressFields`, etc.
+→ Ver §13
+
+### 💡 RECOMENDADO — Safe query patterns
+Respeitar tenant isolation, evitar selects desnecessários, não quebrar RLS.
+→ Ver §18
+
+---
+
+# Bloco 3 — REFERÊNCIA DE PADRÕES
+
+Todas as seções originais §1–§33, reorganizadas sem duplicações.
+
+---
+
+## §1. IDENTIDADE VISUAL — nunca quebre isso
 
 ### ⚠️ SISTEMA SAAS MULTI-TENANT
 Cada empresa cliente configura sua própria identidade visual em `/admin/site-config`.
@@ -34,7 +167,7 @@ Moderno, denso, sem espaço desperdiçado, dark-mode first quando possível.
 
 ---
 
-## 2. DARK MODE
+## §2. DARK MODE
 
 O projeto tem dark mode configurado. Toda tela nova deve suportar os dois modos.
 
@@ -67,25 +200,10 @@ border-gray-200      → use border-border
 
 ---
 
-## 3. CARDS — padrão obrigatório
+## §3. CARDS — padrão obrigatório
 
-### KPI Card (número de destaque)
-```tsx
-<Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
-  <CardContent className="flex items-center gap-4 p-5">
-    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
-      <Icon className="w-5 h-5" />
-    </div>
-    <div>
-      <p className="text-2xl font-bold tracking-tight text-foreground leading-none">R$ 124.500</p>
-      <p className="text-sm text-muted-foreground mt-1">Receita do mês</p>
-      <p className="text-xs text-success mt-1 flex items-center gap-1">
-        <TrendingUp className="w-3 h-3" /> +12% vs mês anterior
-      </p>
-    </div>
-  </CardContent>
-</Card>
-```
+### KPI Card
+→ **Ver §27** (fonte única de verdade para KPI cards)
 
 ### Card de seção com header
 ```tsx
@@ -137,7 +255,7 @@ SEMPRE usar `variant="outline"` com `border-primary text-primary`.
 
 ---
 
-## 4. TABELAS — padrão obrigatório
+## §4. TABELAS — padrão obrigatório
 
 Sempre usar o componente Table do shadcn. Nunca criar tabela com div ou HTML nativo.
 
@@ -203,7 +321,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 ---
 
-## 5. GRÁFICOS — padrão Recharts
+## §5. GRÁFICOS — padrão Recharts
 
 Sempre usar as variáveis CSS da paleta. Nunca cores hardcoded.
 
@@ -265,7 +383,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 ---
 
-## 6. APROVEITAMENTO DE TELA — regras de layout
+## §6. APROVEITAMENTO DE TELA — regras de layout
 
 ```
 // Painéis de conteúdo — padding padrão
@@ -284,22 +402,12 @@ grid-cols-1 sm:grid-cols-2 gap-4
 max-w-4xl, max-w-3xl   → PROIBIDO fora de modais/dialogs
 container mx-auto      → PROIBIDO em páginas admin
 
-// Header de página padrão
-<div className="flex items-center justify-between mb-6">
-  <div>
-    <h1 className="text-xl font-bold text-foreground">Título da Página</h1>
-    <p className="text-sm text-muted-foreground mt-0.5">Subtítulo</p>
-  </div>
-  <div className="flex items-center gap-2">
-    <Button variant="outline" size="sm">Filtros</Button>
-    <Button size="sm">+ Novo</Button>
-  </div>
-</div>
+// Header de página padrão → Ver §26
 ```
 
 ---
 
-## 7. ANIMAÇÕES — Framer Motion
+## §7. ANIMAÇÕES — Framer Motion
 
 O projeto usa framer-motion. Sempre animar entradas de cards e listas.
 
@@ -332,7 +440,7 @@ const cardVariants = {
 
 ---
 
-## 8. BADGES E STATUS
+## §8. BADGES E STATUS
 
 ```tsx
 // Status de projeto/lead
@@ -350,7 +458,7 @@ const statusConfig = {
 
 ---
 
-## 9. KANBAN CARDS
+## §9. KANBAN CARDS
 
 ```tsx
 // Card do pipeline — denso, com todas as infos visíveis
@@ -384,7 +492,7 @@ const statusConfig = {
 
 ---
 
-## 10. PLANILHAS E GRIDS DENSOS (relatórios financeiros)
+## §10. PLANILHAS E GRIDS DENSOS (relatórios financeiros)
 
 ```tsx
 // Para telas de planilha tipo Excel — usar tabela densa
@@ -414,7 +522,9 @@ const statusConfig = {
 
 ---
 
-## 11. MODAIS E DRAWERS
+## §11. MODAIS E DRAWERS
+
+Para tamanhos de modal → **Ver §25** (fonte única de verdade).
 
 ```tsx
 // Dialog padrão
@@ -450,7 +560,7 @@ const statusConfig = {
 
 ---
 
-## 12. LOADING STATES
+## §12. LOADING STATES
 
 Toda tela com dados async deve ter skeleton. Nunca deixar em branco.
 
@@ -485,7 +595,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 ---
 
-## 13. INPUTS — componentes obrigatórios
+## §13. INPUTS — componentes obrigatórios
 
 Não criar campos do zero. Usar sempre:
 
@@ -502,7 +612,7 @@ Botões         → import { Button } from "@/components/ui/button"
 
 ---
 
-## 14. BANCO DE DADOS — regras críticas
+## §14. BANCO DE DADOS — regras críticas
 
 - Nunca reescrever queries ao fazer ajuste visual
 - Nunca remover campos sem verificar se são salvos no banco
@@ -513,13 +623,13 @@ Botões         → import { Button } from "@/components/ui/button"
 
 ---
 
-## 15. ESTRUTURA DE PASTAS
+## §15. ESTRUTURA DE PASTAS
 
 ```
 src/
   components/
     shared/           ← componentes reutilizáveis (CEP, CPF, Endereço)
-    ui/               ← shadcn/ui — NÃO modificar
+    ui/               ← shadcn/ui — NÃO modificar (exceto switch.tsx, slider.tsx)
     ui-kit/inputs/    ← inputs customizados — usar sempre
     admin/            ← telas do painel admin
     vendor/           ← portal do consultor
@@ -531,7 +641,7 @@ src/
 
 ---
 
-## 16. QUERIES — padrão obrigatório
+## §16. QUERIES — padrão obrigatório
 
 Nunca fazer query Supabase diretamente em componentes React.
 Queries devem ficar em `src/hooks/`.
@@ -539,7 +649,7 @@ Componentes devem apenas consumir hooks.
 
 ---
 
-## 17. SERVIÇOS
+## §17. SERVIÇOS
 
 Lógica de negócio nunca deve ficar no componente.
 Deve ficar em `src/services/`.
@@ -552,7 +662,7 @@ Responsabilidades:
 
 ---
 
-## 18. SAFE QUERY PATTERNS
+## §18. SAFE QUERY PATTERNS
 
 Sempre que aplicável:
 - respeitar tenant isolation
@@ -562,7 +672,7 @@ Sempre que aplicável:
 
 ---
 
-## 19. FORMATADORES
+## §19. FORMATADORES
 
 Nunca formatar valores manualmente. Usar utilitários em `src/lib/formatters`:
 
@@ -574,7 +684,7 @@ formatBRLCompact
 
 ---
 
-## 20. PRINCÍPIOS DE ENGENHARIA
+## §20. PRINCÍPIOS DE ENGENHARIA
 
 Seguir sempre: SRP, DRY, SSOT, KISS, YAGNI, SOLID quando aplicável.
 
@@ -589,7 +699,7 @@ Antes de modificar código:
 
 ---
 
-## 21. APROVEITAMENTO DE TELA — REGRA GLOBAL
+## §21. APROVEITAMENTO DE TELA — REGRA GLOBAL
 
 O sistema deve utilizar **100% da largura disponível** do painel administrativo.
 
@@ -609,7 +719,7 @@ w-full    flex-1    min-w-0    p-4 md:p-6
 
 ---
 
-## 22. PADRÃO DE BOTÕES — Regra obrigatória
+## §22. PADRÃO DE BOTÕES — Regra obrigatória
 
 - Ação principal (+ Novo, + Criar, Salvar, Confirmar): `variant="default"` — SEMPRE sólido laranja
 - Ação secundária (Filtrar, Exportar, Atualizar): `variant="outline"`
@@ -656,7 +766,7 @@ SEMPRE usar:
 
 ---
 
-## 23. staleTime OBRIGATÓRIO em todo useQuery
+## §23. staleTime OBRIGATÓRIO em todo useQuery
 
 - Dados de monitoramento em tempo real: `staleTime: 1000 * 30`
 - Dados normais (listas, formulários): `staleTime: 1000 * 60 * 5`
@@ -666,7 +776,7 @@ NUNCA criar useQuery sem staleTime.
 
 ---
 
-## 24. REGRA DE OVERLAYS E FUNDOS
+## §24. REGRA DE OVERLAYS E FUNDOS
 
 - `bg-black/XX` — permitido apenas em overlays de media player e componentes shadcn nativos
 - `bg-white` sólido — permitido apenas em canvas de assinatura (SignaturePad)
@@ -675,7 +785,9 @@ NUNCA criar useQuery sem staleTime.
 
 ---
 
-## 25. TAMANHOS DE MODAIS (DialogContent)
+## §25. TAMANHOS DE MODAIS (DialogContent)
+
+Fonte única de verdade para tamanhos de modal (também referenciado por §11).
 
 - Formulário simples até 4 campos: `max-w-md`
 - Formulário médio até 8 campos: `max-w-2xl`
@@ -689,7 +801,7 @@ NUNCA criar scroll interno em modal — todo conteúdo deve estar visível.
 
 ---
 
-## 26. PADRÃO DE HEADER DE PÁGINA
+## §26. PADRÃO DE HEADER DE PÁGINA
 
 Toda página admin deve ter header padronizado. Referência: ComissoesManager.tsx.
 
@@ -716,7 +828,9 @@ SEMPRE ícone com `bg-primary/10 text-primary`.
 
 ---
 
-## 27. PADRÃO DE CARDS KPI
+## §27. PADRÃO DE CARDS KPI
+
+Fonte única de verdade para KPI cards (também referenciado por §3).
 
 Um único padrão para TODOS os cards de número/métrica no sistema:
 
@@ -743,7 +857,7 @@ PROIBIDO:
 
 ---
 
-## 28. SWITCHES E TOGGLES
+## §28. SWITCHES E TOGGLES
 
 Todos os switches/toggles do sistema devem seguir:
 
@@ -758,11 +872,11 @@ Containers que envolvem switches devem:
 
 ---
 
-## 29. PADRÃO DE ABAS INTERNAS
+## §29. PADRÃO DE ABAS INTERNAS
 
 Quando uma página tem menu de abas interno, a ordem obrigatória é:
 
-1. Header da página (ícone + título + subtítulo) — seção 26
+1. Header da página (ícone + título + subtítulo) — ver §26
 2. Menu de abas (TabsList horizontal)
 3. Conteúdo da aba ativa
 
@@ -807,7 +921,7 @@ Telas que usam esse padrão: Monitoramento Solar, Recebimentos e qualquer tela c
 
 ---
 
-## 30. ESTRUTURA DO MENU — 15 seções
+## §30. ESTRUTURA DO MENU — 15 seções
 
 O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.ts` é a Fonte Única de Verdade (SSOT).
 
@@ -838,7 +952,7 @@ O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.t
 
 ---
 
-## 31. CHANGELOG OBRIGATÓRIO
+## §31. CHANGELOG OBRIGATÓRIO
 
 Toda alteração significativa (feature, melhoria, correção, segurança ou infra) **DEVE** gerar uma entrada no arquivo `src/data/changelog.ts`.
 
@@ -873,10 +987,11 @@ Exemplo:
 ```
 
 NUNCA esquecer de atualizar o changelog ao finalizar uma implementação significativa.
+Para exceções, ver [Bloco 4](#bloco-4--conflitos-e-exceções-oficiais).
 
 ---
 
-## 32. RESPONSIVIDADE OBRIGATÓRIA
+## §32. RESPONSIVIDADE OBRIGATÓRIA
 
 Todo componente deve funcionar em mobile (320px) e desktop (1920px).
 
@@ -910,7 +1025,7 @@ SEMPRE testar visualmente em 320px e 1920px.
 
 ---
 
-## 33. FLUXO PROPOSTA — Regras Críticas
+## §33. FLUXO PROPOSTA — Regras Críticas
 
 ### Persistência (useWizardPersistence.ts)
 - SEMPRE sanitizar snapshot antes de salvar no banco
@@ -937,3 +1052,126 @@ SEMPRE testar visualmente em 320px e 1920px.
 - `demanda_consumo_kw` → `demanda_preco`
 - `demanda_geracao_kw` → `demanda_contratada`
 - `fase_tensao` (mono/bi/tri) → `fase` (monofasico/bifasico/trifasico)
+
+---
+
+# Bloco 4 — CONFLITOS E EXCEÇÕES OFICIAIS
+
+### src/components/ui/ — exceções permitidas
+- `switch.tsx` e `slider.tsx` podem ser editados para usar tokens semânticos (`bg-primary`)
+- Todos os outros arquivos em `ui/` são intocáveis
+
+### Changelog — exceções ao obrigatório (§31)
+Changelog **NÃO** é obrigatório para:
+- Correção de typos em texto/labels
+- Lint fixes e formatação
+- Refactor interno sem mudança funcional visível
+- Reorganização de imports
+
+### Exceções visuais confirmadas
+| Componente | Exceção | Motivo |
+|---|---|---|
+| `SignaturePad` | `bg-white` sólido | Canvas de assinatura precisa de fundo branco |
+| `GoogleMapView` | estilos inline do Google Maps | API externa controla renderização |
+| Media player overlays | `bg-black/XX` | Padrão UX para players de vídeo/áudio |
+| Heroes institucionais | `bg-white/XX` com opacidade | Overlays sobre gradientes em landing pages |
+
+### Ambiguidade: "sólido laranja" em botões (§22)
+"SEMPRE sólido laranja" = usa `variant="default"` que renderiza `bg-primary`. A cor depende do tenant — pode ser laranja, azul ou qualquer outra. NUNCA hardcode `bg-orange-*`.
+
+---
+
+# Bloco 5 — VALIDAÇÃO ANTES DE FINALIZAR
+
+Comandos obrigatórios antes de considerar uma tarefa concluída:
+
+### 1. Build sem erros
+```bash
+npm run build
+# Deve passar com zero erros
+```
+
+### 2. Grep de cores hardcoded
+```bash
+grep -rn "orange-\|blue-[0-9]\|#[0-9a-fA-F]\{3,6\}" src/ --include="*.tsx" --include="*.ts" | grep -v node_modules | grep -v "\.test\." | grep -v "types\.ts"
+# Não deve retornar nada em componentes de UI interativa
+# Exceções: ver Bloco 4
+```
+
+### 3. staleTime em queries novas
+```bash
+grep -rn "useQuery" src/hooks/ --include="*.ts" --include="*.tsx" | xargs grep -L "staleTime"
+# Deve retornar vazio (toda query tem staleTime)
+```
+
+### 4. Changelog atualizado
+Se houve mudança funcional, verificar que `src/data/changelog.ts` foi atualizado.
+
+---
+
+# Bloco 6 — CONVENÇÕES DE NOMENCLATURA
+
+### Idioma
+- **PT-BR** para: labels de UI, textos, nomes de variáveis de domínio (`consultor`, `lead`, `proposta`)
+- **EN** para: nomes de componentes, hooks, utilitários, tipos TypeScript
+
+### Componentes
+- `PascalCase`: `VendorDashboardView`, `LeadKanbanCard`
+
+### Hooks
+- `camelCase` com prefixo `use`: `useLeads`, `useCepLookup`, `useWizardPersistence`
+
+### Arquivos de página
+- `PascalCase` + sufixo `View` ou `Page`: `VendorWhatsAppView.tsx`, `AdminDashboardPage.tsx`
+
+### Nav keys (navRegistry.ts)
+- `kebab-case` em português: `gestao-clientes`, `monitoramento-solar`, `fila-followups`
+
+### Tabelas Supabase
+- `snake_case` em português: `consultor_metas`, `checklists_instalador`
+
+### Edge Functions
+- `kebab-case` em inglês: `proposal-generate`, `send-wa-message`
+
+---
+
+# Bloco 7 — ESCOPO POR ÁREA
+
+Quais regras valem onde:
+
+### TODAS as áreas
+- Bloco 0 (checklist completo)
+- Bloco 1 (regras bloqueantes)
+- §1–§2 (cores, dark mode)
+- §12 (loading states)
+- §16 (queries em hooks)
+- §22 (botões)
+- §23 (staleTime)
+- §32 (responsividade)
+
+### Só admin (`/admin/*`)
+- §6 (aproveitamento de tela)
+- §21 (largura 100%)
+- §26 (header de página)
+- §29 (abas internas)
+- §30 (estrutura do menu — 15 seções)
+
+### Só portal consultor (`/consultor/*`)
+- Bottom nav mobile (`VendorBottomNav.tsx`)
+- Sidebar lateral (`VendorSidebar.tsx`)
+- Botão "Voltar" em views mobile
+
+### Modais e Dialogs
+- §11 (estrutura de modal/drawer)
+- §25 (tamanhos de modal — SSOT)
+
+### Fluxo Proposta
+- §33 (sanitização, whitelist, timeout)
+
+### Gráficos e Dashboards
+- §5 (Recharts com tokens semânticos)
+- §27 (KPI cards — SSOT)
+
+### Tabelas e Grids
+- §4 (tabela padrão)
+- §10 (grid denso para relatórios)
