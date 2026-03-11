@@ -246,8 +246,8 @@ function renderProposalHtml(p: RenderParams): string {
 
   const itensRows = itens.map((it: any) => `
     <tr>
-      <td style="padding:8px;border-bottom:1px solid #eee">${it.descricao}</td>
-      <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${it.quantidade}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee">${safe(it.descricao)}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${safe(it.quantidade)}</td>
       <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${fmt(it.preco_unitario)}</td>
       <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${fmt(it.subtotal)}</td>
     </tr>`).join("");
