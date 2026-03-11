@@ -349,7 +349,7 @@ export function LeadStatusManager() {
             <Button variant="ghost" onClick={() => setDeleteDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={saving}>
+            <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={handleDelete} disabled={saving}>
               {saving && <Spinner size="sm" className="mr-2" />}
               Excluir
             </Button>

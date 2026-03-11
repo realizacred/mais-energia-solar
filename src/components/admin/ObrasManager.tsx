@@ -706,7 +706,7 @@ export function ObrasManager() {
           <p className="text-sm text-muted-foreground">Esta ação não pode ser desfeita.</p>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>Excluir</Button>
+            <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

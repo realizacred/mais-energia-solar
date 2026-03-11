@@ -247,10 +247,10 @@ export function AssignVendorDialog({
         <DialogFooter className="flex-col sm:flex-row gap-2">
           {displayName && (
             <Button
-              variant="destructive"
+              variant="outline"
               onClick={handleRemoveVendor}
               disabled={saving}
-              className="text-destructive hover:text-destructive"
+              className="border-destructive text-destructive hover:bg-destructive/10"
             >
               Remover Consultor
             </Button>
