@@ -42,7 +42,7 @@ export function NotificationsDropdown() {
         <DropdownMenuLabel className="text-xs font-semibold flex items-center justify-between">
           Notificações
           {totalCount > 0 && (
-            <Badge variant="secondary" className="text-[10px] h-5">
+            <Badge className="text-[10px] h-5 bg-primary text-primary-foreground">
               {totalCount}
             </Badge>
           )}
