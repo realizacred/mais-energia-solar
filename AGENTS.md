@@ -55,6 +55,16 @@ text-gray-500        → use text-muted-foreground
 border-gray-200      → use border-border
 ```
 
+### Slider
+- Trilha ativa: SEMPRE `bg-primary`
+- NUNCA usar `blue-*`, `#3b82f6` ou qualquer cor hardcoded em sliders
+- Verificar override no componente Slider do shadcn (`src/components/ui/slider.tsx`)
+
+### Seções dentro de modais
+- NUNCA usar fundo colorido hardcoded para separar seções dentro de modais
+- SEMPRE usar: `bg-muted/30 border border-border rounded-lg`
+- Exemplos proibidos: `bg-orange-50`, `bg-blue-50`, `bg-amber-*`, `bg-green-50`
+
 ---
 
 ## 3. CARDS — padrão obrigatório
@@ -108,6 +118,22 @@ border-gray-200      → use border-border
   <Badge variant="outline">Status</Badge>
 </div>
 ```
+
+### Badge de preço/métrica (ex: R$ X,XX / Wp)
+```tsx
+<Badge variant="outline" className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+  R$ 2,80 / Wp
+</Badge>
+```
+NUNCA usar cor hardcoded em badges de preço/métrica.
+
+### Badge de seção/categoria (ex: KITS SELECIONADOS)
+```tsx
+<Badge variant="outline" className="border-primary text-primary gap-2">
+  <Icon className="w-3.5 h-3.5" /> KITS SELECIONADOS
+</Badge>
+```
+SEMPRE usar `variant="outline"` com `border-primary text-primary`.
 
 ---
 
@@ -595,6 +621,21 @@ w-full    flex-1    min-w-0    p-4 md:p-6
 NUNCA usar `variant="outline"` em botão de ação principal.
 NUNCA usar `<button>` HTML nativo — sempre `Button` de `@/components/ui/button`.
 
+### Dois botões no mesmo modal (mesma hierarquia)
+Quando há 2 opções de escolha no mesmo nível:
+- Primeira opção: `variant="default"` (primário)
+- Segunda opção: `variant="outline" className="border-primary text-primary hover:bg-primary/10"`
+- NUNCA dois botões `variant="default"` lado a lado
+
+### Botão de remover/deletar
+NUNCA usar `bg-destructive` sólido escuro.
+SEMPRE usar:
+```tsx
+<Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
+  Remover
+</Button>
+```
+
 ### Botões dentro de cards e fundos coloridos
 - Botão dentro de card laranja ou fundo primário: `variant="outline" className="bg-background"`
 - Botão de ação rápida dentro de kanban card: `variant="ghost" size="sm"`
@@ -602,11 +643,16 @@ NUNCA usar `<button>` HTML nativo — sempre `Button` de `@/components/ui/button
 - NUNCA usar `variant="default"` dentro de elemento com fundo laranja/primário
 
 ### Toggle de Visualização (Grid/Lista)
-- Usar `Button variant="ghost" size="icon"` com `aria-label`
-- Item ativo: `className="bg-primary/10 text-primary"`
-- Item inativo: sem classe extra (herda ghost)
+- Usar `ToggleGroup` do shadcn/ui
+- Item ativo: `bg-primary/10 text-primary border-primary`
+- Item inativo: `variant="outline"`
 - NUNCA usar `border-orange` ou cores hardcoded
-- NUNCA usar `<button>` HTML nativo — sempre `Button` do shadcn
+- NUNCA usar `<button>` HTML nativo — sempre componentes do shadcn
+
+### Botão sempre deve ter texto visível
+- NUNCA deixar botão sem texto ou ícone visível
+- Se condicional, usar `hidden` em vez de render vazio
+- Botões apenas com ícone DEVEM ter `aria-label`
 
 ---
 
@@ -818,3 +864,37 @@ Exemplo:
 ```
 
 NUNCA esquecer de atualizar o changelog ao finalizar uma implementação significativa.
+
+---
+
+## 32. RESPONSIVIDADE OBRIGATÓRIA
+
+Todo componente deve funcionar em mobile (320px) e desktop (1920px).
+
+Regras obrigatórias:
+- Grids: SEMPRE `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` (adaptar conforme conteúdo)
+- Texto: NUNCA truncar em mobile sem tooltip
+- Modais: SEMPRE `w-[90vw]` com `max-w` definido
+- Flex containers com itens que podem crescer: SEMPRE `flex-wrap`
+- NUNCA width fixa em px para containers de conteúdo
+- Botões em mobile: `min-h-[44px]` (touch target mínimo)
+- Tabelas em mobile: `overflow-x-auto` no container pai
+
+```tsx
+// Grid responsivo padrão
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+
+// Flex responsivo com wrap
+<div className="flex flex-wrap items-center gap-2">
+
+// Tabela responsiva
+<div className="rounded-lg border border-border overflow-x-auto">
+  <Table>...</Table>
+</div>
+
+// Botão touch-friendly em mobile
+<Button className="min-h-[44px] sm:min-h-0">Ação</Button>
+```
+
+NUNCA usar `w-[400px]`, `w-[500px]` ou qualquer largura fixa em containers de conteúdo.
+SEMPRE testar visualmente em 320px e 1920px.
