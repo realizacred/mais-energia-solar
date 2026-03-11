@@ -119,6 +119,22 @@ border-gray-200      → use border-border
 </div>
 ```
 
+### Badge de preço/métrica (ex: R$ X,XX / Wp)
+```tsx
+<Badge variant="outline" className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+  R$ 2,80 / Wp
+</Badge>
+```
+NUNCA usar cor hardcoded em badges de preço/métrica.
+
+### Badge de seção/categoria (ex: KITS SELECIONADOS)
+```tsx
+<Badge variant="outline" className="border-primary text-primary gap-2">
+  <Icon className="w-3.5 h-3.5" /> KITS SELECIONADOS
+</Badge>
+```
+SEMPRE usar `variant="outline"` com `border-primary text-primary`.
+
 ---
 
 ## 4. TABELAS — padrão obrigatório
