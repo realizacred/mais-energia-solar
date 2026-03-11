@@ -354,7 +354,7 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
           <div><Label>Motivo</Label><Textarea value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} rows={3} /></div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSuspendTarget(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleSuspend} disabled={suspending}>
+            <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={handleSuspend} disabled={suspending}>
               {suspending ? "Suspendendo..." : "Confirmar"}
             </Button>
           </DialogFooter>
