@@ -898,3 +898,31 @@ Regras obrigatórias:
 
 NUNCA usar `w-[400px]`, `w-[500px]` ou qualquer largura fixa em containers de conteúdo.
 SEMPRE testar visualmente em 320px e 1920px.
+
+---
+
+## 33. FLUXO PROPOSTA — Regras Críticas
+
+### Persistência (useWizardPersistence.ts)
+- SEMPRE sanitizar snapshot antes de salvar no banco
+- NUNCA incluir `mapSnapshots` (base64) no payload do banco
+- Helper obrigatório: `sanitizeSnapshot()` remove `mapSnapshots`
+- Coluna `grupo`: SEMPRE normalizar para `"A"` ou `"B"` — NUNCA enviar valores brutos como `"B1"`, `"B2"`
+
+### Edge Functions (proposalApi.ts)
+- SEMPRE incluir `headers: { "x-client-timeout": "120" }` em `proposal-generate`, `proposal-render`, `proposal-send`
+- Propostas complexas podem ultrapassar timeout padrão
+
+### Payload de UCs (ProposalWizard.tsx)
+- NUNCA usar spread `...rest` para enviar UCs ao backend
+- SEMPRE usar whitelist explícita dos campos do `GenerateProposalPayload`
+- Campos frontend-only PROIBIDOS no payload:
+  `is_geradora`, `regra`, `grupo_tarifario`, `fase_tensao`,
+  `demanda_consumo_rs`, `demanda_geracao_rs`,
+  `tarifa_fio_b`, `tarifa_fio_b_p/fp`,
+  `tarifa_tarifacao_p/fp`, `consumo_meses_p/fp`
+
+### Campos com nomes diferentes (frontend → backend)
+- `demanda_consumo_kw` → `demanda_preco`
+- `demanda_geracao_kw` → `demanda_contratada`
+- `fase_tensao` (mono/bi/tri) → `fase` (monofasico/bifasico/trifasico)
