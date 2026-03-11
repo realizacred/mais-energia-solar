@@ -217,15 +217,37 @@ function renderProposalHtml(p: RenderParams): string {
   const hasCenarios = p.cenarios.length > 0;
   const pagamentos = !hasCenarios ? (p.snap.pagamento_opcoes ?? []) : [];
 
-  const fmt = (v: number) => `R$ ${(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const fmtPct = (v: number) => `${(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  // Safe value helper — never render "undefined" or "null" in HTML
+  const safe = (v: unknown, fallback = "-"): string => {
+    if (v == null || v === "" || v === "undefined" || v === "null") return fallback;
+    return String(v);
+  };
+
+  const fmt = (v: number | null | undefined) => {
+    const n = v ?? 0;
+    return `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  const fmtPct = (v: number | null | undefined) => {
+    const n = v ?? 0;
+    return `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  };
+
+  // Track missing variables for silent logging
+  const missingVars: string[] = [];
+  const track = (name: string, v: unknown): string => {
+    if (v == null || v === "" || v === "undefined") {
+      missingVars.push(name);
+      return "-";
+    }
+    return String(v);
+  };
 
   // ── Sections ──────────────────────────────────────────
 
   const itensRows = itens.map((it: any) => `
     <tr>
-      <td style="padding:8px;border-bottom:1px solid #eee">${it.descricao}</td>
-      <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${it.quantidade}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee">${safe(it.descricao)}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${safe(it.quantidade)}</td>
       <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${fmt(it.preco_unitario)}</td>
       <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${fmt(it.subtotal)}</td>
     </tr>`).join("");
@@ -235,12 +257,12 @@ function renderProposalHtml(p: RenderParams): string {
     <div class="section-title">Unidades Consumidoras (${ucs.length})</div>
     ${ucs.map((uc: any) => `
     <div style="margin-bottom:12px;padding:12px;background:#f8f9fa;border-radius:8px">
-      <div style="font-weight:600;margin-bottom:6px">${uc.nome} — ${uc.tipo_dimensionamento} (${uc.subgrupo})</div>
+      <div style="font-weight:600;margin-bottom:6px">${safe(uc.nome)} — ${safe(uc.tipo_dimensionamento)} (${safe(uc.subgrupo)})</div>
       <div class="grid">
-        <div><span class="label">Consumo</span><div class="value">${uc.tipo_dimensionamento === "MT" ? `P: ${uc.consumo_mensal_p} / FP: ${uc.consumo_mensal_fp}` : `${uc.consumo_mensal} kWh/mês`}</div></div>
-        <div><span class="label">Fase</span><div class="value">${uc.fase}</div></div>
-        <div><span class="label">Local</span><div class="value">${uc.cidade}/${uc.estado}</div></div>
-        <div><span class="label">Telhado</span><div class="value">${uc.tipo_telhado || "-"}</div></div>
+        <div><span class="label">Consumo</span><div class="value">${uc.tipo_dimensionamento === "MT" ? `P: ${safe(uc.consumo_mensal_p)} / FP: ${safe(uc.consumo_mensal_fp)}` : `${safe(uc.consumo_mensal)} kWh/mês`}</div></div>
+        <div><span class="label">Fase</span><div class="value">${safe(uc.fase)}</div></div>
+        <div><span class="label">Local</span><div class="value">${safe(uc.cidade)}/${safe(uc.estado)}</div></div>
+        <div><span class="label">Telhado</span><div class="value">${safe(uc.tipo_telhado)}</div></div>
       </div>
     </div>`).join("")}
   </div>` : "";
@@ -252,8 +274,8 @@ function renderProposalHtml(p: RenderParams): string {
       <thead><tr><th>Serviço</th><th>Categoria</th><th style="text-align:right">Valor</th><th style="text-align:center">Incluso</th></tr></thead>
       <tbody>${servicos.map((s: any) => `
         <tr>
-          <td style="padding:8px;border-bottom:1px solid #eee">${s.descricao}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee">${s.categoria}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${safe(s.descricao)}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${safe(s.categoria)}</td>
           <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${fmt(s.valor)}</td>
           <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${s.incluso_no_preco ? "✓" : "Extra"}</td>
         </tr>`).join("")}</tbody>
@@ -310,9 +332,9 @@ function renderProposalHtml(p: RenderParams): string {
         </thead>
         <tbody>
           ${showSeries.filter((_: any, i: number) => i < 5 || i === 9 || i === 14 || i === 19 || i === 24).map((s: any) => `
-          <tr${s.fluxo_caixa_acumulado >= 0 ? ' style="color:#16a34a"' : ""}>
-            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-weight:600">${s.ano}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${Math.round(s.geracao_kwh).toLocaleString("pt-BR")}</td>
+          <tr${(s.fluxo_caixa_acumulado ?? 0) >= 0 ? ' style="color:#16a34a"' : ""}>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-weight:600">${safe(s.ano)}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${Math.round(s.geracao_kwh ?? 0).toLocaleString("pt-BR")}</td>
             <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">R$ ${s.tarifa_vigente?.toFixed(3) ?? "-"}</td>
             <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${fmt(s.economia_rs)}</td>
             <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${fmt(s.economia_acumulada_rs)}</td>
@@ -329,9 +351,14 @@ function renderProposalHtml(p: RenderParams): string {
     <div class="section-title">Dados Complementares</div>
     <div class="grid">
       ${vcResults.map((vc: any) => `
-      <div><span class="label">${vc.label}</span><div class="value">${vc.valor_calculado ?? "-"}</div></div>`).join("")}
+      <div><span class="label">${safe(vc.label)}</span><div class="value">${safe(vc.valor_calculado)}</div></div>`).join("")}
     </div>
   </div>` : "";
+
+  // Silent log of missing/null variables for debugging
+  if (missingVars.length > 0) {
+    console.warn(`[proposal-render] Missing variables in HTML (${missingVars.length}):`, missingVars);
+  }
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">

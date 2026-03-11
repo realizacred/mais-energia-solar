@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.14.2",
+    date: "2026-03-11",
+    title: "Variáveis nulas não quebram mais a geração de PDF/HTML",
+    type: "bugfix",
+    description: "Variáveis ausentes ou null em templates DOCX e HTML agora são substituídas silenciosamente por valor vazio, sem interromper a geração do documento.",
+    details: [
+      "DOCX: placeholders [variavel] sem valor são removidos silenciosamente do documento final",
+      "HTML: helper safe() previne 'undefined'/'null' de aparecer no HTML renderizado",
+      "Log silencioso de variáveis faltantes para debug (console.warn no servidor)",
+      "Formatadores fmt()/fmtPct() agora aceitam null/undefined sem erro",
+    ],
+  },
+  {
     version: "2.14.1",
     date: "2026-03-11",
     title: "Correção crítica: normalização de grupo tarifário na criação de propostas",
