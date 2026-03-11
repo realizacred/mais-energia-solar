@@ -356,7 +356,7 @@ export function StepPagamento({
                 <Badge variant="outline" className="text-[10px] h-5 px-1.5">{g.opcoes.length}</Badge>
               </Button>
             ))}
-            <Button variant="default" size="sm" className="w-full text-sm text-primary gap-1 mt-2 h-9" onClick={() => setShowNovoFinanciamento(true)}>
+            <Button variant="outline" size="sm" className="w-full text-sm gap-1 mt-2 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => setShowNovoFinanciamento(true)}>
               <Plus className="h-3.5 w-3.5" /> Novo financiamento
             </Button>
           </div>
