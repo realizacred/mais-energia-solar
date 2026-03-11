@@ -630,14 +630,14 @@ export function useWaMessages(conversationId?: string) {
           throw new Error("Falha ao enfileirar mensagem para envio: " + (outboxError.message || "erro desconhecido"));
         }
 
-        // Trigger outbox processing
+        // Trigger outbox processing (fire-and-forget)
         supabase.functions.invoke("process-wa-outbox").catch((e: any) => {
           console.warn("Failed to trigger outbox processing:", e);
         });
       }
 
-      // Update conversation preview + last_message_id + direction
-      await supabase
+      // Update conversation preview (fire-and-forget for speed)
+      supabase
         .from("wa_conversations")
         .update({
           last_message_at: new Date().toISOString(),
@@ -647,7 +647,10 @@ export function useWaMessages(conversationId?: string) {
           last_message_id: msg.id,
           last_message_direction: "out",
         })
-        .eq("id", conversationId);
+        .eq("id", conversationId)
+        .then(({ error: convErr }) => {
+          if (convErr) console.warn("Failed to update conversation preview:", convErr);
+        });
 
       return msg;
     },
