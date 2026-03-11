@@ -159,7 +159,22 @@ export function WaChatComposer({
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const presenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPresenceSentRef = useRef<number>(0);
   const { toast } = useToast();
+
+  // ── Presence: "Digitando..." ──
+  const sendPresence = useCallback(async (presence: "composing" | "paused") => {
+    if (!instanceId || !remoteJid || isNoteMode) return;
+    try {
+      await supabase.functions.invoke("send-wa-presence", {
+        body: { instance_id: instanceId, number: remoteJid, presence },
+      });
+    } catch (e) {
+      console.warn("[presence] Failed to send presence:", e);
+    }
+  }, [instanceId, remoteJid, isNoteMode]);
 
   // Fetch quick replies from DB
   const { data: quickReplies = [] } = useQuery({
