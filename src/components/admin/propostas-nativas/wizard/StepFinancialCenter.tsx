@@ -571,8 +571,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
       {/* + Adicionar Custo */}
       <Button
+        variant="outline"
+        size="sm"
         onClick={addCusto}
-        className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+        className="text-xs border-dashed gap-1.5"
       >
         <Plus className="h-3.5 w-3.5" /> Adicionar Custo
       </Button>
