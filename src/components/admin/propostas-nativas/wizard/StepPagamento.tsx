@@ -366,7 +366,7 @@ export function StepPagamento({
             {bancoGroups[selectedBancoIdx]?.opcoes.map((op, idx) => (
               <div key={op.id} className="p-4 rounded-xl border border-border/50 bg-card">
                 <div className="flex items-center justify-between mb-3">
-                  <Badge variant="secondary" className="text-xs">Opção {idx + 1}</Badge>
+                  <Badge className="text-xs bg-primary/10 text-primary border border-primary/30 rounded-full px-3 py-0.5 font-semibold">Opção {idx + 1}</Badge>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => removeOpcao(selectedBancoIdx, idx)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
