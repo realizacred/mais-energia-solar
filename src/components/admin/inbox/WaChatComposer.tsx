@@ -84,6 +84,10 @@ interface WaChatComposerProps {
   prefillMessage?: string | null;
   readOnly?: boolean;
   readOnlyReason?: string;
+  /** Instance ID for presence signals */
+  instanceId?: string;
+  /** Remote JID (phone number) for presence signals */
+  remoteJid?: string;
 }
 
 export function WaChatComposer({
@@ -98,6 +102,8 @@ export function WaChatComposer({
   prefillMessage,
   readOnly,
   readOnlyReason,
+  instanceId,
+  remoteJid,
 }: WaChatComposerProps) {
   const [inputValue, setInputValue] = useState("");
   const [slashActive, setSlashActive] = useState(false);
@@ -153,7 +159,22 @@ export function WaChatComposer({
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const presenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPresenceSentRef = useRef<number>(0);
   const { toast } = useToast();
+
+  // ── Presence: "Digitando..." ──
+  const sendPresence = useCallback(async (presence: "composing" | "paused") => {
+    if (!instanceId || !remoteJid || isNoteMode) return;
+    try {
+      await supabase.functions.invoke("send-wa-presence", {
+        body: { instance_id: instanceId, number: remoteJid, presence },
+      });
+    } catch (e) {
+      console.warn("[presence] Failed to send presence:", e);
+    }
+  }, [instanceId, remoteJid, isNoteMode]);
 
   // Fetch quick replies from DB
   const { data: quickReplies = [] } = useQuery({
@@ -256,10 +277,28 @@ export function WaChatComposer({
       setSlashActive(false);
       setSlashQuery("");
     }
-  }, []);
+
+    // Presence: send "composing" with debounce (max once per 2s)
+    if (val.trim() && instanceId && remoteJid && !isNoteMode) {
+      const now = Date.now();
+      if (now - lastPresenceSentRef.current > 2000) {
+        lastPresenceSentRef.current = now;
+        sendPresence("composing");
+      }
+
+      // Reset pause timer — send "paused" after 3s of inactivity
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = setTimeout(() => {
+        sendPresence("paused");
+      }, 3000);
+    }
+  }, [instanceId, remoteJid, isNoteMode, sendPresence]);
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
+    // Clear presence timers and send paused
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    sendPresence("paused");
     onSendMessage(inputValue.trim(), isNoteMode, replyingTo?.id);
     setInputValue("");
     setSlashActive(false);
