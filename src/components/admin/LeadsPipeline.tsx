@@ -357,7 +357,7 @@ export default function LeadsPipeline() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <TabsList>
             <TabsTrigger value="kanban" className="gap-2">
               <LayoutGrid className="h-4 w-4" /> Kanban
