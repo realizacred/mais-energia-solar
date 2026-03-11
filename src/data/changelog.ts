@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.15.1",
+    date: "2026-03-11",
+    title: "Fix: bloqueio falso de PDF quando preço total é R$ 0",
+    type: "bugfix",
+    description: "Corrige bug falsy que tratava precoTotal=0 como ausente, e melhora UX do modal de variáveis faltantes.",
+    details: [
+      "Fix: checagem != null em vez de truthy para financeiro.preco_total no resolver",
+      "Modal de bloqueio agora exibe nomes amigáveis (ex: 'Valor total da proposta') em vez de variáveis técnicas",
+      "Texto do modal atualizado com instrução clara para voltar às etapas do wizard",
+    ],
+  },
+  {
     version: "2.15.0",
     date: "2026-03-11",
     title: "WhatsApp: Digitando... e criação de instância com QR Code",
