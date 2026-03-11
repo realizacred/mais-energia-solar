@@ -43,8 +43,8 @@ export function OrcamentoHistoryDialog({
     if (!status) return null;
     return (
       <Badge
-        style={{ backgroundColor: status.cor, color: "#fff" }}
-        className="text-xs"
+        style={{ backgroundColor: status.cor }}
+        className="text-xs text-primary-foreground"
       >
         {status.nome}
       </Badge>

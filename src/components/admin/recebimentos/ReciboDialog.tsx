@@ -178,10 +178,10 @@
                border-radius: 8px;
                margin: 20px 0;
              }
-             .valor-destaque .valor {
-               font-size: 28px;
-               font-weight: bold;
-               color: #2563eb;
+              .valor-destaque .valor {
+                font-size: 28px;
+                font-weight: bold;
+                color: #333;
              }
              .valor-destaque .extenso {
                font-size: 12px;
