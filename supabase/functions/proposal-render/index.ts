@@ -217,8 +217,30 @@ function renderProposalHtml(p: RenderParams): string {
   const hasCenarios = p.cenarios.length > 0;
   const pagamentos = !hasCenarios ? (p.snap.pagamento_opcoes ?? []) : [];
 
-  const fmt = (v: number) => `R$ ${(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const fmtPct = (v: number) => `${(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  // Safe value helper — never render "undefined" or "null" in HTML
+  const safe = (v: unknown, fallback = "-"): string => {
+    if (v == null || v === "" || v === "undefined" || v === "null") return fallback;
+    return String(v);
+  };
+
+  const fmt = (v: number | null | undefined) => {
+    const n = v ?? 0;
+    return `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  const fmtPct = (v: number | null | undefined) => {
+    const n = v ?? 0;
+    return `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  };
+
+  // Track missing variables for silent logging
+  const missingVars: string[] = [];
+  const track = (name: string, v: unknown): string => {
+    if (v == null || v === "" || v === "undefined") {
+      missingVars.push(name);
+      return "-";
+    }
+    return String(v);
+  };
 
   // ── Sections ──────────────────────────────────────────
 
