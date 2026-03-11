@@ -296,6 +296,9 @@ export function WaChatComposer({
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
+    // Clear presence timers and send paused
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    sendPresence("paused");
     onSendMessage(inputValue.trim(), isNoteMode, replyingTo?.id);
     setInputValue("");
     setSlashActive(false);
