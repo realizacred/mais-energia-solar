@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const PROVIDER_INFO: Record<string, { label: string; description: string; color: string }> = {
-  tuya: { label: "Tuya Smart", description: "Plataforma IoT para medidores inteligentes", color: "bg-orange-500" },
+  tuya: { label: "Tuya Smart", description: "Plataforma IoT para medidores inteligentes", color: "bg-primary" },
 };
 
 export default function ApisPage() {
@@ -139,7 +139,7 @@ export default function ApisPage() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(cfg)} title="Editar">
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="destructive" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(cfg.id)} title="Remover">
+                        <Button variant="outline" size="icon" className="h-7 w-7 border-destructive text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(cfg.id)} title="Remover">
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>

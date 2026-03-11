@@ -254,7 +254,7 @@ export default function UCDetailPage() {
                 <CardTitle className="text-sm text-destructive">Outros</CardTitle>
               </CardHeader>
               <CardContent>
-                <Button variant="destructive" size="sm" className="text-destructive h-auto p-0 text-xs">
+                <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 text-xs gap-1">
                   <Trash2 className="w-3 h-3 mr-1" /> Remover UC
                 </Button>
               </CardContent>

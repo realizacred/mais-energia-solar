@@ -144,7 +144,7 @@ export function TuyaSyncActions({ configId, configName }: Props) {
                 <div key={log.id} className="flex items-center justify-between text-xs border-b pb-2 last:border-b-0 last:pb-0">
                   <div className="flex items-center gap-2 min-w-0">
                     {log.status === "completed" ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
                     ) : log.status === "error" ? (
                       <XCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
                     ) : (

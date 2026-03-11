@@ -122,7 +122,7 @@ export function WaAssignDialog({
           </Select>
         </div>
         <DialogFooter>
-          <Button variant="destructive" onClick={() => { onAssign(null); onOpenChange(false); }}>
+          <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => { onAssign(null); onOpenChange(false); }}>
             Remover Atribuição
           </Button>
           <Button onClick={() => { onAssign(selected); onOpenChange(false); }} disabled={!selected}>

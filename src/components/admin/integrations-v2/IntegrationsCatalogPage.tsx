@@ -320,8 +320,10 @@ export default function IntegrationsCatalogPage() {
             ["active", "Ativas"],
             ["inactive", "Disponíveis"],
           ] as [TabFilter, string][]).map(([key, label]) => (
-            <button
+            <Button
               key={key}
+              variant="ghost"
+              size="sm"
               onClick={() => setTab(key)}
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-lg transition-all",
@@ -331,7 +333,7 @@ export default function IntegrationsCatalogPage() {
               )}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -434,9 +436,9 @@ export default function IntegrationsCatalogPage() {
                     <div>
                       {isMonitoringView && (monitoringFunctional.length > 0 || monitoringStub.length > 0) && (
                         <div className="flex items-center gap-2 mb-4">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                          <CheckCircle2 className="h-5 w-5 text-success" />
                           <h3 className="text-sm font-semibold text-foreground">Disponíveis agora</h3>
-                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                          <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">
                             {monitoringFunctional.length}
                           </Badge>
                         </div>
@@ -510,10 +512,11 @@ function SidebarItem({ icon: Icon, label, count, active, onClick }: {
   icon: React.ElementType; label: string; count: number; active: boolean; onClick: () => void;
 }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all text-left",
+        "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all justify-start h-auto",
         active
           ? "bg-primary/10 text-primary font-semibold shadow-sm"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
@@ -527,6 +530,6 @@ function SidebarItem({ icon: Icon, label, count, active, onClick }: {
       )}>
         {count}
       </span>
-    </button>
+    </Button>
   );
 }

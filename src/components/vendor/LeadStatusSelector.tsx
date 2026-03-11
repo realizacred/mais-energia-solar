@@ -87,8 +87,8 @@ export function LeadStatusSelector({
         <SelectTrigger 
           className="w-[140px] h-8 text-xs"
           style={{
-            borderColor: currentStatus?.cor || "#3b82f6",
-            color: currentStatus?.cor || "#3b82f6",
+            borderColor: currentStatus?.cor || "hsl(var(--primary))",
+            color: currentStatus?.cor || "hsl(var(--primary))",
           }}
         >
           {saving ? (
@@ -101,8 +101,7 @@ export function LeadStatusSelector({
           <SelectItem value="novo">
             <span className="flex items-center gap-2">
               <span 
-                className="w-2 h-2 rounded-full" 
-                style={{ backgroundColor: "#3b82f6" }}
+                className="w-2 h-2 rounded-full bg-primary" 
               />
               Novo
             </span>

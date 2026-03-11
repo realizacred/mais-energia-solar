@@ -463,9 +463,9 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                     return (
                       <Badge key={role} variant="outline" className={`${roleInfo?.color || ""} gap-1`}>
                         {roleInfo?.label || role}
-                        <Button variant="destructive"
+                        <Button variant="ghost" size="icon"
                           onClick={() => handleRemoveRole(role)}
-                          className="ml-1 hover:text-destructive transition-colors"
+                          className="ml-1 h-4 w-4 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
                           title="Remover perfil"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -614,8 +614,8 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                 )}
                 {!isSelf && (
                   <Button
-                    variant="destructive"
-                    className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    variant="outline"
+                    className="w-full justify-start gap-2 border-destructive text-destructive hover:bg-destructive/10"
                     onClick={() => setShowDeleteConfirm(true)}
                   >
                     <Trash2 className="w-4 h-4" />

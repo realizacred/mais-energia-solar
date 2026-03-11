@@ -40,10 +40,10 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
 
   if (isConnected) {
     return (
-      <Badge className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 px-2.5 py-0.5 gap-1">
+      <Badge className="text-[10px] font-semibold bg-success/15 text-success border-success/25 px-2.5 py-0.5 gap-1">
         <span className="relative flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
         </span>
         Conectado
       </Badge>
@@ -57,7 +57,7 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
     );
   }
   if (isBeta) {
-    return <Badge className="text-[10px] font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25 px-2 py-0.5">Beta</Badge>;
+    return <Badge className="text-[10px] font-medium bg-warning/15 text-warning border-warning/25 px-2 py-0.5">Beta</Badge>;
   }
   if (isStub || isComingSoon) {
     return <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground border-border/60 px-2 py-0.5">Em breve</Badge>;
@@ -89,7 +89,7 @@ export function IntegrationProviderCard({
         "group relative flex flex-col rounded-2xl border bg-card p-5 transition-all duration-300 cursor-pointer select-none",
         "hover:shadow-lg hover:-translate-y-0.5",
         isConnected
-          ? "border-emerald-500/30 ring-1 ring-emerald-500/10"
+          ? "border-success/30 ring-1 ring-success/10"
           : isDisabled
             ? "border-border/30 bg-muted/20 opacity-60 cursor-default"
             : "border-border/50 hover:border-primary/30",
@@ -100,7 +100,7 @@ export function IntegrationProviderCard({
         <div className={cn(
           "flex items-center justify-center w-14 h-14 rounded-xl transition-all duration-300",
           isConnected
-            ? "bg-emerald-500/10 group-hover:bg-emerald-500/15"
+            ? "bg-success/10 group-hover:bg-success/15"
             : "bg-muted/50 group-hover:bg-muted/70",
         )}>
           {iconUrl ? (
@@ -131,7 +131,7 @@ export function IntegrationProviderCard({
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-3 py-2 px-3 rounded-lg bg-muted/40">
           {plantCount > 0 && (
             <span className="flex items-center gap-1 font-medium">
-              <Zap className="h-3 w-3 text-amber-500" />
+              <Zap className="h-3 w-3 text-warning" />
               {plantCount} usina{plantCount > 1 ? "s" : ""}
             </span>
           )}

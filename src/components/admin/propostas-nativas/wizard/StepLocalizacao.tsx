@@ -756,8 +756,8 @@ export function StepLocalizacao({
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <ZoomIn className="h-4 w-4 text-white" />
                   </div>
-                  <Button variant="destructive"
-                    className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
+                  <Button variant="ghost"
+                    className="absolute top-0.5 right-0.5 bg-destructive/80 text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       const updated = mapSnapshots.filter((_, i) => i !== idx);
@@ -789,8 +789,8 @@ export function StepLocalizacao({
                     Snapshot {snapshotPreviewIdx + 1} de {mapSnapshots.length}
                   </span>
                   <Button
-                    variant="destructive" size="sm"
-                    className="h-7 text-xs gap-1"
+                    variant="outline" size="sm"
+                    className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10"
                     onClick={() => {
                       const updated = mapSnapshots.filter((_, i) => i !== snapshotPreviewIdx);
                       setMapSnapshots(updated);

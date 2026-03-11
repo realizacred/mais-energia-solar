@@ -65,11 +65,11 @@ export function TuyaTutorial() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card className="border-orange-200 dark:border-orange-800/40">
+    <Card className="border-primary/20 dark:border-primary/30">
       <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-orange-500" />
+            <BookOpen className="w-4 h-4 text-primary" />
             Como integrar com a Tuya
           </CardTitle>
           <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -83,8 +83,8 @@ export function TuyaTutorial() {
           <div className="space-y-3">
             {STEPS.map((step) => (
               <div key={step.num} className="flex gap-3 items-start">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400">{step.num}</span>
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-xs font-bold text-primary">{step.num}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{step.title}</p>
@@ -104,12 +104,12 @@ export function TuyaTutorial() {
             ))}
           </div>
 
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 p-3">
+          <div className="rounded-lg bg-warning/10 border border-warning/20 p-3">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Observação</p>
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                <p className="text-xs font-medium text-foreground">Observação</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Nem todos os modelos de medidores Tuya expõem dados de energia exportada (injeção).
                   Medidores como o RMDZW-3PNB 100A geralmente suportam importação, tensão, corrente e potência.
                   A disponibilidade de dados depende do firmware e categoria do dispositivo.

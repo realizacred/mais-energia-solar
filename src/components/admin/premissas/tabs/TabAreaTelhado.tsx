@@ -345,7 +345,7 @@ function RoofCard({
 
             {/* Remove */}
             <div className="flex justify-end pt-1">
-              <Button variant="destructive" size="sm" className="text-xs h-7 text-destructive hover:text-destructive gap-1" onClick={onRemove}>
+              <Button variant="outline" size="sm" className="text-xs h-7 border-destructive text-destructive hover:bg-destructive/10 gap-1" onClick={onRemove}>
                 <Trash2 className="h-3 w-3" />
                 Remover
               </Button>
