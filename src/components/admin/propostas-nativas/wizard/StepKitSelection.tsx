@@ -118,6 +118,14 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [confirmReplace, setConfirmReplace] = useState<{ kitId: string; kitName: string } | null>(null);
   const catalogLoaded = useRef(false);
 
+  // Derive selected catalog kit ID from manualKits meta
+  const selectedCatalogKitId = useMemo(() => {
+    if (manualKits.length > 0 && manualKits[0]?.meta?.catalogKitId) {
+      return manualKits[0].meta.catalogKitId;
+    }
+    return null;
+  }, [manualKits]);
+
   // Load catalog kits when tab switches to "catalogo"
   useEffect(() => {
     if (tab !== "catalogo" || catalogLoaded.current) return;
