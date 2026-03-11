@@ -165,7 +165,7 @@ export function WaSlaAlertBanner({
                         )}
                         <span className="text-[10px] text-muted-foreground">• há {timeStr}</span>
                         {alert.escalated && (
-                          <Badge variant="destructive" className="text-[9px] px-1 py-0">
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-destructive/10 text-destructive border-destructive/30 font-semibold">
                             ESCALADO
                           </Badge>
                         )}
