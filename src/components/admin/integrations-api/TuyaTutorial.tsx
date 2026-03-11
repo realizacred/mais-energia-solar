@@ -83,8 +83,8 @@ export function TuyaTutorial() {
           <div className="space-y-3">
             {STEPS.map((step) => (
               <div key={step.num} className="flex gap-3 items-start">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400">{step.num}</span>
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-xs font-bold text-primary">{step.num}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{step.title}</p>
