@@ -299,7 +299,8 @@ export function useWizardPersistence() {
         titulo: params.titulo || "Proposta sem título",
         updated_at: new Date().toISOString(),
       };
-      if (setActive) propostaUpdate.status = "gerada";
+      // Status "gerada" is set ONLY by proposal-generate edge function after successful generation.
+      // setActive just marks the version as favorita, not the proposta status.
       if (params.projetoId) propostaUpdate.projeto_id = params.projetoId;
       if (params.dealId) propostaUpdate.deal_id = params.dealId;
       if (params.leadId) propostaUpdate.lead_id = params.leadId;

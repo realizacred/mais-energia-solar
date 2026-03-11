@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.14.4",
+    date: "2026-03-11",
+    title: "Status 'gerada' só é atribuído após geração real do template",
+    type: "bugfix",
+    description: "Corrigido bug onde 'Salvar como Ativa' marcava a proposta como 'gerada' prematuramente, antes da geração do template. Agora apenas a edge function proposal-generate define esse status.",
+    details: [
+      "Removido propostaUpdate.status = 'gerada' do frontend (useWizardPersistence)",
+      "Status 'gerada' continua sendo definido corretamente pela edge function proposal-generate",
+      "Proposta permanece como 'rascunho' até que o template seja efetivamente gerado",
+    ],
+  },
+  {
     version: "2.14.3",
     date: "2026-03-11",
     title: "Substituição robusta de placeholders em templates DOCX",
