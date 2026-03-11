@@ -89,7 +89,7 @@ export function IntegrationProviderCard({
         "group relative flex flex-col rounded-2xl border bg-card p-5 transition-all duration-300 cursor-pointer select-none",
         "hover:shadow-lg hover:-translate-y-0.5",
         isConnected
-          ? "border-emerald-500/30 ring-1 ring-emerald-500/10"
+          ? "border-success/30 ring-1 ring-success/10"
           : isDisabled
             ? "border-border/30 bg-muted/20 opacity-60 cursor-default"
             : "border-border/50 hover:border-primary/30",
