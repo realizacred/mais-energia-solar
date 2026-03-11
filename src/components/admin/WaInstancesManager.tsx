@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import {
   Smartphone,
@@ -7,7 +7,7 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
-  
+  QrCode,
   Copy,
   ExternalLink,
   MoreVertical,
