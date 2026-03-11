@@ -170,6 +170,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         distribuidorNome: kitName,
         nomeKit: catalogKit?.name || kitName,
         codigoKit: kitId.slice(0, 8).toUpperCase(),
+        catalogKitId: kitId,
         topologia: topoLabel,
         custo: kitCost,
         sistema: "on_grid",
