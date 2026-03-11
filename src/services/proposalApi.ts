@@ -209,6 +209,7 @@ export async function sendProposal(
 ): Promise<SendProposalResult> {
   const { data, error } = await supabase.functions.invoke("proposal-send", {
     body: payload,
+    headers: { "x-client-timeout": "120" },
   });
 
   if (error) {
