@@ -80,7 +80,7 @@ export function WaSlaAlertBanner({
       >
         {/* Header */}
         <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 transition-colors">
+          <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-2.5 h-auto hover:bg-muted/20 transition-colors rounded-none">
             <div className="flex items-center gap-2.5">
               <div
                 className={`p-1.5 rounded-lg ${
