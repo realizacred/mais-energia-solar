@@ -824,6 +824,8 @@ export function WaChatPanel({
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
           prefillMessage={prefillMessage}
+          instanceId={conversation.instance_id}
+          remoteJid={conversation.remote_jid}
           readOnly={
             !isAdmin &&
             !!conversation.assigned_to &&
