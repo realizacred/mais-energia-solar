@@ -40,10 +40,10 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
 
   if (isConnected) {
     return (
-      <Badge className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 px-2.5 py-0.5 gap-1">
+      <Badge className="text-[10px] font-semibold bg-success/15 text-success border-success/25 px-2.5 py-0.5 gap-1">
         <span className="relative flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
         </span>
         Conectado
       </Badge>
