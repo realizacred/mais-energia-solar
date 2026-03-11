@@ -125,6 +125,7 @@ interface WaChatPanelProps {
   prefillMessage?: string | null;
   onRetryMessage?: (msg: WaMessage) => void;
   onBack?: () => void;
+  isAdmin?: boolean;
 }
 
 export function WaChatPanel({
@@ -160,6 +161,7 @@ export function WaChatPanel({
   prefillMessage,
   onRetryMessage,
   onBack,
+  isAdmin,
 }: WaChatPanelProps) {
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [showLeadInfo, setShowLeadInfo] = useState(false);
@@ -822,6 +824,16 @@ export function WaChatPanel({
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
           prefillMessage={prefillMessage}
+          readOnly={
+            !isAdmin &&
+            !!conversation.assigned_to &&
+            conversation.assigned_to !== currentUserId
+          }
+          readOnlyReason={
+            conversation.assigned_to && conversation.assigned_to !== currentUserId
+              ? `Conversa atribuída a ${assignedConsultor?.nome || "outro atendente"}`
+              : undefined
+          }
         />
 
         {/* Accept button below composer — only for unassigned conversations */}
