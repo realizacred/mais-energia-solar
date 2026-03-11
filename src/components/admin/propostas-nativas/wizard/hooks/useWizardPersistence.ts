@@ -242,7 +242,7 @@ export function useWizardPersistence() {
             valor_total: params.precoFinal,
             economia_mensal: params.economiaMensal || null,
             geracao_mensal: params.geracaoMensal || null,
-            grupo: params.snapshot?.grupo || null,
+            grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
             snapshot: params.snapshot as any,
             updated_at: new Date().toISOString(),
           } as any)
