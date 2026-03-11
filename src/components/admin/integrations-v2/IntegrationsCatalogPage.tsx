@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
+import { IntegrationTutorialSection } from "./IntegrationTutorialSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
