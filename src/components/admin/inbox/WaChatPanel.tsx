@@ -125,6 +125,7 @@ interface WaChatPanelProps {
   prefillMessage?: string | null;
   onRetryMessage?: (msg: WaMessage) => void;
   onBack?: () => void;
+  isAdmin?: boolean;
 }
 
 export function WaChatPanel({
