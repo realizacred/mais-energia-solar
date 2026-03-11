@@ -1111,7 +1111,7 @@ export function ProposalWizard() {
       const idempotencyKey = getOrCreateIdempotencyKey(selectedLead.id);
       const payload: GenerateProposalPayload = {
         lead_id: selectedLead.id,
-        projeto_id: projectContext?.dealId || dealIdFromUrl || undefined,
+        projeto_id: savedProjetoId || undefined,
         grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
         idempotency_key: idempotencyKey,
         template_id: templateSelecionado || undefined,
