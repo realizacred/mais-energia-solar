@@ -1149,7 +1149,7 @@ export function ProposalWizard() {
         idempotency_key: idempotencyKey,
         template_id: templateSelecionado || undefined,
         potencia_kwp: potenciaKwp,
-        ucs: ucs.map(({ id, uc_index, ...rest }) => rest),
+        ucs: ucs.map(({ id, uc_index, is_geradora, regra, grupo_tarifario, tarifa_fio_b, tarifa_tarifacao_p, tarifa_tarifacao_fp, tarifa_fio_b_p, tarifa_fio_b_fp, consumo_meses_p, consumo_meses_fp, demanda_consumo_kw, demanda_geracao_kw, ...rest }) => rest),
         premissas,
         itens: itens.filter(i => i.descricao).map(({ id, ...rest }) => rest),
         servicos: servicos.map(({ id, ...rest }) => rest),
