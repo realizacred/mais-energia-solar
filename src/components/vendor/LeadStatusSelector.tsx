@@ -87,8 +87,8 @@ export function LeadStatusSelector({
         <SelectTrigger 
           className="w-[140px] h-8 text-xs"
           style={{
-            borderColor: currentStatus?.cor || "#3b82f6",
-            color: currentStatus?.cor || "#3b82f6",
+            borderColor: currentStatus?.cor || "hsl(var(--primary))",
+            color: currentStatus?.cor || "hsl(var(--primary))",
           }}
         >
           {saving ? (
