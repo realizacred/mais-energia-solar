@@ -396,16 +396,13 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     await sendMessage({ content, isInternalNote: isNote, quotedMessageId });
   };
 
-  const handleSendMedia = async (file: File, caption?: string) => {
+  const handleSendMedia = useCallback(async (file: File, caption?: string) => {
     if (!selectedConv) return;
     try {
-      
-      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
       const tid = await getCurrentTenantId();
       if (!tid) throw new Error("Tenant não encontrado");
       const ext = file.name.split(".").pop() || "bin";
       const filePath = tenantPath(tid, selectedConv.id, `${Date.now()}.${ext}`);
-      
       
       const { error: uploadError } = await supabase.storage
         .from("wa-attachments")
@@ -423,7 +420,6 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       else if (file.type.startsWith("video/")) messageType = "video";
       else if (file.type.startsWith("audio/")) messageType = "audio";
       
-      
       await sendMessage({
         content: caption || file.name,
         messageType,
@@ -435,7 +431,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       console.error("[handleSendMedia] Failed:", err);
       toast({ title: "Erro ao enviar arquivo", description: err.message, variant: "destructive" });
     }
-  };
+  }, [selectedConv, sendMessage, toast]);
 
   const handleSendReaction = async (messageId: string, reaction: string) => {
     try {
