@@ -622,6 +622,12 @@ export function useWaMessages(conversationId?: string) {
 
         if (outboxError) {
           console.error("Failed to queue message:", outboxError);
+          // Mark message as failed so user sees the error
+          await supabase
+            .from("wa_messages")
+            .update({ status: "failed", error_message: outboxError.message || "Falha ao enfileirar mensagem" } as any)
+            .eq("id", msg.id);
+          throw new Error("Falha ao enfileirar mensagem para envio: " + (outboxError.message || "erro desconhecido"));
         }
 
         // Trigger outbox processing

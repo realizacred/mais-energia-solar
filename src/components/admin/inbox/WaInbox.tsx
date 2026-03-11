@@ -8,6 +8,7 @@ import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferenc
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useToast } from "@/hooks/use-toast";
+import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 import { useWaSlaAlerts } from "@/hooks/useWaSlaAlerts";
 import { WaConversationList } from "./WaConversationList";
 import { WaChatPanel } from "./WaChatPanel";
