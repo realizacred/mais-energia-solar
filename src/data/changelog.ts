@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.14.5",
+    date: "2026-03-11",
+    title: "Edição de proposta agora restaura todos os dados corretamente",
+    type: "bugfix",
+    description: "Corrigido bug onde campos com valores falsy (0, string vazia, arrays vazios) não eram restaurados ao editar uma proposta existente.",
+    details: [
+      "restoreFromSnapshot agora usa '!= null' em vez de truthy checks",
+      "Campos como potenciaKwp=0, distanciaKm=0, grupo='', nomeProposta='' agora são restaurados",
+      "Arrays vazios (itens, adicionais, servicos) também são restaurados corretamente",
+    ],
+  },
+  {
     version: "2.14.4",
     date: "2026-03-11",
     title: "Status 'gerada' só é atribuído após geração real do template",

@@ -276,37 +276,38 @@ export function ProposalWizard() {
   }, [collectSnapshot, persistLocal, savedPropostaId, savedVersaoId]);
 
   // ─── Helper: restore all wizard state from a WizardSnapshot ───
+  // IMPORTANT: Use explicit != null checks (not truthy) to preserve falsy values like 0, "", false
   const restoreFromSnapshot = useCallback((s: WizardSnapshot) => {
-    if (s.locEstado) setLocEstado(s.locEstado);
-    if (s.locCidade) setLocCidade(s.locCidade);
-    if (s.locTipoTelhado) setLocTipoTelhado(s.locTipoTelhado);
-    if (s.locDistribuidoraId) setLocDistribuidoraId(s.locDistribuidoraId);
-    if (s.locDistribuidoraNome) setLocDistribuidoraNome(s.locDistribuidoraNome);
-    if (s.locIrradiacao) setLocIrradiacao(s.locIrradiacao);
-    if (s.locGhiSeries) setLocGhiSeries(s.locGhiSeries);
+    if (s.locEstado != null) setLocEstado(s.locEstado);
+    if (s.locCidade != null) setLocCidade(s.locCidade);
+    if (s.locTipoTelhado != null) setLocTipoTelhado(s.locTipoTelhado);
+    if (s.locDistribuidoraId != null) setLocDistribuidoraId(s.locDistribuidoraId);
+    if (s.locDistribuidoraNome != null) setLocDistribuidoraNome(s.locDistribuidoraNome);
+    if (s.locIrradiacao != null) setLocIrradiacao(s.locIrradiacao);
+    if (s.locGhiSeries != null) setLocGhiSeries(s.locGhiSeries);
     if (s.locLatitude != null) setLocLatitude(s.locLatitude);
-    if (s.distanciaKm) setDistanciaKm(s.distanciaKm);
-    if (s.projectAddress) setProjectAddress(s.projectAddress);
-    if (s.mapSnapshots?.length) setMapSnapshots(s.mapSnapshots);
-    if (s.selectedLead) setSelectedLead(s.selectedLead);
-    if (s.cliente) setCliente(s.cliente);
-    if (s.ucs?.length) setUcs(s.ucs);
-    if (s.grupo) setGrupo(s.grupo);
-    if (s.potenciaKwp) setPotenciaKwp(s.potenciaKwp);
-    if (s.customFieldValues) setCustomFieldValues(s.customFieldValues);
-    if (s.premissas) setPremissas(s.premissas);
-    if (s.preDimensionamento) setPreDimensionamento(s.preDimensionamento);
-    if (s.itens?.length) setItens(s.itens);
-    if (s.layouts?.length) setLayouts(s.layouts);
-    if (s.manualKits?.length) setManualKits(s.manualKits);
-    if (s.adicionais?.length) setAdicionais(s.adicionais);
-    if (s.servicos?.length) setServicos(s.servicos);
-    if (s.venda) setVenda(s.venda);
-    if (s.pagamentoOpcoes?.length) setPagamentoOpcoes(s.pagamentoOpcoes);
-    if (s.nomeProposta) setNomeProposta(s.nomeProposta);
-    if (s.descricaoProposta) setDescricaoProposta(s.descricaoProposta);
-    if (s.templateSelecionado) setTemplateSelecionado(s.templateSelecionado);
-    if (s.step > 0) setStep(s.step);
+    if (s.distanciaKm != null) setDistanciaKm(s.distanciaKm);
+    if (s.projectAddress != null) setProjectAddress(s.projectAddress);
+    if (s.mapSnapshots != null) setMapSnapshots(s.mapSnapshots);
+    if (s.selectedLead != null) setSelectedLead(s.selectedLead);
+    if (s.cliente != null) setCliente(s.cliente);
+    if (s.ucs != null) setUcs(s.ucs);
+    if (s.grupo != null) setGrupo(s.grupo);
+    if (s.potenciaKwp != null) setPotenciaKwp(s.potenciaKwp);
+    if (s.customFieldValues != null) setCustomFieldValues(s.customFieldValues);
+    if (s.premissas != null) setPremissas(s.premissas);
+    if (s.preDimensionamento != null) setPreDimensionamento(s.preDimensionamento);
+    if (s.itens != null) setItens(s.itens);
+    if (s.layouts != null) setLayouts(s.layouts);
+    if (s.manualKits != null) setManualKits(s.manualKits);
+    if (s.adicionais != null) setAdicionais(s.adicionais);
+    if (s.servicos != null) setServicos(s.servicos);
+    if (s.venda != null) setVenda(s.venda);
+    if (s.pagamentoOpcoes != null) setPagamentoOpcoes(s.pagamentoOpcoes);
+    if (s.nomeProposta != null) setNomeProposta(s.nomeProposta);
+    if (s.descricaoProposta != null) setDescricaoProposta(s.descricaoProposta);
+    if (s.templateSelecionado != null) setTemplateSelecionado(s.templateSelecionado);
+    if (s.step != null && s.step > 0) setStep(s.step);
   }, []);
 
   // Restore from localStorage on mount (only once, skip if loading from DB or project context)
