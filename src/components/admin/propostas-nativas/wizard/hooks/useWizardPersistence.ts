@@ -321,7 +321,7 @@ export function useWizardPersistence() {
             economia_mensal: params.economiaMensal || null,
             geracao_mensal: params.geracaoMensal || null,
             grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-            snapshot: params.snapshot as any,
+            snapshot: sanitizeSnapshot(params.snapshot) as any,
             status: setActive ? "generated" : "draft",
             snapshot_locked: setActive,
             gerado_em: setActive ? new Date().toISOString() : null,
