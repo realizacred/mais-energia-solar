@@ -691,6 +691,12 @@
     @apply p-0;
     gap: 0;
   }
+
+  /* WaInbox: make admin-content a flex column so inbox fills remaining height */
+  .admin-content:has([data-wa-inbox-active]) {
+    @apply flex flex-col;
+    height: calc(100vh - 3.5rem); /* subtract sticky header height */
+  }
 }
 
 /* ===== UTILITIES ===== */
