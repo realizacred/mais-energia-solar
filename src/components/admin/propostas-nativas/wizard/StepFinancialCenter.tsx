@@ -256,7 +256,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold">{formatBRL(precoVenda)}</span>
               {precoWp > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
+                <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground rounded-full px-2 py-0.5 font-medium">
                   {formatBRL(precoWp)} / Wp
                 </Badge>
               )}
