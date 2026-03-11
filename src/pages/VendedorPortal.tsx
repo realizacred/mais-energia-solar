@@ -42,6 +42,15 @@ export default function VendedorPortal() {
     return { orcamentos: unseenCount };
   }, [portal.orcamentos]);
 
+  // Read WA unread count from existing react-query cache (populated by WaNotificationProvider)
+  const queryClient = useQueryClient();
+  const waUnreadCount = useMemo(() => {
+    const data = queryClient.getQueryData<Array<{ unread_for_user: number }>>(
+      ["wa-notification-poll", user?.id]
+    );
+    return data?.reduce((sum, c) => sum + c.unread_for_user, 0) ?? 0;
+  }, [queryClient, user?.id, activeTab]); // re-check on tab change
+
   if (authLoading || portal.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
