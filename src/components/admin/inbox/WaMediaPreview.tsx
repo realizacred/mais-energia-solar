@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WaAudioPlayer } from "./WaAudioPlayer";
 import { X, Download, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -78,9 +79,7 @@ export function WaMediaPreview({ mediaPreview, onClose }: WaMediaPreviewProps) {
                 <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
                   <span className="text-3xl">🎵</span>
                 </div>
-                <audio controls autoPlay className="w-80">
-                  <source src={mediaPreview!.url} />
-                </audio>
+                <WaAudioPlayer src={mediaPreview!.url} className="min-w-[280px] max-w-[320px]" />
               </div>
             )}
             {isDocument && isPdf && (

@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { WaMessage, WaConversation } from "@/hooks/useWaInbox";
 import { renderFormattedText } from "./WaFormatting";
+import { WaAudioPlayer } from "./WaAudioPlayer";
 
 const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: string; label: string }> = {
   pending: { icon: Clock, className: "text-muted-foreground/50", label: "Enviando..." },
@@ -247,9 +248,7 @@ export function WaMessageBubble({
           {/* AUDIO */}
           {msg.message_type === "audio" && (
             msg.media_url ? (
-              <audio controls preload="metadata" className="max-w-[240px] h-10" src={msg.media_url}>
-                Seu navegador não suporta áudio.
-              </audio>
+              <WaAudioPlayer src={msg.media_url} />
             ) : renderMediaPlaceholder("áudio")
           )}
 
