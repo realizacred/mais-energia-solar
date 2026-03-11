@@ -621,6 +621,21 @@ w-full    flex-1    min-w-0    p-4 md:p-6
 NUNCA usar `variant="outline"` em botão de ação principal.
 NUNCA usar `<button>` HTML nativo — sempre `Button` de `@/components/ui/button`.
 
+### Dois botões no mesmo modal (mesma hierarquia)
+Quando há 2 opções de escolha no mesmo nível:
+- Primeira opção: `variant="default"` (primário)
+- Segunda opção: `variant="outline" className="border-primary text-primary hover:bg-primary/10"`
+- NUNCA dois botões `variant="default"` lado a lado
+
+### Botão de remover/deletar
+NUNCA usar `bg-destructive` sólido escuro.
+SEMPRE usar:
+```tsx
+<Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
+  Remover
+</Button>
+```
+
 ### Botões dentro de cards e fundos coloridos
 - Botão dentro de card laranja ou fundo primário: `variant="outline" className="bg-background"`
 - Botão de ação rápida dentro de kanban card: `variant="ghost" size="sm"`
@@ -628,11 +643,16 @@ NUNCA usar `<button>` HTML nativo — sempre `Button` de `@/components/ui/button
 - NUNCA usar `variant="default"` dentro de elemento com fundo laranja/primário
 
 ### Toggle de Visualização (Grid/Lista)
-- Usar `Button variant="ghost" size="icon"` com `aria-label`
-- Item ativo: `className="bg-primary/10 text-primary"`
-- Item inativo: sem classe extra (herda ghost)
+- Usar `ToggleGroup` do shadcn/ui
+- Item ativo: `bg-primary/10 text-primary border-primary`
+- Item inativo: `variant="outline"`
 - NUNCA usar `border-orange` ou cores hardcoded
-- NUNCA usar `<button>` HTML nativo — sempre `Button` do shadcn
+- NUNCA usar `<button>` HTML nativo — sempre componentes do shadcn
+
+### Botão sempre deve ter texto visível
+- NUNCA deixar botão sem texto ou ícone visível
+- Se condicional, usar `hidden` em vez de render vazio
+- Botões apenas com ícone DEVEM ter `aria-label`
 
 ---
 
