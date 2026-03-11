@@ -166,6 +166,7 @@ export async function renderProposal(
 ): Promise<RenderProposalResult> {
   const { data, error } = await supabase.functions.invoke("proposal-render", {
     body: { versao_id: versaoId },
+    headers: { "x-client-timeout": "120" },
   });
 
   if (error) {
