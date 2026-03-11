@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.14.3",
+    date: "2026-03-11",
+    title: "Substituição robusta de placeholders em templates DOCX",
+    type: "bugfix",
+    description: "Reescrita completa do motor de substituição de variáveis DOCX para lidar com qualquer forma de fragmentação de runs pelo Word.",
+    details: [
+      "Nova função normalizeParagraphRuns() mescla runs fragmentados parágrafo a parágrafo",
+      "Corrige placeholders divididos como ['[', 'responsavel_nome]'], ['[inversor_fabricante_1', ']'], etc.",
+      "Preserva formatação (bold, italic) do primeiro run do grupo mesclado",
+      "7 testes unitários cobrindo todos os cenários de fragmentação",
+      "Removida a antiga replaceSplitPlaceholders() que falhava em casos de quebra complexa",
+    ],
+  },
+  {
     version: "2.14.2",
     date: "2026-03-11",
     title: "Variáveis nulas não quebram mais a geração de PDF/HTML",
