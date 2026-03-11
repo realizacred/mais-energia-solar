@@ -424,7 +424,8 @@ function ProjetoDetalheContent() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
             <Button
-              variant="destructive"
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/10"
               disabled={!lossMotivo || lossSaving}
               onClick={handleConfirmLoss}
             >

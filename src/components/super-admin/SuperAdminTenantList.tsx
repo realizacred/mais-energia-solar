@@ -375,7 +375,7 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
           <div><Label>Motivo</Label><Textarea value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} rows={3} /></div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleSoftDelete} disabled={deleting}>
+            <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={handleSoftDelete} disabled={deleting}>
               {deleting ? "Excluindo..." : "Confirmar Exclusão"}
             </Button>
           </DialogFooter>
