@@ -33,6 +33,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "AGENTS.md §30 atualizado com regra definitiva",
     ],
   },
+  {
     version: "2.16.0",
     date: "2026-03-11",
     title: "Reorganização de seções do menu lateral",
