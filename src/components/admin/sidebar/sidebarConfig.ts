@@ -310,6 +310,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "monitoramento/integracoes", title: "Integrações Monitoramento", icon: Plug, description: "Provedores de monitoramento", keywords: ["provider", "solarman", "solaredge"] },
       { id: "solarmarket-config", title: "SolarMarket Config", icon: Sun, description: "API Key para cotações", keywords: ["solarmarket", "cotação", "api"], separator: true },
       { id: "solarmarket", title: "SolarMarket Importação", icon: Sun, description: "Importar clientes e projetos", keywords: ["solarmarket", "importar", "cliente"] },
+      { id: "saude-tarifaria", title: "Saúde Tarifária", icon: Activity, description: "Alertas e governança", keywords: ["saúde", "alerta", "vigência", "governança"], separator: true },
+      { id: "aneel-sync-status", title: "Status Sync ANEEL", icon: Zap, description: "Monitoramento do sync", keywords: ["sync", "aneel", "status", "log"] },
     ],
   },
 
