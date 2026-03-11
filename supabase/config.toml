@@ -261,3 +261,12 @@ verify_jwt = false
 
 [functions.tuya-proxy]
 verify_jwt = false
+
+[functions.send-wa-presence]
+verify_jwt = false
+
+[functions.create-wa-instance]
+verify_jwt = false
+
+[functions.get-wa-qrcode]
+verify_jwt = false
