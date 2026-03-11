@@ -261,6 +261,7 @@ export function useWizardPersistence() {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
       return null;
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, []);
