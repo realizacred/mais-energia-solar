@@ -330,6 +330,11 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"], separator: true },
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"] },
       { id: "whatsapp", title: "Automação WhatsApp", icon: Bot, description: "Respostas automáticas e boas-vindas", keywords: ["API", "automação", "webhook", "bot"] },
+      { id: "monitoramento/integracoes", title: "Integrações Monitoramento", icon: Plug, description: "Provedores de monitoramento", keywords: ["provider", "solarman", "solaredge"], separator: true },
+      { id: "solarmarket-config", title: "SolarMarket Config", icon: Sun, description: "API Key para cotações", keywords: ["solarmarket", "cotação", "api"] },
+      { id: "medidores", title: "Medidores", icon: Gauge, description: "Dispositivos IoT de medição", keywords: ["medidor", "meter", "tuya", "IoT", "smart meter"] },
+      { id: "google-maps-config", title: "Google Maps", icon: MapPin, description: "API Key para mapas", keywords: ["google", "maps", "mapa", "api"] },
+      { id: "instagram", title: "Instagram", icon: Instagram, description: "Conexão e sincronização do feed", keywords: ["instagram", "post", "rede social", "feed"] },
     ],
   },
 
