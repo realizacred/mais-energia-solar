@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, AlertTriangle, XCircle, Loader2, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -46,7 +47,13 @@ export function ReadinessGate({ onStatusChange }: { onStatusChange?: (canIssue: 
 
   const overallBg = data?.overall === "green" ? "bg-success/10 border-success/30" : data?.overall === "yellow" ? "bg-warning/10 border-warning/30" : "bg-destructive/10 border-destructive/30";
 
-  if (loading) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  if (loading) return (
+    <div className="space-y-4 p-6">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-3/4" />
+    </div>
+  );
 
   return (
     <div className="space-y-3">
