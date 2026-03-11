@@ -309,13 +309,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               </button>
             ))}
             <Button
+              variant="outline"
               onClick={() => { setTab("manual"); setShowChoiceModal(true); }}
-              className={cn(
-                "px-5 py-2.5 text-sm font-medium border-b-2 transition-colors",
-                tab === "manual"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
+              className="gap-2 border-primary text-primary hover:bg-primary/10"
             >
               + Criar manualmente
             </Button>
