@@ -267,20 +267,24 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
             {/* View mode toggle */}
             <div className="flex items-center gap-1 border-l border-border/40 pl-3">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Resumido"
                 onClick={() => setViewMode("resumido")}
-                className={cn("p-1.5 rounded", viewMode === "resumido" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
-                title="Resumido"
+                className={cn("h-8 w-8", viewMode === "resumido" && "bg-primary/10 text-primary")}
               >
                 <SlidersHorizontal className="h-4 w-4" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Detalhado"
                 onClick={() => setViewMode("detalhado")}
-                className={cn("p-1.5 rounded", viewMode === "detalhado" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
-                title="Detalhado"
+                className={cn("h-8 w-8", viewMode === "detalhado" && "bg-primary/10 text-primary")}
               >
                 <List className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
