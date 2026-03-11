@@ -264,7 +264,7 @@ export function IntegrationProviderDrawer({
               <div className="rounded-lg border border-border/50 p-4 space-y-3">
                 <h4 className="text-sm font-semibold">Status da Conexão</h4>
                 <div className="flex items-center gap-2">
-                  <div className={cn("w-3 h-3 rounded-full", isConnected ? "bg-emerald-500" : "bg-muted-foreground")} />
+                  <div className={cn("w-3 h-3 rounded-full", isConnected ? "bg-success" : "bg-muted-foreground")} />
                   <span className="text-sm">{isConnected ? "Conectado" : "Não configurado"}</span>
                 </div>
                 {isConnected && (
