@@ -864,3 +864,37 @@ Exemplo:
 ```
 
 NUNCA esquecer de atualizar o changelog ao finalizar uma implementação significativa.
+
+---
+
+## 32. RESPONSIVIDADE OBRIGATÓRIA
+
+Todo componente deve funcionar em mobile (320px) e desktop (1920px).
+
+Regras obrigatórias:
+- Grids: SEMPRE `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` (adaptar conforme conteúdo)
+- Texto: NUNCA truncar em mobile sem tooltip
+- Modais: SEMPRE `w-[90vw]` com `max-w` definido
+- Flex containers com itens que podem crescer: SEMPRE `flex-wrap`
+- NUNCA width fixa em px para containers de conteúdo
+- Botões em mobile: `min-h-[44px]` (touch target mínimo)
+- Tabelas em mobile: `overflow-x-auto` no container pai
+
+```tsx
+// Grid responsivo padrão
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+
+// Flex responsivo com wrap
+<div className="flex flex-wrap items-center gap-2">
+
+// Tabela responsiva
+<div className="rounded-lg border border-border overflow-x-auto">
+  <Table>...</Table>
+</div>
+
+// Botão touch-friendly em mobile
+<Button className="min-h-[44px] sm:min-h-0">Ação</Button>
+```
+
+NUNCA usar `w-[400px]`, `w-[500px]` ou qualquer largura fixa em containers de conteúdo.
+SEMPRE testar visualmente em 320px e 1920px.
