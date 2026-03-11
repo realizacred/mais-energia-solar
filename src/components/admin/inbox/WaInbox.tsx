@@ -581,7 +581,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   };
 
   return (
-    <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "space-y-4"}`} data-wa-inbox-active>
+    <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "flex flex-col h-full space-y-4"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
         <WaInboxHeader
@@ -634,10 +634,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
       {/* Chat Layout */}
       <div
-        className={`bg-card rounded-xl border border-border/40 shadow-sm ${
-          vendorMode ? "flex-1 min-h-0" : ""
-        }`}
-        style={vendorMode ? undefined : { height: "calc(100vh - 300px)", minHeight: "500px" }}
+        className="bg-card rounded-xl border border-border/40 shadow-sm flex-1 min-h-0"
       >
         <div className="flex h-full min-w-0 w-full max-w-full overflow-x-hidden">
           {/* Sidebar - Conversations (Desktop) */}
