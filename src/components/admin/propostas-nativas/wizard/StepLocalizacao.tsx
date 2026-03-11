@@ -789,8 +789,8 @@ export function StepLocalizacao({
                     Snapshot {snapshotPreviewIdx + 1} de {mapSnapshots.length}
                   </span>
                   <Button
-                    variant="destructive" size="sm"
-                    className="h-7 text-xs gap-1"
+                    variant="outline" size="sm"
+                    className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10"
                     onClick={() => {
                       const updated = mapSnapshots.filter((_, i) => i !== snapshotPreviewIdx);
                       setMapSnapshots(updated);
