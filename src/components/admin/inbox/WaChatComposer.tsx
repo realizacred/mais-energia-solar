@@ -388,6 +388,17 @@ export function WaChatComposer({
 
   const busy = isSending || isUploading;
 
+  if (readOnly) {
+    return (
+      <div className="p-3 border-t border-border/30 bg-muted/50 shadow-[0_-1px_3px_0_rgb(0_0_0/0.03)]">
+        <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+          <Lock className="h-4 w-4" />
+          <span>{readOnlyReason || "Você não pode enviar mensagens nesta conversa"}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="p-3 border-t border-border/30 bg-card shadow-[0_-1px_3px_0_rgb(0_0_0/0.03)]"
