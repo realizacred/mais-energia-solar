@@ -84,6 +84,10 @@ interface WaChatComposerProps {
   prefillMessage?: string | null;
   readOnly?: boolean;
   readOnlyReason?: string;
+  /** Instance ID for presence signals */
+  instanceId?: string;
+  /** Remote JID (phone number) for presence signals */
+  remoteJid?: string;
 }
 
 export function WaChatComposer({
