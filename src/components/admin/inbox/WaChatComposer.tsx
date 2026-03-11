@@ -82,6 +82,8 @@ interface WaChatComposerProps {
   replyingTo?: ReplyingTo | null;
   onCancelReply?: () => void;
   prefillMessage?: string | null;
+  readOnly?: boolean;
+  readOnlyReason?: string;
 }
 
 export function WaChatComposer({
