@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.14.7",
+    date: "2026-03-11",
+    title: "WhatsApp: bloqueio de digitação para não-responsável",
+    type: "bugfix",
+    description: "Corrigido bug onde qualquer usuário podia digitar em conversas atribuídas a outro atendente.",
+    details: [
+      "Composer fica em modo somente-leitura quando a conversa está atribuída a outro usuário",
+      "Admins continuam podendo enviar mensagens em qualquer conversa",
+      "Exibe nome do atendente responsável quando bloqueado",
+    ],
+  },
+  {
     version: "2.14.6",
     date: "2026-03-11",
     title: "WhatsApp: envio de áudio e mensagens mais rápido",
