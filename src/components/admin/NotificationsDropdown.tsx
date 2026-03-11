@@ -53,9 +53,10 @@ export function NotificationsDropdown() {
             <p className="text-xs text-muted-foreground">Carregando...</p>
           </div>
         ) : notifications.length === 0 ? (
-          <div className="py-6 text-center">
-            <Bell className="h-5 w-5 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">Nenhuma notificação</p>
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
+            <p className="text-sm font-medium text-muted-foreground">Nenhuma notificação</p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">Você está em dia!</p>
           </div>
         ) : (
           <ScrollArea className="max-h-80">
