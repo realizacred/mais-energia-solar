@@ -88,8 +88,15 @@ interface PersistenceParams {
 
 export function useWizardPersistence() {
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const saveDraft = useCallback(async (params: PersistenceParams) => {
+    // Guard against concurrent saves (double-click / rapid calls)
+    if (savingRef.current) {
+      console.warn("[saveDraft] Already saving, ignoring concurrent call");
+      return null;
+    }
+    savingRef.current = true;
     setSaving(true);
     try {
       let propostaId = params.propostaId;
