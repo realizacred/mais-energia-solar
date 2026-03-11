@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.14.6",
+    date: "2026-03-11",
+    title: "WhatsApp: envio de áudio e mensagens mais rápido",
+    type: "bugfix",
+    description: "Corrigido lentidão no envio de mídia e erro silencioso que deixava mensagens 'pendentes' para sempre.",
+    details: [
+      "Import estático de storagePaths elimina latência de dynamic import a cada envio",
+      "Erro no enqueue do outbox agora propaga para o usuário em vez de ser engolido silenciosamente",
+      "Mensagem é marcada como 'failed' se o enqueue falhar, permitindo retry",
+      "Atualização de preview da conversa agora é fire-and-forget (não bloqueia o envio)",
+      "handleSendMedia convertido para useCallback para evitar re-renders desnecessários",
+    ],
+  },
+  {
     version: "2.14.5",
     date: "2026-03-11",
     title: "Edição de proposta agora restaura todos os dados corretamente",

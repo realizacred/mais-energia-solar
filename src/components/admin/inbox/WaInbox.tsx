@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { MessageCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferenc
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useToast } from "@/hooks/use-toast";
+import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 import { useWaSlaAlerts } from "@/hooks/useWaSlaAlerts";
 import { WaConversationList } from "./WaConversationList";
 import { WaChatPanel } from "./WaChatPanel";
@@ -395,16 +396,13 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     await sendMessage({ content, isInternalNote: isNote, quotedMessageId });
   };
 
-  const handleSendMedia = async (file: File, caption?: string) => {
+  const handleSendMedia = useCallback(async (file: File, caption?: string) => {
     if (!selectedConv) return;
     try {
-      
-      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
       const tid = await getCurrentTenantId();
       if (!tid) throw new Error("Tenant não encontrado");
       const ext = file.name.split(".").pop() || "bin";
       const filePath = tenantPath(tid, selectedConv.id, `${Date.now()}.${ext}`);
-      
       
       const { error: uploadError } = await supabase.storage
         .from("wa-attachments")
@@ -422,7 +420,6 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       else if (file.type.startsWith("video/")) messageType = "video";
       else if (file.type.startsWith("audio/")) messageType = "audio";
       
-      
       await sendMessage({
         content: caption || file.name,
         messageType,
@@ -434,7 +431,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       console.error("[handleSendMedia] Failed:", err);
       toast({ title: "Erro ao enviar arquivo", description: err.message, variant: "destructive" });
     }
-  };
+  }, [selectedConv, sendMessage, toast]);
 
   const handleSendReaction = async (messageId: string, reaction: string) => {
     try {
