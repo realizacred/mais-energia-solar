@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
+import { IntegrationTutorialSection } from "./IntegrationTutorialSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -279,6 +280,13 @@ export default function IntegrationsCatalogPage() {
           <ArrowLeft className="h-4 w-4" />
           Voltar ao catálogo
         </Button>
+        {/* Tutorial from DB if available */}
+        {inlineProvider.tutorial && (
+          <IntegrationTutorialSection
+            tutorial={inlineProvider.tutorial}
+            providerLabel={inlineProvider.label}
+          />
+        )}
         <Suspense fallback={<LoadingState message={`Carregando ${inlineProvider.label}…`} />}>
           <InlineComponent />
         </Suspense>
