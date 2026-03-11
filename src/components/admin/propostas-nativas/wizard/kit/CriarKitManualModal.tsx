@@ -749,7 +749,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <div className="flex items-center gap-2">
                       <Input value={c.nome} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, nome: e.target.value } : x))} className="h-7 text-xs flex-1" placeholder="Nome do componente" />
                       <Input type="number" min="0" value={c.quantidade || ""} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs w-16" placeholder="0" />
-                      <Button onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])} className="text-[11px] text-primary font-medium hover:underline whitespace-nowrap">
+                      <Button variant="ghost" size="sm" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])} className="text-[11px] text-primary font-medium h-6 whitespace-nowrap">
                         + Adicionar mais
                       </Button>
                     </div>
