@@ -247,9 +247,7 @@ export function WaMessageBubble({
           {/* AUDIO */}
           {msg.message_type === "audio" && (
             msg.media_url ? (
-              <audio controls preload="metadata" className="max-w-[240px] h-10" src={msg.media_url}>
-                Seu navegador não suporta áudio.
-              </audio>
+              <WaAudioPlayer src={msg.media_url} />
             ) : renderMediaPlaceholder("áudio")
           )}
 
