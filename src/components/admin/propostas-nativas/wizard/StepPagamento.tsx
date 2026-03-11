@@ -338,11 +338,12 @@ export function StepPagamento({
           {/* Sidebar - Banks */}
           <div className="space-y-1">
             {bancoGroups.map((g, idx) => (
-              <button
+              <Button
                 key={g.banco.id}
+                variant="ghost"
                 onClick={() => setSelectedBancoIdx(idx)}
                 className={cn(
-                  "w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center justify-between transition-colors",
+                  "w-full justify-between px-3 py-2.5 h-auto text-sm transition-colors",
                   selectedBancoIdx === idx
                     ? "bg-primary/10 text-primary border border-primary/30 font-semibold"
                     : "hover:bg-muted/50 text-muted-foreground border border-transparent"
@@ -353,7 +354,7 @@ export function StepPagamento({
                   {g.banco.nome}
                 </span>
                 <Badge variant="outline" className="text-[10px] h-5 px-1.5">{g.opcoes.length}</Badge>
-              </button>
+              </Button>
             ))}
             <Button variant="default" size="sm" className="w-full text-sm text-primary gap-1 mt-2 h-9" onClick={() => setShowNovoFinanciamento(true)}>
               <Plus className="h-3.5 w-3.5" /> Novo financiamento
