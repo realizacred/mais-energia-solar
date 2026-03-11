@@ -135,7 +135,7 @@ function SidebarItemButton({
 
         {/* Star button — visible on hover */}
         {!collapsed && (
-          <Button variant="destructive"
+          <Button variant="ghost"
             type="button"
             onClick={(e) => {
               e.stopPropagation();

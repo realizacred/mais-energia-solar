@@ -137,7 +137,7 @@ export function GoogleContactsCard() {
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" disabled={isDisconnecting}>
+                      <Button variant="outline" size="sm" disabled={isDisconnecting} className="border-destructive text-destructive hover:bg-destructive/10">
                         {isDisconnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Unplug className="mr-2 h-4 w-4" />}
                         Desconectar
                       </Button>

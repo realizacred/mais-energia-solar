@@ -268,7 +268,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
               </>
             ) : (
               <>
-                <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(true)}>
+                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(true)} className="border-destructive text-destructive hover:bg-destructive/10">
                   <Trash2 className="h-4 w-4 mr-1" /> Excluir
                 </Button>
                 <Button variant="outline" onClick={startEdit}>
