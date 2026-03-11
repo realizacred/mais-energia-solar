@@ -169,8 +169,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "metricas-atendimento", title: "Métricas de Atendimento", icon: BarChart3, description: "Performance por consultor", keywords: ["métricas", "performance", "tempo", "resposta"] },
       { id: "regras-retorno", title: "Regras de Retorno", icon: RotateCcw, description: "Regras de retorno automático", keywords: ["retorno", "regra", "automático"] },
       { id: "followup-wa-queue", title: "Fila de Retorno", icon: CalendarClock, description: "Fila de retornos pendentes", keywords: ["retorno", "fila", "pendente"] },
-      { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"], separator: true },
-      { id: "whatsapp", title: "Automação WhatsApp", icon: Bot, description: "Respostas automáticas e boas-vindas", keywords: ["API", "automação", "webhook", "bot"] },
       { id: "wa-etiquetas", title: "Etiquetas WhatsApp", icon: Tag, description: "Tags para conversas", keywords: ["tag", "etiqueta", "classificação", "organizar"] },
       { id: "respostas-rapidas", title: "Respostas Rápidas", icon: Sparkles, description: "Templates de mensagens", keywords: ["template", "atalho", "mensagem", "rápida"] },
     ],
