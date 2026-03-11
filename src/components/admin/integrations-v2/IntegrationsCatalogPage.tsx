@@ -434,9 +434,9 @@ export default function IntegrationsCatalogPage() {
                     <div>
                       {isMonitoringView && (monitoringFunctional.length > 0 || monitoringStub.length > 0) && (
                         <div className="flex items-center gap-2 mb-4">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                          <CheckCircle2 className="h-5 w-5 text-success" />
                           <h3 className="text-sm font-semibold text-foreground">Disponíveis agora</h3>
-                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                          <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">
                             {monitoringFunctional.length}
                           </Badge>
                         </div>
