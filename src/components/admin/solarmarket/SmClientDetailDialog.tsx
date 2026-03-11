@@ -290,7 +290,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="border-destructive text-destructive hover:bg-destructive/10 border bg-transparent">
               {deleting && <Spinner size="sm" className="mr-1" />}
               Excluir
             </AlertDialogAction>

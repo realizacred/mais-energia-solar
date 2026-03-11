@@ -40,7 +40,7 @@ export function OrcamentoDeleteDialog({
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="border-destructive text-destructive hover:bg-destructive/10 border bg-transparent"
           >
             Excluir
           </AlertDialogAction>
