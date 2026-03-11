@@ -69,7 +69,7 @@ export function TuyaTutorial() {
       <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-orange-500" />
+            <BookOpen className="w-4 h-4 text-primary" />
             Como integrar com a Tuya
           </CardTitle>
           <Button variant="ghost" size="icon" className="h-7 w-7">
