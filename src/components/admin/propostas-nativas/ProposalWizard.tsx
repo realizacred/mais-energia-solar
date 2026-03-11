@@ -1578,7 +1578,7 @@ export function ProposalWizard() {
                 snapshot={collectSnapshot()}
                 propostaId={savedPropostaId}
                 versaoId={savedVersaoId}
-                projetoId={projectContext?.dealId || null}
+                projetoId={savedProjetoId || null}
                 dealId={resolvedDealId || dealIdFromUrl || null}
                 clienteId={customerIdFromUrl || null}
                 leadId={selectedLead?.id || leadIdFromUrl || null}
