@@ -79,9 +79,7 @@ export function WaMediaPreview({ mediaPreview, onClose }: WaMediaPreviewProps) {
                 <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
                   <span className="text-3xl">🎵</span>
                 </div>
-                <audio controls autoPlay className="w-80">
-                  <source src={mediaPreview!.url} />
-                </audio>
+                <WaAudioPlayer src={mediaPreview!.url} className="min-w-[280px] max-w-[320px]" />
               </div>
             )}
             {isDocument && isPdf && (
