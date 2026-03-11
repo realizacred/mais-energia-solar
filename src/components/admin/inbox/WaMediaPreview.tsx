@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WaAudioPlayer } from "./WaAudioPlayer";
 import { X, Download, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
