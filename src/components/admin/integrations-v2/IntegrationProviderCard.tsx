@@ -131,7 +131,7 @@ export function IntegrationProviderCard({
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-3 py-2 px-3 rounded-lg bg-muted/40">
           {plantCount > 0 && (
             <span className="flex items-center gap-1 font-medium">
-              <Zap className="h-3 w-3 text-amber-500" />
+              <Zap className="h-3 w-3 text-warning" />
               {plantCount} usina{plantCount > 1 ? "s" : ""}
             </span>
           )}
