@@ -812,11 +812,13 @@ Telas que usam esse padrão: Monitoramento Solar, Recebimentos e qualquer tela c
 O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.ts` é a Fonte Única de Verdade (SSOT).
 
 **Regras de classificação:**
-- **INTEGRAÇÕES** = conexões externas (API, OAuth, webhook, instâncias)
+- **INTEGRAÇÕES** = configurar conexão externa (API, OAuth, webhook, instâncias, API keys, sincronização de feeds)
 - **ATENDIMENTO** = usar funcionalidades já conectadas (inbox, filas, regras, métricas)
 - **CLIENTES** = dados do cliente (cadastro, avaliações, documentos)
 - **OPERAÇÕES** = execução e checklists operacionais (instaladores, estoque, validação, checklists de projeto, agenda de serviços)
-- **ENERGIA** = tudo relacionado a energia, tarifas, monitoramento e sincronização ANEEL
+- **ENERGIA** = usar/monitorar dados de energia, tarifas e sincronização ANEEL (não configurar conexões)
+
+**Princípio:** "Configurar conexão externa = INTEGRAÇÕES. Usar/monitorar dados = área funcional."
 
 1. **PAINEL** — Painel Geral, Performance
 2. **COMERCIAL** — Leads, Pipeline, Projetos, Acompanhamentos, Distribuição de Leads, SLA & Breaches, Inteligência Comercial, Aprovações
@@ -827,12 +829,12 @@ O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.t
 7. **FINANCEIRO** — Recebimentos, Inadimplência, Comissões, Fiscal, Financiamentos, Premissas Fiscais, Política de Preços
 8. **EQUIPE** — Consultores, Gamificação
 9. **IA** — Copilot IA, Configuração de IA
-10. **ENERGIA** — Unidades Consumidoras, Medidores, Monitoramento Solar, Usinas, Alertas, Relatórios, Integrações Monitoramento, SolarMarket Config, SolarMarket Importação, Saúde Tarifária, Status Sync ANEEL
-11. **INTEGRAÇÕES** — Catálogo de Integrações, Saúde das Integrações, Meta Ads Dashboard, Webhooks, Instâncias WhatsApp, Automação WhatsApp
-12. **SITE** — Conteúdo & Visual, Serviços, Portfólio, Instagram
+10. **ENERGIA** — Unidades Consumidoras, Monitoramento Solar, Usinas, Alertas, Relatórios, SolarMarket Importação, Saúde Tarifária, Status Sync ANEEL
+11. **INTEGRAÇÕES** — Catálogo de Integrações, Saúde das Integrações, Meta Ads Dashboard, Webhooks, Instâncias WhatsApp, Automação WhatsApp, Integrações Monitoramento, SolarMarket Config, Medidores, Google Maps, Instagram
+12. **SITE** — Conteúdo & Visual, Serviços, Portfólio
 13. **CADASTROS** — Disjuntores & Transf., Módulos Fotovoltaicos, Inversores, Baterias, Fornecedores, Concessionárias, Dicionário ANEEL, Versões de Tarifa, Premissas, Base Meteorológica
 14. **CONFIGURAÇÕES** — Calculadora Solar, Status de Leads, Motivos de Perda, Loading & Mensagens
-15. **ADMINISTRAÇÃO** — Empresa, Usuários & Permissões, Permissões por Papel, Auditoria, Notificações, Links & Captação, Google Maps, Release Notes, Atualizações, Personalizar Menus, Limpeza de Dados
+15. **ADMINISTRAÇÃO** — Empresa, Usuários & Permissões, Permissões por Papel, Auditoria, Notificações, Links & Captação, Release Notes, Atualizações, Personalizar Menus, Limpeza de Dados
 
 ---
 

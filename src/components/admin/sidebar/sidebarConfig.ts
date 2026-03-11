@@ -418,7 +418,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações", keywords: ["log", "auditoria", "histórico", "alteração"] },
       { id: "notificacoes-config", title: "Notificações", icon: Bell, description: "Configurar notificações", keywords: ["notificação", "push", "alerta", "configurar"], separator: true },
       { id: "links-instalacao", title: "Links & Captação", icon: Smartphone, description: "Links de captação e QR Codes", keywords: ["PWA", "link", "instalação", "app", "captação", "qr"] },
-      { id: "google-maps-config", title: "Google Maps", icon: MapPin, description: "API Key para mapas", keywords: ["google", "maps", "mapa", "api"] },
       { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade"] },
       { id: "changelog", title: "Atualizações", icon: HistoryIcon, description: "Histórico de atualizações", keywords: ["changelog", "atualização", "novidade", "versão"] },
       { id: "menus", title: "Personalizar Menus", icon: LayoutList, description: "Reorganizar itens do menu", keywords: ["menu", "sidebar", "organizar", "personalizar"] },
