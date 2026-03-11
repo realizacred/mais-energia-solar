@@ -223,7 +223,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
           </TooltipProvider>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="text-muted-foreground hover:text-foreground p-0.5"><MoreVertical className="h-3.5 w-3.5" /></button>
+              <Button variant="ghost" size="icon" className="h-auto w-auto p-0.5 text-muted-foreground hover:text-foreground"><MoreVertical className="h-3.5 w-3.5" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem onClick={() => { setTempName(uc.nome); setEditingName(true); }}>
