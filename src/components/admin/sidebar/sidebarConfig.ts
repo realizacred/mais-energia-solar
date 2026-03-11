@@ -329,6 +329,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "saude-integracoes", title: "Saúde das Integrações", icon: Activity, description: "Status de conexões externas", keywords: ["saúde", "health", "status", "integração"] },
       { id: "meta-dashboard", title: "Meta Ads Dashboard", icon: BarChart3, description: "Métricas de campanhas Meta/Facebook", keywords: ["meta", "facebook", "ads", "campanha", "anúncio"] },
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"], separator: true },
+      { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"] },
+      { id: "whatsapp", title: "Automação WhatsApp", icon: Bot, description: "Respostas automáticas e boas-vindas", keywords: ["API", "automação", "webhook", "bot"] },
     ],
   },
 
