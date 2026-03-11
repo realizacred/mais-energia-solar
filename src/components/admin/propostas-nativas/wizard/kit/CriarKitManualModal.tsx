@@ -670,10 +670,10 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Otimizadores (only when topologia = Otimizador) */}
             {showOtimizadores && otimizadorEntries.map((ot, idx) => (
-              <div key={ot.id} className="rounded-lg border-2 border-warning/20 bg-warning/5 p-3 space-y-2">
+              <div key={ot.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-warning flex items-center gap-1.5">
-                    <Zap className="h-3 w-3" /> Otimizador *
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Zap className="h-3 w-3 text-primary" /> Otimizador *
                   </Label>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setOtimizadorEntries(p => p.filter(x => x.id !== ot.id))}>
                     <Trash2 className="h-3 w-3" />
