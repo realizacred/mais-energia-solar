@@ -100,7 +100,7 @@ export function IntegrationProviderCard({
         <div className={cn(
           "flex items-center justify-center w-14 h-14 rounded-xl transition-all duration-300",
           isConnected
-            ? "bg-emerald-500/10 group-hover:bg-emerald-500/15"
+            ? "bg-success/10 group-hover:bg-success/15"
             : "bg-muted/50 group-hover:bg-muted/70",
         )}>
           {iconUrl ? (
