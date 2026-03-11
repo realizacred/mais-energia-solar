@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.18.0",
+    date: "2026-03-11",
+    title: "Navegação mobile do portal do consultor",
+    type: "feature",
+    description: "Bottom navigation bar e atalhos de navegação rápida para resolver problemas críticos de UX no portal do consultor em dispositivos móveis.",
+    details: [
+      "Bottom bar fixa com 4 atalhos: Painel, WhatsApp, Orçamentos, Agenda (mobile only)",
+      "Badge de mensagens não lidas no botão WhatsApp da bottom bar",
+      "Botão 'Voltar' mobile na tela de WhatsApp do consultor",
+      "Botão 'WhatsApp' mobile na tela de Orçamentos",
+      "Padding inferior no conteúdo para não ficar atrás da bottom bar",
+    ],
+  },
+  {
     version: "2.17.0",
     date: "2026-03-11",
     title: "Conexões externas centralizadas em Integrações",

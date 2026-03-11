@@ -7,6 +7,8 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { VendorSidebar, VENDOR_TAB_TITLES } from "@/components/vendor/sidebar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
+import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 // Lazy load sub-pages
@@ -39,6 +41,15 @@ export default function VendedorPortal() {
     const unseenCount = portal.orcamentos.filter((o) => !o.visto).length;
     return { orcamentos: unseenCount };
   }, [portal.orcamentos]);
+
+  // Read WA unread count from existing react-query cache (populated by WaNotificationProvider)
+  const queryClient = useQueryClient();
+  const waUnreadCount = useMemo(() => {
+    const data = queryClient.getQueryData<Array<{ unread_for_user: number }>>(
+      ["wa-notification-poll", user?.id]
+    );
+    return data?.reduce((sum, c) => sum + c.unread_for_user, 0) ?? 0;
+  }, [queryClient, user?.id, activeTab]); // re-check on tab change
 
   if (authLoading || portal.loading) {
     return (
@@ -73,7 +84,7 @@ export default function VendedorPortal() {
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6 space-y-5 overflow-x-hidden animate-fade-in">
+          <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 space-y-5 overflow-x-hidden animate-fade-in">
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
                 <Route index element={<Navigate to={dashboardRedirect} replace />} />
@@ -110,6 +121,11 @@ export default function VendedorPortal() {
             </Suspense>
           </main>
         </SidebarInset>
+
+        <VendorBottomNav
+          unreadWhatsApp={waUnreadCount}
+          badgeOrcamentos={badgeCounts.orcamentos}
+        />
       </div>
     </SidebarProvider>
   );

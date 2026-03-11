@@ -1,3 +1,6 @@
+import { useNavigate } from "react-router-dom";
+import { MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { VendorFollowUpManager } from "@/components/vendor/VendorFollowUpManager";
 import { VendorPendingDocumentation } from "@/components/vendor/VendorPendingDocumentation";
@@ -51,8 +54,21 @@ export default function VendorOrcamentosView({ portal }: Props) {
     orcamentoToLead,
   } = portal;
 
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      <div className="flex md:hidden justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 min-h-[44px]"
+          onClick={() => navigate("/consultor/whatsapp")}
+        >
+          <MessageCircle className="h-4 w-4" />
+          WhatsApp
+        </Button>
+      </div>
       <VendorFollowUpManager
         leads={leadsForAlerts}
         diasAlerta={3}
