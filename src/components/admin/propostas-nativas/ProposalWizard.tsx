@@ -562,6 +562,7 @@ export function ProposalWizard() {
         if (res) {
           setSavedPropostaId(res.propostaId);
           setSavedVersaoId(res.versaoId);
+          if (res.projetoId) setSavedProjetoId(res.projetoId);
           if (setActive) {
             await updateProposal({
               propostaId: res.propostaId,
