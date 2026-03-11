@@ -277,7 +277,22 @@ export function WaChatComposer({
       setSlashActive(false);
       setSlashQuery("");
     }
-  }, []);
+
+    // Presence: send "composing" with debounce (max once per 2s)
+    if (val.trim() && instanceId && remoteJid && !isNoteMode) {
+      const now = Date.now();
+      if (now - lastPresenceSentRef.current > 2000) {
+        lastPresenceSentRef.current = now;
+        sendPresence("composing");
+      }
+
+      // Reset pause timer — send "paused" after 3s of inactivity
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = setTimeout(() => {
+        sendPresence("paused");
+      }, 3000);
+    }
+  }, [instanceId, remoteJid, isNoteMode, sendPresence]);
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
