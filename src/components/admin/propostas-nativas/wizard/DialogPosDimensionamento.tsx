@@ -186,22 +186,16 @@ export function DialogPosDimensionamento({
                 try {
                   await onSaveActive();
                   onOpenChange(false);
+                  onConfirm();
                 } catch (err) {
                   console.error("[DialogPos] saveActive error:", err);
                 }
               }}
-              disabled={saving}
+              disabled={hasRequired || saving}
             >
               {saving ? "Salvando..." : "⭐ Salvar como Ativa"}
             </Button>
           )}
-          <Button
-            size="sm"
-            onClick={onConfirm}
-            disabled={hasRequired || saving}
-          >
-            Prosseguir para Proposta
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
