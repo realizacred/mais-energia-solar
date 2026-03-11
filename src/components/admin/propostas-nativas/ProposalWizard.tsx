@@ -244,6 +244,7 @@ export function ProposalWizard() {
   const { saveDraft, updateProposal, saving } = useWizardPersistence();
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
+  const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
 
   const collectSnapshot = useCallback((): WizardSnapshot => ({
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
