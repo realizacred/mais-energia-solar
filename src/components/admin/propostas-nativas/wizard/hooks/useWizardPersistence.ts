@@ -267,6 +267,11 @@ export function useWizardPersistence() {
   }, []);
 
   const updateProposal = useCallback(async (params: PersistenceParams, setActive: boolean) => {
+    if (savingRef.current) {
+      console.warn("[updateProposal] Already saving, ignoring concurrent call");
+      return null;
+    }
+    savingRef.current = true;
     setSaving(true);
     try {
       if (!params.propostaId || !params.versaoId) {
