@@ -96,6 +96,8 @@ export function WaChatComposer({
   replyingTo,
   onCancelReply,
   prefillMessage,
+  readOnly,
+  readOnlyReason,
 }: WaChatComposerProps) {
   const [inputValue, setInputValue] = useState("");
   const [slashActive, setSlashActive] = useState(false);
