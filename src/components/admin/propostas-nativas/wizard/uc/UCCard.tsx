@@ -216,7 +216,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="text-secondary hover:text-secondary/80 p-0.5"><AlertCircle className="h-3.5 w-3.5" /></button>
+                <Button variant="ghost" size="icon" className="h-auto w-auto p-0.5 text-secondary hover:text-secondary/80"><AlertCircle className="h-3.5 w-3.5" /></Button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Informações da UC</p></TooltipContent>
             </Tooltip>
