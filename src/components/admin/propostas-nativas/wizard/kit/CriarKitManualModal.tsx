@@ -727,7 +727,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <span className="text-[10px] text-muted-foreground">Avulso?</span>
                   </div>
                   {idx === otimizadorEntries.length - 1 && (
-                    <Button onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])} className="text-[11px] text-warning font-medium hover:underline">
+                    <Button variant="ghost" size="sm" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])} className="text-[11px] text-primary font-medium h-6">
                       + Adicionar mais
                     </Button>
                   )}
