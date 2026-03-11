@@ -357,7 +357,7 @@ export default function LeadsPipeline() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <TabsList>
             <TabsTrigger value="kanban" className="gap-2">
               <LayoutGrid className="h-4 w-4" /> Kanban
@@ -477,7 +477,7 @@ export default function LeadsPipeline() {
                       return (
                         <div key={lead.id} className="flex items-center justify-between p-2.5 rounded-md border border-border/60 bg-muted/30 gap-3">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">{lead.nome}</p>
+                            <p className="text-sm font-medium truncate" title={lead.nome}>{lead.nome}</p>
                             <p className="text-xs text-muted-foreground">{lead.telefone}{lead.cidade && ` · ${lead.cidade}`}</p>
                           </div>
                           <Badge variant="destructive" className="text-[10px] shrink-0">

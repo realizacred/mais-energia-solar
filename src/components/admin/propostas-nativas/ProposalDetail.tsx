@@ -505,7 +505,7 @@ export function ProposalDetail() {
                 {statusInfo.label}
               </Badge>
             </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-0.5">
               {proposta?.codigo && <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{proposta.codigo}</span>}
               {clienteNome && <span className="flex items-center gap-1"><User className="h-3 w-3" />{clienteNome}</span>}
               {snapshot.locCidade && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{snapshot.locCidade}/{snapshot.locEstado}</span>}
@@ -693,7 +693,7 @@ export function ProposalDetail() {
 
       {/* ══════════ VALIDADE DIALOG ══════════ */}
       <Dialog open={validadeDialogOpen} onOpenChange={setValidadeDialogOpen}>
-        <DialogContent className="max-w-[400px]">
+        <DialogContent className="w-[90vw] max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">Alterar validade da proposta</DialogTitle>
           </DialogHeader>
