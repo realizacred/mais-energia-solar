@@ -463,9 +463,9 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                     return (
                       <Badge key={role} variant="outline" className={`${roleInfo?.color || ""} gap-1`}>
                         {roleInfo?.label || role}
-                        <Button variant="destructive"
+                        <Button variant="ghost" size="icon"
                           onClick={() => handleRemoveRole(role)}
-                          className="ml-1 hover:text-destructive transition-colors"
+                          className="ml-1 h-4 w-4 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
                           title="Remover perfil"
                         >
                           <Trash2 className="w-3 h-3" />
