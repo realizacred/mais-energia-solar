@@ -78,7 +78,7 @@ function StatusDot({ online, size = "sm" }: { online: boolean; size?: "sm" | "md
   return (
     <span
       className={`${s} rounded-full border-2 border-background block ${
-        online ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"
+        online ? "bg-success animate-pulse" : "bg-muted-foreground/40"
       }`}
     />
   );
