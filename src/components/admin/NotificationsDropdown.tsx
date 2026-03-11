@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Bell, UserPlus, MessageCircle, Calendar, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
@@ -41,7 +42,7 @@ export function NotificationsDropdown() {
         <DropdownMenuLabel className="text-xs font-semibold flex items-center justify-between">
           Notificações
           {totalCount > 0 && (
-            <Badge variant="secondary" className="text-[10px] h-5">
+            <Badge className="text-[10px] h-5 bg-primary text-primary-foreground">
               {totalCount}
             </Badge>
           )}
@@ -52,41 +53,51 @@ export function NotificationsDropdown() {
             <p className="text-xs text-muted-foreground">Carregando...</p>
           </div>
         ) : notifications.length === 0 ? (
-          <div className="py-6 text-center">
-            <Bell className="h-5 w-5 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">Nenhuma notificação</p>
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
+            <p className="text-sm font-medium text-muted-foreground">Nenhuma notificação</p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">Você está em dia!</p>
           </div>
         ) : (
-          <ScrollArea className="max-h-80">
-            <div className="py-1">
-              {notifications.map((item) => {
-                const config = TYPE_CONFIG[item.type];
-                const Icon = config.icon;
-                const timeAgo = item.timestamp
-                  ? formatDistanceToNow(new Date(item.timestamp), { addSuffix: true, locale: ptBR })
-                  : "";
+          <>
+            <ScrollArea className="max-h-[400px] overflow-y-auto scroll-smooth">
+              <div className="py-1">
+                {notifications.map((item) => {
+                  const config = TYPE_CONFIG[item.type];
+                  const Icon = config.icon;
+                  const timeAgo = item.timestamp
+                    ? formatDistanceToNow(new Date(item.timestamp), { addSuffix: true, locale: ptBR })
+                    : "";
 
-                return (
-                  <button
-                    key={item.id}
-                    className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-accent/50 transition-colors text-left"
-                    onClick={() => {
-                      if (item.link) navigate(item.link);
-                    }}
-                  >
-                    <div className={`h-7 w-7 rounded-full ${config.bg} flex items-center justify-center shrink-0 mt-0.5`}>
-                      <Icon className={`h-3.5 w-3.5 ${config.color}`} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.description}</p>
-                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">{timeAgo}</p>
-                    </div>
-                  </button>
-                );
-              })}
+                  return (
+                    <Button
+                      key={item.id}
+                      variant="ghost"
+                      className="w-full flex items-start gap-2.5 px-3 py-2 h-auto justify-start text-left rounded-none"
+                      onClick={() => {
+                        if (item.link) navigate(item.link);
+                      }}
+                    >
+                      <div className={`h-7 w-7 rounded-full ${config.bg} flex items-center justify-center shrink-0 mt-0.5`}>
+                        <Icon className={`h-3.5 w-3.5 ${config.color}`} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{item.title}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{item.description}</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">{timeAgo}</p>
+                      </div>
+                    </Button>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+            <Separator />
+            <div className="p-1">
+              <Button variant="ghost" className="w-full text-primary text-xs h-8" onClick={() => navigate("/admin/notificacoes")}>
+                Ver todas as notificações
+              </Button>
             </div>
-          </ScrollArea>
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
