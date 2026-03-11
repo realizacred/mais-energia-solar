@@ -408,7 +408,7 @@ export function InversoresManager() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction className="bg-destructive hover:bg-destructive/90"
+              <AlertDialogAction className="border-destructive text-destructive hover:bg-destructive/10 border bg-transparent"
                 onClick={() => deleting && deleteMutation.mutate(deleting.id)}>
                 Excluir
               </AlertDialogAction>

@@ -71,14 +71,16 @@ function DocThumbnail({ path, onPreview, onRemove }: { path: string; onPreview: 
           <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
         </div>
       </button>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         onClick={onRemove}
-        className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full border-destructive text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm p-0"
         title="Remover"
       >
         <X className="h-3 w-3" />
-      </button>
+      </Button>
     </div>
   );
 }

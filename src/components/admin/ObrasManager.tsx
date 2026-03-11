@@ -669,9 +669,9 @@ export function ObrasManager() {
                   {pendingImages.map((url, idx) => (
                     <div key={idx} className={`relative group rounded-lg overflow-hidden aspect-square border-2 ${idx === 0 ? "border-primary" : "border-border"}`}>
                       <img src={url} alt={`Imagem ${idx + 1}`} className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeImage(idx)} className="absolute top-1 right-1 w-6 h-6 rounded-full border-destructive text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity p-0">
                         <X className="w-3 h-3" />
-                      </button>
+                      </Button>
                       {idx !== 0 && (
                         <button type="button" onClick={() => setAsCover(idx)} className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-foreground/70 text-background text-[9px] rounded font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-foreground/90">
                           Definir capa
