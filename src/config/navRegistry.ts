@@ -143,7 +143,6 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "site-config", label_default: "Conteúdo & Visual", group_default: "Site", order_default: 0, icon: "Globe", description: "Aparência, branding e identidade visual", keywords: ["site", "branding", "cores", "logo", "identidade", "visual"], criticality: "normal", permission: "admin_only" },
   { nav_key: "site-servicos", label_default: "Serviços", group_default: "Site", order_default: 1, icon: "Briefcase", description: "Serviços exibidos na página institucional", keywords: ["serviço", "oferta", "página", "institucional"], criticality: "normal", permission: "admin_only" },
   { nav_key: "obras", label_default: "Portfólio", group_default: "Site", order_default: 2, icon: "Image", description: "Galeria de projetos instalados", keywords: ["obra", "portfólio", "galeria", "projeto", "foto", "instalação"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "instagram", label_default: "Instagram", group_default: "Site", order_default: 3, icon: "Instagram", description: "Sincronizar posts do Instagram", keywords: ["instagram", "post", "rede social", "feed"], criticality: "normal", permission: "admin_only" },
 
   // ── 13. Cadastros ──
   { nav_key: "equipamentos", label_default: "Disjuntores & Transf.", group_default: "Cadastros", order_default: 0, icon: "Package", description: "Equipamentos elétricos de proteção", keywords: ["disjuntor", "transformador", "proteção", "elétrico", "equipamento"], criticality: "normal", permission: "admin_only" },
