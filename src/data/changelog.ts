@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.15.0",
+    date: "2026-03-11",
+    title: "WhatsApp: Digitando... e criação de instância com QR Code",
+    type: "feature",
+    description: "Dois novos recursos para a integração WhatsApp: indicador de digitação (Send Presence) e criação de instâncias com QR Code nativo.",
+    details: [
+      "Digitando...: ao digitar na caixa de texto, envia presença 'composing' para o contato (debounce 2s, pausa após 3s de inatividade)",
+      "Nova edge function send-wa-presence para comunicar presença via Evolution API",
+      "Criação de instância com QR Code: fluxo em 2 passos (formulário → QR Code) com polling automático",
+      "Nova edge function create-wa-instance: cria instância na Evolution API e retorna QR Code",
+      "Nova edge function get-wa-qrcode: consulta status de conexão e retorna QR atualizado",
+      "Timeout de 60s com opção de regenerar QR Code expirado; auto-fechamento ao conectar",
+    ],
+  },
+  {
     version: "2.14.7",
     date: "2026-03-11",
     title: "WhatsApp: bloqueio de digitação para não-responsável",
