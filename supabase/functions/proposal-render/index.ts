@@ -351,9 +351,14 @@ function renderProposalHtml(p: RenderParams): string {
     <div class="section-title">Dados Complementares</div>
     <div class="grid">
       ${vcResults.map((vc: any) => `
-      <div><span class="label">${vc.label}</span><div class="value">${vc.valor_calculado ?? "-"}</div></div>`).join("")}
+      <div><span class="label">${safe(vc.label)}</span><div class="value">${safe(vc.valor_calculado)}</div></div>`).join("")}
     </div>
   </div>` : "";
+
+  // Silent log of missing/null variables for debugging
+  if (missingVars.length > 0) {
+    console.warn(`[proposal-render] Missing variables in HTML (${missingVars.length}):`, missingVars);
+  }
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
