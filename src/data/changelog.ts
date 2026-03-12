@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.20.2",
+    date: "2026-03-12",
+    title: "PWA — Banner de instalação no portal do consultor",
+    type: "bugfix",
+    description: "Adicionado InstallAppBanner ao VendedorPortal e corrigido start_url do manifest para /consultor/dashboard.",
+    details: [
+      "InstallAppBanner renderizado no topo do portal do consultor",
+      "start_url do manifest corrigido de /app para /consultor/dashboard",
+      "scope mantido como / para cobrir todas as rotas",
+    ],
+  },
+  {
     version: "2.19.2",
     date: "2026-03-12",
     title: "Correção de título duplicado no portal do consultor",
