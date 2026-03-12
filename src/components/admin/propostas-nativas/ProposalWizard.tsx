@@ -229,7 +229,13 @@ export function ProposalWizard() {
   const [descricaoProposta, setDescricaoProposta] = useState("");
   const [debugMode, setDebugMode] = useState(false);
   // ─── Derived
-  const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
+  const precoFinal = useMemo(() => {
+    const val = calcPrecoFinal(itens, servicos, venda);
+    if (val === 0 && itens.length > 0) {
+      console.warn("[precoFinal] R$ 0,00 com itens:", itens.map(i => ({ nome: i.descricao, qty: i.quantidade, preco: i.preco_unitario })));
+    }
+    return val;
+  }, [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
   // Estimated generation (kWh/month) = potência * irradiação * 30 * PR(0.80)
