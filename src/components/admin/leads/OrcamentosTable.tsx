@@ -50,6 +50,8 @@ export function OrcamentosTable({
   const [selectedGroup, setSelectedGroup] = useState<GroupedOrcamento | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignOrcamento, setAssignOrcamento] = useState<OrcamentoDisplayItem | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
 
