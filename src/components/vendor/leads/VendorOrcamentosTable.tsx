@@ -27,6 +27,7 @@ import {
 import { OrcamentoStatusSelector } from "@/components/vendor/OrcamentoStatusSelector";
 import { VendorOrcamentoCard } from "./VendorOrcamentoCard";
 import { OrcamentoHistoryDialog } from "@/components/admin/leads/OrcamentoHistoryDialog";
+import { LeadEditDialog } from "@/components/admin/leads/LeadEditDialog";
 import { useGroupedOrcamentos, type GroupedOrcamento } from "@/hooks/useGroupedOrcamentos";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { LeadStatus } from "@/types/lead";
