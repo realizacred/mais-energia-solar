@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 import { WhatsAppSendDialog } from "@/components/admin/WhatsAppSendDialog";
 import { OrcamentoHistoryDialog } from "./OrcamentoHistoryDialog";
 import { AssignVendorDialog } from "./AssignVendorDialog";
+import { LeadEditDialog } from "./LeadEditDialog";
 import { useGroupedOrcamentos, type GroupedOrcamento } from "@/hooks/useGroupedOrcamentos";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
@@ -49,6 +50,8 @@ export function OrcamentosTable({
   const [selectedGroup, setSelectedGroup] = useState<GroupedOrcamento | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignOrcamento, setAssignOrcamento] = useState<OrcamentoDisplayItem | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
 
@@ -217,6 +220,22 @@ export function OrcamentosTable({
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => {
+                              setEditOrcamento(orc);
+                              setEditOpen(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar lead</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="text-secondary hover:text-secondary"
                             onClick={() => onView(orc)}
                           >
@@ -329,6 +348,27 @@ export function OrcamentosTable({
           currentVendedorId={assignOrcamento.vendedor_id}
           currentVendedorNome={assignOrcamento.vendedor_nome}
           clienteNome={assignOrcamento.nome}
+          onSuccess={onRefresh}
+        />
+      )}
+
+      {/* Edit Lead Dialog */}
+      {editOrcamento && (
+        <LeadEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          leadId={editOrcamento.lead_id}
+          initialData={{
+            nome: editOrcamento.nome,
+            telefone: editOrcamento.telefone,
+            consultor_id: editOrcamento.vendedor_id,
+            consultor_nome: editOrcamento.vendedor_nome,
+            cidade: editOrcamento.cidade,
+            estado: editOrcamento.estado,
+            media_consumo: editOrcamento.media_consumo,
+            tipo_telhado: editOrcamento.tipo_telhado,
+            observacoes: editOrcamento.observacoes,
+          }}
           onSuccess={onRefresh}
         />
       )}

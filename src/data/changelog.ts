@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.9",
+    date: "2026-03-12",
+    title: "Edição de lead e reenvio de WhatsApp na tela de orçamentos",
+    type: "feature",
+    description: "Agora é possível editar nome, telefone, consultor e observações de um lead diretamente na tela de orçamentos, com opção de reenviar a mensagem de boas-vindas via WhatsApp.",
+    details: [
+      "Novo LeadEditDialog com campos: nome, telefone, consultor (select), observações",
+      "Botão 'Reenviar WhatsApp' usa o template do consultor e a pipeline existente",
+      "Alerta visual quando o telefone é alterado indicando necessidade de reenvio",
+      "Atualização sincronizada do consultor no lead e nos orçamentos vinculados",
+      "Botão de edição (lápis) adicionado na coluna de ações da tabela de orçamentos",
+    ],
+  },
+  {
     version: "2.21.8",
     date: "2026-03-12",
     title: "Fix — Editar proposta não restaurava snapshot (consumo, kit e lead zerados)",
