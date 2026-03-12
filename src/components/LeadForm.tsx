@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User, Phone, MapPin, Home, Zap, BarChart3, MessageSquare, Send, CheckCircle, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,11 +168,9 @@ export default function LeadForm() {
                     <Phone className="w-4 h-4 text-secondary" /> Telefone
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="(11) 99999-9999"
-                      maxLength={15}
-                      {...field}
-                      onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                    <PhoneInput
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />

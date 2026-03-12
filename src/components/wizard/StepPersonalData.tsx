@@ -2,7 +2,8 @@ import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { User, Phone } from "lucide-react";
 import { FloatingInput } from "@/components/ui/floating-input";
-import { formatPhone, formatName } from "@/lib/validations";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { formatName } from "@/lib/validations";
 import type { UseFormReturn } from "react-hook-form";
 import type { LeadFormData } from "@/lib/validations";
 
@@ -49,16 +50,18 @@ export function StepPersonalData({
 
       <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible">
         <div data-field-error={!!errors.telefone && touchedFields.has("telefone")}>
-        <FloatingInput
-          label="Telefone *"
-          icon={<Phone className="w-4 h-4" />}
-          value={values.telefone}
-          maxLength={15}
-          autoComplete="off"
-          onChange={(e) => setValue("telefone", formatPhone(e.target.value), { shouldValidate: touchedFields.has("telefone") })}
-          error={touchedFields.has("telefone") ? errors.telefone?.message : undefined}
-          success={isFieldValid("telefone")}
-        />
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Phone className="w-4 h-4" /> Telefone *
+            </label>
+            <PhoneInput
+              value={values.telefone}
+              onChange={(raw) => setValue("telefone", raw, { shouldValidate: touchedFields.has("telefone") })}
+            />
+            {touchedFields.has("telefone") && errors.telefone?.message && (
+              <p className="text-xs text-destructive">{errors.telefone.message}</p>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>

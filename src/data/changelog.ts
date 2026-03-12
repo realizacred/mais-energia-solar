@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.15",
+    date: "2026-03-12",
+    title: "PhoneInput obrigatório em todos os formulários",
+    type: "improvement",
+    description: "Substituído Input nativo por PhoneInput em 7 arquivos que ainda usavam input de texto para telefone/celular, garantindo formatação automática (XX) XXXXX-XXXX.",
+    details: [
+      "SmClientDetailDialog: phone + secondary_phone",
+      "NovaPropostaDialog: cliente_celular",
+      "PostSaleNewPlanDialog: telefone avulso",
+      "StepComercial: celular responsável + representante",
+      "StepCliente: celular do cliente",
+      "LeadForm + StepPersonalData: telefone do lead",
+    ],
+  },
+  {
     version: "2.21.14",
     date: "2026-03-12",
     title: "Novas regras bloqueantes no AGENTS.md",
