@@ -161,8 +161,10 @@ export function DialogPosDimensionamento({
           </div>
         ) : null}
 
-        <DialogFooter className="gap-2 pt-2 flex-wrap">
-          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
+        </div>
+
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
           {onSaveDraft && (
@@ -173,7 +175,7 @@ export function DialogPosDimensionamento({
                 try {
                   await onSaveDraft();
                   onOpenChange(false);
-                  onConfirm(); // advance to PDF generation step
+                  onConfirm();
                 } catch (err) {
                   console.error("[DialogPos] saveDraft error:", err);
                 }
@@ -202,7 +204,7 @@ export function DialogPosDimensionamento({
               {saving ? "Salvando..." : "⭐ Salvar como Ativa"}
             </Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

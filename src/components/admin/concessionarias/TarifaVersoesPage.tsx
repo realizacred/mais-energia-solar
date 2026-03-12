@@ -614,7 +614,7 @@ export function TarifaVersoesPage() {
                 </p>
               </div>
             )}
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

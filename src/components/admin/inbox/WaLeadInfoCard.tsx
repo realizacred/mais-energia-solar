@@ -157,6 +157,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
             </div>
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

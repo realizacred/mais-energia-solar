@@ -647,9 +647,8 @@ export function ModuleLayoutCanvas({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center p-4 border-t shrink-0">
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
           <Button variant="outline" onClick={onClose}>
-            <X className="h-4 w-4 mr-2" />
             Cancelar
           </Button>
           <Button onClick={handleSave} className="gap-2">
