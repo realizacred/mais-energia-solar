@@ -112,12 +112,18 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-base">{template ? "Editar modelo" : "Novo modelo de documento"}</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">{template ? "Editar modelo" : "Novo modelo de documento"}</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Configure nome, categoria, arquivo .docx e signatários</p>
+          </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-6">
+        <div className="p-5 overflow-y-auto max-h-[70vh]">
           {/* Left — Form */}
           <div className="space-y-4">
             <div className="space-y-1.5">
