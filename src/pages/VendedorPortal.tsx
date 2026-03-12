@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState, useEffect, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
-import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
+import { lazy, Suspense, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
+import { Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
 import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 // Error boundary to prevent VendorBottomNav crashes from killing the whole portal
 class BottomNavErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -19,7 +20,6 @@ class BottomNavErrorBoundary extends Component<{ children: ReactNode }, { hasErr
   }
   render() { return this.state.hasError ? null : this.props.children; }
 }
-
 
 // Lazy load sub-pages
 const VendorDashboardView = lazy(() => import("@/components/vendor/views/VendorDashboardView"));
@@ -32,7 +32,6 @@ const VendorNotificacoesView = lazy(() => import("@/components/vendor/views/Vend
 
 export default function VendedorPortal() {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const asParam = searchParams.get("as");
@@ -69,6 +68,8 @@ export default function VendedorPortal() {
     );
   }
 
+  const isWhatsApp = activeTab === "whatsapp";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-muted/30">
@@ -94,41 +95,54 @@ export default function VendedorPortal() {
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 space-y-5 overflow-x-hidden animate-fade-in">
-            <Suspense fallback={<LoadingSpinner />}>
-              <Routes>
-                <Route index element={<Navigate to={dashboardRedirect} replace />} />
-                <Route
-                  path="dashboard"
-                  element={<VendorDashboardView portal={portal} />}
-                />
-                <Route
-                  path="whatsapp"
-                  element={<VendorWhatsAppView portal={portal} />}
-                />
-                <Route
-                  path="agenda"
-                  element={<VendorAgendaView />}
-                />
-                <Route
-                  path="orcamentos"
-                  element={<VendorOrcamentosView portal={portal} />}
-                />
-                <Route
-                  path="gamificacao"
-                  element={<VendorGamificacaoView portal={portal} />}
-                />
-                <Route
-                  path="links"
-                  element={<VendorLinksView portal={portal} />}
-                />
-                <Route
-                  path="notificacoes"
-                  element={<VendorNotificacoesView portal={portal} />}
-                />
-                <Route path="*" element={<Navigate to={dashboardRedirect} replace />} />
-              </Routes>
-            </Suspense>
+          <main className="flex-1 relative overflow-hidden">
+            {/* WhatsApp — always mounted, hidden via CSS when inactive */}
+            <div
+              className={cn(
+                "absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 overflow-x-hidden",
+                !isWhatsApp && "invisible pointer-events-none"
+              )}
+            >
+              <Suspense fallback={<LoadingSpinner />}>
+                <VendorWhatsAppView portal={portal} />
+              </Suspense>
+            </div>
+
+            {/* Other views — rendered on top when not on WhatsApp */}
+            {!isWhatsApp && (
+              <div className="absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 space-y-5 overflow-y-auto overflow-x-hidden animate-fade-in">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Routes>
+                    <Route index element={<Navigate to={dashboardRedirect} replace />} />
+                    <Route
+                      path="dashboard"
+                      element={<VendorDashboardView portal={portal} />}
+                    />
+                    <Route
+                      path="agenda"
+                      element={<VendorAgendaView />}
+                    />
+                    <Route
+                      path="orcamentos"
+                      element={<VendorOrcamentosView portal={portal} />}
+                    />
+                    <Route
+                      path="gamificacao"
+                      element={<VendorGamificacaoView portal={portal} />}
+                    />
+                    <Route
+                      path="links"
+                      element={<VendorLinksView portal={portal} />}
+                    />
+                    <Route
+                      path="notificacoes"
+                      element={<VendorNotificacoesView portal={portal} />}
+                    />
+                    <Route path="*" element={<Navigate to={dashboardRedirect} replace />} />
+                  </Routes>
+                </Suspense>
+              </div>
+            )}
           </main>
         </SidebarInset>
 
