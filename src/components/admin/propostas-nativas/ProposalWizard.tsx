@@ -1084,19 +1084,8 @@ export function ProposalWizard() {
       if (!projetoId) {
         const snapshot = collectSnapshot();
         const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
-        const draftRes = await saveDraft({
-          propostaId: savedPropostaId,
-          versaoId: savedVersaoId,
-          snapshot,
-          potenciaKwp,
-          precoFinal,
-          economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
-          geracaoMensal: geracaoMensalEstimada || undefined,
-          leadId: selectedLead?.id,
-          dealId: resolvedDealId,
-          titulo,
-          cliente: cliente.nome && cliente.celular ? cliente : undefined,
-        });
+        const params = buildPersistParams();
+        const draftRes = await persistAtomic(params, "draft");
         if (draftRes) {
           setSavedPropostaId(draftRes.propostaId);
           setSavedVersaoId(draftRes.versaoId);
