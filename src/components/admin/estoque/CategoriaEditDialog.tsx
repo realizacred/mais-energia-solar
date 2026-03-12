@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { useCreateEstoqueCategoria, useUpdateEstoqueCategoria, type EstoqueCategoria } from "@/hooks/useEstoqueCategorias";
+import { Tag } from "lucide-react";
 
 interface CategoriaEditDialogProps {
   open: boolean;
