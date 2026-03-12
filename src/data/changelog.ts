@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.1",
+    date: "2026-03-12",
+    title: "Fix — Blindagem final da race condition ao salvar proposta",
+    type: "bugfix",
+    description: "Blindagem completa da race condition ao salvar proposta antes do término do restore do snapshot, incluindo suporte a navegação entre propostas sem desmonte.",
+    details: [
+      "restoreKeyRef substitui dbRestoreAttemptedRef para suportar mudança de URL sem desmonte do componente",
+      "handleUpdate bloqueia execução com toast 'Aguarde' enquanto isRestoring === true",
+      "isRestoring e cliente.celular adicionados às dependências do useCallback",
+      "Guard em saveDraft (useWizardPersistence) impede criação acidental quando proposta_id existe na URL",
+    ],
+  },
+  {
     version: "2.21.0",
     date: "2026-03-12",
     title: "Fix — Edição de proposta não cria mais duplicatas",

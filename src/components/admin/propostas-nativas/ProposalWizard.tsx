@@ -450,11 +450,12 @@ export function ProposalWizard() {
   }, []);
 
   // ─── Restore from DB when proposta_id + versao_id in URL (edit mode) ───
-  const dbRestoreAttemptedRef = useRef(false);
+  const restoreKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!propostaIdFromUrl || !versaoIdFromUrl) return;
-    if (dbRestoreAttemptedRef.current) return;
-    dbRestoreAttemptedRef.current = true;
+    const restoreKey = `${propostaIdFromUrl}:${versaoIdFromUrl}`;
+    if (restoreKeyRef.current === restoreKey) return;
+    restoreKeyRef.current = restoreKey;
     setIsRestoring(true);
 
     (async () => {
@@ -545,6 +546,12 @@ export function ProposalWizard() {
   }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, selectedLead, resolvedDealId, dealIdFromUrl, nomeProposta, cliente.nome]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
+    // Block save while restore is in progress
+    if (isRestoring) {
+      toast({ title: "Aguarde", description: "A proposta ainda está sendo restaurada.", variant: "destructive" });
+      return;
+    }
+
     try {
       const snapshot = collectSnapshot();
       const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
@@ -616,7 +623,7 @@ export function ProposalWizard() {
       console.error("[handleUpdate] Unexpected error:", err);
       toast({ title: "Erro inesperado ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });
     }
-  }, [savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, nomeProposta, cliente.nome, cliente.celular, selectedLead, resolvedDealId]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
