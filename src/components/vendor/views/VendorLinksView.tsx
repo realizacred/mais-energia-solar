@@ -1,6 +1,6 @@
 import { LinksInstalacaoPage } from "@/components/admin/LinksInstalacaoPage";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Link } from "lucide-react";
 
 interface Props {
   portal: ReturnType<typeof import("@/hooks/useVendedorPortal").useVendedorPortal>;
@@ -33,6 +33,18 @@ export default function VendorLinksView({ portal }: Props) {
 
   // Real vendor (or admin with linked vendedor) — show individual links
   return (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Link className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">Captação & App</h1>
+            <p className="text-sm text-muted-foreground">Seus links e ferramentas de captação</p>
+          </div>
+        </div>
+      </div>
     <LinksInstalacaoPage
       vendedor={{
         nome: vendedor.nome,
