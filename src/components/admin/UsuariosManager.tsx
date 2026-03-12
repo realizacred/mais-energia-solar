@@ -55,6 +55,7 @@ import {
   Plus,
   MoreVertical,
   Pencil,
+  UserCog,
 } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit";
 import { Spinner } from "@/components/ui-kit/Spinner";
