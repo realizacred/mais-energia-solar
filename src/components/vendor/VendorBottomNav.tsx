@@ -3,6 +3,8 @@ import { LayoutDashboard, MessageCircle, FileText, CalendarCheck } from "lucide-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VendorBottomNavProps {
   unreadWhatsApp?: number;
@@ -27,6 +29,22 @@ export function VendorBottomNav({ unreadWhatsApp = 0, badgeOrcamentos = 0 }: Ven
     return segments[0] || "dashboard";
   })();
 
+  // Check if any WA instance is connected for green dot indicator
+  const { data: waInstances } = useQuery({
+    queryKey: ["wa-instances-status"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("wa_instances")
+        .select("status")
+        .eq("status", "connected")
+        .limit(1);
+      return data;
+    },
+    staleTime: 1000 * 30,
+  });
+
+  const isWaConnected = (waInstances?.length ?? 0) > 0;
+
   const handleNavigate = (id: string) => {
     const path = `/consultor/${id}${asParam ? `?as=${asParam}` : ""}`;
     navigate(path);
@@ -44,6 +62,7 @@ export function VendorBottomNav({ unreadWhatsApp = 0, badgeOrcamentos = 0 }: Ven
         const isActive = activeTab === item.id;
         const badge = getBadge(item.id);
         const Icon = item.icon;
+        const showGreenDot = item.id === "whatsapp" && isWaConnected;
 
         return (
           <Button
@@ -59,6 +78,9 @@ export function VendorBottomNav({ unreadWhatsApp = 0, badgeOrcamentos = 0 }: Ven
           >
             <div className="relative">
               <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
+              {showGreenDot && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-success ring-1 ring-background" />
+              )}
               {badge > 0 && (
                 <Badge
                   variant="secondary"

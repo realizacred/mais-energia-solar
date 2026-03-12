@@ -1,6 +1,4 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MessageCircle } from "lucide-react";
 import { WaInbox } from "@/components/admin/inbox/WaInbox";
 
 interface Props {
@@ -8,10 +6,8 @@ interface Props {
 }
 
 export default function VendorWhatsAppView({ portal }: Props) {
-  const navigate = useNavigate();
-
   return (
-    <div>
+    <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
@@ -22,19 +18,8 @@ export default function VendorWhatsAppView({ portal }: Props) {
             <p className="text-sm text-muted-foreground">Conversas e mensagens dos seus clientes</p>
           </div>
         </div>
-        <div className="flex md:hidden">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-muted-foreground min-h-[44px]"
-            onClick={() => navigate("/consultor/dashboard")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Button>
-        </div>
       </div>
-      <div style={{ height: "calc(100vh - 200px)", minHeight: "500px" }} className="md:!h-[calc(100vh-140px)]">
+      <div className="flex-1 min-h-0" style={{ minHeight: "500px" }}>
         <WaInbox vendorMode vendorUserId={portal.vendedor?.user_id || undefined} />
       </div>
     </div>

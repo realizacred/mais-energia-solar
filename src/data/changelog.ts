@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.20.0",
+    date: "2026-03-12",
+    title: "WhatsApp persistente no portal do consultor",
+    type: "feature",
+    description: "O WaInbox nunca mais é desmontado ao navegar entre abas, mantendo conexão e estado.",
+    details: [
+      "WaInbox permanece montado via CSS visibility em vez de condicional React",
+      "Ponto verde de conexão WA no bottom nav mobile",
+      "Removido botão 'Voltar' redundante da tela WhatsApp",
+      "Outras telas renderizam por cima do WA sem desmontá-lo",
+    ],
+  },
+  {
     version: "2.19.1",
     date: "2026-03-12",
     title: "Headers padronizados no portal do consultor",
