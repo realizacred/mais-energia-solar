@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { useCreateEstoqueLocal, useUpdateEstoqueLocal, type EstoqueLocal } from "@/hooks/useEstoque";
+import { MapPin } from "lucide-react";
 
 interface LocalEditDialogProps {
   open: boolean;
