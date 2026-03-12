@@ -38,16 +38,18 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <User className="h-4 w-4 text-primary" />
-            </div>
-            Informações do Lead
-          </DialogTitle>
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <User className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Informações do Lead</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Dados de contato e consumo do lead vinculado</p>
+          </div>
         </DialogHeader>
 
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Spinner size="sm" />
@@ -155,6 +157,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
             </div>
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

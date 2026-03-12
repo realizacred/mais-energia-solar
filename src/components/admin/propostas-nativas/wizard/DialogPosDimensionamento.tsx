@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Zap, DollarSign } from "lucide-react";
+import { User, Building2, Zap, DollarSign, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,32 +84,39 @@ export function DialogPosDimensionamento({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-base font-bold">Alterar Proposta</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Alterar Proposta</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Revise os dados e salve a proposta</p>
+          </div>
         </DialogHeader>
 
-        {/* ── Summary */}
-        <div className="space-y-1.5 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <User className="h-3.5 w-3.5 text-primary" />
-            <span><span className="font-medium text-foreground">Cliente:</span> {clienteNome || "—"}</span>
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+          {/* Summary */}
+          <div className="space-y-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <User className="h-3.5 w-3.5 text-primary" />
+              <span><span className="font-medium text-foreground">Cliente:</span> {clienteNome || "—"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+              <span><span className="font-medium text-foreground">Empresa:</span> {empresaNome || "—"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5 text-primary" />
+              <span><span className="font-medium text-foreground">Potência:</span> {potenciaKwp.toFixed(2)} kWp</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-3.5 w-3.5 text-primary" />
+              <span><span className="font-medium text-foreground">Preço:</span> {formatBRL(precoFinal)}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-3.5 w-3.5 text-primary" />
-            <span><span className="font-medium text-foreground">Empresa:</span> {empresaNome || "—"}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Zap className="h-3.5 w-3.5 text-primary" />
-            <span><span className="font-medium text-foreground">Potência:</span> {potenciaKwp.toFixed(2)} kWp</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-3.5 w-3.5 text-primary" />
-            <span><span className="font-medium text-foreground">Preço:</span> {formatBRL(precoFinal)}</span>
-          </div>
-        </div>
 
-        <div className="h-px bg-border" />
+          <div className="border-t border-border" />
 
         {/* ── Nome da Proposta */}
         <div className="space-y-1.5">
@@ -156,8 +163,10 @@ export function DialogPosDimensionamento({
           </div>
         ) : null}
 
-        <DialogFooter className="gap-2 pt-2 flex-wrap">
-          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
+        </div>
+
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
           {onSaveDraft && (
@@ -168,7 +177,7 @@ export function DialogPosDimensionamento({
                 try {
                   await onSaveDraft();
                   onOpenChange(false);
-                  onConfirm(); // advance to PDF generation step
+                  onConfirm();
                 } catch (err) {
                   console.error("[DialogPos] saveDraft error:", err);
                 }
@@ -197,7 +206,7 @@ export function DialogPosDimensionamento({
               {saving ? "Salvando..." : "⭐ Salvar como Ativa"}
             </Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

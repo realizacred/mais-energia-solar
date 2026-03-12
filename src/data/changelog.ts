@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.6",
+    date: "2026-03-12",
+    title: "§25 Lote 4: mais 5 modais standalone padronizados",
+    type: "improvement",
+    description: "Correção visual de 5 modais standalone para o padrão §25 com header (ícone + subtítulo), footer bg-muted/30 e w-[90vw].",
+    details: [
+      "WaLeadInfoCard: header §25 com User, w-[90vw] max-w-md, body com max-h-[70vh]",
+      "TarifaVersoesPage diff dialog: header §25 com ArrowLeftRight, w-[90vw] max-w-3xl",
+      "DialogPosDimensionamento: header §25 com CheckCircle, w-[90vw] max-w-lg, footer bg-muted/30",
+      "LimitReachedDialog: header §25 com AlertTriangle destructive, w-[90vw] max-w-md, footer bg-muted/30",
+      "ModuleLayoutCanvas: header §25 com LayoutGrid, w-[90vw] max-w-4xl, footer bg-muted/30",
+    ],
+  },
+  {
     version: "2.22.5",
     date: "2026-03-12",
     title: "§25 Lote 3: mais 5 modais standalone padronizados",
