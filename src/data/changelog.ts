@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.17",
+    date: "2026-03-12",
+    title: "Tabela de leads: coluna telefone com largura fixa + ações inline em telas grandes",
+    type: "improvement",
+    description: "Coluna telefone agora tem largura fixa (155px) com whitespace-nowrap. Ações aparecem inline com tooltips em telas lg+ e como dropdown em telas menores.",
+    details: [
+      "OrcamentosTable: ações inline com tooltips em lg+, dropdown em mobile",
+      "LeadsTable: coluna telefone com w-[155px] e whitespace-nowrap",
+      "Botões inline: Eye, Pencil, MessageSquare, UserRound, ShoppingCart, Trash2",
+      "Todas as condições de permissão mantidas (admin, conversão, histórico)",
+    ],
+  },
+  {
     version: "2.21.16",
     date: "2026-03-12",
     title: "EmailInput obrigatório em todos os formulários",

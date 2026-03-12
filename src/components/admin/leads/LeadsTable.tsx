@@ -44,7 +44,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
             <TableHead className="w-12">Visto</TableHead>
             <TableHead className="w-24">Código</TableHead>
             <TableHead>Nome</TableHead>
-            <TableHead>Telefone</TableHead>
+            <TableHead className="w-[155px] min-w-[155px]">Telefone</TableHead>
             <TableHead>Consultor</TableHead>
             <TableHead>Localização</TableHead>
             <TableHead>Consumo</TableHead>
@@ -79,9 +79,9 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                 </Badge>
               </TableCell>
               <TableCell className="font-medium">{lead.nome}</TableCell>
-              <TableCell>
+              <TableCell className="whitespace-nowrap">
                 <div className="flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-muted-foreground" />
+                  <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                   {formatPhoneBR(lead.telefone)}
                 </div>
               </TableCell>
