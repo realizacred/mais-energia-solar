@@ -484,6 +484,12 @@ export function ProposalWizard() {
           ? await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot
           : rawSnapshot as WizardSnapshot;
 
+        // Diagnostic: log UC consumo data from snapshot
+        if (s.ucs?.length) {
+          console.log("[ProposalWizard] Restored UCs:", s.ucs.map((u: any) => ({
+            nome: u.nome, consumo_mensal: u.consumo_mensal, consumo_p: u.consumo_mensal_p, consumo_fp: u.consumo_mensal_fp,
+          })));
+        }
         restoreFromSnapshot(s);
         setSavedPropostaId(propostaIdFromUrl);
         setSavedVersaoId(versaoIdFromUrl);
