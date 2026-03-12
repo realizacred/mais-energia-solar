@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserCheck, AlertCircle } from "lucide-react";
+import { Search, UserCheck, AlertCircle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PropostaFormData } from "@/hooks/usePropostas";
 import { cn } from "@/lib/utils";
