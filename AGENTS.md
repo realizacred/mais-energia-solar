@@ -1101,13 +1101,13 @@ SEMPRE testar visualmente em 320px e 1920px.
   ```
   Ícones padrão: `Eye` | `Pencil` | `MessageSquare` | `UserRound` | `ShoppingCart` | `Trash2`
   
-  Cores de hover:
-  - Ver detalhes: `text-muted-foreground hover:text-foreground`
-  - Editar: `text-muted-foreground hover:text-primary`
-  - WhatsApp: `text-muted-foreground hover:text-green-600` (cor oficial da marca — exceção aceita)
-  - Alterar consultor: `text-muted-foreground hover:text-foreground`
-  - Converter: `text-muted-foreground hover:text-primary`
-  - Excluir: `text-muted-foreground hover:text-destructive`
+  Cores dos ícones (cor base visível + hover mais escuro):
+  - Ver detalhes (Eye): `text-primary hover:text-primary/80`
+  - Editar (Pencil): `text-warning hover:text-warning/80`
+  - WhatsApp (MessageSquare): `text-green-600 hover:text-green-700` (cor oficial da marca — exceção aceita)
+  - Alterar consultor (UserRound): `text-info hover:text-info/80`
+  - Converter (ShoppingCart): `text-primary hover:text-primary/80`
+  - Excluir (Trash2): `text-destructive hover:text-destructive/80`
 
 - Em telas `<lg`: `DropdownMenu` com botão `MoreHorizontal`
   ```tsx

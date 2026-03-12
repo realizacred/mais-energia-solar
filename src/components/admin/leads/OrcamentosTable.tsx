@@ -219,7 +219,7 @@ export function OrcamentosTable({
                     <div className="hidden lg:flex items-center gap-1">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => onView(orc)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" onClick={() => onView(orc)}>
                             <Eye className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
@@ -227,7 +227,7 @@ export function OrcamentosTable({
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => { setEditOrcamento(orc); setEditOpen(true); }}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-warning hover:text-warning/80" onClick={() => { setEditOrcamento(orc); setEditOpen(true); }}>
                             <Pencil className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
@@ -235,7 +235,7 @@ export function OrcamentosTable({
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-green-600" onClick={() => handleOpenWhatsApp(orc)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700" onClick={() => handleOpenWhatsApp(orc)}>
                             <MessageSquare className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
@@ -243,7 +243,7 @@ export function OrcamentosTable({
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => { setAssignOrcamento(orc); setAssignOpen(true); }}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-info hover:text-info/80" onClick={() => { setAssignOrcamento(orc); setAssignOpen(true); }}>
                             <UserRound className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
@@ -252,7 +252,7 @@ export function OrcamentosTable({
                       {onConvert && !isConverted && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => { if (hasHistory) { handleOpenHistory(group); } else { onConvert(orc); } }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" onClick={() => { if (hasHistory) { handleOpenHistory(group); } else { onConvert(orc); } }}>
                               <ShoppingCart className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
@@ -267,7 +267,7 @@ export function OrcamentosTable({
                       {onDelete && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(orc)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" onClick={() => onDelete(orc)}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
