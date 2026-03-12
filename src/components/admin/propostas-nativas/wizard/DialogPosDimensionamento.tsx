@@ -168,6 +168,7 @@ export function DialogPosDimensionamento({
                 try {
                   await onSaveDraft();
                   onOpenChange(false);
+                  onConfirm(); // advance to PDF generation step
                 } catch (err) {
                   console.error("[DialogPos] saveDraft error:", err);
                 }
