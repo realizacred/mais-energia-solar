@@ -87,12 +87,6 @@ export default function VendedorPortal() {
             <SidebarTrigger className="-ml-1 sm:-ml-2 h-9 w-9 sm:h-10 sm:w-10">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
-            <div className="h-5 w-px bg-border/50 hidden sm:block" />
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h1 className="page-header-title">
-                {VENDOR_TAB_TITLES[activeTab] || activeTab}
-              </h1>
-            </div>
           </header>
 
           <main className="flex-1 relative overflow-hidden">
