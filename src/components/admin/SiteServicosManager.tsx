@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import {
   Plus, Pencil, Trash2, Save, X, GripVertical,
-  ArrowUp, ArrowDown, Eye, EyeOff, Wrench, Image as ImageIcon,
+  ArrowUp, ArrowDown, Eye, EyeOff, Wrench, Image as ImageIcon, Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
