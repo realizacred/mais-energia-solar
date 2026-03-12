@@ -1253,9 +1253,14 @@ export function ProposalWizard() {
         }
       }
 
-      const idempotencyKey = getOrCreateIdempotencyKey(selectedLead.id);
+      const isSyntheticLead = !!(selectedLead as any)?._synthetic;
+      const realLeadId = isSyntheticLead ? undefined : selectedLead.id;
+      const clienteIdForPayload = isSyntheticLead ? (selectedLead as any)._clienteId : undefined;
+      const idempotencyKey = getOrCreateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
       const payload: GenerateProposalPayload = {
-        lead_id: selectedLead.id,
+        lead_id: realLeadId || clienteIdForPayload || selectedLead.id,
+        cliente_id: clienteIdForPayload,
+        projeto_id: projetoId,
         projeto_id: projetoId,
         grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
         idempotency_key: idempotencyKey,
