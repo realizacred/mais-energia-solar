@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import {
   FileText, Plus, Search, Zap, DollarSign,
-  SunMedium,
+  SunMedium, FileX,
 } from "lucide-react";
 import { LoadingState, PageHeader, EmptyState, SearchInput, StatCard } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
