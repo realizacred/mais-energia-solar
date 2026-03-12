@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
-import { Plus } from "lucide-react";
+import { Plus, CheckSquare } from "lucide-react";
 import type { CreateTaskInput, TaskPriority } from "@/hooks/useTasks";
 
 export function CreateTaskDialog({
@@ -53,6 +53,8 @@ export function CreateTaskDialog({
         open={open}
         onOpenChange={onOpenChange}
         title="Nova Tarefa"
+        icon={CheckSquare}
+        subtitle="Crie uma nova tarefa"
         submitLabel="Criar Tarefa"
         onSubmit={handleSubmit}
         saving={isSubmitting}

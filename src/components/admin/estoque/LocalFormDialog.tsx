@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { useCreateEstoqueLocal } from "@/hooks/useEstoque";
+import { MapPin } from "lucide-react";
 
 interface LocalFormDialogProps {
   open: boolean;
@@ -31,6 +32,7 @@ export function LocalFormDialog({ open, onOpenChange }: LocalFormDialogProps) {
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Novo Depósito"
+      icon={MapPin} subtitle="Cadastre um local de estoque"
       onSubmit={handleSubmit} submitLabel="Criar" saving={createLocal.isPending}
       disabled={!nome.trim()} asForm
     >

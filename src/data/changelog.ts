@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.7",
+    date: "2026-03-12",
+    title: "§25 Lote 5: ícone/subtítulo em FormModalTemplate + modal standalone",
+    type: "improvement",
+    description: "Adição de icon e subtitle nos modais que usam FormModalTemplate e padronização §25 do preview de template.",
+    details: [
+      "LocalFormDialog: icon MapPin + subtitle",
+      "LocalEditDialog: icon MapPin + subtitle",
+      "CategoriaEditDialog: icon Tag + subtitle",
+      "ReservaFormDialog: icon Package + subtitle",
+      "CreateTaskDialog: icon CheckSquare + subtitle",
+      "TemplatesTab preview dialog: header §25 com FileText, w-[90vw], footer bg-muted/30",
+    ],
+  },
+  {
     version: "2.22.6",
     date: "2026-03-12",
     title: "§25 Lote 4: mais 5 modais standalone padronizados",

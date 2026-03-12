@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { useCreateEstoqueCategoria, useUpdateEstoqueCategoria, type EstoqueCategoria } from "@/hooks/useEstoqueCategorias";
+import { Tag } from "lucide-react";
 
 interface CategoriaEditDialogProps {
   open: boolean;
@@ -71,6 +72,8 @@ export function CategoriaEditDialog({ open, onOpenChange, categoria, parentId, a
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Editar Categoria" : (selectedParent !== "none" ? "Nova Subcategoria" : "Nova Categoria")}
+      icon={Tag}
+      subtitle="Edite a categoria de estoque"
       onSubmit={handleSubmit}
       submitLabel={isEdit ? "Salvar" : "Criar"}
       saving={createMut.isPending || updateMut.isPending}

@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { useCreateEstoqueLocal, useUpdateEstoqueLocal, type EstoqueLocal } from "@/hooks/useEstoque";
+import { MapPin } from "lucide-react";
 
 interface LocalEditDialogProps {
   open: boolean;
@@ -49,6 +50,8 @@ export function LocalEditDialog({ open, onOpenChange, local }: LocalEditDialogPr
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Editar Depósito" : "Novo Depósito"}
+      icon={MapPin}
+      subtitle="Edite os dados do local"
       onSubmit={handleSubmit}
       submitLabel={isEdit ? "Salvar" : "Criar"}
       saving={createLocal.isPending || updateLocal.isPending}

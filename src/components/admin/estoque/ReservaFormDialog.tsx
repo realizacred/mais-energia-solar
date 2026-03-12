@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { useCreateReserva, useEstoqueLocais, type EstoqueSaldo } from "@/hooks/useEstoque";
+import { Package } from "lucide-react";
 
 interface ReservaFormDialogProps {
   open: boolean;
@@ -44,6 +45,7 @@ export function ReservaFormDialog({ open, onOpenChange, saldos }: ReservaFormDia
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Nova Reserva de Estoque"
+      icon={Package} subtitle="Reserve itens do estoque"
       onSubmit={handleSubmit} submitLabel="Reservar" saving={createReserva.isPending}
       disabled={!itemId || !quantidade || Number(quantidade) <= 0} asForm
     >
