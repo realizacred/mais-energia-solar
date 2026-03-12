@@ -233,7 +233,6 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
             <VariablesPanel />
           </div>
         </div>
-
         </div>
 
         <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">

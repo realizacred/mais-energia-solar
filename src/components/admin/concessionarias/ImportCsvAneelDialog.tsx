@@ -1040,7 +1040,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
           </ScrollArea>
         )}
 
-        <DialogFooter>
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
           {step === "validate" && (
             <>
               <Button variant="ghost" size="sm" onClick={reset}>Voltar</Button>
