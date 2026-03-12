@@ -1084,6 +1084,43 @@ SEMPRE testar visualmente em 320px e 1920px.
 
 ---
 
+## §34. TABELA DE LEADS/ORÇAMENTOS — Padrão Obrigatório
+
+### Coluna TELEFONE
+- SEMPRE `w-[155px] min-w-[155px]` na definição da `<TableHead>`
+- SEMPRE `whitespace-nowrap` na célula `<TableCell>` do telefone
+- NUNCA deixar o número quebrar em 2 linhas
+- Ícone `Phone` + número na mesma linha com `shrink-0`
+
+### Coluna AÇÕES — Responsividade obrigatória
+- Em telas `lg+` (≥1024px): botões INLINE com `Tooltip`
+  ```tsx
+  <div className="hidden lg:flex items-center gap-1">
+    {/* Cada botão: Button variant="ghost" size="icon" com TooltipProvider */}
+  </div>
+  ```
+  Ícones padrão: `Eye` | `Pencil` | `MessageSquare` | `UserRound` | `ShoppingCart` | `Trash2`
+  
+  Cores de hover:
+  - Ver detalhes: `text-muted-foreground hover:text-foreground`
+  - Editar: `text-muted-foreground hover:text-primary`
+  - WhatsApp: `text-muted-foreground hover:text-green-600` (cor oficial da marca — exceção aceita)
+  - Alterar consultor: `text-muted-foreground hover:text-foreground`
+  - Converter: `text-muted-foreground hover:text-primary`
+  - Excluir: `text-muted-foreground hover:text-destructive`
+
+- Em telas `<lg`: `DropdownMenu` com botão `MoreHorizontal`
+  ```tsx
+  <div className="flex lg:hidden">
+    <DropdownMenu>...</DropdownMenu>
+  </div>
+  ```
+
+- NUNCA mostrar apenas 3 pontos em telas grandes
+- SEMPRE manter condições de permissão por role (admin/consultor)
+
+---
+
 # Bloco 4 — CONFLITOS E EXCEÇÕES OFICIAIS
 
 ### src/components/ui/ — exceções permitidas
