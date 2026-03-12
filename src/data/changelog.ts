@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.12",
+    date: "2026-03-12",
+    title: "Tabela de orçamentos — DropdownMenu e responsividade",
+    type: "improvement",
+    description: "Ações da tabela de orçamentos admin migradas para DropdownMenu (⋮) e colunas responsivas para mobile.",
+    details: [
+      "Ações agrupadas em DropdownMenu do shadcn (ver, editar, WhatsApp, converter, excluir)",
+      "Colunas ORC/Lead ocultas em mobile (hidden md:table-cell)",
+      "Colunas localização, consumo e data ocultas em mobile (hidden sm:table-cell)",
+      "Consultor oculto em tablet (hidden lg:table-cell)",
+      "Telefone com whitespace-nowrap para não quebrar",
+    ],
+  },
+  {
     version: "2.21.11",
     date: "2026-03-12",
     title: "Consultores podem editar seus próprios leads",
