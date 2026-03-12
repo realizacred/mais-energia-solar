@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { Plus, Trash2, Settings } from "lucide-react";
+import { Plus, Trash2, Settings, Clock } from "lucide-react";
 import { useSlaRules, type SlaRule } from "@/hooks/useTasks";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
