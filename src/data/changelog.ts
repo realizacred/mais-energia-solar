@@ -19,6 +19,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.19",
+    date: "2026-03-12",
+    title: "LeadEditDialog corrigido para padrões §25 do AGENTS.md",
+    type: "improvement",
+    description: "Modal de edição de lead ajustado para max-w-2xl conforme §25 (formulário médio até 8 campos).",
+    details: [
+      "Tamanho do modal ajustado de max-w-[1100px] para max-w-2xl",
+      "FormModalTemplate já garante bg-card, DialogHeader, botões shadcn e grid responsivo",
+    ],
+  },
+  {
     version: "2.21.18",
     date: "2026-03-12",
     title: "Restauradas cores dos ícones de ação inline na tabela de leads",

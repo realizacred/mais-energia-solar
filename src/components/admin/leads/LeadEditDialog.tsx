@@ -301,7 +301,7 @@ export function LeadEditDialog({
       onSubmit={handleSave}
       saving={saving}
       disabled={!nome.trim() || !telefone.trim()}
-      className="w-[90vw] max-w-[1100px]"
+      className="w-[90vw] max-w-2xl"
     >
       {/* Dados pessoais */}
       <FormSection title="Dados do Lead">
