@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { UserPlus } from "lucide-react";
 import { StorageFileGallery } from "@/components/ui-kit/StorageFileGallery";
 
@@ -63,7 +64,7 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Telefone</p>
-              <p className="font-medium">{orcamento.telefone}</p>
+              <p className="font-medium">{formatPhoneBR(orcamento.telefone)}</p>
             </div>
           </div>
 

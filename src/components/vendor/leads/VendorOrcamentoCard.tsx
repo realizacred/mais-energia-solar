@@ -1,6 +1,7 @@
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -93,7 +94,7 @@ export function VendorOrcamentoCard({
             className="flex items-center gap-1.5 text-muted-foreground hover:text-primary"
           >
             <Phone className="w-3.5 h-3.5" />
-            <span className="truncate">{orcamento.telefone}</span>
+            <span className="truncate">{formatPhoneBR(orcamento.telefone)}</span>
           </a>
           <div className="flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />

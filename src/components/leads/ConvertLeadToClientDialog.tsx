@@ -6,6 +6,7 @@ import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
 import { formatCEP, emailFieldSchema } from "@/lib/validations";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -715,7 +716,7 @@ export function ConvertLeadToClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
@@ -765,7 +766,7 @@ export function ConvertLeadToClientDialog({
                     <FormItem>
                       <FormLabel>Telefone *</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <PhoneInput value={field.value} onChange={field.onChange} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

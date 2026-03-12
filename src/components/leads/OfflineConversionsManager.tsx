@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { 
   RefreshCw, 
   Trash2, 
@@ -144,7 +145,7 @@ export function OfflineConversionsManager() {
                       {conversion.formData.cidade}, {conversion.formData.estado}
                     </div>
                     <div className="text-muted-foreground">
-                      Tel: {conversion.formData.telefone}
+                      Tel: {formatPhoneBR(conversion.formData.telefone)}
                     </div>
                   </div>
 

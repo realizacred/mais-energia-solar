@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { Phone, Clock, FileText, Eye, MessageSquare, MapPin, Zap, ShoppingCart } from "lucide-react";
 import {
   Dialog,
@@ -75,7 +76,7 @@ export function OrcamentoHistoryDialog({
           <DialogDescription className="flex items-center gap-4 pt-2">
             <span className="flex items-center gap-1">
               <Phone className="h-3.5 w-3.5" />
-              {group.telefone}
+              {formatPhoneBR(group.telefone)}
             </span>
             {onWhatsApp && (
               <Button
