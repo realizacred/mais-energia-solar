@@ -327,7 +327,7 @@ export function FornecedoresManager() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>E-mail</Label>
-                    <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="contato@fornecedor.com" />
+                    <EmailInput value={form.email} onChange={v => setForm(p => ({ ...p, email: v }))} />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Telefone</Label>

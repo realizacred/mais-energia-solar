@@ -104,12 +104,10 @@ export function WaContactEditor({ phoneE164 }: WaContactEditorProps) {
 
         <div className="space-y-1">
           <Label className="text-[10px]">E-mail</Label>
-          <Input
-            type="email"
+          <EmailInput
             value={editEmail}
-            onChange={(e) => setEditEmail(e.target.value)}
+            onChange={setEditEmail}
             className="h-7 text-xs"
-            placeholder="email@exemplo.com"
           />
         </div>
 

@@ -340,11 +340,9 @@ export function NovaPropostaDialog({
               </div>
               <div className="space-y-1.5">
                 <Label>E-mail</Label>
-                <Input
-                  type="email"
-                  placeholder="cliente@email.com"
+                <EmailInput
                   value={form.cliente_email}
-                  onChange={(e) => handleChange("cliente_email", e.target.value)}
+                  onChange={(v) => handleChange("cliente_email", v)}
                 />
               </div>
               <div className="space-y-1.5">
