@@ -194,100 +194,84 @@
        </div>
  
        {/* Metric Cards */}
-       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-         {/* This Month */}
-         <Card>
-           <CardHeader className="pb-2">
-             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-               <Users className="h-3 w-3" />
-               Este Mês
-             </CardTitle>
-           </CardHeader>
-           <CardContent className="pt-0">
-             <div className="flex items-baseline gap-2">
-               <span className="text-2xl font-bold">{metrics.thisMonth}</span>
-               {metrics.growthPercent !== 0 && (
-                 <Badge
-                   variant={metrics.growthPercent > 0 ? "default" : "destructive"}
-                   className="text-xs gap-0.5"
-                 >
-                   {metrics.growthPercent > 0 ? (
-                     <TrendingUp className="h-3 w-3" />
-                   ) : (
-                     <TrendingDown className="h-3 w-3" />
-                   )}
-                   {Math.abs(metrics.growthPercent)}%
-                 </Badge>
-               )}
-             </div>
-             <p className="text-xs text-muted-foreground mt-1">
-               vs {metrics.lastMonth} mês passado
-             </p>
-           </CardContent>
-         </Card>
- 
-         {/* Conversions */}
-         <Card>
-           <CardHeader className="pb-2">
-             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-               <CheckCircle2 className="h-3 w-3" />
-               Convertidos
-             </CardTitle>
-           </CardHeader>
-           <CardContent className="pt-0">
-             <div className="flex items-baseline gap-2">
-               <span className="text-2xl font-bold text-primary">
-                 {metrics.convertedThisMonth}
-               </span>
-               <span className="text-sm text-muted-foreground">este mês</span>
-             </div>
-             <p className="text-xs text-muted-foreground mt-1">
-               {metrics.totalConverted} total
-             </p>
-           </CardContent>
-         </Card>
- 
-         {/* Conversion Rate */}
-         <Card>
-           <CardHeader className="pb-2">
-             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-               <Percent className="h-3 w-3" />
-               Taxa de Conversão
-             </CardTitle>
-           </CardHeader>
-           <CardContent className="pt-0">
-             <div className="flex items-baseline gap-2">
-               <span className="text-2xl font-bold">{metrics.conversionRate}%</span>
-             </div>
-             <p className="text-xs text-muted-foreground mt-1">
-               de todos os orçamentos
-             </p>
-           </CardContent>
-         </Card>
- 
-         {/* Avg Response Time */}
-         <Card>
-           <CardHeader className="pb-2">
-             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-               <Clock className="h-3 w-3" />
-               Tempo de Resposta
-             </CardTitle>
-           </CardHeader>
-           <CardContent className="pt-0">
-             <div className="flex items-baseline gap-2">
-               <span className="text-2xl font-bold">
-                 {metrics.avgDaysToContact === 0 ? "<1" : metrics.avgDaysToContact}
-               </span>
-               <span className="text-sm text-muted-foreground">
-                 {metrics.avgDaysToContact <= 1 ? "dia" : "dias"}
-               </span>
-             </div>
-             <p className="text-xs text-muted-foreground mt-1">
-               média até 1º contato
-             </p>
-           </CardContent>
-         </Card>
-       </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* This Month */}
+          <Card className="border-l-[3px] border-l-primary border-border/60">
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-foreground">{metrics.thisMonth}</p>
+                  {metrics.growthPercent !== 0 && (
+                    <Badge
+                      variant={metrics.growthPercent > 0 ? "default" : "destructive"}
+                      className="text-xs gap-0.5"
+                    >
+                      {metrics.growthPercent > 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {Math.abs(metrics.growthPercent)}%
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">Este Mês</p>
+                <p className="text-xs text-muted-foreground/70 truncate">
+                  vs {metrics.lastMonth} mês passado
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Conversions */}
+          <Card className="border-l-[3px] border-l-success border-border/60">
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 shrink-0">
+                <CheckCircle2 className="h-5 w-5 text-success" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-foreground">{metrics.convertedThisMonth}</p>
+                <p className="text-xs text-muted-foreground truncate">Convertidos</p>
+                <p className="text-xs text-muted-foreground/70 truncate">{metrics.totalConverted} total</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Conversion Rate */}
+          <Card className="border-l-[3px] border-l-secondary border-border/60">
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary/10 shrink-0">
+                <Percent className="h-5 w-5 text-secondary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-foreground">{metrics.conversionRate}%</p>
+                <p className="text-xs text-muted-foreground truncate">Taxa de Conversão</p>
+                <p className="text-xs text-muted-foreground/70 truncate">de todos os orçamentos</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Avg Response Time */}
+          <Card className="border-l-[3px] border-l-info border-border/60">
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 shrink-0">
+                <Clock className="h-5 w-5 text-info" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-foreground">
+                  {metrics.avgDaysToContact === 0 ? "<1" : metrics.avgDaysToContact}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">Tempo de Resposta</p>
+                <p className="text-xs text-muted-foreground/70 truncate">
+                  {metrics.avgDaysToContact <= 1 ? "dia" : "dias"} média até 1º contato
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
  
        {/* Charts Row */}
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

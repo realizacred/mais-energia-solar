@@ -78,11 +78,11 @@
                  return (
                    <div
                      key={vendor.vendedor_id}
-                     className={`text-center p-3 rounded-lg transition-all ${
-                       idx === 1
-                         ? "bg-gradient-to-b from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-2 border-yellow-300 dark:border-yellow-700 -mt-2"
-                         : "bg-muted/50"
-                     } ${isMe ? "ring-2 ring-primary" : ""}`}
+                      className={`text-center p-3 rounded-lg transition-all ${
+                        idx === 1
+                          ? "bg-gradient-to-b from-warning/10 to-warning/20 border-2 border-warning/30 -mt-2"
+                          : "bg-muted/50"
+                      } ${isMe ? "ring-2 ring-primary" : ""}`}
                    >
                      <div className="flex justify-center mb-2">
                        {getRankIcon(position)}

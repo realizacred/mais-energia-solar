@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.19.0",
+    date: "2026-03-12",
+    title: "Auditoria visual do portal do consultor",
+    type: "improvement",
+    description: "Correção de cores hardcoded e padronização de KPI cards no portal do consultor conforme design system.",
+    details: [
+      "KPI cards do Dashboard Pessoal refatorados para padrão §27 (border-l-[3px], ícone com bg-primary/10)",
+      "Pódio do Leaderboard: yellow-* substituído por warning/10 semântico com dark mode",
+      "Varredura completa de src/components/vendor/ sem cores hardcoded encontradas",
+    ],
+  },
+  {
     version: "2.18.0",
     date: "2026-03-11",
     title: "Navegação mobile do portal do consultor",
