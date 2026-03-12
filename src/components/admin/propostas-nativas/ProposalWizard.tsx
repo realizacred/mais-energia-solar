@@ -511,14 +511,24 @@ export function ProposalWizard() {
 
         // ── Enrich restore: fetch lead_id / deal_id from propostas_nativas
         // Snapshot may not contain selectedLead when proposal was created via project context
-        if (!s.selectedLead) {
-          try {
-            const { data: propostaMeta } = await supabase
-              .from("propostas_nativas")
-              .select("lead_id, deal_id, projeto_id")
-              .eq("id", propostaIdFromUrl)
-              .single();
+        try {
+          const { data: propostaMeta } = await supabase
+            .from("propostas_nativas")
+            .select("lead_id, deal_id, projeto_id, cliente_id")
+            .eq("id", propostaIdFromUrl)
+            .single();
 
+          if (propostaMeta?.deal_id) {
+            setProjectContext(prev => prev || { dealId: propostaMeta.deal_id!, customerId: propostaMeta.cliente_id || "" });
+            console.log("[ProposalWizard] dealId enriched from propostas_nativas:", propostaMeta.deal_id);
+          }
+
+          if (propostaMeta?.projeto_id) {
+            setSavedProjetoId(propostaMeta.projeto_id);
+          }
+
+          // Enrich selectedLead if missing from snapshot
+          if (!s.selectedLead) {
             if (propostaMeta?.lead_id) {
               const { data: lead } = await supabase
                 .from("leads")
@@ -529,19 +539,61 @@ export function ProposalWizard() {
                 setSelectedLead(lead as any);
                 console.log("[ProposalWizard] Lead enriched from propostas_nativas:", lead.id);
               }
-            }
+            } else if (propostaMeta?.cliente_id) {
+              // No lead_id on proposta — try to get lead from cliente, or synthesize from cliente data
+              const { data: cli } = await supabase
+                .from("clientes")
+                .select("id, nome, telefone, email, lead_id, estado, cidade")
+                .eq("id", propostaMeta.cliente_id)
+                .maybeSingle();
 
-            if (propostaMeta?.deal_id) {
-              setProjectContext(prev => prev || { dealId: propostaMeta.deal_id!, customerId: "" });
-              console.log("[ProposalWizard] dealId enriched from propostas_nativas:", propostaMeta.deal_id);
-            }
+              if (cli?.lead_id) {
+                const { data: lead } = await supabase
+                  .from("leads")
+                  .select("*")
+                  .eq("id", cli.lead_id)
+                  .single();
+                if (lead) {
+                  setSelectedLead(lead as any);
+                  console.log("[ProposalWizard] Lead enriched from cliente.lead_id:", lead.id);
+                }
+              } else if (cli) {
+                // No lead_id on cliente — try to find a lead by phone number
+                const phoneNorm = cli.telefone.replace(/\D/g, "");
+                const { data: leadByPhone } = await supabase
+                  .from("leads")
+                  .select("*")
+                  .eq("telefone_normalized", phoneNorm)
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
 
-            if (propostaMeta?.projeto_id) {
-              setSavedProjetoId(propostaMeta.projeto_id);
+                if (leadByPhone) {
+                  setSelectedLead(leadByPhone as any);
+                  console.log("[ProposalWizard] Lead found by phone match:", leadByPhone.id);
+                } else {
+                  // Synthesize minimal lead-like object from cliente data so handleGenerate doesn't block
+                  // Mark with _synthetic flag so handleGenerate can use cliente_id instead
+                  const syntheticLead: LeadSelection = {
+                    id: cli.id, // Use cliente ID — handleGenerate will detect synthetic via _synthetic flag
+                    nome: cli.nome,
+                    telefone: cli.telefone,
+                    lead_code: "",
+                    estado: cli.estado || s.locEstado || "",
+                    cidade: cli.cidade || s.locCidade || "",
+                    media_consumo: s.ucs?.[0]?.consumo_mensal || 0,
+                    tipo_telhado: s.locTipoTelhado || "",
+                    _synthetic: true,
+                    _clienteId: cli.id,
+                  } as any;
+                  setSelectedLead(syntheticLead);
+                  console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
+                }
+              }
             }
-          } catch (enrichErr) {
-            console.warn("[ProposalWizard] Failed to enrich lead/deal from propostas_nativas:", enrichErr);
           }
+        } catch (enrichErr) {
+          console.warn("[ProposalWizard] Failed to enrich lead/deal from propostas_nativas:", enrichErr);
         }
 
         const isLegacy = rawSnapshot.source === "legacy_import";
@@ -583,7 +635,7 @@ export function ProposalWizard() {
         ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80))
         : undefined,
       geracaoMensal: geracaoMensalEstimada || undefined,
-      leadId: selectedLead?.id,
+      leadId: (selectedLead as any)?._synthetic ? undefined : selectedLead?.id,
       dealId: resolvedDealId,
       titulo,
       cliente: cliente.nome && cliente.celular ? cliente : undefined,
@@ -1201,9 +1253,13 @@ export function ProposalWizard() {
         }
       }
 
-      const idempotencyKey = getOrCreateIdempotencyKey(selectedLead.id);
+      const isSyntheticLead = !!(selectedLead as any)?._synthetic;
+      const realLeadId = isSyntheticLead ? undefined : selectedLead.id;
+      const clienteIdForPayload = isSyntheticLead ? (selectedLead as any)._clienteId : undefined;
+      const idempotencyKey = getOrCreateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
       const payload: GenerateProposalPayload = {
-        lead_id: selectedLead.id,
+        lead_id: realLeadId || clienteIdForPayload || selectedLead.id,
+        cliente_id: clienteIdForPayload,
         projeto_id: projetoId,
         grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
         idempotency_key: idempotencyKey,
