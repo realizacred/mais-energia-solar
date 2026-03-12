@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
-import { UserPlus } from "lucide-react";
+import { UserPlus, FileText } from "lucide-react";
 import { StorageFileGallery } from "@/components/ui-kit/StorageFileGallery";
 
 import { useLeadOwnership } from "@/hooks/useLeadOwnership";
@@ -30,18 +30,28 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
   const [assignOpen, setAssignOpen] = useState(false);
   const ownership = useLeadOwnership(open && orcamento ? orcamento.lead_id : null);
 
-  // handleOpenFile removed – StorageFileGallery handles file preview/download
-
   if (!orcamento) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">Detalhes do Orçamento</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden">
+        {/* §25 HEADER */}
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Detalhes do Orçamento
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Informações completas do orçamento e lead
+            </p>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        {/* §25 BODY */}
+        <div className="p-5 space-y-5 overflow-y-auto max-h-[70vh]">
           {/* Códigos */}
           <div className="flex items-center gap-2 flex-wrap">
             {orcamento.orc_code && (
@@ -57,21 +67,30 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
           </div>
 
           {/* Cliente */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Nome</p>
-              <p className="font-medium">{orcamento.nome}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Telefone</p>
-              <p className="font-medium">{formatPhoneBR(orcamento.telefone)}</p>
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Dados do cliente
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Nome</p>
+                <p className="font-medium text-sm">{orcamento.nome}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Telefone</p>
+                <p className="font-medium text-sm">{formatPhoneBR(orcamento.telefone)}</p>
+              </div>
             </div>
           </div>
 
+          <div className="border-t border-border" />
+
           {/* Endereço */}
-          <div className="pt-2 border-t">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Endereço do Orçamento</p>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Endereço do Orçamento
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">CEP</p>
                 <p className="font-medium text-sm">{orcamento.cep || "-"}</p>
@@ -121,12 +140,14 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
           {/* Ownership History */}
           <LeadOwnershipCard ownership={ownership} />
 
+          <div className="border-t border-border" />
+
           {/* Imóvel */}
-          <div className="pt-2 border-t">
-            <p className="text-sm font-medium text-muted-foreground mb-2">
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Imóvel e Consumo
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Área</p>
                 <p className="font-medium text-sm">{orcamento.area}</p>
@@ -159,20 +180,26 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
           </div>
 
           {orcamento.observacoes && (
-            <div className="pt-2 border-t">
-              <p className="text-sm text-muted-foreground">Observações</p>
-              <p className="font-medium text-sm">{orcamento.observacoes}</p>
-            </div>
+            <>
+              <div className="border-t border-border" />
+              <div className="space-y-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Observações</p>
+                <p className="font-medium text-sm">{orcamento.observacoes}</p>
+              </div>
+            </>
           )}
 
           {/* Arquivos Anexados */}
           {orcamento.arquivos_urls && orcamento.arquivos_urls.length > 0 && (
-            <div className="pt-2 border-t">
-              <p className="text-sm text-muted-foreground mb-2">
-                Arquivos Anexados ({orcamento.arquivos_urls.length})
-              </p>
-              <StorageFileGallery bucket="contas-luz" filePaths={orcamento.arquivos_urls} />
-            </div>
+            <>
+              <div className="border-t border-border" />
+              <div className="space-y-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Arquivos Anexados ({orcamento.arquivos_urls.length})
+                </p>
+                <StorageFileGallery bucket="contas-luz" filePaths={orcamento.arquivos_urls} />
+              </div>
+            </>
           )}
         </div>
       </DialogContent>

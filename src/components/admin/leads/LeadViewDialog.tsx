@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
-import { FileText, Image, ExternalLink } from "lucide-react";
+import { FileText, Image, ExternalLink, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -43,12 +43,24 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">Detalhes do Lead</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden">
+        {/* §25 HEADER */}
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <User className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Detalhes do Lead
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Informações completas do lead
+            </p>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        {/* §25 BODY */}
+        <div className="p-5 space-y-5 overflow-y-auto max-h-[70vh]">
           {lead.lead_code && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-mono text-sm px-3 py-1">
@@ -57,21 +69,31 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Nome</p>
-              <p className="font-medium">{lead.nome}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Telefone</p>
-              <p className="font-medium">{formatPhoneBR(lead.telefone)}</p>
+          {/* Dados pessoais */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Dados pessoais
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Nome</p>
+                <p className="font-medium text-sm">{lead.nome}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Telefone</p>
+                <p className="font-medium text-sm">{formatPhoneBR(lead.telefone)}</p>
+              </div>
             </div>
           </div>
 
+          <div className="border-t border-border" />
+
           {/* Endereço */}
-          <div className="pt-2 border-t">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Endereço</p>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Endereço
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">CEP</p>
                 <p className="font-medium text-sm">{lead.cep || "-"}</p>
@@ -101,12 +123,14 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
             </div>
           </div>
 
+          <div className="border-t border-border" />
+
           {/* Imóvel */}
-          <div className="pt-2 border-t">
-            <p className="text-sm font-medium text-muted-foreground mb-2">
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Imóvel e Consumo
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Área</p>
                 <p className="font-medium text-sm">{lead.area}</p>
@@ -139,50 +163,56 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
           </div>
 
           {lead.observacoes && (
-            <div className="pt-2 border-t">
-              <p className="text-sm text-muted-foreground">Observações</p>
-              <p className="font-medium text-sm">{lead.observacoes}</p>
-            </div>
+            <>
+              <div className="border-t border-border" />
+              <div className="space-y-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Observações</p>
+                <p className="font-medium text-sm">{lead.observacoes}</p>
+              </div>
+            </>
           )}
 
           {/* Arquivos Anexados */}
           {lead.arquivos_urls && lead.arquivos_urls.length > 0 && (
-            <div className="pt-2 border-t">
-              <p className="text-sm text-muted-foreground mb-2">
-                Arquivos Anexados ({lead.arquivos_urls.length})
-              </p>
-              <div className="space-y-2">
-                {lead.arquivos_urls.map((filePath, index) => {
-                  const fileName = filePath.split("/").pop() || `Arquivo ${index + 1}`;
-                  const isImage = /\.(jpg|jpeg|png)$/i.test(fileName);
+            <>
+              <div className="border-t border-border" />
+              <div className="space-y-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Arquivos Anexados ({lead.arquivos_urls.length})
+                </p>
+                <div className="space-y-2">
+                  {lead.arquivos_urls.map((filePath, index) => {
+                    const fileName = filePath.split("/").pop() || `Arquivo ${index + 1}`;
+                    const isImage = /\.(jpg|jpeg|png)$/i.test(fileName);
 
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {isImage ? (
-                          <Image className="w-5 h-5 text-primary" />
-                        ) : (
-                          <FileText className="w-5 h-5 text-destructive" />
-                        )}
-                        <span className="text-sm font-medium truncate">{fileName}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenFile(filePath)}
-                        className="flex items-center gap-1 text-primary hover:text-primary"
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                       >
-                        <ExternalLink className="w-4 h-4" />
-                        Abrir
-                      </Button>
-                    </div>
-                  );
-                })}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {isImage ? (
+                            <Image className="w-5 h-5 text-primary" />
+                          ) : (
+                            <FileText className="w-5 h-5 text-destructive" />
+                          )}
+                          <span className="text-sm font-medium truncate">{fileName}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenFile(filePath)}
+                          className="flex items-center gap-1 text-primary hover:text-primary"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Abrir
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </DialogContent>

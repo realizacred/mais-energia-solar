@@ -98,7 +98,7 @@ export function OrcamentoHistoryDialog({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1 p-5 max-h-[70vh]">
           {/* Latest/Most Recent Orcamento Highlighted - DESTAQUE PRINCIPAL */}
           <div className="mb-4">
             <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">

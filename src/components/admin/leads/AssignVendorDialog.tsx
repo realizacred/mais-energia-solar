@@ -10,8 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -78,7 +76,6 @@ export function AssignVendorDialog({
         setLoading(false);
       });
 
-    // Pre-select current vendedor by ID
     setSelectedVendedorId(currentVendedorId || "");
   }, [open, currentVendedorId]);
 
@@ -97,7 +94,6 @@ export function AssignVendorDialog({
       const vendedorObj = vendedores.find(v => v.id === selectedVendedorId);
       const vendedorNome = vendedorObj?.nome || "";
 
-      // Update the orcamento's vendedor (text) for backward compat
       const { error: orcError } = await supabase
         .from("orcamentos")
         .update({ consultor: vendedorNome })
@@ -105,7 +101,6 @@ export function AssignVendorDialog({
 
       if (orcError) throw orcError;
 
-      // Update lead with vendedor_id (primary) + vendedor text (backward compat)
       const { error: leadError } = await supabase
         .from("leads")
         .update({
@@ -139,7 +134,6 @@ export function AssignVendorDialog({
   const handleRemoveVendor = async () => {
     setSaving(true);
     try {
-      // Get tenant_id from the lead itself
       const { data: leadData } = await supabase
         .from("leads")
         .select("tenant_id")
@@ -153,7 +147,6 @@ export function AssignVendorDialog({
         throw new Error("Não foi possível resolver consultor padrão da fila");
       }
 
-      // Get default vendedor name
       const { data: vendedorData } = await supabase
         .from("consultores" as any)
         .select("nome")
@@ -195,18 +188,22 @@ export function AssignVendorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <UserPlus className="w-5 h-5 text-primary" />
-            Atribuir Consultor
-          </DialogTitle>
-          <DialogDescription>
-            Transfira o orçamento de <strong>{clienteNome}</strong> para um consultor
-          </DialogDescription>
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Atribuir Consultor
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Transfira o orçamento de <strong>{clienteNome}</strong> para um consultor
+            </p>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
           {displayName && (
             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
               <span className="text-sm text-muted-foreground">Consultor atual:</span>
@@ -244,8 +241,8 @@ export function AssignVendorDialog({
           )}
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          {displayName && (
+        <div className="flex items-center justify-between gap-2 p-4 border-t border-border bg-muted/30">
+          {displayName ? (
             <Button
               variant="outline"
               onClick={handleRemoveVendor}
@@ -254,9 +251,11 @@ export function AssignVendorDialog({
             >
               Remover Consultor
             </Button>
+          ) : (
+            <div />
           )}
-          <div className="flex gap-2 ml-auto">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
               Cancelar
             </Button>
             <Button onClick={handleAssign} disabled={saving || !selectedVendedorId}>
@@ -273,7 +272,7 @@ export function AssignVendorDialog({
               )}
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
