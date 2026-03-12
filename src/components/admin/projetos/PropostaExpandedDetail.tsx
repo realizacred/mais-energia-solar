@@ -970,10 +970,21 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <Eye className="h-3.5 w-3.5 mr-2 text-primary" /> Visualizar detalhes
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
-                  const params = new URLSearchParams({ deal_id: dealId });
-                  if (customerId) params.set("customer_id", customerId);
-                  params.set("orc_id", p.id);
-                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                  if (latestVersao) {
+                    // Edit mode: pass proposta_id + versao_id so wizard restores from snapshot
+                    const params = new URLSearchParams({
+                      proposta_id: p.id,
+                      versao_id: latestVersao.id,
+                    });
+                    if (dealId) params.set("deal_id", dealId);
+                    if (customerId) params.set("customer_id", customerId);
+                    navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                  } else {
+                    // Fallback: no version yet, open as new with project context
+                    const params = new URLSearchParams({ deal_id: dealId });
+                    if (customerId) params.set("customer_id", customerId);
+                    navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                  }
                 }}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-warning" /> Editar dimensionamento
                 </DropdownMenuItem>
