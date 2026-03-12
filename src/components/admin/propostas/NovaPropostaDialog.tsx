@@ -490,8 +490,6 @@ export function NovaPropostaDialog({
           </div>
         </div>
 
-        </div>
-
         <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar

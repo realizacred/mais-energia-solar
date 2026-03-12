@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { LayoutGrid, BarChart3, Settings2 } from "lucide-react";
+import { LayoutGrid, BarChart3, Settings2, XCircle } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { subDays, isAfter } from "date-fns";
 import { PipelineFilters, KanbanCard, PipelineAutomations, EnhancedFunnel } from "./pipeline";
