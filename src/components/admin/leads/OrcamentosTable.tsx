@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -88,15 +94,15 @@ export function OrcamentosTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-12">Visto</TableHead>
-            <TableHead className="w-28">Orçamento</TableHead>
-            <TableHead className="w-24">Cliente</TableHead>
+            <TableHead className="w-28 hidden md:table-cell">ORC</TableHead>
+            <TableHead className="w-24 hidden md:table-cell">Lead</TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>Telefone</TableHead>
-            <TableHead>Consultor</TableHead>
-            <TableHead>Localização</TableHead>
-            <TableHead>Consumo</TableHead>
-            <TableHead>Data</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+            <TableHead className="hidden lg:table-cell">Consultor</TableHead>
+            <TableHead className="hidden sm:table-cell">Localização</TableHead>
+            <TableHead className="hidden sm:table-cell">Consumo</TableHead>
+            <TableHead className="hidden sm:table-cell">Data</TableHead>
+            <TableHead className="w-[60px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -118,40 +124,31 @@ export function OrcamentosTable({
                     className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell">
                   <div className="flex items-center gap-1">
                     <Badge variant="default" className="font-mono text-xs bg-primary">
                       {orc.orc_code || "-"}
                     </Badge>
                     {hasHistory && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
-                              onClick={() => handleOpenHistory(group)}
-                            >
-                              <Badge variant="secondary" className="h-5 min-w-5 p-0 flex items-center justify-center text-xs">
-                                +{group.count - 1}
-                              </Badge>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Ver {group.count} orçamentos deste cliente
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                        onClick={() => handleOpenHistory(group)}
+                      >
+                        <Badge variant="secondary" className="h-5 min-w-5 p-0 flex items-center justify-center text-xs">
+                          +{group.count - 1}
+                        </Badge>
+                      </Button>
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell">
                   <Badge variant="outline" className="font-mono text-xs">
                     {orc.lead_code || "-"}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium">
+                <TableCell className="font-medium text-sm">
                   <div className="flex items-center gap-2">
                     {orc.nome}
                     {hasHistory && (
@@ -167,17 +164,17 @@ export function OrcamentosTable({
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-sm whitespace-nowrap">
                   <div className="flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-muted-foreground" />
+                    <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                     {orc.telefone}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   {(orc.vendedor_nome || orc.vendedor) ? (
                     <Badge
                       variant="outline"
-                      className="bg-primary/10 text-primary border-primary/20 cursor-pointer hover:bg-primary/20"
+                      className="bg-primary/10 text-primary border-primary/20 cursor-pointer hover:bg-primary/20 text-xs"
                       onClick={() => {
                         setAssignOrcamento(orc);
                         setAssignOpen(true);
@@ -200,114 +197,91 @@ export function OrcamentosTable({
                     </Button>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <Badge
                     variant="secondary"
-                    className="bg-secondary/10 text-secondary"
+                    className="bg-secondary/10 text-secondary text-xs"
                   >
                     {orc.cidade}, {orc.estado}
                   </Badge>
                 </TableCell>
-                <TableCell>{orc.media_consumo} kWh</TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell text-sm">
+                  {orc.media_consumo} kWh
+                </TableCell>
+                <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                   {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 </TableCell>
-                <TableCell className="text-right">
-                  <TooltipProvider>
-                    <div className="flex items-center justify-end gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-primary hover:text-primary hover:bg-primary/10"
-                            onClick={() => {
-                              setEditOrcamento(orc);
-                              setEditOpen(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Editar lead</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-secondary hover:text-secondary"
-                            onClick={() => onView(orc)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Ver detalhes</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-success hover:text-success hover:bg-success/10"
-                            onClick={() => handleOpenWhatsApp(orc)}
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Enviar WhatsApp</TooltipContent>
-                      </Tooltip>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => onView(orc)}>
+                        <Eye className="w-4 h-4 mr-2 text-secondary" />
+                        Ver detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setEditOrcamento(orc);
+                        setEditOpen(true);
+                      }}>
+                        <Pencil className="w-4 h-4 mr-2 text-primary" />
+                        Editar lead
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenWhatsApp(orc)}>
+                        <MessageSquare className="w-4 h-4 mr-2 text-success" />
+                        Enviar WhatsApp
+                      </DropdownMenuItem>
+                      {hasHistory && (
+                        <DropdownMenuItem onClick={() => handleOpenHistory(group)}>
+                          <History className="w-4 h-4 mr-2 text-muted-foreground" />
+                          Ver histórico ({group.count})
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => {
+                        setAssignOrcamento(orc);
+                        setAssignOpen(true);
+                      }}>
+                        <UserPlus className="w-4 h-4 mr-2 text-warning" />
+                        {(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}
+                      </DropdownMenuItem>
                       {onConvert && !isConverted && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-primary hover:text-primary hover:bg-primary/10"
-                              onClick={() => {
-                                if (hasHistory) {
-                                  // Multiple orcamentos: open history to let admin pick which one
-                                  handleOpenHistory(group);
-                                } else {
-                                  onConvert(orc);
-                                }
-                              }}
-                            >
-                              <ShoppingCart className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {hasHistory ? "Selecionar orçamento para venda" : "Converter em Venda"}
-                          </TooltipContent>
-                        </Tooltip>
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => {
+                            if (hasHistory) {
+                              handleOpenHistory(group);
+                            } else {
+                              onConvert(orc);
+                            }
+                          }}>
+                            <ShoppingCart className="w-4 h-4 mr-2 text-primary" />
+                            {hasHistory ? "Selecionar p/ venda" : "Converter em Venda"}
+                          </DropdownMenuItem>
+                        </>
                       )}
                       {isConverted && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex items-center justify-center h-8 w-8 text-success">
-                              <UserCheck className="w-4 h-4" />
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>Já convertido em cliente</TooltipContent>
-                        </Tooltip>
+                        <DropdownMenuItem disabled>
+                          <UserCheck className="w-4 h-4 mr-2 text-success" />
+                          Já convertido
+                        </DropdownMenuItem>
                       )}
                       {onDelete && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => onDelete(orc)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Excluir orçamento</TooltipContent>
-                        </Tooltip>
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => onDelete(orc)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </>
                       )}
-                    </div>
-                  </TooltipProvider>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             );
