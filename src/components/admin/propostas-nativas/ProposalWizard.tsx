@@ -486,6 +486,41 @@ export function ProposalWizard() {
         // Clear localStorage draft to avoid conflicts
         clearLocal();
 
+        // ── Enrich restore: fetch lead_id / deal_id from propostas_nativas
+        // Snapshot may not contain selectedLead when proposal was created via project context
+        if (!s.selectedLead) {
+          try {
+            const { data: propostaMeta } = await supabase
+              .from("propostas_nativas")
+              .select("lead_id, deal_id, projeto_id")
+              .eq("id", propostaIdFromUrl)
+              .single();
+
+            if (propostaMeta?.lead_id) {
+              const { data: lead } = await supabase
+                .from("leads")
+                .select("*")
+                .eq("id", propostaMeta.lead_id)
+                .single();
+              if (lead) {
+                setSelectedLead(lead as any);
+                console.log("[ProposalWizard] Lead enriched from propostas_nativas:", lead.id);
+              }
+            }
+
+            if (propostaMeta?.deal_id) {
+              setProjectContext(prev => prev || { dealId: propostaMeta.deal_id!, customerId: "" });
+              console.log("[ProposalWizard] dealId enriched from propostas_nativas:", propostaMeta.deal_id);
+            }
+
+            if (propostaMeta?.projeto_id) {
+              setSavedProjetoId(propostaMeta.projeto_id);
+            }
+          } catch (enrichErr) {
+            console.warn("[ProposalWizard] Failed to enrich lead/deal from propostas_nativas:", enrichErr);
+          }
+        }
+
         const isLegacy = rawSnapshot.source === "legacy_import";
         toast({
           title: isLegacy ? "📋 Proposta importada carregada" : "📋 Proposta carregada",
