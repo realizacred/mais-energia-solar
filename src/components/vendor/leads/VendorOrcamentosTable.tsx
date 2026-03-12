@@ -448,6 +448,34 @@ export function VendorOrcamentosTable({
         onWhatsApp={handleWhatsAppFromHistory}
         onConvertOrcamento={onConvert ? (orc) => onConvert(orc as OrcamentoVendedor) : undefined}
       />
+
+      {/* Edit Lead Dialog */}
+      {editOrcamento && (
+        <LeadEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          leadId={editOrcamento.lead_id}
+          initialData={{
+            nome: editOrcamento.nome,
+            telefone: editOrcamento.telefone,
+            consultor_id: editOrcamento.vendedor_id || null,
+            consultor_nome: editOrcamento.vendedor_nome || null,
+            cep: editOrcamento.cep,
+            cidade: editOrcamento.cidade,
+            estado: editOrcamento.estado,
+            bairro: editOrcamento.bairro,
+            rua: editOrcamento.rua,
+            numero: editOrcamento.numero,
+            area: editOrcamento.area,
+            tipo_telhado: editOrcamento.tipo_telhado,
+            rede_atendimento: editOrcamento.rede_atendimento,
+            media_consumo: editOrcamento.media_consumo,
+            consumo_previsto: editOrcamento.consumo_previsto,
+            observacoes: editOrcamento.observacoes,
+          }}
+          onSuccess={onRefresh}
+        />
+      )}
     </>
   );
 }
