@@ -638,15 +638,15 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 text-base">
-            <ShieldCheck className="w-5 h-5 text-primary" />
-            Importação Tarifária ANEEL
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Upload → Detecção → Normalização → Conversão → Match → Validação → Preview → Commit → Relatório
-          </DialogDescription>
+      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Upload className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Importação Tarifária ANEEL</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Upload → Detecção → Match → Validação → Preview → Commit</p>
+          </div>
         </DialogHeader>
 
         {/* Pipeline Progress Bar */}
