@@ -455,6 +455,7 @@ export function ProposalWizard() {
     if (!propostaIdFromUrl || !versaoIdFromUrl) return;
     if (dbRestoreAttemptedRef.current) return;
     dbRestoreAttemptedRef.current = true;
+    setIsRestoring(true);
 
     (async () => {
       try {
@@ -494,6 +495,8 @@ export function ProposalWizard() {
       } catch (err) {
         console.error("[ProposalWizard] Error loading proposal from DB:", err);
         toast({ title: "Erro ao carregar proposta", description: "Não foi possível restaurar os dados.", variant: "destructive" });
+      } finally {
+        setIsRestoring(false);
       }
     })();
   }, [propostaIdFromUrl, versaoIdFromUrl, restoreFromSnapshot, clearLocal, normalizeLegacySnapshot]);
