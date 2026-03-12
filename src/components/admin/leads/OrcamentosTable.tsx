@@ -252,7 +252,7 @@ export function OrcamentosTable({
                       {onConvert && !isConverted && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => { if (hasHistory) { handleOpenHistory(group); } else { onConvert(orc); } }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" onClick={() => { if (hasHistory) { handleOpenHistory(group); } else { onConvert(orc); } }}>
                               <ShoppingCart className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
