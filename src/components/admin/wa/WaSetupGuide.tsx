@@ -3,6 +3,7 @@ import {
   Copy,
   ExternalLink,
   HelpCircle,
+  MessageCircle,
   Server,
   Smartphone,
   Link2,
