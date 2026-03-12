@@ -484,12 +484,16 @@ export function ProposalWizard() {
           ? await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot
           : rawSnapshot as WizardSnapshot;
 
-        // Diagnostic: log UC consumo data from snapshot
-        if (s.ucs?.length) {
-          console.log("[ProposalWizard] Restored UCs:", s.ucs.map((u: any) => ({
-            nome: u.nome, consumo_mensal: u.consumo_mensal, consumo_p: u.consumo_mensal_p, consumo_fp: u.consumo_mensal_fp,
-          })));
-        }
+        // Diagnostic: log snapshot data for debugging restore issues
+        console.log("[ProposalWizard] Snapshot restore:", {
+          ucs: s.ucs?.length ?? 0,
+          ucsConsumo: s.ucs?.map((u: any) => ({ nome: u.nome, consumo_mensal: u.consumo_mensal })),
+          itens: s.itens?.length ?? 0,
+          itensDetail: s.itens?.map((i: any) => ({ descricao: i.descricao, qty: i.quantidade, preco: i.preco_unitario })),
+          manualKits: s.manualKits?.length ?? 0,
+          hasSelectedLead: !!s.selectedLead,
+          potenciaKwp: s.potenciaKwp,
+        });
         restoreFromSnapshot(s);
         setSavedPropostaId(propostaIdFromUrl);
         setSavedVersaoId(versaoIdFromUrl);
