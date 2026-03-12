@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 
 interface OrcamentoDeleteDialogProps {
@@ -27,9 +28,14 @@ export function OrcamentoDeleteDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="w-[90vw] max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Excluir Orçamento</AlertDialogTitle>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <Trash2 className="w-5 h-5 text-destructive" />
+            </div>
+            <AlertDialogTitle>Excluir Orçamento</AlertDialogTitle>
+          </div>
           <AlertDialogDescription>
             Tem certeza que deseja excluir o orçamento{" "}
             <strong>{orcamento.orc_code || orcamento.id}</strong> de{" "}

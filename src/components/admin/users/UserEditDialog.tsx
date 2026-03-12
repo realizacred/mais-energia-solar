@@ -673,9 +673,14 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
 
       {/* Delete Confirm */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">Excluir usuário permanentemente?</AlertDialogTitle>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-destructive">Excluir usuário permanentemente?</AlertDialogTitle>
+            </div>
             <AlertDialogDescription>
               <span className="font-semibold text-destructive">Atenção: Esta ação é irreversível!</span>
               <br /><br />

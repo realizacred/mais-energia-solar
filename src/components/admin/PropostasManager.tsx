@@ -230,9 +230,14 @@ export function PropostasManager() {
         />
 
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent className="w-[90vw] max-w-md">
             <AlertDialogHeader>
-              <AlertDialogTitle>Excluir proposta?</AlertDialogTitle>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                  <FileX className="w-5 h-5 text-destructive" />
+                </div>
+                <AlertDialogTitle>Excluir proposta?</AlertDialogTitle>
+              </div>
               <AlertDialogDescription>
                 Esta ação não pode ser desfeita. A proposta e todos os dados
                 relacionados serão removidos permanentemente.

@@ -207,9 +207,14 @@ export function OfflineConversionsManager() {
                           Remover
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="w-[90vw] max-w-md">
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Remover conversão pendente?</AlertDialogTitle>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <RefreshCw className="w-5 h-5 text-primary" />
+                            </div>
+                            <AlertDialogTitle>Remover conversão pendente?</AlertDialogTitle>
+                          </div>
                           <AlertDialogDescription>
                             Esta ação irá remover a conversão de "{conversion.leadNome}" da fila offline.
                             Os dados salvos localmente serão perdidos permanentemente.
