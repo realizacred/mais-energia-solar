@@ -19,8 +19,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -716,27 +714,34 @@ export function ConvertLeadToClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" />
-            Converter Lead em Venda
-          </DialogTitle>
-          <DialogDescription>
-            Preencha os dados para transformar o lead em cliente. Se faltarem documentos, você pode salvar como "Aguardando Documentação".
-          </DialogDescription>
+      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden">
+        {/* §25 HEADER */}
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Converter Lead em Venda
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Preencha os dados para transformar o lead em cliente
+            </p>
+          </div>
         </DialogHeader>
 
+        {/* §25 BODY */}
+        <div className="overflow-y-auto max-h-[70vh]">
         {/* Offline indicator */}
         {!isOnline && (
-          <div className="flex items-center gap-2 p-3 bg-warning/20 text-warning-foreground rounded-lg text-sm">
+          <div className="flex items-center gap-2 mx-5 mt-4 p-3 bg-warning/20 text-warning-foreground rounded-lg text-sm">
             <WifiOff className="w-4 h-4" />
             <span>Modo offline - Os dados serão salvos localmente e sincronizados automaticamente quando a conexão voltar.</span>
           </div>
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="p-5 space-y-6">
             {/* Dados Pessoais */}
             <Card>
               <CardHeader className="pb-3">
@@ -1129,7 +1134,8 @@ export function ConvertLeadToClientDialog({
               </div>
             )}
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* §25 FOOTER */}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 p-4 border-t border-border bg-muted/30">
               <Button
                 type="button"
                 variant="outline"
@@ -1172,9 +1178,10 @@ export function ConvertLeadToClientDialog({
                   </>
                 )}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

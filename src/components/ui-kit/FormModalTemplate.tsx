@@ -4,22 +4,31 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import type { LucideIcon } from "lucide-react";
 
 /**
- * FormSection — Título de seção simples (texto sem card/borda).
+ * FormSection — Título de seção §25 (uppercase, tracking-wide, muted).
  * Padrão canônico: nunca usar SectionCard dentro de modais de formulário.
  */
 export function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <>
-      <p className="text-sm font-semibold text-foreground pt-2">{title}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground pt-2">
+        {title}
+      </p>
       {children}
     </>
   );
+}
+
+/**
+ * FormDivider — Divisor entre seções §25.
+ */
+export function FormDivider() {
+  return <div className="border-t border-border" />;
 }
 
 /**
@@ -37,6 +46,10 @@ interface FormModalTemplateProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
+  /** Subtítulo descritivo abaixo do título (§25 obrigatório) */
+  subtitle?: string;
+  /** Ícone do header (§25 obrigatório) */
+  icon?: LucideIcon;
   /** Conteúdo do formulário (fields, sections) */
   children: React.ReactNode;
   /** Ação de salvar */
@@ -58,10 +71,10 @@ interface FormModalTemplateProps {
 /**
  * FormModalTemplate — Template canônico SSOT para todos os modais de cadastro/edição.
  *
- * Layout fixo:
- * - Header padrão (título + X)
+ * Layout §25:
+ * - Header com ícone bg-primary/10 + título + subtítulo
  * - Body com stack flat de fields/sections (sem SectionCard)
- * - Footer padrão (Cancelar / Confirmar)
+ * - Footer com bg-muted/30 (Cancelar / Confirmar)
  *
  * Nenhum modal de cadastro pode ter layout próprio.
  */
@@ -69,6 +82,8 @@ export function FormModalTemplate({
   open,
   onOpenChange,
   title,
+  subtitle,
+  icon: Icon,
   children,
   onSubmit,
   submitLabel = "Cadastrar",
@@ -83,10 +98,8 @@ export function FormModalTemplate({
     onSubmit();
   };
 
-  // body is now rendered inline in the return
-
   const footer = (
-    <DialogFooter>
+    <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
       <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
         {cancelLabel}
       </Button>
@@ -98,25 +111,35 @@ export function FormModalTemplate({
         {saving && <Spinner size="sm" className="mr-2" />}
         {submitLabel}
       </Button>
-    </DialogFooter>
+    </div>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] ${className || ""}`}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+      <DialogContent className={`p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] ${className || ""}`}>
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          {Icon && (
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Icon className="w-5 h-5 text-primary" />
+            </div>
+          )}
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">{title}</DialogTitle>
+            {subtitle && (
+              <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+            )}
+          </div>
         </DialogHeader>
         {asForm ? (
           <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
-            <div className="space-y-4 py-2 overflow-y-auto min-h-0 flex-1">
+            <div className="space-y-4 p-5 overflow-y-auto min-h-0 flex-1 max-h-[70vh]">
               {children}
             </div>
             {footer}
           </form>
         ) : (
           <>
-            <div className="space-y-4 py-2 overflow-y-auto min-h-0 flex-1">
+            <div className="space-y-4 p-5 overflow-y-auto min-h-0 flex-1 max-h-[70vh]">
               {children}
             </div>
             {footer}

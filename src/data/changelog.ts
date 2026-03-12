@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.2",
+    date: "2026-03-12",
+    title: "Auditoria em massa: modais padronizados para §25",
+    type: "improvement",
+    description: "FormModalTemplate e modais standalone atualizados para o novo padrão §25 com header (ícone + título + subtítulo), seções com divisor, footer bg-muted/30.",
+    details: [
+      "FormModalTemplate: ícone, subtítulo, footer bg-muted/30, seções uppercase (34+ modais beneficiados)",
+      "OrcamentoViewDialog: header §25, seções com divisor, max-w-xl",
+      "LeadViewDialog: header §25, seções uppercase, layout consistente",
+      "AssignVendorDialog: header §25, footer bg-muted/30, w-[90vw] max-w-md",
+      "OrcamentoHistoryDialog: header §25, max-w-2xl, overflow corrigido",
+      "ConvertLeadToClientDialog: header §25, max-w-3xl, footer bg-muted/30",
+    ],
+  },
+  {
     version: "2.22.1",
     date: "2026-03-12",
     title: "§25 atualizado com novo padrão visual obrigatório de modais",
