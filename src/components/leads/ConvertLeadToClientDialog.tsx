@@ -778,7 +778,7 @@ export function ConvertLeadToClientDialog({
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <EmailInput value={field.value || ""} onChange={field.onChange} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
