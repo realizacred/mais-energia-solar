@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User, Phone, MapPin, Home, Zap, BarChart3, MessageSquare, Send, CheckCircle, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
