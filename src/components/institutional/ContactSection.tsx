@@ -3,6 +3,7 @@ import { Phone, Mail, MapPin, Send, ArrowRight, CheckCircle2 } from "lucide-reac
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
@@ -231,12 +232,9 @@ export function ContactSection() {
                     className="rounded-xl h-12"
                   />
                 </div>
-                <Input
-                  type="email"
-                  placeholder="E-mail"
+                <EmailInput
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  maxLength={255}
+                  onChange={(v) => setFormData({ ...formData, email: v })}
                   className="rounded-xl h-12"
                 />
                 <div className="grid sm:grid-cols-2 gap-4">

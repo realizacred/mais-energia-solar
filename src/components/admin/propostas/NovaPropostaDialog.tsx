@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { Label } from "@/components/ui/label";
 import {
@@ -339,11 +340,9 @@ export function NovaPropostaDialog({
               </div>
               <div className="space-y-1.5">
                 <Label>E-mail</Label>
-                <Input
-                  type="email"
-                  placeholder="cliente@email.com"
+                <EmailInput
                   value={form.cliente_email}
-                  onChange={(e) => handleChange("cliente_email", e.target.value)}
+                  onChange={(v) => handleChange("cliente_email", v)}
                 />
               </div>
               <div className="space-y-1.5">

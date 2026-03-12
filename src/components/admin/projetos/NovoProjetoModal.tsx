@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -372,13 +373,11 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
               </Field>
 
               <Field label="Email" htmlFor="cliente-email">
-                <Input
+                <EmailInput
                   id="cliente-email"
-                  type="email"
-                  placeholder="email@exemplo.com"
                   value={cliente.email}
-                  onChange={e => updateCliente("email", e.target.value)}
-                  className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
+                  onChange={(v) => updateCliente("email", v)}
+                  className="h-9 text-sm"
                 />
               </Field>
 

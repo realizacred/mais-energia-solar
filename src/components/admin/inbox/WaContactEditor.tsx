@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Save, Loader2, Globe, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
@@ -103,12 +104,10 @@ export function WaContactEditor({ phoneE164 }: WaContactEditorProps) {
 
         <div className="space-y-1">
           <Label className="text-[10px]">E-mail</Label>
-          <Input
-            type="email"
+          <EmailInput
             value={editEmail}
-            onChange={(e) => setEditEmail(e.target.value)}
+            onChange={setEditEmail}
             className="h-7 text-xs"
-            placeholder="email@exemplo.com"
           />
         </div>
 
