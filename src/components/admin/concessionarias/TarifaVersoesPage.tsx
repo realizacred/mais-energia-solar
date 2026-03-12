@@ -554,22 +554,26 @@ export function TarifaVersoesPage() {
 
       {/* ─── Diff Dialog ─── */}
       <Dialog open={!!diffDialog} onOpenChange={() => setDiffDialog(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-sm">
-              <ArrowLeftRight className="w-4 h-4 text-primary" />
-              Diferenças entre Versões
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {diffDialog && (
-                <>
-                  <span className="font-medium">Ativa</span> ({formatDate(diffDialog.versaoA.created_at)}) →{" "}
-                  <span className="font-medium">Selecionada</span> ({formatDate(diffDialog.versaoB.created_at)})
-                </>
-              )}
-            </DialogDescription>
+        <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <ArrowLeftRight className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                Diferenças entre Versões
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {diffDialog && (
+                  <>
+                    <span className="font-medium">Ativa</span> ({formatDate(diffDialog.versaoA.created_at)}) →{" "}
+                    <span className="font-medium">Selecionada</span> ({formatDate(diffDialog.versaoB.created_at)})
+                  </>
+                )}
+              </p>
+            </div>
           </DialogHeader>
-          <ScrollArea className="max-h-[55vh]">
+          <div className="p-5 overflow-y-auto max-h-[70vh]">
             {loadingDiff ? (
               <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">Calculando diferenças…</div>
             ) : diffEntries.length === 0 ? (
