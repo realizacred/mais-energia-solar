@@ -401,9 +401,14 @@ export function MenuConfigPage() {
                   Restaurar Padrão
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="w-[90vw] max-w-md">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Restaurar menu padrão?</AlertDialogTitle>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                      <RotateCcw className="w-5 h-5 text-destructive" />
+                    </div>
+                    <AlertDialogTitle>Restaurar menu padrão?</AlertDialogTitle>
+                  </div>
                   <AlertDialogDescription>
                     Todas as personalizações de nome, ordem e visibilidade serão removidas.
                     Esta ação não pode ser desfeita.

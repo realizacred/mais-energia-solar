@@ -634,9 +634,14 @@ export function WaFollowupRulesManager() {
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir regra?</AlertDialogTitle>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Excluir regra?</AlertDialogTitle>
+            </div>
             <AlertDialogDescription>
               A regra "{deleteTarget?.nome}" e todos os follow-ups associados serão removidos permanentemente.
             </AlertDialogDescription>

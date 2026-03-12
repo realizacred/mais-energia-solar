@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.9",
+    date: "2026-03-12",
+    title: "§25 Lote 7 (final): AlertDialogs restantes padronizados",
+    type: "improvement",
+    description: "Últimos 4 AlertDialogs com ícone colorido e w-[90vw] max-w-md.",
+    details: [
+      "MenuConfigPage: ícone RotateCcw destructive (restaurar menu)",
+      "WaFollowupRulesManager: ícone Trash2 destructive",
+      "SiteServicosManager: ícone Trash2 destructive",
+      "ConcessionariasManager: ícone Trash2 destructive",
+    ],
+  },
+  {
     version: "2.22.8",
     date: "2026-03-12",
     title: "§25 Lote 6: ícones em AlertDialogs de confirmação",
