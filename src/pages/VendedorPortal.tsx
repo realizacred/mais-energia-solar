@@ -10,6 +10,7 @@ import { useVendedorPortal } from "@/hooks/useVendedorPortal";
 import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { InstallAppBanner } from "@/components/vendor/InstallAppBanner";
 
 // Error boundary to prevent VendorBottomNav crashes from killing the whole portal
 class BottomNavErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -83,6 +84,7 @@ export default function VendedorPortal() {
         />
 
         <SidebarInset className="flex-1 min-w-0">
+          <InstallAppBanner vendedorNome={portal.vendedor?.nome} />
           <header className="page-header">
             <SidebarTrigger className="-ml-1 sm:-ml-2 h-9 w-9 sm:h-10 sm:w-10">
               <Menu className="h-5 w-5" />
