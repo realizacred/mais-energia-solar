@@ -469,15 +469,22 @@ export function WaFollowupRulesManager() {
 
       {/* §25 Form Dialog — max-w-2xl, no scroll interno */}
       <Dialog open={showForm} onOpenChange={(open) => !open && closeForm()}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
+        <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Bell className="w-5 h-5 text-primary" />
-              {editingRule ? "Editar Regra" : "Nova Regra de Follow-up"}
-            </DialogTitle>
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                {editingRule ? "Editar Regra" : "Nova Regra de Follow-up"}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Configure quando e como acompanhar conversas sem resposta
+              </p>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Nome *</Label>
@@ -615,13 +622,13 @@ export function WaFollowupRulesManager() {
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={closeForm}>Cancelar</Button>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+            <Button variant="outline" onClick={closeForm}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
               {saveMutation.isPending ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
               {editingRule ? "Salvar" : "Criar Regra"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -618,9 +618,9 @@ function TarifaEditDialog({ open, onOpenChange, uc, index, isGD3, isGrupoA, onCh
             </>
           )}
         </div>
-        <div className="flex items-center justify-end gap-3 pt-2 border-t">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
-          <Button onClick={handleSave} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button onClick={handleSave}>Salvar</Button>
         </div>
       </DialogContent>
     </Dialog>

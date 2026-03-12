@@ -274,6 +274,7 @@ export function WaSetupGuide() {
             </a>
           </p>
         </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
