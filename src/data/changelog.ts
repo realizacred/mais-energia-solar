@@ -19,6 +19,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.0",
+    date: "2026-03-12",
+    title: "Auditoria global de formatação de telefone e inputs",
+    type: "improvement",
+    description: "Aplicada formatPhoneBR em todos os displays de telefone e PhoneInput em inputs de edição, corrigindo exibição raw em múltiplos componentes.",
+    details: [
+      "OrcamentoViewDialog: telefone agora formatado com formatPhoneBR",
+      "OrcamentoHistoryDialog: telefone formatado no header",
+      "LeadsTrashPage: coluna telefone formatada",
+      "LeadsPipeline: alertas de leads sem contato com telefone formatado",
+      "VendorOrcamentoCard: telefone formatado no card",
+      "OfflineConversionsManager: telefone formatado na lista offline",
+      "ConvertLeadToClientDialog: Input nativo substituído por PhoneInput + modal w-[90vw]",
+    ],
+  },
+  {
     version: "2.21.19",
     date: "2026-03-12",
     title: "LeadEditDialog corrigido para padrões §25 do AGENTS.md",
