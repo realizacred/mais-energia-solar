@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.19.1",
+    date: "2026-03-12",
+    title: "Headers padronizados no portal do consultor",
+    type: "improvement",
+    description: "Todas as 7 telas do portal do consultor agora seguem o padrão §26 com ícone, título e subtítulo.",
+    details: [
+      "Header §26 aplicado em: Painel, Atendimento, Orçamentos, Agenda, Metas & Ranking, Captação & App, Notificações",
+      "Agenda segue §29: header antes de TabsList",
+      "Removidos imports não utilizados (Collapsible, ChevronDown)",
+    ],
+  },
+  {
     version: "2.19.0",
     date: "2026-03-12",
     title: "Auditoria visual do portal do consultor",

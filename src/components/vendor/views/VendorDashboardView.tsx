@@ -1,3 +1,4 @@
+import { LayoutDashboard } from "lucide-react";
 import { LeadAlerts } from "@/components/vendor/LeadAlerts";
 import { FollowUpStatsCards } from "@/components/vendor/FollowUpStatsCards";
 import { VendorPersonalDashboard } from "@/components/vendor/VendorPersonalDashboard";
@@ -32,6 +33,18 @@ export default function VendorDashboardView({ portal }: Props) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <LayoutDashboard className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">Painel</h1>
+            <p className="text-sm text-muted-foreground">Resumo das suas métricas e atividades</p>
+          </div>
+        </div>
+      </div>
+
       <LeadAlerts leads={leadsForAlerts} diasAlerta={3} />
 
       {(!isAdminMode || isViewingAsVendedor) && vendedor && (
