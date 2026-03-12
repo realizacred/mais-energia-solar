@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { useCreateReserva, useEstoqueLocais, type EstoqueSaldo } from "@/hooks/useEstoque";
+import { Package } from "lucide-react";
 
 interface ReservaFormDialogProps {
   open: boolean;
