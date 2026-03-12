@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
-import { MessageSquare, Send, User, Phone } from "lucide-react";
+import { MessageSquare, Send, User, Phone, MessageCircle } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface WhatsAppSendDialogProps {
