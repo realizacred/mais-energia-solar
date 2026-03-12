@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.2",
+    date: "2026-03-12",
+    title: "Feat — Atomic save / idempotent save para propostas nativas",
+    type: "feature",
+    description: "Persistência atômica e idempotente para propostas, prevenindo duplicação por cliques múltiplos, reentrada concorrente e latência de rede.",
+    details: [
+      "Promise reuse: mesma intenção de save reutiliza a Promise em voo em vez de disparar nova chamada",
+      "Fingerprint estável do snapshot para distinguir saves semanticamente iguais vs diferentes",
+      "persistAtomic centraliza toda lógica de create/update, eliminando duplicação entre saveDraft e updateProposal",
+      "Guard de single-flight impede chamadas concorrentes mesmo entre intents diferentes",
+      "Toasts e logs unificados — sem spam de toast por promise reaproveitada",
+    ],
+  },
+  {
     version: "2.21.1",
     date: "2026-03-12",
     title: "Fix — Blindagem final da race condition ao salvar proposta",
