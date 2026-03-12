@@ -736,6 +736,8 @@ export function ProposalWizard() {
   // ─── Auto-load from project context (customer data)
   useEffect(() => {
     if (!customerIdFromUrl) return;
+    // In edit mode (restoring from DB), snapshot is the source of truth — skip customer auto-load
+    if (propostaIdFromUrl && versaoIdFromUrl) return;
     let cancelled = false;
     (async () => {
       try {
