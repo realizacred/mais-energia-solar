@@ -62,10 +62,18 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-primary">Detalhes do Lead</DialogTitle>
+        <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Eye className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Detalhes do Lead</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Informações completas, proposta e WhatsApp</p>
+            </div>
           </DialogHeader>
+
+          <div className="overflow-y-auto max-h-[70vh]">
 
           <Tabs defaultValue="detalhes" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
