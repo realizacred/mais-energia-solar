@@ -648,12 +648,14 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
 
       {/* Reset Password Confirm */}
       <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-primary" />
-              Redefinir senha?
-            </AlertDialogTitle>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <KeyRound className="w-5 h-5 text-primary" />
+              </div>
+              <AlertDialogTitle>Redefinir senha?</AlertDialogTitle>
+            </div>
             <AlertDialogDescription>
               Um email será enviado para <span className="font-semibold text-foreground">{user.email}</span> com
               instruções para criar uma nova senha.
