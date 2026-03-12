@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { useCreateMovimento, useEstoqueLocais, type EstoqueSaldo } from "@/hooks/useEstoque";
+import { ArrowUpDown } from "lucide-react";
 
 interface MovementFormDialogProps {
   open: boolean;
@@ -53,6 +54,7 @@ export function MovementFormDialog({ open, tipo, onOpenChange, saldos }: Movemen
   return (
     <FormModalTemplate open={open} onOpenChange={() => onOpenChange()}
       title={title}
+      icon={ArrowUpDown} subtitle="Registre uma movimentação de estoque"
       onSubmit={handleSubmit}
       submitLabel={submitLabel}
       saving={createMov.isPending}

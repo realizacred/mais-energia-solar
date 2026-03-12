@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { useTransferirEstoque, useEstoqueLocais, type EstoqueSaldo } from "@/hooks/useEstoque";
+import { ArrowLeftRight } from "lucide-react";
 
 interface TransferDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ export function TransferDialog({ open, onOpenChange, saldos }: TransferDialogPro
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Transferência entre Depósitos"
+      icon={ArrowLeftRight} subtitle="Transfira itens entre locais"
       onSubmit={handleSubmit} submitLabel="Transferir" saving={transferir.isPending}
       disabled={!itemId || !localOrigem || !localDestino || localOrigem === localDestino || !quantidade || Number(quantidade) <= 0}
       asForm

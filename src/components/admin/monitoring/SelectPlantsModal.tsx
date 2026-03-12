@@ -47,6 +47,8 @@ export function SelectPlantsModal({ open, onOpenChange, plants, providerLabel, s
       open={open}
       onOpenChange={onOpenChange}
       title={`Selecionar Usinas — ${providerLabel}`}
+      icon={Sun}
+      subtitle="Selecione as plantas de monitoramento"
       submitLabel={`Importar ${selected.size} usina${selected.size !== 1 ? "s" : ""}`}
       onSubmit={() => onConfirm(Array.from(selected))}
       disabled={selected.size === 0}

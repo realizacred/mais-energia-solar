@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { SectionCard } from "@/components/ui-kit";
-import { Package, Plus, CheckCircle, XCircle } from "lucide-react";
+import { Package, Plus, CheckCircle, XCircle, Layers } from "lucide-react";
 import {
   useProjetoMateriais,
   useEstoqueSaldos,
@@ -131,6 +131,7 @@ function AddMaterialDialog({ open, onOpenChange, projetoId }: { open: boolean; o
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Adicionar Material ao Projeto"
+      icon={Layers} subtitle="Gerencie os materiais do projeto"
       onSubmit={handleSubmit} submitLabel="Reservar" saving={reservar.isPending}
       disabled={!itemId || !quantidade || Number(quantidade) <= 0} asForm
     >

@@ -16,7 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, Star, Upload, X,
   ImageIcon, Video, MapPin, Zap, Tag, Clock,
-  MessageSquareQuote, TrendingUp, Link2
+  MessageSquareQuote, TrendingUp, Link2, HardHat
 } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
@@ -448,6 +448,8 @@ export function ObrasManager() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         title={editingObra ? "Editar Obra" : "Nova Obra"}
+        icon={HardHat}
+        subtitle="Cadastre ou edite uma obra"
         onSubmit={handleSave}
         submitLabel={editingObra ? "Salvar" : "Adicionar"}
         saving={saving}

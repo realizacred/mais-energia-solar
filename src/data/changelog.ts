@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.10",
+    date: "2026-03-12",
+    title: "§25 Lote 8: icon + subtitle em FormModalTemplate (Parte 1)",
+    type: "improvement",
+    description: "Adicionadas props icon e subtitle em 14 modais FormModalTemplate.",
+    details: [
+      "TransferDialog, ItemFormDialog, MovementFormDialog, ProjetoMateriaisPanel",
+      "SlaRulesManager, SelectPlantsModal, ConnectProviderModal, MonitorBilling",
+      "ClientesManager, ObrasManager, WhatsAppSendDialog, FiscalEmissao",
+      "SiteServicosManager, VendedoresManager",
+    ],
+  },
+  {
     version: "2.22.9",
     date: "2026-03-12",
     title: "§25 Lote 7 (final): AlertDialogs restantes padronizados",

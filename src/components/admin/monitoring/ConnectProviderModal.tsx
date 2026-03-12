@@ -8,7 +8,7 @@ import { connectProvider } from "@/services/monitoring/monitorService";
 import { getTutorial } from "@/services/monitoring/providerTutorials";
 import type { ProviderDefinition } from "@/services/monitoring/providerRegistry";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Info, Eye, EyeOff } from "lucide-react";
+import { Info, Eye, EyeOff, Plug } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -87,6 +87,8 @@ export function ConnectProviderModal({ open, onOpenChange, provider, onSuccess }
       open={open}
       onOpenChange={handleOpenChange}
       title={`Conectar ${provider.label}`}
+      icon={Plug}
+      subtitle="Conecte um provedor de monitoramento"
       submitLabel="Conectar"
       onSubmit={handleSubmit}
       disabled={!isValid}

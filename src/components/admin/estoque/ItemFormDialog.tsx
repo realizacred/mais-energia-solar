@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
+import { Package } from "lucide-react";
 import {
   useCreateEstoqueItem, useCreateMovimento, useEstoqueLocais,
   ESTOQUE_CATEGORIAS, ESTOQUE_UNIDADES, CATEGORIA_LABELS,
@@ -77,6 +78,7 @@ export function ItemFormDialog({ open, onOpenChange, defaultSku = "" }: ItemForm
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Novo Item de Estoque"
+      icon={Package} subtitle="Cadastre ou edite um item de estoque"
       onSubmit={handleSubmit} submitLabel="Cadastrar" saving={isSaving}
       disabled={!nome.trim()} asForm
     >

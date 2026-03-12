@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ReceiptText, Plus, Search, Loader2, Send, Eye, XCircle, Download, RefreshCw } from "lucide-react";
+import { ReceiptText, Plus, Search, Loader2, Send, Eye, XCircle, Download, RefreshCw, FileText } from "lucide-react";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -184,6 +184,8 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
       open={open}
       onOpenChange={v => !v && onClose()}
       title="Nova NFS-e"
+      icon={FileText}
+      subtitle="Emita documentos fiscais"
       submitLabel="Criar Rascunho"
       onSubmit={handleSave}
       saving={saving}
