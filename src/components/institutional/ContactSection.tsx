@@ -231,12 +231,9 @@ export function ContactSection() {
                     className="rounded-xl h-12"
                   />
                 </div>
-                <Input
-                  type="email"
-                  placeholder="E-mail"
+                <EmailInput
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  maxLength={255}
+                  onChange={(v) => setFormData({ ...formData, email: v })}
                   className="rounded-xl h-12"
                 />
                 <div className="grid sm:grid-cols-2 gap-4">

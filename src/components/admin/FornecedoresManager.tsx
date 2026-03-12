@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PageHeader, LoadingState, SearchInput } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
