@@ -458,8 +458,8 @@ export function VendorOrcamentosTable({
           initialData={{
             nome: editOrcamento.nome,
             telefone: editOrcamento.telefone,
-            consultor_id: editOrcamento.vendedor_id || null,
-            consultor_nome: editOrcamento.vendedor_nome || null,
+            consultor_id: (editOrcamento as any).consultor_id || null,
+            consultor_nome: editOrcamento.vendedor || null,
             cep: editOrcamento.cep,
             cidade: editOrcamento.cidade,
             estado: editOrcamento.estado,
