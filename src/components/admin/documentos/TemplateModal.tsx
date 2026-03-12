@@ -234,14 +234,16 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
           </div>
         </div>
 
-        <DialogFooter className="pt-4">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving || uploading}>
+        </div>
+
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving || uploading}>
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={saving || uploading}>
             {saving || uploading ? "Salvando…" : "Salvar"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -53,11 +53,17 @@ export function MeterLinkDialog({ open, onOpenChange, meter }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Vincular "{meter.name}" a uma UC</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Zap className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Vincular Medidor</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Vincule "{meter.name}" a uma Unidade Consumidora</p>
+          </div>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="p-5 space-y-3 overflow-y-auto max-h-[70vh]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar UC por nome ou código..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -82,13 +88,13 @@ export function MeterLinkDialog({ open, onOpenChange, meter }: Props) {
             )}
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button variant="default" onClick={handleLink} disabled={!selectedUC || saving}>
             <Zap className="w-4 h-4 mr-1" />
             {saving ? "Vinculando..." : "Vincular"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

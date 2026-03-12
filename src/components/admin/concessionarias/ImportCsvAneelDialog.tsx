@@ -1064,7 +1064,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
           {step === "done" && (
             <Button variant="ghost" size="sm" onClick={() => { reset(); onOpenChange(false); }}>Fechar</Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
