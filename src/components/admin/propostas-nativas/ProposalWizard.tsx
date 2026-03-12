@@ -450,11 +450,12 @@ export function ProposalWizard() {
   }, []);
 
   // ─── Restore from DB when proposta_id + versao_id in URL (edit mode) ───
-  const dbRestoreAttemptedRef = useRef(false);
+  const restoreKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!propostaIdFromUrl || !versaoIdFromUrl) return;
-    if (dbRestoreAttemptedRef.current) return;
-    dbRestoreAttemptedRef.current = true;
+    const restoreKey = `${propostaIdFromUrl}:${versaoIdFromUrl}`;
+    if (restoreKeyRef.current === restoreKey) return;
+    restoreKeyRef.current = restoreKey;
     setIsRestoring(true);
 
     (async () => {
