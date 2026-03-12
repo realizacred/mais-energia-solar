@@ -264,6 +264,7 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
               </div>
             </TabsContent>
           </Tabs>
+          </div>
         </DialogContent>
       </Dialog>
 

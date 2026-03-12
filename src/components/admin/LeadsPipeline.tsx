@@ -511,14 +511,19 @@ export default function LeadsPipeline() {
 
       {/* Loss Dialog */}
       <Dialog open={lossDialogOpen} onOpenChange={setLossDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Motivo do descarte</DialogTitle>
-            <DialogDescription>
-              Informe o motivo pelo qual o lead <strong>{lossLead?.nome}</strong> foi descartado.
-            </DialogDescription>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Motivo do descarte</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Informe o motivo pelo qual o lead <strong>{lossLead?.nome}</strong> foi descartado
+              </p>
+            </div>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Motivo</label>
            <Select value={lossReasonId} onValueChange={setLossReasonId}>
@@ -542,10 +547,10 @@ export default function LeadsPipeline() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+            <Button variant="outline" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
             <Button variant="default" onClick={confirmLoss} disabled={!lossReasonId}>Confirmar descarte</Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

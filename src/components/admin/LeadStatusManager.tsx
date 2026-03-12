@@ -345,23 +345,31 @@ export function LeadStatusManager() {
 
       {/* Delete Confirmation */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Excluir Status</DialogTitle>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Excluir Status</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Esta ação não pode ser desfeita</p>
+            </div>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja excluir o status{" "}
-            <strong>{statusToDelete?.nome}</strong>? Esta ação não pode ser desfeita.
-          </p>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteDialogOpen(false)}>
+          <div className="p-5 overflow-y-auto max-h-[70vh]">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja excluir o status{" "}
+              <strong>{statusToDelete?.nome}</strong>?
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancelar
             </Button>
             <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={handleDelete} disabled={saving}>
               {saving && <Spinner size="sm" className="mr-2" />}
               Excluir
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>

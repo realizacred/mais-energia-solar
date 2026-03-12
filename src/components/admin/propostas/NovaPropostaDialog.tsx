@@ -490,15 +490,17 @@ export function NovaPropostaDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        </div>
+
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={creating || !isValid}>
             {creating && <Spinner size="sm" className="mr-2" />}
             Criar Proposta
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
