@@ -17,6 +17,7 @@ import {
 import { WhatsAppSendDialog } from "@/components/admin/WhatsAppSendDialog";
 import { OrcamentoHistoryDialog } from "./OrcamentoHistoryDialog";
 import { AssignVendorDialog } from "./AssignVendorDialog";
+import { LeadEditDialog } from "./LeadEditDialog";
 import { useGroupedOrcamentos, type GroupedOrcamento } from "@/hooks/useGroupedOrcamentos";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
