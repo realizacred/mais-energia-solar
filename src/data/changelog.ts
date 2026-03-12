@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.18",
+    date: "2026-03-12",
+    title: "Restauradas cores dos ícones de ação inline na tabela de leads",
+    type: "improvement",
+    description: "Ícones de ação inline agora exibem cor base visível (primary, warning, green, info, destructive) em vez de muted-foreground.",
+    details: [
+      "Eye: text-primary (ver detalhes)",
+      "Pencil: text-warning (editar lead)",
+      "MessageSquare: text-green-600 (WhatsApp)",
+      "UserRound: text-info (alterar consultor)",
+      "ShoppingCart: text-primary (converter)",
+      "Trash2: text-destructive (excluir)",
+    ],
+  },
+  {
     version: "2.21.17",
     date: "2026-03-12",
     title: "Tabela de leads: coluna telefone com largura fixa + ações inline em telas grandes",
