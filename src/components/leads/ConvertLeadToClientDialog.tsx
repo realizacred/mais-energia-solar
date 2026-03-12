@@ -732,16 +732,18 @@ export function ConvertLeadToClientDialog({
           </div>
         </DialogHeader>
 
+        {/* §25 BODY */}
+        <div className="overflow-y-auto max-h-[70vh]">
         {/* Offline indicator */}
         {!isOnline && (
-          <div className="flex items-center gap-2 p-3 bg-warning/20 text-warning-foreground rounded-lg text-sm">
+          <div className="flex items-center gap-2 mx-5 mt-4 p-3 bg-warning/20 text-warning-foreground rounded-lg text-sm">
             <WifiOff className="w-4 h-4" />
             <span>Modo offline - Os dados serão salvos localmente e sincronizados automaticamente quando a conexão voltar.</span>
           </div>
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="p-5 space-y-6">
             {/* Dados Pessoais */}
             <Card>
               <CardHeader className="pb-3">
