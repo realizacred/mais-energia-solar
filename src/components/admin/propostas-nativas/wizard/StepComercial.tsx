@@ -44,7 +44,7 @@ export function StepComercial({ comercial, onComercialChange }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Celular</Label>
-            <Input value={comercial.responsavel_celular} onChange={e => update("responsavel_celular", e.target.value)} className="h-9" />
+            <PhoneInput value={comercial.responsavel_celular} onChange={v => update("responsavel_celular", v)} className="h-9" />
           </div>
         </div>
       </div>
