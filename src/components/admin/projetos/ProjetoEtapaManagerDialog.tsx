@@ -44,17 +44,21 @@ export function ProjetoEtapaManagerDialog({
 
   return (
     <Dialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
-        <DialogHeader className="pb-2 border-b border-border/40">
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Layers className="h-4.5 w-4.5 text-primary" />
-            Etapas do funil "{pipeline.name}"
-          </DialogTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            Gerencie as etapas do funil. Arraste para reordenar.
-          </p>
+      <DialogContent className="w-[90vw] max-w-[1100px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Layers className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Etapas do funil "{pipeline.name}"
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Gerencie as etapas do funil. Arraste para reordenar.
+            </p>
+          </div>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 space-y-6 max-h-[70vh]">
           <ProjetoEtapaManager
             funilId={pipeline.id}
             funilNome={pipeline.name}

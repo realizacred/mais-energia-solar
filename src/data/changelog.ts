@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.4",
+    date: "2026-03-12",
+    title: "§25 Lote 2: mais 5 modais standalone padronizados",
+    type: "improvement",
+    description: "Correção visual de 5 modais standalone para o padrão §25 com header (ícone + subtítulo), footer bg-muted/30 e w-[90vw].",
+    details: [
+      "TemplateModal: header §25 com FileText, w-[90vw] max-w-3xl, footer padronizado",
+      "ProjetoEtapaManagerDialog: header §25 com Layers, w-[90vw] max-w-[1100px]",
+      "MeterLinkDialog: header §25 com Zap, footer bg-muted/30, w-[90vw] max-w-md",
+      "ImportCsvAneelDialog: header §25 com Upload, footer bg-muted/30, w-[90vw] max-w-3xl",
+      "ModuloViewModal: header §25 com Package, badges no header, w-[90vw] max-w-xl",
+    ],
+  },
+  {
     version: "2.22.3",
     date: "2026-03-12",
     title: "§25 Lote 1: Top 5 modais standalone padronizados",

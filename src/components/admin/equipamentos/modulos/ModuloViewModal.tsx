@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -56,10 +57,18 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center gap-2 flex-wrap">
-            <DialogTitle className="text-lg">{m.fabricante} {m.modelo}</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">{m.fabricante} {m.modelo}</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {m.potencia_wp}Wp · {m.tipo_celula}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
             <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
             {m.bifacial && <Badge variant="outline">Bifacial</Badge>}
             {isGlobal ? (
@@ -68,10 +77,9 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
               <Badge variant="default" className="gap-1 text-xs"><Building2 className="w-3 h-3" /> Custom</Badge>
             )}
           </div>
-          <p className="text-sm text-muted-foreground mt-1">{m.potencia_wp}Wp · {m.tipo_celula}</p>
         </DialogHeader>
 
-        <div className="space-y-4 mt-2">
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
           {/* Completude */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
