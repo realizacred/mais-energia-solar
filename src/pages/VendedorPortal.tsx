@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useMemo } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
@@ -9,6 +9,16 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
 import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
 import { useQueryClient } from "@tanstack/react-query";
+
+// Error boundary to prevent VendorBottomNav crashes from killing the whole portal
+class BottomNavErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[VendorBottomNav crash]", error, info);
+  }
+  render() { return this.state.hasError ? null : this.props.children; }
+}
 
 
 // Lazy load sub-pages
@@ -122,10 +132,12 @@ export default function VendedorPortal() {
           </main>
         </SidebarInset>
 
-        <VendorBottomNav
-          unreadWhatsApp={waUnreadCount}
-          badgeOrcamentos={badgeCounts.orcamentos}
-        />
+        <BottomNavErrorBoundary>
+          <VendorBottomNav
+            unreadWhatsApp={waUnreadCount}
+            badgeOrcamentos={badgeCounts.orcamentos}
+          />
+        </BottomNavErrorBoundary>
       </div>
     </SidebarProvider>
   );
