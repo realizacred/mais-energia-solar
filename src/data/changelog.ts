@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.10",
+    date: "2026-03-12",
+    title: "Edição completa de lead — todos os campos",
+    type: "improvement",
+    description: "O dialog de edição de lead agora permite alterar todos os campos: endereço, dados técnicos, consumo, tipo de telhado, rede de atendimento, consultor e observações.",
+    details: [
+      "Seção de endereço completa (CEP, estado, cidade, bairro, rua, número)",
+      "Seção de dados técnicos (área, tipo telhado, rede atendimento, consumo médio e previsto)",
+      "Sincroniza alterações tanto na tabela leads quanto orcamentos",
+      "WhatsApp usa dados atualizados do formulário na mensagem",
+    ],
+  },
+  {
     version: "2.21.9",
     date: "2026-03-12",
     title: "Edição de lead e reenvio de WhatsApp na tela de orçamentos",

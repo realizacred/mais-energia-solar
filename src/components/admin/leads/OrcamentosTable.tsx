@@ -363,10 +363,17 @@ export function OrcamentosTable({
             telefone: editOrcamento.telefone,
             consultor_id: editOrcamento.vendedor_id,
             consultor_nome: editOrcamento.vendedor_nome,
+            cep: editOrcamento.cep,
             cidade: editOrcamento.cidade,
             estado: editOrcamento.estado,
-            media_consumo: editOrcamento.media_consumo,
+            bairro: editOrcamento.bairro,
+            rua: editOrcamento.rua,
+            numero: editOrcamento.numero,
+            area: editOrcamento.area,
             tipo_telhado: editOrcamento.tipo_telhado,
+            rede_atendimento: editOrcamento.rede_atendimento,
+            media_consumo: editOrcamento.media_consumo,
+            consumo_previsto: editOrcamento.consumo_previsto,
             observacoes: editOrcamento.observacoes,
           }}
           onSuccess={onRefresh}
