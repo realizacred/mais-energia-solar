@@ -31,6 +31,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Todas as condições de permissão mantidas (admin, conversão, histórico)",
     ],
   },
+  {
     version: "2.21.16",
     date: "2026-03-12",
     title: "EmailInput obrigatório em todos os formulários",
