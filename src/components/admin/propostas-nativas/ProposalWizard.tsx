@@ -549,8 +549,12 @@ export function ProposalWizard() {
       const snapshot = collectSnapshot();
       const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
 
-      if (!savedPropostaId || !savedVersaoId) {
-        // First save — create draft then optionally set active
+      // Fallback: ler da URL se IDs ainda não foram setados pelo restore assíncrono (race condition fix)
+      const effectivePropostaId = savedPropostaId || propostaIdFromUrl;
+      const effectiveVersaoId = savedVersaoId || versaoIdFromUrl;
+
+      if (!effectivePropostaId || !effectiveVersaoId) {
+        // Realmente não tem IDs — criar nova proposta
         console.log("[handleUpdate] First save — creating draft", { setActive, dealId: resolvedDealId, leadId: selectedLead?.id });
         const res = await saveDraft({
           propostaId: null,
@@ -587,10 +591,14 @@ export function ProposalWizard() {
         return;
       }
 
-      console.log("[handleUpdate] Updating existing", { savedPropostaId, savedVersaoId, setActive });
+      // Sync state if we used URL fallback
+      if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
+      if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
+
+      console.log("[handleUpdate] Updating existing", { effectivePropostaId, effectiveVersaoId, setActive });
       const res = await updateProposal({
-        propostaId: savedPropostaId,
-        versaoId: savedVersaoId,
+        propostaId: effectivePropostaId,
+        versaoId: effectiveVersaoId,
         snapshot,
         potenciaKwp,
         precoFinal,
@@ -601,14 +609,14 @@ export function ProposalWizard() {
         titulo,
       }, setActive);
       // If a new version was created (locked version), update the versaoId
-      if (res && res.versaoId !== savedVersaoId) {
+      if (res && res.versaoId !== effectiveVersaoId) {
         setSavedVersaoId(res.versaoId);
       }
     } catch (err: any) {
       console.error("[handleUpdate] Unexpected error:", err);
       toast({ title: "Erro inesperado ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });
     }
-  }, [savedPropostaId, savedVersaoId, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
+  }, [savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
