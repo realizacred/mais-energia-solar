@@ -74,16 +74,22 @@ export function WaSetupGuide() {
           Como Configurar
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <Smartphone className="h-5 w-5 text-primary" />
-            Guia de Configuração — WhatsApp via Evolution API
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Siga os passos abaixo para conectar sua instância do WhatsApp ao sistema.
-          </p>
+      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <MessageCircle className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Guia de Configuração — WhatsApp via Evolution API
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Siga os passos abaixo para conectar sua instância do WhatsApp ao sistema.
+            </p>
+          </div>
         </DialogHeader>
+
+        <div className="p-5 space-y-5 overflow-y-auto max-h-[70vh]">
 
         {/* Prerequisites */}
         <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-2">
