@@ -1,5 +1,6 @@
 import { Briefcase } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
