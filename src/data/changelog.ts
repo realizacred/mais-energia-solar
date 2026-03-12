@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.14",
+    date: "2026-03-12",
+    title: "Novas regras bloqueantes no AGENTS.md",
+    type: "improvement",
+    description: "Adicionadas 6 regras bloqueantes ao Bloco 1 e 6 itens ao checklist do Bloco 0 para evitar erros recorrentes com inputs, modais e formulários.",
+    details: [
+      "PhoneInput obrigatório para telefone",
+      "CpfCnpjInput obrigatório para CPF/CNPJ",
+      "AddressFields obrigatório para endereço",
+      "Modal deve seguir §25 (tamanho, header, botões, grid)",
+      "Formulários: nunca bg-white, sempre bg-card",
+      "Verificar componentes existentes antes de criar novos",
+    ],
+  },
+  {
     version: "2.21.13",
     date: "2026-03-12",
     title: "Telefone formatado em todas as tabelas e dialogs",

@@ -19,7 +19,7 @@ Padrões obrigatórios para toda tela nova ou editada.
 
 # Bloco 0 — TL;DR CHECKLIST
 
-Antes de finalizar **qualquer** tarefa, verifique os 15 itens:
+Antes de finalizar **qualquer** tarefa, verifique os 21 itens:
 
 - [ ] Cores: `bg-primary`, `text-primary` (nunca hex, nunca `orange-*`, `blue-*`)
 - [ ] Button shadcn (`@/components/ui/button`) — nunca `<button>` nativo
@@ -36,6 +36,12 @@ Antes de finalizar **qualquer** tarefa, verifique os 15 itens:
 - [ ] Whitelist explícita de campos UC (ver §33)
 - [ ] `x-client-timeout: "120"` nas edge functions de proposta (ver §33)
 - [ ] INTEGRAÇÕES = conexão externa, não funcionalidade (ver §30)
+- [ ] Telefone: `PhoneInput` de `@/components/ui-kit/inputs/PhoneInput` — nunca input nativo
+- [ ] CPF/CNPJ: `CpfCnpjInput` de `@/components/shared/CpfCnpjInput` — nunca criar do zero
+- [ ] Endereço: `AddressFields` de `@/components/shared/AddressFields` — nunca recriar
+- [ ] Modal: `DialogHeader` + `DialogTitle` + botões shadcn — nunca `<button>` nativo
+- [ ] Formulário: `bg-card` + `text-foreground` — nunca `bg-white`/`gray-*`
+- [ ] Verificar `src/components/shared/`, `ui-kit/`, `ui/` antes de criar componente novo
 
 ---
 
