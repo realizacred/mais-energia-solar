@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Building, Zap, Receipt, ShieldCheck, Info, Calculator } from "lucide-react";
+import { Building, Zap, Receipt, ShieldCheck, Info, Calculator, Building2 } from "lucide-react";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
