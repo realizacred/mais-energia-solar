@@ -2,6 +2,7 @@ export { LeadsTable } from './LeadsTable';
 export { OrcamentosTable } from './OrcamentosTable';
 export { LeadFilters } from './LeadFilters';
 export { LeadViewDialog } from './LeadViewDialog';
+export { LeadEditDialog } from './LeadEditDialog';
 export { LeadDeleteDialog } from './LeadDeleteDialog';
 export { OrcamentoViewDialog } from './OrcamentoViewDialog';
 export { OrcamentoDeleteDialog } from './OrcamentoDeleteDialog';
