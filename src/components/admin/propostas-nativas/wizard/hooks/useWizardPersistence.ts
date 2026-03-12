@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
+// ─── Types ────────────────────────────────────────────────
+
 export interface WizardSnapshot {
   // Localização
   locEstado: string;
@@ -71,7 +73,7 @@ interface ClienteParams {
   complemento?: string;
 }
 
-interface PersistenceParams {
+export interface PersistenceParams {
   propostaId?: string | null;
   versaoId?: string | null;
   snapshot: WizardSnapshot;
@@ -86,312 +88,320 @@ interface PersistenceParams {
   cliente?: ClienteParams;
 }
 
+export interface AtomicPersistResult {
+  propostaId: string;
+  versaoId: string;
+  projetoId?: string;
+  /** Whether the result was reused from an in-flight promise */
+  reused?: boolean;
+  /** Whether a new version was created because the previous one was locked */
+  newVersionCreated?: boolean;
+}
+
+type SaveIntent = "draft" | "active";
+
+// ─── Fingerprint: stable, lightweight hash of save intent ──
+
+function stableFingerprint(obj: Record<string, unknown>): string {
+  // Deterministic JSON with sorted keys — lightweight, no crypto needed
+  const str = JSON.stringify(obj, Object.keys(obj).sort());
+  // djb2 hash — fast and sufficient for idempotency dedup
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function buildIntentKey(
+  intent: SaveIntent,
+  propostaId: string | null | undefined,
+  versaoId: string | null | undefined,
+  snapshot: WizardSnapshot,
+): string {
+  // Include only structurally significant fields to avoid volatile false-positives
+  const fp = stableFingerprint({
+    intent,
+    propostaId: propostaId || "",
+    versaoId: versaoId || "",
+    potencia: snapshot.potenciaKwp,
+    grupo: snapshot.grupo,
+    titulo: snapshot.nomeProposta,
+    ucsLen: snapshot.ucs?.length ?? 0,
+    itensLen: snapshot.itens?.length ?? 0,
+    precoFinal: snapshot.venda?.desconto_percentual ?? 0,
+    pagLen: snapshot.pagamentoOpcoes?.length ?? 0,
+  });
+  return `${intent}:${propostaId || "new"}:${fp}`;
+}
+
+// ─── Standalone helpers (no hook state needed) ───────────
+
+function normalizeGrupo(g: string | null | undefined): string | null {
+  if (!g) return null;
+  if (g.startsWith("A")) return "A";
+  if (g.startsWith("B")) return "B";
+  return null;
+}
+
+function sanitizeSnapshot(snapshot: any) {
+  if (!snapshot) return snapshot;
+  const { mapSnapshots, ...rest } = snapshot;
+  return { ...rest, grupo: normalizeGrupo(rest.grupo) };
+}
+
+function computeGrupoNormalized(snapshot: WizardSnapshot | undefined | null): string | null {
+  return snapshot?.grupo ? (String(snapshot.grupo).startsWith("A") ? "A" : "B") : null;
+}
+
+/** Update or create version (handles lock). Pure async — no hook state. */
+async function updateOrCreateVersion(
+  propostaId: string,
+  versaoId: string,
+  params: PersistenceParams,
+  setActive: boolean,
+): Promise<AtomicPersistResult | null> {
+  const { data: currentVersao } = await supabase
+    .from("proposta_versoes")
+    .select("snapshot_locked, status")
+    .eq("id", versaoId)
+    .single();
+
+  const grupoNormalized = computeGrupoNormalized(params.snapshot);
+
+  if (currentVersao?.snapshot_locked) {
+    const { data: newVersao, error: createErr } = await supabase
+      .from("proposta_versoes")
+      .insert({
+        proposta_id: propostaId,
+        potencia_kwp: params.potenciaKwp,
+        valor_total: params.precoFinal,
+        economia_mensal: params.economiaMensal || null,
+        geracao_mensal: params.geracaoMensal || null,
+        grupo: grupoNormalized,
+        snapshot: sanitizeSnapshot(params.snapshot) as any,
+        status: setActive ? "generated" : "draft",
+        snapshot_locked: setActive,
+        gerado_em: setActive ? new Date().toISOString() : null,
+      } as any)
+      .select("id")
+      .single();
+
+    if (createErr) {
+      toast({ title: "Erro ao criar nova versão", description: createErr.message, variant: "destructive" });
+      return null;
+    }
+
+    toast({ title: "Nova versão criada", description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição." });
+    return { propostaId, versaoId: newVersao.id, newVersionCreated: true };
+  }
+
+  // Update existing draft version
+  const updateData: Record<string, any> = {
+    potencia_kwp: params.potenciaKwp,
+    valor_total: params.precoFinal,
+    economia_mensal: params.economiaMensal || null,
+    geracao_mensal: params.geracaoMensal || null,
+    grupo: grupoNormalized,
+    snapshot: sanitizeSnapshot(params.snapshot),
+    updated_at: new Date().toISOString(),
+  };
+  if (setActive) {
+    updateData.status = "generated";
+    updateData.gerado_em = new Date().toISOString();
+  }
+
+  const { error: vErr } = await supabase
+    .from("proposta_versoes")
+    .update(updateData as any)
+    .eq("id", versaoId);
+
+  if (vErr) {
+    toast({ title: "Erro ao atualizar", description: vErr.message, variant: "destructive" });
+    return null;
+  }
+
+  toast({
+    title: setActive ? "✅ Proposta gerada" : "✅ Proposta atualizada",
+    description: setActive ? "A proposta foi marcada como gerada." : "Os dados foram atualizados.",
+  });
+
+  return { propostaId, versaoId };
+}
+
+// ─── Hook ─────────────────────────────────────────────────
+
 export function useWizardPersistence() {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
-  /** Normalize grupo to 'A' or 'B' only — defense in depth (§33 AGENTS.md) */
-  const normalizeGrupo = (g: string | null | undefined): string | null => {
-    if (!g) return null;
-    if (g.startsWith("A")) return "A";
-    if (g.startsWith("B")) return "B";
-    return null;
-  };
+  // In-flight promise map for idempotent dedup (promise reuse)
+  const inflightMapRef = useRef<Map<string, Promise<AtomicPersistResult | null>>>(new Map());
 
-  /** Remove heavy frontend-only fields (base64 images) and normalize grupo before DB persistence */
-  const sanitizeSnapshot = (snapshot: any) => {
-    if (!snapshot) return snapshot;
-    const { mapSnapshots, ...rest } = snapshot;
-    return { ...rest, grupo: normalizeGrupo(rest.grupo) };
-  };
+  // ─── Core: atomic persist (single-flight + idempotent) ───
 
-  const saveDraft = useCallback(async (params: PersistenceParams) => {
-    // Guard against concurrent saves (double-click / rapid calls)
-    if (savingRef.current) {
-      console.warn("[saveDraft] Already saving, ignoring concurrent call");
+  const persistAtomicInternal = useCallback(async (
+    params: PersistenceParams,
+    intent: SaveIntent,
+  ): Promise<AtomicPersistResult | null> => {
+    const setActive = intent === "active";
+
+    let propostaId = params.propostaId || null;
+    let versaoId = params.versaoId || null;
+
+    // Guard: prevent accidental creation when editing (race condition with async restore)
+    const urlPropostaId = new URLSearchParams(window.location.search).get("proposta_id");
+    const urlVersaoId = new URLSearchParams(window.location.search).get("versao_id");
+
+    if (!propostaId && urlPropostaId) {
+      console.error("[persistAtomic] Bloqueado: race condition — proposta_id na URL mas não no estado", { propostaId, urlPropostaId });
+      toast({ title: "Aguarde", description: "A proposta ainda está sendo carregada. Tente novamente em instantes.", variant: "destructive" });
       return null;
     }
-    savingRef.current = true;
-    setSaving(true);
-    try {
-      let propostaId = params.propostaId;
-      let versaoId = params.versaoId;
 
-      // Guard: prevent accidental creation when editing (race condition with async restore)
-      const urlPropostaId = new URLSearchParams(window.location.search).get("proposta_id");
-      if (!propostaId && urlPropostaId) {
-        console.error("[saveDraft] Bloqueado: race condition detectada — proposta_id na URL mas não no estado", { propostaId, urlPropostaId });
-        toast({ title: "Aguarde", description: "A proposta ainda está sendo carregada. Tente novamente em instantes.", variant: "destructive" });
-        return null;
-      }
+    // Effective IDs with URL fallback
+    const effectivePropostaId = propostaId || urlPropostaId;
+    const effectiveVersaoId = versaoId || urlVersaoId;
 
-      // === CREATE: use atomic RPC (ensures projeto exists) ===
-      if (!propostaId) {
-        console.log("[saveDraft] Creating proposal via atomic RPC", {
-          projeto_id_enviado: params.projetoId || null,
-          deal_id_enviado: params.dealId || null,
-          lead_id: params.leadId || null,
-          titulo: params.titulo,
-        });
-
-        const cli = params.cliente;
-        const rpcPayload: Record<string, any> = {
-          p_titulo: params.titulo || "Proposta sem título",
-          p_lead_id: params.leadId || null,
-          p_projeto_id: params.projetoId || null,
-          p_deal_id: params.dealId || null,
-          p_origem: "native",
-          p_potencia_kwp: params.potenciaKwp,
-          p_valor_total: params.precoFinal,
-          p_snapshot: sanitizeSnapshot(params.snapshot) as any,
-        };
-
-        // Pass client data so the RPC creates/finds the client record
-        if (cli?.nome && cli?.celular) {
-          rpcPayload.p_cliente_nome = cli.nome;
-          rpcPayload.p_cliente_telefone = cli.celular;
-          if (cli.email) rpcPayload.p_cliente_email = cli.email;
-          if (cli.cnpj_cpf) rpcPayload.p_cliente_cpf_cnpj = cli.cnpj_cpf;
-          if (cli.empresa) rpcPayload.p_cliente_empresa = cli.empresa;
-          if (cli.cep) rpcPayload.p_cliente_cep = cli.cep;
-          if (cli.estado) rpcPayload.p_cliente_estado = cli.estado;
-          if (cli.cidade) rpcPayload.p_cliente_cidade = cli.cidade;
-          if (cli.endereco) rpcPayload.p_cliente_rua = cli.endereco;
-          if (cli.numero) rpcPayload.p_cliente_numero = cli.numero;
-          if (cli.bairro) rpcPayload.p_cliente_bairro = cli.bairro;
-          if (cli.complemento) rpcPayload.p_cliente_complemento = cli.complemento;
-        }
-
-        console.log("[saveDraft] RPC payload keys:", Object.keys(rpcPayload));
-        console.log("[saveDraft] RPC payload sizes:", {
-          titulo: (rpcPayload.p_titulo || "").length,
-          snapshotKeys: Object.keys(params.snapshot || {}).length,
-          potenciaKwp: params.potenciaKwp,
-          precoFinal: params.precoFinal,
-          leadId: params.leadId,
-          dealId: params.dealId,
-          projetoId: params.projetoId,
-        });
-
-        const { data, error } = await supabase.rpc(
-          "create_proposta_nativa_atomic" as any,
-          rpcPayload
-        );
-
-        if (error) {
-          console.error("[saveDraft] RPC error:", JSON.stringify(error, null, 2));
-          console.error("[saveDraft] RPC error code:", error.code, "details:", error.details, "hint:", error.hint);
-          toast({ title: "Erro ao criar proposta", description: error.message, variant: "destructive" });
-          return null;
-        }
-
-        const result = data as any;
-        propostaId = result.proposta_id;
-        versaoId = result.versao_id;
-
-        console.log("[saveDraft] Proposal created successfully", {
-          proposta_id: result.proposta_id,
-          versao_id: result.versao_id,
-          projeto_id: result.projeto_id,
-          projeto_id_original: params.projetoId || null,
-          projeto_criado_automaticamente: !params.projetoId || params.projetoId !== result.projeto_id,
-        });
-
-        toast({ title: "✅ Rascunho criado", description: "Proposta e projeto criados com sucesso." });
-        return { propostaId, versaoId, projetoId: result.projeto_id };
-      }
-
-      // === UPDATE: proposta + versão already exist ===
-      const propostaUpdateData: any = {
-        titulo: params.titulo || "Proposta sem título",
-        updated_at: new Date().toISOString(),
-      };
-      // Always ensure projeto_id and deal_id are set (fixes legacy proposals with null values)
-      if (params.projetoId) {
-        propostaUpdateData.projeto_id = params.projetoId;
-      }
-      if (params.dealId) {
-        propostaUpdateData.deal_id = params.dealId;
-      }
-      if (params.leadId) {
-        propostaUpdateData.lead_id = params.leadId;
-      }
-
-      await supabase
-        .from("propostas_nativas")
-        .update(propostaUpdateData)
-        .eq("id", propostaId);
-
-      if (versaoId) {
-        // Check if current version is locked (already generated) — if so, create a new version
-        const { data: currentVersao } = await supabase
-          .from("proposta_versoes")
-          .select("snapshot_locked, status")
-          .eq("id", versaoId)
-          .single();
-
-        if (currentVersao?.snapshot_locked) {
-          // Version is immutable — create a new draft version under the same proposta
-          const { data: newVersao, error: createErr } = await supabase
-            .from("proposta_versoes")
-            .insert({
-              proposta_id: propostaId,
-              potencia_kwp: params.potenciaKwp,
-              valor_total: params.precoFinal,
-              economia_mensal: params.economiaMensal || null,
-              geracao_mensal: params.geracaoMensal || null,
-              grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-              snapshot: sanitizeSnapshot(params.snapshot) as any,
-              status: "draft",
-              snapshot_locked: false,
-            } as any)
-            .select("id")
-            .single();
-
-          if (createErr) {
-            toast({ title: "Erro ao criar nova versão", description: createErr.message, variant: "destructive" });
-            return null;
-          }
-
-          versaoId = newVersao.id;
-          toast({ title: "Nova versão criada", description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição." });
-          return { propostaId, versaoId };
-        }
-
-        const { error: uErr } = await supabase
-          .from("proposta_versoes")
-          .update({
-            potencia_kwp: params.potenciaKwp,
-            valor_total: params.precoFinal,
-            economia_mensal: params.economiaMensal || null,
-            geracao_mensal: params.geracaoMensal || null,
-            grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-            snapshot: sanitizeSnapshot(params.snapshot) as any,
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq("id", versaoId);
-
-        if (uErr) {
-          toast({ title: "Erro ao atualizar versão", description: uErr.message, variant: "destructive" });
-          return null;
-        }
-      }
-
-      toast({ title: "✅ Rascunho salvo", description: "Você pode retomar a proposta a qualquer momento." });
-      return { propostaId, versaoId };
-    } catch (e: any) {
-      console.error("[saveDraft] Exception:", e);
-      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
-      return null;
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
-  }, []);
-
-  const updateProposal = useCallback(async (params: PersistenceParams, setActive: boolean) => {
-    if (savingRef.current) {
-      console.warn("[updateProposal] Already saving, ignoring concurrent call");
-      return null;
-    }
-    savingRef.current = true;
-    setSaving(true);
-    try {
-      if (!params.propostaId || !params.versaoId) {
-        toast({ title: "Erro", description: "Proposta não encontrada para atualizar.", variant: "destructive" });
-        return null;
-      }
-
-      // Update proposta (TEXT column, CHECK: rascunho/gerada/enviada/...)
-      const propostaUpdate: any = {
-        titulo: params.titulo || "Proposta sem título",
-        updated_at: new Date().toISOString(),
-      };
-      // Status "gerada" is set ONLY by proposal-generate edge function after successful generation.
-      // setActive just marks the version as favorita, not the proposta status.
-      if (params.projetoId) propostaUpdate.projeto_id = params.projetoId;
-      if (params.dealId) propostaUpdate.deal_id = params.dealId;
-      if (params.leadId) propostaUpdate.lead_id = params.leadId;
-
-      await supabase
-        .from("propostas_nativas")
-        .update(propostaUpdate)
-        .eq("id", params.propostaId);
-
-      // Check if version is locked
-      const { data: currentVersao } = await supabase
-        .from("proposta_versoes")
-        .select("snapshot_locked, status")
-        .eq("id", params.versaoId)
-        .single();
-
-      let versaoId = params.versaoId;
-
-      if (currentVersao?.snapshot_locked) {
-        // Version is immutable — create a new version
-        const { data: newVersao, error: createErr } = await supabase
-          .from("proposta_versoes")
-           .insert({
-            proposta_id: params.propostaId,
-            potencia_kwp: params.potenciaKwp,
-            valor_total: params.precoFinal,
-            economia_mensal: params.economiaMensal || null,
-            geracao_mensal: params.geracaoMensal || null,
-            grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-            snapshot: sanitizeSnapshot(params.snapshot) as any,
-            status: setActive ? "generated" : "draft",
-            snapshot_locked: setActive,
-            gerado_em: setActive ? new Date().toISOString() : null,
-          } as any)
-          .select("id")
-          .single();
-
-        if (createErr) {
-          toast({ title: "Erro ao criar nova versão", description: createErr.message, variant: "destructive" });
-          return null;
-        }
-        versaoId = newVersao.id;
-        toast({ title: "Nova versão criada", description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição." });
-      } else {
-        // Update existing draft version
-        const updateData: any = {
-          potencia_kwp: params.potenciaKwp,
-          valor_total: params.precoFinal,
-          economia_mensal: params.economiaMensal || null,
-          geracao_mensal: params.geracaoMensal || null,
-          grupo: params.snapshot?.grupo ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B") : null,
-          snapshot: sanitizeSnapshot(params.snapshot),
-          updated_at: new Date().toISOString(),
-        };
-        if (setActive) {
-          updateData.status = "generated";
-          updateData.gerado_em = new Date().toISOString();
-        }
-
-        const { error: vErr } = await supabase
-          .from("proposta_versoes")
-          .update(updateData as any)
-          .eq("id", versaoId);
-
-        if (vErr) {
-          toast({ title: "Erro ao atualizar", description: vErr.message, variant: "destructive" });
-          return null;
-        }
-      }
-
-      toast({
-        title: setActive ? "✅ Proposta gerada" : "✅ Proposta atualizada",
-        description: setActive ? "A proposta foi marcada como gerada." : "Os dados foram atualizados.",
+    // === CREATE: no existing proposal ===
+    if (!effectivePropostaId) {
+      console.log("[persistAtomic] Creating proposal via atomic RPC", {
+        deal_id: params.dealId || null,
+        lead_id: params.leadId || null,
+        titulo: params.titulo,
       });
-      return { propostaId: params.propostaId, versaoId };
-    } catch (e: any) {
-      toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
-      return null;
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
+
+      const cli = params.cliente;
+      const rpcPayload: Record<string, any> = {
+        p_titulo: params.titulo || "Proposta sem título",
+        p_lead_id: params.leadId || null,
+        p_projeto_id: params.projetoId || null,
+        p_deal_id: params.dealId || null,
+        p_origem: "native",
+        p_potencia_kwp: params.potenciaKwp,
+        p_valor_total: params.precoFinal,
+        p_snapshot: sanitizeSnapshot(params.snapshot) as any,
+      };
+
+      if (cli?.nome && cli?.celular) {
+        rpcPayload.p_cliente_nome = cli.nome;
+        rpcPayload.p_cliente_telefone = cli.celular;
+        if (cli.email) rpcPayload.p_cliente_email = cli.email;
+        if (cli.cnpj_cpf) rpcPayload.p_cliente_cpf_cnpj = cli.cnpj_cpf;
+        if (cli.empresa) rpcPayload.p_cliente_empresa = cli.empresa;
+        if (cli.cep) rpcPayload.p_cliente_cep = cli.cep;
+        if (cli.estado) rpcPayload.p_cliente_estado = cli.estado;
+        if (cli.cidade) rpcPayload.p_cliente_cidade = cli.cidade;
+        if (cli.endereco) rpcPayload.p_cliente_rua = cli.endereco;
+        if (cli.numero) rpcPayload.p_cliente_numero = cli.numero;
+        if (cli.bairro) rpcPayload.p_cliente_bairro = cli.bairro;
+        if (cli.complemento) rpcPayload.p_cliente_complemento = cli.complemento;
+      }
+
+      const { data, error } = await supabase.rpc(
+        "create_proposta_nativa_atomic" as any,
+        rpcPayload,
+      );
+
+      if (error) {
+        console.error("[persistAtomic] RPC error:", JSON.stringify(error, null, 2));
+        toast({ title: "Erro ao criar proposta", description: error.message, variant: "destructive" });
+        return null;
+      }
+
+      const result = data as any;
+      console.log("[persistAtomic] Proposal created", { proposta_id: result.proposta_id, versao_id: result.versao_id, projeto_id: result.projeto_id });
+      toast({ title: "✅ Rascunho criado", description: "Proposta e projeto criados com sucesso." });
+
+      const createResult: AtomicPersistResult = {
+        propostaId: result.proposta_id,
+        versaoId: result.versao_id,
+        projetoId: result.projeto_id,
+      };
+
+      // If intent is active, immediately update the freshly created version
+      if (setActive) {
+        const activeRes = await updateOrCreateVersion(result.proposta_id, result.versao_id, params, true);
+        if (activeRes) return activeRes;
+      }
+
+      return createResult;
     }
+
+    // === UPDATE: proposal exists ===
+    console.log("[persistAtomic] Updating existing", { effectivePropostaId, effectiveVersaoId, intent });
+
+    // Update proposta metadata
+    const propostaUpdate: Record<string, any> = {
+      titulo: params.titulo || "Proposta sem título",
+      updated_at: new Date().toISOString(),
+    };
+    if (params.projetoId) propostaUpdate.projeto_id = params.projetoId;
+    if (params.dealId) propostaUpdate.deal_id = params.dealId;
+    if (params.leadId) propostaUpdate.lead_id = params.leadId;
+
+    await supabase
+      .from("propostas_nativas")
+      .update(propostaUpdate)
+      .eq("id", effectivePropostaId);
+
+    if (!effectiveVersaoId) {
+      toast({ title: "✅ Proposta atualizada" });
+      return { propostaId: effectivePropostaId, versaoId: effectivePropostaId };
+    }
+
+    return updateOrCreateVersion(effectivePropostaId, effectiveVersaoId, params, setActive);
   }, []);
 
-  return { saveDraft, updateProposal, saving };
+  // ─── Public API: atomic persist with single-flight + promise reuse ───
+
+  const persistAtomic = useCallback(async (
+    params: PersistenceParams,
+    intent: SaveIntent,
+  ): Promise<AtomicPersistResult | null> => {
+    const intentKey = buildIntentKey(intent, params.propostaId, params.versaoId, params.snapshot);
+
+    // Promise reuse: if same intent is already in-flight, return same promise
+    const existing = inflightMapRef.current.get(intentKey);
+    if (existing) {
+      console.log("[persistAtomic] Reusing in-flight promise for intent:", intentKey);
+      return existing;
+    }
+
+    // Single-flight guard via ref (covers cross-intent concurrency)
+    if (savingRef.current) {
+      console.warn("[persistAtomic] Another save is in-flight, blocking concurrent call");
+      return null;
+    }
+
+    savingRef.current = true;
+    setSaving(true);
+
+    const promise = persistAtomicInternal(params, intent)
+      .catch((err: any) => {
+        console.error("[persistAtomic] Exception:", err);
+        toast({ title: "Erro ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });
+        return null;
+      })
+      .finally(() => {
+        inflightMapRef.current.delete(intentKey);
+        savingRef.current = false;
+        setSaving(false);
+      });
+
+    inflightMapRef.current.set(intentKey, promise);
+    return promise;
+  }, [persistAtomicInternal]);
+
+  // ─── Legacy API wrappers (preserve backward compatibility) ───
+
+  const saveDraft = useCallback(async (params: PersistenceParams): Promise<AtomicPersistResult | null> => {
+    return persistAtomic(params, "draft");
+  }, [persistAtomic]);
+
+  const updateProposal = useCallback(async (params: PersistenceParams, setActive: boolean): Promise<AtomicPersistResult | null> => {
+    return persistAtomic(params, setActive ? "active" : "draft");
+  }, [persistAtomic]);
+
+  return { saveDraft, updateProposal, persistAtomic, saving };
 }

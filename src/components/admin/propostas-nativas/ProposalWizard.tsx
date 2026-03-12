@@ -36,7 +36,7 @@ import { StepServicos } from "./wizard/StepServicos";
 import { StepVenda, calcPrecoFinal } from "./wizard/StepVenda";
 import { StepFinancialCenter } from "./wizard/StepFinancialCenter";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
-import { useWizardPersistence, type WizardSnapshot } from "./wizard/hooks/useWizardPersistence";
+import { useWizardPersistence, type WizardSnapshot, type PersistenceParams } from "./wizard/hooks/useWizardPersistence";
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
@@ -241,7 +241,7 @@ export function ProposalWizard() {
   }, [potenciaKwp, locIrradiacao]);
 
   // ─── Persistence: save draft / update
-  const { saveDraft, updateProposal, saving } = useWizardPersistence();
+  const { persistAtomic, saving } = useWizardPersistence();
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
@@ -505,45 +505,49 @@ export function ProposalWizard() {
   // dealIdFromUrl is a deals.id UUID — passed as deal_id to RPC (which resolves/creates projetos)
   const resolvedDealId = projectContext?.dealId || dealIdFromUrl || undefined;
 
-  const handleSaveDraft = useCallback(async () => {
+  /** Build persistence params from current wizard state */
+  const buildPersistParams = useCallback((
+    overridePropostaId?: string | null,
+    overrideVersaoId?: string | null,
+  ): PersistenceParams => {
     const snapshot = collectSnapshot();
     const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
+    return {
+      propostaId: overridePropostaId ?? savedPropostaId,
+      versaoId: overrideVersaoId ?? savedVersaoId,
+      snapshot,
+      potenciaKwp,
+      precoFinal,
+      economiaMensal: geracaoMensalEstimada > 0
+        ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80))
+        : undefined,
+      geracaoMensal: geracaoMensalEstimada || undefined,
+      leadId: selectedLead?.id,
+      dealId: resolvedDealId,
+      titulo,
+      cliente: cliente.nome && cliente.celular ? cliente : undefined,
+    };
+  }, [collectSnapshot, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, selectedLead, resolvedDealId, nomeProposta, cliente]);
 
+  /** Apply result from atomic persist to local state */
+  const applyPersistResult = useCallback((res: { propostaId: string; versaoId: string; projetoId?: string } | null) => {
+    if (!res) return;
+    setSavedPropostaId(res.propostaId);
+    setSavedVersaoId(res.versaoId);
+    if (res.projetoId) setSavedProjetoId(res.projetoId);
+  }, []);
+
+  const handleSaveDraft = useCallback(async () => {
     // Guard: if opened from project, dealId is mandatory
     if (dealIdFromUrl && !resolvedDealId) {
       console.error("[saveDraft] BLOCKED: dealIdFromUrl exists but resolvedDealId is empty");
       toast({ title: "Erro", description: "deal_id obrigatório ao salvar proposta dentro de projeto.", variant: "destructive" });
       return;
     }
-
-    console.log("[saveDraft] Saving with:", {
-      deal_id: resolvedDealId ?? "(none — RPC will create)",
-      lead_id: selectedLead?.id ?? "(none)",
-      savedPropostaId,
-      savedVersaoId,
-      titulo,
-    });
-
-    const res = await saveDraft({
-      propostaId: savedPropostaId,
-      versaoId: savedVersaoId,
-      snapshot,
-      potenciaKwp,
-      precoFinal,
-      economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
-      geracaoMensal: geracaoMensalEstimada || undefined,
-      leadId: selectedLead?.id,
-      dealId: resolvedDealId,
-      titulo,
-      cliente: cliente.nome && cliente.celular ? cliente : undefined,
-    });
-
-    if (res) {
-      setSavedPropostaId(res.propostaId);
-      setSavedVersaoId(res.versaoId);
-      if (res.projetoId) setSavedProjetoId(res.projetoId);
-    }
-  }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, selectedLead, resolvedDealId, dealIdFromUrl, nomeProposta, cliente.nome]);
+    const params = buildPersistParams();
+    const res = await persistAtomic(params, "draft");
+    applyPersistResult(res);
+  }, [buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
     // Block save while restore is in progress
@@ -552,78 +556,24 @@ export function ProposalWizard() {
       return;
     }
 
-    try {
-      const snapshot = collectSnapshot();
-      const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
+    // Effective IDs with URL fallback (race condition fix)
+    const effectivePropostaId = savedPropostaId || propostaIdFromUrl;
+    const effectiveVersaoId = savedVersaoId || versaoIdFromUrl;
 
-      // Fallback: ler da URL se IDs ainda não foram setados pelo restore assíncrono (race condition fix)
-      const effectivePropostaId = savedPropostaId || propostaIdFromUrl;
-      const effectiveVersaoId = savedVersaoId || versaoIdFromUrl;
+    // Sync state if using URL fallback
+    if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
+    if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
 
-      if (!effectivePropostaId || !effectiveVersaoId) {
-        // Realmente não tem IDs — criar nova proposta
-        console.log("[handleUpdate] First save — creating draft", { setActive, dealId: resolvedDealId, leadId: selectedLead?.id });
-        const res = await saveDraft({
-          propostaId: null,
-          versaoId: null,
-          snapshot,
-          potenciaKwp,
-          precoFinal,
-          economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
-          geracaoMensal: geracaoMensalEstimada || undefined,
-          leadId: selectedLead?.id,
-          dealId: resolvedDealId,
-          titulo,
-          cliente: cliente.nome && cliente.celular ? cliente : undefined,
-        });
-        if (res) {
-          setSavedPropostaId(res.propostaId);
-          setSavedVersaoId(res.versaoId);
-          if (res.projetoId) setSavedProjetoId(res.projetoId);
-          if (setActive) {
-            await updateProposal({
-              propostaId: res.propostaId,
-              versaoId: res.versaoId,
-              snapshot,
-              potenciaKwp,
-              precoFinal,
-              economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
-              geracaoMensal: geracaoMensalEstimada || undefined,
-              leadId: selectedLead?.id,
-              dealId: resolvedDealId,
-              titulo,
-            }, true);
-          }
-        }
-        return;
-      }
+    const params = buildPersistParams(effectivePropostaId, effectiveVersaoId);
+    const intent = setActive ? "active" as const : "draft" as const;
+    const res = await persistAtomic(params, intent);
+    applyPersistResult(res);
 
-      // Sync state if we used URL fallback
-      if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
-      if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
-
-      console.log("[handleUpdate] Updating existing", { effectivePropostaId, effectiveVersaoId, setActive });
-      const res = await updateProposal({
-        propostaId: effectivePropostaId,
-        versaoId: effectiveVersaoId,
-        snapshot,
-        potenciaKwp,
-        precoFinal,
-        economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
-        geracaoMensal: geracaoMensalEstimada || undefined,
-        leadId: selectedLead?.id,
-        dealId: resolvedDealId,
-        titulo,
-      }, setActive);
-      // If a new version was created (locked version), update the versaoId
-      if (res && res.versaoId !== effectiveVersaoId) {
-        setSavedVersaoId(res.versaoId);
-      }
-    } catch (err: any) {
-      console.error("[handleUpdate] Unexpected error:", err);
-      toast({ title: "Erro inesperado ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });
+    // If a new version was created (locked version), update versaoId
+    if (res && res.versaoId !== effectiveVersaoId) {
+      setSavedVersaoId(res.versaoId);
     }
-  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, nomeProposta, cliente.nome, cliente.celular, selectedLead, resolvedDealId]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
@@ -1132,21 +1082,8 @@ export function ProposalWizard() {
       // Ensure draft is saved (creates project if needed) before generating
       let projetoId = savedProjetoId;
       if (!projetoId) {
-        const snapshot = collectSnapshot();
-        const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
-        const draftRes = await saveDraft({
-          propostaId: savedPropostaId,
-          versaoId: savedVersaoId,
-          snapshot,
-          potenciaKwp,
-          precoFinal,
-          economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
-          geracaoMensal: geracaoMensalEstimada || undefined,
-          leadId: selectedLead?.id,
-          dealId: resolvedDealId,
-          titulo,
-          cliente: cliente.nome && cliente.celular ? cliente : undefined,
-        });
+        const params = buildPersistParams();
+        const draftRes = await persistAtomic(params, "draft");
         if (draftRes) {
           setSavedPropostaId(draftRes.propostaId);
           setSavedVersaoId(draftRes.versaoId);
