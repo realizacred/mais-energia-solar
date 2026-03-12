@@ -64,7 +64,7 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Telefone</p>
-              <p className="font-medium">{orcamento.telefone}</p>
+              <p className="font-medium">{formatPhoneBR(orcamento.telefone)}</p>
             </div>
           </div>
 

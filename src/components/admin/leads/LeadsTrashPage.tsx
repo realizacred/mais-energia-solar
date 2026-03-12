@@ -155,7 +155,7 @@ export default function LeadsTrashPage() {
                         {lead.lead_code && <p className="text-xs text-muted-foreground">{lead.lead_code}</p>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{lead.telefone}</TableCell>
+                    <TableCell className="text-sm">{formatPhoneBR(lead.telefone)}</TableCell>
                     <TableCell className="text-sm">{lead.cidade}/{lead.estado}</TableCell>
                     <TableCell className="text-sm">{lead.consultor || "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

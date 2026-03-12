@@ -76,7 +76,7 @@ export function OrcamentoHistoryDialog({
           <DialogDescription className="flex items-center gap-4 pt-2">
             <span className="flex items-center gap-1">
               <Phone className="h-3.5 w-3.5" />
-              {group.telefone}
+              {formatPhoneBR(group.telefone)}
             </span>
             {onWhatsApp && (
               <Button

@@ -145,7 +145,7 @@ export function OfflineConversionsManager() {
                       {conversion.formData.cidade}, {conversion.formData.estado}
                     </div>
                     <div className="text-muted-foreground">
-                      Tel: {conversion.formData.telefone}
+                      Tel: {formatPhoneBR(conversion.formData.telefone)}
                     </div>
                   </div>
 

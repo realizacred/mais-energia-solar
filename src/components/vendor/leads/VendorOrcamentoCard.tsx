@@ -94,7 +94,7 @@ export function VendorOrcamentoCard({
             className="flex items-center gap-1.5 text-muted-foreground hover:text-primary"
           >
             <Phone className="w-3.5 h-3.5" />
-            <span className="truncate">{orcamento.telefone}</span>
+            <span className="truncate">{formatPhoneBR(orcamento.telefone)}</span>
           </a>
           <div className="flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
