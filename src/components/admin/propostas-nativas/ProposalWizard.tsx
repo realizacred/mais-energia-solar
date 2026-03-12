@@ -241,7 +241,7 @@ export function ProposalWizard() {
   }, [potenciaKwp, locIrradiacao]);
 
   // ─── Persistence: save draft / update
-  const { saveDraft, updateProposal, saving } = useWizardPersistence();
+  const { persistAtomic, saving } = useWizardPersistence();
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
