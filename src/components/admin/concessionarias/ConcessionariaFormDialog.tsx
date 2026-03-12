@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Building, Zap, Receipt, ShieldCheck, Info, Calculator } from "lucide-react";
+import { Building, Zap, Receipt, ShieldCheck, Info, Calculator, Building2 } from "lucide-react";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,6 +95,8 @@ export function ConcessionariaFormDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={isEditing ? "Editar Concessionária" : "Nova Concessionária"}
+      icon={Building2}
+      subtitle="Cadastre ou edite uma concessionária"
       onSubmit={onSave}
       submitLabel={isEditing ? "Salvar alterações" : "Cadastrar"}
       className="max-w-3xl"

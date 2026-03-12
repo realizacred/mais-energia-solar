@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Settings, RotateCcw, MapPin, Users } from "lucide-react";
+import { Plus, Trash2, Settings, RotateCcw, MapPin, Users, Share2 } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -184,6 +184,8 @@ function RuleDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={rule ? "Editar Regra" : "Nova Regra de Distribuição"}
+      icon={Share2}
+      subtitle="Configure regras de distribuição de leads"
       submitLabel="Salvar"
       onSubmit={handleSubmit}
       saving={saving}

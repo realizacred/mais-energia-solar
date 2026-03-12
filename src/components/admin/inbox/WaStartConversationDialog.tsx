@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MessageCirclePlus } from "lucide-react";
+import { Loader2, MessageCirclePlus, MessageCircle } from "lucide-react";
 
 interface WaStartConversationDialogProps {
   open: boolean;
@@ -82,6 +82,8 @@ export function WaStartConversationDialog({
       open={open}
       onOpenChange={handleOpenChange}
       title="Nova conversa"
+      icon={MessageCircle}
+      subtitle="Inicie uma nova conversa no WhatsApp"
       onSubmit={handleSubmit}
       submitLabel="Iniciar"
       saving={loading}

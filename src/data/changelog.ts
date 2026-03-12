@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.11",
+    date: "2026-03-12",
+    title: "§25 Lote 9 (final): icon + subtitle em todos os FormModalTemplate",
+    type: "improvement",
+    description: "Últimos 13 modais FormModalTemplate agora têm icon e subtitle conforme §25.",
+    details: [
+      "UsuariosManager, FinanciamentoConfig, DistributionConfig, LeadEditDialog",
+      "ConcessionariaFormDialog, EtiquetasManager, WaParticipants, WaStartConversationDialog",
+      "InversoresManager, BateriasManager, ModuloFormDialog, ServicosManager",
+      "IntegrationConnectModal — todos com ícone Lucide e subtítulo descritivo",
+    ],
+  },
+  {
     version: "2.22.10",
     date: "2026-03-12",
     title: "§25 Lote 8: icon + subtitle em FormModalTemplate (Parte 1)",

@@ -55,6 +55,7 @@ import {
   Plus,
   MoreVertical,
   Pencil,
+  UserCog,
 } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit";
 import { Spinner } from "@/components/ui-kit/Spinner";
@@ -657,6 +658,8 @@ export function UsuariosManager() {
           if (!open) setNewUserForm({ nome: "", email: "", password: "", role: "consultor", telefone: "" });
         }}
         title="Criar Novo Usuário"
+        icon={UserCog}
+        subtitle="Cadastre ou edite um usuário do sistema"
         onSubmit={handleCreateUser}
         submitLabel="Criar Usuário"
         saving={saving}

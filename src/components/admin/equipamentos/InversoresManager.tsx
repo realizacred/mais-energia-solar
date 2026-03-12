@@ -320,6 +320,8 @@ export function InversoresManager() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           title={editing ? "Editar Inversor" : "Novo Inversor"}
+          icon={Cpu}
+          subtitle="Cadastre ou edite um inversor"
           onSubmit={handleSave}
           submitLabel={editing ? "Salvar" : "Cadastrar"}
           saving={saveMutation.isPending}

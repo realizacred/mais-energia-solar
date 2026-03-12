@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, UserPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -297,6 +297,8 @@ export function LeadEditDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Editar Lead"
+      icon={UserPen}
+      subtitle="Edite os dados do lead"
       submitLabel="Salvar"
       onSubmit={handleSave}
       saving={saving}

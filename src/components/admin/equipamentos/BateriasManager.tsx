@@ -242,6 +242,8 @@ export function BateriasManager() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           title={editing ? "Editar Bateria" : "Nova Bateria"}
+          icon={Battery}
+          subtitle="Cadastre ou edite uma bateria"
           onSubmit={handleSave}
           submitLabel={editing ? "Salvar" : "Cadastrar"}
           saving={saveMutation.isPending}
