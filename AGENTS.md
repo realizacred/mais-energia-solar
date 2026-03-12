@@ -96,6 +96,29 @@ Exceto `switch.tsx` e `slider.tsx` para tokens semânticos.
 Cada tenant configura sua identidade em `/admin/site-config`.
 → Ver §1
 
+### 🚫 BLOQUEANTE — Telefone: NUNCA input nativo
+NUNCA usar `<Input>` ou `<input>` para telefone. SEMPRE usar `PhoneInput` de `@/components/ui-kit/inputs/PhoneInput` que já formata `(XX) XXXXX-XXXX` automaticamente.
+→ Ver §13
+
+### 🚫 BLOQUEANTE — CPF/CNPJ: NUNCA criar input do zero
+SEMPRE usar `CpfCnpjInput` de `@/components/shared/CpfCnpjInput`. Nunca criar máscara manual.
+→ Ver §13
+
+### 🚫 BLOQUEANTE — Endereço: NUNCA criar campos do zero
+SEMPRE usar `AddressFields` de `@/components/shared/AddressFields` com `useCepLookup`. Nunca recriar CEP/estado/cidade manualmente.
+→ Ver §13
+
+### 🚫 BLOQUEANTE — Modal: NUNCA criar sem seguir §25
+Todo modal de formulário DEVE ter: `w-[90vw] max-w-[tamanho]`, `DialogHeader` + `DialogTitle` shadcn, botões `variant="outline"` + `variant="default"` (nunca `<button>` nativo), grid `grid-cols-1 sm:grid-cols-2`.
+→ Ver §25
+
+### 🚫 BLOQUEANTE — Formulário: NUNCA bg-white
+NUNCA usar `bg-white`, `text-black`, `gray-*` em modais ou formulários. SEMPRE `bg-card`, `text-foreground`, `border-border`.
+→ Ver §2
+
+### 🚫 BLOQUEANTE — Componentes: verificar antes de criar
+Antes de criar QUALQUER componente novo, verificar se já existe em: `src/components/shared/`, `src/components/ui-kit/`, `src/components/ui/`. Nunca duplicar funcionalidade existente.
+
 ---
 
 # Bloco 2 — BOAS PRÁTICAS
