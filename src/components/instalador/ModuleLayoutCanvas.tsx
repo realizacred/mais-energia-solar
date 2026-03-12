@@ -433,12 +433,15 @@ export function ModuleLayoutCanvas({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="p-4 border-b shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Grid3X3 className="h-5 w-5 text-secondary" />
-            Layout de Módulos Fotovoltaicos
-          </DialogTitle>
+      <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <LayoutGrid className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Layout de Módulos Fotovoltaicos</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Posicione os módulos sobre a imagem do telhado</p>
+          </div>
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden flex flex-col p-4 space-y-4">
