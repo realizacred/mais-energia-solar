@@ -4,7 +4,7 @@ import { Menu } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { VendorSidebar, VENDOR_TAB_TITLES } from "@/components/vendor/sidebar";
+import { VendorSidebar } from "@/components/vendor/sidebar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
 import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";

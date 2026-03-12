@@ -19,6 +19,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.19.2",
+    date: "2026-03-12",
+    title: "Correção de título duplicado no portal do consultor",
+    type: "bugfix",
+    description: "Removido título nativo do header do portal que duplicava o header §26 das views.",
+    details: [
+      "Removido VENDOR_TAB_TITLES do header fixo do VendedorPortal",
+      "SidebarTrigger (hamburger) mantido intacto",
+    ],
+  },
+  {
     version: "2.20.0",
     date: "2026-03-12",
     title: "WhatsApp persistente no portal do consultor",
