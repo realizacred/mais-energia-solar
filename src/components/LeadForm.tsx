@@ -168,11 +168,9 @@ export default function LeadForm() {
                     <Phone className="w-4 h-4 text-secondary" /> Telefone
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="(11) 99999-9999"
-                      maxLength={15}
-                      {...field}
-                      onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                    <PhoneInput
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />

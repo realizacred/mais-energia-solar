@@ -531,10 +531,9 @@ function StepClienteForm({
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Celular *</Label>
-            <Input
+            <PhoneInput
               value={cliente.celular}
-              onChange={e => update("celular", e.target.value)}
-              placeholder="(00) 00000-0000"
+              onChange={v => update("celular", v)}
               className={`h-9 ${!cliente.celular.trim() ? "border-destructive/50" : ""} ${duplicateWarnings.some(w => w.field === "celular") ? "border-warning focus-visible:ring-warning" : ""}`}
             />
             {!cliente.celular.trim() && <p className="text-[10px] text-destructive">Obrigatório para avançar</p>}

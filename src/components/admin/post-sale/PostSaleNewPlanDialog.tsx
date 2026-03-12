@@ -97,7 +97,7 @@ export function PostSaleNewPlanDialog({ open, onOpenChange }: Props) {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Telefone</Label>
-                  <Input value={telefoneAvulso} onChange={e => setTelefoneAvulso(e.target.value)} placeholder="(00) 00000-0000" className="h-9" />
+                  <PhoneInput value={telefoneAvulso} onChange={setTelefoneAvulso} className="h-9" />
                 </div>
               </div>
             </TabsContent>

@@ -134,11 +134,11 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Telefone *</Label>
-                    <Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} placeholder="(00) 00000-0000" />
+                    <PhoneInput value={form.phone ?? ""} onChange={(raw) => set("phone", raw)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Tel. Secundário</Label>
-                    <Input value={form.secondary_phone ?? ""} onChange={(e) => set("secondary_phone", e.target.value)} />
+                    <PhoneInput value={form.secondary_phone ?? ""} onChange={(raw) => set("secondary_phone", raw)} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

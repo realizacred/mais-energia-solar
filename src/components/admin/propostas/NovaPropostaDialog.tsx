@@ -252,10 +252,9 @@ export function NovaPropostaDialog({
             <div className="space-y-1.5">
               <Label>Celular</Label>
               <div className="relative">
-                <Input
-                  placeholder="(00) 00000-0000"
+                <PhoneInput
                   value={form.cliente_celular}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  onChange={(raw) => handlePhoneChange(raw)}
                   className="pr-8"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2">
