@@ -99,7 +99,7 @@ export function OrcamentosTable({
             <TableHead className="w-28 hidden md:table-cell">ORC</TableHead>
             <TableHead className="w-24 hidden md:table-cell">Lead</TableHead>
             <TableHead>Nome</TableHead>
-            <TableHead>Telefone</TableHead>
+            <TableHead className="w-[155px] min-w-[155px]">Telefone</TableHead>
             <TableHead className="hidden lg:table-cell">Consultor</TableHead>
             <TableHead className="hidden sm:table-cell">Localização</TableHead>
             <TableHead className="hidden sm:table-cell">Consumo</TableHead>
