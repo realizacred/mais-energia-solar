@@ -1082,8 +1082,6 @@ export function ProposalWizard() {
       // Ensure draft is saved (creates project if needed) before generating
       let projetoId = savedProjetoId;
       if (!projetoId) {
-        const snapshot = collectSnapshot();
-        const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
         const params = buildPersistParams();
         const draftRes = await persistAtomic(params, "draft");
         if (draftRes) {
