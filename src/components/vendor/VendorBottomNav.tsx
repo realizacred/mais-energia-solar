@@ -46,14 +46,15 @@ export function VendorBottomNav({ unreadWhatsApp = 0, badgeOrcamentos = 0 }: Ven
         const Icon = item.icon;
 
         return (
-          <button
+          <Button
             key={item.id}
+            variant="ghost"
             onClick={() => handleNavigate(item.id)}
             className={cn(
-              "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors duration-150",
+              "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] h-full rounded-none transition-colors duration-150 px-0",
               isActive
-                ? "text-primary"
-                : "text-muted-foreground active:text-foreground"
+                ? "text-primary hover:text-primary"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             <div className="relative">
@@ -73,7 +74,7 @@ export function VendorBottomNav({ unreadWhatsApp = 0, badgeOrcamentos = 0 }: Ven
             )}>
               {item.label}
             </span>
-          </button>
+          </Button>
         );
       })}
     </nav>
