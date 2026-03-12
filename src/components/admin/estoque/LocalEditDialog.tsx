@@ -50,6 +50,8 @@ export function LocalEditDialog({ open, onOpenChange, local }: LocalEditDialogPr
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Editar Depósito" : "Novo Depósito"}
+      icon={MapPin}
+      subtitle="Edite os dados do local"
       onSubmit={handleSubmit}
       submitLabel={isEdit ? "Salvar" : "Criar"}
       saving={createLocal.isPending || updateLocal.isPending}

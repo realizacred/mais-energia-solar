@@ -72,6 +72,8 @@ export function CategoriaEditDialog({ open, onOpenChange, categoria, parentId, a
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Editar Categoria" : (selectedParent !== "none" ? "Nova Subcategoria" : "Nova Categoria")}
+      icon={Tag}
+      subtitle="Edite a categoria de estoque"
       onSubmit={handleSubmit}
       submitLabel={isEdit ? "Salvar" : "Criar"}
       saving={createMut.isPending || updateMut.isPending}

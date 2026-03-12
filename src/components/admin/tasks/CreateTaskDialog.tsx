@@ -53,6 +53,8 @@ export function CreateTaskDialog({
         open={open}
         onOpenChange={onOpenChange}
         title="Nova Tarefa"
+        icon={CheckSquare}
+        subtitle="Crie uma nova tarefa"
         submitLabel="Criar Tarefa"
         onSubmit={handleSubmit}
         saving={isSubmitting}

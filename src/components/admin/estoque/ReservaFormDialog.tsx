@@ -45,6 +45,7 @@ export function ReservaFormDialog({ open, onOpenChange, saldos }: ReservaFormDia
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Nova Reserva de Estoque"
+      icon={Package} subtitle="Reserve itens do estoque"
       onSubmit={handleSubmit} submitLabel="Reservar" saving={createReserva.isPending}
       disabled={!itemId || !quantidade || Number(quantidade) <= 0} asForm
     >

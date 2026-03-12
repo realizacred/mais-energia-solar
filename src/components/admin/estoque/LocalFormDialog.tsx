@@ -32,6 +32,7 @@ export function LocalFormDialog({ open, onOpenChange }: LocalFormDialogProps) {
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Novo Depósito"
+      icon={MapPin} subtitle="Cadastre um local de estoque"
       onSubmit={handleSubmit} submitLabel="Criar" saving={createLocal.isPending}
       disabled={!nome.trim()} asForm
     >
