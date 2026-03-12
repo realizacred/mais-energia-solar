@@ -36,7 +36,7 @@ import { StepServicos } from "./wizard/StepServicos";
 import { StepVenda, calcPrecoFinal } from "./wizard/StepVenda";
 import { StepFinancialCenter } from "./wizard/StepFinancialCenter";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
-import { useWizardPersistence, type WizardSnapshot } from "./wizard/hooks/useWizardPersistence";
+import { useWizardPersistence, type WizardSnapshot, type PersistenceParams } from "./wizard/hooks/useWizardPersistence";
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
