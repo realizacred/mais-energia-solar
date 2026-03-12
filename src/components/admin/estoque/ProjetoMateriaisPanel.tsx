@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { SectionCard } from "@/components/ui-kit";
-import { Package, Plus, CheckCircle, XCircle } from "lucide-react";
+import { Package, Plus, CheckCircle, XCircle, Layers } from "lucide-react";
 import {
   useProjetoMateriais,
   useEstoqueSaldos,
