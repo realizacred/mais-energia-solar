@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.3",
+    date: "2026-03-12",
+    title: "§25 Lote 1: Top 5 modais standalone padronizados",
+    type: "improvement",
+    description: "Correção visual dos 5 modais standalone mais usados para o padrão §25 com header (ícone + subtítulo), footer bg-muted/30 e w-[90vw].",
+    details: [
+      "LeadsPipeline: loss dialog com ícone XCircle, subtítulo, footer §25",
+      "VendorLeadViewDialog: header §25 com Eye, subtítulo, w-[90vw] max-w-2xl",
+      "NovaPropostaDialog: header §25 com FileText, subtítulo, footer bg-muted/30",
+      "FollowUpManager: dialog registrar contato com header §25, footer padronizado",
+      "LeadStatusManager: 2 dialogs (criar/editar + excluir) com header §25 e footer",
+    ],
+  },
+  {
     version: "2.22.2",
     date: "2026-03-12",
     title: "Auditoria em massa: modais padronizados para §25",

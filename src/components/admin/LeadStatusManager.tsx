@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, GripVertical, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, AlertTriangle, Tag, XCircle } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
 
@@ -282,13 +282,21 @@ export function LeadStatusManager() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingStatus ? "Editar Status" : "Novo Status"}
-            </DialogTitle>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Tag className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                {editingStatus ? "Editar Status" : "Novo Status"}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {editingStatus ? "Altere o nome ou a cor do status" : "Crie um novo status para o funil de vendas"}
+              </p>
+            </div>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
             <div className="space-y-2">
               <Label htmlFor="status-nome">Nome</Label>
               <Input
@@ -315,7 +323,7 @@ export function LeadStatusManager() {
                   className="flex-1 font-mono text-sm"
                 />
                 <span
-                  className="px-3 py-1 rounded-full text-xs text-white font-medium"
+                  className="px-3 py-1 rounded-full text-xs text-foreground font-medium"
                   style={{ backgroundColor: cor }}
                 >
                   Preview
@@ -323,37 +331,45 @@ export function LeadStatusManager() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Spinner size="sm" className="mr-2" />}
               {editingStatus ? "Salvar" : "Criar"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Excluir Status</DialogTitle>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Excluir Status</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Esta ação não pode ser desfeita</p>
+            </div>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja excluir o status{" "}
-            <strong>{statusToDelete?.nome}</strong>? Esta ação não pode ser desfeita.
-          </p>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteDialogOpen(false)}>
+          <div className="p-5 overflow-y-auto max-h-[70vh]">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja excluir o status{" "}
+              <strong>{statusToDelete?.nome}</strong>?
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancelar
             </Button>
             <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={handleDelete} disabled={saving}>
               {saving && <Spinner size="sm" className="mr-2" />}
               Excluir
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>
