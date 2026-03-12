@@ -220,6 +220,8 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
       open={open}
       onOpenChange={onOpenChange}
       title={modulo ? "Editar Módulo" : "Novo Módulo Fotovoltaico"}
+      icon={LayoutGrid}
+      subtitle="Cadastre ou edite um módulo fotovoltaico"
       onSubmit={handleSave}
       submitLabel={isPending ? "Salvando..." : "Salvar"}
       saving={isPending}

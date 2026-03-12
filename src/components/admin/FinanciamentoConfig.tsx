@@ -600,6 +600,8 @@ export default function FinanciamentoConfig() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         title={editingBanco ? "Editar Banco" : "Novo Banco"}
+        icon={Banknote}
+        subtitle="Configure opções de financiamento"
         onSubmit={handleSaveBanco}
         submitLabel={editingBanco ? "Salvar" : "Cadastrar"}
         saving={saving}

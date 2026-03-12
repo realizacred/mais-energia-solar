@@ -153,6 +153,8 @@ export function WaParticipants({ conversationId, tenantId, assignedTo }: WaParti
           open={addDialogOpen}
           onOpenChange={setAddDialogOpen}
           title="Adicionar participante"
+          icon={Users}
+          subtitle="Gerencie participantes da conversa"
           submitLabel="Adicionar"
           onSubmit={() => addMutation.mutate()}
           saving={addMutation.isPending}

@@ -82,6 +82,8 @@ export function WaStartConversationDialog({
       open={open}
       onOpenChange={handleOpenChange}
       title="Nova conversa"
+      icon={MessageCircle}
+      subtitle="Inicie uma nova conversa no WhatsApp"
       onSubmit={handleSubmit}
       submitLabel="Iniciar"
       saving={loading}

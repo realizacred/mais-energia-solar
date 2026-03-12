@@ -124,6 +124,8 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
       open={open}
       onOpenChange={handleOpenChange}
       title={isComingSoon ? provider.label : `Conectar ${provider.label}`}
+      icon={Plug}
+      subtitle="Conecte uma integração ao sistema"
       submitLabel={isComingSoon ? undefined : "Conectar"}
       onSubmit={isComingSoon ? undefined : handleSubmit}
       disabled={!isValid}

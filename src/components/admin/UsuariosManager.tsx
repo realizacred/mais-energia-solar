@@ -658,6 +658,8 @@ export function UsuariosManager() {
           if (!open) setNewUserForm({ nome: "", email: "", password: "", role: "consultor", telefone: "" });
         }}
         title="Criar Novo Usuário"
+        icon={UserCog}
+        subtitle="Cadastre ou edite um usuário do sistema"
         onSubmit={handleCreateUser}
         submitLabel="Criar Usuário"
         saving={saving}

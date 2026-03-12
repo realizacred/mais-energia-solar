@@ -335,6 +335,8 @@ export function ServicosManager() {
               open={dialogOpen}
               onOpenChange={setDialogOpen}
               title="Agendar Novo Serviço"
+              icon={Wrench}
+              subtitle="Cadastre ou edite um serviço"
               onSubmit={handleSubmit}
               submitLabel="Agendar Serviço"
               saving={saving}

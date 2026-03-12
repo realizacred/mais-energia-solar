@@ -297,6 +297,8 @@ export function LeadEditDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Editar Lead"
+      icon={UserPen}
+      subtitle="Edite os dados do lead"
       submitLabel="Salvar"
       onSubmit={handleSave}
       saving={saving}

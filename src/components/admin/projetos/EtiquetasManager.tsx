@@ -199,6 +199,8 @@ export function EtiquetasManager() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         title={editingId ? "Editar etiqueta" : "Nova etiqueta"}
+        icon={Tag}
+        subtitle="Cadastre ou edite etiquetas de projeto"
         onSubmit={handleSave}
         submitLabel={editingId ? "Salvar" : "Criar"}
         className="max-w-md"

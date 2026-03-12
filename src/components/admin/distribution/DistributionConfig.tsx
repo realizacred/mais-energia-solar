@@ -184,6 +184,8 @@ function RuleDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={rule ? "Editar Regra" : "Nova Regra de Distribuição"}
+      icon={Share2}
+      subtitle="Configure regras de distribuição de leads"
       submitLabel="Salvar"
       onSubmit={handleSubmit}
       saving={saving}

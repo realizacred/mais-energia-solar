@@ -95,6 +95,8 @@ export function ConcessionariaFormDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={isEditing ? "Editar Concessionária" : "Nova Concessionária"}
+      icon={Building2}
+      subtitle="Cadastre ou edite uma concessionária"
       onSubmit={onSave}
       submitLabel={isEditing ? "Salvar alterações" : "Cadastrar"}
       className="max-w-3xl"
