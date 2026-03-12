@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useCepLookup } from "@/hooks/useCepLookup";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { Search, User, Plus, AlertTriangle, Loader2, MapPin, Link2, FileText, Phone, Mail, Building2 } from "lucide-react";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmailInput } from "@/components/ui/EmailInput";
