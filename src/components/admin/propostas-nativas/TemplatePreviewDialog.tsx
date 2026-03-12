@@ -295,27 +295,32 @@ export function TemplatePreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[950px] max-h-[85vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-5 pb-3">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
-              {isDocx ? <FileDown className="h-4 w-4 text-secondary" /> : <Eye className="h-4 w-4 text-secondary" />}
+      <DialogContent className="w-[90vw] max-w-[950px] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Eye className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground flex items-center gap-2">
               Preview: {templateNome}
               {isDocx && <Badge variant="secondary" className="text-[9px]">DOCX</Badge>}
             </DialogTitle>
-            {propostas.length > 1 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShuffle}
-                disabled={loading || generating}
-                className="gap-1.5 text-xs"
-              >
-                <Shuffle className="h-3.5 w-3.5" />
-                Sortear outra
-              </Button>
-            )}
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Selecione uma proposta para visualizar o template com dados reais
+            </p>
           </div>
+          {propostas.length > 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShuffle}
+              disabled={loading || generating}
+              className="gap-1.5 text-xs shrink-0"
+            >
+              <Shuffle className="h-3.5 w-3.5" />
+              Sortear outra
+            </Button>
+          )}
         </DialogHeader>
 
         <div className="flex flex-1 min-h-0">

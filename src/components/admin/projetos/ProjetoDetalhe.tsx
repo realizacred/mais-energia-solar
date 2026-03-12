@@ -376,17 +376,21 @@ function ProjetoDetalheContent() {
 
       {/* ── Loss reason dialog ── */}
       <Dialog open={lossDialogOpen} onOpenChange={setLossDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-destructive" />
-              Registrar Perda do Projeto
-            </DialogTitle>
-            <DialogDescription>
-              Informe o motivo da perda de <strong>{customerName || deal.title}</strong>. Após isso, o projeto será bloqueado para edições.
-            </DialogDescription>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                Registrar Perda do Projeto
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Informe o motivo da perda de {customerName || deal.title}. O projeto será bloqueado.
+              </p>
+            </div>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
             <div>
               <Label>Motivo de Perda *</Label>
               {loadingMotivos ? (
@@ -421,8 +425,8 @@ function ProjetoDetalheContent() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+            <Button variant="outline" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
             <Button
               variant="outline"
               className="border-destructive text-destructive hover:bg-destructive/10"
@@ -432,7 +436,7 @@ function ProjetoDetalheContent() {
               {lossSaving && <Spinner size="sm" className="mr-2" />}
               Registrar Perda
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

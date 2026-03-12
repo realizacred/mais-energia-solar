@@ -532,11 +532,17 @@ function TarifaEditDialog({ open, onOpenChange, uc, index, isGD3, isGrupoA, onCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-base">{ucLabel}</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Info className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">{ucLabel}</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Edite as tarifas desta unidade consumidora</p>
+          </div>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
           {isGrupoA ? (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-3">
@@ -612,9 +618,9 @@ function TarifaEditDialog({ open, onOpenChange, uc, index, isGD3, isGrupoA, onCh
             </>
           )}
         </div>
-        <div className="flex items-center justify-end gap-3 pt-2 border-t">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
-          <Button onClick={handleSave} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button onClick={handleSave}>Salvar</Button>
         </div>
       </DialogContent>
     </Dialog>
