@@ -19,17 +19,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "2.21.4",
+    version: "2.21.5",
     date: "2026-03-12",
-    title: "Fix — Lead e consumo kWh não carregam ao editar proposta existente",
+    title: "Fix — Kit, consumo e lead não restaurados ao editar proposta",
     type: "bugfix",
-    description: "Corrige edição de propostas criadas via projeto onde selectedLead não era restaurado e consumo kWh era sobrescrito pela carga do customer.",
+    description: "Corrige múltiplas race conditions onde efeitos de auto-load (customer, lead, ORC) sobrescreviam dados restaurados do snapshot ao editar proposta existente.",
     details: [
-      "Restore agora busca lead_id e deal_id da tabela propostas_nativas quando snapshot não contém selectedLead",
-      "Customer auto-load (customerIdFromUrl) é ignorado em modo de edição — snapshot é a fonte de verdade",
-      "Lead é carregado do banco e injetado no estado do wizard automaticamente",
-      "deal_id e projeto_id enriquecidos no restore para consistência",
-      "Logs diagnósticos: UCs restauradas, precoFinal zero com itens presentes",
+      "Guard de edit-mode adicionado em 3 efeitos: customerIdFromUrl, leadIdFromUrl e orcIdFromUrl",
+      "Em modo de edição (proposta_id + versao_id na URL), snapshot é a fonte de verdade — auto-loads são ignorados",
+      "Logs diagnósticos adicionados ao restore: itens, manualKits, UCs, selectedLead e potenciaKwp",
     ],
   },
   {
