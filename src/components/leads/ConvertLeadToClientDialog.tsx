@@ -716,15 +716,20 @@ export function ConvertLeadToClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" />
-            Converter Lead em Venda
-          </DialogTitle>
-          <DialogDescription>
-            Preencha os dados para transformar o lead em cliente. Se faltarem documentos, você pode salvar como "Aguardando Documentação".
-          </DialogDescription>
+      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden">
+        {/* §25 HEADER */}
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Converter Lead em Venda
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Preencha os dados para transformar o lead em cliente
+            </p>
+          </div>
         </DialogHeader>
 
         {/* Offline indicator */}
