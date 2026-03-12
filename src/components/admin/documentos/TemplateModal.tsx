@@ -123,6 +123,7 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
           </div>
         </DialogHeader>
 
+        <div className="p-5 overflow-y-auto max-h-[70vh]">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-6">
           {/* Left — Form */}
           <div className="space-y-4">
