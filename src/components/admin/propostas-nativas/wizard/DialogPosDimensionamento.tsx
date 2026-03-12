@@ -84,13 +84,18 @@ export function DialogPosDimensionamento({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-base font-bold">Alterar Proposta</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Alterar Proposta</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Revise os dados e salve a proposta</p>
+          </div>
         </DialogHeader>
 
-        {/* ── Summary */}
-        <div className="space-y-1.5 text-sm text-muted-foreground">
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
           <div className="flex items-center gap-2">
             <User className="h-3.5 w-3.5 text-primary" />
             <span><span className="font-medium text-foreground">Cliente:</span> {clienteNome || "—"}</span>
