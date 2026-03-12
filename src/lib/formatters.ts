@@ -91,3 +91,6 @@ export function parseBRNumber(value: string): number {
 export function roundCurrency(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
+
+// ─── Re-exports from formatters/index ──────────────────────
+export { formatPhoneBR, formatPhoneE164 } from "./formatters/index";
