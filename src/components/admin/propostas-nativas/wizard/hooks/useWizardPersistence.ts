@@ -117,6 +117,14 @@ export function useWizardPersistence() {
       let propostaId = params.propostaId;
       let versaoId = params.versaoId;
 
+      // Guard: prevent accidental creation when editing (race condition with async restore)
+      const urlPropostaId = new URLSearchParams(window.location.search).get("proposta_id");
+      if (!propostaId && urlPropostaId) {
+        console.error("[saveDraft] Bloqueado: race condition detectada — proposta_id na URL mas não no estado", { propostaId, urlPropostaId });
+        toast({ title: "Aguarde", description: "A proposta ainda está sendo carregada. Tente novamente em instantes.", variant: "destructive" });
+        return null;
+      }
+
       // === CREATE: use atomic RPC (ensures projeto exists) ===
       if (!propostaId) {
         console.log("[saveDraft] Creating proposal via atomic RPC", {
@@ -246,7 +254,7 @@ export function useWizardPersistence() {
           }
 
           versaoId = newVersao.id;
-          toast({ title: "✅ Nova versão criada", description: "A versão anterior era imutável, uma nova versão foi criada." });
+          toast({ title: "Nova versão criada", description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição." });
           return { propostaId, versaoId };
         }
 
@@ -343,6 +351,7 @@ export function useWizardPersistence() {
           return null;
         }
         versaoId = newVersao.id;
+        toast({ title: "Nova versão criada", description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição." });
       } else {
         // Update existing draft version
         const updateData: any = {

@@ -245,6 +245,8 @@ export function ProposalWizard() {
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
+  // Track async DB restore to block UI during loading (race condition fix)
+  const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
 
   const collectSnapshot = useCallback((): WizardSnapshot => ({
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
@@ -453,6 +455,7 @@ export function ProposalWizard() {
     if (!propostaIdFromUrl || !versaoIdFromUrl) return;
     if (dbRestoreAttemptedRef.current) return;
     dbRestoreAttemptedRef.current = true;
+    setIsRestoring(true);
 
     (async () => {
       try {
@@ -492,6 +495,8 @@ export function ProposalWizard() {
       } catch (err) {
         console.error("[ProposalWizard] Error loading proposal from DB:", err);
         toast({ title: "Erro ao carregar proposta", description: "Não foi possível restaurar os dados.", variant: "destructive" });
+      } finally {
+        setIsRestoring(false);
       }
     })();
   }, [propostaIdFromUrl, versaoIdFromUrl, restoreFromSnapshot, clearLocal, normalizeLegacySnapshot]);
@@ -544,8 +549,12 @@ export function ProposalWizard() {
       const snapshot = collectSnapshot();
       const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
 
-      if (!savedPropostaId || !savedVersaoId) {
-        // First save — create draft then optionally set active
+      // Fallback: ler da URL se IDs ainda não foram setados pelo restore assíncrono (race condition fix)
+      const effectivePropostaId = savedPropostaId || propostaIdFromUrl;
+      const effectiveVersaoId = savedVersaoId || versaoIdFromUrl;
+
+      if (!effectivePropostaId || !effectiveVersaoId) {
+        // Realmente não tem IDs — criar nova proposta
         console.log("[handleUpdate] First save — creating draft", { setActive, dealId: resolvedDealId, leadId: selectedLead?.id });
         const res = await saveDraft({
           propostaId: null,
@@ -582,10 +591,14 @@ export function ProposalWizard() {
         return;
       }
 
-      console.log("[handleUpdate] Updating existing", { savedPropostaId, savedVersaoId, setActive });
+      // Sync state if we used URL fallback
+      if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
+      if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
+
+      console.log("[handleUpdate] Updating existing", { effectivePropostaId, effectiveVersaoId, setActive });
       const res = await updateProposal({
-        propostaId: savedPropostaId,
-        versaoId: savedVersaoId,
+        propostaId: effectivePropostaId,
+        versaoId: effectiveVersaoId,
         snapshot,
         potenciaKwp,
         precoFinal,
@@ -596,14 +609,14 @@ export function ProposalWizard() {
         titulo,
       }, setActive);
       // If a new version was created (locked version), update the versaoId
-      if (res && res.versaoId !== savedVersaoId) {
+      if (res && res.versaoId !== effectiveVersaoId) {
         setSavedVersaoId(res.versaoId);
       }
     } catch (err: any) {
       console.error("[handleUpdate] Unexpected error:", err);
       toast({ title: "Erro inesperado ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });
     }
-  }, [savedPropostaId, savedVersaoId, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
+  }, [savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
@@ -1710,8 +1723,8 @@ export function ProposalWizard() {
         onConfirm={handlePosDialogConfirm}
         onSaveDraft={() => handleUpdate(false)}
         onSaveActive={() => handleUpdate(true)}
-        saving={saving}
-        savedPropostaId={savedPropostaId}
+        saving={saving || isRestoring}
+        savedPropostaId={savedPropostaId || propostaIdFromUrl}
       />
 
       {/* Enforcement: block modal */}
