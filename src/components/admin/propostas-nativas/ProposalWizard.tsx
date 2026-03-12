@@ -635,7 +635,7 @@ export function ProposalWizard() {
         ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80))
         : undefined,
       geracaoMensal: geracaoMensalEstimada || undefined,
-      leadId: selectedLead?.id,
+      leadId: (selectedLead as any)?._synthetic ? undefined : selectedLead?.id,
       dealId: resolvedDealId,
       titulo,
       cliente: cliente.nome && cliente.celular ? cliente : undefined,
