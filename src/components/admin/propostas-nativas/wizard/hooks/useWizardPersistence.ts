@@ -254,7 +254,7 @@ export function useWizardPersistence() {
           }
 
           versaoId = newVersao.id;
-          toast({ title: "✅ Nova versão criada", description: "A versão anterior era imutável, uma nova versão foi criada." });
+          toast({ title: "Nova versão criada", description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição." });
           return { propostaId, versaoId };
         }
 
