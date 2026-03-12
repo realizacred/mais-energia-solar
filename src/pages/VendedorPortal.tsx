@@ -132,10 +132,12 @@ export default function VendedorPortal() {
           </main>
         </SidebarInset>
 
-        <VendorBottomNav
-          unreadWhatsApp={waUnreadCount}
-          badgeOrcamentos={badgeCounts.orcamentos}
-        />
+        <BottomNavErrorBoundary>
+          <VendorBottomNav
+            unreadWhatsApp={waUnreadCount}
+            badgeOrcamentos={badgeCounts.orcamentos}
+          />
+        </BottomNavErrorBoundary>
       </div>
     </SidebarProvider>
   );
