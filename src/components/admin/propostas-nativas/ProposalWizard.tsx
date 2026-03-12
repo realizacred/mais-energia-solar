@@ -1261,7 +1261,6 @@ export function ProposalWizard() {
         lead_id: realLeadId || clienteIdForPayload || selectedLead.id,
         cliente_id: clienteIdForPayload,
         projeto_id: projetoId,
-        projeto_id: projetoId,
         grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
         idempotency_key: idempotencyKey,
         template_id: templateSelecionado || undefined,
