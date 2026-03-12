@@ -10,6 +10,7 @@ import { useVendedorPortal } from "@/hooks/useVendedorPortal";
 import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { InstallAppBanner } from "@/components/vendor/InstallAppBanner";
 
 // Error boundary to prevent VendorBottomNav crashes from killing the whole portal
 class BottomNavErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
