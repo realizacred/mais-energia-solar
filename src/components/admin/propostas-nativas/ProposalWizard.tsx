@@ -513,8 +513,8 @@ export function ProposalWizard() {
     const snapshot = collectSnapshot();
     const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
     return {
-      propostaId: overridePropostaId ?? savedPropostaId,
-      versaoId: overrideVersaoId ?? savedVersaoId,
+      effectivePropostaId: overridePropostaId ?? savedPropostaId ?? null,
+      effectiveVersaoId: overrideVersaoId ?? savedVersaoId ?? null,
       snapshot,
       potenciaKwp,
       precoFinal,
@@ -530,35 +530,55 @@ export function ProposalWizard() {
   }, [collectSnapshot, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, selectedLead, resolvedDealId, nomeProposta, cliente]);
 
   /** Apply result from atomic persist to local state */
-  const applyPersistResult = useCallback((res: { propostaId: string; versaoId: string; projetoId?: string } | null) => {
-    if (!res) return;
-    setSavedPropostaId(res.propostaId);
-    setSavedVersaoId(res.versaoId);
+  const applyPersistResult = useCallback((res: AtomicPersistResult) => {
+    if (res.status === "error" || res.status === "blocked") return;
+    if (res.propostaId) setSavedPropostaId(res.propostaId);
+    if (res.versaoId) setSavedVersaoId(res.versaoId);
     if (res.projetoId) setSavedProjetoId(res.projetoId);
   }, []);
 
   const handleSaveDraft = useCallback(async () => {
-    // Guard: if opened from project, dealId is mandatory
+    if (isRestoring) {
+      toast({ title: "Aguarde", description: "Carregando dados da proposta..." });
+      return;
+    }
     if (dealIdFromUrl && !resolvedDealId) {
-      console.error("[saveDraft] BLOCKED: dealIdFromUrl exists but resolvedDealId is empty");
       toast({ title: "Erro", description: "deal_id obrigatório ao salvar proposta dentro de projeto.", variant: "destructive" });
       return;
     }
-    const params = buildPersistParams();
+    const effectivePropostaId = savedPropostaId || propostaIdFromUrl || null;
+    const effectiveVersaoId = savedVersaoId || versaoIdFromUrl || null;
+    if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
+    if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
+
+    const params = buildPersistParams(effectivePropostaId, effectiveVersaoId);
     const res = await persistAtomic(params, "draft");
-    applyPersistResult(res);
-  }, [buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId]);
+
+    switch (res.status) {
+      case "success":
+        applyPersistResult(res);
+        toast({ title: "✅ Rascunho salvo" });
+        break;
+      case "reused":
+        applyPersistResult(res);
+        break;
+      case "blocked":
+        toast({ title: "Aguarde", description: res.message, variant: "destructive" });
+        break;
+      case "error":
+        toast({ title: "Erro ao salvar", description: res.message, variant: "destructive" });
+        break;
+    }
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
-    // Block save while restore is in progress
     if (isRestoring) {
-      toast({ title: "Aguarde", description: "A proposta ainda está sendo restaurada.", variant: "destructive" });
+      toast({ title: "Aguarde", description: "A proposta ainda está sendo restaurada." });
       return;
     }
 
-    // Effective IDs with URL fallback (race condition fix)
-    const effectivePropostaId = savedPropostaId || propostaIdFromUrl;
-    const effectiveVersaoId = savedVersaoId || versaoIdFromUrl;
+    const effectivePropostaId = savedPropostaId || propostaIdFromUrl || null;
+    const effectiveVersaoId = savedVersaoId || versaoIdFromUrl || null;
 
     // Sync state if using URL fallback
     if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
@@ -567,11 +587,23 @@ export function ProposalWizard() {
     const params = buildPersistParams(effectivePropostaId, effectiveVersaoId);
     const intent = setActive ? "active" as const : "draft" as const;
     const res = await persistAtomic(params, intent);
-    applyPersistResult(res);
 
-    // If a new version was created (locked version), update versaoId
-    if (res && res.versaoId !== effectiveVersaoId) {
-      setSavedVersaoId(res.versaoId);
+    switch (res.status) {
+      case "success":
+      case "reused":
+        applyPersistResult(res);
+        if (res.newVersionCreated) {
+          toast({ title: "Nova versão criada", description: res.message });
+        } else if (res.status !== "reused") {
+          toast({ title: setActive ? "✅ Proposta ativada!" : "✅ Rascunho salvo!" });
+        }
+        break;
+      case "blocked":
+        toast({ title: "Aguarde", description: res.message, variant: "destructive" });
+        break;
+      case "error":
+        toast({ title: "Erro ao salvar", description: res.message, variant: "destructive" });
+        break;
     }
   }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult]);
 
