@@ -6,6 +6,7 @@ import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
 import { formatCEP, emailFieldSchema } from "@/lib/validations";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
