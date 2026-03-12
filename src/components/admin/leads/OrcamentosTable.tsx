@@ -104,7 +104,7 @@ export function OrcamentosTable({
             <TableHead className="hidden sm:table-cell">Localização</TableHead>
             <TableHead className="hidden sm:table-cell">Consumo</TableHead>
             <TableHead className="hidden sm:table-cell">Data</TableHead>
-            <TableHead className="w-[60px]" />
+            <TableHead className="w-[60px] lg:w-[220px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
