@@ -135,6 +135,100 @@ function buildIntentKey(
   return `${intent}:${propostaId || "new"}:${fp}`;
 }
 
+// ─── Standalone helpers (no hook state needed) ───────────
+
+function normalizeGrupo(g: string | null | undefined): string | null {
+  if (!g) return null;
+  if (g.startsWith("A")) return "A";
+  if (g.startsWith("B")) return "B";
+  return null;
+}
+
+function sanitizeSnapshot(snapshot: any) {
+  if (!snapshot) return snapshot;
+  const { mapSnapshots, ...rest } = snapshot;
+  return { ...rest, grupo: normalizeGrupo(rest.grupo) };
+}
+
+function computeGrupoNormalized(snapshot: WizardSnapshot | undefined | null): string | null {
+  return snapshot?.grupo ? (String(snapshot.grupo).startsWith("A") ? "A" : "B") : null;
+}
+
+/** Update or create version (handles lock). Pure async — no hook state. */
+async function updateOrCreateVersion(
+  propostaId: string,
+  versaoId: string,
+  params: PersistenceParams,
+  setActive: boolean,
+): Promise<AtomicPersistResult | null> {
+  const { data: currentVersao } = await supabase
+    .from("proposta_versoes")
+    .select("snapshot_locked, status")
+    .eq("id", versaoId)
+    .single();
+
+  const grupoNormalized = computeGrupoNormalized(params.snapshot);
+
+  if (currentVersao?.snapshot_locked) {
+    const { data: newVersao, error: createErr } = await supabase
+      .from("proposta_versoes")
+      .insert({
+        proposta_id: propostaId,
+        potencia_kwp: params.potenciaKwp,
+        valor_total: params.precoFinal,
+        economia_mensal: params.economiaMensal || null,
+        geracao_mensal: params.geracaoMensal || null,
+        grupo: grupoNormalized,
+        snapshot: sanitizeSnapshot(params.snapshot) as any,
+        status: setActive ? "generated" : "draft",
+        snapshot_locked: setActive,
+        gerado_em: setActive ? new Date().toISOString() : null,
+      } as any)
+      .select("id")
+      .single();
+
+    if (createErr) {
+      toast({ title: "Erro ao criar nova versão", description: createErr.message, variant: "destructive" });
+      return null;
+    }
+
+    toast({ title: "Nova versão criada", description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição." });
+    return { propostaId, versaoId: newVersao.id, newVersionCreated: true };
+  }
+
+  // Update existing draft version
+  const updateData: Record<string, any> = {
+    potencia_kwp: params.potenciaKwp,
+    valor_total: params.precoFinal,
+    economia_mensal: params.economiaMensal || null,
+    geracao_mensal: params.geracaoMensal || null,
+    grupo: grupoNormalized,
+    snapshot: sanitizeSnapshot(params.snapshot),
+    updated_at: new Date().toISOString(),
+  };
+  if (setActive) {
+    updateData.status = "generated";
+    updateData.gerado_em = new Date().toISOString();
+  }
+
+  const { error: vErr } = await supabase
+    .from("proposta_versoes")
+    .update(updateData as any)
+    .eq("id", versaoId);
+
+  if (vErr) {
+    toast({ title: "Erro ao atualizar", description: vErr.message, variant: "destructive" });
+    return null;
+  }
+
+  toast({
+    title: setActive ? "✅ Proposta gerada" : "✅ Proposta atualizada",
+    description: setActive ? "A proposta foi marcada como gerada." : "Os dados foram atualizados.",
+  });
+
+  return { propostaId, versaoId };
+}
+
 // ─── Hook ─────────────────────────────────────────────────
 
 export function useWizardPersistence() {
@@ -143,23 +237,6 @@ export function useWizardPersistence() {
 
   // In-flight promise map for idempotent dedup (promise reuse)
   const inflightMapRef = useRef<Map<string, Promise<AtomicPersistResult | null>>>(new Map());
-  // Track last completed intent to suppress duplicate toasts
-  const lastCompletedIntentRef = useRef<string | null>(null);
-
-  /** Normalize grupo to 'A' or 'B' only — defense in depth (§33 AGENTS.md) */
-  const normalizeGrupo = (g: string | null | undefined): string | null => {
-    if (!g) return null;
-    if (g.startsWith("A")) return "A";
-    if (g.startsWith("B")) return "B";
-    return null;
-  };
-
-  /** Remove heavy frontend-only fields (base64 images) and normalize grupo before DB persistence */
-  const sanitizeSnapshot = (snapshot: any) => {
-    if (!snapshot) return snapshot;
-    const { mapSnapshots, ...rest } = snapshot;
-    return { ...rest, grupo: normalizeGrupo(rest.grupo) };
-  };
 
   // ─── Core: atomic persist (single-flight + idempotent) ───
 
@@ -244,12 +321,7 @@ export function useWizardPersistence() {
 
       // If intent is active, immediately update the freshly created version
       if (setActive) {
-        const activeRes = await this_updateVersion(
-          result.proposta_id,
-          result.versao_id,
-          params,
-          true,
-        );
+        const activeRes = await updateOrCreateVersion(result.proposta_id, result.versao_id, params, true);
         if (activeRes) return activeRes;
       }
 
@@ -278,96 +350,8 @@ export function useWizardPersistence() {
       return { propostaId: effectivePropostaId, versaoId: effectivePropostaId };
     }
 
-    return this_updateVersion(effectivePropostaId, effectiveVersaoId, params, setActive);
+    return updateOrCreateVersion(effectivePropostaId, effectiveVersaoId, params, setActive);
   }, []);
-
-  // ─── Helper: update or create version (handles lock) ───
-
-  const this_updateVersion = async (
-    propostaId: string,
-    versaoId: string,
-    params: PersistenceParams,
-    setActive: boolean,
-  ): Promise<AtomicPersistResult | null> => {
-    // Check if current version is locked
-    const { data: currentVersao } = await supabase
-      .from("proposta_versoes")
-      .select("snapshot_locked, status")
-      .eq("id", versaoId)
-      .single();
-
-    const grupoNormalized = params.snapshot?.grupo
-      ? (String(params.snapshot.grupo).startsWith("A") ? "A" : "B")
-      : null;
-
-    if (currentVersao?.snapshot_locked) {
-      // Version is immutable — create a new draft version
-      const { data: newVersao, error: createErr } = await supabase
-        .from("proposta_versoes")
-        .insert({
-          proposta_id: propostaId,
-          potencia_kwp: params.potenciaKwp,
-          valor_total: params.precoFinal,
-          economia_mensal: params.economiaMensal || null,
-          geracao_mensal: params.geracaoMensal || null,
-          grupo: grupoNormalized,
-          snapshot: sanitizeSnapshot(params.snapshot) as any,
-          status: setActive ? "generated" : "draft",
-          snapshot_locked: setActive,
-          gerado_em: setActive ? new Date().toISOString() : null,
-        } as any)
-        .select("id")
-        .single();
-
-      if (createErr) {
-        toast({ title: "Erro ao criar nova versão", description: createErr.message, variant: "destructive" });
-        return null;
-      }
-
-      toast({
-        title: "Nova versão criada",
-        description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição.",
-      });
-
-      return {
-        propostaId,
-        versaoId: newVersao.id,
-        newVersionCreated: true,
-      };
-    }
-
-    // Update existing draft version
-    const updateData: Record<string, any> = {
-      potencia_kwp: params.potenciaKwp,
-      valor_total: params.precoFinal,
-      economia_mensal: params.economiaMensal || null,
-      geracao_mensal: params.geracaoMensal || null,
-      grupo: grupoNormalized,
-      snapshot: sanitizeSnapshot(params.snapshot),
-      updated_at: new Date().toISOString(),
-    };
-    if (setActive) {
-      updateData.status = "generated";
-      updateData.gerado_em = new Date().toISOString();
-    }
-
-    const { error: vErr } = await supabase
-      .from("proposta_versoes")
-      .update(updateData as any)
-      .eq("id", versaoId);
-
-    if (vErr) {
-      toast({ title: "Erro ao atualizar", description: vErr.message, variant: "destructive" });
-      return null;
-    }
-
-    toast({
-      title: setActive ? "✅ Proposta gerada" : "✅ Proposta atualizada",
-      description: setActive ? "A proposta foi marcada como gerada." : "Os dados foram atualizados.",
-    });
-
-    return { propostaId, versaoId };
-  };
 
   // ─── Public API: atomic persist with single-flight + promise reuse ───
 
@@ -375,12 +359,7 @@ export function useWizardPersistence() {
     params: PersistenceParams,
     intent: SaveIntent,
   ): Promise<AtomicPersistResult | null> => {
-    const intentKey = buildIntentKey(
-      intent,
-      params.propostaId,
-      params.versaoId,
-      params.snapshot,
-    );
+    const intentKey = buildIntentKey(intent, params.propostaId, params.versaoId, params.snapshot);
 
     // Promise reuse: if same intent is already in-flight, return same promise
     const existing = inflightMapRef.current.get(intentKey);
@@ -399,10 +378,6 @@ export function useWizardPersistence() {
     setSaving(true);
 
     const promise = persistAtomicInternal(params, intent)
-      .then((result) => {
-        lastCompletedIntentRef.current = intentKey;
-        return result;
-      })
       .catch((err: any) => {
         console.error("[persistAtomic] Exception:", err);
         toast({ title: "Erro ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });
