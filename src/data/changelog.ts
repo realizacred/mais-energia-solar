@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.3",
+    date: "2026-03-12",
+    title: "Fix — Refatoração completa do atomic/idempotent save de propostas",
+    type: "bugfix",
+    description: "Reescrita da camada de persistência para eliminar criação duplicada de propostas ao editar, com fingerprint profundo e single-flight robusto.",
+    details: [
+      "Removido uso de window.location.search no hook — IDs agora vêm exclusivamente via params",
+      "Corrigido bug crítico onde versaoId recebia propostaId (linha 350 antiga)",
+      "Fingerprint profundo com stableStringify recursivo e hash determinístico",
+      "Chave de idempotência forte: intent + IDs + fingerprint do snapshot sanitizado",
+      "Promise reuse retorna status 'reused' para evitar toast duplicado",
+      "handleUpdate e handleSaveDraft unificados com guard de isRestoring e fallback de URL",
+    ],
+  },
+  {
     version: "2.21.2",
     date: "2026-03-12",
     title: "Feat — Atomic save / idempotent save para propostas nativas",
