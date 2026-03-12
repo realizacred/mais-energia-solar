@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 import type { Lead } from "@/types/lead";
 
 interface LeadDeleteDialogProps {
@@ -25,9 +26,14 @@ export function LeadDeleteDialog({
 }: LeadDeleteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="w-[90vw] max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Arquivar Lead</AlertDialogTitle>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <Trash2 className="w-5 h-5 text-destructive" />
+            </div>
+            <AlertDialogTitle>Arquivar Lead</AlertDialogTitle>
+          </div>
           <AlertDialogDescription>
             Tem certeza que deseja arquivar o lead de {lead?.nome}? 
             O status será alterado para "Arquivado" e ele poderá ser reativado depois.

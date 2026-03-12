@@ -285,9 +285,14 @@ export function AprovacaoUsuarios() {
         open={!!rejectUserId}
         onOpenChange={(open) => !open && setRejectUserId(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Rejeitar usuário?</AlertDialogTitle>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <UserCheck className="w-5 h-5 text-primary" />
+              </div>
+              <AlertDialogTitle>Rejeitar usuário?</AlertDialogTitle>
+            </div>
             <AlertDialogDescription>
               O usuário não terá acesso ao sistema. Você pode aprovar
               posteriormente se necessário.

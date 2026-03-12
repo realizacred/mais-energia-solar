@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.8",
+    date: "2026-03-12",
+    title: "§25 Lote 6: ícones em AlertDialogs de confirmação",
+    type: "improvement",
+    description: "Adição de ícone colorido e w-[90vw] max-w-md em 8 AlertDialogs de confirmação/exclusão.",
+    details: [
+      "LeadDeleteDialog, OrcamentoDeleteDialog: ícone Trash2 destructive",
+      "AprovacaoUsuarios: ícone UserCheck primary",
+      "PropostasManager: ícone FileX destructive",
+      "UserEditDialog: 2 AlertDialogs (KeyRound primary + Trash2 destructive)",
+      "VendorLeadsTable, OfflineConversionsManager, PropostaExpandedDetail: ícones destructive/primary",
+    ],
+  },
+  {
     version: "2.22.7",
     date: "2026-03-12",
     title: "§25 Lote 5: ícone/subtítulo em FormModalTemplate + modal standalone",

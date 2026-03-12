@@ -1068,9 +1068,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           <AlertCircle className="h-3 w-3" /> Rejeitar
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="w-[90vw] max-w-md">
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Recusar proposta?</AlertDialogTitle>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                              <AlertCircle className="w-5 h-5 text-destructive" />
+                            </div>
+                            <AlertDialogTitle>Recusar proposta?</AlertDialogTitle>
+                          </div>
                           <AlertDialogDescription>Informe o motivo da recusa (opcional).</AlertDialogDescription>
                         </AlertDialogHeader>
                         <textarea placeholder="Motivo da recusa..." value={recusaMotivo} onChange={(e) => setRecusaMotivo(e.target.value)} className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
@@ -1183,9 +1188,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
       {/* Delete confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir proposta</AlertDialogTitle>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Excluir proposta</AlertDialogTitle>
+            </div>
             <AlertDialogDescription>
               Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
