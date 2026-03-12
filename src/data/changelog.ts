@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.1",
+    date: "2026-03-12",
+    title: "§25 atualizado com novo padrão visual obrigatório de modais",
+    type: "improvement",
+    description: "Reescrita completa do §25 no AGENTS.md com estrutura obrigatória de header (ícone + título + subtítulo), corpo com seções separadas por divisor, footer com bg-muted/30 e novos tamanhos revisados.",
+    details: [
+      "Novos tamanhos: max-w-md, max-w-xl, max-w-2xl, max-w-3xl, max-w-[1100px]",
+      "Header obrigatório com ícone bg-primary/10 e subtítulo descritivo",
+      "Corpo com max-h-[70vh] e seções uppercase tracking-wide",
+      "Footer fixo com bg-muted/30 e botões alinhados à direita",
+      "Template TSX completo como referência canônica",
+    ],
+  },
+  {
     version: "2.22.0",
     date: "2026-03-12",
     title: "Auditoria global de formatação de telefone e inputs",

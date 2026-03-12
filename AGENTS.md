@@ -814,19 +814,88 @@ NUNCA criar useQuery sem staleTime.
 
 ---
 
-## §25. TAMANHOS DE MODAIS (DialogContent)
+## §25. TAMANHOS E PADRÃO VISUAL DE MODAIS
 
-Fonte única de verdade para tamanhos de modal (também referenciado por §11).
-
-- Formulário simples até 4 campos: `max-w-md`
-- Formulário médio até 8 campos: `max-w-2xl`
-- Formulário com 2 colunas ou seções: `w-[90vw] max-w-[1100px]`
-- Formulário completo com endereço e múltiplas seções: `w-[90vw] max-w-[1100px]`
+### Tamanhos (DialogContent):
+- Simples até 4 campos: `max-w-md`
+- Médio até 8 campos: `w-[90vw] max-w-xl`
+- Com 2 colunas ou seções: `w-[90vw] max-w-2xl`
+- Completo com endereço: `w-[90vw] max-w-3xl`
 - Wizard multi-step: `w-[90vw] max-w-[1100px]`
 
-REGRA: Sempre usar `w-[90vw]` para aproveitar a tela toda em notebooks e monitores.
-NUNCA usar `max-w-2xl` ou `max-w-4xl` em formulários com 2 ou mais colunas.
-NUNCA criar scroll interno em modal — todo conteúdo deve estar visível.
+REGRA: SEMPRE usar `w-[90vw]` para aproveitar a tela em notebooks e monitores.
+
+### Estrutura obrigatória de todo modal:
+```tsx
+<Dialog>
+  <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden">
+
+    {/* HEADER com ícone + título + subtítulo */}
+    <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="w-5 h-5 text-primary" />
+      </div>
+      <div className="flex-1">
+        <DialogTitle className="text-base font-semibold text-foreground">
+          Título do Modal
+        </DialogTitle>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Descrição curta do que fazer aqui
+        </p>
+      </div>
+    </DialogHeader>
+
+    {/* CORPO com seções separadas por divisor */}
+    <div className="p-5 space-y-5 overflow-y-auto max-h-[70vh]">
+
+      {/* Seção com título */}
+      <div className="space-y-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Dados pessoais
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* campos aqui */}
+        </div>
+      </div>
+
+      {/* Divisor entre seções */}
+      <div className="border-t border-border" />
+
+      {/* Segunda seção */}
+      <div className="space-y-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Endereço
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* campos aqui */}
+        </div>
+      </div>
+
+    </div>
+
+    {/* FOOTER fixo com ações */}
+    <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+      <Button variant="outline" onClick={onClose}>
+        Cancelar
+      </Button>
+      <Button onClick={onSave}>
+        Salvar
+      </Button>
+    </div>
+
+  </DialogContent>
+</Dialog>
+```
+
+### Regras do novo padrão:
+- SEMPRE ícone `bg-primary/10 text-primary` no header
+- SEMPRE subtítulo descritivo abaixo do título
+- SEMPRE seções separadas por `border-t border-border`
+- SEMPRE título de seção em `uppercase text-xs tracking-wide`
+- SEMPRE footer com `bg-muted/30` e botões alinhados à direita
+- NUNCA scroll na página inteira — `max-h-[70vh]` no corpo
+- NUNCA `bg-white` em nenhuma parte do modal
+- NUNCA criar modal sem ícone no header
 
 ---
 
