@@ -1136,7 +1136,8 @@ export function ConvertLeadToClientDialog({
               </div>
             )}
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* §25 FOOTER */}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 p-4 border-t border-border bg-muted/30">
               <Button
                 type="button"
                 variant="outline"
@@ -1179,9 +1180,10 @@ export function ConvertLeadToClientDialog({
                   </>
                 )}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
