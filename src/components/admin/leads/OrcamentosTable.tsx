@@ -351,6 +351,27 @@ export function OrcamentosTable({
           onSuccess={onRefresh}
         />
       )}
+
+      {/* Edit Lead Dialog */}
+      {editOrcamento && (
+        <LeadEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          leadId={editOrcamento.lead_id}
+          initialData={{
+            nome: editOrcamento.nome,
+            telefone: editOrcamento.telefone,
+            consultor_id: editOrcamento.vendedor_id,
+            consultor_nome: editOrcamento.vendedor_nome,
+            cidade: editOrcamento.cidade,
+            estado: editOrcamento.estado,
+            media_consumo: editOrcamento.media_consumo,
+            tipo_telhado: editOrcamento.tipo_telhado,
+            observacoes: editOrcamento.observacoes,
+          }}
+          onSuccess={onRefresh}
+        />
+      )}
     </div>
   );
 }
