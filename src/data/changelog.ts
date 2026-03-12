@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.8",
+    date: "2026-03-12",
+    title: "Fix — Editar proposta não restaurava snapshot (consumo, kit e lead zerados)",
+    type: "bugfix",
+    description: "O botão 'Editar dimensionamento' navegava sem proposta_id/versao_id, fazendo o wizard tratar como proposta nova em vez de restaurar o snapshot salvo.",
+    details: [
+      "PropostaExpandedDetail: 'Editar dimensionamento' agora passa proposta_id + versao_id na URL",
+      "Wizard entra em edit mode e restaura snapshot completo do banco (consumo, kit, lead, tarifas)",
+      "Fallback mantido: se não houver versão, abre como nova proposta com contexto do projeto",
+    ],
+  },
+  {
     version: "2.21.7",
     date: "2026-03-12",
     title: "Fix — Edição de proposta: lead, kit e consumo não carregavam",
