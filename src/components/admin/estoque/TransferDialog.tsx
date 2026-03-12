@@ -46,6 +46,7 @@ export function TransferDialog({ open, onOpenChange, saldos }: TransferDialogPro
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Transferência entre Depósitos"
+      icon={ArrowLeftRight} subtitle="Transfira itens entre locais"
       onSubmit={handleSubmit} submitLabel="Transferir" saving={transferir.isPending}
       disabled={!itemId || !localOrigem || !localDestino || localOrigem === localDestino || !quantidade || Number(quantidade) <= 0}
       asForm
