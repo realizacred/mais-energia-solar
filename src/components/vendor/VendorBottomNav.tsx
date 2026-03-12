@@ -1,6 +1,7 @@
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { LayoutDashboard, MessageCircle, FileText, CalendarCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface VendorBottomNavProps {
