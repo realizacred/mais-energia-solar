@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
 import { OrcamentoStatusSelector } from "@/components/vendor/OrcamentoStatusSelector";
 import { VendorOrcamentoCard } from "./VendorOrcamentoCard";
 import { OrcamentoHistoryDialog } from "@/components/admin/leads/OrcamentoHistoryDialog";
+import { LeadEditDialog } from "@/components/admin/leads/LeadEditDialog";
 import { useGroupedOrcamentos, type GroupedOrcamento } from "@/hooks/useGroupedOrcamentos";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { LeadStatus } from "@/types/lead";
@@ -43,6 +44,7 @@ interface VendorOrcamentosTableProps {
   onStatusChange: (orcamentoId: string, newStatusId: string | null) => void;
   onDelete?: (orcamento: OrcamentoVendedor) => void;
   onConvert?: (orcamento: OrcamentoVendedor) => void;
+  onRefresh?: () => void;
 }
 
 export function VendorOrcamentosTable({ 
@@ -53,12 +55,15 @@ export function VendorOrcamentosTable({
   onView,
   onStatusChange,
   onDelete,
-  onConvert
+  onConvert,
+  onRefresh,
 }: VendorOrcamentosTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orcamentoToDelete, setOrcamentoToDelete] = useState<OrcamentoVendedor | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupedOrcamento | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editOrcamento, setEditOrcamento] = useState<OrcamentoVendedor | null>(null);
   const isMobile = useIsMobile();
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
@@ -331,6 +336,22 @@ export function VendorOrcamentosTable({
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => {
+                                setEditOrcamento(orc);
+                                setEditOpen(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar lead</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="text-secondary hover:text-secondary"
                               onClick={() => onView(orc)}
                             >
@@ -427,6 +448,34 @@ export function VendorOrcamentosTable({
         onWhatsApp={handleWhatsAppFromHistory}
         onConvertOrcamento={onConvert ? (orc) => onConvert(orc as OrcamentoVendedor) : undefined}
       />
+
+      {/* Edit Lead Dialog */}
+      {editOrcamento && (
+        <LeadEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          leadId={editOrcamento.lead_id}
+          initialData={{
+            nome: editOrcamento.nome,
+            telefone: editOrcamento.telefone,
+            consultor_id: (editOrcamento as any).consultor_id || null,
+            consultor_nome: editOrcamento.vendedor || null,
+            cep: editOrcamento.cep,
+            cidade: editOrcamento.cidade,
+            estado: editOrcamento.estado,
+            bairro: editOrcamento.bairro,
+            rua: editOrcamento.rua,
+            numero: editOrcamento.numero,
+            area: editOrcamento.area,
+            tipo_telhado: editOrcamento.tipo_telhado,
+            rede_atendimento: editOrcamento.rede_atendimento,
+            media_consumo: editOrcamento.media_consumo,
+            consumo_previsto: editOrcamento.consumo_previsto,
+            observacoes: editOrcamento.observacoes,
+          }}
+          onSuccess={onRefresh}
+        />
+      )}
     </>
   );
 }

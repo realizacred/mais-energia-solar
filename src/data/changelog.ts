@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.11",
+    date: "2026-03-12",
+    title: "Consultores podem editar seus próprios leads",
+    type: "improvement",
+    description: "Botão de editar lead adicionado ao portal do consultor, permitindo alterar dados cadastrais, técnicos e reenviar WhatsApp de boas-vindas.",
+    details: [
+      "Botão de edição (✏️) adicionado à tabela de orçamentos do consultor",
+      "Reutiliza o mesmo LeadEditDialog do painel admin",
+      "Consultor edita apenas seus próprios leads (RLS garante isolamento)",
+    ],
+  },
+  {
     version: "2.21.10",
     date: "2026-03-12",
     title: "Edição completa de lead — todos os campos",

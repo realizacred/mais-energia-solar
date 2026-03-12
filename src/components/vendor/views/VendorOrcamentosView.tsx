@@ -146,6 +146,7 @@ export default function VendorOrcamentosView({ portal }: Props) {
               setOrcamentoToConvert(orc);
               setIsConvertOpen(true);
             }}
+            onRefresh={fetchOrcamentos}
           />
         </CardContent>
       </Card>
