@@ -44,6 +44,7 @@ interface VendorOrcamentosTableProps {
   onStatusChange: (orcamentoId: string, newStatusId: string | null) => void;
   onDelete?: (orcamento: OrcamentoVendedor) => void;
   onConvert?: (orcamento: OrcamentoVendedor) => void;
+  onRefresh?: () => void;
 }
 
 export function VendorOrcamentosTable({ 
