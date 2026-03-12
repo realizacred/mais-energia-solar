@@ -2,7 +2,8 @@ import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { User, Phone } from "lucide-react";
 import { FloatingInput } from "@/components/ui/floating-input";
-import { formatPhone, formatName } from "@/lib/validations";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { formatName } from "@/lib/validations";
 import type { UseFormReturn } from "react-hook-form";
 import type { LeadFormData } from "@/lib/validations";
 
