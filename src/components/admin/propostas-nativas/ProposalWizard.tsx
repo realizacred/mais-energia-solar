@@ -484,12 +484,16 @@ export function ProposalWizard() {
           ? await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot
           : rawSnapshot as WizardSnapshot;
 
-        // Diagnostic: log UC consumo data from snapshot
-        if (s.ucs?.length) {
-          console.log("[ProposalWizard] Restored UCs:", s.ucs.map((u: any) => ({
-            nome: u.nome, consumo_mensal: u.consumo_mensal, consumo_p: u.consumo_mensal_p, consumo_fp: u.consumo_mensal_fp,
-          })));
-        }
+        // Diagnostic: log snapshot data for debugging restore issues
+        console.log("[ProposalWizard] Snapshot restore:", {
+          ucs: s.ucs?.length ?? 0,
+          ucsConsumo: s.ucs?.map((u: any) => ({ nome: u.nome, consumo_mensal: u.consumo_mensal })),
+          itens: s.itens?.length ?? 0,
+          itensDetail: s.itens?.map((i: any) => ({ descricao: i.descricao, qty: i.quantidade, preco: i.preco_unitario })),
+          manualKits: s.manualKits?.length ?? 0,
+          hasSelectedLead: !!s.selectedLead,
+          potenciaKwp: s.potenciaKwp,
+        });
         restoreFromSnapshot(s);
         setSavedPropostaId(propostaIdFromUrl);
         setSavedVersaoId(versaoIdFromUrl);
@@ -960,6 +964,8 @@ export function ProposalWizard() {
   // When orc_id is also present, skip location pre-fill (ORC takes priority)
   useEffect(() => {
     if (!leadIdFromUrl || selectedLead?.id === leadIdFromUrl) return;
+    // In edit mode (restoring from DB), snapshot is the source of truth
+    if (propostaIdFromUrl && versaoIdFromUrl) return;
     // If ORC is present, only load lead for context (name/phone) — ORC handles location
     const orcTakesPriority = !!orcIdFromUrl;
     let cancelled = false;
@@ -1018,6 +1024,8 @@ export function ProposalWizard() {
   // ─── Auto-load from orc_id URL param (direct ORC click from PropostasTab)
   useEffect(() => {
     if (!orcIdFromUrl) return;
+    // In edit mode (restoring from DB), snapshot is the source of truth
+    if (propostaIdFromUrl && versaoIdFromUrl) return;
     let cancelled = false;
     (async () => {
       try {
