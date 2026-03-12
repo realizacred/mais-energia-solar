@@ -58,16 +58,27 @@ export default function VendorOrcamentosView({ portal }: Props) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex md:hidden justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 min-h-[44px]"
-          onClick={() => navigate("/consultor/whatsapp")}
-        >
-          <MessageCircle className="h-4 w-4" />
-          WhatsApp
-        </Button>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">Orçamentos</h1>
+            <p className="text-sm text-muted-foreground">Propostas e simulações enviadas</p>
+          </div>
+        </div>
+        <div className="flex md:hidden">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 min-h-[44px]"
+            onClick={() => navigate("/consultor/whatsapp")}
+          >
+            <MessageCircle className="h-4 w-4" />
+            WhatsApp
+          </Button>
+        </div>
       </div>
       <VendorFollowUpManager
         leads={leadsForAlerts}

@@ -45,12 +45,13 @@ export default function VendorLinksView({ portal }: Props) {
           </div>
         </div>
       </div>
-    <LinksInstalacaoPage
-      vendedor={{
-        nome: vendedor.nome,
-        slug: vendedor.slug || vendedor.codigo,
-        codigo: vendedor.codigo,
-      }}
-    />
+      <LinksInstalacaoPage
+        vendedor={{
+          nome: vendedor.nome,
+          slug: vendedor.slug || vendedor.codigo,
+          codigo: vendedor.codigo,
+        }}
+      />
+    </div>
   );
 }
