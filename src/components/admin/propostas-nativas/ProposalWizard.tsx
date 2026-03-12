@@ -474,6 +474,10 @@ export function ProposalWizard() {
 
         if (!versao?.snapshot) {
           console.warn("[ProposalWizard] No snapshot found for versao", versaoIdFromUrl);
+          // Still set IDs so handleUpdate won't create a new proposal
+          setSavedPropostaId(propostaIdFromUrl);
+          setSavedVersaoId(versaoIdFromUrl);
+          setIsRestoring(false);
           return;
         }
 
@@ -495,9 +499,12 @@ export function ProposalWizard() {
           potenciaKwp: s.potenciaKwp,
         });
         restoreFromSnapshot(s);
+
+        // CRITICAL: Set IDs BEFORE releasing isRestoring
+        // This prevents handleUpdate from falling into the "create new" path
         setSavedPropostaId(propostaIdFromUrl);
         setSavedVersaoId(versaoIdFromUrl);
-        hasRestoredRef.current = true; // enable local draft auto-save
+        hasRestoredRef.current = true;
 
         // Clear localStorage draft to avoid conflicts
         clearLocal();
@@ -546,6 +553,9 @@ export function ProposalWizard() {
         });
       } catch (err) {
         console.error("[ProposalWizard] Error loading proposal from DB:", err);
+        // Still set IDs on error to prevent duplicate creation
+        setSavedPropostaId(propostaIdFromUrl);
+        setSavedVersaoId(versaoIdFromUrl);
         toast({ title: "Erro ao carregar proposta", description: "Não foi possível restaurar os dados.", variant: "destructive" });
       } finally {
         setIsRestoring(false);
