@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.4",
+    date: "2026-03-12",
+    title: "Fix — Lead e preço não carregam ao editar proposta existente",
+    type: "bugfix",
+    description: "Corrige edição de propostas criadas via projeto onde selectedLead não era restaurado do snapshot e precoFinal aparecia R$ 0,00.",
+    details: [
+      "Restore agora busca lead_id e deal_id da tabela propostas_nativas quando snapshot não contém selectedLead",
+      "Lead é carregado do banco e injetado no estado do wizard automaticamente",
+      "deal_id e projeto_id também são enriquecidos no restore para evitar inconsistência",
+      "Adicionado log diagnóstico quando precoFinal = 0 com itens presentes para facilitar debug",
+      "collectSnapshot já incluía selectedLead — confirmado e preservado",
+    ],
+  },
+  {
     version: "2.21.3",
     date: "2026-03-12",
     title: "Fix — Refatoração completa do atomic/idempotent save de propostas",
