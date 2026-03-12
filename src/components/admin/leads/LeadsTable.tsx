@@ -44,7 +44,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
             <TableHead className="w-12">Visto</TableHead>
             <TableHead className="w-24">Código</TableHead>
             <TableHead>Nome</TableHead>
-            <TableHead>Telefone</TableHead>
+            <TableHead className="w-[155px] min-w-[155px]">Telefone</TableHead>
             <TableHead>Consultor</TableHead>
             <TableHead>Localização</TableHead>
             <TableHead>Consumo</TableHead>
