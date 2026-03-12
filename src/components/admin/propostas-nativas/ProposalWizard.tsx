@@ -1114,11 +1114,14 @@ export function ProposalWizard() {
       // Ensure draft is saved (creates project if needed) before generating
       let projetoId = savedProjetoId;
       if (!projetoId) {
-        const params = buildPersistParams();
+        const params = buildPersistParams(
+          savedPropostaId || propostaIdFromUrl || null,
+          savedVersaoId || versaoIdFromUrl || null,
+        );
         const draftRes = await persistAtomic(params, "draft");
-        if (draftRes) {
-          setSavedPropostaId(draftRes.propostaId);
-          setSavedVersaoId(draftRes.versaoId);
+        if (draftRes.status === "success" || draftRes.status === "reused") {
+          if (draftRes.propostaId) setSavedPropostaId(draftRes.propostaId);
+          if (draftRes.versaoId) setSavedVersaoId(draftRes.versaoId);
           if (draftRes.projetoId) {
             projetoId = draftRes.projetoId;
             setSavedProjetoId(draftRes.projetoId);
