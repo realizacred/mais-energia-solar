@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Zap, DollarSign } from "lucide-react";
+import { User, Building2, Zap, DollarSign, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
