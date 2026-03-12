@@ -224,15 +224,18 @@ export function NovaPropostaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nova Proposta</DialogTitle>
-          <DialogDescription>
-            Preencha os dados para criar uma proposta comercial.
-          </DialogDescription>
+      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Nova Proposta</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Preencha os dados para criar uma proposta comercial</p>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
           {/* Nome da proposta */}
           <div className="space-y-1.5">
             <Label>Nome da Proposta *</Label>
