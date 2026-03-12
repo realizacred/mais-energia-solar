@@ -19,6 +19,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.6",
+    date: "2026-03-12",
+    title: "Fix — Botão 'Salvar Rascunho' agora avança para tela de geração PDF",
+    type: "bugfix",
+    description: "O botão 'Salvar Rascunho' no último passo do wizard não avançava para a tela de geração de PDF. Agora ambos os botões (Salvar e Salvar como Ativa) avançam corretamente.",
+    details: [
+      "DialogPosDimensionamento: 'Salvar Rascunho' agora chama onConfirm() após salvar, avançando para o step de geração",
+    ],
+  },
+  {
     version: "2.21.5",
     date: "2026-03-12",
     title: "Fix — Race condition no restore criava propostas duplicadas",
