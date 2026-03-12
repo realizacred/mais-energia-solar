@@ -93,10 +93,10 @@ export default defineConfig(({ mode }) => {
         ],
         shortcuts: [
           {
-            name: "Portal do Vendedor",
-            short_name: "Vendedor",
+            name: "Portal do Consultor",
+            short_name: "Consultor",
             description: "Acesse seus orçamentos",
-            url: "/vendedor",
+            url: "/consultor/dashboard",
             icons: [{ src: "pwa-icon-192.png", sizes: "192x192" }],
           },
           {

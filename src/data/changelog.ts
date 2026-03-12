@@ -19,6 +19,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.20.4",
+    date: "2026-03-12",
+    title: "PWA — Shortcut do consultor corrigido",
+    type: "bugfix",
+    description: "Corrigido shortcut do manifest PWA para apontar para /consultor/dashboard.",
+    details: [
+      "Shortcut 'Portal do Vendedor' renomeado para 'Portal do Consultor'",
+      "URL do shortcut corrigida de /vendedor para /consultor/dashboard",
+    ],
+  },
+  {
     version: "2.20.2",
     date: "2026-03-12",
     title: "PWA — Banner de instalação no portal do consultor",
