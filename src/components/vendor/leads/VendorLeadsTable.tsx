@@ -146,7 +146,7 @@ export function VendorLeadsTable({
                   className="flex items-center gap-1 hover:text-primary hover:underline"
                 >
                   <Phone className="w-3 h-3 text-muted-foreground" />
-                  {lead.telefone}
+                  {formatPhoneBR(lead.telefone)}
                 </a>
               </TableCell>
               <TableCell className="hidden md:table-cell">

@@ -286,7 +286,7 @@ export function VendorOrcamentosTable({
                       className="flex items-center gap-1 hover:text-primary hover:underline"
                     >
                       <Phone className="w-3 h-3 text-muted-foreground" />
-                      {orc.telefone}
+                      {formatPhoneBR(orc.telefone)}
                     </a>
                   </TableCell>
                   <TableCell>

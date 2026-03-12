@@ -168,7 +168,7 @@ export function OrcamentosTable({
                 <TableCell className="text-sm whitespace-nowrap">
                   <div className="flex items-center gap-1">
                     <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
-                    {orc.telefone}
+                    {formatPhoneBR(orc.telefone)}
                   </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">

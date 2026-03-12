@@ -82,7 +82,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
               <TableCell>
                 <div className="flex items-center gap-1">
                   <Phone className="w-3 h-3 text-muted-foreground" />
-                  {lead.telefone}
+                  {formatPhoneBR(lead.telefone)}
                 </div>
               </TableCell>
               <TableCell>

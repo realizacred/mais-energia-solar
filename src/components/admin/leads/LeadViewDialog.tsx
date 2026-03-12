@@ -63,7 +63,7 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Telefone</p>
-              <p className="font-medium">{lead.telefone}</p>
+              <p className="font-medium">{formatPhoneBR(lead.telefone)}</p>
             </div>
           </div>
 
