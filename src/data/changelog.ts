@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.7",
+    date: "2026-03-12",
+    title: "Fix — Edição de proposta: lead, kit e consumo não carregavam",
+    type: "bugfix",
+    description: "Corrige 3 bugs ao editar propostas criadas via projeto: lead não encontrado bloqueava geração, kit salvo não aparecia na aba correta, e dados do cliente não eram recuperados.",
+    details: [
+      "Enriquecimento de lead no restore: busca lead via cliente quando proposta não tem lead_id direto",
+      "Fallback sintético: cria lead-like object a partir dos dados do cliente para não bloquear geração",
+      "StepKitSelection: auto-switch para aba 'manual' quando manualKits já existem no snapshot restaurado",
+      "Restore agora sempre busca deal_id/projeto_id/cliente_id independente de selectedLead existir no snapshot",
+    ],
+  },
+  {
     version: "2.21.6",
     date: "2026-03-12",
     title: "Fix — Botão 'Salvar Rascunho' agora avança para tela de geração PDF",

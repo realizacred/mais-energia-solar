@@ -90,8 +90,11 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
 // Mock kits removed — manual mode only for now
 
 export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange }: Props) {
-  // If returning to this step with a kit already selected, stay on "catalogo" but show selection
-  const [tab, setTab] = useState<TabType>("catalogo");
+  // If returning to this step with a kit already restored, auto-switch to "manual" tab
+  const [tab, setTab] = useState<TabType>(() => {
+    if (manualKitsProp.length > 0) return "manual";
+    return "catalogo";
+  });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS, buscarValor: 0 });
   const [orderBy, setOrderBy] = useState("menor_preco");
