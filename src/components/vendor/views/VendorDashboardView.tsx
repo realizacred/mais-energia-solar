@@ -1,3 +1,4 @@
+import { LayoutDashboard } from "lucide-react";
 import { LeadAlerts } from "@/components/vendor/LeadAlerts";
 import { FollowUpStatsCards } from "@/components/vendor/FollowUpStatsCards";
 import { VendorPersonalDashboard } from "@/components/vendor/VendorPersonalDashboard";
