@@ -448,6 +448,8 @@ export function ObrasManager() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         title={editingObra ? "Editar Obra" : "Nova Obra"}
+        icon={HardHat}
+        subtitle="Cadastre ou edite uma obra"
         onSubmit={handleSave}
         submitLabel={editingObra ? "Salvar" : "Adicionar"}
         saving={saving}

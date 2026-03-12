@@ -114,6 +114,8 @@ export function SlaRulesManager() {
         open={showCreate}
         onOpenChange={(v) => { if (!v) { setEditRule(null); } setShowCreate(v); }}
         title={editRule?.id ? "Editar Regra SLA" : "Nova Regra SLA"}
+        icon={Clock}
+        subtitle="Configure regras de prazo de atendimento"
         submitLabel="Salvar"
         onSubmit={handleSave}
         disabled={!editRule?.rule_name}

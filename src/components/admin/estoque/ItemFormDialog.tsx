@@ -78,6 +78,7 @@ export function ItemFormDialog({ open, onOpenChange, defaultSku = "" }: ItemForm
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Novo Item de Estoque"
+      icon={Package} subtitle="Cadastre ou edite um item de estoque"
       onSubmit={handleSubmit} submitLabel="Cadastrar" saving={isSaving}
       disabled={!nome.trim()} asForm
     >

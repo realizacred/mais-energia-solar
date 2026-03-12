@@ -54,6 +54,7 @@ export function MovementFormDialog({ open, tipo, onOpenChange, saldos }: Movemen
   return (
     <FormModalTemplate open={open} onOpenChange={() => onOpenChange()}
       title={title}
+      icon={ArrowUpDown} subtitle="Registre uma movimentação de estoque"
       onSubmit={handleSubmit}
       submitLabel={submitLabel}
       saving={createMov.isPending}

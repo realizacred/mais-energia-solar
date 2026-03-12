@@ -762,6 +762,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         title={editingVendedor ? "Editar Consultor" : "Novo Consultor"}
+        icon={UserCheck}
+        subtitle="Cadastre ou edite um consultor"
         onSubmit={handleSave}
         submitLabel={saving && creatingUser 
           ? "Criando acesso..." 

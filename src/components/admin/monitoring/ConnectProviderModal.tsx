@@ -87,6 +87,8 @@ export function ConnectProviderModal({ open, onOpenChange, provider, onSuccess }
       open={open}
       onOpenChange={handleOpenChange}
       title={`Conectar ${provider.label}`}
+      icon={Plug}
+      subtitle="Conecte um provedor de monitoramento"
       submitLabel="Conectar"
       onSubmit={handleSubmit}
       disabled={!isValid}

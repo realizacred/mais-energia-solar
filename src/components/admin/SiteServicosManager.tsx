@@ -255,6 +255,8 @@ export function SiteServicosManager() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         title={editing ? "Editar Serviço" : "Novo Serviço"}
+        icon={Briefcase}
+        subtitle="Cadastre ou edite um serviço do site"
         submitLabel={editing ? "Atualizar" : "Adicionar"}
         onSubmit={handleSave}
         saving={saving}

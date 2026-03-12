@@ -107,6 +107,8 @@ export function WhatsAppSendDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Enviar WhatsApp"
+      icon={MessageCircle}
+      subtitle="Envie uma mensagem via WhatsApp"
       submitLabel="Enviar"
       onSubmit={handleSend}
       saving={sending}

@@ -407,6 +407,8 @@ function CreateSubscriptionModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Nova Assinatura de Monitoramento"
+      icon={CreditCard}
+      subtitle="Gerencie a cobrança de monitoramento"
       submitLabel="Criar Assinatura"
       onSubmit={handleSubmit}
       saving={saving}

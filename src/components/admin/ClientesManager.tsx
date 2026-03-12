@@ -446,6 +446,8 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
             if (!open) resetForm();
           }}
           title={editingCliente ? "Editar Cliente" : "Novo Cliente"}
+          icon={Users}
+          subtitle="Cadastre ou edite um cliente"
           onSubmit={handleSubmit}
           submitLabel={editingCliente ? "Salvar" : "Cadastrar"}
           saving={saving}

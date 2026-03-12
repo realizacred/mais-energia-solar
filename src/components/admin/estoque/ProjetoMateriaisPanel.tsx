@@ -131,6 +131,7 @@ function AddMaterialDialog({ open, onOpenChange, projetoId }: { open: boolean; o
 
   return (
     <FormModalTemplate open={open} onOpenChange={onOpenChange} title="Adicionar Material ao Projeto"
+      icon={Layers} subtitle="Gerencie os materiais do projeto"
       onSubmit={handleSubmit} submitLabel="Reservar" saving={reservar.isPending}
       disabled={!itemId || !quantidade || Number(quantidade) <= 0} asForm
     >
