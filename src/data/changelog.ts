@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.0",
+    date: "2026-03-12",
+    title: "Fix — Edição de proposta não cria mais duplicatas",
+    type: "bugfix",
+    description: "Corrigida race condition onde handleUpdate criava nova proposta ao invés de atualizar a existente durante edição.",
+    details: [
+      "handleUpdate usa URL params como fallback quando IDs do estado ainda não foram setados",
+      "Novo estado isRestoring bloqueia botões de salvar durante carregamento assíncrono do banco",
+      "Guard em saveDraft impede criação acidental quando proposta_id existe na URL",
+      "Toast informativo ao criar nova versão de proposta já gerada (snapshot_locked)",
+    ],
+  },
+  {
     version: "2.20.4",
     date: "2026-03-12",
     title: "PWA — Shortcut do consultor corrigido",

@@ -1723,8 +1723,8 @@ export function ProposalWizard() {
         onConfirm={handlePosDialogConfirm}
         onSaveDraft={() => handleUpdate(false)}
         onSaveActive={() => handleUpdate(true)}
-        saving={saving}
-        savedPropostaId={savedPropostaId}
+        saving={saving || isRestoring}
+        savedPropostaId={savedPropostaId || propostaIdFromUrl}
       />
 
       {/* Enforcement: block modal */}

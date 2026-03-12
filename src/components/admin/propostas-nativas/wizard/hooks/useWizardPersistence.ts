@@ -351,6 +351,7 @@ export function useWizardPersistence() {
           return null;
         }
         versaoId = newVersao.id;
+        toast({ title: "Nova versão criada", description: "Esta proposta já foi gerada. Uma nova versão foi criada para edição." });
       } else {
         // Update existing draft version
         const updateData: any = {
