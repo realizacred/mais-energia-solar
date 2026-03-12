@@ -1024,6 +1024,8 @@ export function ProposalWizard() {
   // ─── Auto-load from orc_id URL param (direct ORC click from PropostasTab)
   useEffect(() => {
     if (!orcIdFromUrl) return;
+    // In edit mode (restoring from DB), snapshot is the source of truth
+    if (propostaIdFromUrl && versaoIdFromUrl) return;
     let cancelled = false;
     (async () => {
       try {
