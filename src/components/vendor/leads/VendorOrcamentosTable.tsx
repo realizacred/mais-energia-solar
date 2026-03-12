@@ -336,6 +336,22 @@ export function VendorOrcamentosTable({
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => {
+                                setEditOrcamento(orc);
+                                setEditOpen(true);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar lead</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="text-secondary hover:text-secondary"
                               onClick={() => onView(orc)}
                             >
