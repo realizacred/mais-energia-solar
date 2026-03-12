@@ -49,6 +49,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
           </div>
         </DialogHeader>
 
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Spinner size="sm" />
