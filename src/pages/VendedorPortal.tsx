@@ -4,7 +4,7 @@ import { Menu } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { VendorSidebar, VENDOR_TAB_TITLES } from "@/components/vendor/sidebar";
+import { VendorSidebar } from "@/components/vendor/sidebar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
 import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
@@ -87,12 +87,6 @@ export default function VendedorPortal() {
             <SidebarTrigger className="-ml-1 sm:-ml-2 h-9 w-9 sm:h-10 sm:w-10">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
-            <div className="h-5 w-px bg-border/50 hidden sm:block" />
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h1 className="page-header-title">
-                {VENDOR_TAB_TITLES[activeTab] || activeTab}
-              </h1>
-            </div>
           </header>
 
           <main className="flex-1 relative overflow-hidden">
