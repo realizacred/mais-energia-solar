@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -285,7 +286,7 @@ export function VendorOrcamentosTable({
                       className="flex items-center gap-1 hover:text-primary hover:underline"
                     >
                       <Phone className="w-3 h-3 text-muted-foreground" />
-                      {orc.telefone}
+                      {formatPhoneBR(orc.telefone)}
                     </a>
                   </TableCell>
                   <TableCell>

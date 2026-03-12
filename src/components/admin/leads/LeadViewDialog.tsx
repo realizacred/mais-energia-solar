@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { FileText, Image, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -63,7 +64,7 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Telefone</p>
-              <p className="font-medium">{lead.telefone}</p>
+              <p className="font-medium">{formatPhoneBR(lead.telefone)}</p>
             </div>
           </div>
 

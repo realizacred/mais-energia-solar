@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.13",
+    date: "2026-03-12",
+    title: "Telefone formatado em todas as tabelas e dialogs",
+    type: "bugfix",
+    description: "Telefone agora exibe sempre formatado (XX) XXXXX-XXXX em tabelas admin, vendor e dialogs de visualização, usando formatPhoneBR centralizado.",
+    details: [
+      "Re-export formatPhoneBR/formatPhoneE164 no barrel @/lib/formatters",
+      "OrcamentosTable, LeadsTable, LeadViewDialog (admin)",
+      "VendorOrcamentosTable, VendorLeadsTable, VendorLeadViewDialog (vendor)",
+    ],
+  },
+  {
     version: "2.21.12",
     date: "2026-03-12",
     title: "Tabela de orçamentos — DropdownMenu e responsividade",

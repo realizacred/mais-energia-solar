@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -145,7 +146,7 @@ export function VendorLeadsTable({
                   className="flex items-center gap-1 hover:text-primary hover:underline"
                 >
                   <Phone className="w-3 h-3 text-muted-foreground" />
-                  {lead.telefone}
+                  {formatPhoneBR(lead.telefone)}
                 </a>
               </TableCell>
               <TableCell className="hidden md:table-cell">
