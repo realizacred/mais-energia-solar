@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { Pencil, Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -23,21 +22,30 @@ import {
   sendAutoWelcomeMessage,
 } from "@/lib/waAutoMessage";
 
+interface LeadEditInitialData {
+  nome: string;
+  telefone: string;
+  consultor_id: string | null;
+  consultor_nome: string | null;
+  cep?: string | null;
+  cidade?: string;
+  estado?: string;
+  bairro?: string | null;
+  rua?: string | null;
+  numero?: string | null;
+  area?: string;
+  tipo_telhado?: string;
+  rede_atendimento?: string;
+  media_consumo?: number;
+  consumo_previsto?: number;
+  observacoes?: string | null;
+}
+
 interface LeadEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   leadId: string;
-  initialData: {
-    nome: string;
-    telefone: string;
-    consultor_id: string | null;
-    consultor_nome: string | null;
-    cidade?: string;
-    estado?: string;
-    media_consumo?: number;
-    tipo_telhado?: string;
-    observacoes?: string | null;
-  };
+  initialData: LeadEditInitialData;
   onSuccess?: () => void;
 }
 
@@ -47,6 +55,21 @@ interface Consultor {
   codigo: string | null;
   ativo: boolean;
 }
+
+const TIPOS_TELHADO = [
+  "Cerâmico",
+  "Metálico",
+  "Fibrocimento",
+  "Laje",
+  "Solo",
+  "Outro",
+];
+
+const REDES_ATENDIMENTO = [
+  "Monofásica",
+  "Bifásica",
+  "Trifásica",
+];
 
 export function LeadEditDialog({
   open,
@@ -59,6 +82,17 @@ export function LeadEditDialog({
   const [nome, setNome] = useState(initialData.nome);
   const [telefone, setTelefone] = useState(initialData.telefone);
   const [consultorId, setConsultorId] = useState(initialData.consultor_id || "");
+  const [cep, setCep] = useState(initialData.cep || "");
+  const [cidade, setCidade] = useState(initialData.cidade || "");
+  const [estado, setEstado] = useState(initialData.estado || "");
+  const [bairro, setBairro] = useState(initialData.bairro || "");
+  const [rua, setRua] = useState(initialData.rua || "");
+  const [numero, setNumero] = useState(initialData.numero || "");
+  const [area, setArea] = useState(initialData.area || "");
+  const [tipoTelhado, setTipoTelhado] = useState(initialData.tipo_telhado || "");
+  const [redeAtendimento, setRedeAtendimento] = useState(initialData.rede_atendimento || "");
+  const [mediaConsumo, setMediaConsumo] = useState(String(initialData.media_consumo ?? ""));
+  const [consumoPrevisto, setConsumoPrevisto] = useState(String(initialData.consumo_previsto ?? ""));
   const [observacoes, setObservacoes] = useState(initialData.observacoes || "");
   const [consultores, setConsultores] = useState<Consultor[]>([]);
   const [loadingConsultores, setLoadingConsultores] = useState(false);
@@ -66,12 +100,23 @@ export function LeadEditDialog({
   const [sendingWa, setSendingWa] = useState(false);
   const [phoneChanged, setPhoneChanged] = useState(false);
 
-  // Reset form when dialog opens with new data
+  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       setNome(initialData.nome);
       setTelefone(initialData.telefone);
       setConsultorId(initialData.consultor_id || "");
+      setCep(initialData.cep || "");
+      setCidade(initialData.cidade || "");
+      setEstado(initialData.estado || "");
+      setBairro(initialData.bairro || "");
+      setRua(initialData.rua || "");
+      setNumero(initialData.numero || "");
+      setArea(initialData.area || "");
+      setTipoTelhado(initialData.tipo_telhado || "");
+      setRedeAtendimento(initialData.rede_atendimento || "");
+      setMediaConsumo(String(initialData.media_consumo ?? ""));
+      setConsumoPrevisto(String(initialData.consumo_previsto ?? ""));
       setObservacoes(initialData.observacoes || "");
       setPhoneChanged(false);
     }
@@ -115,6 +160,17 @@ export function LeadEditDialog({
         telefone: telefone.trim(),
         consultor_id: consultorId || null,
         consultor: selectedConsultor?.nome || null,
+        cep: cep.trim() || null,
+        cidade: cidade.trim(),
+        estado: estado.trim(),
+        bairro: bairro.trim() || null,
+        rua: rua.trim() || null,
+        numero: numero.trim() || null,
+        area: area.trim(),
+        tipo_telhado: tipoTelhado,
+        rede_atendimento: redeAtendimento,
+        media_consumo: mediaConsumo ? Number(mediaConsumo) : 0,
+        consumo_previsto: consumoPrevisto ? Number(consumoPrevisto) : 0,
         observacoes: observacoes.trim() || null,
         updated_at: new Date().toISOString(),
       };
@@ -130,13 +186,27 @@ export function LeadEditDialog({
 
       if (leadErr) throw leadErr;
 
-      // Also update orcamentos consultor field for consistency
-      if (consultorId !== initialData.consultor_id) {
-        await supabase
-          .from("orcamentos")
-          .update({ consultor: selectedConsultor?.nome || null })
-          .eq("lead_id", leadId);
-      }
+      // Also update orcamentos for consistency
+      const orcUpdate: Record<string, unknown> = {
+        consultor: selectedConsultor?.nome || null,
+        cep: cep.trim() || null,
+        cidade: cidade.trim(),
+        estado: estado.trim(),
+        bairro: bairro.trim() || null,
+        rua: rua.trim() || null,
+        numero: numero.trim() || null,
+        area: area.trim(),
+        tipo_telhado: tipoTelhado,
+        rede_atendimento: redeAtendimento,
+        media_consumo: mediaConsumo ? Number(mediaConsumo) : 0,
+        consumo_previsto: consumoPrevisto ? Number(consumoPrevisto) : 0,
+        observacoes: observacoes.trim() || null,
+      };
+
+      await supabase
+        .from("orcamentos")
+        .update(orcUpdate)
+        .eq("lead_id", leadId);
 
       toast({ title: "Lead atualizado ✅" });
       onSuccess?.();
@@ -162,7 +232,6 @@ export function LeadEditDialog({
         return;
       }
 
-      // Get consultant settings for template
       const selectedConsultor = consultores.find((c) => c.id === consultorId);
       let template: string | undefined;
 
@@ -181,10 +250,10 @@ export function LeadEditDialog({
 
       const mensagem = buildAutoMessage({
         nome: nome.trim(),
-        cidade: initialData.cidade,
-        estado: initialData.estado,
-        consumo: initialData.media_consumo,
-        tipo_telhado: initialData.tipo_telhado,
+        cidade: cidade.trim(),
+        estado: estado.trim(),
+        consumo: mediaConsumo ? Number(mediaConsumo) : undefined,
+        tipo_telhado: tipoTelhado,
         consultor_nome: selectedConsultor?.nome,
         template,
       });
@@ -198,7 +267,6 @@ export function LeadEditDialog({
       });
 
       if (result.sent) {
-        // Update wa_welcome_status
         await supabase
           .from("leads")
           .update({ wa_welcome_status: "sent", wa_welcome_error: null } as any)
@@ -233,27 +301,18 @@ export function LeadEditDialog({
       onSubmit={handleSave}
       saving={saving}
       disabled={!nome.trim() || !telefone.trim()}
-      className="w-[90vw] max-w-[700px]"
+      className="w-[90vw] max-w-[1100px]"
     >
+      {/* Dados pessoais */}
       <FormSection title="Dados do Lead">
         <FormGrid>
           <div className="space-y-2">
             <Label htmlFor="lead-nome">Nome</Label>
-            <Input
-              id="lead-nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              disabled={saving}
-            />
+            <Input id="lead-nome" value={nome} onChange={(e) => setNome(e.target.value)} disabled={saving} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="lead-telefone">Telefone</Label>
-            <PhoneInput
-              id="lead-telefone"
-              value={telefone}
-              onChange={handlePhoneChange}
-              disabled={saving}
-            />
+            <PhoneInput id="lead-telefone" value={telefone} onChange={handlePhoneChange} disabled={saving} />
             {phoneChanged && (
               <p className="text-xs text-warning">Telefone alterado — reenvie a mensagem de boas-vindas abaixo</p>
             )}
@@ -261,6 +320,95 @@ export function LeadEditDialog({
         </FormGrid>
       </FormSection>
 
+      {/* Endereço */}
+      <FormSection title="Endereço">
+        <FormGrid>
+          <div className="space-y-2">
+            <Label htmlFor="lead-cep">CEP</Label>
+            <Input id="lead-cep" value={cep} onChange={(e) => setCep(e.target.value)} disabled={saving} placeholder="00000-000" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-estado">Estado</Label>
+            <Input id="lead-estado" value={estado} onChange={(e) => setEstado(e.target.value)} disabled={saving} placeholder="UF" maxLength={2} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-cidade">Cidade</Label>
+            <Input id="lead-cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} disabled={saving} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-bairro">Bairro</Label>
+            <Input id="lead-bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} disabled={saving} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-rua">Rua</Label>
+            <Input id="lead-rua" value={rua} onChange={(e) => setRua(e.target.value)} disabled={saving} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-numero">Número</Label>
+            <Input id="lead-numero" value={numero} onChange={(e) => setNumero(e.target.value)} disabled={saving} />
+          </div>
+        </FormGrid>
+      </FormSection>
+
+      {/* Dados técnicos */}
+      <FormSection title="Dados Técnicos">
+        <FormGrid>
+          <div className="space-y-2">
+            <Label htmlFor="lead-area">Área</Label>
+            <Input id="lead-area" value={area} onChange={(e) => setArea(e.target.value)} disabled={saving} placeholder="Rural / Urbana" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-tipo-telhado">Tipo de Telhado</Label>
+            <Select value={tipoTelhado} onValueChange={setTipoTelhado} disabled={saving}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent className="z-50 bg-popover border border-border shadow-lg">
+                {TIPOS_TELHADO.map((t) => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-rede">Rede de Atendimento</Label>
+            <Select value={redeAtendimento} onValueChange={setRedeAtendimento} disabled={saving}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent className="z-50 bg-popover border border-border shadow-lg">
+                {REDES_ATENDIMENTO.map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-consumo">Consumo Médio (kWh)</Label>
+            <Input
+              id="lead-consumo"
+              type="number"
+              value={mediaConsumo}
+              onChange={(e) => setMediaConsumo(e.target.value)}
+              disabled={saving}
+              placeholder="0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-consumo-prev">Consumo Previsto (kWh)</Label>
+            <Input
+              id="lead-consumo-prev"
+              type="number"
+              value={consumoPrevisto}
+              onChange={(e) => setConsumoPrevisto(e.target.value)}
+              disabled={saving}
+              placeholder="0"
+            />
+          </div>
+        </FormGrid>
+      </FormSection>
+
+      {/* Consultor */}
       <FormSection title="Consultor">
         {loadingConsultores ? (
           <div className="flex items-center gap-2 py-2">
@@ -288,6 +436,7 @@ export function LeadEditDialog({
         )}
       </FormSection>
 
+      {/* Observações */}
       <FormSection title="Observações">
         <Textarea
           value={observacoes}
