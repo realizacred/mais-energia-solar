@@ -62,34 +62,40 @@ export function OrcamentoHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <span>{group.nome}</span>
-            <Badge variant="outline" className="font-mono">
-              {group.lead_code}
-            </Badge>
-            <Badge variant="secondary" className="ml-auto">
-              {group.count} orçamento{group.count > 1 ? "s" : ""}
-            </Badge>
-          </DialogTitle>
-          <DialogDescription className="flex items-center gap-4 pt-2">
-            <span className="flex items-center gap-1">
-              <Phone className="h-3.5 w-3.5" />
-              {formatPhoneBR(group.telefone)}
-            </span>
-            {onWhatsApp && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 gap-1 text-success border-success/30 hover:bg-success/10"
-                onClick={() => onWhatsApp(group.telefone, group.nome, group.lead_id)}
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                WhatsApp
-              </Button>
-            )}
-          </DialogDescription>
+      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col">
+        {/* §25 HEADER */}
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+              <span>{group.nome}</span>
+              <Badge variant="outline" className="font-mono text-xs">
+                {group.lead_code}
+              </Badge>
+              <Badge variant="secondary" className="ml-auto text-xs">
+                {group.count} orçamento{group.count > 1 ? "s" : ""}
+              </Badge>
+            </DialogTitle>
+            <div className="flex items-center gap-4 mt-1">
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Phone className="h-3.5 w-3.5" />
+                {formatPhoneBR(group.telefone)}
+              </span>
+              {onWhatsApp && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 gap-1 text-xs text-success border-success/30 hover:bg-success/10"
+                  onClick={() => onWhatsApp(group.telefone, group.nome, group.lead_id)}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  WhatsApp
+                </Button>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 -mx-6 px-6">
