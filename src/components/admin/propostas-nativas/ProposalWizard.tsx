@@ -964,6 +964,8 @@ export function ProposalWizard() {
   // When orc_id is also present, skip location pre-fill (ORC takes priority)
   useEffect(() => {
     if (!leadIdFromUrl || selectedLead?.id === leadIdFromUrl) return;
+    // In edit mode (restoring from DB), snapshot is the source of truth
+    if (propostaIdFromUrl && versaoIdFromUrl) return;
     // If ORC is present, only load lead for context (name/phone) — ORC handles location
     const orcTakesPriority = !!orcIdFromUrl;
     let cancelled = false;
