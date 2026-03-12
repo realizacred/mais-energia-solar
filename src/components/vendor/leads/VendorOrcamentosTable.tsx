@@ -55,12 +55,15 @@ export function VendorOrcamentosTable({
   onView,
   onStatusChange,
   onDelete,
-  onConvert
+  onConvert,
+  onRefresh,
 }: VendorOrcamentosTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orcamentoToDelete, setOrcamentoToDelete] = useState<OrcamentoVendedor | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupedOrcamento | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editOrcamento, setEditOrcamento] = useState<OrcamentoVendedor | null>(null);
   const isMobile = useIsMobile();
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
