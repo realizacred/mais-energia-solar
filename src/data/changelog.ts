@@ -21,13 +21,14 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "2.21.5",
     date: "2026-03-12",
-    title: "Fix — Kit, consumo e lead não restaurados ao editar proposta",
+    title: "Fix — Race condition no restore criava propostas duplicadas",
     type: "bugfix",
-    description: "Corrige múltiplas race conditions onde efeitos de auto-load (customer, lead, ORC) sobrescreviam dados restaurados do snapshot ao editar proposta existente.",
+    description: "Corrige race condition onde IDs não eram setados antes de liberar isRestoring, causando criação de propostas duplicadas ao editar.",
     details: [
-      "Guard de edit-mode adicionado em 3 efeitos: customerIdFromUrl, leadIdFromUrl e orcIdFromUrl",
-      "Em modo de edição (proposta_id + versao_id na URL), snapshot é a fonte de verdade — auto-loads são ignorados",
-      "Logs diagnósticos adicionados ao restore: itens, manualKits, UCs, selectedLead e potenciaKwp",
+      "savedPropostaId e savedVersaoId setados ANTES de isRestoring=false em todos os code paths (sucesso, erro, snapshot vazio)",
+      "Guard de edit-mode em 3 efeitos: customerIdFromUrl, leadIdFromUrl e orcIdFromUrl — snapshot é fonte de verdade",
+      "Limpeza de 4 propostas duplicadas do projeto Samuel Cruz (03/12)",
+      "Logs diagnósticos no restore: itens, manualKits, UCs, selectedLead e potenciaKwp",
     ],
   },
   {
