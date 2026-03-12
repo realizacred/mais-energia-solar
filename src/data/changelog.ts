@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21.16",
+    date: "2026-03-12",
+    title: "EmailInput obrigatório em todos os formulários",
+    type: "improvement",
+    description: "Substituído Input nativo type='email' por EmailInput com validação e normalização automática em 6 formulários.",
+    details: [
+      "NovaPropostaDialog: campo cliente_email → EmailInput",
+      "ContactSection: campo email institucional → EmailInput",
+      "ConvertLeadToClientDialog: campo email → EmailInput",
+      "WaContactEditor: campo email do contato → EmailInput",
+      "NovoProjetoModal: campo email do cliente → EmailInput",
+      "FornecedoresManager: campo email do fornecedor → EmailInput",
+    ],
+  },
+  {
     version: "2.21.15",
     date: "2026-03-12",
     title: "PhoneInput obrigatório em todos os formulários",
