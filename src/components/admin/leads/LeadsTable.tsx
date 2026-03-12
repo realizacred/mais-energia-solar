@@ -79,9 +79,9 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                 </Badge>
               </TableCell>
               <TableCell className="font-medium">{lead.nome}</TableCell>
-              <TableCell>
+              <TableCell className="whitespace-nowrap">
                 <div className="flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-muted-foreground" />
+                  <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                   {formatPhoneBR(lead.telefone)}
                 </div>
               </TableCell>

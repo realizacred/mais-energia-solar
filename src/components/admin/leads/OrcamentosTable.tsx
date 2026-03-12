@@ -214,76 +214,127 @@ export function OrcamentosTable({
                   {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => onView(orc)}>
-                        <Eye className="w-4 h-4 mr-2 text-secondary" />
-                        Ver detalhes
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        setEditOrcamento(orc);
-                        setEditOpen(true);
-                      }}>
-                        <Pencil className="w-4 h-4 mr-2 text-primary" />
-                        Editar lead
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleOpenWhatsApp(orc)}>
-                        <MessageSquare className="w-4 h-4 mr-2 text-success" />
-                        Enviar WhatsApp
-                      </DropdownMenuItem>
-                      {hasHistory && (
-                        <DropdownMenuItem onClick={() => handleOpenHistory(group)}>
-                          <History className="w-4 h-4 mr-2 text-muted-foreground" />
-                          Ver histórico ({group.count})
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => {
-                        setAssignOrcamento(orc);
-                        setAssignOpen(true);
-                      }}>
-                        <UserPlus className="w-4 h-4 mr-2 text-warning" />
-                        {(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}
-                      </DropdownMenuItem>
+                  {/* Inline actions for lg+ */}
+                  <TooltipProvider>
+                    <div className="hidden lg:flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => onView(orc)}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Ver detalhes</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => { setEditOrcamento(orc); setEditOpen(true); }}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar lead</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-green-600" onClick={() => handleOpenWhatsApp(orc)}>
+                            <MessageSquare className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Enviar WhatsApp</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => { setAssignOrcamento(orc); setAssignOpen(true); }}>
+                            <UserRound className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}</TooltipContent>
+                      </Tooltip>
                       {onConvert && !isConverted && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => {
-                            if (hasHistory) {
-                              handleOpenHistory(group);
-                            } else {
-                              onConvert(orc);
-                            }
-                          }}>
-                            <ShoppingCart className="w-4 h-4 mr-2 text-primary" />
-                            {hasHistory ? "Selecionar p/ venda" : "Converter em Venda"}
-                          </DropdownMenuItem>
-                        </>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => { if (hasHistory) { handleOpenHistory(group); } else { onConvert(orc); } }}>
+                              <ShoppingCart className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{hasHistory ? "Selecionar p/ venda" : "Converter em Venda"}</TooltipContent>
+                        </Tooltip>
                       )}
                       {isConverted && (
-                        <DropdownMenuItem disabled>
-                          <UserCheck className="w-4 h-4 mr-2 text-success" />
-                          Já convertido
-                        </DropdownMenuItem>
+                        <span className="inline-flex items-center justify-center h-8 w-8 text-success">
+                          <UserCheck className="w-4 h-4" />
+                        </span>
                       )}
                       {onDelete && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => onDelete(orc)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(orc)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Excluir</TooltipContent>
+                        </Tooltip>
                       )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </div>
+                  </TooltipProvider>
+
+                  {/* Dropdown for mobile (<lg) */}
+                  <div className="flex lg:hidden">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => onView(orc)}>
+                          <Eye className="w-4 h-4 mr-2 text-secondary" />
+                          Ver detalhes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setEditOrcamento(orc); setEditOpen(true); }}>
+                          <Pencil className="w-4 h-4 mr-2 text-primary" />
+                          Editar lead
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenWhatsApp(orc)}>
+                          <MessageSquare className="w-4 h-4 mr-2 text-success" />
+                          Enviar WhatsApp
+                        </DropdownMenuItem>
+                        {hasHistory && (
+                          <DropdownMenuItem onClick={() => handleOpenHistory(group)}>
+                            <History className="w-4 h-4 mr-2 text-muted-foreground" />
+                            Ver histórico ({group.count})
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => { setAssignOrcamento(orc); setAssignOpen(true); }}>
+                          <UserPlus className="w-4 h-4 mr-2 text-warning" />
+                          {(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}
+                        </DropdownMenuItem>
+                        {onConvert && !isConverted && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => { if (hasHistory) { handleOpenHistory(group); } else { onConvert(orc); } }}>
+                              <ShoppingCart className="w-4 h-4 mr-2 text-primary" />
+                              {hasHistory ? "Selecionar p/ venda" : "Converter em Venda"}
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {isConverted && (
+                          <DropdownMenuItem disabled>
+                            <UserCheck className="w-4 h-4 mr-2 text-success" />
+                            Já convertido
+                          </DropdownMenuItem>
+                        )}
+                        {onDelete && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(orc)}>
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </TableCell>
               </TableRow>
             );
