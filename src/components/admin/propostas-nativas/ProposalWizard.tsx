@@ -558,19 +558,37 @@ export function ProposalWizard() {
                   console.log("[ProposalWizard] Lead enriched from cliente.lead_id:", lead.id);
                 }
               } else if (cli) {
-                // Synthesize minimal lead-like object from cliente data so handleGenerate doesn't block
-                const syntheticLead: LeadSelection = {
-                  id: `cli_${cli.id}`,
-                  nome: cli.nome,
-                  telefone: cli.telefone,
-                  lead_code: "",
-                  estado: cli.estado || s.locEstado || "",
-                  cidade: cli.cidade || s.locCidade || "",
-                  media_consumo: s.ucs?.[0]?.consumo_mensal || 0,
-                  tipo_telhado: s.locTipoTelhado || "",
-                };
-                setSelectedLead(syntheticLead);
-                console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
+                // No lead_id on cliente — try to find a lead by phone number
+                const phoneNorm = cli.telefone.replace(/\D/g, "");
+                const { data: leadByPhone } = await supabase
+                  .from("leads")
+                  .select("*")
+                  .eq("telefone_normalized", phoneNorm)
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+                if (leadByPhone) {
+                  setSelectedLead(leadByPhone as any);
+                  console.log("[ProposalWizard] Lead found by phone match:", leadByPhone.id);
+                } else {
+                  // Synthesize minimal lead-like object from cliente data so handleGenerate doesn't block
+                  // Mark with _synthetic flag so handleGenerate can use cliente_id instead
+                  const syntheticLead: LeadSelection = {
+                    id: cli.id, // Use cliente ID — handleGenerate will detect synthetic via _synthetic flag
+                    nome: cli.nome,
+                    telefone: cli.telefone,
+                    lead_code: "",
+                    estado: cli.estado || s.locEstado || "",
+                    cidade: cli.cidade || s.locCidade || "",
+                    media_consumo: s.ucs?.[0]?.consumo_mensal || 0,
+                    tipo_telhado: s.locTipoTelhado || "",
+                    _synthetic: true,
+                    _clienteId: cli.id,
+                  } as any;
+                  setSelectedLead(syntheticLead);
+                  console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
+                }
               }
             }
           }
