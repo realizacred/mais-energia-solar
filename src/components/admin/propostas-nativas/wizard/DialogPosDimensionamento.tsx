@@ -96,25 +96,27 @@ export function DialogPosDimensionamento({
         </DialogHeader>
 
         <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
-          <div className="flex items-center gap-2">
-            <User className="h-3.5 w-3.5 text-primary" />
-            <span><span className="font-medium text-foreground">Cliente:</span> {clienteNome || "—"}</span>
+          {/* Summary */}
+          <div className="space-y-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <User className="h-3.5 w-3.5 text-primary" />
+              <span><span className="font-medium text-foreground">Cliente:</span> {clienteNome || "—"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+              <span><span className="font-medium text-foreground">Empresa:</span> {empresaNome || "—"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5 text-primary" />
+              <span><span className="font-medium text-foreground">Potência:</span> {potenciaKwp.toFixed(2)} kWp</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-3.5 w-3.5 text-primary" />
+              <span><span className="font-medium text-foreground">Preço:</span> {formatBRL(precoFinal)}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-3.5 w-3.5 text-primary" />
-            <span><span className="font-medium text-foreground">Empresa:</span> {empresaNome || "—"}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Zap className="h-3.5 w-3.5 text-primary" />
-            <span><span className="font-medium text-foreground">Potência:</span> {potenciaKwp.toFixed(2)} kWp</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-3.5 w-3.5 text-primary" />
-            <span><span className="font-medium text-foreground">Preço:</span> {formatBRL(precoFinal)}</span>
-          </div>
-        </div>
 
-        <div className="h-px bg-border" />
+          <div className="border-t border-border" />
 
         {/* ── Nome da Proposta */}
         <div className="space-y-1.5">
