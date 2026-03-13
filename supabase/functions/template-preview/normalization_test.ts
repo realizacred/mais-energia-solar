@@ -172,3 +172,17 @@ Deno.test("Case 7: paragraph without brackets — untouched", () => {
   const result = normalizeParagraphRuns(xml);
   assertEquals(result, xml);
 });
+
+Deno.test("Case 8: preserve inter-run XML markers while merging", () => {
+  const xml = `<w:p><w:r><w:t>[respon</w:t></w:r><w:proofErr w:type="spellStart"/><w:r><w:t>savel_nome]</w:t></w:r><w:proofErr w:type="spellEnd"/></w:p>`;
+  const result = normalizeParagraphRuns(xml);
+  assertEquals(result.includes("[responsavel_nome]"), true);
+  assertEquals(result.includes("<w:proofErr w:type=\"spellStart\"/>"), true);
+  assertEquals(result.includes("<w:proofErr w:type=\"spellEnd\"/>"), true);
+});
+
+Deno.test("Case 9: skip complex drawing paragraph", () => {
+  const xml = `<w:p><w:r><w:drawing/></w:r><w:r><w:t>[cliente_nome]</w:t></w:r></w:p>`;
+  const result = normalizeParagraphRuns(xml);
+  assertEquals(result, xml);
+});
