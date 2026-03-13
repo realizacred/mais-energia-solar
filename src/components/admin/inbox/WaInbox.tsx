@@ -584,10 +584,10 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   };
 
   return (
-    <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-hidden" : "flex flex-col gap-4 w-full h-full min-h-0 overflow-hidden"}`} data-wa-inbox-active>
+    <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-hidden" : "flex flex-col w-full h-full min-h-0 overflow-hidden"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
-        <div className="shrink-0">
+        <div className="shrink-0 mb-3">
           <WaInboxHeader
             instances={instances}
             onNewChat={() => setShowStartChat(true)}
@@ -597,7 +597,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       )}
 
       {/* Stats - only in admin mode */}
-      {!vendorMode && <div className="shrink-0"><WaInboxStats conversations={allConversations} /></div>}
+      {!vendorMode && <div className="shrink-0 mb-3"><WaInboxStats conversations={allConversations} /></div>}
 
       {/* Compact stats for vendor/mobile mode */}
       {vendorMode && showCompactStats && <div className="shrink-0"><WaInboxStats conversations={allConversations} compact /></div>}
