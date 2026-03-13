@@ -98,36 +98,48 @@ async function processDocxTemplate(
  *    are left untouched.
  */
 function normalizeParagraphRuns(xml: string): string {
-  // Match each <w:p ...>...</w:p> (non-greedy, handles nested tags via [^] not .)
+  // Match each <w:p ...>...</w:p>
   const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
 
   return xml.replace(paraPattern, (paraXml) => {
-    // Quick check: does this paragraph even contain a bracket?
+    // Quick check: does this paragraph contain a bracket?
     if (!paraXml.includes("[")) return paraXml;
 
-    // Extract runs: each <w:r>...</w:r> or <w:r ...>...</w:r>
+    // SAFETY: Skip paragraphs containing drawings, images, or complex elements
+    // These have positional/structural XML that must not be touched
+    if (
+      paraXml.includes("<w:drawing") ||
+      paraXml.includes("<mc:AlternateContent") ||
+      paraXml.includes("<w:pict") ||
+      paraXml.includes("<w:object") ||
+      paraXml.includes("<w:fldChar") ||
+      paraXml.includes("<w:instrText")
+    ) {
+      return paraXml;
+    }
+
+    // Extract runs
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
-    const runs: Array<{ xml: string; text: string; rPr: string }> = [];
+    const runs: Array<{ fullMatch: string; text: string; rPr: string; startIdx: number }> = [];
     let runMatch;
     while ((runMatch = runPattern.exec(paraXml)) !== null) {
       const runXml = runMatch[0];
-      // Extract <w:rPr>...</w:rPr> if present
       const rPrMatch = runXml.match(/<w:rPr>[^]*?<\/w:rPr>/);
       const rPr = rPrMatch ? rPrMatch[0] : "";
-      // Extract text from <w:t ...>text</w:t>
       const textMatch = runXml.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/);
       const text = textMatch ? textMatch[1] : "";
-      runs.push({ xml: runXml, text, rPr });
+      runs.push({ fullMatch: runXml, text, rPr, startIdx: runMatch.index });
     }
 
-    if (runs.length === 0) return paraXml;
+    if (runs.length < 2) return paraXml;
 
     // Concatenate all run texts
     const fullText = runs.map((r) => r.text).join("");
     if (!fullText.includes("[")) return paraXml;
 
-    // Build a char→run index map
-    // charRunIdx[i] = which run index owns character i
+    // Find placeholder spans that cross run boundaries
+    const phPattern = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
+    let phMatch;
     const charRunIdx: number[] = [];
     for (let ri = 0; ri < runs.length; ri++) {
       for (let ci = 0; ci < runs[ri].text.length; ci++) {
@@ -135,25 +147,21 @@ function normalizeParagraphRuns(xml: string): string {
       }
     }
 
-    // Find all [placeholder] spans in the concatenated text
-    const phPattern = /\[[^\]]+\]/g;
-    let phMatch;
-    // Track which run ranges need merging: Set<"startRunIdx-endRunIdx">
     const mergeSpans: Array<[number, number]> = [];
     while ((phMatch = phPattern.exec(fullText)) !== null) {
       const startChar = phMatch.index;
       const endChar = startChar + phMatch[0].length - 1;
+      if (startChar >= charRunIdx.length || endChar >= charRunIdx.length) continue;
       const startRun = charRunIdx[startChar];
       const endRun = charRunIdx[endChar];
       if (startRun !== endRun) {
-        // This placeholder spans multiple runs — needs merging
         mergeSpans.push([startRun, endRun]);
       }
     }
 
     if (mergeSpans.length === 0) return paraXml;
 
-    // Merge overlapping/adjacent spans
+    // Merge overlapping spans
     mergeSpans.sort((a, b) => a[0] - b[0]);
     const merged: Array<[number, number]> = [mergeSpans[0]];
     for (let i = 1; i < mergeSpans.length; i++) {
@@ -165,76 +173,47 @@ function normalizeParagraphRuns(xml: string): string {
       }
     }
 
-    // Build new runs array by merging identified spans
-    const newRuns: Array<{ xml: string }> = [];
-    let ri = 0;
-    while (ri < runs.length) {
-      const span = merged.find((s) => s[0] === ri);
-      if (span) {
-        // Merge runs[span[0]..span[1]] into one
-        const groupRuns = runs.slice(span[0], span[1] + 1);
-        const combinedText = groupRuns.map((r) => r.text).join("");
-        const rPr = groupRuns[0].rPr; // keep first run's formatting
-        const mergedRunXml = `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
-        newRuns.push({ xml: mergedRunXml });
-        ri = span[1] + 1;
-      } else {
-        newRuns.push({ xml: runs[ri].xml });
-        ri++;
+    // Instead of rebuilding the entire paragraph, do targeted replacements:
+    // For each merge span, replace the sequence of runs with a single merged run.
+    // Work backwards so indices don't shift.
+    let result = paraXml;
+    for (let si = merged.length - 1; si >= 0; si--) {
+      const [startRun, endRun] = merged[si];
+
+      const firstRun = runs[startRun];
+      const lastRun = runs[endRun];
+
+      // Find the exact positions of the first and last run in the paragraph XML
+      const regionStart = firstRun.startIdx;
+      const regionEnd = lastRun.startIdx + lastRun.fullMatch.length;
+
+      // Combine text from all runs in the span
+      const combinedText = runs
+        .slice(startRun, endRun + 1)
+        .map((r) => r.text)
+        .join("");
+
+      // Keep the formatting of the first run
+      const rPr = firstRun.rPr;
+      const mergedRun = `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
+
+      // Replace the region (from first run start to last run end) but preserve
+      // any non-run XML between the runs (bookmarks, proofErr, etc.)
+      // Strategy: remove ALL original runs in the span, keep inter-run XML, prepend merged run
+      const region = result.substring(regionStart, regionEnd);
+
+      // Remove all original runs from the region and collect inter-run content
+      let cleanedRegion = region;
+      for (let ri = startRun; ri <= endRun; ri++) {
+        cleanedRegion = cleanedRegion.replace(runs[ri].fullMatch, "");
       }
+      // cleanedRegion now has only inter-run XML (bookmarks etc.), which we discard
+      // since it's usually just proofErr/spelling markers between split placeholder runs
+
+      result = result.substring(0, regionStart) + mergedRun + result.substring(regionEnd);
     }
 
-    // Rebuild the paragraph: replace runs in the original XML
-    // Strategy: find the first run start and last run end, replace that region
-    const firstRunIdx = paraXml.indexOf(runs[0].xml);
-    const lastRun = runs[runs.length - 1];
-    const lastRunIdx = paraXml.lastIndexOf(lastRun.xml);
-    const lastRunEnd = lastRunIdx + lastRun.xml.length;
-
-    if (firstRunIdx < 0 || lastRunIdx < 0) return paraXml; // safety
-
-    const before = paraXml.substring(0, firstRunIdx);
-    const after = paraXml.substring(lastRunEnd);
-
-    // Preserve any non-run XML between runs (e.g., <w:bookmarkStart>, <w:proofErr>)
-    // by walking through the original paragraph region and keeping inter-run content
-    const runsRegion = paraXml.substring(firstRunIdx, lastRunEnd);
-    const interRunContent: string[] = [];
-    let searchPos = 0;
-    for (let i = 0; i < runs.length; i++) {
-      const pos = runsRegion.indexOf(runs[i].xml, searchPos);
-      if (pos > searchPos) {
-        // There's non-run XML between previous run end and this run start
-        interRunContent.push(runsRegion.substring(searchPos, pos));
-      } else {
-        interRunContent.push("");
-      }
-      searchPos = pos + runs[i].xml.length;
-    }
-    // Any trailing non-run content after last run
-    const trailingContent = searchPos < runsRegion.length ? runsRegion.substring(searchPos) : "";
-
-    // Rebuild: map original run indices to new runs, preserving inter-run content
-    let rebuiltRegion = "";
-    let origIdx = 0;
-    for (const newRun of newRuns) {
-      // Add inter-run content from the original run at origIdx
-      if (origIdx < interRunContent.length) {
-        rebuiltRegion += interRunContent[origIdx];
-      }
-      rebuiltRegion += newRun.xml;
-
-      // Figure out how many original runs this new run consumed
-      const span = merged.find((s) => s[0] === origIdx);
-      if (span) {
-        origIdx = span[1] + 1;
-      } else {
-        origIdx++;
-      }
-    }
-    rebuiltRegion += trailingContent;
-
-    return before + rebuiltRegion + after;
+    return result;
   });
 }
 
