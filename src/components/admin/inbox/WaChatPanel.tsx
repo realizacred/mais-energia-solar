@@ -901,7 +901,7 @@ export function WaChatPanel({
       )}
       {isMobileDevice && (
         <Sheet open={showAISidebar} onOpenChange={setShowAISidebar}>
-          <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
+          <SheetContent side="right" className="w-[85vw] max-w-sm p-0 flex flex-col h-full overflow-hidden">
             <SheetTitle className="sr-only">Assistente IA</SheetTitle>
             {showAISidebar && (
               <WaAISidebar
