@@ -1366,6 +1366,7 @@ export function ProposalWizard() {
           setDocxBlob(docxBlob);
 
           // Convert DOCX → HTML for inline preview using mammoth
+          let previewReady = false;
           try {
             const mammoth = await import("mammoth");
             const arrayBuffer = await docxBlob.arrayBuffer();
@@ -1384,13 +1385,19 @@ export function ProposalWizard() {
               </style></head><body>${mammothResult.value}</body></html>
             `;
             setHtmlPreview(styledHtml);
+            previewReady = true;
           } catch (convErr: any) {
             console.error("Mammoth conversion failed:", convErr?.message, convErr);
             console.log("Blob type:", docxBlob.type, "size:", docxBlob.size);
             setHtmlPreview(null);
           }
 
-          toast({ title: "Proposta DOCX gerada!", description: "Preview exibido na tela. Use os botões para baixar PDF ou DOCX." });
+          toast({
+            title: previewReady ? "Proposta DOCX gerada!" : "DOCX gerado com aviso",
+            description: previewReady
+              ? "Preview exibido na tela. Use os botões para baixar PDF ou DOCX."
+              : "O DOCX foi gerado, mas o preview falhou. Você ainda pode baixar o DOCX.",
+          });
         } else {
           // HTML template: use proposal-render as before
           const renderResult = await renderProposal(genResult.versao_id);
