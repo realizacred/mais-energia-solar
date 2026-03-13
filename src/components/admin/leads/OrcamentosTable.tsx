@@ -119,14 +119,14 @@ export function OrcamentosTable({
                 key={group.lead_id}
                 className={`align-middle ${orc.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
               >
-                <TableCell>
+                <TableCell className="align-middle">
                   <Checkbox
                     checked={orc.visto_admin}
                     onCheckedChange={() => onToggleVisto(orc)}
                     className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                   />
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden md:table-cell align-middle">
                   <div className="flex items-center gap-1">
                     <Badge variant="default" className="font-mono text-xs bg-primary">
                       {orc.orc_code || "-"}
