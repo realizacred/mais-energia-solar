@@ -386,13 +386,10 @@ export function ApproveVendaDialog({
                   {/* Valor da venda */}
                   <div className="space-y-1.5">
                     <Label htmlFor="av-valor">Valor da Venda (R$) *</Label>
-                    <Input
+                    <CurrencyInput
                       id="av-valor"
-                      type="number"
-                      step="0.01"
-                      placeholder="Ex: 35000.00"
                       value={valorVenda}
-                      onChange={(e) => onValorVendaChange(e.target.value)}
+                      onChange={onValorVendaChange}
                     />
                     {!valorVenda && (
                       <p className="text-xs text-destructive">Informe o valor para gerar a comissão</p>
