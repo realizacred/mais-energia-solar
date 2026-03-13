@@ -867,7 +867,12 @@ async function handleContactsUpsert(
     if (!jid) continue;
 
     const name = contact.pushName || contact.name || contact.verifiedName || null;
-    const profilePicUrl = contact.profilePictureUrl || contact.imgUrl || null;
+    const profilePicUrl =
+      contact.profilePictureUrl ||
+      contact.profilePicUrl ||
+      contact.imgUrl ||
+      contact.pictureUrl ||
+      null;
 
     if (name || profilePicUrl) {
       const updates: any = {};
