@@ -12,112 +12,81 @@ function normalizeParagraphRuns(xml: string): string {
 
   return xml.replace(paraPattern, (paraXml) => {
     if (!paraXml.includes("[")) return paraXml;
-
-    if (
-      paraXml.includes("<w:drawing") ||
-      paraXml.includes("<mc:AlternateContent") ||
-      paraXml.includes("<w:pict") ||
-      paraXml.includes("<w:object") ||
-      paraXml.includes("<w:fldChar") ||
-      paraXml.includes("<w:instrText")
-    ) {
+    if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) {
       return paraXml;
     }
 
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
-    const runs: Array<{ xml: string; text: string; rPr: string }> = [];
-    let runMatch;
-    while ((runMatch = runPattern.exec(paraXml)) !== null) {
-      const runXml = runMatch[0];
-      const rPrMatch = runXml.match(/<w:rPr>[^]*?<\/w:rPr>/);
-      const rPr = rPrMatch ? rPrMatch[0] : "";
-      const textMatch = runXml.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/);
-      const text = textMatch ? textMatch[1] : "";
-      runs.push({ xml: runXml, text, rPr });
+    interface RunInfo {
+      full: string;
+      start: number;
+      end: number;
+      isGraphic: boolean;
+      hasText: boolean;
+      text: string;
+    }
+    const allRuns: RunInfo[] = [];
+    let m;
+    while ((m = runPattern.exec(paraXml)) !== null) {
+      const full = m[0];
+      const isGraphic =
+        full.includes("<w:drawing") ||
+        full.includes("<w:pict") ||
+        full.includes("<mc:AlternateContent") ||
+        full.includes("<w:object") ||
+        full.includes("<wp:anchor") ||
+        full.includes("<wp:inline");
+
+      const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+      let tMatch;
+      const textParts: string[] = [];
+      while ((tMatch = tPattern.exec(full)) !== null) {
+        textParts.push(tMatch[1]);
+      }
+      const text = textParts.join("");
+      const hasText = textParts.length > 0;
+      allRuns.push({ full, start: m.index, end: m.index + full.length, isGraphic, hasText, text });
     }
 
-    if (runs.length < 2) return paraXml;
+    const textRuns = allRuns.filter((r) => !r.isGraphic && r.hasText);
+    if (textRuns.length < 2) return paraXml;
 
-    const fullText = runs.map((r) => r.text).join("");
+    const fullText = textRuns.map((r) => r.text).join("");
     if (!fullText.includes("[")) return paraXml;
 
-    const charRunIdx: number[] = [];
-    for (let ri = 0; ri < runs.length; ri++) {
-      for (let ci = 0; ci < runs[ri].text.length; ci++) {
-        charRunIdx.push(ri);
-      }
-    }
+    let result = paraXml;
+    let offset = 0;
 
-    const phPattern = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
-    let phMatch;
-    const mergeSpans: Array<[number, number]> = [];
-    while ((phMatch = phPattern.exec(fullText)) !== null) {
-      const startChar = phMatch.index;
-      const endChar = startChar + phMatch[0].length - 1;
-      if (startChar >= charRunIdx.length || endChar >= charRunIdx.length) continue;
-      const startRun = charRunIdx[startChar];
-      const endRun = charRunIdx[endChar];
-      if (startRun !== endRun) {
-        mergeSpans.push([startRun, endRun]);
-      }
-    }
+    for (let i = 0; i < textRuns.length; i++) {
+      const run = textRuns[i];
+      let newRunXml: string;
 
-    if (mergeSpans.length === 0) return paraXml;
-
-    mergeSpans.sort((a, b) => a[0] - b[0]);
-    const merged: Array<[number, number]> = [mergeSpans[0]];
-    for (let i = 1; i < mergeSpans.length; i++) {
-      const prev = merged[merged.length - 1];
-      if (mergeSpans[i][0] <= prev[1]) {
-        prev[1] = Math.max(prev[1], mergeSpans[i][1]);
+      if (i === 0) {
+        let firstReplaced = false;
+        newRunXml = run.full.replace(
+          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
+          () => {
+            if (!firstReplaced) {
+              firstReplaced = true;
+              return `<w:t xml:space="preserve">${fullText}</w:t>`;
+            }
+            return "<w:t></w:t>";
+          },
+        );
       } else {
-        merged.push(mergeSpans[i]);
+        newRunXml = run.full.replace(
+          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
+          "<w:t></w:t>",
+        );
       }
+
+      const adjStart = run.start + offset;
+      const adjEnd = run.end + offset;
+      result = result.substring(0, adjStart) + newRunXml + result.substring(adjEnd);
+      offset += newRunXml.length - run.full.length;
     }
 
-    const firstRunIdx = paraXml.indexOf(runs[0].xml);
-    const lastRun = runs[runs.length - 1];
-    const lastRunIdx = paraXml.lastIndexOf(lastRun.xml);
-    const lastRunEnd = lastRunIdx + lastRun.xml.length;
-
-    if (firstRunIdx < 0 || lastRunIdx < 0) return paraXml;
-
-    const before = paraXml.substring(0, firstRunIdx);
-    const after = paraXml.substring(lastRunEnd);
-    const runsRegion = paraXml.substring(firstRunIdx, lastRunEnd);
-
-    const interRunContent: string[] = [];
-    let searchPos = 0;
-    for (let i = 0; i < runs.length; i++) {
-      const pos = runsRegion.indexOf(runs[i].xml, searchPos);
-      if (pos < 0) return paraXml;
-      interRunContent.push(runsRegion.substring(searchPos, pos));
-      searchPos = pos + runs[i].xml.length;
-    }
-    const trailingContent = searchPos < runsRegion.length ? runsRegion.substring(searchPos) : "";
-
-    let rebuiltRegion = "";
-    let ri = 0;
-    while (ri < runs.length) {
-      const span = merged.find((s) => s[0] === ri);
-      if (span) {
-        const spanInterContent = interRunContent.slice(span[0], span[1] + 1).join("");
-        rebuiltRegion += spanInterContent;
-
-        const groupRuns = runs.slice(span[0], span[1] + 1);
-        const combinedText = groupRuns.map((r) => r.text).join("");
-        const rPr = groupRuns[0].rPr;
-        rebuiltRegion += `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
-        ri = span[1] + 1;
-      } else {
-        rebuiltRegion += (interRunContent[ri] ?? "") + runs[ri].xml;
-        ri += 1;
-      }
-    }
-
-    rebuiltRegion += trailingContent;
-
-    return before + rebuiltRegion + after;
+    return result;
   });
 }
 
