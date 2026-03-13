@@ -234,13 +234,11 @@ export function ApproveVendaDialog({
                     <DataCard icon={DollarSign} label="Valor proposta" value={formatBRL(valorProposta)} valueClass="text-success" />
                   </div>
                 </div>
-              </div>
 
-              {/* ═══ COLUNA DIREITA — Documentos + Comissão ═══ */}
-              <div className="p-5 space-y-5">
                 {/* Documentos anexados */}
                 {documents.length > 0 && (
                   <>
+                    <div className="border-t border-border" />
                     <div className="space-y-3">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Documentos anexados
@@ -277,10 +275,12 @@ export function ApproveVendaDialog({
                         })}
                       </div>
                     </div>
-                    <div className="border-t border-border" />
                   </>
                 )}
+              </div>
 
+              {/* ═══ COLUNA DIREITA — Comissão ═══ */}
+              <div className="p-5 space-y-5">
                 {/* Comissão */}
                 <div className="space-y-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
