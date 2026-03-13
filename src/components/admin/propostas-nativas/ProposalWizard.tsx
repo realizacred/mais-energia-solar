@@ -1332,10 +1332,52 @@ export function ProposalWizard() {
 
       // Audit is now persisted by the backend — no need for frontend persistAudit
 
+      // Determine if selected template is DOCX or HTML
+      const selectedTpl = proposalTemplates.find(t => t.id === templateSelecionado);
+      const isDocxTemplate = selectedTpl?.tipo === "docx";
+
       setRendering(true);
       try {
-        const renderResult = await renderProposal(genResult.versao_id);
-        setHtmlPreview(renderResult.html);
+        if (isDocxTemplate && genResult.proposta_id) {
+          // DOCX template: call template-preview to generate DOCX file
+          const response = await supabase.functions.invoke("template-preview", {
+            body: { template_id: templateSelecionado, proposta_id: genResult.proposta_id },
+            headers: { "x-client-timeout": "120" },
+          });
+
+          if (response.error) {
+            let errorMsg = response.error.message || "Erro ao gerar DOCX";
+            try {
+              if (response.data && typeof response.data === "object" && "error" in response.data) {
+                errorMsg = (response.data as any).error;
+              }
+            } catch { /* keep original */ }
+            throw new Error(errorMsg);
+          }
+
+          // Trigger download
+          const blob = response.data instanceof Blob
+            ? response.data
+            : new Blob([response.data], {
+                type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `proposta_${selectedTpl?.nome?.replace(/[^a-zA-Z0-9]/g, "_") || "doc"}.docx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          // No HTML preview for DOCX — set a placeholder
+          setHtmlPreview(null);
+          toast({ title: "DOCX gerado com sucesso!", description: "O download do arquivo foi iniciado." });
+        } else {
+          // HTML template: use proposal-render as before
+          const renderResult = await renderProposal(genResult.versao_id);
+          setHtmlPreview(renderResult.html);
+        }
       } catch (e: any) {
         toast({ title: "Erro ao renderizar", description: e.message, variant: "destructive" });
       } finally { setRendering(false); }
