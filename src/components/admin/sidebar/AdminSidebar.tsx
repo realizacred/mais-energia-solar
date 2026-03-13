@@ -287,7 +287,7 @@ function SidebarSectionGroup({
 
         <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0 mt-1 ml-1 pl-2 border-l border-sidebar-border/40">
+            <SidebarMenu className="gap-0 mt-1 ml-4 pl-3 border-l border-sidebar-border/40">
               {orderedItems.map((item, idx) => {
                 const isActive = activeTab === item.id || (item.id === "monitoramento" && activeTab.startsWith("monitoramento") && !activeTab.includes("/"));
                 const badgeCount = badgeCounts?.[item.id] || 0;
