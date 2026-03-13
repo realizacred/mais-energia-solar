@@ -117,7 +117,7 @@ export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
 
   if (!leadId && !clienteId) {
     return (
-      <div className="w-80 border-l border-border/40 bg-card/50 flex flex-col">
+      <div className="w-full md:w-80 border-l border-border/40 bg-card/50 flex flex-col h-full min-h-0 overflow-hidden">
         <SidebarHeader onClose={onClose} />
         <div className="flex-1 flex items-center justify-center p-6 text-center">
           <div>
