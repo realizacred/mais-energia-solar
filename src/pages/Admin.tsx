@@ -601,6 +601,7 @@ export default function Admin() {
                 <Route path="base-meteorologica" element={<Navigate to="/admin/meteorologia" replace />} />
                 <Route path="meteorologia" element={<BaseMeteorologicaPage />} />
                 <Route path="pricing-policy" element={<PricingPolicyPage />} />
+                <Route path="politica-precos" element={<Navigate to="/admin/pricing-policy" replace />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
                 {/* agenda-config removed */}
