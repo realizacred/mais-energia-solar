@@ -1,0 +1,1 @@
+UPDATE leads SET status_id = '3828fe85-bbec-4cf7-872e-3f22623b40db', updated_at = now() WHERE id = '5dd8979c-32e8-468b-80d1-d58bd2cbfe97' AND status_id IS NULL;
