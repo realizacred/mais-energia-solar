@@ -378,10 +378,10 @@ export function WaChatPanel({
   );
 
   return (
-    <div className="flex-1 flex min-w-0 min-h-0 w-full max-w-full overflow-x-hidden">
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 w-full max-w-full">
+    <div className="flex-1 flex min-w-0 min-h-0 w-full max-w-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 w-full max-w-full overflow-hidden">
         {/* Chat Header */}
-        <div className="border-b border-border/30 bg-card shadow-xs">
+        <div className="shrink-0 border-b border-border/30 bg-card shadow-xs">
           {/* Row 1: Avatar + Name + Action icons */}
           <div className="px-3 pt-2 pb-1.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
