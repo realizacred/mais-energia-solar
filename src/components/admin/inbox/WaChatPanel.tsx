@@ -635,7 +635,7 @@ export function WaChatPanel({
 
         {/* Files Panel */}
         {showFilesPanel && (
-          <div className="border-b border-border/30 bg-muted/5 animate-fade-in overflow-y-auto max-h-[40vh]">
+          <div className="shrink-0 border-b border-border/30 bg-muted/5 animate-fade-in overflow-y-auto max-h-[40vh]">
             <div className="p-3">
               {(() => {
                 const mediaMessages = visibleMessages.filter(m => m.media_url);
