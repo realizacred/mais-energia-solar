@@ -114,21 +114,21 @@ export function VendorLeadsTable({
             return (
               <TableRow
                 key={lead.id}
-                className={rowClasses}
+                className={`align-middle ${rowClasses}`}
               >
-                <TableCell>
+                <TableCell className="align-middle">
                   <Checkbox
                     checked={lead.visto}
                     onCheckedChange={() => onToggleVisto(lead)}
                     className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                   />
                 </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <Badge variant="outline" className="font-mono text-xs">
                   {lead.lead_code || "-"}
                 </Badge>
               </TableCell>
-              <TableCell className="font-medium">
+              <TableCell className="font-medium align-middle">
                 <div className="flex items-center gap-2">
                   {lead.nome}
                   {!lead.visto && (
@@ -138,7 +138,7 @@ export function VendorLeadsTable({
                   )}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <a 
                   href={`https://wa.me/55${lead.telefone.replace(/\D/g, '')}`}
                   target="_blank"
@@ -149,16 +149,16 @@ export function VendorLeadsTable({
                   {formatPhoneBR(lead.telefone)}
                 </a>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden md:table-cell align-middle">
                 <div className="flex items-center gap-1 text-sm">
                   <MapPin className="h-3 w-3 text-muted-foreground" />
                   {lead.cidade}, {lead.estado}
                 </div>
               </TableCell>
-              <TableCell className="hidden sm:table-cell">
+              <TableCell className="hidden sm:table-cell align-middle">
                 <span className="text-sm">{lead.media_consumo} kWh</span>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <LeadStatusSelector
                   leadId={lead.id}
                   currentStatusId={lead.status_id}
@@ -166,13 +166,13 @@ export function VendorLeadsTable({
                   onStatusChange={(newStatusId) => onStatusChange(lead.id, newStatusId)}
                 />
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
+              <TableCell className="hidden lg:table-cell align-middle">
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Calendar className="h-3 w-3" />
                   {format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 </div>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right align-middle">
                 <TooltipProvider>
                   <div className="flex items-center justify-end gap-1">
                     <Tooltip>

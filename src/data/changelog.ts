@@ -19,6 +19,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.12",
+    date: "2026-03-13",
+    title: "Alinhamento vertical nas tabelas de leads e orçamentos",
+    type: "bugfix",
+    description: "Células das tabelas agora ficam centralizadas verticalmente quando o conteúdo tem alturas diferentes.",
+    details: [
+      "Adicionado align-middle em TableRow e TableCell de OrcamentosTable, LeadsTable, VendorOrcamentosTable, VendorLeadsTable e LeadsTrashPage",
+      "Nova regra §34 no AGENTS.md: alinhamento vertical obrigatório em tabelas com conteúdo variável",
+    ],
+  },
+  {
     version: "2.22.11",
     date: "2026-03-12",
     title: "§25 Lote 9 (final): icon + subtitle em todos os FormModalTemplate",

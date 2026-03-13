@@ -117,16 +117,16 @@ export function OrcamentosTable({
             return (
               <TableRow
                 key={group.lead_id}
-                className={`${orc.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
+                className={`align-middle ${orc.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
               >
-                <TableCell>
+                <TableCell className="align-middle">
                   <Checkbox
                     checked={orc.visto_admin}
                     onCheckedChange={() => onToggleVisto(orc)}
                     className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                   />
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden md:table-cell align-middle">
                   <div className="flex items-center gap-1">
                     <Badge variant="default" className="font-mono text-xs bg-primary">
                       {orc.orc_code || "-"}
@@ -145,12 +145,12 @@ export function OrcamentosTable({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden md:table-cell align-middle">
                   <Badge variant="outline" className="font-mono text-xs">
                     {orc.lead_code || "-"}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium text-sm">
+                <TableCell className="font-medium text-sm align-middle">
                   <div className="flex items-center gap-2">
                     {orc.nome}
                     {hasHistory && (
@@ -166,13 +166,13 @@ export function OrcamentosTable({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm whitespace-nowrap">
+                <TableCell className="text-sm whitespace-nowrap align-middle">
                   <div className="flex items-center gap-1">
                     <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                     {formatPhoneBR(orc.telefone)}
                   </div>
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">
+                <TableCell className="hidden lg:table-cell align-middle">
                   {(orc.vendedor_nome || orc.vendedor) ? (
                     <Badge
                       variant="outline"
@@ -199,7 +199,7 @@ export function OrcamentosTable({
                     </Button>
                   )}
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">
+                <TableCell className="hidden sm:table-cell align-middle">
                   <Badge
                     variant="secondary"
                     className="bg-secondary/10 text-secondary text-xs"
@@ -207,13 +207,13 @@ export function OrcamentosTable({
                     {orc.cidade}, {orc.estado}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden sm:table-cell text-sm">
+                <TableCell className="hidden sm:table-cell text-sm align-middle">
                   {orc.media_consumo} kWh
                 </TableCell>
-                <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                <TableCell className="hidden sm:table-cell text-sm text-muted-foreground align-middle">
                   {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 </TableCell>
-                <TableCell>
+                <TableCell className="align-middle">
                   {/* Inline actions for lg+ */}
                   <TooltipProvider>
                     <div className="hidden lg:flex items-center gap-1">

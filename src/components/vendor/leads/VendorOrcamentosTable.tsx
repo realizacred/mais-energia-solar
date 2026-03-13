@@ -215,16 +215,16 @@ export function VendorOrcamentosTable({
               return (
                 <TableRow
                   key={group.lead_id}
-                  className={`${orc.visto ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
+                  className={`align-middle ${orc.visto ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
                 >
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <Checkbox
                       checked={orc.visto}
                       onCheckedChange={() => onToggleVisto(orc)}
                       className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <div className="flex items-center gap-1">
                       <Badge variant="default" className="font-mono text-xs">
                         {orc.orc_code || "-"}
@@ -252,12 +252,12 @@ export function VendorOrcamentosTable({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <Badge variant="outline" className="font-mono text-xs">
                       {orc.lead_code || "-"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-foreground">{orc.nome}</span>
                       {!orc.visto && (
@@ -278,7 +278,7 @@ export function VendorOrcamentosTable({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <a 
                       href={`https://wa.me/55${orc.telefone.replace(/\D/g, '')}`}
                       target="_blank"
@@ -289,7 +289,7 @@ export function VendorOrcamentosTable({
                       {formatPhoneBR(orc.telefone)}
                     </a>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <Badge
                       variant="outline"
                       className="border-primary/40 bg-primary/5 text-primary font-medium"
@@ -297,7 +297,7 @@ export function VendorOrcamentosTable({
                       {orc.cidade}, {orc.estado}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium">{orc.media_consumo} kWh</span>
                       <span className="text-xs text-muted-foreground">
@@ -305,7 +305,7 @@ export function VendorOrcamentosTable({
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <OrcamentoStatusSelector
                       orcamentoId={orc.id}
                       currentStatusId={orc.status_id}
@@ -313,10 +313,10 @@ export function VendorOrcamentosTable({
                       onStatusChange={(newStatusId) => onStatusChange(orc.id, newStatusId)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right align-middle">
                     <TooltipProvider>
                       <div className="flex items-center justify-end gap-1">
                         <Tooltip>

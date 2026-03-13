@@ -148,20 +148,20 @@ export default function LeadsTrashPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map(lead => (
-                  <TableRow key={lead.id} className="opacity-70 hover:opacity-100 transition-opacity">
-                    <TableCell>
+                  <TableRow key={lead.id} className="align-middle opacity-70 hover:opacity-100 transition-opacity">
+                    <TableCell className="align-middle">
                       <div>
                         <p className="font-medium text-sm">{lead.nome}</p>
                         {lead.lead_code && <p className="text-xs text-muted-foreground">{lead.lead_code}</p>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{formatPhoneBR(lead.telefone)}</TableCell>
-                    <TableCell className="text-sm">{lead.cidade}/{lead.estado}</TableCell>
-                    <TableCell className="text-sm">{lead.consultor || "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm align-middle">{formatPhoneBR(lead.telefone)}</TableCell>
+                    <TableCell className="text-sm align-middle">{lead.cidade}/{lead.estado}</TableCell>
+                    <TableCell className="text-sm align-middle">{lead.consultor || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground align-middle">
                       {format(new Date(lead.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right align-middle">
                       <Button
                         variant="outline"
                         size="sm"

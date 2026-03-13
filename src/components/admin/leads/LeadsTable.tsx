@@ -64,28 +64,28 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
             return (
             <TableRow
               key={lead.id}
-              className={`${lead.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
+              className={`align-middle ${lead.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
             >
-              <TableCell>
+              <TableCell className="align-middle">
                 <Checkbox
                   checked={lead.visto_admin}
                   onCheckedChange={() => onToggleVisto(lead)}
                   className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <Badge variant="outline" className="font-mono text-xs">
                   {lead.lead_code || "-"}
                 </Badge>
               </TableCell>
-              <TableCell className="font-medium">{lead.nome}</TableCell>
-              <TableCell className="whitespace-nowrap">
+              <TableCell className="font-medium align-middle">{lead.nome}</TableCell>
+              <TableCell className="whitespace-nowrap align-middle">
                 <div className="flex items-center gap-1">
                   <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                   {formatPhoneBR(lead.telefone)}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {(lead.consultor_nome || lead.consultor) ? (
                   <Badge
                     variant="outline"
@@ -97,7 +97,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   <span className="text-muted-foreground text-sm">-</span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <Badge
                   variant="secondary"
                   className="bg-secondary/10 text-secondary"
@@ -105,13 +105,13 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   {lead.cidade}, {lead.estado}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <span className="flex items-center gap-1">
                   <Zap className="w-3 h-3 text-muted-foreground" />
                   {lead.media_consumo} kWh
                 </span>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {lead.consumo_previsto ? (
                   <span className="flex items-center gap-1">
                     <TrendingUp className="w-3 h-3 text-success" />
@@ -121,7 +121,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   <span className="text-muted-foreground text-sm">-</span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {(() => {
                   const status = lead.wa_welcome_status || "pending";
                   if (status === "sent") {
@@ -168,7 +168,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   );
                 })()}
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {lead.cliente_id_vinculado ? (
                   <div className="space-y-0.5">
                     {lead.cliente_potencia_kwp != null && (
@@ -191,10 +191,10 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   <span className="text-muted-foreground text-sm">-</span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR })}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right align-middle">
                 <TooltipProvider>
                   <div className="flex items-center justify-end gap-1">
                     <Tooltip>
