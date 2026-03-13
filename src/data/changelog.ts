@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.30.0",
+    date: "2026-03-13",
+    title: "DOCX: flatten de snapshot aninhado para placeholders",
+    type: "bugfix",
+    description: "Template-preview agora extrai dados de objetos aninhados do snapshot (tecnico, financeiro, itens, ucs, cliente, pagamentoOpcoes) para preencher placeholders que antes ficavam vazios.",
+    details: [
+      "Flatten de snapshot.tecnico → consumo_mensal, geracao_mensal, potencia_kwp",
+      "Flatten de snapshot.financeiro → economia_mensal, valor_total, payback_meses",
+      "Flatten de snapshot.itens → modulo_*, inversor_* com detecção automática por tipo",
+      "Flatten de snapshot.ucs → consumo_mensal, subgrupo_uc1, dis_energia",
+      "Fallbacks adicionados em consumo e geração para cobrir wizard state e engine data",
+    ],
+  },
+  {
     version: "2.29.2",
     date: "2026-03-13",
     title: "DOCX: preservação de text box sobre imagem",
