@@ -48,6 +48,8 @@ Antes de finalizar **qualquer** tarefa, verifique os 24 itens:
 
 ---
 
+---
+
 # Bloco 1 — REGRAS BLOQUEANTES
 
 Se descumprido = bug, inconsistência visual ou erro em produção.
