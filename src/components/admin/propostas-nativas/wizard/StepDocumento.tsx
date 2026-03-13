@@ -390,7 +390,19 @@ export function StepDocumento({
               size="sm"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
               onClick={async () => {
-                if (!htmlPreview) { toast({ title: "Preview não disponível para PDF", variant: "destructive" }); return; }
+                let htmlToRender = htmlPreview;
+                if (!htmlToRender && docxBlob) {
+                  try {
+                    const mammoth = await import("mammoth");
+                    const arrayBuffer = await docxBlob.arrayBuffer();
+                    const mammothResult = await mammoth.convertToHtml({ arrayBuffer });
+                    htmlToRender = `<!DOCTYPE html><html><body>${mammothResult.value}</body></html>`;
+                  } catch (convErr: any) {
+                    toast({ title: "Erro ao preparar preview para PDF", description: convErr?.message || "Conversão DOCX falhou", variant: "destructive" });
+                    return;
+                  }
+                }
+                if (!htmlToRender) { toast({ title: "Preview não disponível para PDF", variant: "destructive" }); return; }
                 try {
                   const html2canvas = (await import("html2canvas")).default;
                   const { jsPDF } = await import("jspdf");
@@ -399,7 +411,7 @@ export function StepDocumento({
                   iframe.style.cssText = "position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;";
                   document.body.appendChild(iframe);
                   iframe.contentDocument?.open();
-                  iframe.contentDocument?.write(htmlPreview);
+                  iframe.contentDocument?.write(htmlToRender);
                   iframe.contentDocument?.close();
                   await new Promise(r => setTimeout(r, 500));
                   const canvas = await html2canvas(iframe.contentDocument!.body, { scale: 2, useCORS: true, width: 800 });

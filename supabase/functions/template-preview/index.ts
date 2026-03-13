@@ -20,8 +20,8 @@ async function processDocxTemplate(
   const zip = await JSZip.loadAsync(templateBytes);
   const missingVars: string[] = [];
 
-  const xmlFiles = Object.keys(zip.files).filter(
-    (f) => f.endsWith(".xml") || f.endsWith(".xml.rels"),
+  const xmlFiles = Object.keys(zip.files).filter((fileName) =>
+    /^word\/(document|header\d+|footer\d+|footnotes|endnotes|comments)\.xml$/i.test(fileName),
   );
 
   for (const fileName of xmlFiles) {
@@ -44,18 +44,18 @@ async function processDocxTemplate(
       }
     }
 
-    // ── STEP 3: Final sweep — blank remaining [placeholder] and log missing ──
-    const remainingPattern = /\[([^\]]+)\]/g;
+    // ── STEP 3: Final sweep — blank remaining *valid placeholders* only ──
+    // Important: avoid matching arbitrary bracket tokens like [3212], which can exist in DOCX internals.
+    const remainingPattern = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
     let remaining;
     const localMissing: string[] = [];
     while ((remaining = remainingPattern.exec(content)) !== null) {
       const varName = remaining[1];
-      // Skip XML-internal bracket patterns
-      if (varName.includes("xmlns") || varName.includes("Content_Types") || varName.includes("rels")) continue;
       if (!localMissing.includes(varName)) {
         localMissing.push(varName);
       }
     }
+
     for (const varName of localMissing) {
       const pattern = `[${varName}]`;
       if (content.includes(pattern)) {
@@ -68,6 +68,10 @@ async function processDocxTemplate(
     }
 
     if (modified) {
+      if (!isValidXmlDocument(content)) {
+        console.error(`[template-preview] Invalid XML detected after replacement in ${fileName}; keeping original content.`);
+        continue;
+      }
       zip.file(fileName, content);
     }
   }
@@ -237,6 +241,15 @@ function escapeXml(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
+}
+
+function isValidXmlDocument(xml: string): boolean {
+  try {
+    const parsed = new DOMParser().parseFromString(xml, "application/xml");
+    return !parsed.querySelector("parsererror");
+  } catch {
+    return false;
+  }
 }
 
 // ─── Main handler ─────────────────────────────────────────

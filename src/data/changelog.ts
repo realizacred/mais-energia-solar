@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.28.2",
+    date: "2026-03-13",
+    title: "Hardening do DOCX: fim de corrupção por placeholders inválidos",
+    type: "bugfix",
+    description: "Corrigida a geração de DOCX que removia tokens com colchetes não relacionados a variáveis, causando alerta de conteúdo ilegível no Word e falha de preview/PDF.",
+    details: [
+      "template-preview agora processa apenas XMLs textuais do Word (document/header/footer/footnotes/endnotes/comments)",
+      "Regex de limpeza final restrita a placeholders válidos ([a-zA-Z_][a-zA-Z0-9_.-]*) para evitar remover tokens internos como [3212]",
+      "Validação de XML adicionada antes de gravar alterações no ZIP para impedir salvar partes corrompidas",
+      "Fallback no download de PDF em StepDocumento: se htmlPreview falhar, tenta converter o docxBlob diretamente",
+      "Toast no ProposalWizard ajustado para não afirmar preview quando a conversão falha",
+    ],
+  },
+  {
     version: "2.28.1",
     date: "2026-03-13",
     title: "Correção CORS no template-preview (DOCX)",
