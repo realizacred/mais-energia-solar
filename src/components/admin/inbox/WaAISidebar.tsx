@@ -225,7 +225,7 @@ export function WaAISidebar({ conversation, onClose, onUseSuggestion }: WaAISide
   ];
 
   return (
-    <div className="w-80 border-l border-border/40 bg-card/50 flex flex-col">
+    <div className="w-full md:w-80 border-l border-border/40 bg-card/50 flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/40">
         <div className="flex items-center gap-2">
