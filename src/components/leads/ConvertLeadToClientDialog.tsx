@@ -50,6 +50,7 @@ interface OfflineConversion {
   identidadeFiles: DocumentFile[];
   comprovanteFiles: DocumentFile[];
   beneficiariaFiles: DocumentFile[];
+  assinaturaFiles?: DocumentFile[];
   savedAt: string;
   synced?: boolean;
 }
