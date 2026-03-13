@@ -549,9 +549,6 @@ export function ValidacaoVendasManager() {
                             </Badge>
                           </TableCell>
                           <TableCell className="align-middle text-right font-medium hidden sm:table-cell">
-                            {consumo > 0 ? `${consumo} kWh` : "-"}
-                          </TableCell>
-                          <TableCell className="align-middle text-right font-medium hidden sm:table-cell">
                             {potencia > 0 ? `${potencia} kWp` : "-"}
                           </TableCell>
                           <TableCell className="align-middle text-right font-medium hidden sm:table-cell">
