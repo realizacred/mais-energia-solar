@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatBRL } from "@/lib/formatters";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
