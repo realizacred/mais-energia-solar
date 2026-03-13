@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare } from "lucide-react";
+import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw } from "lucide-react";
+import { useReopenLead } from "@/hooks/useReopenLead";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
