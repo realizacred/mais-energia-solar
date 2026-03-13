@@ -177,32 +177,33 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
         )}
         </div>
       </DialogContent>
-
-      {/* Lead Edit Dialog */}
-      {lead && editOpen && (
-        <LeadEditDialog
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          leadId={lead.id}
-          initialData={{
-            nome: lead.nome,
-            telefone: lead.telefone,
-            consultor_id: (lead as any).consultor_id || null,
-            consultor_nome: (lead as any).consultores?.nome || null,
-            cidade: lead.cidade || "",
-            estado: lead.estado || "",
-            bairro: lead.bairro || null,
-            rua: lead.rua || null,
-            numero: lead.numero || null,
-            area: lead.area || "",
-            tipo_telhado: lead.tipo_telhado || "",
-            rede_atendimento: lead.rede_atendimento || "",
-            media_consumo: lead.media_consumo || undefined,
-            consumo_previsto: lead.consumo_previsto || undefined,
-            observacoes: lead.observacoes || null,
-          }}
-        />
-      )}
     </Dialog>
+
+    {/* Lead Edit Dialog — rendered outside parent Dialog to avoid nested dialog issues on mobile */}
+    {lead && editOpen && (
+      <LeadEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        leadId={lead.id}
+        initialData={{
+          nome: lead.nome,
+          telefone: lead.telefone,
+          consultor_id: (lead as any).consultor_id || null,
+          consultor_nome: (lead as any).consultores?.nome || null,
+          cidade: lead.cidade || "",
+          estado: lead.estado || "",
+          bairro: lead.bairro || null,
+          rua: lead.rua || null,
+          numero: lead.numero || null,
+          area: lead.area || "",
+          tipo_telhado: lead.tipo_telhado || "",
+          rede_atendimento: lead.rede_atendimento || "",
+          media_consumo: lead.media_consumo || undefined,
+          consumo_previsto: lead.consumo_previsto || undefined,
+          observacoes: lead.observacoes || null,
+        }}
+      />
+    )}
+    </>
   );
 }
