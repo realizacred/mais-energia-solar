@@ -389,8 +389,20 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Cliente
-    set("cliente_nome", cliente?.nome || lead?.nome);
+    // Helper: set only if not already set (from snapshot)
+    const setIfMissing = (key: string, value: string | number | null | undefined) => {
+      if (!vars[key] && value !== null && value !== undefined && value !== "") {
+        vars[key] = String(value);
+      }
+    };
+
+    const fmtNum = (v: number, decimals = 2) =>
+      new Intl.NumberFormat("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
+
+    // ── CLIENTE ──
+    const nomeCliente = cliente?.nome || lead?.nome;
+    set("cliente_nome", nomeCliente);
+    set("vc_nome", nomeCliente);
     set("cliente_celular", cliente?.telefone || lead?.telefone);
     set("cliente_email", cliente?.email);
     set("cliente_cnpj_cpf", cliente?.cpf_cnpj);
@@ -403,47 +415,109 @@ Deno.serve(async (req) => {
     set("cliente_cidade", cliente?.cidade || lead?.cidade);
     set("cliente_estado", cliente?.estado || lead?.estado);
 
-    // Entrada
-    set("consumo_mensal", lead?.media_consumo);
-    set("cidade", cliente?.cidade || lead?.cidade);
-    set("estado", cliente?.estado || lead?.estado);
+    // ── LOCALIZAÇÃO ──
+    const cidadeVal = cliente?.cidade || lead?.cidade;
+    const estadoVal = cliente?.estado || lead?.estado;
+    set("cidade", cidadeVal);
+    set("estado", estadoVal);
+    if (cidadeVal && estadoVal) {
+      setIfMissing("cidade_estado", `${cidadeVal}- ${estadoVal}`);
+    }
+
+    // ── TÉCNICO / ENTRADA ──
+    const consumo = lead?.media_consumo;
+    set("consumo_mensal", consumo);
+    set("capo_m", consumo ? `${fmtNum(consumo, 0)} kWh/mês` : undefined);
     set("tipo_telhado", lead?.tipo_telhado);
     set("cape_telhado", lead?.tipo_telhado);
     set("fase", lead?.rede_atendimento);
+    set("tensao_rede", lead?.rede_atendimento);
+    set("area_util", lead?.area ? `${lead.area} m²` : undefined);
 
-    // Sistema Solar
+    // ── CONCESSIONÁRIA (from snapshot) ──
+    setIfMissing("dis_energia", snapshot?.concessionaria_nome || snapshot?.dis_energia);
+    setIfMissing("subgrupo_uc1", snapshot?.subgrupo || snapshot?.grupo_tarifario || snapshot?.subgrupo_uc1);
+
+    // ── SISTEMA SOLAR ──
     const potencia = versaoData?.potencia_kwp || projeto?.potencia_kwp || cliente?.potencia_kwp;
-    set("potencia_sistema", potencia ? `${potencia} kWp` : undefined);
-    set("potencia_si", potencia ? `${potencia} kWp` : undefined);
-    set("modulo_quantidade", projeto?.numero_modulos || cliente?.numero_placas);
-    set("inversor_modelo", projeto?.modelo_inversor || cliente?.modelo_inversor);
-    set("modulo_modelo", projeto?.modelo_modulos);
-    set("geracao_mensal", projeto?.geracao_mensal_media_kwh);
+    set("potencia_sistema", potencia ? `${fmtNum(potencia)} kWp` : undefined);
+    set("potencia_si", potencia ? `${fmtNum(potencia)} kWp` : undefined);
 
-    // Financeiro
+    const numModulos = projeto?.numero_modulos || cliente?.numero_placas || snapshot?.numero_modulos;
+    set("modulo_quantidade", numModulos);
+    set("vc_total_modulo", numModulos);
+
+    set("inversor_modelo", projeto?.modelo_inversor || cliente?.modelo_inversor || snapshot?.inversor_modelo);
+    setIfMissing("inversor_fabricante_1", snapshot?.inversor_fabricante || snapshot?.inversor_fabricante_1);
+    setIfMissing("inversor_potencia_nominal", snapshot?.inversor_potencia || snapshot?.inversor_potencia_nominal);
+    setIfMissing("inversores_utilizados", snapshot?.inversores_utilizados || (projeto?.modelo_inversor ? `1x ${projeto.modelo_inversor}` : undefined));
+
+    set("modulo_modelo", projeto?.modelo_modulos || snapshot?.modulo_modelo);
+    setIfMissing("modulo_fabricante", snapshot?.modulo_fabricante);
+    setIfMissing("modulo_potencia", snapshot?.modulo_potencia ? `${snapshot.modulo_potencia} Wp` : undefined);
+
+    const geracaoMensal = projeto?.geracao_mensal_media_kwh || snapshot?.geracao_mensal;
+    set("geracao_mensal", geracaoMensal ? `${fmtNum(Number(geracaoMensal), 0)} kWh/mês` : undefined);
+
+    // Aumento de produção
+    if (consumo && geracaoMensal) {
+      const aumento = ((Number(geracaoMensal) - consumo) / consumo) * 100;
+      if (aumento > 0) {
+        setIfMissing("vc_aumento", `${fmtNum(aumento)}%`);
+      }
+    }
+
+    // ── FINANCEIRO ──
     const valorTotal = versaoData?.valor_total || projeto?.valor_total || lead?.valor_estimado || cliente?.valor_projeto;
     if (valorTotal) {
       set("valor_total", fmtCur(valorTotal));
       set("preco_final", fmtCur(valorTotal));
       set("preco_total", fmtCur(valorTotal));
       set("vc_a_vista", fmtCur(valorTotal));
+      set("capo_i", fmtCur(valorTotal));
+      set("kit_fechado_preco_total", fmtCur(valorTotal));
     }
     if (versaoData?.economia_mensal) {
       set("economia_mensal", fmtCur(versaoData.economia_mensal));
     }
     if (versaoData?.payback_meses != null) {
-      set("payback", `${versaoData.payback_meses} meses`);
-      set("payback_meses", String(versaoData.payback_meses));
+      const paybackMeses = versaoData.payback_meses;
+      const anos = Math.floor(paybackMeses / 12);
+      const meses = paybackMeses % 12;
+      set("payback", `${anos} anos e ${meses} meses`);
+      set("payback_meses", String(paybackMeses));
     }
 
-    // Comercial
+    // Retorno em 10 anos
+    if (versaoData?.economia_mensal && valorTotal) {
+      const retorno10 = versaoData.economia_mensal * 12 * 10 - valorTotal;
+      setIfMissing("fluxo_caixa_acumulado_anual_10", fmtCur(Math.max(retorno10, 0)));
+    }
+
+    // ── GARANTIA E SEGURO (from snapshot) ──
+    setIfMissing("vc_garantiaservico", snapshot?.garantia_servico || snapshot?.vc_garantiaservico || "2 anos");
+    setIfMissing("capo_seguro", snapshot?.seguro || snapshot?.capo_seguro || "Não");
+    setIfMissing("vc_calculo_seguro", snapshot?.valor_seguro || snapshot?.vc_calculo_seguro || "-");
+    setIfMissing("vc_string_box_cc", snapshot?.string_box || snapshot?.vc_string_box_cc || "Incluída no Projeto");
+
+    // ── FINANCIAMENTO (from snapshot) ──
+    setIfMissing("vc_valor_parcela_troca_medidor", snapshot?.valor_parcela_troca_medidor || snapshot?.vc_valor_parcela_troca_medidor);
+    setIfMissing("vc_valor_parcelas_4", snapshot?.valor_parcelas_4 || snapshot?.vc_valor_parcelas_4);
+    setIfMissing("vc_cartao_credito_parcela_2", snapshot?.cartao_parcela_12 || snapshot?.vc_cartao_credito_parcela_2);
+    setIfMissing("vc_cartao_credito_parcela_3", snapshot?.cartao_parcela_18 || snapshot?.vc_cartao_credito_parcela_3);
+    setIfMissing("vc_cartao_credito_parcela_4", snapshot?.cartao_parcela_24 || snapshot?.vc_cartao_credito_parcela_4);
+    setIfMissing("vc_parcela_1", snapshot?.parcela_36 || snapshot?.vc_parcela_1);
+    setIfMissing("vc_parcela_2", snapshot?.parcela_48 || snapshot?.vc_parcela_2);
+    setIfMissing("vc_parcela_3", snapshot?.parcela_60 || snapshot?.vc_parcela_3);
+
+    // ── COMERCIAL ──
     set("proposta_data", now.toLocaleDateString("pt-BR"));
-    set("proposta_titulo", propostaData?.titulo || cliente?.nome || lead?.nome);
+    set("proposta_titulo", propostaData?.titulo || nomeCliente);
     set("proposta_identificador", propostaData?.codigo);
     const validadeDias = versaoData?.validade_dias || 15;
     set("proposta_validade", new Date(now.getTime() + validadeDias * 86400000).toLocaleDateString("pt-BR"));
 
-    // Consultor / Responsável
+    // ── CONSULTOR / RESPONSÁVEL ──
     if (consultor) {
       set("consultor_nome", consultor.nome);
       set("responsavel_nome", consultor.nome);
@@ -451,11 +525,15 @@ Deno.serve(async (req) => {
       set("consultor_telefone", consultor.telefone);
       set("consultor_email", consultor.email);
     }
+    // Fallback from snapshot
+    setIfMissing("responsavel_nome", snapshot?.consultor_nome || snapshot?.responsavel_nome);
+    setIfMissing("consultor_nome", snapshot?.consultor_nome);
 
     // Observações
     set("vc_observacao", lead?.observacoes);
 
     console.log(`[template-preview] Variables mapped: ${Object.keys(vars).length} keys`);
+    console.log(`[template-preview] Snapshot keys: ${snapshot ? Object.keys(snapshot).length : 0}`);
 
     // ── 7. BAIXAR O DOCX DO STORAGE ───────────────────────
     // The bucket is PRIVATE, so we extract the storage path from the URL
