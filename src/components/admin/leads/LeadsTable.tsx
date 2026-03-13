@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Lead, LeadStatus } from "@/types/lead";
+import { useReopenLead } from "@/hooks/useReopenLead";
 
 interface LeadsTableProps {
   leads: Lead[];
