@@ -87,31 +87,26 @@ export function GenerateFileDialog({
     setGenerating(true);
     try {
       if (isDocx) {
-        // DOCX: call edge function
-        const response = await supabase.functions.invoke("template-preview", {
-          body: { template_id: selectedTemplate, proposta_id: propostaId },
+        // DOCX: use raw fetch to preserve binary data (supabase.functions.invoke corrupts binary)
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
+        const { data: { session } } = await supabase.auth.getSession();
+        const rawResp = await fetch(`https://${projectId}.supabase.co/functions/v1/template-preview`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token || anonKey}`,
+            "apikey": anonKey,
+          },
+          body: JSON.stringify({ template_id: selectedTemplate, proposta_id: propostaId }),
         });
-        if (response.error) {
-          // Try to extract detailed error from response data
-          let errorMsg = response.error.message || "Erro ao gerar DOCX";
-          try {
-            if (response.data && typeof response.data === "object" && "error" in response.data) {
-              errorMsg = (response.data as any).error;
-            } else if (typeof response.data === "string") {
-              const parsed = JSON.parse(response.data);
-              if (parsed?.error) errorMsg = parsed.error;
-            }
-          } catch {
-            // keep original errorMsg
-          }
+        if (!rawResp.ok) {
+          const errBody = await rawResp.text();
+          let errorMsg = "Erro ao gerar DOCX";
+          try { errorMsg = JSON.parse(errBody)?.error || errorMsg; } catch { errorMsg = errBody || errorMsg; }
           throw new Error(errorMsg);
         }
-
-        const blob = response.data instanceof Blob
-          ? response.data
-          : new Blob([response.data], {
-              type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            });
+        const blob = await rawResp.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;

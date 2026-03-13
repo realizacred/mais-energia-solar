@@ -1341,49 +1341,26 @@ export function ProposalWizard() {
       setRendering(true);
       try {
         if (isDocxTemplate && genResult.proposta_id) {
-          // DOCX template: call template-preview to generate DOCX file
-          const response = await supabase.functions.invoke("template-preview", {
-            body: { template_id: templateSelecionado, proposta_id: genResult.proposta_id },
-            headers: { "x-client-timeout": "120" },
+          // DOCX template: use raw fetch to preserve binary integrity
+          const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+          const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
+          const { data: { session } } = await supabase.auth.getSession();
+          const rawResp = await fetch(`https://${projectId}.supabase.co/functions/v1/template-preview`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.access_token || anonKey}`,
+              "apikey": anonKey,
+            },
+            body: JSON.stringify({ template_id: templateSelecionado, proposta_id: genResult.proposta_id }),
           });
-
-          if (response.error) {
-            let errorMsg = response.error.message || "Erro ao gerar DOCX";
-            try {
-              if (response.data && typeof response.data === "object" && "error" in response.data) {
-                errorMsg = (response.data as any).error;
-              }
-            } catch { /* keep original */ }
+          if (!rawResp.ok) {
+            const errBody = await rawResp.text();
+            let errorMsg = "Erro ao gerar DOCX";
+            try { errorMsg = JSON.parse(errBody)?.error || errorMsg; } catch { errorMsg = errBody || errorMsg; }
             throw new Error(errorMsg);
           }
-
-          // supabase.functions.invoke may return Blob, ArrayBuffer, or string depending on content-type
-          // We need to ensure we have a proper Blob with the DOCX data
-          let docxBlob: Blob;
-          if (response.data instanceof Blob) {
-            docxBlob = response.data;
-          } else if (response.data instanceof ArrayBuffer) {
-            docxBlob = new Blob([response.data], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-          } else {
-            // Fallback: re-fetch as blob using the raw URL
-            const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
-            const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
-            const { data: { session } } = await supabase.auth.getSession();
-            const rawResp = await fetch(`https://${projectId}.supabase.co/functions/v1/template-preview`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${session?.access_token || anonKey}`,
-                "apikey": anonKey,
-              },
-              body: JSON.stringify({ template_id: templateSelecionado, proposta_id: genResult.proposta_id }),
-            });
-            if (!rawResp.ok) {
-              const errBody = await rawResp.text();
-              throw new Error(errBody || `HTTP ${rawResp.status}`);
-            }
-            docxBlob = await rawResp.blob();
-          }
+          const docxBlob = await rawResp.blob();
 
           // Store blob for downloads (DOCX + PDF)
           setDocxBlob(docxBlob);
