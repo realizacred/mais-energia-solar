@@ -532,7 +532,9 @@ export default function Admin() {
                 {/* Rotas de atendimento consolidadas no inbox */}
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
+                <Route path="regras-retorno" element={<Navigate to="/admin/followup-wa" replace />} />
                 <Route path="followup-queue" element={<WaFollowupQueuePage />} />
+                <Route path="followup-wa-queue" element={<Navigate to="/admin/followup-queue" replace />} />
                 <Route path="metricas-atendimento" element={<WaAtendimentoMetrics />} />
                 <Route path="wa-health" element={<WaHealthDashboard />} />
                 <Route path="wa-etiquetas" element={<WaTagsManager />} />
