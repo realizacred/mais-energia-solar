@@ -100,8 +100,9 @@ export function WaProfileAvatar({
           alt={name ? `Foto de perfil de ${name}` : isGroup ? "Foto de perfil do grupo" : "Foto de perfil"}
           className="w-full h-full rounded-full object-cover"
           onError={handleImgError}
-          loading="lazy"
+          loading="eager"
           referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
         />
       ) : (
         fallback
