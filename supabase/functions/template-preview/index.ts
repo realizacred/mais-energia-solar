@@ -32,7 +32,13 @@ async function processDocxTemplate(
     let content = await file.async("string");
     let modified = false;
 
-    // ── STEP 1: Normalize split runs paragraph-by-paragraph ──
+    // ── STEP 1a: Normalize runs inside text boxes FIRST ──
+    // Text boxes (<w:txbxContent>) contain their own <w:p> paragraphs
+    // that are nested inside drawing/pict structures. The main normalizer
+    // skips those outer paragraphs, so we must process inner ones first.
+    content = normalizeTextBoxRuns(content);
+
+    // ── STEP 1b: Normalize split runs in regular paragraphs ──
     content = normalizeParagraphRuns(content);
 
     // ── STEP 2: Direct [key] → value substitution ──
