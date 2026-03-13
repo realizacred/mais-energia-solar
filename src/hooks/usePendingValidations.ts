@@ -12,11 +12,23 @@ export interface PendingValidation {
   simulacao_aceita_id: string | null;
   potencia_kwp: number | null;
   valor_projeto: number | null;
+  disjuntor_id: string | null;
+  transformador_id: string | null;
+  localizacao: string | null;
+  assinatura_url: string | null;
   identidade_url: string | null;
   identidade_urls: string[] | null;
   comprovante_endereco_url: string | null;
   comprovante_endereco_urls: string[] | null;
   comprovante_beneficiaria_urls: string[] | null;
+  disjuntores?: {
+    amperagem: number | null;
+    descricao: string | null;
+  } | null;
+  transformadores?: {
+    potencia_kva: number | null;
+    descricao: string | null;
+  } | null;
   leads?: {
     consultor: string | null;
     consultor_id: string | null;

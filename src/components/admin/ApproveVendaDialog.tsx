@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle, User, MapPin, Phone, Zap, DollarSign, FileText,
-  AlertTriangle, Download, X, Eye, Sun, TrendingDown, Clock,
+  AlertTriangle, Download, X, Eye, Sun, TrendingDown, Clock, Navigation, Wrench,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatBRL } from "@/lib/formatters";
