@@ -155,7 +155,7 @@ export function VendorLeadsTable({
                   {lead.cidade}, {lead.estado}
                 </div>
               </TableCell>
-              <TableCell className="hidden sm:table-cell">
+              <TableCell className="hidden sm:table-cell align-middle">
                 <span className="text-sm">{lead.media_consumo} kWh</span>
               </TableCell>
               <TableCell>
