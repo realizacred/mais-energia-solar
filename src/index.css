@@ -333,6 +333,8 @@
   .sidebar-indicator-ai { background: hsl(var(--sidebar-section-ai) / 0.12); color: hsl(var(--sidebar-section-ai)); }
   .sidebar-indicator-integrations { background: hsl(var(--sidebar-section-integrations) / 0.12); color: hsl(var(--sidebar-section-integrations)); }
   .sidebar-indicator-settings { background: hsl(var(--sidebar-section-settings) / 0.12); color: hsl(var(--sidebar-section-settings)); }
+  .sidebar-indicator-energy { background: hsl(var(--sidebar-section-energy) / 0.12); color: hsl(var(--sidebar-section-energy)); }
+  .sidebar-indicator-team { background: hsl(var(--sidebar-section-team) / 0.12); color: hsl(var(--sidebar-section-team)); }
   /* Legacy aliases */
   .sidebar-indicator-intelligence { background: hsl(var(--sidebar-section-intelligence) / 0.12); color: hsl(var(--sidebar-section-intelligence)); }
   .sidebar-indicator-atendimento { background: hsl(var(--sidebar-section-atendimento) / 0.12); color: hsl(var(--sidebar-section-atendimento)); }
