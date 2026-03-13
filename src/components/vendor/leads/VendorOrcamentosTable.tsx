@@ -305,7 +305,7 @@ export function VendorOrcamentosTable({
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <OrcamentoStatusSelector
                       orcamentoId={orc.id}
                       currentStatusId={orc.status_id}
