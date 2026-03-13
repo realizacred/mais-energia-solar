@@ -444,7 +444,9 @@ Deno.serve(async (req) => {
       setIfMissing("cidade_estado", `${cidadeVal} - ${estadoVal}`);
     }
 
-    const consumo = lead?.media_consumo || snapNum("consumo_mensal");
+    const consumo = lead?.media_consumo || snapNum("consumo_mensal")
+      || (ucsSnap[0] ? Number(ucsSnap[0].consumo_mensal) || null : null)
+      || (tecnico.consumo_total_kwh ? Number(tecnico.consumo_total_kwh) : null);
     set("consumo_mensal", consumo);
     set("capo_m", consumo ? `${fmtNum(consumo, 0)} kWh/mês` : undefined);
     set("tipo_telhado", lead?.tipo_telhado || snapshot?.tipo_telhado);
