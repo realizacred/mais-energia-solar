@@ -14,6 +14,7 @@ Padrões obrigatórios para toda tela nova ou editada.
 - [Bloco 5 — Validação Antes de Finalizar](#bloco-5--validação-antes-de-finalizar)
 - [Bloco 6 — Convenções de Nomenclatura](#bloco-6--convenções-de-nomenclatura)
 - [Bloco 7 — Escopo por Área](#bloco-7--escopo-por-área)
+- [Bloco 8 — WhatsApp / Mobile / Modais / Avatar](#bloco-8--whatsapp--mobile--modais--avatar)
 
 ---
 
@@ -1447,3 +1448,134 @@ Quais regras valem onde:
 ### Conversão Lead → Venda
 - §38 (fallback de dados técnicos)
 
+
+---
+
+# Bloco 8 — WHATSAPP / MOBILE / MODAIS / AVATAR
+
+Regras específicas para evitar reincidência de bugs validados no módulo WhatsApp e fluxos mobile.
+
+---
+
+## §39. SCROLL INTERNO — Padrão universal para painéis, chats, dialogs e drawers
+
+Sempre que houver layout com **header + conteúdo + footer**, usar obrigatoriamente:
+
+```tsx
+<div className="flex flex-col h-full overflow-hidden">
+  <div className="shrink-0">{/* header */}</div>
+  <div className="flex-1 min-h-0 overflow-y-auto">{/* conteúdo */}</div>
+  <div className="shrink-0">{/* footer */}</div>
+</div>
+```
+
+### Regras
+- SEMPRE `overflow-hidden` no container pai
+- SEMPRE `shrink-0` em header e footer fixos
+- SEMPRE `flex-1 min-h-0 overflow-y-auto` no conteúdo rolável
+- Se usar `ScrollArea`: `<ScrollArea className="flex-1 min-h-0">`
+- Se usar `Virtuoso`: `className="h-full min-h-0"` com `style={{ height: "100%", overflowY: "auto" }}`
+- NUNCA `max-h-[70vh]` em body de dialog/sheet que já tem `max-h-[calc(100dvh-2rem)]` no container pai — causa dupla restrição e corta conteúdo no mobile
+
+### Onde se aplica
+- WhatsApp Inbox (painel de chat, lista de conversas)
+- Qualquer `Dialog`, `Sheet`, `Drawer` com formulário longo
+- Sidebars com listas longas
+- Split-views com scroll independente
+
+---
+
+## §40. DIALOGS ANINHADOS NO MOBILE — Transição sequencial obrigatória
+
+NUNCA renderizar um `Dialog` dentro de outro `Dialog` ativo no mobile. Causa:
+- Sobreposição de overlays
+- Scroll bloqueado
+- Conteúdo cortado ou inacessível
+
+### Padrão obrigatório
+```tsx
+// 1. Fechar o dialog pai ANTES de abrir o filho
+const handleOpenChild = () => {
+  onOpenChange(false); // fecha pai
+  setTimeout(() => setChildOpen(true), 150); // abre filho após animação
+};
+
+// 2. Renderizar o dialog filho FORA do dialog pai (no mesmo nível de fragment)
+return (
+  <>
+    <Dialog open={parentOpen} onOpenChange={onOpenChange}>
+      {/* conteúdo do pai */}
+    </Dialog>
+
+    {/* Dialog filho — fora do pai */}
+    {childOpen && (
+      <ChildDialog open={childOpen} onOpenChange={setChildOpen} />
+    )}
+  </>
+);
+```
+
+### Regras
+- SEMPRE transição sequencial (fecha → delay → abre)
+- SEMPRE renderizar dialog filho fora do dialog pai via fragment `<>...</>`
+- Delay mínimo: `150ms` (tempo da animação de saída do Radix Dialog)
+- Aplicar em: "Ver Lead" → "Editar Lead", "Info" → "Formulário", qualquer fluxo dialog-em-dialog
+
+---
+
+## §41. AVATAR / FOTO DE PERFIL — Extração robusta de múltiplas chaves
+
+Webhooks de WhatsApp (Evolution API, Baileys, etc.) enviam a URL da foto de perfil em campos inconsistentes entre versões.
+
+### Função obrigatória de extração
+```tsx
+function extractProfilePictureUrl(payload: Record<string, any>): string | null {
+  const INVALID = new Set(["", "none", "null", "undefined"]);
+  const candidates = [
+    payload?.profilePictureUrl,
+    payload?.imgUrl,
+    payload?.profilePicUrl,
+    payload?.pictureUrl,
+    payload?.data?.profilePictureUrl,
+    payload?.data?.imgUrl,
+    payload?.data?.profilePicUrl,
+    payload?.data?.pictureUrl,
+  ];
+  for (const url of candidates) {
+    if (typeof url === "string" && url.trim() && !INVALID.has(url.trim().toLowerCase())) {
+      return url.trim();
+    }
+  }
+  return null;
+}
+```
+
+### Regras
+- NUNCA assumir um único campo (`profilePicUrl`) — SEMPRE verificar todos os candidatos
+- SEMPRE filtrar valores inválidos: `""`, `"none"`, `"null"`, `"undefined"`
+- SEMPRE verificar versões aninhadas em `data.*`
+- O componente `WaProfileAvatar` já trata fallback (iniciais/ícone) — NUNCA duplicar essa lógica
+- Ao persistir no banco (`wa_conversations.profile_picture_url`), usar a função de extração
+
+---
+
+## §42. ESCOPO DE CORREÇÃO — Regra anti-scope-creep
+
+Ao receber um pedido de correção localizada:
+
+### Regras
+- NUNCA expandir o escopo além do pedido original
+- NUNCA refatorar componentes adjacentes "por oportunidade"
+- NUNCA alterar painéis/áreas não mencionados no pedido
+- Se encontrar um bug adjacente: **anotar** e reportar ao usuário, mas NÃO corrigir na mesma entrega
+- Cada entrega deve ter **checklist verificável** com itens OK/FALHOU
+- Arquivos alterados devem ser listados explicitamente
+
+### Formato de entrega para correções cirúrgicas
+1. Arquivos exatos alterados
+2. Causa raiz exata (1-2 linhas)
+3. Diff real por arquivo
+4. Código final dos trechos críticos
+5. Checklist final com OK/FALHOU
+
+---
