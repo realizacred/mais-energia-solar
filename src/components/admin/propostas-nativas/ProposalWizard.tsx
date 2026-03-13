@@ -1370,9 +1370,9 @@ export function ProposalWizard() {
           try {
             const mammoth = await import("mammoth");
             const arrayBuffer = await docxBlob.arrayBuffer();
-            const mammothResult = await mammoth.convertToHtml({
+            const mammothResult = await (mammoth as any).convertToHtml({
               arrayBuffer,
-              convertImage: mammoth.images.imgElement((image: any) =>
+              convertImage: (mammoth as any).images.imgElement((image: any) =>
                 image.read("base64").then((imageBuffer: string) => ({
                   src: `data:${image.contentType};base64,${imageBuffer}`,
                 }))
