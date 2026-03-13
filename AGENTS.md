@@ -128,7 +128,17 @@ NUNCA usar `bg-white`, `text-black`, `gray-*` em modais ou formulários. SEMPRE 
 ### 🚫 BLOQUEANTE — Componentes: verificar antes de criar
 Antes de criar QUALQUER componente novo, verificar se já existe em: `src/components/shared/`, `src/components/ui-kit/`, `src/components/ui/`. Nunca duplicar funcionalidade existente.
 
----
+### 🚫 BLOQUEANTE — Scroll interno: min-h-0 obrigatório
+Containers `flex-col` com `flex-1` e scroll interno DEVEM ter `min-h-0`. Sem isso, `overflow-y-auto` não funciona.
+→ Ver §36
+
+### 🚫 BLOQUEANTE — Storage paths: signed URL obrigatória
+NUNCA usar path raw do Supabase Storage como `src` de imagem. SEMPRE resolver com `createSignedUrl`.
+→ Ver §37
+
+### 🚫 BLOQUEANTE — Conversão lead→venda: fallback obrigatório
+NUNCA criar cliente com `potencia_kwp = null` se existir simulação ou proposta. SEMPRE usar cadeia de fallback.
+→ Ver §38
 
 # Bloco 2 — BOAS PRÁTICAS
 
