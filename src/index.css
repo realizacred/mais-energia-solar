@@ -700,12 +700,19 @@
     gap: 0;
   }
 
-  /* WaInbox: keep internal scroll without creating page-level scrollbar */
-  .admin-content:has([data-wa-inbox-active]) {
+  /* WaInbox admin mode: hard lock root scroll and keep only internal panel scrolls */
+  html.wa-inbox-admin,
+  body.wa-inbox-admin {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body.wa-inbox-admin .admin-content {
     @apply flex flex-1 flex-col min-h-0 overflow-hidden p-0;
     gap: 0;
   }
-  .admin-content:has([data-wa-inbox-active]) > * + * {
+
+  body.wa-inbox-admin .admin-content > * + * {
     margin-top: 0;
   }
 }
