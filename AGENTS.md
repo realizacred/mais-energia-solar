@@ -9,7 +9,7 @@ Padrões obrigatórios para toda tela nova ou editada.
 - [Bloco 0 — TL;DR Checklist](#bloco-0--tldr-checklist)
 - [Bloco 1 — Regras Bloqueantes](#bloco-1--regras-bloqueantes)
 - [Bloco 2 — Boas Práticas](#bloco-2--boas-práticas)
-- [Bloco 3 — Referência de Padrões (§1–§34)](#bloco-3--referência-de-padrões)
+- [Bloco 3 — Referência de Padrões (§1–§38)](#bloco-3--referência-de-padrões)
 - [Bloco 4 — Conflitos e Exceções Oficiais](#bloco-4--conflitos-e-exceções-oficiais)
 - [Bloco 5 — Validação Antes de Finalizar](#bloco-5--validação-antes-de-finalizar)
 - [Bloco 6 — Convenções de Nomenclatura](#bloco-6--convenções-de-nomenclatura)
