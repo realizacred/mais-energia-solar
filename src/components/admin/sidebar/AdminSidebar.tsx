@@ -164,7 +164,7 @@ function SidebarItemButton({
           </span>
         )}
         {badgeCount > 0 && collapsed && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" aria-label={`${badgeCount} pendências`} role="status" />
         )}
         {isActive && !collapsed && badgeCount === 0 && (
           <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
