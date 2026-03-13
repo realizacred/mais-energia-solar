@@ -14,6 +14,7 @@ Padrões obrigatórios para toda tela nova ou editada.
 - [Bloco 5 — Validação Antes de Finalizar](#bloco-5--validação-antes-de-finalizar)
 - [Bloco 6 — Convenções de Nomenclatura](#bloco-6--convenções-de-nomenclatura)
 - [Bloco 7 — Escopo por Área](#bloco-7--escopo-por-área)
+- [Bloco 8 — WhatsApp / Mobile / Modais / Avatar](#bloco-8--whatsapp--mobile--modais--avatar)
 
 ---
 
