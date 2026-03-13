@@ -19,15 +19,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "2.33.1",
+    version: "2.34.0",
     date: "2026-03-13",
-    title: "DOCX: correção de tokenização aninhada em parágrafos com imagens",
+    title: "DOCX: reescrita completa da normalização de placeholders",
     type: "bugfix",
-    description: "Corrigido bug onde tokens aninhados (run-com-drawing dentro de mc:AlternateContent) não eram restaurados corretamente, causando falha na substituição de placeholders sobre imagens 'Atrás do Texto'.",
+    description: "normalizeParagraphRuns reescrita com abordagem classify-and-consolidate: runs gráficos (drawings, pict, shapes) são identificados e nunca tocados; runs de texto são consolidados no primeiro run e os demais esvaziados (nunca removidos), preservando layout.",
     details: [
-      "Tokenização agora usa scan de runs em fase única — cada run é classificado como complexo ou texto",
-      "Restauração de tokens em ordem REVERSA para tratar aninhamento corretamente",
-      "Standalone complex elements tokenizados separadamente por tipo",
+      "Runs classificados como gráficos (w:drawing, w:pict, mc:AlternateContent, wp:anchor, wp:inline) nunca são modificados",
+      "Texto de todos os runs de texto concatenado e colocado no primeiro run — elimina fragmentação",
+      "Runs subsequentes têm <w:t> esvaziado mas nunca removido — preserva estrutura XML",
+      "Sem tokenização/restauração — abordagem direta elimina bugs de aninhamento",
+      "Headers e footers continuam processados automaticamente",
     ],
   },
   {

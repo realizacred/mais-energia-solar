@@ -233,188 +233,112 @@ function normalizeParagraphRunsInner(xml: string): string {
  * Normalize runs inside each <w:p> paragraph so that placeholders
  * split across multiple <w:r> runs are merged into single runs.
  *
- * For every paragraph that contains a bracket character:
- * 1. Extract all <w:r> runs (preserving inter-run XML like <w:pPr>).
- * 2. Concatenate the text content of all runs.
- * 3. If the concatenated text contains [...], identify which runs
- *    participate in each placeholder span (from '[' to ']').
- * 4. Merge those runs into a single <w:r>, keeping the <w:rPr>
- *    of the first run in each group. Runs outside placeholders
- *    are left untouched.
+ * Strategy (robust against drawings/pict/shapes):
+ * 1. Find ALL <w:r> runs in the paragraph.
+ * 2. Classify each run: "graphic" (contains w:drawing/w:pict/mc:AlternateContent/w:object)
+ *    or "text" (has <w:t> and no graphic children).
+ * 3. Graphic runs are NEVER modified — they stay exactly as-is.
+ * 4. If concatenated text of text-only runs contains "[":
+ *    - Put all combined text into the FIRST text run's <w:t>.
+ *    - Empty (but don't remove!) <w:t> in all other text runs.
+ *    This preserves the XML structure and layout while unifying
+ *    fragmented placeholders for the substitution step.
  */
 function normalizeParagraphRuns(xml: string): string {
   const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
 
   return xml.replace(paraPattern, (paraXml) => {
+    // Quick exit: no bracket → no placeholder possible
     if (!paraXml.includes("[")) return paraXml;
 
-    // SAFETY: skip paragraphs with field chars / instrText (complex Word fields)
+    // Skip complex Word field structures (TOC, page numbers, etc.)
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) {
       return paraXml;
     }
 
-    // For paragraphs containing drawings/pict/AlternateContent:
-    // Only process runs OUTSIDE those structures (e.g. behind-text images
-    // have the drawing as a sibling of text runs, not containing them).
-    // We strip out drawing/pict/mc blocks temporarily, normalize the rest,
-    // then restore them.
-    const hasComplexContent = paraXml.includes("<w:drawing") ||
-      paraXml.includes("<mc:AlternateContent") ||
-      paraXml.includes("<w:pict") ||
-      paraXml.includes("<w:object");
-
-    if (hasComplexContent) {
-      // Check if there are brackets outside complex structures
-      const strippedXml = paraXml
-        .replace(/<w:drawing[^>]*>[^]*?<\/w:drawing>/g, "")
-        .replace(/<mc:AlternateContent[^>]*>[^]*?<\/mc:AlternateContent>/g, "")
-        .replace(/<w:pict[^>]*>[^]*?<\/w:pict>/g, "")
-        .replace(/<w:object[^>]*>[^]*?<\/w:object>/g, "");
-
-      if (!strippedXml.includes("[")) return paraXml;
-
-      // Tokenize complex structures to isolate text-only runs for normalization.
-      // Phase 1: scan ALL <w:r> runs — tokenize any that contain complex elements.
-      // Phase 2: tokenize standalone complex elements not wrapped in runs.
-      // Restore in REVERSE order so nested tokens are handled correctly.
-      const complexBlocks: string[] = [];
-      let safePara = paraXml;
-
-      // Phase 1: Tokenize runs containing complex child elements
-      safePara = safePara.replace(/<w:r[\s>][^]*?<\/w:r>/g, (runMatch) => {
-        if (
-          runMatch.includes("<w:drawing") ||
-          runMatch.includes("<mc:AlternateContent") ||
-          runMatch.includes("<w:pict") ||
-          runMatch.includes("<w:object")
-        ) {
-          const idx = complexBlocks.length;
-          complexBlocks.push(runMatch);
-          return `<!--CBLK_${idx}-->`;
-        }
-        return runMatch; // text-only run — keep for normalization
-      });
-
-      // Phase 2: Tokenize standalone complex elements (not inside a <w:r>)
-      const standaloneTypes = ["w:drawing", "mc:AlternateContent", "w:pict", "w:object"];
-      for (const elemType of standaloneTypes) {
-        const escaped = elemType.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const pat = new RegExp(`<${escaped}[^>]*>[^]*?<\\/${escaped}>`, "g");
-        safePara = safePara.replace(pat, (match) => {
-          const idx = complexBlocks.length;
-          complexBlocks.push(match);
-          return `<!--CBLK_${idx}-->`;
-        });
-      }
-
-      // Normalize text-only runs (merges split placeholders)
-      const normalized = normalizeParagraphRunsInner(safePara);
-
-      // Restore complex blocks in REVERSE order — critical for nested tokens
-      // (e.g. a run-with-drawing tokenized inside mc:AlternateContent)
-      let result = normalized;
-      for (let i = complexBlocks.length - 1; i >= 0; i--) {
-        result = result.replace(`<!--CBLK_${i}-->`, complexBlocks[i]);
-      }
-
-      return result;
-    }
-
+    // ── Collect all <w:r> runs with their positions ──
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
-    const runs: Array<{ xml: string; text: string; rPr: string }> = [];
-    let runMatch;
-    while ((runMatch = runPattern.exec(paraXml)) !== null) {
-      const runXml = runMatch[0];
-      const rPrMatch = runXml.match(/<w:rPr>[^]*?<\/w:rPr>/);
-      const rPr = rPrMatch ? rPrMatch[0] : "";
-      const textMatch = runXml.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/);
-      const text = textMatch ? textMatch[1] : "";
-      runs.push({ xml: runXml, text, rPr });
+    interface RunInfo {
+      full: string;
+      start: number;
+      end: number;
+      isGraphic: boolean;
+      hasText: boolean;
+      text: string;
+    }
+    const allRuns: RunInfo[] = [];
+    let m;
+    while ((m = runPattern.exec(paraXml)) !== null) {
+      const full = m[0];
+
+      // A run is "graphic" if it contains any drawing/image/shape element
+      const isGraphic =
+        full.includes("<w:drawing") ||
+        full.includes("<w:pict") ||
+        full.includes("<mc:AlternateContent") ||
+        full.includes("<w:object") ||
+        full.includes("<wp:anchor") ||
+        full.includes("<wp:inline");
+
+      // Extract ALL <w:t> text fragments from this run
+      const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+      let tMatch;
+      const textParts: string[] = [];
+      while ((tMatch = tPattern.exec(full)) !== null) {
+        textParts.push(tMatch[1]);
+      }
+      const text = textParts.join("");
+      const hasText = textParts.length > 0;
+
+      allRuns.push({ full, start: m.index, end: m.index + full.length, isGraphic, hasText, text });
     }
 
-    if (runs.length < 2) return paraXml;
+    // ── Filter to text-only runs (non-graphic, with <w:t> elements) ──
+    const textRuns = allRuns.filter((r) => !r.isGraphic && r.hasText);
+    if (textRuns.length < 2) return paraXml;
 
-    const fullText = runs.map((r) => r.text).join("");
+    // ── Concatenate text and check for placeholders ──
+    const fullText = textRuns.map((r) => r.text).join("");
     if (!fullText.includes("[")) return paraXml;
 
-    const charRunIdx: number[] = [];
-    for (let ri = 0; ri < runs.length; ri++) {
-      for (let ci = 0; ci < runs[ri].text.length; ci++) {
-        charRunIdx.push(ri);
-      }
-    }
+    // ── Consolidate: put combined text in first text run, empty others ──
+    // Process in positional order, tracking cumulative offset from length changes.
+    let result = paraXml;
+    let offset = 0;
 
-    const phPattern = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
-    let phMatch;
-    const mergeSpans: Array<[number, number]> = [];
-    while ((phMatch = phPattern.exec(fullText)) !== null) {
-      const startChar = phMatch.index;
-      const endChar = startChar + phMatch[0].length - 1;
-      if (startChar >= charRunIdx.length || endChar >= charRunIdx.length) continue;
+    for (let i = 0; i < textRuns.length; i++) {
+      const run = textRuns[i];
+      let newRunXml: string;
 
-      const startRun = charRunIdx[startChar];
-      const endRun = charRunIdx[endChar];
-      if (startRun !== endRun) {
-        mergeSpans.push([startRun, endRun]);
-      }
-    }
-
-    if (mergeSpans.length === 0) return paraXml;
-
-    mergeSpans.sort((a, b) => a[0] - b[0]);
-    const merged: Array<[number, number]> = [mergeSpans[0]];
-    for (let i = 1; i < mergeSpans.length; i++) {
-      const prev = merged[merged.length - 1];
-      if (mergeSpans[i][0] <= prev[1]) {
-        prev[1] = Math.max(prev[1], mergeSpans[i][1]);
+      if (i === 0) {
+        // First text run: replace first <w:t> with combined text, empty any others
+        let firstReplaced = false;
+        newRunXml = run.full.replace(
+          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
+          () => {
+            if (!firstReplaced) {
+              firstReplaced = true;
+              return `<w:t xml:space="preserve">${fullText}</w:t>`;
+            }
+            return "<w:t></w:t>";
+          },
+        );
       } else {
-        merged.push(mergeSpans[i]);
+        // Subsequent text runs: empty all <w:t> content (never remove the run!)
+        newRunXml = run.full.replace(
+          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
+          "<w:t></w:t>",
+        );
       }
+
+      // Apply replacement at the correct position
+      const adjStart = run.start + offset;
+      const adjEnd = run.end + offset;
+      result = result.substring(0, adjStart) + newRunXml + result.substring(adjEnd);
+      offset += newRunXml.length - run.full.length;
     }
 
-    const firstRunIdx = paraXml.indexOf(runs[0].xml);
-    const lastRun = runs[runs.length - 1];
-    const lastRunIdx = paraXml.lastIndexOf(lastRun.xml);
-    const lastRunEnd = lastRunIdx + lastRun.xml.length;
-
-    if (firstRunIdx < 0 || lastRunIdx < 0) return paraXml;
-
-    const before = paraXml.substring(0, firstRunIdx);
-    const after = paraXml.substring(lastRunEnd);
-    const runsRegion = paraXml.substring(firstRunIdx, lastRunEnd);
-
-    const interRunContent: string[] = [];
-    let searchPos = 0;
-    for (let i = 0; i < runs.length; i++) {
-      const pos = runsRegion.indexOf(runs[i].xml, searchPos);
-      if (pos < 0) return paraXml;
-      interRunContent.push(runsRegion.substring(searchPos, pos));
-      searchPos = pos + runs[i].xml.length;
-    }
-    const trailingContent = searchPos < runsRegion.length ? runsRegion.substring(searchPos) : "";
-
-    let rebuiltRegion = "";
-    let ri = 0;
-    while (ri < runs.length) {
-      const span = merged.find((s) => s[0] === ri);
-      if (span) {
-        const spanInterContent = interRunContent.slice(span[0], span[1] + 1).join("");
-        rebuiltRegion += spanInterContent;
-
-        const groupRuns = runs.slice(span[0], span[1] + 1);
-        const combinedText = groupRuns.map((r) => r.text).join("");
-        const rPr = groupRuns[0].rPr;
-        rebuiltRegion += `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
-        ri = span[1] + 1;
-      } else {
-        rebuiltRegion += (interRunContent[ri] ?? "") + runs[ri].xml;
-        ri += 1;
-      }
-    }
-
-    rebuiltRegion += trailingContent;
-
-    return before + rebuiltRegion + after;
+    return result;
   });
 }
 
