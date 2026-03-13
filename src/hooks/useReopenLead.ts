@@ -1,36 +1,34 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLeadStatusMap } from "@/hooks/useLeadStatusMap";
 
 export function useReopenLead(onSuccess?: () => void) {
   const [reopening, setReopening] = useState(false);
   const { toast } = useToast();
+  const { reopenTarget, statuses } = useLeadStatusMap();
 
   const reopenLead = async (leadId: string, clienteId?: string | null) => {
     setReopening(true);
     try {
-      // Find "Negociação" status
-      const { data: negociacaoStatus } = await supabase
-        .from("lead_status")
-        .select("id")
-        .eq("nome", "Negociação")
-        .single();
-
-      if (!negociacaoStatus) {
-        toast({ title: "Status 'Negociação' não encontrado", variant: "destructive" });
+      if (!reopenTarget) {
+        console.error("[useReopenLead] No reopen target status found. Available:", statuses);
+        toast({ title: "Status de reabertura não encontrado", variant: "destructive" });
         return false;
       }
 
-      // Reset lead status back to Negociação
+      console.debug(`[useReopenLead] Reopening lead ${leadId} to status "${reopenTarget.nome}" (id=${reopenTarget.id})`);
+
+      // Reset lead status
       await supabase
         .from("leads")
-        .update({ status_id: negociacaoStatus.id, updated_at: new Date().toISOString() })
+        .update({ status_id: reopenTarget.id, updated_at: new Date().toISOString() })
         .eq("id", leadId);
 
       // Also reset orcamentos status
       await supabase
         .from("orcamentos")
-        .update({ status_id: negociacaoStatus.id, updated_at: new Date().toISOString() })
+        .update({ status_id: reopenTarget.id, updated_at: new Date().toISOString() })
         .eq("lead_id", leadId);
 
       // Deactivate or delete client if exists
@@ -49,7 +47,7 @@ export function useReopenLead(onSuccess?: () => void) {
         }
       }
 
-      toast({ title: "Lead reaberto com sucesso", description: "O lead voltou para o status 'Negociação'." });
+      toast({ title: "Lead reaberto com sucesso", description: `O lead voltou para "${reopenTarget.nome}".` });
       onSuccess?.();
       return true;
     } catch (error) {

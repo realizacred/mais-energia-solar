@@ -34,6 +34,7 @@ import { ptBR } from "date-fns/locale";
 import { formatBRL } from "@/lib/formatters";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
 import { useReopenLead } from "@/hooks/useReopenLead";
+import { useLeadStatusMap } from "@/hooks/useLeadStatusMap";
 
 interface LeadSimulacao {
   id: string;
@@ -72,6 +73,7 @@ export function ValidacaoVendasManager() {
   const [leadSimulacoes, setLeadSimulacoes] = useState<LeadSimulacao[]>([]);
   const [selectedSimulacaoId, setSelectedSimulacaoId] = useState<string>("");
   const { reopenLead, reopening } = useReopenLead(() => refetchPending());
+  const { reopenTarget } = useLeadStatusMap();
 
   // Vendedor selector state
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
@@ -271,14 +273,12 @@ export function ValidacaoVendasManager() {
     if (!selectedCliente || !motivoRejeicao.trim()) return;
     setRejecting(true);
     try {
-      const { data: negociacaoStatus } = await supabase
-        .from("lead_status").select("id").eq("nome", "Negociação").single();
-      if (negociacaoStatus && selectedCliente.lead_id) {
+      if (reopenTarget && selectedCliente.lead_id) {
         await supabase.from("leads").update({
-          status_id: negociacaoStatus.id,
+          status_id: reopenTarget.id,
           observacoes: `Rejeição de validação: ${motivoRejeicao}`,
         }).eq("id", selectedCliente.lead_id);
-        await supabase.from("orcamentos").update({ status_id: negociacaoStatus.id }).eq("lead_id", selectedCliente.lead_id);
+        await supabase.from("orcamentos").update({ status_id: reopenTarget.id }).eq("lead_id", selectedCliente.lead_id);
       }
 
       const depChecks = await Promise.all([
@@ -738,7 +738,7 @@ export function ValidacaoVendasManager() {
                 Rejeitar Venda
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                O lead voltará para "Negociação"
+                O lead voltará para "{reopenTarget?.nome || 'status inicial'}"
               </DialogDescription>
             </div>
           </DialogHeader>
