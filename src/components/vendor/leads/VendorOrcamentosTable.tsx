@@ -252,7 +252,7 @@ export function VendorOrcamentosTable({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <Badge variant="outline" className="font-mono text-xs">
                       {orc.lead_code || "-"}
                     </Badge>
