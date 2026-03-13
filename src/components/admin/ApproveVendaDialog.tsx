@@ -109,21 +109,24 @@ async function resolveStorageUrl(path: string, bucket = "documentos-clientes"): 
   }
 }
 
-function DocumentPreviewDialog({ url, open, onClose }: { url: string; open: boolean; onClose: () => void }) {
-  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+function DocumentPreviewDialog({ urls, open, onClose }: { urls: string[]; open: boolean; onClose: () => void }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [resolvedUrls, setResolvedUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!open || !url) return;
+    if (!open || urls.length === 0) return;
     setLoading(true);
-    resolveStorageUrl(url).then((resolved) => {
-      setResolvedUrl(resolved || url);
+    setCurrentIndex(0);
+    Promise.all(urls.map((u) => resolveStorageUrl(u).then((r) => r || u))).then((resolved) => {
+      setResolvedUrls(resolved);
       setLoading(false);
     });
-  }, [url, open]);
+  }, [urls, open]);
 
-  const displayUrl = resolvedUrl || url;
+  const displayUrl = resolvedUrls[currentIndex] || urls[currentIndex] || "";
   const isPdf = displayUrl.toLowerCase().includes(".pdf");
+  const total = urls.length;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -132,9 +135,11 @@ function DocumentPreviewDialog({ url, open, onClose }: { url: string; open: bool
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <Eye className="w-4 h-4 text-primary" />
           </div>
-          <DialogTitle className="text-sm font-semibold text-foreground flex-1">Preview do Documento</DialogTitle>
+          <DialogTitle className="text-sm font-semibold text-foreground flex-1">
+            Preview do Documento{total > 1 ? ` (${currentIndex + 1}/${total})` : ""}
+          </DialogTitle>
         </DialogHeader>
-        <div className="p-4">
+        <div className="relative p-4">
           {loading ? (
             <div className="flex items-center justify-center h-[50vh]">
               <Spinner size="lg" />
@@ -145,6 +150,27 @@ function DocumentPreviewDialog({ url, open, onClose }: { url: string; open: bool
             <div className="flex items-center justify-center">
               <img src={displayUrl} alt="Documento" className="max-h-[70vh] object-contain rounded-lg" />
             </div>
+          )}
+          {/* Navigation arrows */}
+          {total > 1 && !loading && (
+            <>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute left-6 top-1/2 -translate-y-1/2 z-10 opacity-80 hover:opacity-100"
+                onClick={() => setCurrentIndex((i) => (i > 0 ? i - 1 : total - 1))}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute right-6 top-1/2 -translate-y-1/2 z-10 opacity-80 hover:opacity-100"
+                onClick={() => setCurrentIndex((i) => (i < total - 1 ? i + 1 : 0))}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </>
           )}
         </div>
         <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
