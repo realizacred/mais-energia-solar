@@ -38,6 +38,11 @@ export function LeadsView() {
   const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null);
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, filterVisto, filterVendedor, filterEstado, setPage]);
+
   useEffect(() => {
     let filtered = orcamentos.filter(
       (orc) =>
@@ -202,8 +207,8 @@ export function LeadsView() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+      {/* Pagination — hide when filters produce no results */}
+      {totalPages > 1 && filteredOrcamentos.length > 0 && (
         <div className="flex items-center justify-between mt-4">
           <Button
             variant="outline"
