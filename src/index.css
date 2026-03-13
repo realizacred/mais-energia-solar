@@ -350,6 +350,8 @@
   .sidebar-section-expanded-ai { background: hsl(var(--sidebar-section-ai) / 0.04); }
   .sidebar-section-expanded-integrations { background: hsl(var(--sidebar-section-integrations) / 0.04); }
   .sidebar-section-expanded-settings { background: hsl(var(--sidebar-section-settings) / 0.04); }
+  .sidebar-section-expanded-energy { background: hsl(var(--sidebar-section-energy) / 0.04); }
+  .sidebar-section-expanded-team { background: hsl(var(--sidebar-section-team) / 0.04); }
 
   /* ─── Modern Duotone Icon System ─── */
   
