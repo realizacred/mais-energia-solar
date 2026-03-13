@@ -596,46 +596,6 @@ export function ValidacaoVendasManager() {
         </TabsContent>
       </Tabs>
 
-      {/* Details Dialog */}
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Detalhes da Venda</DialogTitle>
-          </DialogHeader>
-          {selectedCliente && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground text-xs">Cliente</Label>
-                  <p className="font-medium">{selectedCliente.nome}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Telefone</Label>
-                  <p>{selectedCliente.telefone}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Localização</Label>
-                  <p>{selectedCliente.cidade}, {selectedCliente.estado}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Vendedor</Label>
-                  <p>{selectedCliente.leads?.consultores?.nome || selectedCliente.leads?.consultor || "-"}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Potência</Label>
-                  <p>{selectedCliente.simulacoes?.potencia_recomendada_kwp || selectedCliente.potencia_kwp || 0} kWp</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Valor Investimento</Label>
-                  <p className="font-bold text-primary">
-                    {formatCurrency(selectedCliente.simulacoes?.investimento_estimado || selectedCliente.valor_projeto || 0)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Approval Dialog */}
       <ApproveVendaDialog
