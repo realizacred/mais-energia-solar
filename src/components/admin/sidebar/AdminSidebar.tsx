@@ -458,6 +458,12 @@ export function AdminSidebar({
       const customOrder = getSectionOrder(section.label);
       if (!customOrder || customOrder.length === 0) return section.items;
 
+      // If the saved order doesn't contain all current items, reset to default
+      // This ensures new items appear in their correct registry position
+      const savedSet = new Set(customOrder);
+      const hasNewItems = section.items.some((i) => !savedSet.has(i.id));
+      if (hasNewItems) return section.items;
+
       const itemMap = new Map(section.items.map((i) => [i.id, i]));
       const ordered: MenuItem[] = [];
       for (const id of customOrder) {
