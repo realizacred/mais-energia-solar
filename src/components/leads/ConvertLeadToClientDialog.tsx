@@ -394,15 +394,25 @@ export function ConvertLeadToClientDialog({
     return (
       identidadeFiles.length > 0 &&
       comprovanteFiles.length > 0 &&
-      form.getValues("disjuntor_id") &&
-      form.getValues("transformador_id") &&
-      form.getValues("localizacao")
+      !!form.getValues("email") &&
+      !!form.getValues("cpf_cnpj") &&
+      !!form.getValues("bairro") &&
+      !!form.getValues("rua") &&
+      !!form.getValues("numero") &&
+      !!form.getValues("disjuntor_id") &&
+      !!form.getValues("transformador_id") &&
+      !!form.getValues("localizacao")
     );
   };
 
   // Get list of missing required items
   const getMissingItems = () => {
     const missing: string[] = [];
+    if (!form.getValues("email")) missing.push("E-mail");
+    if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
+    if (!form.getValues("bairro")) missing.push("Bairro");
+    if (!form.getValues("rua")) missing.push("Rua");
+    if (!form.getValues("numero")) missing.push("Número");
     if (identidadeFiles.length === 0) missing.push("Identidade (RG/CNH)");
     if (comprovanteFiles.length === 0) missing.push("Comprovante de Endereço");
     if (!form.getValues("disjuntor_id")) missing.push("Disjuntor");
