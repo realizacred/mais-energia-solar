@@ -158,7 +158,7 @@ export function ApproveVendaDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[90vw] max-w-[560px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogContent className="w-[90vw] max-w-[780px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
           {/* HEADER §25 */}
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
@@ -382,7 +382,6 @@ export function ApproveVendaDialog({
               variant="default"
               onClick={onApprove}
               disabled={approving || !isValid}
-              className="bg-success hover:bg-success/90 text-success-foreground"
             >
               {approving && <Spinner size="sm" className="mr-1.5" />}
               Confirmar Aprovação
