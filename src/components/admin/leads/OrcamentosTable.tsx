@@ -113,7 +113,8 @@ export function OrcamentosTable({
           {groupedOrcamentos.map((group) => {
             const orc = group.latestOrcamento as OrcamentoDisplayItem;
             const convertidoStatus = statuses.find(s => s.nome === "Convertido");
-            const isConverted = convertidoStatus && orc.status_id === convertidoStatus.id;
+            const aguardandoValidacaoStatus = statuses.find(s => s.nome === "Aguardando Validação");
+            const isConverted = (convertidoStatus && orc.status_id === convertidoStatus.id) || (aguardandoValidacaoStatus && orc.status_id === aguardandoValidacaoStatus.id);
             const hasHistory = group.count > 1;
             
             return (
