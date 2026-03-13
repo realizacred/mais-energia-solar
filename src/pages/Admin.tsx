@@ -377,6 +377,7 @@ export default function Admin() {
     }
     return segments[0] || "leads";
   }, [location.pathname]);
+  const isInboxLayout = activeTab === "inbox";
 
   const badgeCounts = useMemo(() => ({
     validacao: pendingCount,
