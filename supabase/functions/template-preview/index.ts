@@ -264,61 +264,57 @@ function normalizeParagraphRuns(xml: string): string {
       paraXml.includes("<w:object");
 
     if (hasComplexContent) {
-      // Extract text from runs outside complex structures to check for placeholders
+      // Check if there are brackets outside complex structures
       const strippedXml = paraXml
         .replace(/<w:drawing[^>]*>[^]*?<\/w:drawing>/g, "")
         .replace(/<mc:AlternateContent[^>]*>[^]*?<\/mc:AlternateContent>/g, "")
         .replace(/<w:pict[^>]*>[^]*?<\/w:pict>/g, "")
         .replace(/<w:object[^>]*>[^]*?<\/w:object>/g, "");
 
-      // If no bracket in the remaining text, skip normalization
       if (!strippedXml.includes("[")) return paraXml;
 
-      // Has placeholders outside complex structures — we need to normalize.
-      // Strategy: replace complex blocks with unique tokens, normalize, restore.
+      // Tokenize complex structures to isolate text-only runs for normalization.
+      // Phase 1: scan ALL <w:r> runs — tokenize any that contain complex elements.
+      // Phase 2: tokenize standalone complex elements not wrapped in runs.
+      // Restore in REVERSE order so nested tokens are handled correctly.
       const complexBlocks: string[] = [];
       let safePara = paraXml;
 
-      // Replace each complex block with a token run
-      const complexPatterns = [
-        /<w:r[\s>][^]*?<w:drawing[^>]*>[^]*?<\/w:drawing>[^]*?<\/w:r>/g,
-        /<w:r[\s>][^]*?<mc:AlternateContent[^>]*>[^]*?<\/mc:AlternateContent>[^]*?<\/w:r>/g,
-        /<w:r[\s>][^]*?<w:pict[^>]*>[^]*?<\/w:pict>[^]*?<\/w:r>/g,
-        /<w:r[\s>][^]*?<w:object[^>]*>[^]*?<\/w:object>[^]*?<\/w:r>/g,
-      ];
+      // Phase 1: Tokenize runs containing complex child elements
+      safePara = safePara.replace(/<w:r[\s>][^]*?<\/w:r>/g, (runMatch) => {
+        if (
+          runMatch.includes("<w:drawing") ||
+          runMatch.includes("<mc:AlternateContent") ||
+          runMatch.includes("<w:pict") ||
+          runMatch.includes("<w:object")
+        ) {
+          const idx = complexBlocks.length;
+          complexBlocks.push(runMatch);
+          return `<!--CBLK_${idx}-->`;
+        }
+        return runMatch; // text-only run — keep for normalization
+      });
 
-      for (const pat of complexPatterns) {
+      // Phase 2: Tokenize standalone complex elements (not inside a <w:r>)
+      const standaloneTypes = ["w:drawing", "mc:AlternateContent", "w:pict", "w:object"];
+      for (const elemType of standaloneTypes) {
+        const escaped = elemType.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const pat = new RegExp(`<${escaped}[^>]*>[^]*?<\\/${escaped}>`, "g");
         safePara = safePara.replace(pat, (match) => {
           const idx = complexBlocks.length;
           complexBlocks.push(match);
-          return `<!--COMPLEX_BLOCK_${idx}-->`;
+          return `<!--CBLK_${idx}-->`;
         });
       }
 
-      // Also handle standalone complex elements not wrapped in w:r
-      const standalonePatterns = [
-        /<w:drawing[^>]*>[^]*?<\/w:drawing>/g,
-        /<mc:AlternateContent[^>]*>[^]*?<\/mc:AlternateContent>/g,
-        /<w:pict[^>]*>[^]*?<\/w:pict>/g,
-        /<w:object[^>]*>[^]*?<\/w:object>/g,
-      ];
-
-      for (const pat of standalonePatterns) {
-        safePara = safePara.replace(pat, (match) => {
-          const idx = complexBlocks.length;
-          complexBlocks.push(match);
-          return `<!--COMPLEX_BLOCK_${idx}-->`;
-        });
-      }
-
-      // Now normalize the safe paragraph (only text runs remain)
-      // We call the inner normalizer which doesn't have the drawing skip
+      // Normalize text-only runs (merges split placeholders)
       const normalized = normalizeParagraphRunsInner(safePara);
 
-      // Restore complex blocks
+      // Restore complex blocks in REVERSE order — critical for nested tokens
+      // (e.g. a run-with-drawing tokenized inside mc:AlternateContent)
       let result = normalized;
-      for (let i = 0; i < complexBlocks.length; i++) {
-        result = result.replace(`<!--COMPLEX_BLOCK_${i}-->`, complexBlocks[i]);
+      for (let i = complexBlocks.length - 1; i >= 0; i--) {
+        result = result.replace(`<!--CBLK_${i}-->`, complexBlocks[i]);
       }
 
       return result;

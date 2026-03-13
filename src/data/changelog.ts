@@ -19,15 +19,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "2.33.0",
+    version: "2.33.1",
     date: "2026-03-13",
-    title: "DOCX: placeholders sobre imagens 'Atrás do Texto' agora substituídos",
+    title: "DOCX: correção de tokenização aninhada em parágrafos com imagens",
     type: "bugfix",
-    description: "normalizeParagraphRuns() não mais pula parágrafos inteiros com w:drawing — agora isola blocos complexos, normaliza os runs de texto ao redor e restaura os drawings intactos.",
+    description: "Corrigido bug onde tokens aninhados (run-com-drawing dentro de mc:AlternateContent) não eram restaurados corretamente, causando falha na substituição de placeholders sobre imagens 'Atrás do Texto'.",
     details: [
-      "Drawings/pict/mc:AlternateContent extraídos como tokens antes da normalização",
-      "Runs de texto fora dos drawings são normalizados e fundidos normalmente",
-      "Blocos complexos restaurados após normalização, preservando layout",
+      "Tokenização agora usa scan de runs em fase única — cada run é classificado como complexo ou texto",
+      "Restauração de tokens em ordem REVERSA para tratar aninhamento corretamente",
+      "Standalone complex elements tokenizados separadamente por tipo",
     ],
   },
   {
