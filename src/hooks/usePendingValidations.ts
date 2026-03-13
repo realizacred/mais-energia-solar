@@ -98,6 +98,11 @@ export function usePendingValidations() {
           simulacao_aceita_id,
           potencia_kwp,
           valor_projeto,
+          identidade_url,
+          identidade_urls,
+          comprovante_endereco_url,
+          comprovante_endereco_urls,
+          comprovante_beneficiaria_urls,
           leads(consultor, consultor_id, lead_code, consultores:consultor_id(id, nome)),
           simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp)
         `)
