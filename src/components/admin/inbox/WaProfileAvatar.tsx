@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +24,17 @@ const iconSizes = {
   lg: "h-5 w-5",
 } as const;
 
+const INVALID_PROFILE_VALUES = new Set(["", "none", "null", "undefined"]);
+
+function normalizeProfilePictureUrl(url: string | null): string | null {
+  const normalized = (url ?? "").trim();
+  if (INVALID_PROFILE_VALUES.has(normalized.toLowerCase())) return null;
+  return normalized;
+}
+
 /**
- * Reusable WhatsApp profile avatar with onError fallback.
- * When the profile picture URL is expired/broken, falls back to initials or icon.
+ * Reusable WhatsApp profile avatar with robust onError fallback.
+ * Resets error state when URL changes and retries once with cache-busting.
  */
 export function WaProfileAvatar({
   profilePictureUrl,
@@ -37,17 +45,45 @@ export function WaProfileAvatar({
   hasUnread,
   statusDotClassName,
 }: WaProfileAvatarProps) {
+  const normalizedUrl = useMemo(() => normalizeProfilePictureUrl(profilePictureUrl), [profilePictureUrl]);
+  const [imgSrc, setImgSrc] = useState<string | null>(normalizedUrl);
   const [imgError, setImgError] = useState(false);
 
-  const showImg = !!profilePictureUrl && profilePictureUrl !== "none" && !imgError;
+  useEffect(() => {
+    setImgSrc(normalizedUrl);
+    setImgError(false);
+  }, [normalizedUrl]);
+
+  const showImg = !!imgSrc && !imgError;
 
   const fallback = isGroup ? (
     <Users className={iconSizes[size]} />
   ) : name ? (
-    name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((n) => n[0] ?? "")
+      .join("")
+      .toUpperCase()
   ) : (
     <User className={iconSizes[size]} />
   );
+
+  const handleImgError = () => {
+    if (!imgSrc) {
+      setImgError(true);
+      return;
+    }
+
+    if (!imgSrc.includes("__wa_bust=")) {
+      const separator = imgSrc.includes("?") ? "&" : "?";
+      setImgSrc(`${imgSrc}${separator}__wa_bust=${Date.now()}`);
+      return;
+    }
+
+    setImgError(true);
+  };
 
   return (
     <div
@@ -60,11 +96,12 @@ export function WaProfileAvatar({
     >
       {showImg ? (
         <img
-          src={profilePictureUrl}
-          alt=""
+          src={imgSrc ?? ""}
+          alt={name ? `Foto de perfil de ${name}` : isGroup ? "Foto de perfil do grupo" : "Foto de perfil"}
           className="w-full h-full rounded-full object-cover"
-          onError={() => setImgError(true)}
+          onError={handleImgError}
           loading="lazy"
+          referrerPolicy="no-referrer"
         />
       ) : (
         fallback
