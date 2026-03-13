@@ -776,7 +776,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           </div>
 
           {/* Desktop: Chat Panel or Pre-Contact Card */}
-          <div className="hidden md:flex flex-1 min-h-0 min-w-0 overflow-x-hidden">
+          <div className="hidden md:flex flex-1 min-h-0 min-w-0 overflow-hidden">
             {!selectedConv && preContactData ? (
               <WaPreContactCard
                 nome={preContactData.nome}
