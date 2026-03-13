@@ -65,7 +65,7 @@ export function usePendingValidations() {
         .from("lead_status")
         .select("id")
         .eq("nome", "Aguardando Validação")
-        .single();
+        .maybeSingle();
 
       if (!statusData) {
         setPendingItems([]);
@@ -113,8 +113,17 @@ export function usePendingValidations() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setPendingItems((data as unknown as PendingValidation[]) || []);
-      setPendingCount(data?.length || 0);
+      const items = (data as unknown as PendingValidation[]) || [];
+      console.debug("[usePendingValidations] fetched", items.length, "items. Sample docs:", items[0] && {
+        identidade_urls: items[0].identidade_urls,
+        comprovante_endereco_urls: items[0].comprovante_endereco_urls,
+        comprovante_beneficiaria_urls: items[0].comprovante_beneficiaria_urls,
+        lead_arquivos: items[0].leads?.arquivos_urls,
+        simulacoes: items[0].simulacoes,
+        media_consumo: items[0].leads?.media_consumo,
+      });
+      setPendingItems(items);
+      setPendingCount(items.length);
     } catch (error) {
       console.error("Error fetching pending validations:", error);
     } finally {
@@ -130,7 +139,7 @@ export function usePendingValidations() {
         .from("lead_status")
         .select("id")
         .eq("nome", "Convertido")
-        .single();
+        .maybeSingle();
 
       if (!convertidoStatus) {
         setHistoryItems([]);
