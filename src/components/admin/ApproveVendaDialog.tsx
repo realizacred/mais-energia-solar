@@ -382,7 +382,6 @@ export function ApproveVendaDialog({
               variant="default"
               onClick={onApprove}
               disabled={approving || !isValid}
-              className="bg-success hover:bg-success/90 text-success-foreground"
             >
               {approving && <Spinner size="sm" className="mr-1.5" />}
               Confirmar Aprovação
