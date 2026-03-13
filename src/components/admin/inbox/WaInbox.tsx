@@ -343,7 +343,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         if (autoMsg !== "false") {
           const parts: string[] = [];
           parts.push(`Olá ${data.nome || ""}! 👋`);
-          parts.push(`Aqui é ${data.consultor_nome || "a equipe"} da Mais Energia Solar ☀️`);
+          parts.push(`Aqui é ${data.consultor_nome || "a equipe"} da ${nomeEmpresa} ☀️`);
           parts.push("");
           parts.push("Recebi sua solicitação e já estou preparando sua simulação.");
           parts.push("");

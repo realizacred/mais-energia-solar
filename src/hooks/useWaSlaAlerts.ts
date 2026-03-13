@@ -143,14 +143,23 @@ export function useWaSlaAlerts() {
     prevCountRef.current = currentCount;
   }, [alerts, slaConfig?.alerta_sonoro]);
 
-  // Realtime subscription for new alerts
+  // Realtime subscription for new alerts (tenant-scoped)
+  const [slaTenantId, setSlaTenantId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
+    getCurrentTenantId().then((tid) => { if (!cancelled) setSlaTenantId(tid); });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !slaTenantId) return;
     const channel = supabase
       .channel("sla-alerts-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "wa_sla_alerts" },
+        { event: "*", schema: "public", table: "wa_sla_alerts", filter: `tenant_id=eq.${slaTenantId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ["wa-sla-alerts"] });
         }
@@ -160,7 +169,7 @@ export function useWaSlaAlerts() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user, slaTenantId, queryClient]);
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     await (supabase as any)
