@@ -3,7 +3,7 @@ import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature } from "lucide-react";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { formatCEP } from "@/lib/validations";
