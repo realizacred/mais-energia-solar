@@ -117,7 +117,7 @@ export function OrcamentosTable({
             return (
               <TableRow
                 key={group.lead_id}
-                className={`${orc.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
+                className={`align-middle ${orc.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
               >
                 <TableCell>
                   <Checkbox
