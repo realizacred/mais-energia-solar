@@ -207,8 +207,8 @@ export function LeadsView() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+      {/* Pagination — hide when filters produce no results */}
+      {totalPages > 1 && filteredOrcamentos.length > 0 && (
         <div className="flex items-center justify-between mt-4">
           <Button
             variant="outline"
