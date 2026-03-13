@@ -1091,7 +1091,7 @@ export function ConvertLeadToClientDialog({
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
-                        Localização (Coordenadas/Link do Mapa)
+                        Localização (Coordenadas/Link do Mapa) *
                       </FormLabel>
                       <div className="flex gap-2">
                         <FormControl>
