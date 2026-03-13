@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.32.0",
+    date: "2026-03-13",
+    title: "DOCX: normalização de placeholders em text boxes sobre imagens",
+    type: "bugfix",
+    description: "Adicionada normalizeTextBoxRuns() que processa placeholders fragmentados dentro de <w:txbxContent>, permitindo substituição correta em textos posicionados sobre imagens.",
+    details: [
+      "Nova função normalizeTextBoxRuns processa <w:txbxContent> antes da normalização principal",
+      "Runs fragmentados dentro de text boxes são fundidos corretamente",
+      "Corrige [responsavel_nome] e similares que ficavam visíveis no DOCX final",
+    ],
+  },
+  {
     version: "2.31.0",
     date: "2026-03-13",
     title: "flattenSnapshot() — utilitário compartilhado para templates",
