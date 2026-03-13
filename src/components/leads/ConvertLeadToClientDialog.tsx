@@ -657,7 +657,7 @@ export function ConvertLeadToClientDialog({
       if (convertidoStatus) {
         const nowIso = new Date().toISOString();
 
-        await Promise.all([
+        const [leadStatusUpdate, orcamentoStatusUpdate] = await Promise.all([
           supabase
             .from("leads")
             .update({ status_id: convertidoStatus.id, updated_at: nowIso })
@@ -667,8 +667,11 @@ export function ConvertLeadToClientDialog({
                 .from("orcamentos")
                 .update({ status_id: convertidoStatus.id, ultimo_contato: nowIso, updated_at: nowIso })
                 .eq("id", orcamentoId)
-            : Promise.resolve(null as any),
+            : Promise.resolve({ error: null } as any),
         ]);
+
+        if (leadStatusUpdate?.error) throw leadStatusUpdate.error;
+        if (orcamentoStatusUpdate?.error) throw orcamentoStatusUpdate.error;
       }
 
       const storageKey = `lead_conversion_${lead.id}`;

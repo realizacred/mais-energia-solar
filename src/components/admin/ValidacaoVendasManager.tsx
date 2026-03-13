@@ -176,14 +176,47 @@ export function ValidacaoVendasManager() {
 
       if (cliente.lead_id) {
         const simsPromise = async () => {
-          const { data } = await supabase
-            .from("simulacoes")
-            .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, geracao_mensal_estimada, payback_meses, created_at")
-            .eq("lead_id", cliente.lead_id!)
-            .order("created_at", { ascending: false });
-          const sims = (data as LeadSimulacao[]) || [];
+          const [{ data: legacySims }, { data: propostasNativas }] = await Promise.all([
+            supabase
+              .from("simulacoes")
+              .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, geracao_mensal_estimada, payback_meses, created_at")
+              .eq("lead_id", cliente.lead_id!)
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("propostas_nativas")
+              .select("id")
+              .eq("lead_id", cliente.lead_id!)
+              .order("created_at", { ascending: false })
+              .limit(10),
+          ]);
+
+          const simsLegacy = (legacySims as LeadSimulacao[]) || [];
+          let simsFromVersoes: LeadSimulacao[] = [];
+
+          const propostaIds = (propostasNativas || []).map((p) => p.id);
+          if (propostaIds.length > 0) {
+            const { data: versoes } = await supabase
+              .from("proposta_versoes")
+              .select("id, valor_total, potencia_kwp, economia_mensal, consumo_mensal, geracao_mensal, payback_meses, created_at")
+              .in("proposta_id", propostaIds)
+              .order("created_at", { ascending: false });
+
+            simsFromVersoes = (versoes || []).map((v) => ({
+              id: v.id,
+              investimento_estimado: v.valor_total,
+              potencia_recomendada_kwp: v.potencia_kwp,
+              economia_mensal: v.economia_mensal,
+              consumo_kwh: v.consumo_mensal,
+              geracao_mensal_estimada: v.geracao_mensal,
+              payback_meses: v.payback_meses,
+              created_at: v.created_at,
+            }));
+          }
+
+          const sims = [...simsLegacy, ...simsFromVersoes.filter((s) => !simsLegacy.some((l) => l.id === s.id))];
           setLeadSimulacoes(sims);
-          if (cliente.simulacao_aceita_id) {
+
+          if (cliente.simulacao_aceita_id && sims.some((s) => s.id === cliente.simulacao_aceita_id)) {
             setSelectedSimulacaoId(cliente.simulacao_aceita_id);
           } else if (sims.length > 0) {
             setSelectedSimulacaoId(sims[0].id);
@@ -723,6 +756,7 @@ export function ValidacaoVendasManager() {
           { label: "Identidade / RG / CNH", urls: selectedCliente.identidade_urls || (selectedCliente.identidade_url ? [selectedCliente.identidade_url] : null) },
           { label: "Comprovante de endereço", urls: selectedCliente.comprovante_endereco_urls || (selectedCliente.comprovante_endereco_url ? [selectedCliente.comprovante_endereco_url] : null) },
           { label: "Comprovante beneficiária", urls: selectedCliente.comprovante_beneficiaria_urls || null },
+          { label: "Assinatura do cliente", urls: selectedCliente.assinatura_url ? [selectedCliente.assinatura_url] : null },
         ].filter(doc => doc.label !== "Arquivos do Orçamento" || (doc.urls && doc.urls.length > 0)) : []}
       />
 

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle, User, MapPin, Phone, Zap, DollarSign, FileText,
-  AlertTriangle, Download, X, Eye, Sun, TrendingDown, Clock,
+  AlertTriangle, Download, X, Eye, Sun, TrendingDown, Clock, Navigation, Wrench,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatBRL } from "@/lib/formatters";
@@ -190,6 +190,18 @@ export function ApproveVendaDialog({
     || firstSim?.payback_meses
     || 0;
 
+  const disjuntorInfo = cliente.disjuntores?.amperagem
+    ? `${cliente.disjuntores.amperagem}A${cliente.disjuntores.descricao ? ` · ${cliente.disjuntores.descricao}` : ""}`
+    : (cliente.disjuntor_id ? "Configurado" : "—");
+
+  const transformadorInfo = cliente.transformadores?.potencia_kva
+    ? `${cliente.transformadores.potencia_kva} kVA${cliente.transformadores.descricao ? ` · ${cliente.transformadores.descricao}` : ""}`
+    : (cliente.transformador_id ? "Configurado" : "—");
+
+  const localizacaoInfo = cliente.localizacao
+    ? (cliente.localizacao.includes("google.com/maps") ? "Link de localização informado" : cliente.localizacao)
+    : "—";
+
   console.debug("[ApproveVendaDialog] data:", {
     selectedSimulacaoId,
     selectedSim,
@@ -198,6 +210,7 @@ export function ApproveVendaDialog({
     leadMediaConsumo: cliente.leads?.media_consumo,
     orcConsumo,
     potencia, consumo, valorProposta, geracaoMensal, economiaMensal, paybackMeses,
+    disjuntorInfo, transformadorInfo, localizacaoInfo,
     documents,
   });
 
@@ -257,48 +270,58 @@ export function ApproveVendaDialog({
                   </div>
                 </div>
 
+                <div className="border-t border-border" />
+
+                {/* Configurações técnicas */}
+                <div className="space-y-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Configurações técnicas
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <DataCard icon={Wrench} label="Disjuntor" value={disjuntorInfo} />
+                    <DataCard icon={Wrench} label="Transformador" value={transformadorInfo} />
+                    <DataCard icon={Navigation} label="Localização" value={localizacaoInfo} />
+                  </div>
+                </div>
+
                 {/* Documentos anexados */}
-                {documents.length > 0 && (
-                  <>
-                    <div className="border-t border-border" />
-                    <div className="space-y-3">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Documentos anexados
-                      </p>
-                      <div className="space-y-2">
-                        {documents.map((doc) => {
-                          const hasFiles = doc.urls && doc.urls.length > 0;
-                          return (
-                            <div
-                              key={doc.label}
-                              className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                                hasFiles
-                                  ? "bg-muted/50 border-border hover:bg-muted cursor-pointer"
-                                  : "bg-muted/30 border-warning/30"
-                              }`}
-                              onClick={() => hasFiles && doc.urls && setPreviewUrl(doc.urls[0])}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm text-foreground">{doc.label}</span>
-                              </div>
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] ${
-                                  hasFiles
-                                    ? "bg-success/10 text-success border-success/20"
-                                    : "bg-warning/10 text-warning border-warning/20"
-                                }`}
-                              >
-                                {hasFiles ? `Anexado (${doc.urls!.length})` : "Pendente"}
-                              </Badge>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
+                <div className="border-t border-border" />
+                <div className="space-y-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Documentos anexados
+                  </p>
+                  <div className="space-y-2">
+                    {documents.map((doc) => {
+                      const hasFiles = doc.urls && doc.urls.length > 0;
+                      return (
+                        <div
+                          key={doc.label}
+                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                            hasFiles
+                              ? "bg-muted/50 border-border hover:bg-muted cursor-pointer"
+                              : "bg-muted/30 border-warning/30"
+                          }`}
+                          onClick={() => hasFiles && doc.urls && setPreviewUrl(doc.urls[0])}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <span className="text-sm text-foreground">{doc.label}</span>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${
+                              hasFiles
+                                ? "bg-success/10 text-success border-success/20"
+                                : "bg-warning/10 text-warning border-warning/20"
+                            }`}
+                          >
+                            {hasFiles ? `Anexado (${doc.urls!.length})` : "Pendente"}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* ═══ COLUNA DIREITA — Comissão ═══ */}
