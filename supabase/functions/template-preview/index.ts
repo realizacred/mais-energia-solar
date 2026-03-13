@@ -76,7 +76,11 @@ async function processDocxTemplate(
     }
   }
 
-  const output = await zip.generateAsync({ type: "uint8array" });
+  const output = await zip.generateAsync({
+    type: "uint8array",
+    compression: "DEFLATE",
+    compressionOptions: { level: 6 },
+  });
   return { output, missingVars };
 }
 
