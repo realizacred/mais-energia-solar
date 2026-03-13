@@ -60,7 +60,7 @@ export function ValidacaoVendasManager() {
   const [rejecting, setRejecting] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [percentualComissao, setPercentualComissao] = useState("2.0");
-  const [valorVenda, setValorVenda] = useState("");
+  const [valorVenda, setValorVenda] = useState(0);
   const [loadingVendedor, setLoadingVendedor] = useState(false);
   const [activeTab, setActiveTab] = useState("pendentes");
   const [leadSimulacoes, setLeadSimulacoes] = useState<LeadSimulacao[]>([]);
