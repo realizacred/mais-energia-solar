@@ -208,7 +208,7 @@ export function ApproveVendaDialog({
   isValid,
   documents,
 }: ApproveVendaDialogProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[] | null>(null);
 
   if (!cliente) return null;
 
