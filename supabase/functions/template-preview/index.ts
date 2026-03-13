@@ -98,15 +98,12 @@ async function processDocxTemplate(
  *    are left untouched.
  */
 function normalizeParagraphRuns(xml: string): string {
-  // Match each <w:p ...>...</w:p>
   const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
 
   return xml.replace(paraPattern, (paraXml) => {
-    // Quick check: does this paragraph contain a bracket?
     if (!paraXml.includes("[")) return paraXml;
 
-    // SAFETY: Skip paragraphs containing drawings, images, or complex elements
-    // These have positional/structural XML that must not be touched
+    // SAFETY: skip paragraphs with known complex structures that should not be touched.
     if (
       paraXml.includes("<w:drawing") ||
       paraXml.includes("<mc:AlternateContent") ||
@@ -118,9 +115,8 @@ function normalizeParagraphRuns(xml: string): string {
       return paraXml;
     }
 
-    // Extract runs
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
-    const runs: Array<{ fullMatch: string; text: string; rPr: string; startIdx: number }> = [];
+    const runs: Array<{ xml: string; text: string; rPr: string }> = [];
     let runMatch;
     while ((runMatch = runPattern.exec(paraXml)) !== null) {
       const runXml = runMatch[0];
@@ -128,18 +124,14 @@ function normalizeParagraphRuns(xml: string): string {
       const rPr = rPrMatch ? rPrMatch[0] : "";
       const textMatch = runXml.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/);
       const text = textMatch ? textMatch[1] : "";
-      runs.push({ fullMatch: runXml, text, rPr, startIdx: runMatch.index });
+      runs.push({ xml: runXml, text, rPr });
     }
 
     if (runs.length < 2) return paraXml;
 
-    // Concatenate all run texts
     const fullText = runs.map((r) => r.text).join("");
     if (!fullText.includes("[")) return paraXml;
 
-    // Find placeholder spans that cross run boundaries
-    const phPattern = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
-    let phMatch;
     const charRunIdx: number[] = [];
     for (let ri = 0; ri < runs.length; ri++) {
       for (let ci = 0; ci < runs[ri].text.length; ci++) {
@@ -147,11 +139,14 @@ function normalizeParagraphRuns(xml: string): string {
       }
     }
 
+    const phPattern = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
+    let phMatch;
     const mergeSpans: Array<[number, number]> = [];
     while ((phMatch = phPattern.exec(fullText)) !== null) {
       const startChar = phMatch.index;
       const endChar = startChar + phMatch[0].length - 1;
       if (startChar >= charRunIdx.length || endChar >= charRunIdx.length) continue;
+
       const startRun = charRunIdx[startChar];
       const endRun = charRunIdx[endChar];
       if (startRun !== endRun) {
@@ -161,7 +156,6 @@ function normalizeParagraphRuns(xml: string): string {
 
     if (mergeSpans.length === 0) return paraXml;
 
-    // Merge overlapping spans
     mergeSpans.sort((a, b) => a[0] - b[0]);
     const merged: Array<[number, number]> = [mergeSpans[0]];
     for (let i = 1; i < mergeSpans.length; i++) {
@@ -173,47 +167,48 @@ function normalizeParagraphRuns(xml: string): string {
       }
     }
 
-    // Instead of rebuilding the entire paragraph, do targeted replacements:
-    // For each merge span, replace the sequence of runs with a single merged run.
-    // Work backwards so indices don't shift.
-    let result = paraXml;
-    for (let si = merged.length - 1; si >= 0; si--) {
-      const [startRun, endRun] = merged[si];
+    const firstRunIdx = paraXml.indexOf(runs[0].xml);
+    const lastRun = runs[runs.length - 1];
+    const lastRunIdx = paraXml.lastIndexOf(lastRun.xml);
+    const lastRunEnd = lastRunIdx + lastRun.xml.length;
 
-      const firstRun = runs[startRun];
-      const lastRun = runs[endRun];
+    if (firstRunIdx < 0 || lastRunIdx < 0) return paraXml;
 
-      // Find the exact positions of the first and last run in the paragraph XML
-      const regionStart = firstRun.startIdx;
-      const regionEnd = lastRun.startIdx + lastRun.fullMatch.length;
+    const before = paraXml.substring(0, firstRunIdx);
+    const after = paraXml.substring(lastRunEnd);
+    const runsRegion = paraXml.substring(firstRunIdx, lastRunEnd);
 
-      // Combine text from all runs in the span
-      const combinedText = runs
-        .slice(startRun, endRun + 1)
-        .map((r) => r.text)
-        .join("");
+    const interRunContent: string[] = [];
+    let searchPos = 0;
+    for (let i = 0; i < runs.length; i++) {
+      const pos = runsRegion.indexOf(runs[i].xml, searchPos);
+      if (pos < 0) return paraXml;
+      interRunContent.push(runsRegion.substring(searchPos, pos));
+      searchPos = pos + runs[i].xml.length;
+    }
+    const trailingContent = searchPos < runsRegion.length ? runsRegion.substring(searchPos) : "";
 
-      // Keep the formatting of the first run
-      const rPr = firstRun.rPr;
-      const mergedRun = `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
+    let rebuiltRegion = "";
+    let ri = 0;
+    while (ri < runs.length) {
+      rebuiltRegion += interRunContent[ri] ?? "";
 
-      // Replace the region (from first run start to last run end) but preserve
-      // any non-run XML between the runs (bookmarks, proofErr, etc.)
-      // Strategy: remove ALL original runs in the span, keep inter-run XML, prepend merged run
-      const region = result.substring(regionStart, regionEnd);
-
-      // Remove all original runs from the region and collect inter-run content
-      let cleanedRegion = region;
-      for (let ri = startRun; ri <= endRun; ri++) {
-        cleanedRegion = cleanedRegion.replace(runs[ri].fullMatch, "");
+      const span = merged.find((s) => s[0] === ri);
+      if (span) {
+        const groupRuns = runs.slice(span[0], span[1] + 1);
+        const combinedText = groupRuns.map((r) => r.text).join("");
+        const rPr = groupRuns[0].rPr;
+        rebuiltRegion += `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
+        ri = span[1] + 1;
+      } else {
+        rebuiltRegion += runs[ri].xml;
+        ri += 1;
       }
-      // cleanedRegion now has only inter-run XML (bookmarks etc.), which we discard
-      // since it's usually just proofErr/spelling markers between split placeholder runs
-
-      result = result.substring(0, regionStart) + mergedRun + result.substring(regionEnd);
     }
 
-    return result;
+    rebuiltRegion += trailingContent;
+
+    return before + rebuiltRegion + after;
   });
 }
 
