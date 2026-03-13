@@ -190,6 +190,18 @@ export function ApproveVendaDialog({
     || firstSim?.payback_meses
     || 0;
 
+  const disjuntorInfo = cliente.disjuntores?.amperagem
+    ? `${cliente.disjuntores.amperagem}A${cliente.disjuntores.descricao ? ` · ${cliente.disjuntores.descricao}` : ""}`
+    : (cliente.disjuntor_id ? "Configurado" : "—");
+
+  const transformadorInfo = cliente.transformadores?.potencia_kva
+    ? `${cliente.transformadores.potencia_kva} kVA${cliente.transformadores.descricao ? ` · ${cliente.transformadores.descricao}` : ""}`
+    : (cliente.transformador_id ? "Configurado" : "—");
+
+  const localizacaoInfo = cliente.localizacao
+    ? (cliente.localizacao.includes("google.com/maps") ? "Link de localização informado" : cliente.localizacao)
+    : "—";
+
   console.debug("[ApproveVendaDialog] data:", {
     selectedSimulacaoId,
     selectedSim,
@@ -198,6 +210,7 @@ export function ApproveVendaDialog({
     leadMediaConsumo: cliente.leads?.media_consumo,
     orcConsumo,
     potencia, consumo, valorProposta, geracaoMensal, economiaMensal, paybackMeses,
+    disjuntorInfo, transformadorInfo, localizacaoInfo,
     documents,
   });
 
