@@ -164,7 +164,7 @@ function SidebarItemButton({
           </span>
         )}
         {badgeCount > 0 && collapsed && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" aria-label={`${badgeCount} pendências`} role="status" />
         )}
         {isActive && !collapsed && badgeCount === 0 && (
           <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
@@ -565,7 +565,7 @@ export function AdminSidebar({
             <Button
               variant="outline"
               size={collapsed ? "icon" : "default"}
-              aria-label={collapsed ? "Super Admin" : undefined}
+              aria-label="Super Admin"
               className={`w-full justify-start gap-2 text-primary border-primary/20 hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary/50 ${collapsed ? "justify-center px-0" : ""}`}
             >
               <Building2 className="h-4 w-4 shrink-0" />
@@ -577,7 +577,7 @@ export function AdminSidebar({
           variant="ghost"
           size={collapsed ? "icon" : "default"}
           onClick={onSignOut}
-          aria-label={collapsed ? "Sair" : undefined}
+          aria-label="Sair"
           className={`
             w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10
             focus-visible:ring-2 focus-visible:ring-primary/50
