@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.35.5",
+    date: "2026-03-13",
+    title: "Correção de rolagem dupla na Central WhatsApp",
+    type: "bugfix",
+    description: "Ajustada a cadeia de layout flex/overflow para restaurar rolagem independente da lista de conversas e do painel de mensagens.",
+    details: [
+      "admin-content no modo inbox agora força min-h-0 e overflow-hidden para evitar scroll da página inteira",
+      "WaInbox recebeu min-h-0/overflow-hidden nos containers-chave do layout desktop e mobile",
+      "WaConversationList e área de mensagens do WaChatPanel foram travadas para scroll interno consistente",
+    ],
+  },
+  {
     version: "2.35.4",
     date: "2026-03-13",
     title: "Correções de upload de documentos e dados na conversão de lead",

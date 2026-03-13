@@ -702,7 +702,7 @@
 
   /* WaInbox: make admin-content a flex column so inbox fills remaining height */
   .admin-content:has([data-wa-inbox-active]) {
-    @apply flex flex-col;
+    @apply flex flex-col min-h-0 overflow-hidden;
     height: calc(100vh - 3.5rem); /* subtract sticky header height */
     gap: 0; /* inbox manages its own spacing via space-y-4 */
   }

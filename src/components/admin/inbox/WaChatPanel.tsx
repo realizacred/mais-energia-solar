@@ -701,7 +701,7 @@ export function WaChatPanel({
 
         {/* Messages with virtualization */}
         <div
-          className="flex-1 min-h-0 relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10 min-w-0 overflow-x-hidden"
+          className="flex-1 min-h-0 relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10 min-w-0 overflow-hidden"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}

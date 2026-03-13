@@ -584,7 +584,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   };
 
   return (
-    <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "flex flex-col h-full gap-4 overflow-hidden"}`} data-wa-inbox-active>
+    <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-x-hidden" : "flex flex-col h-full min-h-0 gap-4 overflow-hidden"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
         <div className="shrink-0">
@@ -645,9 +645,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       <div
         className="bg-card rounded-xl border border-border/40 shadow-sm flex-1 min-h-0 overflow-hidden"
       >
-        <div className="flex h-full min-w-0 w-full max-w-full overflow-hidden">
+        <div className="flex h-full min-h-0 min-w-0 w-full max-w-full overflow-hidden">
           {/* Sidebar - Conversations (Desktop) */}
-          <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col min-h-0`}>
+          <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col min-h-0 overflow-hidden`}>
             <WaConversationList
               conversations={filteredConvs}
               loading={convsLoading}
@@ -679,7 +679,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
           {/* Mobile */}
           <div
-            className="flex-1 flex flex-col md:hidden min-w-0 max-w-full overflow-x-hidden"
+            className="flex-1 flex flex-col md:hidden min-h-0 min-w-0 max-w-full overflow-x-hidden"
             onTouchStart={(e) => {
               const t = e.currentTarget;
               (t as any)._swipeStartX = e.touches[0].clientX;
@@ -776,7 +776,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           </div>
 
           {/* Desktop: Chat Panel or Pre-Contact Card */}
-          <div className="hidden md:flex flex-1 min-w-0 overflow-x-hidden">
+          <div className="hidden md:flex flex-1 min-h-0 min-w-0 overflow-x-hidden">
             {!selectedConv && preContactData ? (
               <WaPreContactCard
                 nome={preContactData.nome}

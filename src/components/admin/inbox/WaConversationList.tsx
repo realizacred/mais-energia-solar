@@ -422,7 +422,7 @@ export function WaConversationList({
   followupConvIds,
 }: WaConversationListProps) {
   return (
-    <div className="flex flex-col h-full border-r border-border/30 bg-card/50">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden border-r border-border/30 bg-card/50">
       {/* Search & Filters */}
       <div className="p-3 border-b border-border/30 space-y-2 bg-card overflow-visible">
         <div className="relative">
