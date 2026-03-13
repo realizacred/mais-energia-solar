@@ -1370,18 +1370,46 @@ export function ProposalWizard() {
           try {
             const mammoth = await import("mammoth");
             const arrayBuffer = await docxBlob.arrayBuffer();
-            const mammothResult = await mammoth.convertToHtml({ arrayBuffer });
-            // Wrap in a styled container for better visual
+            const mammothResult = await (mammoth as any).convertToHtml({
+              arrayBuffer,
+              convertImage: (mammoth as any).images.imgElement((image: any) =>
+                image.read("base64").then((imageBuffer: string) => ({
+                  src: `data:${image.contentType};base64,${imageBuffer}`,
+                }))
+              ),
+            });
+            // Wrap in A4-styled container with proper image handling
             const styledHtml = `
               <!DOCTYPE html>
-              <html><head><style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #333; line-height: 1.6; font-size: 14px; }
-                table { border-collapse: collapse; width: 100%; margin: 16px 0; }
-                td, th { border: 1px solid #ddd; padding: 8px 12px; }
+              <html><head><meta charset="utf-8"><style>
+                @page { size: A4; margin: 20mm; }
+                * { box-sizing: border-box; }
+                body {
+                  font-family: 'Segoe UI', Arial, sans-serif;
+                  width: 210mm; min-height: 297mm;
+                  margin: 0 auto; padding: 20mm;
+                  color: #333; line-height: 1.6; font-size: 12px;
+                  background: #fff;
+                }
+                table { border-collapse: collapse; width: 100%; margin: 12px 0; page-break-inside: avoid; }
+                td, th { border: 1px solid #ddd; padding: 6px 10px; vertical-align: middle; }
                 th { background: #f5f5f5; font-weight: 600; }
-                img { max-width: 100%; height: auto; }
-                h1 { font-size: 22px; color: #222; } h2 { font-size: 18px; color: #333; } h3 { font-size: 16px; color: #444; }
-                p { margin: 8px 0; }
+                img {
+                  max-width: 100%; height: auto; display: block;
+                  margin: 8px 0; page-break-inside: avoid;
+                  position: relative; /* prevent overlap */
+                  clear: both;
+                }
+                /* Inline images (small icons) stay inline */
+                p img, span img { display: inline; margin: 0 4px; vertical-align: middle; max-height: 1.5em; }
+                /* Large images get full-width block treatment */
+                img[src*="base64"] { display: block; clear: both; }
+                h1 { font-size: 20px; color: #222; margin: 16px 0 8px; page-break-after: avoid; }
+                h2 { font-size: 17px; color: #333; margin: 14px 0 6px; page-break-after: avoid; }
+                h3 { font-size: 15px; color: #444; margin: 12px 0 4px; page-break-after: avoid; }
+                p { margin: 6px 0; orphans: 3; widows: 3; }
+                /* Prevent content overflow */
+                div, section, article { overflow: hidden; }
               </style></head><body>${mammothResult.value}</body></html>
             `;
             setHtmlPreview(styledHtml);

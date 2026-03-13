@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.29.1",
+    date: "2026-03-13",
+    title: "Preview DOCX: layout A4 e PDF multi-página",
+    type: "bugfix",
+    description: "Corrigido preview de propostas DOCX com imagens sobrepostas ao texto, zoom excessivo e PDF sem paginação A4.",
+    details: [
+      "Preview com CSS A4 (210×297mm) com imagens block-level para evitar sobreposição",
+      "Mammoth convertImage com base64 embutido para preservar imagens do DOCX",
+      "PDF multi-página: canvas fatiado por página A4 em vez de imagem única",
+      "Iframe de preview expandido para 800px de altura",
+    ],
+  },
+  {
     version: "2.29.0",
     date: "2026-03-13",
     title: "Auditoria e mapeamento completo de variáveis DOCX",
