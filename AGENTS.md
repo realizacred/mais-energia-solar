@@ -956,7 +956,7 @@ PROIBIDO:
 
 Todos os switches/toggles do sistema devem seguir:
 
-- Cor ativa: bg-primary (laranja) — NUNCA azul ou hardcoded
+- Cor ativa: `bg-primary` — NUNCA azul ou hardcoded
 - Cor inativa: bg-muted
 - Verificar src/components/ui/switch.tsx — deve usar bg-primary quando checked
 
