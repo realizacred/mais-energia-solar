@@ -451,6 +451,7 @@ export function ValidacaoVendasManager() {
                         <TableHead className="font-semibold text-foreground">Vendedor</TableHead>
                         <TableHead className="font-semibold text-foreground">Localização</TableHead>
                         <TableHead className="font-semibold text-foreground text-right">Potência</TableHead>
+                        <TableHead className="font-semibold text-foreground text-right">Geração</TableHead>
                         <TableHead className="font-semibold text-foreground text-right">Valor Venda</TableHead>
                         <TableHead className="font-semibold text-foreground">Data</TableHead>
                         <TableHead className="w-44"></TableHead>
