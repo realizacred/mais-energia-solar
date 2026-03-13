@@ -273,12 +273,10 @@ function resolveFromContext(
 }
 
 // ── Required keys (variáveis que DEVEM existir para gerar PDF) ──
+// NOTE: financeiro.preco_total REMOVIDO dos obrigatórios — PDF gera com "-" se não preenchido
 
 const REQUIRED_KEYS = new Set([
   "cliente.nome",
-  "entrada.consumo_mensal",
-  "sistema_solar.potencia_sistema",
-  "financeiro.preco_total",
 ]);
 
 // ── Main resolver ────────────────────────────────────────────
