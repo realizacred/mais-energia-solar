@@ -184,6 +184,8 @@
     --sidebar-section-ai: 270 55% 60%;
     --sidebar-section-integrations: 175 55% 48%;
     --sidebar-section-settings: 220 30% 55%;
+    --sidebar-section-energy: 45 85% 55%;
+    --sidebar-section-team: 340 60% 60%;
 
     /* Legacy aliases */
     --sidebar-section-intelligence: 27 100% 55%;
