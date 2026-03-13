@@ -273,16 +273,15 @@ export async function uploadDocumentFiles(
   bucket: string = "documentos-clientes"
 ): Promise<string[]> {
   const uploadedUrls: string[] = [];
+  const errors: string[] = [];
   
   for (const file of files) {
     if (file.uploaded) {
-      // Already uploaded, just use the existing path
       uploadedUrls.push(file.data);
       continue;
     }
 
     try {
-      // Convert base64 to blob
       const response = await fetch(file.data);
       const blob = await response.blob();
       
@@ -297,14 +296,20 @@ export async function uploadDocumentFiles(
 
       if (error) {
         console.error('Upload error:', error);
-        throw error;
+        errors.push(`${file.name}: ${error.message}`);
+        continue;
       }
 
       uploadedUrls.push(fileName);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to upload file:', file.name, error);
-      // Continue with other files even if one fails
+      errors.push(`${file.name}: ${error?.message || 'Erro desconhecido'}`);
     }
+  }
+
+  // If ALL files failed, throw so the caller knows
+  if (files.length > 0 && uploadedUrls.length === 0 && errors.length > 0) {
+    throw new Error(`Falha ao enviar documentos: ${errors.join('; ')}`);
   }
   
   return uploadedUrls;
