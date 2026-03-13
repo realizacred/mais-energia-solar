@@ -147,7 +147,8 @@ export function ApproveVendaDialog({
   if (!cliente) return null;
 
   const potencia = cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
-  const consumo = (leadSimulacoes.find(s => s.id === selectedSimulacaoId)?.consumo_kwh) || 0;
+  const selectedSim = leadSimulacoes.find(s => s.id === selectedSimulacaoId);
+  const consumo = selectedSim?.consumo_kwh || cliente.simulacoes?.consumo_kwh || cliente.leads?.media_consumo || 0;
   const valorProposta = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
 
   const valorComissao = () => {
