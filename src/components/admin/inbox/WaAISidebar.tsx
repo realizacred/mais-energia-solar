@@ -264,7 +264,7 @@ export function WaAISidebar({ conversation, onClose, onUseSuggestion }: WaAISide
         ))}
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 space-y-3">
           {/* Tab description */}
           <p className="text-[10px] text-muted-foreground">
