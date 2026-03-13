@@ -138,7 +138,7 @@ export function VendorLeadsTable({
                   )}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <a 
                   href={`https://wa.me/55${lead.telefone.replace(/\D/g, '')}`}
                   target="_blank"
