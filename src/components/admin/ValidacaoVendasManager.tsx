@@ -273,14 +273,12 @@ export function ValidacaoVendasManager() {
     if (!selectedCliente || !motivoRejeicao.trim()) return;
     setRejecting(true);
     try {
-      const { data: negociacaoStatus } = await supabase
-        .from("lead_status").select("id").eq("nome", "Negociação").single();
-      if (negociacaoStatus && selectedCliente.lead_id) {
+      if (reopenTarget && selectedCliente.lead_id) {
         await supabase.from("leads").update({
-          status_id: negociacaoStatus.id,
+          status_id: reopenTarget.id,
           observacoes: `Rejeição de validação: ${motivoRejeicao}`,
         }).eq("id", selectedCliente.lead_id);
-        await supabase.from("orcamentos").update({ status_id: negociacaoStatus.id }).eq("lead_id", selectedCliente.lead_id);
+        await supabase.from("orcamentos").update({ status_id: reopenTarget.id }).eq("lead_id", selectedCliente.lead_id);
       }
 
       const depChecks = await Promise.all([
