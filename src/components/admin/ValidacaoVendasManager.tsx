@@ -738,7 +738,7 @@ export function ValidacaoVendasManager() {
                 Rejeitar Venda
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                O lead voltará para "Negociação"
+                O lead voltará para "{reopenTarget?.nome || 'status inicial'}"
               </DialogDescription>
             </div>
           </DialogHeader>
