@@ -407,7 +407,6 @@ export function ApproveVendaDialog({
                   </div>
                 </div>
               </div>
-            </div>
           </div>
 
           {/* FOOTER §25 */}
