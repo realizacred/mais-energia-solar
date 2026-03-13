@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,6 +20,7 @@ import { formatPhoneBR } from "@/lib/formatters/index";
 import { formatKwh } from "@/lib/formatters/index";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 import type { PendingValidation } from "@/hooks/usePendingValidations";
 
 interface LeadSimulacao {
