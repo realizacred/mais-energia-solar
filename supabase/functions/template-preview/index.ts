@@ -416,6 +416,74 @@ Deno.serve(async (req) => {
     };
 
     // ═══════════════════════════════════════════════════════
+    // FLATTEN: Nested snapshot objects → top-level vars
+    // ═══════════════════════════════════════════════════════
+    const tecnico = (snapshot?.tecnico && typeof snapshot.tecnico === "object" && !Array.isArray(snapshot.tecnico))
+      ? snapshot.tecnico as Record<string, unknown> : {};
+    const financeiro = (snapshot?.financeiro && typeof snapshot.financeiro === "object" && !Array.isArray(snapshot.financeiro))
+      ? snapshot.financeiro as Record<string, unknown> : {};
+    const itensSnap = Array.isArray(snapshot?.itens) ? snapshot.itens as Array<Record<string, unknown>> : [];
+    const ucsSnap = Array.isArray(snapshot?.ucs) ? snapshot.ucs as Array<Record<string, unknown>> : [];
+    const clienteSnap = (snapshot?.cliente && typeof snapshot.cliente === "object" && !Array.isArray(snapshot.cliente))
+      ? snapshot.cliente as Record<string, unknown> : {};
+    const pagamentoSnap = Array.isArray(snapshot?.pagamentoOpcoes) ? snapshot.pagamentoOpcoes as Array<Record<string, unknown>> : [];
+
+    // Flatten tecnico
+    setIfMissing("consumo_mensal", tecnico.consumo_total_kwh);
+    if (tecnico.geracao_estimada_kwh) {
+      setIfMissing("geracao_mensal", `${fmtNum(Number(tecnico.geracao_estimada_kwh), 0)} kWh/mês`);
+    }
+    setIfMissing("potencia_kwp", tecnico.potencia_kwp);
+
+    // Flatten financeiro
+    setIfMissing("economia_mensal", financeiro.economia_mensal);
+    setIfMissing("valor_total", financeiro.valor_total);
+    setIfMissing("preco_total", financeiro.valor_total);
+    setIfMissing("preco_final", financeiro.valor_total);
+    setIfMissing("payback_meses", financeiro.payback_meses);
+
+    // Flatten itens (módulos e inversores)
+    const modulosSnap = itensSnap.filter((i: Record<string, unknown>) =>
+      String(i.tipo ?? "").toLowerCase().includes("modulo") || Number(i.potencia_w ?? 0) >= 300
+    );
+    const inversoresSnap = itensSnap.filter((i: Record<string, unknown>) =>
+      String(i.tipo ?? "").toLowerCase().includes("inversor") || (Number(i.potencia_w ?? 0) > 0 && Number(i.potencia_w ?? 0) < 300)
+    );
+    if (modulosSnap[0]) {
+      setIfMissing("modulo_fabricante", modulosSnap[0].fabricante);
+      setIfMissing("modulo_modelo", modulosSnap[0].modelo);
+      if (modulosSnap[0].potencia_w) setIfMissing("modulo_potencia", `${modulosSnap[0].potencia_w} Wp`);
+      const totalMod = modulosSnap.reduce((s: number, m: Record<string, unknown>) => s + Number(m.quantidade ?? 0), 0);
+      if (totalMod > 0) setIfMissing("modulo_quantidade", totalMod);
+    }
+    if (inversoresSnap[0]) {
+      setIfMissing("inversor_fabricante", inversoresSnap[0].fabricante);
+      setIfMissing("inversor_fabricante_1", inversoresSnap[0].fabricante);
+      setIfMissing("inversor_modelo", inversoresSnap[0].modelo);
+      if (inversoresSnap[0].potencia_w) setIfMissing("inversor_potencia_nominal", `${inversoresSnap[0].potencia_w} W`);
+    }
+
+    // Flatten ucs
+    if (ucsSnap[0]) {
+      setIfMissing("consumo_mensal", ucsSnap[0].consumo_mensal);
+      setIfMissing("subgrupo_uc1", ucsSnap[0].subgrupo ?? ucsSnap[0].grupo);
+      setIfMissing("dis_energia", ucsSnap[0].concessionaria ?? ucsSnap[0].distribuidora);
+    }
+
+    // Flatten cliente from snapshot
+    setIfMissing("cliente_nome", clienteSnap.nome);
+    setIfMissing("vc_nome", clienteSnap.nome);
+    setIfMissing("cliente_cidade", clienteSnap.cidade);
+    setIfMissing("cliente_estado", clienteSnap.estado);
+
+    // Flatten pagamentoOpcoes
+    if (pagamentoSnap[0]) setIfMissing("vc_parcela_1", pagamentoSnap[0].parcela);
+    if (pagamentoSnap[1]) setIfMissing("vc_parcela_2", pagamentoSnap[1].parcela);
+    if (pagamentoSnap[2]) setIfMissing("vc_parcela_3", pagamentoSnap[2].parcela);
+
+    console.log("[template-preview] Flatten applied — tecnico keys:", Object.keys(tecnico).length, "financeiro keys:", Object.keys(financeiro).length, "itens:", itensSnap.length, "ucs:", ucsSnap.length);
+
+    // ═══════════════════════════════════════════════════════
     // CATEGORIA: CLIENTE
     // ═══════════════════════════════════════════════════════
     const nomeCliente = cliente?.nome || lead?.nome;
