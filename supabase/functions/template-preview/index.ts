@@ -218,7 +218,7 @@ function normalizeParagraphRunsInner(xml: string): string {
   });
 }
 
-
+/**
  * Normalize runs inside each <w:p> paragraph so that placeholders
  * split across multiple <w:r> runs are merged into single runs.
  *
