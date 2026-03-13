@@ -366,40 +366,62 @@ Deno.serve(async (req) => {
     const consultor = consultorRes.data as any;
 
     // ── 6. MONTAR MAPA DE VARIÁVEIS ───────────────────────
+    // Comprehensive variable resolution covering ALL catalog categories
     const now = new Date();
     const fmtCur = (v: number) =>
       new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+    const fmtNum = (v: number, decimals = 2) =>
+      new Intl.NumberFormat("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
 
     const vars: Record<string, string> = {};
 
-    // 6a. Se tiver snapshot, extrair campos úteis (evitar objetos complexos)
+    // 6a. Se tiver snapshot, extrair TODOS campos primitivos (evitar objetos complexos)
     const snapshot = versaoData?.snapshot as Record<string, any> | null;
     if (snapshot && typeof snapshot === "object") {
       for (const [key, value] of Object.entries(snapshot)) {
         if (value !== null && value !== undefined && value !== "" && typeof value !== "object") {
           vars[key] = String(value);
         }
+        // Also extract nested objects with dot notation for deep snapshot fields
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          for (const [subKey, subValue] of Object.entries(value as Record<string, any>)) {
+            if (subValue !== null && subValue !== undefined && subValue !== "" && typeof subValue !== "object") {
+              vars[`${key}_${subKey}`] = String(subValue);
+            }
+          }
+        }
       }
     }
 
-    // 6b. Sobrescrever/complementar com dados estruturados
+    // 6b. Helpers
     const set = (legacy: string, value: string | number | null | undefined) => {
       if (value !== null && value !== undefined && value !== "") {
         vars[legacy] = String(value);
       }
     };
-
-    // Helper: set only if not already set (from snapshot)
     const setIfMissing = (key: string, value: string | number | null | undefined) => {
       if (!vars[key] && value !== null && value !== undefined && value !== "") {
         vars[key] = String(value);
       }
     };
+    // Set with currency formatting
+    const setCur = (key: string, value: number | null | undefined) => {
+      if (value != null && !isNaN(value)) vars[key] = fmtCur(value);
+    };
+    const setCurIfMissing = (key: string, value: number | null | undefined) => {
+      if (!vars[key] && value != null && !isNaN(value)) vars[key] = fmtCur(value);
+    };
+    // Extract numeric from snapshot
+    const snapNum = (key: string): number | null => {
+      const v = snapshot?.[key];
+      if (v == null || v === "") return null;
+      const n = Number(v);
+      return isNaN(n) ? null : n;
+    };
 
-    const fmtNum = (v: number, decimals = 2) =>
-      new Intl.NumberFormat("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
-
-    // ── CLIENTE ──
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: CLIENTE
+    // ═══════════════════════════════════════════════════════
     const nomeCliente = cliente?.nome || lead?.nome;
     set("cliente_nome", nomeCliente);
     set("vc_nome", nomeCliente);
@@ -415,122 +437,426 @@ Deno.serve(async (req) => {
     set("cliente_cidade", cliente?.cidade || lead?.cidade);
     set("cliente_estado", cliente?.estado || lead?.estado);
 
-    // ── LOCALIZAÇÃO ──
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: ENTRADA DE DADOS
+    // ═══════════════════════════════════════════════════════
     const cidadeVal = cliente?.cidade || lead?.cidade;
     const estadoVal = cliente?.estado || lead?.estado;
     set("cidade", cidadeVal);
     set("estado", estadoVal);
     if (cidadeVal && estadoVal) {
-      setIfMissing("cidade_estado", `${cidadeVal}- ${estadoVal}`);
+      setIfMissing("cidade_estado", `${cidadeVal} - ${estadoVal}`);
     }
 
-    // ── TÉCNICO / ENTRADA ──
-    const consumo = lead?.media_consumo;
+    const consumo = lead?.media_consumo || snapNum("consumo_mensal");
     set("consumo_mensal", consumo);
     set("capo_m", consumo ? `${fmtNum(consumo, 0)} kWh/mês` : undefined);
-    set("tipo_telhado", lead?.tipo_telhado);
-    set("cape_telhado", lead?.tipo_telhado);
-    set("fase", lead?.rede_atendimento);
-    set("tensao_rede", lead?.rede_atendimento);
-    set("area_util", lead?.area ? `${lead.area} m²` : undefined);
+    set("tipo_telhado", lead?.tipo_telhado || snapshot?.tipo_telhado);
+    set("cape_telhado", lead?.tipo_telhado || snapshot?.tipo_telhado);
+    set("fase", lead?.rede_atendimento || snapshot?.fase);
+    set("tensao_rede", lead?.rede_atendimento || snapshot?.tensao_rede);
+    set("area_util", lead?.area ? `${lead.area} m²` : snapshot?.area_util);
+    setIfMissing("distancia", snapshot?.distancia);
+    setIfMissing("taxa_desempenho", snapshot?.taxa_desempenho);
+    setIfMissing("desvio_azimutal", snapshot?.desvio_azimutal);
+    setIfMissing("inclinacao", snapshot?.inclinacao);
+    setIfMissing("fator_geracao", snapshot?.fator_geracao);
+    setIfMissing("tipo_sistema", snapshot?.tipo_sistema);
+    setIfMissing("topologia", snapshot?.topologia);
+    setIfMissing("fator_simultaneidade", snapshot?.fator_simultaneidade);
 
-    // ── CONCESSIONÁRIA (from snapshot) ──
+    // Concessionária
     setIfMissing("dis_energia", snapshot?.concessionaria_nome || snapshot?.dis_energia);
     setIfMissing("subgrupo_uc1", snapshot?.subgrupo || snapshot?.grupo_tarifario || snapshot?.subgrupo_uc1);
 
-    // ── SISTEMA SOLAR ──
-    const potencia = versaoData?.potencia_kwp || projeto?.potencia_kwp || cliente?.potencia_kwp;
+    // Custo de disponibilidade
+    setIfMissing("custo_disponibilidade_kwh", snapshot?.custo_disponibilidade_kwh);
+
+    // Tarifa distribuidora
+    setIfMissing("tarifa_distribuidora", snapshot?.tarifa_distribuidora || snapshot?.tarifa_kwh);
+
+    // Consumo por mês (jan-dez)
+    const meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    for (const m of meses) {
+      setIfMissing(`consumo_${m}`, snapshot?.[`consumo_${m}`]);
+      setIfMissing(`fator_geracao_${m}`, snapshot?.[`fator_geracao_${m}`]);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: SISTEMA SOLAR
+    // ═══════════════════════════════════════════════════════
+    const potencia = versaoData?.potencia_kwp || projeto?.potencia_kwp || cliente?.potencia_kwp || snapNum("potencia_kwp") || snapNum("potencia_sistema");
     set("potencia_sistema", potencia ? `${fmtNum(potencia)} kWp` : undefined);
     set("potencia_si", potencia ? `${fmtNum(potencia)} kWp` : undefined);
+    setIfMissing("potencia_ideal_total", snapshot?.potencia_ideal_total);
 
-    const numModulos = projeto?.numero_modulos || cliente?.numero_placas || snapshot?.numero_modulos;
+    const numModulos = projeto?.numero_modulos || cliente?.numero_placas || snapshot?.numero_modulos || snapshot?.modulo_quantidade;
     set("modulo_quantidade", numModulos);
     set("vc_total_modulo", numModulos);
 
+    // Módulo specs
+    set("modulo_modelo", projeto?.modelo_modulos || snapshot?.modulo_modelo);
+    setIfMissing("modulo_fabricante", snapshot?.modulo_fabricante);
+    setIfMissing("modulo_potencia", snapshot?.modulo_potencia ? `${snapshot.modulo_potencia} Wp` : undefined);
+    setIfMissing("vc_modulo_potencia", snapshot?.modulo_potencia);
+    const moduloSpecs = ["modulo_celulas", "modulo_tensao_maxima", "modulo_comprimento", "modulo_largura", "modulo_profundidade",
+      "modulo_vmp", "modulo_voc", "modulo_imp", "modulo_isc", "modulo_tipo_celula", "modulo_eficiencia", "modulo_codigo",
+      "modulo_coef_temp_voc", "modulo_coef_temp_isc", "modulo_coef_temp_pmax", "modulo_area", "modulo_garantia"];
+    for (const k of moduloSpecs) setIfMissing(k, snapshot?.[k]);
+
+    // Inversor specs (indexed _1, _2, etc. and concatenated)
     set("inversor_modelo", projeto?.modelo_inversor || cliente?.modelo_inversor || snapshot?.inversor_modelo);
     setIfMissing("inversor_fabricante_1", snapshot?.inversor_fabricante || snapshot?.inversor_fabricante_1);
     setIfMissing("inversor_potencia_nominal", snapshot?.inversor_potencia || snapshot?.inversor_potencia_nominal);
     setIfMissing("inversores_utilizados", snapshot?.inversores_utilizados || (projeto?.modelo_inversor ? `1x ${projeto.modelo_inversor}` : undefined));
+    const inversorFields = ["inversor_fabricante", "inversor_modelo", "inversor_quantidade", "inversor_potencia",
+      "inversor_potencia_nominal", "inversor_tensao", "inversor_tipo", "inversor_corrente_saida",
+      "inversor_mppts_utilizados", "inversor_strings_utilizadas", "inversor_codigo", "inversor_garantia",
+      "inversor_sistema", "inversor_corrente_max_carga_cc", "inversor_corrente_max_descarga_cc",
+      "inversor_tipo_bateria", "inversor_tensao_bateria_min", "inversor_tensao_bateria_max"];
+    for (const k of inversorFields) {
+      setIfMissing(k, snapshot?.[k]);
+      // Also indexed versions _1, _2, _3
+      for (let i = 1; i <= 5; i++) setIfMissing(`${k}_${i}`, snapshot?.[`${k}_${i}`]);
+    }
+    setIfMissing("inversores_potencia_maxima_total", snapshot?.inversores_potencia_maxima_total);
+    setIfMissing("inversor_corrente_max_entrada_1", snapshot?.inversor_corrente_max_entrada_1);
+    setIfMissing("inversor_corrente_max_entrada_mppt1_1", snapshot?.inversor_corrente_max_entrada_mppt1_1);
 
-    set("modulo_modelo", projeto?.modelo_modulos || snapshot?.modulo_modelo);
-    setIfMissing("modulo_fabricante", snapshot?.modulo_fabricante);
-    setIfMissing("modulo_potencia", snapshot?.modulo_potencia ? `${snapshot.modulo_potencia} Wp` : undefined);
+    // Otimizador
+    for (const k of ["otimizador_fabricante", "otimizador_modelo", "otimizador_potencia", "otimizador_quantidade"]) {
+      setIfMissing(k, snapshot?.[k]);
+    }
 
-    const geracaoMensal = projeto?.geracao_mensal_media_kwh || snapshot?.geracao_mensal;
+    // Transformador
+    setIfMissing("transformador_nome", snapshot?.transformador_nome);
+    setIfMissing("transformador_potencia", snapshot?.transformador_potencia);
+
+    // Bateria specs (concatenated + indexed)
+    const bateriaFields = ["bateria_fabricante", "bateria_modelo", "bateria_tipo", "bateria_energia",
+      "bateria_quantidade", "bateria_comprimento", "bateria_largura", "bateria_profundidade",
+      "bateria_tensao_operacao", "bateria_tensao_carga", "bateria_tensao_nominal",
+      "bateria_potencia_maxima_saida", "bateria_corrente_maxima_descarga", "bateria_corrente_maxima_carga",
+      "bateria_corrente_recomendada", "bateria_capacidade"];
+    for (const k of bateriaFields) {
+      setIfMissing(k, snapshot?.[k]);
+      for (let i = 1; i <= 3; i++) setIfMissing(`${k}_${i}`, snapshot?.[`${k}_${i}`]);
+    }
+    // Battery temp specs
+    const bateriaTemp = ["bateria_temperatura_descarga_min", "bateria_temperatura_descarga_max",
+      "bateria_temperatura_carga_min", "bateria_temperatura_carga_max",
+      "bateria_temperatura_armazenamento_min", "bateria_temperatura_armazenamento_max"];
+    for (const k of bateriaTemp) {
+      setIfMissing(k, snapshot?.[k]);
+      for (let i = 1; i <= 3; i++) setIfMissing(`${k}_${i}`, snapshot?.[`${k}_${i}`]);
+    }
+
+    // Armazenamento
+    for (const k of ["autonomia", "energia_diaria_armazenamento", "armazenamento_necessario", "armazenamento_util_adicionado", "p_armazenamento_necessario", "dod"]) {
+      setIfMissing(k, snapshot?.[k]);
+    }
+
+    // Layout
+    for (const k of ["layout_arranjo_linhas", "layout_arranjo_modulos", "layout_arranjo_orientacao",
+      "layout_linhas_total", "layout_arranjos_total", "layout_arranjos_total_horizontal",
+      "layout_arranjos_total_vertical", "layout_orientacao"]) {
+      setIfMissing(k, snapshot?.[k]);
+    }
+
+    // Geração
+    const geracaoMensal = projeto?.geracao_mensal_media_kwh || snapNum("geracao_mensal");
     set("geracao_mensal", geracaoMensal ? `${fmtNum(Number(geracaoMensal), 0)} kWh/mês` : undefined);
+    setIfMissing("geracao_anual", snapshot?.geracao_anual);
+    for (const m of meses) setIfMissing(`geracao_${m}`, snapshot?.[`geracao_${m}`]);
+    // Geração anual séries (_0 a _25)
+    for (let i = 0; i <= 25; i++) {
+      setIfMissing(`geracao_anual_${i}`, snapshot?.[`geracao_anual_${i}`]);
+    }
+
+    // UCs
+    setIfMissing("qtd_ucs", snapshot?.qtd_ucs);
+    setIfMissing("creditos_gerados", snapshot?.creditos_gerados);
+    setIfMissing("kit_fechado_quantidade", snapshot?.kit_fechado_quantidade);
+    setIfMissing("segmentos_utilizados", snapshot?.segmentos_utilizados);
+    setIfMissing("area_necessaria", snapshot?.area_necessaria);
+    setIfMissing("peso_total", snapshot?.peso_total);
+    setIfMissing("estrutura_tipo", snapshot?.estrutura_tipo);
+    setIfMissing("kit_codigo", snapshot?.kit_codigo);
 
     // Aumento de produção
     if (consumo && geracaoMensal) {
-      const aumento = ((Number(geracaoMensal) - consumo) / consumo) * 100;
+      const aumento = ((Number(geracaoMensal) - Number(consumo)) / Number(consumo)) * 100;
       if (aumento > 0) {
         setIfMissing("vc_aumento", `${fmtNum(aumento)}%`);
       }
     }
 
-    // ── FINANCEIRO ──
-    const valorTotal = versaoData?.valor_total || projeto?.valor_total || lead?.valor_estimado || cliente?.valor_projeto;
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: FINANCEIRO
+    // ═══════════════════════════════════════════════════════
+    const valorTotal = versaoData?.valor_total || projeto?.valor_total || lead?.valor_estimado || cliente?.valor_projeto || snapNum("preco_total") || snapNum("preco");
     if (valorTotal) {
-      set("valor_total", fmtCur(valorTotal));
-      set("preco_final", fmtCur(valorTotal));
-      set("preco_total", fmtCur(valorTotal));
-      set("vc_a_vista", fmtCur(valorTotal));
-      set("capo_i", fmtCur(valorTotal));
-      set("kit_fechado_preco_total", fmtCur(valorTotal));
+      const vt = Number(valorTotal);
+      setCur("valor_total", vt);
+      setCur("preco_final", vt);
+      setCur("preco_total", vt);
+      setCur("preco", vt);
+      setCur("vc_a_vista", vt);
+      setCur("capo_i", vt);
+      setCur("kit_fechado_preco_total", vt);
+
+      // Preço por kWp
+      if (potencia && potencia > 0) {
+        set("preco_kwp", fmtCur(vt / potencia));
+        set("preco_watt", `${fmtNum(vt / (potencia * 1000), 2)} R$/W`);
+        setIfMissing("vc_preco_watt", fmtNum(vt / (potencia * 1000), 2));
+      }
     }
-    if (versaoData?.economia_mensal) {
-      set("economia_mensal", fmtCur(versaoData.economia_mensal));
+
+    // Economia
+    const econMensal = versaoData?.economia_mensal || snapNum("economia_mensal");
+    if (econMensal) {
+      setCur("economia_mensal", Number(econMensal));
+      setCurIfMissing("economia_anual", Number(econMensal) * 12);
+      setCurIfMissing("roi_25_anos", Number(econMensal) * 12 * 25);
+      setCurIfMissing("solar_25_anos", Number(econMensal) * 12 * 25);
+      setCurIfMissing("vc_economia_acumulada", Number(econMensal) * 12 * 25);
+      setCurIfMissing("vc_economia_conta_total_rs", Number(econMensal) * 12);
     }
+
+    // Payback
     if (versaoData?.payback_meses != null) {
       const paybackMeses = versaoData.payback_meses;
       const anos = Math.floor(paybackMeses / 12);
-      const meses = paybackMeses % 12;
-      set("payback", `${anos} anos e ${meses} meses`);
+      const mesesPb = paybackMeses % 12;
+      set("payback", `${anos} anos e ${mesesPb} meses`);
       set("payback_meses", String(paybackMeses));
+      set("payback_anos", fmtNum(paybackMeses / 12, 1));
     }
 
     // Retorno em 10 anos
-    if (versaoData?.economia_mensal && valorTotal) {
-      const retorno10 = versaoData.economia_mensal * 12 * 10 - valorTotal;
-      setIfMissing("fluxo_caixa_acumulado_anual_10", fmtCur(Math.max(retorno10, 0)));
+    if (econMensal && valorTotal) {
+      const retorno10 = Number(econMensal) * 12 * 10 - Number(valorTotal);
+      setCurIfMissing("fluxo_caixa_acumulado_anual_10", Math.max(retorno10, 0));
     }
 
-    // ── GARANTIA E SEGURO (from snapshot) ──
-    setIfMissing("vc_garantiaservico", snapshot?.garantia_servico || snapshot?.vc_garantiaservico || "2 anos");
-    setIfMissing("capo_seguro", snapshot?.seguro || snapshot?.capo_seguro || "Não");
-    setIfMissing("vc_calculo_seguro", snapshot?.valor_seguro || snapshot?.vc_calculo_seguro || "-");
-    setIfMissing("vc_string_box_cc", snapshot?.string_box || snapshot?.vc_string_box_cc || "Incluída no Projeto");
+    // ROI / Rendimento
+    if (econMensal && valorTotal && Number(valorTotal) > 0) {
+      setIfMissing("vc_roi_primeiro_mes", `${fmtNum((Number(econMensal) / Number(valorTotal)) * 100)}%`);
+      setIfMissing("vc_investimento_solar_rendimento", `${fmtNum((Number(econMensal) * 12 / Number(valorTotal)) * 100)}%`);
+    }
 
-    // ── FINANCIAMENTO (from snapshot) ──
-    setIfMissing("vc_valor_parcela_troca_medidor", snapshot?.valor_parcela_troca_medidor || snapshot?.vc_valor_parcela_troca_medidor);
-    setIfMissing("vc_valor_parcelas_4", snapshot?.valor_parcelas_4 || snapshot?.vc_valor_parcelas_4);
-    setIfMissing("vc_cartao_credito_parcela_2", snapshot?.cartao_parcela_12 || snapshot?.vc_cartao_credito_parcela_2);
-    setIfMissing("vc_cartao_credito_parcela_3", snapshot?.cartao_parcela_18 || snapshot?.vc_cartao_credito_parcela_3);
-    setIfMissing("vc_cartao_credito_parcela_4", snapshot?.cartao_parcela_24 || snapshot?.vc_cartao_credito_parcela_4);
-    setIfMissing("vc_parcela_1", snapshot?.parcela_36 || snapshot?.vc_parcela_1);
-    setIfMissing("vc_parcela_2", snapshot?.parcela_48 || snapshot?.vc_parcela_2);
-    setIfMissing("vc_parcela_3", snapshot?.parcela_60 || snapshot?.vc_parcela_3);
+    // Economia percentual
+    const gastoAtual = snapNum("gasto_atual_mensal") || snapNum("gasto_energia_mensal_atual");
+    if (gastoAtual && econMensal) {
+      setIfMissing("economia_percentual", `${fmtNum((Number(econMensal) / gastoAtual) * 100, 0)}%`);
+      setIfMissing("vc_economia_conta_total_pc", `${fmtNum((Number(econMensal) / gastoAtual) * 100, 0)}%`);
+    }
 
-    // ── COMERCIAL ──
+    // Tarifa solar
+    if (valorTotal && geracaoMensal) {
+      const tarifaSolar = Number(valorTotal) / (Number(geracaoMensal) * 12 * 25);
+      setIfMissing("vc_tarifa_solar", fmtNum(tarifaSolar, 4));
+    }
+
+    // Financeiro - equipamentos (all from snapshot)
+    const finFields = [
+      "modulo_custo_un", "modulo_preco_un", "modulo_custo_total", "modulo_preco_total",
+      "inversor_custo_un", "inversor_preco_un", "inversor_custo_total", "inversor_preco_total",
+      "inversores_custo_total", "inversores_preco_total",
+      "otimizador_custo_un", "otimizador_preco_un", "otimizador_custo_total", "otimizador_preco_total",
+      "kit_fechado_custo_total",
+      "instalacao_custo_total", "instalacao_preco_total",
+      "estrutura_custo_total", "estrutura_preco_total",
+      "equipamentos_custo_total", "kits_custo_total", "componentes_custo_total",
+      "baterias_custo_total", "baterias_preco_total",
+      "margem_lucro", "margem_percentual", "desconto_percentual", "desconto_valor",
+      "custo_modulos", "custo_inversores", "custo_estrutura", "custo_instalacao", "custo_kit",
+      "comissao_percentual", "comissao_valor", "comissao_res", "comissao_rep", "comissao_res_p", "comissao_rep_p",
+      "distribuidor_categoria",
+    ];
+    for (const k of finFields) setIfMissing(k, snapshot?.[k]);
+    // Indexed financeiro (inversores, transformadores, baterias, itens avulsos)
+    for (let i = 1; i <= 5; i++) {
+      for (const prefix of ["inversor_custo_un_", "inversor_preco_un_", "inversor_preco_total_",
+        "transformador_custo_un_", "transformador_preco_un_",
+        "bateria_custo_un_", "bateria_preco_un_", "bateria_preco_total_",
+        "item_a_nome_", "item_a_custo_", "item_a_preco_"]) {
+        setIfMissing(`${prefix}${i}`, snapshot?.[`${prefix}${i}`]);
+      }
+    }
+    setIfMissing("transformadores_custo_total", snapshot?.transformadores_custo_total);
+    setIfMissing("transformadores_preco_total", snapshot?.transformadores_preco_total);
+
+    // VPL, TIR
+    setIfMissing("vpl", snapshot?.vpl);
+    setIfMissing("tir", snapshot?.tir);
+
+    // Financiamento (indexed + ativo)
+    for (let i = 1; i <= 5; i++) {
+      for (const k of ["f_nome_", "f_entrada_", "f_entrada_p_", "f_valor_", "f_valor_p_",
+        "f_prazo_", "f_carencia_", "f_taxa_", "f_parcela_"]) {
+        setIfMissing(`${k}${i}`, snapshot?.[`${k}${i}`]);
+      }
+    }
+    for (const k of ["f_ativo_nome", "f_ativo_entrada", "f_ativo_entrada_p", "f_ativo_valor",
+      "f_ativo_valor_p", "f_ativo_prazo", "f_ativo_carencia", "f_ativo_taxa", "f_ativo_parcela",
+      "f_banco", "f_taxa_juros", "f_parcelas", "f_valor_parcela", "f_entrada", "f_valor_financiado", "f_cet"]) {
+      setIfMissing(k, snapshot?.[k]);
+    }
+
+    // Séries financeiras anuais (_0 a _25)
+    for (let i = 0; i <= 25; i++) {
+      for (const prefix of ["investimento_anual_", "economia_anual_valor_", "fluxo_caixa_acumulado_anual_"]) {
+        setIfMissing(`${prefix}${i}`, snapshot?.[`${prefix}${i}`]);
+      }
+    }
+
+    // Comparativos 25 anos
+    for (const k of ["solar_25", "renda_25", "poupanca_25"]) setIfMissing(k, snapshot?.[k]);
+
+    // Preço por extenso
+    setIfMissing("preco_por_extenso", snapshot?.preco_por_extenso);
+
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: CONTA DE ENERGIA
+    // ═══════════════════════════════════════════════════════
+    const contaFields = [
+      "gasto_atual_mensal", "gasto_com_solar_mensal", "economia_percentual",
+      "creditos_mensal", "tarifa_atual", "imposto_percentual", "bandeira_tarifaria",
+      "custo_disponibilidade_valor", "gasto_energia_mensal_atual", "gasto_energia_mensal_novo",
+      "gasto_energia_mensal_bt_atual", "gasto_energia_mensal_bt_novo",
+      "gasto_energia_mensal_p_atual", "gasto_energia_mensal_p_novo",
+      "gasto_energia_mensal_fp_atual", "gasto_energia_mensal_fp_novo",
+      "gasto_demanda_mensal_atual", "gasto_demanda_mensal_novo",
+      "economia_energia_mensal", "economia_energia_mensal_p",
+      "economia_demanda_mensal", "economia_demanda_mensal_p",
+      "gasto_total_mensal_atual", "gasto_total_mensal_novo",
+      "creditos_alocados", "consumo_abatido",
+      "valor_imposto_energia", "tarifacao_energia_compensada_bt",
+    ];
+    for (const k of contaFields) setIfMissing(k, snapshot?.[k]);
+
+    // Créditos por mês
+    for (const m of meses) {
+      setIfMissing(`creditos_${m}`, snapshot?.[`creditos_${m}`]);
+      setIfMissing(`creditos_alocados_${m}`, snapshot?.[`creditos_alocados_${m}`]);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: PREMISSAS
+    // ═══════════════════════════════════════════════════════
+    for (const k of ["inflacao_energetica", "inflacao_ipca", "imposto", "vpl_taxa_desconto",
+      "perda_eficiencia_anual", "troca_inversor", "troca_inversor_custo",
+      "sobredimensionamento", "vida_util_sistema"]) {
+      setIfMissing(k, snapshot?.[k]);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: COMERCIAL
+    // ═══════════════════════════════════════════════════════
     set("proposta_data", now.toLocaleDateString("pt-BR"));
     set("proposta_titulo", propostaData?.titulo || nomeCliente);
     set("proposta_identificador", propostaData?.codigo);
     const validadeDias = versaoData?.validade_dias || 15;
     set("proposta_validade", new Date(now.getTime() + validadeDias * 86400000).toLocaleDateString("pt-BR"));
 
-    // ── CONSULTOR / RESPONSÁVEL ──
+    // Consultor / Responsável
     if (consultor) {
       set("consultor_nome", consultor.nome);
       set("responsavel_nome", consultor.nome);
       set("responsavel_nom", consultor.nome);
       set("consultor_telefone", consultor.telefone);
       set("consultor_email", consultor.email);
+      set("responsavel_celular", consultor.telefone);
+      set("responsavel_email", consultor.email);
+      set("representante_nome", consultor.nome);
     }
-    // Fallback from snapshot
     setIfMissing("responsavel_nome", snapshot?.consultor_nome || snapshot?.responsavel_nome);
     setIfMissing("consultor_nome", snapshot?.consultor_nome);
 
+    // Empresa (from site_settings or snapshot)
+    setIfMissing("empresa_nome", snapshot?.empresa_nome);
+    setIfMissing("empresa_cnpj_cpf", snapshot?.empresa_cnpj_cpf);
+    setIfMissing("empresa_cidade", snapshot?.empresa_cidade);
+    setIfMissing("empresa_estado", snapshot?.empresa_estado);
+    setIfMissing("empresa_endereco", snapshot?.empresa_endereco);
+    setIfMissing("empresa_telefone", snapshot?.empresa_telefone);
+    setIfMissing("empresa_email", snapshot?.empresa_email);
+    setIfMissing("empresa_logo_url", snapshot?.empresa_logo_url);
+
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: CUSTOMIZADA (vc_*)
+    // ═══════════════════════════════════════════════════════
+    // Garantia e Seguro
+    setIfMissing("vc_garantiaservico", snapshot?.garantia_servico || snapshot?.vc_garantiaservico || "2 anos");
+    setIfMissing("capo_seguro", snapshot?.seguro || snapshot?.capo_seguro || "Não");
+    setIfMissing("vc_calculo_seguro", snapshot?.valor_seguro || snapshot?.vc_calculo_seguro || "-");
+    setIfMissing("vc_string_box_cc", snapshot?.string_box || snapshot?.vc_string_box_cc || "Incluída no Projeto");
+    setIfMissing("vc_incluir_seguro", snapshot?.vc_incluir_seguro);
+    setIfMissing("vc_estrutura", snapshot?.vc_estrutura || snapshot?.cape_telhado || lead?.tipo_telhado);
+
+    // Consumo/Geração customizadas
+    setIfMissing("vc_consumo", snapshot?.vc_consumo || (consumo ? String(consumo) : undefined));
+    if (consumo) setIfMissing("vc_consumo_anual", String(Number(consumo) * 12));
+    setIfMissing("vc_media_sonsumo_mensal", snapshot?.vc_media_sonsumo_mensal || (consumo ? String(consumo) : undefined));
+    setIfMissing("vc_potencia_sistema", snapshot?.vc_potencia_sistema || (potencia ? fmtNum(potencia) : undefined));
+
+    // Geração prevista valor
+    if (geracaoMensal && snapshot?.tarifa_distribuidora) {
+      setIfMissing("vc_valor_gerac_prevista", fmtCur(Number(geracaoMensal) * Number(snapshot.tarifa_distribuidora)));
+    }
+
+    // Financiamento condições (from snapshot — vc_parcela_*, vc_taxa_*, etc.)
+    const vcFinFields = [
+      "vc_valor_parcela_troca_medidor", "vc_valor_parcelas_4", "vc_valor_entrada",
+      "vc_parcela_1", "vc_parcela_2", "vc_parcela_3",
+      "vc_taxa_1", "vc_taxa_2", "vc_taxa_3",
+      "vc_entrada_1", "vc_entrada_2", "vc_entrada_3",
+      "vc_prazo_1", "vc_prazo_2", "vc_prazo_3",
+      "vc_cartao_credito_parcela_1", "vc_cartao_credito_parcela_2",
+      "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "vc_cartao_credito_taxa_1", "vc_cartao_credito_taxa_2",
+      "vc_cartao_credito_taxa_3", "vc_cartao_credito_taxa_4",
+      "vc_saldo_solar_25_anos", "vc_saldo_renda_fixa_25_anos", "vc_saldo_poupanca_25_anos",
+      "vc_cal_icms_enel", "vc_valor_icms_enel", "vc_valor_icms_enel_fator_simultaneidade",
+      "vc_p_total_cc", "vc_grafico_de_comparacao",
+    ];
+    for (const k of vcFinFields) {
+      setIfMissing(k, snapshot?.[k]);
+    }
+
+    // Fallback financing from snapshot with alternate keys
+    setIfMissing("vc_cartao_credito_parcela_2", snapshot?.cartao_parcela_12);
+    setIfMissing("vc_cartao_credito_parcela_3", snapshot?.cartao_parcela_18);
+    setIfMissing("vc_cartao_credito_parcela_4", snapshot?.cartao_parcela_24);
+    setIfMissing("vc_parcela_1", snapshot?.parcela_36);
+    setIfMissing("vc_parcela_2", snapshot?.parcela_48);
+    setIfMissing("vc_parcela_3", snapshot?.parcela_60);
+
     // Observações
-    set("vc_observacao", lead?.observacoes);
+    set("vc_observacao", lead?.observacoes || snapshot?.vc_observacao);
+
+    // ═══════════════════════════════════════════════════════
+    // CATEGORIA: TARIFA / GD / ANEEL / CÁLCULO
+    // ═══════════════════════════════════════════════════════
+    for (const k of [
+      "tarifa_te_kwh", "tarifa_tusd_total_kwh", "tarifa_fio_b_real_kwh", "tarifa_fio_b_usado_kwh",
+      "tarifa_precisao", "tarifa_precisao_motivo", "tarifa_origem", "tarifa_vigencia_inicio", "tarifa_vigencia_fim",
+      "gd_regra", "gd_ano_aplicado", "gd_fio_b_percent_cobrado", "gd_fio_b_percent_compensado",
+      "aneel_last_sync_at", "aneel_run_id", "aneel_snapshot_hash_curto",
+      "calc_consumo_mensal_kwh", "calc_custo_disponibilidade_kwh", "calc_consumo_compensavel_kwh",
+      "calc_geracao_mensal_kwh", "calc_energia_compensada_kwh", "calc_valor_credito_kwh", "calc_economia_mensal_rs",
+      "alerta_estimado_texto_pdf",
+    ]) {
+      setIfMissing(k, snapshot?.[k]);
+    }
+
+    // CO2 evitado
+    if (geracaoMensal) {
+      const co2Kg = Number(geracaoMensal) * 12 * 0.075; // ~75g CO2/kWh IPCC
+      setIfMissing("co2_evitado_ano", fmtNum(co2Kg, 0));
+    }
 
     console.log(`[template-preview] Variables mapped: ${Object.keys(vars).length} keys`);
     console.log(`[template-preview] Snapshot keys: ${snapshot ? Object.keys(snapshot).length : 0}`);
