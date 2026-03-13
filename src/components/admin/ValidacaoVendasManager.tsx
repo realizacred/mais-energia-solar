@@ -131,7 +131,7 @@ export function ValidacaoVendasManager() {
     setSelectedSimulacaoId("");
 
     const valor = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
-    setValorVenda(valor > 0 ? valor.toString() : "");
+    setValorVenda(valor > 0 ? valor : 0);
 
     setLoadingVendedor(true);
 
