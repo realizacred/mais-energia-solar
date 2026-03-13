@@ -16,14 +16,16 @@ export function SistemaInstallBanner() {
   const { isInstalled, canInstall, promptInstall, isIOS, isAndroid } = usePWAInstall();
   const [dismissed, setDismissed] = useState(true);
 
+  const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+
   useEffect(() => {
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as any).standalone === true;
 
-    console.log("[PWA Banner Sistema]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone });
+    console.log("[PWA Banner Sistema]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone, isMobile });
 
-    if (isInstalled || isStandalone) {
+    if (isInstalled || isStandalone || !isMobile) {
       setDismissed(true);
       return;
     }
