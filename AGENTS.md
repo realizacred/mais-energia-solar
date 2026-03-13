@@ -42,6 +42,9 @@ Antes de finalizar **qualquer** tarefa, verifique os 21 itens:
 - [ ] Modal: `DialogHeader` + `DialogTitle` + botões shadcn — nunca `<button>` nativo
 - [ ] Formulário: `bg-card` + `text-foreground` — nunca `bg-white`/`gray-*`
 - [ ] Verificar `src/components/shared/`, `ui-kit/`, `ui/` antes de criar componente novo
+- [ ] Scroll interno: `min-h-0` em todo flex-col com overflow (ver §36)
+- [ ] Storage paths: resolver com signed URL antes de exibir (ver §37)
+- [ ] Conversão lead→venda: fallback de dados técnicos obrigatório (ver §38)
 
 ---
 
