@@ -34,6 +34,7 @@ import { ptBR } from "date-fns/locale";
 import { formatBRL } from "@/lib/formatters";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
 import { useReopenLead } from "@/hooks/useReopenLead";
+import { useLeadStatusMap } from "@/hooks/useLeadStatusMap";
 
 interface LeadSimulacao {
   id: string;
