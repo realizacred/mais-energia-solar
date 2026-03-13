@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.28.5",
+    date: "2026-03-13",
+    title: "Mapeamento completo de variáveis DOCX (34 variáveis adicionadas)",
+    type: "bugfix",
+    description: "Adicionados mapeamentos para todas as variáveis do template DOCX legado: equipamentos, financiamento, garantia, seguro, parcelas e aliases.",
+    details: [
+      "Mapeadas variáveis de equipamento: modulo_fabricante, modulo_potencia, inversor_fabricante_1, inversor_potencia_nominal, inversores_utilizados",
+      "Mapeadas variáveis financeiras: capo_i, vc_a_vista, kit_fechado_preco_total, vc_parcela_1/2/3, vc_cartao_credito_parcela_2/3/4",
+      "Mapeadas variáveis técnicas: area_util, tensao_rede, dis_energia, subgrupo_uc1, vc_aumento, capo_m",
+      "Mapeadas variáveis de garantia/seguro: vc_garantiaservico, capo_seguro, vc_calculo_seguro, vc_string_box_cc",
+      "Payback formatado como 'X anos e Y meses' e retorno em 10 anos calculado automaticamente",
+      "Fallback para snapshot em variáveis sem fonte de dados estruturada",
+    ],
+  },
+  {
     version: "2.28.4",
     date: "2026-03-13",
     title: "Correção: layout DOCX quebrado após substituição de variáveis",
