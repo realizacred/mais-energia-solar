@@ -243,6 +243,15 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
+function isValidXmlDocument(xml: string): boolean {
+  try {
+    const parsed = new DOMParser().parseFromString(xml, "application/xml");
+    return !parsed.querySelector("parsererror");
+  } catch {
+    return false;
+  }
+}
+
 // ─── Main handler ─────────────────────────────────────────
 
 Deno.serve(async (req) => {
