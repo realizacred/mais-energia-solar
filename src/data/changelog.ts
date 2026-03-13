@@ -19,6 +19,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.28.1",
+    date: "2026-03-13",
+    title: "Correção CORS no template-preview (DOCX)",
+    type: "bugfix",
+    description: "Resolvido bloqueio de preflight ao gerar template DOCX com timeout customizado no frontend.",
+    details: [
+      "Adicionado header x-client-timeout na lista Access-Control-Allow-Headers da edge function template-preview",
+      "Eliminado erro 'Failed to send a request to the Edge Function' ao renderizar propostas DOCX",
+    ],
+  },
+  {
     version: "2.28.0",
     date: "2026-03-13",
     title: "Preview visual de proposta DOCX + download PDF",
