@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.25.1",
+    date: "2026-03-13",
+    title: "Correção: status 'Negociação' não encontrado na Validação de Vendas",
+    type: "bugfix",
+    description: "Corrigido bug onde o sistema buscava status 'Negociação' por nome hardcoded, que não existe na tabela lead_status.",
+    details: [
+      "Criado hook centralizado useLeadStatusMap para buscar statuses por ID (§16, §23)",
+      "useReopenLead agora usa o primeiro status não-terminal em vez de nome hardcoded",
+      "ValidacaoVendasManager.handleReject usa reopenTarget do hook centralizado",
+      "Console debug logando statuses disponíveis para diagnóstico",
+    ],
+  },
+  {
     version: "2.25.0",
     date: "2026-03-13",
     title: "Reformulação visual da Validação de Vendas",
