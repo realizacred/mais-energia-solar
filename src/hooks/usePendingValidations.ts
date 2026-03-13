@@ -33,6 +33,9 @@ export interface PendingValidation {
     investimento_estimado: number | null;
     potencia_recomendada_kwp: number | null;
     consumo_kwh: number | null;
+    geracao_mensal_estimada: number | null;
+    economia_mensal: number | null;
+    payback_meses: number | null;
   } | null;
 }
 
@@ -111,14 +114,14 @@ export function usePendingValidations() {
           comprovante_endereco_urls,
           comprovante_beneficiaria_urls,
           leads!clientes_lead_id_fkey(consultor, consultor_id, lead_code, media_consumo, arquivos_urls, consultores:consultor_id(id, nome), orcamentos(arquivos_urls, media_consumo)),
-          simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp, consumo_kwh)
+          simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp, consumo_kwh, geracao_mensal_estimada, economia_mensal, payback_meses)
         `)
         .in("lead_id", leadIds)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       const items = (data as unknown as PendingValidation[]) || [];
-      console.debug("[usePendingValidations] fetched", items.length, "items. Sample docs:", items[0] && {
+      console.debug("[usePendingValidations] fetched", items.length, "items. Sample:", items[0] && {
         identidade_urls: items[0].identidade_urls,
         comprovante_endereco_urls: items[0].comprovante_endereco_urls,
         comprovante_beneficiaria_urls: items[0].comprovante_beneficiaria_urls,
