@@ -157,7 +157,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
                   size="sm"
                   variant="default"
                   className="h-7 text-xs gap-1"
-                  onClick={() => setEditOpen(true)}
+                  onClick={handleOpenEdit}
                 >
                   <Pencil className="h-3 w-3" />
                   Editar Lead
