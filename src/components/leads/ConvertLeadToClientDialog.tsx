@@ -447,6 +447,11 @@ export function ConvertLeadToClientDialog({
 
       // Build observation note about what's missing
       const missing: string[] = [];
+      if (!form.getValues("email")) missing.push("E-mail");
+      if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
+      if (!form.getValues("bairro")) missing.push("Bairro");
+      if (!form.getValues("rua")) missing.push("Rua");
+      if (!form.getValues("numero")) missing.push("Número");
       if (identidadeFiles.length === 0) missing.push("Identidade");
       if (comprovanteFiles.length === 0) missing.push("Comprovante de Endereço");
       if (!form.getValues("disjuntor_id")) missing.push("Disjuntor");
