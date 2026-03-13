@@ -31,6 +31,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Qualquer nova edge function de documento pode importar o mesmo utilitário",
     ],
   },
+  {
     version: "2.30.0",
     date: "2026-03-13",
     title: "DOCX: flatten de snapshot aninhado para placeholders",
