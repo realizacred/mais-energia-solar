@@ -99,14 +99,15 @@ export function SidebarSearch() {
       {open && results.length > 0 && (
         <div className="absolute left-3 right-3 top-full mt-1 z-50 rounded-lg border border-border/30 bg-popover shadow-lg overflow-hidden">
           {results.map(({ item, section }) => (
-            <button
+            <Button
               key={item.id}
+              variant="ghost"
               onClick={() => {
                 navigate(`/admin/${item.id}`);
                 setQuery("");
                 setOpen(false);
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/50 transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 h-auto text-left hover:bg-accent/50 transition-colors rounded-none justify-start"
             >
               <item.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
               <div className="min-w-0 flex-1">
@@ -118,7 +119,7 @@ export function SidebarSearch() {
               <span className="text-[9px] text-muted-foreground/40 shrink-0 uppercase tracking-wider">
                 {section.label}
               </span>
-            </button>
+            </Button>
           ))}
         </div>
       )}
