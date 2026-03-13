@@ -232,7 +232,7 @@ export function ValidacaoVendasManager() {
   const handleApprove = async () => {
     if (!selectedCliente) return;
 
-    const valorBase = parseFloat(valorVenda) || 0;
+    const valorBase = valorVenda || 0;
     if (valorBase <= 0) {
       toast({
         title: "Valor obrigatório",
