@@ -22,6 +22,7 @@ interface WaLeadInfoCardProps {
 }
 
 export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardProps) {
+  const [editOpen, setEditOpen] = useState(false);
   const { data: lead, isLoading } = useQuery({
     queryKey: ["wa-lead-info", leadId],
     queryFn: async () => {
