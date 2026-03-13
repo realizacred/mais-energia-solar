@@ -38,6 +38,11 @@ export function LeadsView() {
   const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null);
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, filterVisto, filterVendedor, filterEstado, setPage]);
+
   useEffect(() => {
     let filtered = orcamentos.filter(
       (orc) =>
