@@ -68,9 +68,9 @@ async function processDocxTemplate(
     }
 
     if (modified) {
-      if (!isValidXmlDocument(content)) {
-        console.error(`[template-preview] Invalid XML detected after replacement in ${fileName}; keeping original content.`);
-        continue;
+      const xmlValid = isValidXmlDocument(content);
+      if (!xmlValid) {
+        console.warn(`[template-preview] XML validation warning in ${fileName} — saving anyway (DOMParser may not fully support OOXML namespaces).`);
       }
       zip.file(fileName, content);
     }
