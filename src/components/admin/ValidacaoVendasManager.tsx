@@ -338,7 +338,7 @@ export function ValidacaoVendasManager() {
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   const valorComissaoPreview = () => {
-    const base = parseFloat(valorVenda) || 0;
+    const base = valorVenda || 0;
     return (base * (parseFloat(percentualComissao) || 0)) / 100;
   };
 
