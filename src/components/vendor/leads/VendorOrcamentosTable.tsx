@@ -224,7 +224,7 @@ export function VendorOrcamentosTable({
                       className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <div className="flex items-center gap-1">
                       <Badge variant="default" className="font-mono text-xs">
                         {orc.orc_code || "-"}
