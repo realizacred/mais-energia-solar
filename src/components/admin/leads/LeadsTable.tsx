@@ -121,7 +121,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   <span className="text-muted-foreground text-sm">-</span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {(() => {
                   const status = lead.wa_welcome_status || "pending";
                   if (status === "sent") {
