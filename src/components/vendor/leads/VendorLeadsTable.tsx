@@ -123,12 +123,12 @@ export function VendorLeadsTable({
                     className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                   />
                 </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <Badge variant="outline" className="font-mono text-xs">
                   {lead.lead_code || "-"}
                 </Badge>
               </TableCell>
-              <TableCell className="font-medium">
+              <TableCell className="font-medium align-middle">
                 <div className="flex items-center gap-2">
                   {lead.nome}
                   {!lead.visto && (
