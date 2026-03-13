@@ -97,7 +97,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   <span className="text-muted-foreground text-sm">-</span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <Badge
                   variant="secondary"
                   className="bg-secondary/10 text-secondary"
