@@ -99,17 +99,18 @@ function normalizeParagraphRuns(xml: string): string {
     let rebuiltRegion = "";
     let ri = 0;
     while (ri < runs.length) {
-      rebuiltRegion += interRunContent[ri] ?? "";
-
       const span = merged.find((s) => s[0] === ri);
       if (span) {
+        const spanInterContent = interRunContent.slice(span[0], span[1] + 1).join("");
+        rebuiltRegion += spanInterContent;
+
         const groupRuns = runs.slice(span[0], span[1] + 1);
         const combinedText = groupRuns.map((r) => r.text).join("");
         const rPr = groupRuns[0].rPr;
         rebuiltRegion += `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
         ri = span[1] + 1;
       } else {
-        rebuiltRegion += runs[ri].xml;
+        rebuiltRegion += (interRunContent[ri] ?? "") + runs[ri].xml;
         ri += 1;
       }
     }
