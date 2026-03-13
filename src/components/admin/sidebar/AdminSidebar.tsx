@@ -270,12 +270,14 @@ function SidebarSectionGroup({
       <SidebarGroup className="mb-0.5 px-2 py-0">
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
+            aria-label={`Expandir ou recolher seção ${section.label}`}
             className={`
               text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
               flex items-center gap-2.5 cursor-pointer select-none
               transition-all duration-200 ease-in-out
               hover:bg-sidebar-accent/60 rounded-lg
               text-sidebar-foreground/70
+              focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
             `}
           >
             <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${section.indicatorClass || ''}`}>
