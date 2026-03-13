@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import JSZip from "npm:jszip@3.10.1";
+import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
