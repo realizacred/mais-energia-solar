@@ -77,9 +77,10 @@ export function SidebarSearch() {
           }}
           onFocus={() => setOpen(true)}
           placeholder="Buscar no menu..."
+          aria-label="Buscar no menu"
           className="w-full h-8 pl-8 pr-7 text-[12px] rounded-lg border border-border/20 bg-muted/20 
             placeholder:text-muted-foreground/40 text-foreground
-            focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/30
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus:border-primary/30
             transition-all"
         />
         {query && (
