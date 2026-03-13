@@ -566,10 +566,14 @@ export function ConvertLeadToClientDialog({
     setLoading(true);
 
     try {
+      // Get tenant_id for storage path (RLS requires tenant_id as first folder segment)
+      const { data: tenantId } = await supabase.rpc("get_user_tenant_id");
+      if (!tenantId) throw new Error("Não foi possível identificar o tenant. Faça login novamente.");
+
       // Upload all documents using the new utility function
-      const identidadeUrls = await uploadDocumentFiles(identidadeFiles, "identidade", supabase);
-      const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, "comprovante", supabase);
-      const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, "beneficiaria", supabase);
+      const identidadeUrls = await uploadDocumentFiles(identidadeFiles, `${tenantId}/identidade`, supabase);
+      const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, `${tenantId}/comprovante`, supabase);
+      const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, `${tenantId}/beneficiaria`, supabase);
 
       // Extract potência and valor from the selected simulation
       let potenciaKwp: number | null = null;
