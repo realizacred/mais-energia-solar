@@ -537,11 +537,11 @@ export function ApproveVendaDialog({
       </Dialog>
 
       {/* Document preview overlay */}
-      {previewUrl && (
+      {previewUrls && previewUrls.length > 0 && (
         <DocumentPreviewDialog
-          url={previewUrl}
-          open={!!previewUrl}
-          onClose={() => setPreviewUrl(null)}
+          urls={previewUrls}
+          open={!!previewUrls}
+          onClose={() => setPreviewUrls(null)}
         />
       )}
     </>
