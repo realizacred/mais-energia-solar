@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { User, Phone, MapPin, Zap, ExternalLink, X } from "lucide-react";
+import { User, Phone, MapPin, Zap, ExternalLink, Pencil } from "lucide-react";
+import { LeadEditDialog } from "@/components/admin/leads/LeadEditDialog";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,12 +22,13 @@ interface WaLeadInfoCardProps {
 }
 
 export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardProps) {
+  const [editOpen, setEditOpen] = useState(false);
   const { data: lead, isLoading } = useQuery({
     queryKey: ["wa-lead-info", leadId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
-        .select("id, lead_code, nome, telefone, estado, cidade, bairro, rua, numero, media_consumo, consumo_previsto, area, tipo_telhado, rede_atendimento, observacoes, status_id, created_at, lead_statuses(nome, cor)")
+        .select("id, lead_code, nome, telefone, estado, cidade, bairro, rua, numero, media_consumo, consumo_previsto, area, tipo_telhado, rede_atendimento, observacoes, status_id, consultor, consultor_id, created_at, lead_statuses(nome, cor), consultores(nome)")
         .eq("id", leadId)
         .maybeSingle();
       if (error) throw error;
@@ -145,20 +147,57 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
               <span className="text-[10px] text-muted-foreground">
                 Criado em {format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR })}
               </span>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1"
-                onClick={() => window.open(`/admin?tab=leads`, '_blank')}
-              >
-                <ExternalLink className="h-3 w-3" />
-                Abrir no Admin
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Pencil className="h-3 w-3" />
+                  Editar Lead
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => window.open(`/admin?tab=leads`, '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Abrir no Admin
+                </Button>
+              </div>
             </div>
           </div>
         )}
         </div>
       </DialogContent>
+
+      {/* Lead Edit Dialog */}
+      {lead && editOpen && (
+        <LeadEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          leadId={lead.id}
+          initialData={{
+            nome: lead.nome,
+            telefone: lead.telefone,
+            consultor_id: (lead as any).consultor_id || null,
+            consultor_nome: (lead as any).consultores?.nome || null,
+            cidade: lead.cidade || "",
+            estado: lead.estado || "",
+            bairro: lead.bairro || null,
+            rua: lead.rua || null,
+            numero: lead.numero || null,
+            area: lead.area || "",
+            tipo_telhado: lead.tipo_telhado || "",
+            rede_atendimento: lead.rede_atendimento || "",
+            media_consumo: lead.media_consumo || undefined,
+            consumo_previsto: lead.consumo_previsto || undefined,
+            observacoes: lead.observacoes || null,
+          }}
+        />
+      )}
     </Dialog>
   );
 }

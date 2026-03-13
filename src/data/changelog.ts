@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.35.1",
+    date: "2026-03-13",
+    title: "Botão Editar Lead no card de informações do WhatsApp",
+    type: "improvement",
+    description: "Adicionado botão 'Editar Lead' no card de informações do lead dentro do WhatsApp, permitindo edição direta sem sair do chat.",
+    details: [
+      "Botão 'Editar Lead' adicionado ao footer do WaLeadInfoCard",
+      "Abre o LeadEditDialog com todos os dados pré-carregados",
+      "Funciona tanto no desktop quanto no mobile",
+    ],
+  },
+  {
     version: "2.35.0",
     date: "2026-03-13",
     title: "Foto da assinatura no fechamento de venda",
