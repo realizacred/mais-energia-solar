@@ -43,6 +43,7 @@ interface StepDocumentoProps {
   onViewDetail: () => void;
   customFieldValues?: Record<string, any>;
   onCustomFieldValuesChange?: (values: Record<string, any>) => void;
+  docxBlob?: Blob | null;
 }
 
 // ─── Main Component ───────────────────────────────────────
