@@ -105,13 +105,13 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   {lead.cidade}, {lead.estado}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <span className="flex items-center gap-1">
                   <Zap className="w-3 h-3 text-muted-foreground" />
                   {lead.media_consumo} kWh
                 </span>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {lead.consumo_previsto ? (
                   <span className="flex items-center gap-1">
                     <TrendingUp className="w-3 h-3 text-success" />
