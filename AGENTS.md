@@ -44,6 +44,7 @@ Antes de finalizar **qualquer** tarefa, verifique os 24 itens:
 - [ ] Formulário: `bg-card` + `text-foreground` — nunca `bg-white`/`gray-*`
 - [ ] Verificar `src/components/shared/`, `ui-kit/`, `ui/` antes de criar componente novo
 - [ ] Scroll interno: `min-h-0` em todo flex-col com overflow (ver §36)
+- [ ] WhatsApp Inbox: scroll por coluna independente — NUNCA scroll global na página (ver §39)
 - [ ] Storage paths: resolver com signed URL antes de exibir (ver §37)
 - [ ] Conversão lead→venda: fallback de dados técnicos obrigatório (ver §38)
 
@@ -134,6 +135,10 @@ Antes de criar QUALQUER componente novo, verificar se já existe em: `src/compon
 ### 🚫 BLOQUEANTE — Scroll interno: min-h-0 obrigatório
 Containers `flex-col` com `flex-1` e scroll interno DEVEM ter `min-h-0`. Sem isso, `overflow-y-auto` não funciona.
 → Ver §36
+
+### 🚫 BLOQUEANTE — WhatsApp Inbox: NUNCA scroll global
+A página do inbox NUNCA deve ter scroll global. A coluna de lista de conversas e o painel de chat são containers independentes, cada um com seu próprio scroll (`flex-col h-full overflow-hidden` + `flex-1 min-h-0 overflow-y-auto`).
+→ Ver §36, §39
 
 ### 🚫 BLOQUEANTE — Storage paths: signed URL obrigatória
 NUNCA usar path raw do Supabase Storage como `src` de imagem. SEMPRE resolver com `createSignedUrl`.
@@ -812,7 +817,7 @@ REGRA: SEMPRE usar `w-[90vw]` para aproveitar a tela em notebooks e monitores.
 ### Estrutura obrigatória de todo modal:
 ```tsx
 <Dialog>
-  <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden">
+  <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
 
     {/* HEADER com ícone + título + subtítulo */}
     <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
@@ -829,8 +834,8 @@ REGRA: SEMPRE usar `w-[90vw]` para aproveitar a tela em notebooks e monitores.
       </div>
     </DialogHeader>
 
-    {/* CORPO com seções separadas por divisor */}
-    <div className="p-5 space-y-5 overflow-y-auto max-h-[70vh]">
+    {/* CORPO com seções separadas por divisor — flex-1 min-h-0 para scroll correto */}
+    <div className="p-5 space-y-5 flex-1 min-h-0 overflow-y-auto">
 
       {/* Seção com título */}
       <div className="space-y-3">
@@ -877,7 +882,7 @@ REGRA: SEMPRE usar `w-[90vw]` para aproveitar a tela em notebooks e monitores.
 - SEMPRE seções separadas por `border-t border-border`
 - SEMPRE título de seção em `uppercase text-xs tracking-wide`
 - SEMPRE footer com `bg-muted/30` e botões alinhados à direita
-- NUNCA scroll na página inteira — `max-h-[70vh]` no corpo
+- NUNCA scroll na página inteira — usar `flex-1 min-h-0 overflow-y-auto` no corpo (nunca `max-h-[70vh]` — causa dupla restrição, ver §39)
 - NUNCA `bg-white` em nenhuma parte do modal
 - NUNCA criar modal sem ícone no header
 
@@ -1271,7 +1276,7 @@ Sem `min-h-0`, o elemento flex não encolhe abaixo do tamanho do conteúdo, impe
 - Em layouts full-height (ex: inbox), usar CSS para travar altura: `height: calc(100vh - 3.5rem)`
 
 ### Onde se aplica
-- WhatsApp Inbox (lista de conversas + painel de chat)
+- WhatsApp Inbox — **CRÍTICO**: coluna de lista de conversas e painel de chat são containers separados, cada um com `flex-col h-full overflow-hidden` próprio. NUNCA um scroll global englobando os dois.
 - Sidebars com listas longas
 - Qualquer painel split-view com scroll independente
 
@@ -1441,6 +1446,8 @@ Quais regras valem onde:
 
 ### Layouts com scroll interno (Inbox, sidebars, split-view)
 - §36 (flexbox scroll obrigatório — aplica-se a QUALQUER painel com scroll independente)
+- §39 (padrão universal de scroll — mais completo, prevalece em caso de dúvida)
+- **WhatsApp Inbox**: cada coluna (lista de conversas + painel de chat) é um container de scroll independente. NUNCA scroll global na página.
 
 ### Storage e Documentos
 - §37 (resolução de URLs obrigatória)
@@ -1476,9 +1483,10 @@ Sempre que houver layout com **header + conteúdo + footer**, usar obrigatoriame
 - Se usar `ScrollArea`: `<ScrollArea className="flex-1 min-h-0">`
 - Se usar `Virtuoso`: `className="h-full min-h-0"` com `style={{ height: "100%", overflowY: "auto" }}`
 - NUNCA `max-h-[70vh]` em body de dialog/sheet que já tem `max-h-[calc(100dvh-2rem)]` no container pai — causa dupla restrição e corta conteúdo no mobile
+- NUNCA usar `max-h-[70vh]` no corpo do modal — usar `flex-1 min-h-0 overflow-y-auto` com o DialogContent sendo `flex flex-col max-h-[calc(100dvh-2rem)]`
 
 ### Onde se aplica
-- WhatsApp Inbox (painel de chat, lista de conversas)
+- WhatsApp Inbox — **CRÍTICO**: a coluna de lista de conversas e o painel de chat DEVEM ter scroll próprio e independente. NUNCA usar scroll global na página do inbox. Cada painel é um container `flex-col h-full overflow-hidden` separado.
 - Qualquer `Dialog`, `Sheet`, `Drawer` com formulário longo
 - Sidebars com listas longas
 - Split-views com scroll independente
