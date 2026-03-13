@@ -152,10 +152,12 @@ export function useOfflineConversionSync() {
         .single();
 
       if (convertidoStatus) {
-        await supabase
+        const { error: leadStatusError } = await supabase
           .from("leads")
           .update({ status_id: convertidoStatus.id })
           .eq("id", conversion.leadId);
+
+        if (leadStatusError) throw leadStatusError;
       }
 
       console.log("[syncConversion] Successfully synced conversion:", cliente);

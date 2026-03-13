@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.35.3",
+    date: "2026-03-13",
+    title: "Auditoria e correções na Validação de Vendas",
+    type: "bugfix",
+    description: "Corrigida leitura incompleta de dados no modal de aprovação, com fallback para propostas nativas e checagens rígidas de persistência na conversão do lead.",
+    details: [
+      "Validação de Vendas agora busca métricas também em proposta_versoes quando simulacoes estiver vazio",
+      "Incluída seção de configurações técnicas (disjuntor, transformador e localização) no modal de aprovação",
+      "Adicionado documento de assinatura do cliente na lista de anexos da validação",
+      "Conversão de lead agora valida explicitamente erros no update de status de lead/orçamento",
+      "Sincronização offline agora falha corretamente se não conseguir atualizar status do lead",
+    ],
+  },
+  {
     version: "2.35.2",
     date: "2026-03-13",
     title: "Correção: vendas do consultor não apareciam na Validação",

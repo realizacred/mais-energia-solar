@@ -120,11 +120,17 @@ export function usePendingValidations() {
           simulacao_aceita_id,
           potencia_kwp,
           valor_projeto,
+          disjuntor_id,
+          transformador_id,
+          localizacao,
+          assinatura_url,
           identidade_url,
           identidade_urls,
           comprovante_endereco_url,
           comprovante_endereco_urls,
           comprovante_beneficiaria_urls,
+          disjuntores:disjuntor_id(amperagem, descricao),
+          transformadores:transformador_id(potencia_kva, descricao),
           leads!clientes_lead_id_fkey(consultor, consultor_id, lead_code, media_consumo, arquivos_urls, consultores:consultor_id(id, nome), orcamentos(arquivos_urls, media_consumo)),
           simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp, consumo_kwh, geracao_mensal_estimada, economia_mensal, payback_meses)
         `)
