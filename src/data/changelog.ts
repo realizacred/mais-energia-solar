@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.29.0",
+    date: "2026-03-13",
+    title: "Auditoria e mapeamento completo de variáveis DOCX",
+    type: "improvement",
+    description: "Auditoria completa do sistema de variáveis. Edge Function template-preview agora mapeia ~300+ variáveis do catálogo cobrindo todas as categorias.",
+    details: [
+      "Mapeamento completo: entrada, sistema_solar, financeiro, conta_energia, comercial, cliente, premissas, tarifa, GD, ANEEL, cálculo, customizadas (vc_*)",
+      "Snapshot deep extraction: campos aninhados agora são extraídos com notação dot (key_subkey)",
+      "Cálculos derivados automáticos: ROI, tarifa solar, preço/kWp, preço/W, economia acumulada, CO₂ evitado",
+      "Séries anuais (_0 a _25): investimento, economia, fluxo de caixa acumulado, geração anual",
+      "Equipamentos indexados (_1 a _5): inversores, baterias, transformadores, itens avulsos",
+    ],
+  },
+  {
     version: "2.28.5",
     date: "2026-03-13",
     title: "Mapeamento completo de variáveis DOCX (34 variáveis adicionadas)",
