@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatBRL } from "@/lib/formatters";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Lead, LeadStatus } from "@/types/lead";
+import { useReopenLead } from "@/hooks/useReopenLead";
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -28,6 +29,8 @@ interface LeadsTableProps {
 }
 
 export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDelete, onConvert }: LeadsTableProps) {
+  const { reopenLead, reopening } = useReopenLead();
+
   if (leads.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -59,7 +62,8 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
           {leads.map((lead) => {
             // Check if lead has been converted
             const convertidoStatus = statuses.find(s => s.nome === "Convertido");
-            const isConverted = convertidoStatus && lead.status_id === convertidoStatus.id;
+            const aguardandoValidacaoStatus = statuses.find(s => s.nome === "Aguardando Validação");
+            const isConverted = (convertidoStatus && lead.status_id === convertidoStatus.id) || (aguardandoValidacaoStatus && lead.status_id === aguardandoValidacaoStatus.id);
             
             return (
             <TableRow
@@ -226,14 +230,30 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                       </Tooltip>
                     )}
                     {isConverted && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center justify-center h-8 w-8 text-success">
-                            <UserCheck className="w-4 h-4" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>Já convertido em cliente</TooltipContent>
-                      </Tooltip>
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center justify-center h-8 w-8 text-success">
+                              <UserCheck className="w-4 h-4" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Já convertido em cliente</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-warning hover:text-warning hover:bg-warning/10"
+                              onClick={() => reopenLead(lead.id, lead.cliente_id_vinculado)}
+                              disabled={reopening}
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Reabrir Lead</TooltipContent>
+                        </Tooltip>
+                      </>
                     )}
                     <Tooltip>
                       <TooltipTrigger asChild>

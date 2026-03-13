@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare } from "lucide-react";
+import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw } from "lucide-react";
+import { useReopenLead } from "@/hooks/useReopenLead";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -52,6 +53,7 @@ export function VendorLeadsTable({
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [selectedLeadForWhatsapp, setSelectedLeadForWhatsapp] = useState<Lead | null>(null);
+  const { reopenLead, reopening } = useReopenLead();
 
   const handleWhatsappClick = (lead: Lead) => {
     setSelectedLeadForWhatsapp(lead);
@@ -102,7 +104,8 @@ export function VendorLeadsTable({
           {leads.map((lead) => {
             // Check if lead has been converted (status = "Convertido")
             const convertidoStatus = statuses.find(s => s.nome === "Convertido");
-            const isConverted = convertidoStatus && lead.status_id === convertidoStatus.id;
+            const aguardandoValidacaoStatus = statuses.find(s => s.nome === "Aguardando Validação");
+            const isConverted = (convertidoStatus && lead.status_id === convertidoStatus.id) || (aguardandoValidacaoStatus && lead.status_id === aguardandoValidacaoStatus.id);
             
             // Cores: borda azul = admin viu, fundo verde = vendedor marcou
             const rowClasses = [
@@ -217,14 +220,30 @@ export function VendorLeadsTable({
                       </Tooltip>
                     )}
                     {isConverted && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center justify-center h-8 w-8 text-success">
-                            <UserCheck className="w-4 h-4" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>Já convertido em cliente</TooltipContent>
-                      </Tooltip>
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center justify-center h-8 w-8 text-success">
+                              <UserCheck className="w-4 h-4" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Já convertido em cliente</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-warning hover:text-warning hover:bg-warning/10"
+                              onClick={() => reopenLead(lead.id)}
+                              disabled={reopening}
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Reabrir Lead</TooltipContent>
+                        </Tooltip>
+                      </>
                     )}
                     {onDelete && (
                       <Tooltip>

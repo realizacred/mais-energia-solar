@@ -21,13 +21,14 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle, XCircle, Eye, Clock, DollarSign, User, MapPin,
-  TrendingUp, Zap, AlertTriangle, History, Filter, FileText,
+  TrendingUp, Zap, AlertTriangle, History, Filter, FileText, RotateCcw,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
+import { useReopenLead } from "@/hooks/useReopenLead";
 
 interface LeadSimulacao {
   id: string;
@@ -65,6 +66,7 @@ export function ValidacaoVendasManager() {
   const [activeTab, setActiveTab] = useState("pendentes");
   const [leadSimulacoes, setLeadSimulacoes] = useState<LeadSimulacao[]>([]);
   const [selectedSimulacaoId, setSelectedSimulacaoId] = useState<string>("");
+  const { reopenLead, reopening } = useReopenLead(() => refetchPending());
 
   // Vendedor selector state
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
@@ -527,6 +529,15 @@ export function ValidacaoVendasManager() {
                                 >
                                   <XCircle className="h-4 w-4" />
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-warning hover:text-warning hover:bg-warning/10"
+                                  onClick={() => cliente.lead_id && reopenLead(cliente.lead_id, cliente.id)}
+                                  disabled={reopening || !cliente.lead_id}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -602,6 +613,7 @@ export function ValidacaoVendasManager() {
           </SectionCard>
         </TabsContent>
       </Tabs>
+
 
 
       {/* Approval Dialog */}

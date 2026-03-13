@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw } from "lucide-react";
+import { useReopenLead } from "@/hooks/useReopenLead";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -62,6 +63,7 @@ export function OrcamentosTable({
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
+  const { reopenLead, reopening } = useReopenLead(onRefresh);
 
   const handleOpenWhatsApp = (orc: OrcamentoDisplayItem) => {
     setSelectedOrcamento(orc);
@@ -111,7 +113,8 @@ export function OrcamentosTable({
           {groupedOrcamentos.map((group) => {
             const orc = group.latestOrcamento as OrcamentoDisplayItem;
             const convertidoStatus = statuses.find(s => s.nome === "Convertido");
-            const isConverted = convertidoStatus && orc.status_id === convertidoStatus.id;
+            const aguardandoValidacaoStatus = statuses.find(s => s.nome === "Aguardando Validação");
+            const isConverted = (convertidoStatus && orc.status_id === convertidoStatus.id) || (aguardandoValidacaoStatus && orc.status_id === aguardandoValidacaoStatus.id);
             const hasHistory = group.count > 1;
             
             return (
@@ -318,10 +321,19 @@ export function OrcamentosTable({
                           </>
                         )}
                         {isConverted && (
-                          <DropdownMenuItem disabled>
-                            <UserCheck className="w-4 h-4 mr-2 text-success" />
-                            Já convertido
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuItem disabled>
+                              <UserCheck className="w-4 h-4 mr-2 text-success" />
+                              Já convertido
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => reopenLead(orc.lead_id)}
+                              disabled={reopening}
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2 text-warning" />
+                              Reabrir Lead
+                            </DropdownMenuItem>
+                          </>
                         )}
                         {onDelete && (
                           <>

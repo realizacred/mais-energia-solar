@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.24.0",
+    date: "2026-03-13",
+    title: "Reabrir leads convertidos",
+    type: "feature",
+    description: "Adicionada opção de reabrir leads que já foram convertidos em venda, tanto na listagem de leads quanto na validação de vendas.",
+    details: [
+      "Botão 'Reabrir Lead' nas tabelas admin e consultor para leads com status Convertido/Aguardando Validação",
+      "Botão 'Reabrir' na tela de Validação de Vendas para reverter conversão",
+      "Hook reutilizável useReopenLead que reseta status para 'Negociação' e desativa/remove cliente vinculado",
+      "Leads com status 'Aguardando Validação' agora também são identificados como convertidos nas tabelas",
+    ],
+  },
+  {
     version: "2.23.1",
     date: "2026-03-13",
     title: "Correção crítica: upload de documentos na conversão de lead",
