@@ -13,6 +13,17 @@ function normalizeParagraphRuns(xml: string): string {
   return xml.replace(paraPattern, (paraXml) => {
     if (!paraXml.includes("[")) return paraXml;
 
+    if (
+      paraXml.includes("<w:drawing") ||
+      paraXml.includes("<mc:AlternateContent") ||
+      paraXml.includes("<w:pict") ||
+      paraXml.includes("<w:object") ||
+      paraXml.includes("<w:fldChar") ||
+      paraXml.includes("<w:instrText")
+    ) {
+      return paraXml;
+    }
+
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
     const runs: Array<{ xml: string; text: string; rPr: string }> = [];
     let runMatch;
@@ -25,7 +36,7 @@ function normalizeParagraphRuns(xml: string): string {
       runs.push({ xml: runXml, text, rPr });
     }
 
-    if (runs.length === 0) return paraXml;
+    if (runs.length < 2) return paraXml;
 
     const fullText = runs.map((r) => r.text).join("");
     if (!fullText.includes("[")) return paraXml;
@@ -37,12 +48,13 @@ function normalizeParagraphRuns(xml: string): string {
       }
     }
 
-    const phPattern = /\[[^\]]+\]/g;
+    const phPattern = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
     let phMatch;
     const mergeSpans: Array<[number, number]> = [];
     while ((phMatch = phPattern.exec(fullText)) !== null) {
       const startChar = phMatch.index;
       const endChar = startChar + phMatch[0].length - 1;
+      if (startChar >= charRunIdx.length || endChar >= charRunIdx.length) continue;
       const startRun = charRunIdx[startChar];
       const endRun = charRunIdx[endChar];
       if (startRun !== endRun) {
@@ -63,23 +75,6 @@ function normalizeParagraphRuns(xml: string): string {
       }
     }
 
-    const newRuns: Array<{ xml: string }> = [];
-    let ri = 0;
-    while (ri < runs.length) {
-      const span = merged.find((s) => s[0] === ri);
-      if (span) {
-        const groupRuns = runs.slice(span[0], span[1] + 1);
-        const combinedText = groupRuns.map((r) => r.text).join("");
-        const rPr = groupRuns[0].rPr;
-        const mergedRunXml = `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
-        newRuns.push({ xml: mergedRunXml });
-        ri = span[1] + 1;
-      } else {
-        newRuns.push({ xml: runs[ri].xml });
-        ri++;
-      }
-    }
-
     const firstRunIdx = paraXml.indexOf(runs[0].xml);
     const lastRun = runs[runs.length - 1];
     const lastRunIdx = paraXml.lastIndexOf(lastRun.xml);
@@ -89,35 +84,37 @@ function normalizeParagraphRuns(xml: string): string {
 
     const before = paraXml.substring(0, firstRunIdx);
     const after = paraXml.substring(lastRunEnd);
-
     const runsRegion = paraXml.substring(firstRunIdx, lastRunEnd);
+
     const interRunContent: string[] = [];
     let searchPos = 0;
     for (let i = 0; i < runs.length; i++) {
       const pos = runsRegion.indexOf(runs[i].xml, searchPos);
-      if (pos > searchPos) {
-        interRunContent.push(runsRegion.substring(searchPos, pos));
-      } else {
-        interRunContent.push("");
-      }
+      if (pos < 0) return paraXml;
+      interRunContent.push(runsRegion.substring(searchPos, pos));
       searchPos = pos + runs[i].xml.length;
     }
     const trailingContent = searchPos < runsRegion.length ? runsRegion.substring(searchPos) : "";
 
     let rebuiltRegion = "";
-    let origIdx = 0;
-    for (const newRun of newRuns) {
-      if (origIdx < interRunContent.length) {
-        rebuiltRegion += interRunContent[origIdx];
-      }
-      rebuiltRegion += newRun.xml;
-      const span = merged.find((s) => s[0] === origIdx);
+    let ri = 0;
+    while (ri < runs.length) {
+      const span = merged.find((s) => s[0] === ri);
       if (span) {
-        origIdx = span[1] + 1;
+        const spanInterContent = interRunContent.slice(span[0], span[1] + 1).join("");
+        rebuiltRegion += spanInterContent;
+
+        const groupRuns = runs.slice(span[0], span[1] + 1);
+        const combinedText = groupRuns.map((r) => r.text).join("");
+        const rPr = groupRuns[0].rPr;
+        rebuiltRegion += `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
+        ri = span[1] + 1;
       } else {
-        origIdx++;
+        rebuiltRegion += (interRunContent[ri] ?? "") + runs[ri].xml;
+        ri += 1;
       }
     }
+
     rebuiltRegion += trailingContent;
 
     return before + rebuiltRegion + after;
@@ -173,6 +170,20 @@ Deno.test("Case 6: multiple placeholders in same paragraph, one split one not", 
 
 Deno.test("Case 7: paragraph without brackets — untouched", () => {
   const xml = `<w:p><w:r><w:t>Hello world</w:t></w:r></w:p>`;
+  const result = normalizeParagraphRuns(xml);
+  assertEquals(result, xml);
+});
+
+Deno.test("Case 8: preserve inter-run XML markers while merging", () => {
+  const xml = `<w:p><w:r><w:t>[respon</w:t></w:r><w:proofErr w:type="spellStart"/><w:r><w:t>savel_nome]</w:t></w:r><w:proofErr w:type="spellEnd"/></w:p>`;
+  const result = normalizeParagraphRuns(xml);
+  assertEquals(result.includes("[responsavel_nome]"), true);
+  assertEquals(result.includes("<w:proofErr w:type=\"spellStart\"/>"), true);
+  assertEquals(result.includes("<w:proofErr w:type=\"spellEnd\"/>"), true);
+});
+
+Deno.test("Case 9: skip complex drawing paragraph", () => {
+  const xml = `<w:p><w:r><w:drawing/></w:r><w:r><w:t>[cliente_nome]</w:t></w:r></w:p>`;
   const result = normalizeParagraphRuns(xml);
   assertEquals(result, xml);
 });

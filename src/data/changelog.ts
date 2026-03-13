@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.29.2",
+    date: "2026-03-13",
+    title: "DOCX: preservação de text box sobre imagem",
+    type: "bugfix",
+    description: "Corrigido normalizador de placeholders para não remover marcadores XML entre runs, evitando quebra em áreas de texto sobre imagem no Word.",
+    details: [
+      "normalizeParagraphRuns passou a reconstruir o parágrafo preservando conteúdo inter-run (proofErr/bookmarks)",
+      "Mantida proteção para parágrafos complexos com drawing/pict/object/fldChar/instrText",
+      "Adicionados testes cobrindo preservação de inter-run XML e skip de parágrafos com drawing",
+      "Edge function template-preview publicada com a correção",
+    ],
+  },
+  {
     version: "2.29.1",
     date: "2026-03-13",
     title: "Preview DOCX: layout A4 e PDF multi-página",
