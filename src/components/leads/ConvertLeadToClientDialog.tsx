@@ -1004,6 +1004,28 @@ export function ConvertLeadToClientDialog({
                       onFilesChange={setBeneficiariaFiles}
                     />
                   </div>
+
+                  {/* Assinatura do Cliente */}
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Signature className="h-3.5 w-3.5 text-primary" />
+                        Foto da Assinatura
+                      </span>
+                      {assinaturaFiles.length > 0 ? (
+                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
+                      )}
+                    </div>
+                    <DocumentUpload
+                      label=""
+                      description="Foto da assinatura do cliente no contrato"
+                      files={assinaturaFiles}
+                      onFilesChange={setAssinaturaFiles}
+                      accept="image/*"
+                    />
+                  </div>
                 </div>
 
                 <div className="border-t border-border" />
