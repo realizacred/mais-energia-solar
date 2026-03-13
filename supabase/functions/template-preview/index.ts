@@ -562,7 +562,8 @@ Deno.serve(async (req) => {
     }
 
     // Geração
-    const geracaoMensal = projeto?.geracao_mensal_media_kwh || snapNum("geracao_mensal");
+    const geracaoMensal = projeto?.geracao_mensal_media_kwh || snapNum("geracao_mensal")
+      || (tecnico.geracao_estimada_kwh ? Number(tecnico.geracao_estimada_kwh) : null);
     set("geracao_mensal", geracaoMensal ? `${fmtNum(Number(geracaoMensal), 0)} kWh/mês` : undefined);
     setIfMissing("geracao_anual", snapshot?.geracao_anual);
     for (const m of meses) setIfMissing(`geracao_${m}`, snapshot?.[`geracao_${m}`]);
