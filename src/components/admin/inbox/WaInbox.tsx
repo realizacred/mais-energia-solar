@@ -48,6 +48,8 @@ interface WaInboxProps {
 }
 
 export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = false, initialConversationId }: WaInboxProps) {
+  const { get: getSiteSetting } = useSiteSettings();
+  const nomeEmpresa = getSiteSetting("nome_empresa") || "nossa empresa";
   // Filters
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("open");
