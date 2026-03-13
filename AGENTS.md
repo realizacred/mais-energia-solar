@@ -128,7 +128,17 @@ NUNCA usar `bg-white`, `text-black`, `gray-*` em modais ou formulários. SEMPRE 
 ### 🚫 BLOQUEANTE — Componentes: verificar antes de criar
 Antes de criar QUALQUER componente novo, verificar se já existe em: `src/components/shared/`, `src/components/ui-kit/`, `src/components/ui/`. Nunca duplicar funcionalidade existente.
 
----
+### 🚫 BLOQUEANTE — Scroll interno: min-h-0 obrigatório
+Containers `flex-col` com `flex-1` e scroll interno DEVEM ter `min-h-0`. Sem isso, `overflow-y-auto` não funciona.
+→ Ver §36
+
+### 🚫 BLOQUEANTE — Storage paths: signed URL obrigatória
+NUNCA usar path raw do Supabase Storage como `src` de imagem. SEMPRE resolver com `createSignedUrl`.
+→ Ver §37
+
+### 🚫 BLOQUEANTE — Conversão lead→venda: fallback obrigatório
+NUNCA criar cliente com `potencia_kwp = null` se existir simulação ou proposta. SEMPRE usar cadeia de fallback.
+→ Ver §38
 
 # Bloco 2 — BOAS PRÁTICAS
 
@@ -152,8 +162,8 @@ Usar `formatBRL`, `formatKwh`, `formatPercent`, `formatDateBR`, `formatBRLCompac
 SRP, DRY, SSOT, KISS, YAGNI. Patches incrementais.
 → Ver §20
 
-### 💡 RECOMENDADO — Inputs especializados
-Usar componentes prontos: `CpfCnpjInput`, `PhoneInput`, `CurrencyInput`, `AddressFields`, etc.
+### 💡 RECOMENDADO — Inputs especializados além dos obrigatórios
+Usar também: `CurrencyInput`, `DateInput`, `UnitInput` quando aplicável.
 → Ver §13
 
 ### 💡 RECOMENDADO — Safe query patterns
@@ -164,7 +174,7 @@ Respeitar tenant isolation, evitar selects desnecessários, não quebrar RLS.
 
 # Bloco 3 — REFERÊNCIA DE PADRÕES
 
-Todas as seções originais §1–§33, reorganizadas sem duplicações.
+Todas as seções originais §1–§38, reorganizadas sem duplicações.
 
 ---
 
@@ -721,7 +731,7 @@ w-full    flex-1    min-w-0    p-4 md:p-6
 
 ## §22. PADRÃO DE BOTÕES — Regra obrigatória
 
-- Ação principal (+ Novo, + Criar, Salvar, Confirmar): `variant="default"` — SEMPRE sólido laranja
+- Ação principal (+ Novo, + Criar, Salvar, Confirmar): `variant="default"` — SEMPRE sólido primário (`bg-primary`)
 - Ação secundária (Filtrar, Exportar, Atualizar): `variant="outline"`
 - Ação destrutiva (Excluir, Remover, Deletar): `variant="destructive"`
 - Navegação e fechamento (Voltar, Fechar, Cancelar): `variant="ghost"`
@@ -956,7 +966,7 @@ PROIBIDO:
 
 Todos os switches/toggles do sistema devem seguir:
 
-- Cor ativa: bg-primary (laranja) — NUNCA azul ou hardcoded
+- Cor ativa: `bg-primary` — NUNCA azul ou hardcoded
 - Cor inativa: bg-muted
 - Verificar src/components/ui/switch.tsx — deve usar bg-primary quando checked
 
@@ -1345,6 +1355,9 @@ Quais regras valem onde:
 
 ### WhatsApp Inbox
 - §36 (flexbox scroll obrigatório)
+
+### Storage e Documentos
+- §37 (resolução de URLs obrigatória)
 
 ### Conversão Lead → Venda
 - §38 (fallback de dados técnicos)
