@@ -158,7 +158,7 @@ export function VendorLeadsTable({
               <TableCell className="hidden sm:table-cell align-middle">
                 <span className="text-sm">{lead.media_consumo} kWh</span>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <LeadStatusSelector
                   leadId={lead.id}
                   currentStatusId={lead.status_id}
