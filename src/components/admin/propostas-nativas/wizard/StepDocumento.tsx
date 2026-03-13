@@ -491,7 +491,7 @@ export function StepDocumento({
                 srcDoc={htmlPreview}
                 title="Proposta Preview"
                 className="w-full border-0"
-                style={{ height: 600, pointerEvents: "none" }}
+                style={{ height: 600 }}
               />
             </div>
           ) : (
