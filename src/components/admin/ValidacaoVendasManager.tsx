@@ -60,7 +60,7 @@ export function ValidacaoVendasManager() {
   const [rejecting, setRejecting] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [percentualComissao, setPercentualComissao] = useState("2.0");
-  const [valorVenda, setValorVenda] = useState("");
+  const [valorVenda, setValorVenda] = useState(0);
   const [loadingVendedor, setLoadingVendedor] = useState(false);
   const [activeTab, setActiveTab] = useState("pendentes");
   const [leadSimulacoes, setLeadSimulacoes] = useState<LeadSimulacao[]>([]);
@@ -131,7 +131,7 @@ export function ValidacaoVendasManager() {
     setSelectedSimulacaoId("");
 
     const valor = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
-    setValorVenda(valor > 0 ? valor.toString() : "");
+    setValorVenda(valor > 0 ? valor : 0);
 
     setLoadingVendedor(true);
 
@@ -188,7 +188,7 @@ export function ValidacaoVendasManager() {
           } else if (sims.length > 0) {
             setSelectedSimulacaoId(sims[0].id);
             if (sims[0].investimento_estimado && sims[0].investimento_estimado > 0) {
-              setValorVenda(sims[0].investimento_estimado.toString());
+              setValorVenda(sims[0].investimento_estimado);
             }
           }
         };
@@ -220,19 +220,19 @@ export function ValidacaoVendasManager() {
   const handleSimulacaoChange = (simId: string) => {
     setSelectedSimulacaoId(simId);
     if (simId === "manual") {
-      setValorVenda("");
+      setValorVenda(0);
       return;
     }
     const sim = leadSimulacoes.find((s) => s.id === simId);
     if (sim?.investimento_estimado && sim.investimento_estimado > 0) {
-      setValorVenda(sim.investimento_estimado.toString());
+      setValorVenda(sim.investimento_estimado);
     }
   };
 
   const handleApprove = async () => {
     if (!selectedCliente) return;
 
-    const valorBase = parseFloat(valorVenda) || 0;
+    const valorBase = valorVenda || 0;
     if (valorBase <= 0) {
       toast({
         title: "Valor obrigatório",
@@ -338,7 +338,7 @@ export function ValidacaoVendasManager() {
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   const valorComissaoPreview = () => {
-    const base = parseFloat(valorVenda) || 0;
+    const base = valorVenda || 0;
     return (base * (parseFloat(percentualComissao) || 0)) / 100;
   };
 
@@ -350,7 +350,7 @@ export function ValidacaoVendasManager() {
   };
 
   // Check if approval form is valid
-  const isApprovalValid = parseFloat(valorVenda) > 0;
+  const isApprovalValid = valorVenda > 0;
 
   if (loading) {
     return (

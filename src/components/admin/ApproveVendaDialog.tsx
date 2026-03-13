@@ -4,6 +4,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -54,8 +55,8 @@ interface ApproveVendaDialogProps {
   onVendedorChange: (id: string) => void;
   selectedSimulacaoId: string;
   onSimulacaoChange: (id: string) => void;
-  valorVenda: string;
-  onValorVendaChange: (v: string) => void;
+  valorVenda: number;
+  onValorVendaChange: (v: number) => void;
   percentualComissao: string;
   onPercentualChange: (v: string) => void;
   onApprove: () => void;
@@ -201,7 +202,7 @@ export function ApproveVendaDialog({
   });
 
   const valorComissao = () => {
-    const base = parseFloat(valorVenda) || 0;
+    const base = valorVenda || 0;
     return (base * (parseFloat(percentualComissao) || 0)) / 100;
   };
 
@@ -385,13 +386,10 @@ export function ApproveVendaDialog({
                   {/* Valor da venda */}
                   <div className="space-y-1.5">
                     <Label htmlFor="av-valor">Valor da Venda (R$) *</Label>
-                    <Input
+                    <CurrencyInput
                       id="av-valor"
-                      type="number"
-                      step="0.01"
-                      placeholder="Ex: 35000.00"
                       value={valorVenda}
-                      onChange={(e) => onValorVendaChange(e.target.value)}
+                      onChange={onValorVendaChange}
                     />
                     {!valorVenda && (
                       <p className="text-xs text-destructive">Informe o valor para gerar a comissão</p>
