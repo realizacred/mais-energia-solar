@@ -56,6 +56,7 @@ export function StepDocumento({
   generating, rendering, result, htmlPreview,
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
+  docxBlob,
 }: StepDocumentoProps) {
   // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
   const { data: templates = [], isLoading: loadingTemplates } = useProposalTemplates();
