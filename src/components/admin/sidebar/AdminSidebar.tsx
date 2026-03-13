@@ -99,9 +99,11 @@ function SidebarItemButton({
         onClick={handleClick}
         isActive={isActive}
         tooltip={collapsed ? item.title : undefined}
+        aria-label={item.title}
         className={`
           transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
           pl-4
+          focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
           ${
             isActive
               ? "bg-sidebar-primary/10 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary shadow-sm shadow-sidebar-primary/5"
