@@ -207,10 +207,10 @@ export function OrcamentosTable({
                     {orc.cidade}, {orc.estado}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden sm:table-cell text-sm">
+                <TableCell className="hidden sm:table-cell text-sm align-middle">
                   {orc.media_consumo} kWh
                 </TableCell>
-                <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                <TableCell className="hidden sm:table-cell text-sm text-muted-foreground align-middle">
                   {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 </TableCell>
                 <TableCell>
