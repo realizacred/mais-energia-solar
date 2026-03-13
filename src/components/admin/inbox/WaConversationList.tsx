@@ -229,19 +229,19 @@ function ConversationItem({
     >
       <div className="flex items-start gap-2.5">
         {/* Avatar */}
-          <div className="relative shrink-0 mt-0.5">
+          <div className="shrink-0 mt-0.5">
             <WaProfileAvatar
               profilePictureUrl={conv.profile_picture_url}
               isGroup={conv.is_group}
               name={conv.cliente_nome}
               size="md"
+              statusDotClassName={st.dotColor}
               className={cn(
                 hasUnread
                   ? "bg-primary/12 text-primary ring-2 ring-primary/20"
                   : "bg-muted/60 text-muted-foreground",
               )}
             />
-            <div className={cn("absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card", st.dotColor)} />
           </div>
 
         {/* Content */}

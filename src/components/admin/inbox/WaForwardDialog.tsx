@@ -175,6 +175,7 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
                     isGroup={conv.is_group}
                     name={conv.cliente_nome}
                     size="md"
+                    statusDotClassName={getStatusDotClass(conv.status)}
                     className="bg-muted/80 text-muted-foreground"
                   />
                   <div className="min-w-0 flex-1">
