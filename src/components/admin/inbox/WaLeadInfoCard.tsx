@@ -28,7 +28,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
-        .select("id, lead_code, nome, telefone, estado, cidade, bairro, rua, numero, media_consumo, consumo_previsto, area, tipo_telhado, rede_atendimento, observacoes, status_id, consultor, created_at, lead_statuses(nome, cor), consultores(nome)")
+        .select("id, lead_code, nome, telefone, estado, cidade, bairro, rua, numero, media_consumo, consumo_previsto, area, tipo_telhado, rede_atendimento, observacoes, status_id, consultor, consultor_id, created_at, lead_statuses(nome, cor), consultores(nome)")
         .eq("id", leadId)
         .maybeSingle();
       if (error) throw error;
