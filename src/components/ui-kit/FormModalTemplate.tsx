@@ -132,14 +132,14 @@ export function FormModalTemplate({
         </DialogHeader>
         {asForm ? (
           <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
-            <div className="space-y-4 p-5 overflow-y-auto min-h-0 flex-1 max-h-[70vh]">
+            <div className="space-y-4 p-5 overflow-y-auto min-h-0 flex-1">
               {children}
             </div>
             {footer}
           </form>
         ) : (
           <>
-            <div className="space-y-4 p-5 overflow-y-auto min-h-0 flex-1 max-h-[70vh]">
+            <div className="space-y-4 p-5 overflow-y-auto min-h-0 flex-1">
               {children}
             </div>
             {footer}
