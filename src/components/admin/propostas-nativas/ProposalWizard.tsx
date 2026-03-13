@@ -1407,8 +1407,9 @@ export function ProposalWizard() {
               </style></head><body>${mammothResult.value}</body></html>
             `;
             setHtmlPreview(styledHtml);
-          } catch (convErr) {
-            console.warn("Mammoth conversion failed, preview unavailable:", convErr);
+          } catch (convErr: any) {
+            console.error("Mammoth conversion failed:", convErr?.message, convErr);
+            console.log("Blob type:", docxBlob.type, "size:", docxBlob.size);
             setHtmlPreview(null);
           }
 
