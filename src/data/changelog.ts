@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.28.0",
+    date: "2026-03-13",
+    title: "Preview visual de proposta DOCX + download PDF",
+    type: "improvement",
+    description: "Templates DOCX agora exibem preview visual inline na tela via conversão mammoth.js, com download de PDF e DOCX funcionais.",
+    details: [
+      "DOCX convertido para HTML via mammoth.js para exibição inline no preview",
+      "Botão 'Download de PDF' gera PDF a partir do preview via html2canvas + jsPDF",
+      "Botão 'Download de Doc' baixa o DOCX original preenchido",
+      "Removido placeholder estático 'DOCX gerado' — agora mostra conteúdo real",
+    ],
+  },
+  {
     version: "2.27.0",
     date: "2026-03-13",
     title: "Templates DOCX agora funcionam na geração de propostas",
