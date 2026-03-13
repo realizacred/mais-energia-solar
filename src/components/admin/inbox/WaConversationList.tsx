@@ -516,7 +516,7 @@ export function WaConversationList({
         <div className="flex flex-wrap items-center gap-2">
           {onShowGroupsChange && (
             <label className="flex items-center gap-1.5 cursor-pointer">
-              <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span[data-state=checked]]:translate-x-3 [&>span[data-state=unchecked]]:translate-x-0.5" />
+              <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="h-4 w-7 [&>span]:!h-3 [&>span]:!w-3 [&>span[data-state=checked]]:!translate-x-3 [&>span[data-state=unchecked]]:!translate-x-0.5" />
               <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                 <Users className="h-3 w-3" /> Grupos
               </span>
