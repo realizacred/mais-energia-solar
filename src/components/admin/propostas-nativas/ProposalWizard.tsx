@@ -217,6 +217,7 @@ export function ProposalWizard() {
   const [rendering, setRendering] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
+  const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
 
