@@ -1000,7 +1000,10 @@ export function ConvertLeadToClientDialog({
                   {/* Beneficiária (opcional) */}
                   <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Comprovante Beneficiária UC</span>
+                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Zap className="h-3.5 w-3.5 text-primary" />
+                        Comprovante Beneficiária UC
+                      </span>
                       {beneficiariaFiles.length > 0 ? (
                         <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
                       ) : (
