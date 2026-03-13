@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.26.1",
+    date: "2026-03-13",
+    title: "Auditoria de navegação: itens perdidos no menu",
+    type: "bugfix",
+    description: "Corrigidas inconsistências entre navRegistry e rotas que faziam telas parecerem 'sumidas' no painel admin.",
+    details: [
+      "Adicionados itens visíveis no menu para Propostas Nativas (lista, templates, variáveis e dashboard)",
+      "Campos Customizados e Editor de Proposta removidos de _hidden e publicados em seções visíveis",
+      "Criados aliases de rota para chaves antigas: regras-retorno, followup-wa-queue e politica-precos",
+      "Atualizado TAB_TITLES para novas chaves e aliases, incluindo documentos-assinaturas",
+    ],
+  },
+  {
     version: "2.26.0",
     date: "2026-03-13",
     title: "Modal 'Converter Lead em Venda' — layout 2 colunas §25",

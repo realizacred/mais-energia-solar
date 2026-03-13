@@ -296,11 +296,14 @@ const TAB_TITLES: Record<string, string> = {
   "propostas-nativas/templates": "Templates de proposta",
   "propostas-nativas/variaveis": "Variáveis customizadas",
   "followup-wa": "Regras de retorno",
+  "regras-retorno": "Regras de retorno",
   "followup-queue": "Fila de retorno",
+  "followup-wa-queue": "Fila de retorno",
   "metricas-atendimento": "Métricas de atendimento",
   "wa-etiquetas": "Etiquetas WhatsApp",
   "links-instalacao": "Captação & app",
   documentos: "Documentos & assinatura",
+  "documentos-assinaturas": "Documentos & assinatura",
   "data-reset": "Manutenção de dados",
   "integracoes": "Integrações",
   "aneel": "Integração ANEEL",
@@ -320,7 +323,8 @@ const TAB_TITLES: Record<string, string> = {
   "monitoramento-solar": "Monitoramento Solar",
   "conf-solar": "Premissas solar",
   "pricing-policy": "Política de precificação",
-  "custom-fields": "Opções customizáveis",
+  "politica-precos": "Política de precificação",
+  "custom-fields": "Campos customizados",
   menus: "Personalizar menu",
   dev: "Ferramentas dev",
   "dicionario-aneel": "Dicionário ANEEL",
@@ -528,7 +532,9 @@ export default function Admin() {
                 {/* Rotas de atendimento consolidadas no inbox */}
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
+                <Route path="regras-retorno" element={<Navigate to="/admin/followup-wa" replace />} />
                 <Route path="followup-queue" element={<WaFollowupQueuePage />} />
+                <Route path="followup-wa-queue" element={<Navigate to="/admin/followup-queue" replace />} />
                 <Route path="metricas-atendimento" element={<WaAtendimentoMetrics />} />
                 <Route path="wa-health" element={<WaHealthDashboard />} />
                 <Route path="wa-etiquetas" element={<WaTagsManager />} />
@@ -595,6 +601,7 @@ export default function Admin() {
                 <Route path="base-meteorologica" element={<Navigate to="/admin/meteorologia" replace />} />
                 <Route path="meteorologia" element={<BaseMeteorologicaPage />} />
                 <Route path="pricing-policy" element={<PricingPolicyPage />} />
+                <Route path="politica-precos" element={<Navigate to="/admin/pricing-policy" replace />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
                 {/* agenda-config removed */}
