@@ -114,9 +114,9 @@ export function VendorLeadsTable({
             return (
               <TableRow
                 key={lead.id}
-                className={rowClasses}
+                className={`align-middle ${rowClasses}`}
               >
-                <TableCell>
+                <TableCell className="align-middle">
                   <Checkbox
                     checked={lead.visto}
                     onCheckedChange={() => onToggleVisto(lead)}
