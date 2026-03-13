@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.23.1",
+    date: "2026-03-13",
+    title: "Correção crítica: upload de documentos na conversão de lead",
+    type: "bugfix",
+    description: "Documentos anexados pelo consultor não eram salvos no banco por dois bugs: nome do bucket errado e path sem tenant_id.",
+    details: [
+      "Bucket corrigido de 'documentos-cliente' para 'documentos-clientes' (nome real no Supabase)",
+      "Path de upload agora inclui tenant_id como primeiro segmento, conforme exigido pelas políticas RLS do storage",
+      "uploadDocumentFiles agora lança erro quando todos os uploads falham, em vez de silenciar",
+      "Afetava todos os documentos: RG/CNH, comprovante de endereço e comprovante beneficiária",
+    ],
+  },
+  {
     version: "2.23.0",
     date: "2026-03-13",
     title: "Modal Aprovar Venda redesenhado com §25",
