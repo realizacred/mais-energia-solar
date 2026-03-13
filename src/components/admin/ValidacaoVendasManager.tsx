@@ -657,9 +657,9 @@ export function ValidacaoVendasManager() {
         approving={approving === selectedCliente?.id}
         isValid={isApprovalValid}
         documents={selectedCliente ? [
-          { label: "Identidade / RG / CNH", urls: (selectedCliente as any).identidade_urls || ((selectedCliente as any).identidade_url ? [(selectedCliente as any).identidade_url] : null) },
-          { label: "Comprovante de endereço", urls: (selectedCliente as any).comprovante_endereco_urls || ((selectedCliente as any).comprovante_endereco_url ? [(selectedCliente as any).comprovante_endereco_url] : null) },
-          { label: "Comprovante beneficiária", urls: (selectedCliente as any).comprovante_beneficiaria_urls || null },
+          { label: "Identidade / RG / CNH", urls: selectedCliente.identidade_urls || (selectedCliente.identidade_url ? [selectedCliente.identidade_url] : null) },
+          { label: "Comprovante de endereço", urls: selectedCliente.comprovante_endereco_urls || (selectedCliente.comprovante_endereco_url ? [selectedCliente.comprovante_endereco_url] : null) },
+          { label: "Comprovante beneficiária", urls: selectedCliente.comprovante_beneficiaria_urls || null },
         ] : []}
       />
 
