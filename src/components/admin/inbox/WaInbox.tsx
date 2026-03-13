@@ -584,25 +584,27 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   };
 
   return (
-    <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-hidden" : "flex flex-col w-full h-full min-h-0 overflow-hidden"}`} data-wa-inbox-active>
-      <div className="shrink-0 flex flex-col gap-3">
-        {/* Header — hidden in vendor/standalone mode */}
-        {!vendorMode && (
+    <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-hidden" : "flex flex-col w-full h-full min-h-0 overflow-hidden p-4 pb-0 md:p-6 md:pb-0"}`} data-wa-inbox-active>
+      {/* Header — hidden in vendor/standalone mode */}
+      {!vendorMode && (
+        <div className="shrink-0 mb-3">
           <WaInboxHeader
             instances={instances}
             onNewChat={() => setShowStartChat(true)}
             onSettings={() => setShowSettings(true)}
           />
-        )}
+        </div>
+      )}
 
-        {/* Stats - only in admin mode */}
-        {!vendorMode && <WaInboxStats conversations={allConversations} />}
+      {/* Stats - only in admin mode */}
+      {!vendorMode && <div className="shrink-0 mb-3"><WaInboxStats conversations={allConversations} /></div>}
 
-        {/* Compact stats for vendor/mobile mode */}
-        {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
+      {/* Compact stats for vendor/mobile mode */}
+      {vendorMode && showCompactStats && <div className="shrink-0"><WaInboxStats conversations={allConversations} compact /></div>}
 
-        {/* SLA Alerts Banner */}
-        {slaEnabled && (
+      {/* SLA Alerts Banner */}
+      {slaEnabled && (
+        <div className="shrink-0 mb-3">
           <WaSlaAlertBanner
             alerts={isAdminUser ? slaAlerts : mySlaAlerts}
             onOpenConversation={(convId) => {
@@ -614,9 +616,11 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
             onPauseSla={pauseSlaConversation}
             isAdmin={isAdminUser}
           />
-        )}
+        </div>
+      )}
 
-        {/* Follow-up Widget */}
+      {/* Follow-up Widget */}
+      <div className="shrink-0">
         <WaFollowupWidget
           vendorUserId={vendorMode ? effectiveUserId : undefined}
           onOpenConversation={(convId) => {
