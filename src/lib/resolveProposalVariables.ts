@@ -244,7 +244,20 @@ function resolveFromContext(
   if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
 
   // ── Financeiro ──
-  if (key === "financeiro.preco_total") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
+  if (key === "financeiro.preco_total") {
+    // ctx.precoTotal can be 0 (valid) — only block if truly null/undefined
+    if (ctx.precoTotal != null && !isNaN(ctx.precoTotal)) return fmtCurrency(ctx.precoTotal);
+    // Fallback: try to sum kit items if available
+    if (ctx.kit && typeof ctx.kit === "object") {
+      const kitTotal = (ctx as unknown as { itensTotal?: number }).itensTotal;
+      if (kitTotal != null && kitTotal > 0) return fmtCurrency(kitTotal);
+    }
+    // Fallback: try gdResult economia_anual * payback
+    if (ctx.gdResult?.economia_mensal_rs && ctx.paybackAnos) {
+      return fmtCurrency(ctx.gdResult.economia_mensal_rs * 12 * ctx.paybackAnos);
+    }
+    return null;
+  }
   if (key === "financeiro.economia_mensal") return ctx.economiaMensal ? fmtCurrency(ctx.economiaMensal) : null;
   if (key === "financeiro.economia_anual") return ctx.economiaAnual ? fmtCurrency(ctx.economiaAnual) : null;
   if (key === "financeiro.economia_25_anos") return ctx.economia25Anos ? fmtCurrency(ctx.economia25Anos) : null;
