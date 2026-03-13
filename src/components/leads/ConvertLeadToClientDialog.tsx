@@ -4,7 +4,8 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
-import { formatCEP, emailFieldSchema } from "@/lib/validations";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
+import { formatCEP } from "@/lib/validations";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,18 +77,18 @@ interface Simulacao {
 const formSchema = z.object({
   nome: z.string().min(2, "Nome é obrigatório"),
   telefone: z.string().min(10, "Telefone é obrigatório"),
-  email: emailFieldSchema,
-  cpf_cnpj: z.string().optional(),
+  email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
+  cpf_cnpj: z.string().min(11, "CPF/CNPJ é obrigatório"),
   cep: z.string().optional(),
   estado: z.string().min(2, "Estado é obrigatório"),
   cidade: z.string().min(2, "Cidade é obrigatória"),
-  bairro: z.string().optional(),
-  rua: z.string().optional(),
-  numero: z.string().optional(),
+  bairro: z.string().min(1, "Bairro é obrigatório"),
+  rua: z.string().min(1, "Rua é obrigatória"),
+  numero: z.string().min(1, "Número é obrigatório"),
   complemento: z.string().optional(),
-  disjuntor_id: z.string().optional(),
-  transformador_id: z.string().optional(),
-  localizacao: z.string().optional(), // Optional - required only for final conversion
+  disjuntor_id: z.string().min(1, "Disjuntor é obrigatório"),
+  transformador_id: z.string().min(1, "Transformador é obrigatório"),
+  localizacao: z.string().min(1, "Localização é obrigatória"),
   observacoes: z.string().optional(),
   simulacao_aceita_id: z.string().optional(),
 });
@@ -393,15 +394,25 @@ export function ConvertLeadToClientDialog({
     return (
       identidadeFiles.length > 0 &&
       comprovanteFiles.length > 0 &&
-      form.getValues("disjuntor_id") &&
-      form.getValues("transformador_id") &&
-      form.getValues("localizacao")
+      !!form.getValues("email") &&
+      !!form.getValues("cpf_cnpj") &&
+      !!form.getValues("bairro") &&
+      !!form.getValues("rua") &&
+      !!form.getValues("numero") &&
+      !!form.getValues("disjuntor_id") &&
+      !!form.getValues("transformador_id") &&
+      !!form.getValues("localizacao")
     );
   };
 
   // Get list of missing required items
   const getMissingItems = () => {
     const missing: string[] = [];
+    if (!form.getValues("email")) missing.push("E-mail");
+    if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
+    if (!form.getValues("bairro")) missing.push("Bairro");
+    if (!form.getValues("rua")) missing.push("Rua");
+    if (!form.getValues("numero")) missing.push("Número");
     if (identidadeFiles.length === 0) missing.push("Identidade (RG/CNH)");
     if (comprovanteFiles.length === 0) missing.push("Comprovante de Endereço");
     if (!form.getValues("disjuntor_id")) missing.push("Disjuntor");
@@ -436,6 +447,11 @@ export function ConvertLeadToClientDialog({
 
       // Build observation note about what's missing
       const missing: string[] = [];
+      if (!form.getValues("email")) missing.push("E-mail");
+      if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
+      if (!form.getValues("bairro")) missing.push("Bairro");
+      if (!form.getValues("rua")) missing.push("Rua");
+      if (!form.getValues("numero")) missing.push("Número");
       if (identidadeFiles.length === 0) missing.push("Identidade");
       if (comprovanteFiles.length === 0) missing.push("Comprovante de Endereço");
       if (!form.getValues("disjuntor_id")) missing.push("Disjuntor");
@@ -795,9 +811,9 @@ export function ConvertLeadToClientDialog({
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Email *</FormLabel>
                       <FormControl>
-                        <EmailInput value={field.value || ""} onChange={field.onChange} />
+                        <EmailInput value={field.value || ""} onChange={field.onChange} required />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -808,9 +824,9 @@ export function ConvertLeadToClientDialog({
                   name="cpf_cnpj"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF/CNPJ</FormLabel>
+                      <FormLabel>CPF/CNPJ *</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <CpfCnpjInput value={field.value || ""} onChange={field.onChange} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -881,7 +897,7 @@ export function ConvertLeadToClientDialog({
                   name="bairro"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Bairro</FormLabel>
+                      <FormLabel>Bairro *</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -895,7 +911,7 @@ export function ConvertLeadToClientDialog({
                     name="rua"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Rua</FormLabel>
+                        <FormLabel>Rua *</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -909,7 +925,7 @@ export function ConvertLeadToClientDialog({
                   name="numero"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Número</FormLabel>
+                      <FormLabel>Número *</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -1080,7 +1096,7 @@ export function ConvertLeadToClientDialog({
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
-                        Localização (Coordenadas/Link do Mapa)
+                        Localização (Coordenadas/Link do Mapa) *
                       </FormLabel>
                       <div className="flex gap-2">
                         <FormControl>
