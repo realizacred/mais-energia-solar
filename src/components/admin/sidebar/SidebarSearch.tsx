@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useNavConfig } from "@/hooks/useNavConfig";
@@ -76,32 +77,37 @@ export function SidebarSearch() {
           }}
           onFocus={() => setOpen(true)}
           placeholder="Buscar no menu..."
+          aria-label="Buscar no menu"
           className="w-full h-8 pl-8 pr-7 text-[12px] rounded-lg border border-border/20 bg-muted/20 
             placeholder:text-muted-foreground/40 text-foreground
-            focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/30
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus:border-primary/30
             transition-all"
         />
         {query && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => { setQuery(""); setOpen(false); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground/40 hover:text-muted-foreground"
+            aria-label="Limpar busca"
           >
             <X className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         )}
       </div>
 
       {open && results.length > 0 && (
         <div className="absolute left-3 right-3 top-full mt-1 z-50 rounded-lg border border-border/30 bg-popover shadow-lg overflow-hidden">
           {results.map(({ item, section }) => (
-            <button
+            <Button
               key={item.id}
+              variant="ghost"
               onClick={() => {
                 navigate(`/admin/${item.id}`);
                 setQuery("");
                 setOpen(false);
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-accent/50 transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 h-auto text-left hover:bg-accent/50 transition-colors rounded-none justify-start"
             >
               <item.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
               <div className="min-w-0 flex-1">
@@ -113,7 +119,7 @@ export function SidebarSearch() {
               <span className="text-[9px] text-muted-foreground/40 shrink-0 uppercase tracking-wider">
                 {section.label}
               </span>
-            </button>
+            </Button>
           ))}
         </div>
       )}

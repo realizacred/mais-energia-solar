@@ -99,9 +99,11 @@ function SidebarItemButton({
         onClick={handleClick}
         isActive={isActive}
         tooltip={collapsed ? item.title : undefined}
+        aria-label={item.title}
         className={`
           transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
           pl-4
+          focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
           ${
             isActive
               ? "bg-sidebar-primary/10 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary shadow-sm shadow-sidebar-primary/5"
@@ -131,13 +133,14 @@ function SidebarItemButton({
             }}
             className={`
               shrink-0 p-0.5 rounded transition-all duration-150
+              focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1
               ${
                 isFav
                   ? "opacity-100 text-warning"
                   : "opacity-0 group-hover/item:opacity-40 hover:!opacity-100 text-muted-foreground hover:text-warning"
               }
             `}
-            title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+            aria-label={isFav ? `Remover ${item.title} dos favoritos` : `Adicionar ${item.title} aos favoritos`}
           >
             <Star
               className="h-3 w-3"
@@ -267,12 +270,14 @@ function SidebarSectionGroup({
       <SidebarGroup className="mb-0.5 px-2 py-0">
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
+            aria-label={`Expandir ou recolher seção ${section.label}`}
             className={`
               text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
               flex items-center gap-2.5 cursor-pointer select-none
               transition-all duration-200 ease-in-out
               hover:bg-sidebar-accent/60 rounded-lg
               text-sidebar-foreground/70
+              focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
             `}
           >
             <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${section.indicatorClass || ''}`}>
@@ -376,12 +381,14 @@ function FavoritesSection({
       <SidebarGroup className="mb-0.5 px-2 py-0">
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
+            aria-label="Expandir ou recolher seção Favoritos"
             className={`
               text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
               flex items-center gap-2.5 cursor-pointer select-none
               transition-all duration-200 ease-in-out
               hover:bg-sidebar-accent/60 rounded-lg
               text-sidebar-foreground/70
+              focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
             `}
           >
             <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-warning/10">
@@ -558,7 +565,8 @@ export function AdminSidebar({
             <Button
               variant="outline"
               size={collapsed ? "icon" : "default"}
-              className={`w-full justify-start gap-2 text-primary border-primary/20 hover:bg-primary/10 ${collapsed ? "justify-center px-0" : ""}`}
+              aria-label={collapsed ? "Super Admin" : undefined}
+              className={`w-full justify-start gap-2 text-primary border-primary/20 hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary/50 ${collapsed ? "justify-center px-0" : ""}`}
             >
               <Building2 className="h-4 w-4 shrink-0" />
               {!collapsed && <span className="text-sm">Super Admin</span>}
@@ -569,8 +577,10 @@ export function AdminSidebar({
           variant="ghost"
           size={collapsed ? "icon" : "default"}
           onClick={onSignOut}
+          aria-label={collapsed ? "Sair" : undefined}
           className={`
             w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10
+            focus-visible:ring-2 focus-visible:ring-primary/50
             ${collapsed ? "justify-center px-0" : ""}
           `}
         >
