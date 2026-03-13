@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.24.0",
+    date: "2026-03-13",
+    title: "Hardening do fluxo de proposta + conformidade AGENTS Lote 1",
+    type: "improvement",
+    description: "Centralização de chamadas de edge function, extração de queries para hooks e eliminação de botões nativos no fluxo de proposta.",
+    details: [
+      "StepDocumento: invoke duplicado substituído por sendProposal() centralizado (com x-client-timeout)",
+      "Queries de templates extraídas para useProposalTemplates.ts com staleTime: 15min",
+      "8 <button> nativos substituídos por Button shadcn",
+      "Cores hardcoded (bg-success text-white, bg-info text-white) substituídas por variantes semânticas",
+      "Criado scripts/audit-agents.mjs para auditoria automatizada com 3 níveis de severidade",
+      "Criado docs/agents-audit-report.md com plano de remediação em 3 lotes",
+    ],
+  },
+  {
     version: "2.23.0",
     date: "2026-03-13",
     title: "Modal Aprovar Venda redesenhado com §25",
