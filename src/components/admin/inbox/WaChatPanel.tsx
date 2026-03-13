@@ -378,8 +378,8 @@ export function WaChatPanel({
   );
 
   return (
-    <div className="flex-1 h-full flex min-w-0 min-h-0 w-full max-w-full overflow-hidden">
-      <div className="flex-1 h-full flex flex-col min-w-0 min-h-0 w-full max-w-full overflow-hidden">
+    <div className="flex h-full flex-1 min-w-0 min-h-0 w-full max-w-full overflow-hidden">
+      <div className="flex h-full flex-1 flex-col min-w-0 min-h-0 w-full max-w-full overflow-hidden">
         {/* Chat Header */}
         <div className="shrink-0 border-b border-border/30 bg-card shadow-xs">
           {/* Row 1: Avatar + Name + Action icons */}
@@ -701,7 +701,7 @@ export function WaChatPanel({
 
         {/* Messages with virtualization */}
         <div
-          className="flex-1 min-h-0 relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10 min-w-0 overflow-hidden"
+          className="flex-1 min-h-0 overflow-y-auto relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10 min-w-0"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
@@ -763,7 +763,7 @@ export function WaChatPanel({
                   if (hasOlderMessages && !isLoadingMore) onLoadOlder();
                 }}
                 className="h-full min-h-0"
-                style={{ height: "100%", overflowY: "auto" }}
+                style={{ height: "100%" }}
                 overscan={200}
                 increaseViewportBy={{ top: 400, bottom: 200 }}
                 components={{
