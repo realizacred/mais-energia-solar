@@ -176,12 +176,22 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "menus", label_default: "Personalizar Menus", group_default: "Administração", order_default: 8, icon: "LayoutList", description: "Reorganizar e ocultar itens do menu lateral", keywords: ["menu", "sidebar", "organizar", "ocultar", "personalizar", "navegação"], criticality: "normal", permission: "admin_only" },
   { nav_key: "data-reset", label_default: "Limpeza de Dados", group_default: "Administração", order_default: 9, icon: "Trash2", description: "Limpeza seletiva e reset de dados", keywords: ["reset", "limpeza", "deletar", "remover", "manutenção"], criticality: "normal", permission: "admin_only" },
 
+  // ── Propostas Nativas (Comercial) ──
+  { nav_key: "propostas-nativas", label_default: "Propostas", group_default: "Comercial", order_default: 9, icon: "FileText", description: "Geração e gestão de propostas comerciais", keywords: ["proposta", "orçamento", "gerar", "PDF", "wizard"], criticality: "business_critical", permission: "all", separator: true },
+  { nav_key: "propostas-nativas/templates", label_default: "Templates de Proposta", group_default: "Comercial", order_default: 10, icon: "LayoutTemplate", description: "Modelos visuais e DOCX para propostas", keywords: ["template", "modelo", "proposta", "docx", "layout"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "propostas-nativas/variaveis", label_default: "Variáveis de Proposta", group_default: "Comercial", order_default: 11, icon: "Variable", description: "Variáveis customizadas usadas nos templates", keywords: ["variável", "placeholder", "campo", "template", "custom"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "propostas-nativas/dashboard", label_default: "Dashboard Propostas", group_default: "Comercial", order_default: 12, icon: "BarChart3", description: "Métricas e análise de propostas geradas", keywords: ["dashboard", "proposta", "métricas", "conversão"], criticality: "normal", permission: "admin_only" },
+
+  // ── Campos Customizados (Configurações) ──
+  { nav_key: "custom-fields", label_default: "Campos Customizados", group_default: "Configurações", order_default: 4, icon: "Settings2", description: "Campos personalizados para leads e projetos", keywords: ["campo", "customizado", "personalizado", "opção"], criticality: "normal", permission: "admin_only" },
+
+  // ── Proposta Comercial (Comercial - legacy) ──
+  { nav_key: "proposta-comercial", label_default: "Editor de Proposta", group_default: "Comercial", order_default: 13, icon: "PenTool", description: "Editor visual de templates de proposta", keywords: ["proposta", "comercial", "editor", "visual", "template"], criticality: "normal", permission: "admin_only" },
+
   // ── Items kept for routing but hidden from sidebar ──
   { nav_key: "meta-leads", label_default: "Leads", group_default: "_hidden", order_default: 0, icon: "UserPlus", description: "Leads via Facebook Lead Ads", keywords: ["meta", "facebook", "lead"], criticality: "normal", permission: "admin_only" },
   { nav_key: "meta-campaigns", label_default: "Campanhas", group_default: "_hidden", order_default: 1, icon: "Megaphone", description: "Campanhas ativas", keywords: ["meta", "campanha"], criticality: "normal", permission: "admin_only" },
   { nav_key: "meta-config", label_default: "Configuração", group_default: "_hidden", order_default: 2, icon: "Settings", description: "Credenciais Meta", keywords: ["meta", "config"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "proposta-comercial", label_default: "Proposta Comercial", group_default: "_hidden", order_default: 3, icon: "FileText", description: "Variáveis e modelos de proposta", keywords: ["proposta", "comercial"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "custom-fields", label_default: "Opções Customizáveis", group_default: "_hidden", order_default: 4, icon: "Settings2", description: "Campos customizados", keywords: ["campo", "customizado"], criticality: "normal", permission: "admin_only" },
   { nav_key: "depositos", label_default: "Depósitos", group_default: "_hidden", order_default: 5, icon: "Warehouse", description: "Locais de armazenamento", keywords: ["depósito", "almoxarifado"], criticality: "normal", permission: "admin_only" },
   { nav_key: "categorias-estoque", label_default: "Categorias", group_default: "_hidden", order_default: 6, icon: "Tag", description: "Categorias de estoque", keywords: ["categoria", "subcategoria"], criticality: "normal", permission: "admin_only" },
 ];
