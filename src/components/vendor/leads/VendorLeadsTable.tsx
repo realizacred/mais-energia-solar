@@ -220,14 +220,30 @@ export function VendorLeadsTable({
                       </Tooltip>
                     )}
                     {isConverted && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center justify-center h-8 w-8 text-success">
-                            <UserCheck className="w-4 h-4" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>Já convertido em cliente</TooltipContent>
-                      </Tooltip>
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center justify-center h-8 w-8 text-success">
+                              <UserCheck className="w-4 h-4" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Já convertido em cliente</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-warning hover:text-warning hover:bg-warning/10"
+                              onClick={() => reopenLead(lead.id)}
+                              disabled={reopening}
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Reabrir Lead</TooltipContent>
+                        </Tooltip>
+                      </>
                     )}
                     {onDelete && (
                       <Tooltip>

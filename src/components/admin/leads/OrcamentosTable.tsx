@@ -321,10 +321,19 @@ export function OrcamentosTable({
                           </>
                         )}
                         {isConverted && (
-                          <DropdownMenuItem disabled>
-                            <UserCheck className="w-4 h-4 mr-2 text-success" />
-                            Já convertido
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuItem disabled>
+                              <UserCheck className="w-4 h-4 mr-2 text-success" />
+                              Já convertido
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => reopenLead(orc.lead_id, orc.cliente_id_vinculado)}
+                              disabled={reopening}
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2 text-warning" />
+                              Reabrir Lead
+                            </DropdownMenuItem>
+                          </>
                         )}
                         {onDelete && (
                           <>
