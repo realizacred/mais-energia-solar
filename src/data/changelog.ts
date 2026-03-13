@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.35.6",
+    date: "2026-03-13",
+    title: "WhatsApp: correção de avatar e estabilidade de scroll",
+    type: "bugfix",
+    description: "Corrigida falha de exibição das fotos de perfil e reforçada a altura fixa do inbox para manter rolagem interna estável.",
+    details: [
+      "WaProfileAvatar agora reseta erro quando a URL muda e faz 1 retry com cache-busting antes do fallback",
+      "sync-wa-profile-pictures passou a aceitar profilePicUrl e evita marcar 'none' em falhas transitórias da API",
+      "WaInbox recebeu altura explícita no modo admin para evitar quebra de rolagem em layouts sem parent height confiável",
+    ],
+  },
+  {
     version: "2.35.5",
     date: "2026-03-13",
     title: "Correção de rolagem dupla na Central WhatsApp",
