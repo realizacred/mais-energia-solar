@@ -199,7 +199,7 @@ export function OrcamentosTable({
                     </Button>
                   )}
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">
+                <TableCell className="hidden sm:table-cell align-middle">
                   <Badge
                     variant="secondary"
                     className="bg-secondary/10 text-secondary text-xs"
