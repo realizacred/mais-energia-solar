@@ -289,7 +289,7 @@ export function VendorOrcamentosTable({
                       {formatPhoneBR(orc.telefone)}
                     </a>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <Badge
                       variant="outline"
                       className="border-primary/40 bg-primary/5 text-primary font-medium"
