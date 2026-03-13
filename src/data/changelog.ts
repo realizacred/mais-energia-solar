@@ -19,16 +19,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "2.28.3",
+    version: "2.28.4",
     date: "2026-03-13",
-    title: "Correção: variáveis não preenchidas no DOCX e arquivo inflado",
+    title: "Correção: layout DOCX quebrado após substituição de variáveis",
     type: "bugfix",
-    description: "A validação XML (DOMParser) rejeitava o document.xml após substituição de variáveis, mantendo o conteúdo original sem dados. Corrigido para salvar sempre e adicionada compressão DEFLATE ao ZIP.",
+    description: "O normalizador de runs corrompia parágrafos com imagens, text boxes e elementos complexos. Reescrito para ser conservador e preservar a estrutura original.",
     details: [
-      "isValidXmlDocument agora emite warning em vez de bloquear a gravação do XML modificado",
-      "DOMParser do Deno não suporta namespaces OOXML completos — validação era falso-negativo",
-      "Adicionada compressão DEFLATE level 6 ao generateAsync do JSZip para reduzir tamanho do arquivo",
-      "Variáveis como cliente_nome, cliente_cidade agora são corretamente substituídas no DOCX",
+      "normalizeParagraphRuns agora ignora parágrafos com <w:drawing>, <mc:AlternateContent>, <w:pict>, <w:fldChar>",
+      "Substituição de runs usa posições absolutas (startIdx) em vez de indexOf, evitando matches incorretos",
+      "Trabalha de trás para frente para não deslocar índices durante múltiplas substituições",
+      "Regex de placeholders restrita a variáveis válidas ([a-zA-Z_]...) também no normalizer",
     ],
   },
   {
