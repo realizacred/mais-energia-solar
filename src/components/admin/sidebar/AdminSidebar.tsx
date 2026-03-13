@@ -565,7 +565,8 @@ export function AdminSidebar({
             <Button
               variant="outline"
               size={collapsed ? "icon" : "default"}
-              className={`w-full justify-start gap-2 text-primary border-primary/20 hover:bg-primary/10 ${collapsed ? "justify-center px-0" : ""}`}
+              aria-label={collapsed ? "Super Admin" : undefined}
+              className={`w-full justify-start gap-2 text-primary border-primary/20 hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary/50 ${collapsed ? "justify-center px-0" : ""}`}
             >
               <Building2 className="h-4 w-4 shrink-0" />
               {!collapsed && <span className="text-sm">Super Admin</span>}
