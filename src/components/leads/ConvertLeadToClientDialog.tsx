@@ -611,6 +611,7 @@ export function ConvertLeadToClientDialog({
         comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
         comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
         simulacao_aceita_id: data.simulacao_aceita_id || null,
+        assinatura_url: assinaturaUrls.length > 0 ? assinaturaUrls[0] : null,
         potencia_kwp: potenciaKwp,
         valor_projeto: valorProjeto,
       };
