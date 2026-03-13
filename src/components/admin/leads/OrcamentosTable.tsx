@@ -63,6 +63,7 @@ export function OrcamentosTable({
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
+  const { reopenLead, reopening } = useReopenLead(onRefresh);
 
   const handleOpenWhatsApp = (orc: OrcamentoDisplayItem) => {
     setSelectedOrcamento(orc);
