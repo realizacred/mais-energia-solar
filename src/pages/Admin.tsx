@@ -542,6 +542,7 @@ export default function Admin() {
                 <Route path="avaliacoes" element={<AvaliacoesManager />} />
                 <Route path="servicos" element={<ServicosManager />} />
                 <Route path="documentos" element={<DocumentosPage />} />
+                <Route path="documentos-assinaturas" element={<DocumentosPage />} />
                 
                 {/* Pós-Venda */}
                 <Route path="pos-venda" element={<PostSaleDashboardPage />} />
