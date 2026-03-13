@@ -30,6 +30,10 @@ export interface PendingValidation {
     potencia_recomendada_kwp: number | null;
     consumo_kwh: number | null;
   } | null;
+  orcamentos?: {
+    arquivos_urls: string[] | null;
+    media_consumo: number | null;
+  }[] | null;
 }
 
 export interface ValidationHistory {
