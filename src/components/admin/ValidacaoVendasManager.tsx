@@ -73,6 +73,7 @@ export function ValidacaoVendasManager() {
   const [leadSimulacoes, setLeadSimulacoes] = useState<LeadSimulacao[]>([]);
   const [selectedSimulacaoId, setSelectedSimulacaoId] = useState<string>("");
   const { reopenLead, reopening } = useReopenLead(() => refetchPending());
+  const { reopenTarget } = useLeadStatusMap();
 
   // Vendedor selector state
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
