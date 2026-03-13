@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.17",
+    date: "2026-03-13",
+    title: "Sidebar: badge visível e descrições em tooltip",
+    type: "improvement",
+    description: "Badge de notificação agora usa bg-primary para destaque. Descrições dos itens movidas para tooltip com delay de 600ms, tornando o menu mais compacto.",
+    details: [
+      "Badge usa bg-primary text-primary-foreground (bg-background text-primary quando ativo)",
+      "Descrições removidas do layout e exibidas como Tooltip side='right'",
+      "TooltipProvider com delayDuration=600 evita abertura acidental",
+    ],
+  },
+  {
     version: "2.22.16",
     date: "2026-03-13",
     title: "Edição de proposta sobrescreve versão existente",

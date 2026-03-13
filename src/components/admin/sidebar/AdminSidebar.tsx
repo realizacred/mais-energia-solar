@@ -11,6 +11,9 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Tooltip, TooltipContent, TooltipTrigger, TooltipProvider,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
@@ -83,7 +86,7 @@ function SidebarItemButton({
     navigate(itemPath);
   };
 
-  return (
+  const menuButton = (
     <SidebarMenuItem
       draggable={draggable}
       onDragStart={draggable ? (e) => onDragStart?.(e as any, item.id) : undefined}
@@ -95,11 +98,7 @@ function SidebarItemButton({
       <SidebarMenuButton
         onClick={handleClick}
         isActive={isActive}
-        tooltip={
-          item.description
-            ? `${item.title} — ${item.description}`
-            : item.title
-        }
+        tooltip={collapsed ? item.title : undefined}
         className={`
           transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
           pl-4
@@ -120,18 +119,7 @@ function SidebarItemButton({
           }`}
           data-active={isActive}
         />
-        {item.description ? (
-          <div className="flex flex-col items-start min-w-0 flex-1">
-            <span className="text-[12.5px] truncate leading-tight">
-              {item.title}
-            </span>
-            <span className="text-[10px] opacity-50 font-normal truncate leading-tight">
-              {item.description}
-            </span>
-          </div>
-        ) : (
-          <span className="text-[12.5px] truncate flex-1">{item.title}</span>
-        )}
+        <span className="text-[12.5px] truncate flex-1">{item.title}</span>
 
         {/* Star button — visible on hover */}
         {!collapsed && (
@@ -161,13 +149,17 @@ function SidebarItemButton({
         {badgeCount > 0 && !collapsed && (
           <Badge
             variant="secondary"
-            className="h-5 min-w-5 px-1.5 text-[10px] font-bold bg-warning/15 text-warning border-0 shrink-0"
+            className={`min-w-[20px] h-5 px-1 text-[10px] font-bold rounded-full flex items-center justify-center border-0 shrink-0 ${
+              isActive
+                ? "bg-background text-primary"
+                : "bg-primary text-primary-foreground"
+            }`}
           >
             {badgeCount}
           </Badge>
         )}
         {badgeCount > 0 && collapsed && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-warning" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
         )}
         {isActive && !collapsed && badgeCount === 0 && (
           <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
@@ -175,6 +167,22 @@ function SidebarItemButton({
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
+
+  // Wrap with tooltip showing description (only when not collapsed — collapsed uses built-in tooltip)
+  if (item.description && !collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {menuButton}
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-[220px] text-xs">
+          {item.description}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return menuButton;
 }
 
 /* ─── Section group with collapsible + drag-reorder ─── */
@@ -488,6 +496,7 @@ export function AdminSidebar({
   );
 
   return (
+    <TooltipProvider delayDuration={600}>
     <Sidebar collapsible="icon" className="sidebar-premium border-0">
       <SidebarHeader className="border-b border-sidebar-border px-3 py-3.5">
         <Link
@@ -568,5 +577,6 @@ export function AdminSidebar({
         </Button>
       </SidebarFooter>
     </Sidebar>
+    </TooltipProvider>
   );
 }
