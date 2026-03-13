@@ -51,6 +51,7 @@ export function WaProfileAvatar({
     <div
       className={cn(
         "rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0",
+        !showImg && "bg-primary/10 text-primary",
         sizeClasses[size],
         className,
       )}
