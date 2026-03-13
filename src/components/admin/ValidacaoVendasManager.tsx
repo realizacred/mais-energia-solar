@@ -1,32 +1,37 @@
 import { useState, useMemo, useEffect } from "react";
+import { motion } from "framer-motion";
 import { ApproveVendaDialog } from "./ApproveVendaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { StatCard, EmptyState } from "@/components/ui-kit";
-import { SectionCard } from "@/components/ui-kit/SectionCard";
+import { PageHeader, EmptyState } from "@/components/ui-kit";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   CheckCircle, XCircle, Eye, Clock, DollarSign, User, MapPin,
-  TrendingUp, Zap, AlertTriangle, History, Filter, FileText, RotateCcw,
+  TrendingUp, Zap, AlertTriangle, History, Filter, RotateCcw, MoreHorizontal, ShieldCheck,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatBRL } from "@/lib/formatters";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
 import { useReopenLead } from "@/hooks/useReopenLead";
 
@@ -89,7 +94,7 @@ export function ValidacaoVendasManager() {
     fetchVendedores();
   }, []);
 
-  // Derived: unique vendors from pending items using vendedor_id
+  // Derived: unique vendors from pending items
   const vendedorNames = useMemo(() => {
     const map = new Map<string, string>();
     pendingItems.forEach((c) => {
@@ -126,7 +131,7 @@ export function ValidacaoVendasManager() {
     return { count: pendingItems.length, totalValue, totalComissao, totalPotencia };
   }, [pendingItems]);
 
-  // Open approval dialog — fetch simulações and pre-select vendedor
+  // Open approval dialog
   const openApprovalDialog = async (cliente: PendingValidation) => {
     setSelectedCliente(cliente);
     setLeadSimulacoes([]);
@@ -140,31 +145,23 @@ export function ValidacaoVendasManager() {
     try {
       const promises: Promise<void>[] = [];
 
-      // 1) Try to match vendedor by vendedor_id from lead
       const vendedorId = cliente.leads?.consultor_id;
       if (vendedorId) {
         const matchedVendedor = vendedores.find((v) => v.id === vendedorId);
         if (matchedVendedor) {
           setSelectedVendedorId(matchedVendedor.id);
-          setPercentualComissao(
-            matchedVendedor.percentual_comissao?.toString() || "2.0"
-          );
+          setPercentualComissao(matchedVendedor.percentual_comissao?.toString() || "2.0");
         } else {
           setSelectedVendedorId("");
           setPercentualComissao("2.0");
         }
       } else {
-        // Fallback: try name matching for legacy data
         const vendedorNome = cliente.leads?.consultores?.nome || cliente.leads?.consultor;
         if (vendedorNome) {
-          const matchedVendedor = vendedores.find(
-            (v) => v.nome.toLowerCase() === vendedorNome.toLowerCase()
-          );
+          const matchedVendedor = vendedores.find((v) => v.nome.toLowerCase() === vendedorNome.toLowerCase());
           if (matchedVendedor) {
             setSelectedVendedorId(matchedVendedor.id);
-            setPercentualComissao(
-              matchedVendedor.percentual_comissao?.toString() || "2.0"
-            );
+            setPercentualComissao(matchedVendedor.percentual_comissao?.toString() || "2.0");
           } else {
             setSelectedVendedorId("");
             setPercentualComissao("2.0");
@@ -175,7 +172,6 @@ export function ValidacaoVendasManager() {
         }
       }
 
-      // 2) All simulações for this lead
       if (cliente.lead_id) {
         const simsPromise = async () => {
           const { data } = await supabase
@@ -207,7 +203,6 @@ export function ValidacaoVendasManager() {
     setApprovalDialogOpen(true);
   };
 
-  // When vendedor selection changes, update commission percentage
   const handleVendedorChange = (vendedorId: string) => {
     setSelectedVendedorId(vendedorId);
     const vendedor = vendedores.find((v) => v.id === vendedorId);
@@ -218,7 +213,6 @@ export function ValidacaoVendasManager() {
     }
   };
 
-  // Handle simulação selection change
   const handleSimulacaoChange = (simId: string) => {
     setSelectedSimulacaoId(simId);
     if (simId === "manual") {
@@ -255,13 +249,9 @@ export function ValidacaoVendasManager() {
         await supabase.from("orcamentos").update({ status_id: convertidoStatus.id }).eq("lead_id", selectedCliente.lead_id);
       }
 
-      // Update client valor_projeto
       if (valorBase > 0) {
         await supabase.from("clientes").update({ valor_projeto: valorBase }).eq("id", selectedCliente.id);
       }
-
-      // Comissão agora é gerada ao aceitar proposta (ProposalDetail)
-      // Aqui apenas validamos a venda e atualizamos o status
 
       toast({
         title: "Venda validada!",
@@ -291,7 +281,6 @@ export function ValidacaoVendasManager() {
         await supabase.from("orcamentos").update({ status_id: negociacaoStatus.id }).eq("lead_id", selectedCliente.lead_id);
       }
 
-      // Check for blocking dependencies before deleting client
       const depChecks = await Promise.all([
         supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
         supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
@@ -307,7 +296,6 @@ export function ValidacaoVendasManager() {
       });
 
       if (blocking.length > 0) {
-        // Cannot delete — just inactivate the client instead
         await supabase.from("clientes").update({ ativo: false }).eq("id", selectedCliente.id);
         toast({
           title: "Venda rejeitada",
@@ -321,10 +309,6 @@ export function ValidacaoVendasManager() {
         });
       }
 
-      toast({
-        title: "Venda rejeitada",
-        description: `A venda de ${selectedCliente.nome} foi rejeitada. Motivo registrado.`,
-      });
       setRejectionDialogOpen(false);
       setSelectedCliente(null);
       setMotivoRejeicao("");
@@ -336,14 +320,6 @@ export function ValidacaoVendasManager() {
     }
   };
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-
-  const valorComissaoPreview = () => {
-    const base = valorVenda || 0;
-    return (base * (parseFloat(percentualComissao) || 0)) / 100;
-  };
-
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === "historico" && historyItems.length === 0) {
@@ -351,18 +327,29 @@ export function ValidacaoVendasManager() {
     }
   };
 
-  // Check if approval form is valid
   const isApprovalValid = valorVenda > 0;
 
   if (loading) {
     return (
       <div className="space-y-6">
+        <div className="flex items-center gap-3 mb-6">
+          <Skeleton className="h-9 w-9 rounded-lg" />
+          <div>
+            <Skeleton className="h-6 w-48 mb-1" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-card border border-border rounded-lg p-5">
-              <Skeleton className="h-8 w-24 mb-2" />
-              <Skeleton className="h-4 w-32" />
-            </div>
+            <Card key={i} className="border-l-[3px] border-l-primary bg-card shadow-sm">
+              <CardContent className="flex items-center gap-4 p-5">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div>
+                  <Skeleton className="h-8 w-24 mb-2" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
         <div className="space-y-2">
@@ -375,16 +362,37 @@ export function ValidacaoVendasManager() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Summary Stats */}
+    <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      {/* §26 — Page Header */}
+      <PageHeader
+        icon={ShieldCheck}
+        title="Validação de Vendas"
+        description="Revise e aprove vendas convertidas pelos consultores"
+      />
+
+      {/* §27 — KPI Cards — ALL border-l-primary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Clock} label="Pendentes" value={stats.count} color="warning" />
-        <StatCard icon={DollarSign} label="Valor total" value={formatCurrency(stats.totalValue)} color="primary" />
-        <StatCard icon={TrendingUp} label="Comissão estimada" value={formatCurrency(stats.totalComissao)} color="success" />
-        <StatCard icon={Zap} label="Potência total" value={`${stats.totalPotencia.toFixed(1)} kWp`} color="info" />
+        {[
+          { icon: Clock, label: "Pendentes", value: stats.count.toString() },
+          { icon: DollarSign, label: "Valor Total", value: formatBRL(stats.totalValue) },
+          { icon: TrendingUp, label: "Comissão Estimada", value: formatBRL(stats.totalComissao) },
+          { icon: Zap, label: "Potência Total", value: `${stats.totalPotencia.toFixed(1)} kWp` },
+        ].map((card, i) => (
+          <Card key={i} className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+                <card.icon className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{card.value}</p>
+                <p className="text-sm text-muted-foreground mt-1">{card.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — §29 after header */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="pendentes" className="gap-1.5">
@@ -436,185 +444,259 @@ export function ValidacaoVendasManager() {
             )}
           </div>
 
-          {/* Table */}
-          <SectionCard icon={Clock} title="Vendas Pendentes" variant="warning" noPadding>
-              {filteredItems.length === 0 ? (
-                <EmptyState
-                  icon={CheckCircle}
-                  title="Nenhuma venda pendente"
-                  description="Todas as vendas foram validadas."
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="font-semibold text-foreground">Cliente</TableHead>
-                        <TableHead className="font-semibold text-foreground">Vendedor</TableHead>
-                        <TableHead className="font-semibold text-foreground">Localização</TableHead>
-                        <TableHead className="font-semibold text-foreground text-right">Potência</TableHead>
-                        <TableHead className="font-semibold text-foreground text-right">Geração</TableHead>
-                        <TableHead className="font-semibold text-foreground text-right">Valor Venda</TableHead>
-                        <TableHead className="font-semibold text-foreground">Data</TableHead>
-                        <TableHead className="w-44"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredItems.map((cliente) => {
-                        const clienteValorVenda = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
-                        const potencia = cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
-                        const geracaoMensal = cliente.simulacoes?.geracao_mensal_estimada || 0;
-                        const vendedorNome = cliente.leads?.consultores?.nome || cliente.leads?.consultor;
-                        const vendedorFound = cliente.leads?.consultor_id
-                          ? vendedores.some((v) => v.id === cliente.leads?.consultor_id)
-                          : false;
+          {/* §34 — Table matching Leads pattern */}
+          <div className="rounded-lg border border-border overflow-hidden">
+            {filteredItems.length === 0 ? (
+              <EmptyState
+                icon={CheckCircle}
+                title="Nenhuma venda pendente"
+                description="Todas as vendas foram validadas."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="font-semibold text-foreground">Cliente / Lead</TableHead>
+                      <TableHead className="font-semibold text-foreground hidden lg:table-cell">Vendedor</TableHead>
+                      <TableHead className="font-semibold text-foreground hidden sm:table-cell">Localização</TableHead>
+                      <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Potência</TableHead>
+                      <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Geração</TableHead>
+                      <TableHead className="font-semibold text-foreground text-right">Valor Venda</TableHead>
+                      <TableHead className="font-semibold text-foreground hidden sm:table-cell">Data</TableHead>
+                      <TableHead className="w-[60px] lg:w-[180px]" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredItems.map((cliente) => {
+                      const clienteValorVenda = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
+                      const potencia = cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
+                      const geracaoMensal = cliente.simulacoes?.geracao_mensal_estimada || 0;
+                      const vendedorNome = cliente.leads?.consultores?.nome || cliente.leads?.consultor;
+                      const vendedorFound = cliente.leads?.consultor_id
+                        ? vendedores.some((v) => v.id === cliente.leads?.consultor_id)
+                        : false;
 
-                        return (
-                          <TableRow key={cliente.id} className="hover:bg-muted/30 transition-colors">
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{cliente.nome}</p>
-                                <p className="text-xs text-muted-foreground">{cliente.leads?.lead_code || "-"}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
+                      return (
+                        <TableRow key={cliente.id} className="align-middle hover:bg-muted/30 transition-colors">
+                          <TableCell className="align-middle">
+                            <div>
+                              <p className="font-medium text-foreground">{cliente.nome}</p>
+                              <Badge variant="outline" className="font-mono text-xs mt-0.5">
+                                {cliente.leads?.lead_code || "-"}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-middle hidden lg:table-cell">
+                            {vendedorNome ? (
                               <div className="flex items-center gap-2">
-                                <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-sm">{vendedorNome || "-"}</span>
-                                {vendedorNome && !vendedorFound && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-primary/10 text-primary border-primary/20 text-xs"
+                                >
+                                  {vendedorNome}
+                                </Badge>
+                                {!vendedorFound && (
                                   <Badge variant="outline" className="text-[10px] text-warning border-warning/30 h-4 px-1">
                                     <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
-                                    Não cadastrado
+                                    N/C
                                   </Badge>
                                 )}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-sm">{cliente.cidade}{cliente.estado ? `, ${cliente.estado}` : ""}</span>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="align-middle hidden sm:table-cell">
+                            <Badge
+                              variant="secondary"
+                              className="bg-secondary/10 text-secondary text-xs"
+                            >
+                              {cliente.cidade}{cliente.estado ? `, ${cliente.estado}` : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="align-middle text-right font-medium hidden sm:table-cell">
+                            {potencia > 0 ? `${potencia} kWp` : "-"}
+                          </TableCell>
+                          <TableCell className="align-middle text-right font-medium hidden sm:table-cell">
+                            {geracaoMensal > 0 ? `${geracaoMensal.toFixed(0)} kWh` : "-"}
+                          </TableCell>
+                          <TableCell className="align-middle text-right font-mono text-sm">
+                            {clienteValorVenda > 0 ? formatBRL(clienteValorVenda) : "-"}
+                          </TableCell>
+                          <TableCell className="align-middle text-sm text-muted-foreground hidden sm:table-cell">
+                            {format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell className="align-middle">
+                            {/* §34 — Inline actions for lg+ */}
+                            <TooltipProvider>
+                              <div className="hidden lg:flex items-center gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" onClick={() => openApprovalDialog(cliente)}>
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Ver detalhes</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-success hover:text-success/80" onClick={() => openApprovalDialog(cliente)}>
+                                      <CheckCircle className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Aprovar venda</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive/80"
+                                      onClick={() => { setSelectedCliente(cliente); setMotivoRejeicao(""); setRejectionDialogOpen(true); }}
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Rejeitar venda</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-warning hover:text-warning/80"
+                                      onClick={() => cliente.lead_id && reopenLead(cliente.lead_id, cliente.id)}
+                                      disabled={reopening || !cliente.lead_id}
+                                    >
+                                      <RotateCcw className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Reabrir lead</TooltipContent>
+                                </Tooltip>
                               </div>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {potencia > 0 ? `${potencia} kWp` : "-"}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {geracaoMensal > 0 ? `${geracaoMensal.toFixed(0)} kWh` : "-"}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {clienteValorVenda > 0 ? formatCurrency(clienteValorVenda) : "-"}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Button size="sm" variant="ghost" onClick={() => openApprovalDialog(cliente)}>
-                                  <Eye className="h-4 w-4 text-secondary" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="success"
-                                  className="bg-success hover:bg-success/90 text-success-foreground"
-                                  onClick={() => openApprovalDialog(cliente)}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Aprovar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => { setSelectedCliente(cliente); setMotivoRejeicao(""); setRejectionDialogOpen(true); }}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-warning hover:text-warning hover:bg-warning/10"
-                                  onClick={() => cliente.lead_id && reopenLead(cliente.lead_id, cliente.id)}
-                                  disabled={reopening || !cliente.lead_id}
-                                >
-                                  <RotateCcw className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-          </SectionCard>
+                            </TooltipProvider>
+
+                            {/* §34 — Dropdown for mobile (<lg) */}
+                            <div className="flex lg:hidden">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem onClick={() => openApprovalDialog(cliente)}>
+                                    <Eye className="w-4 h-4 mr-2 text-primary" />
+                                    Ver detalhes
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openApprovalDialog(cliente)}>
+                                    <CheckCircle className="w-4 h-4 mr-2 text-success" />
+                                    Aprovar venda
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => { setSelectedCliente(cliente); setMotivoRejeicao(""); setRejectionDialogOpen(true); }}>
+                                    <XCircle className="w-4 h-4 mr-2 text-destructive" />
+                                    Rejeitar venda
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => cliente.lead_id && reopenLead(cliente.lead_id, cliente.id)}
+                                    disabled={reopening || !cliente.lead_id}
+                                  >
+                                    <RotateCcw className="w-4 h-4 mr-2 text-warning" />
+                                    Reabrir lead
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="historico" className="mt-4">
-          <SectionCard icon={History} title="Vendas Validadas Recentemente" variant="green">
-              {historyLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Spinner size="md" />
-                </div>
-              ) : historyItems.length === 0 ? (
-                <EmptyState
-                  icon={History}
-                  title="Sem histórico"
-                  description="Nenhuma venda validada encontrada."
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="font-semibold text-foreground">Cliente</TableHead>
-                        <TableHead className="font-semibold text-foreground">Vendedor</TableHead>
-                        <TableHead className="font-semibold text-foreground">Localização</TableHead>
-                        <TableHead className="font-semibold text-foreground text-right">Potência</TableHead>
-                        <TableHead className="font-semibold text-foreground text-right">Valor</TableHead>
-                        <TableHead className="font-semibold text-foreground">Data Conversão</TableHead>
-                        <TableHead className="font-semibold text-foreground">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {historyItems.map((cliente) => (
-                        <TableRow key={cliente.id} className="hover:bg-muted/30 transition-colors">
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{cliente.nome}</p>
-                              <p className="text-xs text-muted-foreground">{cliente.leads?.lead_code || "-"}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">{cliente.leads?.consultores?.nome || cliente.leads?.consultor || "-"}</TableCell>
-                          <TableCell className="text-sm">
-                            {cliente.cidade}{cliente.estado ? `, ${cliente.estado}` : ""}
-                          </TableCell>
-                          <TableCell className="text-right text-sm">
-                            {cliente.potencia_kwp ? `${cliente.potencia_kwp} kWp` : "-"}
-                          </TableCell>
-                          <TableCell className="text-right font-medium text-sm">
-                            {cliente.valor_projeto ? formatCurrency(cliente.valor_projeto) : "-"}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="bg-success/10 text-success border-0">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Validada
+          <div className="rounded-lg border border-border overflow-hidden">
+            {historyLoading ? (
+              <div className="space-y-2 p-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : historyItems.length === 0 ? (
+              <EmptyState
+                icon={History}
+                title="Sem histórico"
+                description="Nenhuma venda validada encontrada."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="font-semibold text-foreground">Cliente / Lead</TableHead>
+                      <TableHead className="font-semibold text-foreground hidden lg:table-cell">Vendedor</TableHead>
+                      <TableHead className="font-semibold text-foreground hidden sm:table-cell">Localização</TableHead>
+                      <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Potência</TableHead>
+                      <TableHead className="font-semibold text-foreground text-right">Valor</TableHead>
+                      <TableHead className="font-semibold text-foreground hidden sm:table-cell">Data</TableHead>
+                      <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historyItems.map((cliente) => (
+                      <TableRow key={cliente.id} className="align-middle hover:bg-muted/30 transition-colors">
+                        <TableCell className="align-middle">
+                          <div>
+                            <p className="font-medium text-foreground">{cliente.nome}</p>
+                            <Badge variant="outline" className="font-mono text-xs mt-0.5">
+                              {cliente.leads?.lead_code || "-"}
                             </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-          </SectionCard>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-middle hidden lg:table-cell">
+                          {(cliente.leads?.consultores?.nome || cliente.leads?.consultor) ? (
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                              {cliente.leads?.consultores?.nome || cliente.leads?.consultor}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="align-middle hidden sm:table-cell">
+                          <Badge variant="secondary" className="bg-secondary/10 text-secondary text-xs">
+                            {cliente.cidade}{cliente.estado ? `, ${cliente.estado}` : ""}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="align-middle text-right text-sm hidden sm:table-cell">
+                          {cliente.potencia_kwp ? `${cliente.potencia_kwp} kWp` : "-"}
+                        </TableCell>
+                        <TableCell className="align-middle text-right font-mono text-sm">
+                          {cliente.valor_projeto ? formatBRL(cliente.valor_projeto) : "-"}
+                        </TableCell>
+                        <TableCell className="align-middle text-sm text-muted-foreground hidden sm:table-cell">
+                          {format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="align-middle">
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Validada
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
-
-
 
       {/* Approval Dialog */}
       <ApproveVendaDialog
@@ -644,27 +726,31 @@ export function ValidacaoVendasManager() {
         ].filter(doc => doc.label !== "Arquivos do Orçamento" || (doc.urls && doc.urls.length > 0)) : []}
       />
 
-      {/* Rejection Dialog */}
+      {/* Rejection Dialog — §25 */}
       <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Rejeitar Venda
-            </DialogTitle>
-            <DialogDescription>
-              Informe o motivo da rejeição para {selectedCliente?.nome}. O lead voltará para "Negociação".
-            </DialogDescription>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                Rejeitar Venda
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                O lead voltará para "Negociação"
+              </DialogDescription>
+            </div>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg space-y-1">
+          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+            <div className="p-4 bg-muted/30 border border-border rounded-lg space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Cliente</span>
-                <span className="font-medium">{selectedCliente?.nome}</span>
+                <span className="font-medium text-foreground">{selectedCliente?.nome}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Vendedor</span>
-                <span className="font-medium">{selectedCliente?.leads?.consultores?.nome || selectedCliente?.leads?.consultor || "-"}</span>
+                <span className="font-medium text-foreground">{selectedCliente?.leads?.consultores?.nome || selectedCliente?.leads?.consultor || "-"}</span>
               </div>
             </div>
             <div className="space-y-2">
@@ -678,8 +764,8 @@ export function ValidacaoVendasManager() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setRejectionDialogOpen(false)}>Cancelar</Button>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
+            <Button variant="outline" onClick={() => setRejectionDialogOpen(false)}>Cancelar</Button>
             <Button
               variant="default"
               onClick={handleReject}
@@ -688,9 +774,9 @@ export function ValidacaoVendasManager() {
               {rejecting && <Spinner size="sm" />}
               Confirmar Rejeição
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }
