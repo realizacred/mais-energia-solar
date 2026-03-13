@@ -584,7 +584,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   };
 
   return (
-    <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-x-hidden" : "flex flex-col h-full min-h-0 gap-4 overflow-hidden"}`} data-wa-inbox-active>
+    <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-hidden" : "flex flex-col h-full min-h-0 gap-4 overflow-hidden"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
         <div className="shrink-0">
@@ -679,7 +679,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
           {/* Mobile */}
           <div
-            className="flex-1 flex flex-col md:hidden min-h-0 min-w-0 max-w-full overflow-x-hidden"
+            className="flex-1 flex flex-col md:hidden min-h-0 min-w-0 max-w-full overflow-hidden"
             onTouchStart={(e) => {
               const t = e.currentTarget;
               (t as any)._swipeStartX = e.touches[0].clientX;
@@ -776,7 +776,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           </div>
 
           {/* Desktop: Chat Panel or Pre-Contact Card */}
-          <div className="hidden md:flex flex-1 min-h-0 min-w-0 overflow-x-hidden">
+          <div className="hidden md:flex flex-1 min-h-0 min-w-0 overflow-hidden">
             {!selectedConv && preContactData ? (
               <WaPreContactCard
                 nome={preContactData.nome}

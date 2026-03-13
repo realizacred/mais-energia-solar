@@ -19,7 +19,7 @@ export default function VendorWhatsAppView({ portal }: Props) {
           </div>
         </div>
       </div>
-      <div className="flex-1 min-h-0" style={{ minHeight: "500px" }}>
+      <div className="flex-1 min-h-0 overflow-hidden">
         <WaInbox vendorMode vendorUserId={portal.vendedor?.user_id || undefined} />
       </div>
     </div>
