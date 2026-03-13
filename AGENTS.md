@@ -759,10 +759,10 @@ SEMPRE usar:
 ```
 
 ### Botões dentro de cards e fundos coloridos
-- Botão dentro de card laranja ou fundo primário: `variant="outline" className="bg-background"`
+- Botão dentro de card com fundo primário: `variant="outline" className="bg-background"`
 - Botão de ação rápida dentro de kanban card: `variant="ghost" size="sm"`
 - Botão de adicionar item em coluna: `variant="outline" size="sm" className="w-full border-dashed"`
-- NUNCA usar `variant="default"` dentro de elemento com fundo laranja/primário
+- NUNCA usar `variant="default"` dentro de elemento com fundo primário
 
 ### Toggle de Visualização (Grid/Lista)
 - Usar `ToggleGroup` do shadcn/ui
