@@ -762,8 +762,8 @@ export function WaChatPanel({
                 startReached={() => {
                   if (hasOlderMessages && !isLoadingMore) onLoadOlder();
                 }}
-                className="h-full"
-                style={{ height: "100%" }}
+                className="h-full min-h-0"
+                style={{ height: "100%", overflowY: "auto" }}
                 overscan={200}
                 increaseViewportBy={{ top: 400, bottom: 200 }}
                 components={{
@@ -798,49 +798,50 @@ export function WaChatPanel({
         </div>
 
         {/* Composer */}
-        <WaChatComposer
-          onSendMessage={(content, isNote, quotedId) => {
-            onSendMessage(content, isNote, quotedId);
-            // Scroll to bottom after sending
-            setTimeout(() => {
-              virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
-            }, 100);
-          }}
-          onSendMedia={(file, caption) => {
-            onSendMedia(file, caption);
-            setTimeout(() => {
-              virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
-            }, 100);
-          }}
-          onSendAudio={(file) => {
-            onSendMedia(file);
-            setTimeout(() => {
-              virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
-            }, 100);
-          }}
-          isSending={isSending}
-          isNoteMode={isNoteMode}
-          onNoteModeChange={setIsNoteMode}
-          replyingTo={replyingTo}
-          onCancelReply={() => setReplyingTo(null)}
-          prefillMessage={prefillMessage}
-          instanceId={conversation.instance_id}
-          remoteJid={conversation.remote_jid}
-          readOnly={
-            !isAdmin &&
-            !!conversation.assigned_to &&
-            conversation.assigned_to !== currentUserId
-          }
-          readOnlyReason={
-            !isAdmin && conversation.assigned_to && conversation.assigned_to !== currentUserId
-              ? `Conversa atribuída a ${assignedConsultor?.nome || "outro atendente"}`
-              : undefined
-          }
-        />
+        <div className="shrink-0">
+          <WaChatComposer
+            onSendMessage={(content, isNote, quotedId) => {
+              onSendMessage(content, isNote, quotedId);
+              setTimeout(() => {
+                virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
+              }, 100);
+            }}
+            onSendMedia={(file, caption) => {
+              onSendMedia(file, caption);
+              setTimeout(() => {
+                virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
+              }, 100);
+            }}
+            onSendAudio={(file) => {
+              onSendMedia(file);
+              setTimeout(() => {
+                virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
+              }, 100);
+            }}
+            isSending={isSending}
+            isNoteMode={isNoteMode}
+            onNoteModeChange={setIsNoteMode}
+            replyingTo={replyingTo}
+            onCancelReply={() => setReplyingTo(null)}
+            prefillMessage={prefillMessage}
+            instanceId={conversation.instance_id}
+            remoteJid={conversation.remote_jid}
+            readOnly={
+              !isAdmin &&
+              !!conversation.assigned_to &&
+              conversation.assigned_to !== currentUserId
+            }
+            readOnlyReason={
+              !isAdmin && conversation.assigned_to && conversation.assigned_to !== currentUserId
+                ? `Conversa atribuída a ${assignedConsultor?.nome || "outro atendente"}`
+                : undefined
+            }
+          />
+        </div>
 
         {/* Accept button below composer — only for unassigned conversations */}
         {!conversation.assigned_to && onAccept && (
-          <div className="px-3 pb-3 pt-1 border-t border-border/20 bg-card">
+          <div className="shrink-0 px-3 pb-3 pt-1 border-t border-border/20 bg-card">
             <Button
               size="sm"
               className="w-full gap-2 bg-success hover:bg-success/90 text-white font-medium py-2.5"
