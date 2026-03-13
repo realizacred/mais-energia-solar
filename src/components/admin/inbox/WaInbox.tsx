@@ -584,56 +584,62 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   };
 
   return (
-    <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "flex flex-col h-full space-y-4"}`} data-wa-inbox-active>
+    <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "flex flex-col h-full gap-4 overflow-hidden"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
-        <WaInboxHeader
-          instances={instances}
-          onNewChat={() => setShowStartChat(true)}
-          onSettings={() => setShowSettings(true)}
-        />
+        <div className="shrink-0">
+          <WaInboxHeader
+            instances={instances}
+            onNewChat={() => setShowStartChat(true)}
+            onSettings={() => setShowSettings(true)}
+          />
+        </div>
       )}
 
       {/* Stats - only in admin mode */}
-      {!vendorMode && <WaInboxStats conversations={allConversations} />}
+      {!vendorMode && <div className="shrink-0"><WaInboxStats conversations={allConversations} /></div>}
 
       {/* Compact stats for vendor/mobile mode */}
-      {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
+      {vendorMode && showCompactStats && <div className="shrink-0"><WaInboxStats conversations={allConversations} compact /></div>}
 
       {/* SLA Alerts Banner */}
       {slaEnabled && (
-        <WaSlaAlertBanner
-          alerts={isAdminUser ? slaAlerts : mySlaAlerts}
-          onOpenConversation={(convId) => {
-            const conv = allConversations.find((c) => c.id === convId);
-            if (conv) handleSelectConversation(conv);
-          }}
-          onAcknowledge={acknowledgeSlaAlert}
-          onAcknowledgeAll={acknowledgeAllSla}
-          onPauseSla={pauseSlaConversation}
-          isAdmin={isAdminUser}
-        />
+        <div className="shrink-0">
+          <WaSlaAlertBanner
+            alerts={isAdminUser ? slaAlerts : mySlaAlerts}
+            onOpenConversation={(convId) => {
+              const conv = allConversations.find((c) => c.id === convId);
+              if (conv) handleSelectConversation(conv);
+            }}
+            onAcknowledge={acknowledgeSlaAlert}
+            onAcknowledgeAll={acknowledgeAllSla}
+            onPauseSla={pauseSlaConversation}
+            isAdmin={isAdminUser}
+          />
+        </div>
       )}
 
       {/* Follow-up Widget */}
-      <WaFollowupWidget
-        vendorUserId={vendorMode ? effectiveUserId : undefined}
-        onOpenConversation={(convId) => {
-          const conv = allConversations.find((c) => c.id === convId);
-          if (conv) {
-            handleSelectConversation(conv);
-          } else {
-            supabase
-              .from("wa_conversations")
-              .select("id, remote_jid, cliente_telefone, cliente_nome, cliente_id, lead_id, assigned_to, instance_id, canal, status, is_group, profile_picture_url, telefone_normalized, last_message_at, last_message_preview, last_message_direction, last_message_id, unread_count, version, created_at, updated_at")
-              .eq("id", convId)
-              .maybeSingle()
-              .then(({ data }) => {
-                if (data) handleSelectConversation(data as any);
-              });
-          }
-        }}
-      />
+      <div className="shrink-0">
+        <WaFollowupWidget
+          vendorUserId={vendorMode ? effectiveUserId : undefined}
+          onOpenConversation={(convId) => {
+            const conv = allConversations.find((c) => c.id === convId);
+            if (conv) {
+              handleSelectConversation(conv);
+            } else {
+              supabase
+                .from("wa_conversations")
+                .select("id, remote_jid, cliente_telefone, cliente_nome, cliente_id, lead_id, assigned_to, instance_id, canal, status, is_group, profile_picture_url, telefone_normalized, last_message_at, last_message_preview, last_message_direction, last_message_id, unread_count, version, created_at, updated_at")
+                .eq("id", convId)
+                .maybeSingle()
+                .then(({ data }) => {
+                  if (data) handleSelectConversation(data as any);
+                });
+            }
+          }}
+        />
+      </div>
 
       {/* Chat Layout */}
       <div
@@ -641,7 +647,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       >
         <div className="flex h-full min-w-0 w-full max-w-full overflow-hidden">
           {/* Sidebar - Conversations (Desktop) */}
-          <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col`}>
+          <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col min-h-0`}>
             <WaConversationList
               conversations={filteredConvs}
               loading={convsLoading}
