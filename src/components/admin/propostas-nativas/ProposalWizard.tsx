@@ -746,7 +746,7 @@ export function ProposalWizard() {
     potenciaKwp,
     geracaoMensal: potenciaKwp > 0 && locIrradiacao > 0
       ? Math.round(potenciaKwp * locIrradiacao * 30 * 0.80) : undefined,
-    precoTotal: precoFinal,
+    precoTotal: precoFinal ?? 0,
     consultorNome: undefined, // filled by backend
   }), [cliente, selectedLead, ucs, premissas, potenciaKwp, locIrradiacao, precoFinal, locCidade, locEstado]);
 
