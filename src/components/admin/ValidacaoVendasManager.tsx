@@ -178,7 +178,7 @@ export function ValidacaoVendasManager() {
         const simsPromise = async () => {
           const { data } = await supabase
             .from("simulacoes")
-            .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, created_at")
+            .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, geracao_mensal_estimada, payback_meses, created_at")
             .eq("lead_id", cliente.lead_id!)
             .order("created_at", { ascending: false });
           const sims = (data as LeadSimulacao[]) || [];
