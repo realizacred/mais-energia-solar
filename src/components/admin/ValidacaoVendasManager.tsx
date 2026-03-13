@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { ApproveVendaDialog } from "./ApproveVendaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
