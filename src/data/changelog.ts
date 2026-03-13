@@ -30,6 +30,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Exclusão inteligente de arquivos não-conteúdo (styles, settings, fonts, themes)",
     ],
   },
+  {
     version: "2.32.0",
     date: "2026-03-13",
     title: "DOCX: normalização de placeholders em text boxes sobre imagens",
