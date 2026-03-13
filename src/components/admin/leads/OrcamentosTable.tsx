@@ -166,7 +166,7 @@ export function OrcamentosTable({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm whitespace-nowrap">
+                <TableCell className="text-sm whitespace-nowrap align-middle">
                   <div className="flex items-center gap-1">
                     <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                     {formatPhoneBR(orc.telefone)}
