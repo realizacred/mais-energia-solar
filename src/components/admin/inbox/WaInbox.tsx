@@ -584,7 +584,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   };
 
   return (
-    <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "flex flex-col h-full space-y-4"}`} data-wa-inbox-active>
+    <div className={`${vendorMode ? "flex flex-col h-full w-full max-w-full overflow-x-hidden" : "flex flex-col h-full overflow-hidden"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
         <WaInboxHeader
