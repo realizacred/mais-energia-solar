@@ -311,6 +311,11 @@
     @apply origin-bottom-left scale-x-100;
   }
 
+  /* Override sidebar width — wider to show full menu text */
+  [data-sidebar="sidebar"] {
+    --sidebar-width: 18rem;
+  }
+
   /* Premium sidebar surface — light warm */
   .sidebar-premium {
     background: hsl(var(--sidebar-background));
