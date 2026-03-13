@@ -30,6 +30,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Corrige [responsavel_nome] e similares que ficavam visíveis no DOCX final",
     ],
   },
+  {
     version: "2.31.0",
     date: "2026-03-13",
     title: "flattenSnapshot() — utilitário compartilhado para templates",
