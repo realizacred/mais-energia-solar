@@ -24,16 +24,16 @@ export interface PendingValidation {
     media_consumo: number | null;
     arquivos_urls: string[] | null;
     consultores?: { id: string; nome: string } | null;
+    orcamentos?: {
+      arquivos_urls: string[] | null;
+      media_consumo: number | null;
+    }[] | null;
   } | null;
   simulacoes?: {
     investimento_estimado: number | null;
     potencia_recomendada_kwp: number | null;
     consumo_kwh: number | null;
   } | null;
-  orcamentos?: {
-    arquivos_urls: string[] | null;
-    media_consumo: number | null;
-  }[] | null;
 }
 
 export interface ValidationHistory {
