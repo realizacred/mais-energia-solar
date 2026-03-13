@@ -149,7 +149,7 @@ export function VendorLeadsTable({
                   {formatPhoneBR(lead.telefone)}
                 </a>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden md:table-cell align-middle">
                 <div className="flex items-center gap-1 text-sm">
                   <MapPin className="h-3 w-3 text-muted-foreground" />
                   {lead.cidade}, {lead.estado}
