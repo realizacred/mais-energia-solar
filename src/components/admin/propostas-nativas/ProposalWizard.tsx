@@ -1443,6 +1443,7 @@ export function ProposalWizard() {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
     setResult(null);
     setHtmlPreview(null);
+    setDocxBlob(null);
     // Go back to UCs step
     const ucsIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.UCS);
     setStep(ucsIndex >= 0 ? ucsIndex : 1);
