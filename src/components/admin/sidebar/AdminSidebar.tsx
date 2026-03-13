@@ -576,5 +576,6 @@ export function AdminSidebar({
         </Button>
       </SidebarFooter>
     </Sidebar>
+    </TooltipProvider>
   );
 }
