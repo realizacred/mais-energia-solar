@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useNavConfig } from "@/hooks/useNavConfig";
