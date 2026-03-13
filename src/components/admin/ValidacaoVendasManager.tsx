@@ -220,12 +220,12 @@ export function ValidacaoVendasManager() {
   const handleSimulacaoChange = (simId: string) => {
     setSelectedSimulacaoId(simId);
     if (simId === "manual") {
-      setValorVenda("");
+      setValorVenda(0);
       return;
     }
     const sim = leadSimulacoes.find((s) => s.id === simId);
     if (sim?.investimento_estimado && sim.investimento_estimado > 0) {
-      setValorVenda(sim.investimento_estimado.toString());
+      setValorVenda(sim.investimento_estimado);
     }
   };
 
