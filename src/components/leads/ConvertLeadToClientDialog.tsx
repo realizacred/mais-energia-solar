@@ -3,7 +3,7 @@ import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature } from "lucide-react";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { formatCEP } from "@/lib/validations";
@@ -50,6 +50,7 @@ interface OfflineConversion {
   identidadeFiles: DocumentFile[];
   comprovanteFiles: DocumentFile[];
   beneficiariaFiles: DocumentFile[];
+  assinaturaFiles?: DocumentFile[];
   savedAt: string;
   synced?: boolean;
 }
@@ -133,6 +134,7 @@ export function ConvertLeadToClientDialog({
   const [identidadeFiles, setIdentidadeFiles] = useState<DocumentFile[]>([]);
   const [comprovanteFiles, setComprovanteFiles] = useState<DocumentFile[]>([]);
   const [beneficiariaFiles, setBeneficiariaFiles] = useState<DocumentFile[]>([]);
+  const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   
   const [gettingLocation, setGettingLocation] = useState(false);
 
@@ -578,6 +580,7 @@ export function ConvertLeadToClientDialog({
       const identidadeUrls = await uploadDocumentFiles(identidadeFiles, `${tenantId}/identidade`, supabase);
       const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, `${tenantId}/comprovante`, supabase);
       const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, `${tenantId}/beneficiaria`, supabase);
+      const assinaturaUrls = await uploadDocumentFiles(assinaturaFiles, `${tenantId}/assinatura`, supabase);
 
       let potenciaKwp: number | null = null;
       let valorProjeto: number | null = null;
@@ -609,6 +612,7 @@ export function ConvertLeadToClientDialog({
         comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
         comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
         simulacao_aceita_id: data.simulacao_aceita_id || null,
+        assinatura_url: assinaturaUrls.length > 0 ? assinaturaUrls[0] : null,
         potencia_kwp: potenciaKwp,
         valor_projeto: valorProjeto,
       };
@@ -706,6 +710,7 @@ export function ConvertLeadToClientDialog({
         identidadeFiles,
         comprovanteFiles,
         beneficiariaFiles,
+        assinaturaFiles,
         savedAt: new Date().toISOString(),
         synced: false,
       };
@@ -1001,6 +1006,28 @@ export function ConvertLeadToClientDialog({
                       description="Comprovante da unidade consumidora"
                       files={beneficiariaFiles}
                       onFilesChange={setBeneficiariaFiles}
+                    />
+                  </div>
+
+                  {/* Assinatura do Cliente */}
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Signature className="h-3.5 w-3.5 text-primary" />
+                        Foto da Assinatura
+                      </span>
+                      {assinaturaFiles.length > 0 ? (
+                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
+                      )}
+                    </div>
+                    <DocumentUpload
+                      label=""
+                      description="Foto da assinatura do cliente no contrato"
+                      files={assinaturaFiles}
+                      onFilesChange={setAssinaturaFiles}
+                      accept="image/*"
                     />
                   </div>
                 </div>

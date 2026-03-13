@@ -1339,6 +1339,7 @@ export type Database = {
       }
       clientes: {
         Row: {
+          assinatura_url: string | null
           ativo: boolean
           bairro: string | null
           cep: string | null
@@ -1377,6 +1378,7 @@ export type Database = {
           valor_projeto: number | null
         }
         Insert: {
+          assinatura_url?: string | null
           ativo?: boolean
           bairro?: string | null
           cep?: string | null
@@ -1415,6 +1417,7 @@ export type Database = {
           valor_projeto?: number | null
         }
         Update: {
+          assinatura_url?: string | null
           ativo?: boolean
           bairro?: string | null
           cep?: string | null
