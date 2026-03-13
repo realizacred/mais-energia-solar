@@ -29,6 +29,8 @@ interface LeadsTableProps {
 }
 
 export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDelete, onConvert }: LeadsTableProps) {
+  const { reopenLead, reopening } = useReopenLead();
+
   if (leads.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
