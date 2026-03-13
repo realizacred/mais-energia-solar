@@ -53,6 +53,7 @@ export function VendorLeadsTable({
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [selectedLeadForWhatsapp, setSelectedLeadForWhatsapp] = useState<Lead | null>(null);
+  const { reopenLead, reopening } = useReopenLead();
 
   const handleWhatsappClick = (lead: Lead) => {
     setSelectedLeadForWhatsapp(lead);
