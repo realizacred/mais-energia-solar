@@ -806,9 +806,9 @@ export function ConvertLeadToClientDialog({
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Email *</FormLabel>
                       <FormControl>
-                        <EmailInput value={field.value || ""} onChange={field.onChange} />
+                        <EmailInput value={field.value || ""} onChange={field.onChange} required />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -819,9 +819,9 @@ export function ConvertLeadToClientDialog({
                   name="cpf_cnpj"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF/CNPJ</FormLabel>
+                      <FormLabel>CPF/CNPJ *</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <CpfCnpjInput value={field.value || ""} onChange={field.onChange} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
