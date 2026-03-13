@@ -534,7 +534,7 @@ export function WaConversationList({
       </div>
 
       {/* Conversations */}
-      <ScrollArea className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {loading ? (
           <div className="p-2 space-y-1">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -585,10 +585,10 @@ export function WaConversationList({
             )}
           </CrossInstanceWrapper>
         )}
-      </ScrollArea>
+      </div>
 
       {/* Footer count */}
-      <div className="p-2 border-t border-border/40 text-center">
+      <div className="shrink-0 p-2 border-t border-border/40 text-center">
         <p className="text-[10px] text-muted-foreground font-medium">{conversations.length} conversas</p>
       </div>
     </div>
