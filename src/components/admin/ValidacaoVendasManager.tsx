@@ -603,8 +603,8 @@ export function ValidacaoVendasManager() {
           </SectionCard>
         </TabsContent>
       </Tabs>
+  const { reopenLead, reopening } = useReopenLead(() => refetchPending());
 
-  
       {/* Approval Dialog */}
       <ApproveVendaDialog
         open={approvalDialogOpen}
