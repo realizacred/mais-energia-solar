@@ -83,7 +83,7 @@ Todo componente funciona em 320px–1920px. NUNCA largura fixa em px.
 → Ver §32
 
 ### 🚫 BLOQUEANTE — Modal com w-[90vw]
-NUNCA `max-w-2xl` ou `max-w-4xl` em formulários com 2+ colunas.
+NUNCA usar `max-w-*` sozinho sem `w-[90vw]` em modais com 2+ colunas.
 → Ver §25
 
 ### 🚫 BLOQUEANTE — Header antes de TabsList
