@@ -385,11 +385,59 @@ export function StepDocumento({
           </Button>
 
           <div className="space-y-2">
-            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+              onClick={async () => {
+                if (!htmlPreview) { toast({ title: "Preview não disponível para PDF", variant: "destructive" }); return; }
+                try {
+                  const html2canvas = (await import("html2canvas")).default;
+                  const { jsPDF } = await import("jspdf");
+                  // Render HTML in hidden iframe to capture
+                  const iframe = document.createElement("iframe");
+                  iframe.style.cssText = "position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;";
+                  document.body.appendChild(iframe);
+                  iframe.contentDocument?.open();
+                  iframe.contentDocument?.write(htmlPreview);
+                  iframe.contentDocument?.close();
+                  await new Promise(r => setTimeout(r, 500));
+                  const canvas = await html2canvas(iframe.contentDocument!.body, { scale: 2, useCORS: true, width: 800 });
+                  document.body.removeChild(iframe);
+                  const imgData = canvas.toDataURL("image/png");
+                  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+                  const pdfW = pdf.internal.pageSize.getWidth();
+                  const pdfH = (canvas.height * pdfW) / canvas.width;
+                  pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+                  const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+                  pdf.save(`Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`);
+                  toast({ title: "PDF baixado com sucesso!" });
+                } catch (err: any) {
+                  toast({ title: "Erro ao gerar PDF", description: err.message, variant: "destructive" });
+                }
+              }}
+            >
               <Download className="h-3.5 w-3.5" />
               Download de PDF
             </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+              onClick={() => {
+                if (!docxBlob) { toast({ title: "DOCX não disponível", variant: "destructive" }); return; }
+                const url = URL.createObjectURL(docxBlob);
+                const a = document.createElement("a");
+                a.href = url;
+                const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+                a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast({ title: "DOCX baixado!" });
+              }}
+            >
               <FileDown className="h-3.5 w-3.5" />
               Download de Doc
             </Button>
