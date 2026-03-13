@@ -421,9 +421,9 @@ export function WaConversationList({
   followupConvIds,
 }: WaConversationListProps) {
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden border-r border-border/30 bg-card/50">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-card/50">
       {/* Search & Filters */}
-      <div className="p-3 border-b border-border/30 space-y-2 bg-card overflow-visible">
+      <div className="shrink-0 p-3 border-b border-border/30 space-y-2 bg-card overflow-visible">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -534,8 +534,9 @@ export function WaConversationList({
       </div>
 
       {/* Conversations */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {loading ? (
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="h-full min-h-0 overflow-y-auto">
+          {loading ? (
           <div className="p-2 space-y-1">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex items-start gap-2.5 px-3 py-2.5">
@@ -584,7 +585,8 @@ export function WaConversationList({
               </div>
             )}
           </CrossInstanceWrapper>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Footer count */}
