@@ -669,18 +669,45 @@ export function ConvertLeadToClientDialog({
         comprovante_endereco_urls: clientePayload.comprovante_endereco_urls?.length || 0,
       });
 
-      const { data: existingCliente } = await supabase
+      // Check for existing client by lead_id OR by phone (to avoid duplicate cliente_code)
+      let existingCliente: { id: string } | null = null;
+      
+      const { data: byLeadId } = await supabase
         .from("clientes")
         .select("id")
         .eq("lead_id", lead.id)
         .maybeSingle();
+      
+      existingCliente = byLeadId || null;
+
+      // If not found by lead_id, check by phone to prevent duplicate
+      if (!existingCliente && data.telefone) {
+        const normalizedPhone = data.telefone.replace(/\D/g, "");
+        const { data: byPhone } = await supabase
+          .from("clientes")
+          .select("id")
+          .eq("telefone", data.telefone)
+          .maybeSingle();
+        
+        if (!byPhone && normalizedPhone.length >= 10) {
+          const { data: byNormalized } = await supabase
+            .from("clientes")
+            .select("id")
+            .eq("telefone_normalized", normalizedPhone.slice(-11))
+            .maybeSingle();
+          existingCliente = byNormalized || null;
+        } else {
+          existingCliente = byPhone || null;
+        }
+      }
 
       let cliente: { id: string } | null = null;
 
       if (existingCliente) {
+        console.debug("[ConvertLead] Updating existing cliente:", existingCliente.id);
         const { data: updated, error: updateError } = await supabase
           .from("clientes")
-          .update({ ...clientePayload, updated_at: new Date().toISOString() })
+          .update({ ...clientePayload, lead_id: lead.id, updated_at: new Date().toISOString() })
           .eq("id", existingCliente.id)
           .select("id")
           .single();
