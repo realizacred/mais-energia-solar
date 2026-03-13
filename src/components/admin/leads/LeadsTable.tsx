@@ -168,7 +168,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   );
                 })()}
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {lead.cliente_id_vinculado ? (
                   <div className="space-y-0.5">
                     {lead.cliente_potencia_kwp != null && (
