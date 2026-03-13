@@ -350,7 +350,7 @@ export function ValidacaoVendasManager() {
   };
 
   // Check if approval form is valid
-  const isApprovalValid = parseFloat(valorVenda) > 0;
+  const isApprovalValid = valorVenda > 0;
 
   if (loading) {
     return (
