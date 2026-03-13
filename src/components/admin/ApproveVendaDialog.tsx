@@ -202,7 +202,7 @@ export function ApproveVendaDialog({
   });
 
   const valorComissao = () => {
-    const base = parseFloat(valorVenda) || 0;
+    const base = valorVenda || 0;
     return (base * (parseFloat(percentualComissao) || 0)) / 100;
   };
 
