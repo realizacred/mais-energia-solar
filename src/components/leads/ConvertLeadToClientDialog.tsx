@@ -133,6 +133,7 @@ export function ConvertLeadToClientDialog({
   const [identidadeFiles, setIdentidadeFiles] = useState<DocumentFile[]>([]);
   const [comprovanteFiles, setComprovanteFiles] = useState<DocumentFile[]>([]);
   const [beneficiariaFiles, setBeneficiariaFiles] = useState<DocumentFile[]>([]);
+  const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   
   const [gettingLocation, setGettingLocation] = useState(false);
 
