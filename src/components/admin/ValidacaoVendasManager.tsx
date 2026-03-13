@@ -52,7 +52,7 @@ export function ValidacaoVendasManager() {
 
   const [approving, setApproving] = useState<string | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<PendingValidation | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [rejecting, setRejecting] = useState(false);
