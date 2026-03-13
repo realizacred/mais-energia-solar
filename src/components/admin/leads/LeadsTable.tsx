@@ -73,13 +73,13 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 <Badge variant="outline" className="font-mono text-xs">
                   {lead.lead_code || "-"}
                 </Badge>
               </TableCell>
-              <TableCell className="font-medium">{lead.nome}</TableCell>
-              <TableCell className="whitespace-nowrap">
+              <TableCell className="font-medium align-middle">{lead.nome}</TableCell>
+              <TableCell className="whitespace-nowrap align-middle">
                 <div className="flex items-center gap-1">
                   <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                   {formatPhoneBR(lead.telefone)}
