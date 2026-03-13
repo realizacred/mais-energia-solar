@@ -577,8 +577,10 @@ export function AdminSidebar({
           variant="ghost"
           size={collapsed ? "icon" : "default"}
           onClick={onSignOut}
+          aria-label={collapsed ? "Sair" : undefined}
           className={`
             w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10
+            focus-visible:ring-2 focus-visible:ring-primary/50
             ${collapsed ? "justify-center px-0" : ""}
           `}
         >
