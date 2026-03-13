@@ -497,6 +497,9 @@ export function ValidacaoVendasManager() {
                               {potencia > 0 ? `${potencia} kWp` : "-"}
                             </TableCell>
                             <TableCell className="text-right font-medium">
+                              {geracaoMensal > 0 ? `${geracaoMensal.toFixed(0)} kWh` : "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
                               {clienteValorVenda > 0 ? formatCurrency(clienteValorVenda) : "-"}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
