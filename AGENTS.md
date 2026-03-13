@@ -1355,8 +1355,8 @@ Quais regras valem onde:
 - §4 (tabela padrão)
 - §10 (grid denso para relatórios)
 
-### WhatsApp Inbox
-- §36 (flexbox scroll obrigatório)
+### Layouts com scroll interno (Inbox, sidebars, split-view)
+- §36 (flexbox scroll obrigatório — aplica-se a QUALQUER painel com scroll independente)
 
 ### Storage e Documentos
 - §37 (resolução de URLs obrigatória)
@@ -1365,6 +1365,8 @@ Quais regras valem onde:
 - §38 (fallback de dados técnicos)
 
 ---
+
+> **Nota estrutural:** As seções §36–§38 estão definidas acima no Bloco 3 junto com §1–§35. O Bloco 7 apenas referencia onde cada uma se aplica.
 
 ## §36. FLEXBOX SCROLL — Regra obrigatória
 
