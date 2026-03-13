@@ -577,10 +577,25 @@ export function ConvertLeadToClientDialog({
       const { data: tenantId } = await supabase.rpc("get_user_tenant_id");
       if (!tenantId) throw new Error("Não foi possível identificar o tenant. Faça login novamente.");
 
+      console.debug("[ConvertLead] Starting conversion for lead:", lead.id);
+      console.debug("[ConvertLead] Files count:", {
+        identidade: identidadeFiles.length,
+        comprovante: comprovanteFiles.length,
+        beneficiaria: beneficiariaFiles.length,
+        assinatura: assinaturaFiles.length,
+      });
+
       const identidadeUrls = await uploadDocumentFiles(identidadeFiles, `${tenantId}/identidade`, supabase);
       const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, `${tenantId}/comprovante`, supabase);
       const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, `${tenantId}/beneficiaria`, supabase);
       const assinaturaUrls = await uploadDocumentFiles(assinaturaFiles, `${tenantId}/assinatura`, supabase);
+
+      console.debug("[ConvertLead] Upload results:", {
+        identidade: identidadeUrls,
+        comprovante: comprovanteUrls,
+        beneficiaria: beneficiariaUrls,
+        assinatura: assinaturaUrls,
+      });
 
       let potenciaKwp: number | null = null;
       let valorProjeto: number | null = null;
@@ -589,6 +604,37 @@ export function ConvertLeadToClientDialog({
         if (selectedSim) {
           potenciaKwp = selectedSim.potencia_recomendada_kwp;
           valorProjeto = selectedSim.investimento_estimado;
+        }
+      }
+
+      // If no simulation selected, try to get values from propostas_nativas
+      if (!potenciaKwp && !valorProjeto && lead.id) {
+        try {
+          const { data: propostaNativa } = await supabase
+            .from("propostas_nativas")
+            .select("id")
+            .eq("lead_id", lead.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (propostaNativa) {
+            const { data: versao } = await supabase
+              .from("proposta_versoes")
+              .select("valor_total, potencia_kwp")
+              .eq("proposta_id", propostaNativa.id)
+              .order("versao_numero", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (versao) {
+              potenciaKwp = versao.potencia_kwp || null;
+              valorProjeto = versao.valor_total || null;
+              console.debug("[ConvertLead] Got data from proposta_nativa:", { potenciaKwp, valorProjeto });
+            }
+          }
+        } catch (e) {
+          console.warn("[ConvertLead] Could not fetch proposta_nativa data:", e);
         }
       }
 
@@ -616,6 +662,12 @@ export function ConvertLeadToClientDialog({
         potencia_kwp: potenciaKwp,
         valor_projeto: valorProjeto,
       };
+
+      console.debug("[ConvertLead] clientePayload:", {
+        ...clientePayload,
+        identidade_urls: clientePayload.identidade_urls?.length || 0,
+        comprovante_endereco_urls: clientePayload.comprovante_endereco_urls?.length || 0,
+      });
 
       const { data: existingCliente } = await supabase
         .from("clientes")
