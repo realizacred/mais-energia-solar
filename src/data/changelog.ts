@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.33.0",
+    date: "2026-03-13",
+    title: "DOCX: placeholders sobre imagens 'Atrás do Texto' agora substituídos",
+    type: "bugfix",
+    description: "normalizeParagraphRuns() não mais pula parágrafos inteiros com w:drawing — agora isola blocos complexos, normaliza os runs de texto ao redor e restaura os drawings intactos.",
+    details: [
+      "Drawings/pict/mc:AlternateContent extraídos como tokens antes da normalização",
+      "Runs de texto fora dos drawings são normalizados e fundidos normalmente",
+      "Blocos complexos restaurados após normalização, preservando layout",
+    ],
+  },
+  {
     version: "2.32.1",
     date: "2026-03-13",
     title: "DOCX: processamento de headers, footers e todos os XMLs do template",
