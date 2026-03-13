@@ -482,15 +482,6 @@ export function StepDocumento({
                 style={{ height: 600, pointerEvents: "none" }}
               />
             </div>
-          ) : result && isDocxSelected ? (
-            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-4">
-              <FileDown className="h-12 w-12 text-primary opacity-60" />
-              <div className="text-center">
-                <p className="text-sm font-medium text-foreground">Proposta DOCX gerada com sucesso!</p>
-                <p className="text-xs text-muted-foreground mt-1">O download do arquivo já foi iniciado.</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Use "Download de Doc" para baixar novamente.</p>
-              </div>
-            </div>
           ) : (
             <div className="border border-border/50 rounded-xl flex items-center justify-center h-[400px] bg-muted/20">
               <p className="text-sm text-muted-foreground">Preview indisponível</p>
