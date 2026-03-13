@@ -585,26 +585,24 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   return (
     <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-hidden" : "flex flex-col w-full h-full min-h-0 overflow-hidden"}`} data-wa-inbox-active>
-      {/* Header — hidden in vendor/standalone mode */}
-      {!vendorMode && (
-        <div className="shrink-0 mb-3">
+      <div className="shrink-0 flex flex-col gap-3">
+        {/* Header — hidden in vendor/standalone mode */}
+        {!vendorMode && (
           <WaInboxHeader
             instances={instances}
             onNewChat={() => setShowStartChat(true)}
             onSettings={() => setShowSettings(true)}
           />
-        </div>
-      )}
+        )}
 
-      {/* Stats - only in admin mode */}
-      {!vendorMode && <div className="shrink-0 mb-3"><WaInboxStats conversations={allConversations} /></div>}
+        {/* Stats - only in admin mode */}
+        {!vendorMode && <WaInboxStats conversations={allConversations} />}
 
-      {/* Compact stats for vendor/mobile mode */}
-      {vendorMode && showCompactStats && <div className="shrink-0"><WaInboxStats conversations={allConversations} compact /></div>}
+        {/* Compact stats for vendor/mobile mode */}
+        {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
 
-      {/* SLA Alerts Banner */}
-      {slaEnabled && (
-        <div className="shrink-0">
+        {/* SLA Alerts Banner */}
+        {slaEnabled && (
           <WaSlaAlertBanner
             alerts={isAdminUser ? slaAlerts : mySlaAlerts}
             onOpenConversation={(convId) => {
@@ -616,11 +614,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
             onPauseSla={pauseSlaConversation}
             isAdmin={isAdminUser}
           />
-        </div>
-      )}
+        )}
 
-      {/* Follow-up Widget */}
-      <div className="shrink-0">
+        {/* Follow-up Widget */}
         <WaFollowupWidget
           vendorUserId={vendorMode ? effectiveUserId : undefined}
           onOpenConversation={(convId) => {
