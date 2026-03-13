@@ -29,6 +29,15 @@ export function DocumentPreviewDialog({
   const [zoom, setZoom] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  // Reset state when dialog opens or files change
+  useEffect(() => {
+    if (open) {
+      setCurrentIndex(initialIndex);
+      setZoom(1);
+      setLoading(true);
+    }
+  }, [open, initialIndex]);
+
   const currentFile = files[currentIndex];
   const isImage = currentFile?.type?.startsWith("image/");
   const isPDF = currentFile?.type === "application/pdf";
