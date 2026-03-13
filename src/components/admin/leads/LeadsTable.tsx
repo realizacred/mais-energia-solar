@@ -85,7 +85,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   {formatPhoneBR(lead.telefone)}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-middle">
                 {(lead.consultor_nome || lead.consultor) ? (
                   <Badge
                     variant="outline"
