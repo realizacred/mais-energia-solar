@@ -95,13 +95,12 @@ function normalizeParagraphRuns(xml: string): string {
 Deno.test("Case 1: bracket split — ['[', 'responsavel_nome]']", () => {
   const xml = `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>[</w:t></w:r><w:r><w:t>responsavel_nome]</w:t></w:r></w:p>`;
   const result = normalizeParagraphRuns(xml);
-  // After normalization, should contain [responsavel_nome] in a single run
-  assertEquals(result.includes("[responsavel_nome]"), true, "placeholder should be in single run");
-  // Should only have one <w:r>
-  const runCount = (result.match(/<w:r>/g) || []).length;
-  assertEquals(runCount, 1, "should merge into 1 run");
+  // After normalization, should contain [responsavel_nome] in the first text run
+  assertEquals(result.includes("[responsavel_nome]"), true, "placeholder should be unified");
   // Should preserve first run's rPr
   assertEquals(result.includes("<w:b/>"), true, "should preserve bold formatting");
+  // Second run should be emptied but NOT removed (preserves layout)
+  assertEquals(result.includes("<w:t></w:t>"), true, "second run emptied but kept");
 });
 
 Deno.test("Case 2: trailing bracket split — ['[inversor_fabricante_1', ']']", () => {
