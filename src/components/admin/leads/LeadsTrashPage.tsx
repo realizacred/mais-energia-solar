@@ -148,8 +148,8 @@ export default function LeadsTrashPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map(lead => (
-                  <TableRow key={lead.id} className="opacity-70 hover:opacity-100 transition-opacity">
-                    <TableCell>
+                  <TableRow key={lead.id} className="align-middle opacity-70 hover:opacity-100 transition-opacity">
+                    <TableCell className="align-middle">
                       <div>
                         <p className="font-medium text-sm">{lead.nome}</p>
                         {lead.lead_code && <p className="text-xs text-muted-foreground">{lead.lead_code}</p>}
