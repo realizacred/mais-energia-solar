@@ -278,7 +278,7 @@ export function VendorOrcamentosTable({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <a 
                       href={`https://wa.me/55${orc.telefone.replace(/\D/g, '')}`}
                       target="_blank"
