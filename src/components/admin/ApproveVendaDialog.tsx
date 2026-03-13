@@ -190,7 +190,7 @@ export function ApproveVendaDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[90vw] max-w-[780px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogContent className="w-[90vw] max-w-[780px] p-0 gap-0 overflow-hidden">
           {/* HEADER §25 */}
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
@@ -204,9 +204,8 @@ export function ApproveVendaDialog({
             </div>
           </DialogHeader>
 
-          {/* BODY — 2 colunas §25 */}
-          <div className="overflow-y-auto min-h-0 flex-1 max-h-[70vh]">
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+          {/* BODY — 2 COLUNAS OBRIGATÓRIO */}
+          <div className="grid grid-cols-2 divide-x divide-border overflow-y-auto max-h-[65vh]">
               {/* ═══ COLUNA ESQUERDA — Dados ═══ */}
               <div className="p-5 space-y-5">
                 {/* Dados do cliente */}
@@ -408,7 +407,6 @@ export function ApproveVendaDialog({
                   </div>
                 </div>
               </div>
-            </div>
           </div>
 
           {/* FOOTER §25 */}
