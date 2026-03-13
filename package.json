@@ -66,6 +66,7 @@
     "jspdf-autotable": "^5.0.7",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.462.0",
+    "mammoth": "^1.12.0",
     "next-themes": "^0.3.0",
     "postcss-import": "^16.1.1",
     "qrcode.react": "^4.2.0",

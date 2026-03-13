@@ -217,6 +217,7 @@ export function ProposalWizard() {
   const [rendering, setRendering] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
+  const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
 
@@ -1236,6 +1237,7 @@ export function ProposalWizard() {
 
     setGenerating(true);
     setHtmlPreview(null);
+    setDocxBlob(null);
     setResult(null);
 
     try {
@@ -1355,24 +1357,41 @@ export function ProposalWizard() {
             throw new Error(errorMsg);
           }
 
-          // Trigger download
-          const blob = response.data instanceof Blob
+          // Get the DOCX blob
+          const docxBlob = response.data instanceof Blob
             ? response.data
             : new Blob([response.data], {
                 type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
               });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `proposta_${selectedTpl?.nome?.replace(/[^a-zA-Z0-9]/g, "_") || "doc"}.docx`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
 
-          // No HTML preview for DOCX — set a placeholder
-          setHtmlPreview(null);
-          toast({ title: "DOCX gerado com sucesso!", description: "O download do arquivo foi iniciado." });
+          // Store blob for downloads (DOCX + PDF)
+          setDocxBlob(docxBlob);
+
+          // Convert DOCX → HTML for inline preview using mammoth
+          try {
+            const mammoth = await import("mammoth");
+            const arrayBuffer = await docxBlob.arrayBuffer();
+            const mammothResult = await mammoth.convertToHtml({ arrayBuffer });
+            // Wrap in a styled container for better visual
+            const styledHtml = `
+              <!DOCTYPE html>
+              <html><head><style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #333; line-height: 1.6; font-size: 14px; }
+                table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+                td, th { border: 1px solid #ddd; padding: 8px 12px; }
+                th { background: #f5f5f5; font-weight: 600; }
+                img { max-width: 100%; height: auto; }
+                h1 { font-size: 22px; color: #222; } h2 { font-size: 18px; color: #333; } h3 { font-size: 16px; color: #444; }
+                p { margin: 8px 0; }
+              </style></head><body>${mammothResult.value}</body></html>
+            `;
+            setHtmlPreview(styledHtml);
+          } catch (convErr) {
+            console.warn("Mammoth conversion failed, preview unavailable:", convErr);
+            setHtmlPreview(null);
+          }
+
+          toast({ title: "Proposta DOCX gerada!", description: "Preview exibido na tela. Use os botões para baixar PDF ou DOCX." });
         } else {
           // HTML template: use proposal-render as before
           const renderResult = await renderProposal(genResult.versao_id);
@@ -1425,6 +1444,7 @@ export function ProposalWizard() {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
     setResult(null);
     setHtmlPreview(null);
+    setDocxBlob(null);
     // Go back to UCs step
     const ucsIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.UCS);
     setStep(ucsIndex >= 0 ? ucsIndex : 1);
@@ -1674,6 +1694,7 @@ export function ProposalWizard() {
               onViewDetail={handleViewDetail}
               customFieldValues={customFieldValues}
               onCustomFieldValuesChange={setCustomFieldValues}
+              docxBlob={docxBlob}
             />
           </>
         ));
