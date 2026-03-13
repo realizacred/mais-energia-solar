@@ -145,12 +145,12 @@ export function OrcamentosTable({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden md:table-cell align-middle">
                   <Badge variant="outline" className="font-mono text-xs">
                     {orc.lead_code || "-"}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium text-sm">
+                <TableCell className="font-medium text-sm align-middle">
                   <div className="flex items-center gap-2">
                     {orc.nome}
                     {hasHistory && (
