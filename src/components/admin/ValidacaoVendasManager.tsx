@@ -493,7 +493,6 @@ export function ValidacaoVendasManager() {
                       <TableHead className="font-semibold text-foreground">Cliente / Lead</TableHead>
                       <TableHead className="font-semibold text-foreground hidden lg:table-cell">Vendedor</TableHead>
                       <TableHead className="font-semibold text-foreground hidden sm:table-cell">Localização</TableHead>
-                      <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Consumo</TableHead>
                       <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Potência</TableHead>
                       <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Geração</TableHead>
                       <TableHead className="font-semibold text-foreground text-right">Valor Venda</TableHead>
@@ -505,7 +504,6 @@ export function ValidacaoVendasManager() {
                     {filteredItems.map((cliente) => {
                       const clienteValorVenda = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
                       const potencia = cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
-                      const consumo = cliente.simulacoes?.consumo_kwh || cliente.leads?.media_consumo || 0;
                       const geracaoMensal = cliente.simulacoes?.geracao_mensal_estimada || 0;
                       const vendedorNome = cliente.leads?.consultores?.nome || cliente.leads?.consultor;
                       const vendedorFound = cliente.leads?.consultor_id
@@ -549,9 +547,6 @@ export function ValidacaoVendasManager() {
                             >
                               {cliente.cidade}{cliente.estado ? `, ${cliente.estado}` : ""}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="align-middle text-right font-medium hidden sm:table-cell">
-                            {consumo > 0 ? `${consumo} kWh` : "-"}
                           </TableCell>
                           <TableCell className="align-middle text-right font-medium hidden sm:table-cell">
                             {potencia > 0 ? `${potencia} kWp` : "-"}
