@@ -327,7 +327,7 @@ export function OrcamentosTable({
                               Já convertido
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => reopenLead(orc.lead_id, orc.cliente_id_vinculado)}
+                              onClick={() => reopenLead(orc.lead_id)}
                               disabled={reopening}
                             >
                               <RotateCcw className="w-4 h-4 mr-2 text-warning" />
