@@ -90,46 +90,48 @@ function buildFullContext(): ProposalResolverContext {
   };
 }
 
-// ── 1. Resolver: detecta dados faltantes ────────────────────
+// ── 1. Resolver: tolerância a dados faltantes (template-only) ──────────
 
-describe("Smoke: Resolver — detecção de dados obrigatórios", () => {
-  it("bloqueia PDF quando cliente.nome está ausente", () => {
+describe("Smoke: Resolver — tolerância a dados faltantes", () => {
+  it("não bloqueia PDF quando cliente.nome está ausente", () => {
     const ctx: ProposalResolverContext = {
       ucs: [VALID_UC] as any,
       potenciaKwp: 8.8,
       precoTotal: 42000,
     };
     const result = resolveProposalVariables(ctx);
-    expect(result.canGeneratePdf).toBe(false);
-    expect(result.missing_required).toContain("cliente.nome");
+    expect(result.canGeneratePdf).toBe(true);
+    expect(result.missing_required).toEqual([]);
   });
 
-  it("bloqueia PDF quando precoTotal está ausente", () => {
+  it("não bloqueia PDF quando precoTotal está ausente", () => {
     const ctx: ProposalResolverContext = {
       cliente: VALID_CLIENT,
       ucs: [VALID_UC] as any,
       potenciaKwp: 8.8,
     };
     const result = resolveProposalVariables(ctx);
-    expect(result.canGeneratePdf).toBe(false);
-    expect(result.missing_required).toContain("financeiro.preco_total");
+    expect(result.canGeneratePdf).toBe(true);
+    expect(result.missing_required).toEqual([]);
+    expect(result.variables["financeiro.preco_total"]).toBe("-");
   });
 
-  it("bloqueia PDF quando potenciaKwp está ausente", () => {
+  it("não bloqueia PDF quando potenciaKwp está ausente", () => {
     const ctx: ProposalResolverContext = {
       cliente: VALID_CLIENT,
       ucs: [VALID_UC] as any,
       precoTotal: 42000,
     };
     const result = resolveProposalVariables(ctx);
-    expect(result.canGeneratePdf).toBe(false);
-    expect(result.missing_required).toContain("sistema_solar.potencia_sistema");
+    expect(result.canGeneratePdf).toBe(true);
+    expect(result.missing_required).toEqual([]);
+    expect(result.variables["sistema_solar.potencia_sistema"]).toBe("-");
   });
 
-  it("bloqueia PDF quando contexto está completamente vazio", () => {
+  it("não bloqueia PDF quando contexto está completamente vazio", () => {
     const result = resolveProposalVariables({});
-    expect(result.canGeneratePdf).toBe(false);
-    expect(result.missing_required.length).toBeGreaterThanOrEqual(4);
+    expect(result.canGeneratePdf).toBe(true);
+    expect(result.missing_required).toEqual([]);
   });
 });
 
