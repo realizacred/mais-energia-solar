@@ -247,25 +247,26 @@ export function TemplatePreviewDialog({
     if (!templateId) return;
     setGenerating(true);
     try {
-      const response = await supabase.functions.invoke("template-preview", {
-        body: { template_id: templateId, proposta_id: proposta.id },
+      // Use raw fetch to preserve binary DOCX data
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
+      const { data: { session } } = await supabase.auth.getSession();
+      const rawResp = await fetch(`https://${projectId}.supabase.co/functions/v1/template-preview`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token || anonKey}`,
+          "apikey": anonKey,
+        },
+        body: JSON.stringify({ template_id: templateId, proposta_id: proposta.id }),
       });
-      if (response.error) {
-        // Try to extract detailed error from the response body
-        let detail = response.error.message || "Erro ao gerar DOCX";
-        try {
-          if (response.data && typeof response.data === "object" && response.data.error) {
-            detail = response.data.error;
-          }
-        } catch { /* ignore */ }
+      if (!rawResp.ok) {
+        const errBody = await rawResp.text();
+        let detail = "Erro ao gerar DOCX";
+        try { detail = JSON.parse(errBody)?.error || detail; } catch { detail = errBody || detail; }
         throw new Error(detail);
       }
-
-      const blob = response.data instanceof Blob
-        ? response.data
-        : new Blob([response.data], {
-            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          });
+      const blob = await rawResp.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
