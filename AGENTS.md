@@ -553,39 +553,7 @@ const statusConfig = {
 
 ## §11. MODAIS E DRAWERS
 
-Para tamanhos de modal → **Ver §25** (fonte única de verdade).
-
-```tsx
-// Dialog padrão
-<Dialog>
-  <DialogContent className="max-w-2xl">
-    <DialogHeader>
-      <DialogTitle className="flex items-center gap-2 text-lg">
-        <Icon className="w-5 h-5 text-primary" />
-        Título do Modal
-      </DialogTitle>
-      <DialogDescription>Descrição breve</DialogDescription>
-    </DialogHeader>
-    <div className="space-y-4 py-2">
-      {/* conteúdo */}
-    </div>
-    <DialogFooter>
-      <Button variant="outline">Cancelar</Button>
-      <Button>Confirmar</Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
-
-// Sheet (drawer lateral — para detalhes)
-<Sheet>
-  <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-    <SheetHeader className="border-b border-border pb-4 mb-4">
-      <SheetTitle>Título</SheetTitle>
-    </SheetHeader>
-    {/* conteúdo */}
-  </SheetContent>
-</Sheet>
-```
+Para estrutura e tamanhos de modal → **Ver §25** (fonte única de verdade). Não duplicar padrões aqui.
 
 ---
 
@@ -708,7 +676,7 @@ Nunca formatar valores manualmente. Usar utilitários em `src/lib/formatters`:
 ```
 formatBRL        formatKwh
 formatPercent    formatDateBR
-formatBRLCompact
+formatBRLCompact formatPhoneBR
 ```
 
 ---
@@ -1192,6 +1160,36 @@ SEMPRE testar visualmente em 320px e 1920px.
 
 - NUNCA mostrar apenas 3 pontos em telas grandes
 - SEMPRE manter condições de permissão por role (admin/consultor)
+
+---
+
+## §35. SIDEBAR — Padrão Visual Obrigatório
+
+### Badge de notificação
+- SEMPRE `bg-primary text-primary-foreground`
+- Tamanho: `min-w-[20px] h-5 rounded-full text-xs font-bold flex items-center justify-center px-1`
+- Quando item ATIVO: `bg-background text-primary` para contrastar com o fundo primário
+- NUNCA cor hardcoded no badge
+
+### Descrições dos itens
+- NUNCA exibir descrição abaixo do nome do item como texto fixo
+- SEMPRE usar Tooltip do shadcn/ui com `delayDuration={600}`
+- `TooltipContent` com `side="right"`
+- O texto do tooltip é a descrição do item de navegação
+
+### Implementação obrigatória
+```tsx
+<TooltipProvider delayDuration={600}>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <NavItem ... />
+    </TooltipTrigger>
+    <TooltipContent side="right">
+      <p>{item.description}</p>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
 
 ---
 
