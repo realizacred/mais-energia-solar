@@ -679,7 +679,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
           {/* Mobile */}
           <div
-            className="flex-1 flex flex-col md:hidden min-h-0 min-w-0 max-w-full overflow-x-hidden"
+            className="flex-1 flex flex-col md:hidden min-h-0 min-w-0 max-w-full overflow-hidden"
             onTouchStart={(e) => {
               const t = e.currentTarget;
               (t as any)._swipeStartX = e.touches[0].clientX;
