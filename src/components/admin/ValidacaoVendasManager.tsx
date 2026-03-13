@@ -35,6 +35,8 @@ interface LeadSimulacao {
   potencia_recomendada_kwp: number | null;
   economia_mensal: number | null;
   consumo_kwh: number | null;
+  geracao_mensal_estimada: number | null;
+  payback_meses: number | null;
   created_at: string;
 }
 
@@ -176,7 +178,7 @@ export function ValidacaoVendasManager() {
         const simsPromise = async () => {
           const { data } = await supabase
             .from("simulacoes")
-            .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, created_at")
+            .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, geracao_mensal_estimada, payback_meses, created_at")
             .eq("lead_id", cliente.lead_id!)
             .order("created_at", { ascending: false });
           const sims = (data as LeadSimulacao[]) || [];
@@ -449,6 +451,7 @@ export function ValidacaoVendasManager() {
                         <TableHead className="font-semibold text-foreground">Vendedor</TableHead>
                         <TableHead className="font-semibold text-foreground">Localização</TableHead>
                         <TableHead className="font-semibold text-foreground text-right">Potência</TableHead>
+                        <TableHead className="font-semibold text-foreground text-right">Geração</TableHead>
                         <TableHead className="font-semibold text-foreground text-right">Valor Venda</TableHead>
                         <TableHead className="font-semibold text-foreground">Data</TableHead>
                         <TableHead className="w-44"></TableHead>
@@ -458,6 +461,7 @@ export function ValidacaoVendasManager() {
                       {filteredItems.map((cliente) => {
                         const clienteValorVenda = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
                         const potencia = cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
+                        const geracaoMensal = cliente.simulacoes?.geracao_mensal_estimada || 0;
                         const vendedorNome = cliente.leads?.consultores?.nome || cliente.leads?.consultor;
                         const vendedorFound = cliente.leads?.consultor_id
                           ? vendedores.some((v) => v.id === cliente.leads?.consultor_id)
@@ -491,6 +495,9 @@ export function ValidacaoVendasManager() {
                             </TableCell>
                             <TableCell className="text-right font-medium">
                               {potencia > 0 ? `${potencia} kWp` : "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {geracaoMensal > 0 ? `${geracaoMensal.toFixed(0)} kWh` : "-"}
                             </TableCell>
                             <TableCell className="text-right font-medium">
                               {clienteValorVenda > 0 ? formatCurrency(clienteValorVenda) : "-"}

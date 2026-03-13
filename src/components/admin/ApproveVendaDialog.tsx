@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle, User, MapPin, Phone, Zap, DollarSign, FileText,
-  AlertTriangle, Download, X, Eye,
+  AlertTriangle, Download, X, Eye, Sun, TrendingDown, Clock,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatBRL } from "@/lib/formatters";
@@ -27,6 +27,8 @@ interface LeadSimulacao {
   potencia_recomendada_kwp: number | null;
   economia_mensal: number | null;
   consumo_kwh: number | null;
+  geracao_mensal_estimada: number | null;
+  payback_meses: number | null;
   created_at: string;
 }
 
@@ -68,7 +70,7 @@ function DataCard({ label, value, icon: Icon, valueClass }: {
   icon: React.ElementType;
   valueClass?: string;
 }) {
-  const isUnavailable = !value || value === "—" || value === "0" || value === "R$ 0,00";
+  const isUnavailable = !value || value === "—" || value === "0" || value === "R$ 0,00" || value === "0 kWh";
   return (
     <div className="bg-muted/50 rounded-lg p-3 space-y-1">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -169,6 +171,24 @@ export function ApproveVendaDialog({
     || cliente.valor_projeto
     || 0;
 
+  // NEW: Geração mensal estimada
+  const geracaoMensal = selectedSim?.geracao_mensal_estimada
+    || cliente.simulacoes?.geracao_mensal_estimada
+    || firstSim?.geracao_mensal_estimada
+    || 0;
+
+  // NEW: Economia mensal
+  const economiaMensal = selectedSim?.economia_mensal
+    || cliente.simulacoes?.economia_mensal
+    || firstSim?.economia_mensal
+    || 0;
+
+  // NEW: Payback
+  const paybackMeses = selectedSim?.payback_meses
+    || cliente.simulacoes?.payback_meses
+    || firstSim?.payback_meses
+    || 0;
+
   console.debug("[ApproveVendaDialog] data:", {
     selectedSimulacaoId,
     selectedSim,
@@ -176,10 +196,8 @@ export function ApproveVendaDialog({
     clienteSimulacoes: cliente.simulacoes,
     leadMediaConsumo: cliente.leads?.media_consumo,
     orcConsumo,
-    potencia, consumo, valorProposta,
+    potencia, consumo, valorProposta, geracaoMensal, economiaMensal, paybackMeses,
     documents,
-    leadArquivos: cliente.leads?.arquivos_urls,
-    orcArquivos: cliente.leads?.orcamentos?.map(o => o.arquivos_urls),
   });
 
   const valorComissao = () => {
@@ -228,10 +246,13 @@ export function ApproveVendaDialog({
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Dados da proposta
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <DataCard icon={Zap} label="Potência" value={potencia ? `${potencia} kWp` : "—"} />
                     <DataCard icon={Zap} label="Consumo médio" value={consumo ? formatKwh(consumo, 0) : "—"} />
-                    <DataCard icon={DollarSign} label="Valor proposta" value={formatBRL(valorProposta)} valueClass="text-success" />
+                    <DataCard icon={Sun} label="Geração prevista" value={geracaoMensal ? `${geracaoMensal.toFixed(0)} kWh/mês` : "—"} />
+                    <DataCard icon={TrendingDown} label="Economia mensal" value={economiaMensal ? formatBRL(economiaMensal) : "—"} valueClass="text-success" />
+                    <DataCard icon={Clock} label="Payback" value={paybackMeses ? `${Math.floor(paybackMeses / 12)}a ${paybackMeses % 12}m` : "—"} />
+                    <DataCard icon={DollarSign} label="Valor proposta" value={formatBRL(valorProposta)} valueClass="text-primary" />
                   </div>
                 </div>
 
