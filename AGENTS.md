@@ -553,39 +553,7 @@ const statusConfig = {
 
 ## §11. MODAIS E DRAWERS
 
-Para tamanhos de modal → **Ver §25** (fonte única de verdade).
-
-```tsx
-// Dialog padrão
-<Dialog>
-  <DialogContent className="max-w-2xl">
-    <DialogHeader>
-      <DialogTitle className="flex items-center gap-2 text-lg">
-        <Icon className="w-5 h-5 text-primary" />
-        Título do Modal
-      </DialogTitle>
-      <DialogDescription>Descrição breve</DialogDescription>
-    </DialogHeader>
-    <div className="space-y-4 py-2">
-      {/* conteúdo */}
-    </div>
-    <DialogFooter>
-      <Button variant="outline">Cancelar</Button>
-      <Button>Confirmar</Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
-
-// Sheet (drawer lateral — para detalhes)
-<Sheet>
-  <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-    <SheetHeader className="border-b border-border pb-4 mb-4">
-      <SheetTitle>Título</SheetTitle>
-    </SheetHeader>
-    {/* conteúdo */}
-  </SheetContent>
-</Sheet>
-```
+Para estrutura e tamanhos de modal → **Ver §25** (fonte única de verdade). Não duplicar padrões aqui.
 
 ---
 
