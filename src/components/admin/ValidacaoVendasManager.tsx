@@ -638,182 +638,30 @@ export function ValidacaoVendasManager() {
       </Dialog>
 
       {/* Approval Dialog */}
-      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-success" />
-              Aprovar Venda
-            </DialogTitle>
-            <DialogDescription>
-              Confirme os dados da comissão para {selectedCliente?.nome}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedCliente && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Cliente</span>
-                  <span className="font-medium">{selectedCliente.nome}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Lead</span>
-                  <span className="font-medium">{selectedCliente.leads?.lead_code || "-"}</span>
-                </div>
-                {(selectedCliente.leads?.consultores?.nome || selectedCliente.leads?.consultor) && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Consultor (lead)</span>
-                    <span className="font-medium">{selectedCliente.leads?.consultores?.nome || selectedCliente.leads?.consultor}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Vendedor selector - REQUIRED */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5" />
-                  Vendedor Responsável *
-                </Label>
-                <Select value={selectedVendedorId} onValueChange={handleVendedorChange}>
-                  <SelectTrigger className={!selectedVendedorId ? "border-destructive" : ""}>
-                    <SelectValue placeholder="Selecione o consultor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vendedores.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.nome}
-                        {v.percentual_comissao != null && (
-                          <span className="text-muted-foreground ml-1">({v.percentual_comissao}%)</span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!selectedVendedorId && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Selecione o vendedor para gerar a comissão
-                  </p>
-                )}
-                {selectedCliente.leads?.consultor_id && !vendedores.some(
-                  (v) => v.id === selectedCliente.leads!.consultor_id
-                ) && (
-                  <p className="text-xs text-warning flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    O consultor do lead não está mais ativo na tabela de consultores
-                  </p>
-                )}
-              </div>
-
-              {/* Simulação selector */}
-              {loadingVendedor ? (
-                <div className="flex items-center justify-center py-4">
-                  <Spinner size="sm" />
-                  <span className="ml-2 text-sm text-muted-foreground">Carregando propostas...</span>
-                </div>
-              ) : leadSimulacoes.length > 0 ? (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5" />
-                    Selecionar Proposta ({leadSimulacoes.length} disponíveis)
-                  </Label>
-                  <Select value={selectedSimulacaoId} onValueChange={handleSimulacaoChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma proposta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leadSimulacoes.map((sim) => (
-                        <SelectItem key={sim.id} value={sim.id}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">
-                              {sim.potencia_recomendada_kwp || 0} kWp
-                            </span>
-                            <span className="text-muted-foreground">—</span>
-                            <span>
-                              {sim.investimento_estimado
-                                ? formatCurrency(sim.investimento_estimado)
-                                : "Sem valor"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              ({format(new Date(sim.created_at), "dd/MM/yy", { locale: ptBR })})
-                            </span>
-                            {sim.id === selectedCliente.simulacao_aceita_id && (
-                              <Badge variant="secondary" className="text-[10px] h-4 px-1">Aceita</Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="manual">
-                        <span className="text-muted-foreground">✏️ Informar valor manualmente</span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-xs text-warning p-3 bg-warning/10 rounded-lg">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  <span>Nenhuma proposta encontrada para este lead — informe o valor manualmente</span>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="valor-venda">Valor da Venda (R$) *</Label>
-                <Input
-                  id="valor-venda"
-                  type="number"
-                  step="0.01"
-                  placeholder="Ex: 35000.00"
-                  value={valorVenda}
-                  onChange={(e) => setValorVenda(e.target.value)}
-                />
-                {!valorVenda && (
-                  <p className="text-xs text-destructive">Informe o valor para gerar a comissão</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="percentual">
-                  Percentual de Comissão (%)
-                  {loadingVendedor && (
-                    <Spinner size="sm" />
-                  )}
-                </Label>
-                <Input
-                  id="percentual"
-                  type="number"
-                  step="0.1"
-                  value={percentualComissao}
-                  onChange={(e) => setPercentualComissao(e.target.value)}
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Pré-preenchido do cadastro do vendedor. Altere se necessário.
-                </p>
-              </div>
-
-              <div className="p-4 bg-success/10 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-success" />
-                    <span className="font-medium text-sm">Valor da Comissão</span>
-                  </div>
-                  <span className="text-xl font-bold text-success">{formatCurrency(valorComissaoPreview())}</span>
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setApprovalDialogOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={handleApprove}
-              disabled={approving === selectedCliente?.id || !isApprovalValid}
-              className="bg-success hover:bg-success/90 text-success-foreground"
-            >
-              {approving === selectedCliente?.id && <Spinner size="sm" />}
-              Confirmar Aprovação
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ApproveVendaDialog
+        open={approvalDialogOpen}
+        onOpenChange={setApprovalDialogOpen}
+        cliente={selectedCliente}
+        vendedores={vendedores}
+        leadSimulacoes={leadSimulacoes}
+        loadingVendedor={loadingVendedor}
+        selectedVendedorId={selectedVendedorId}
+        onVendedorChange={handleVendedorChange}
+        selectedSimulacaoId={selectedSimulacaoId}
+        onSimulacaoChange={handleSimulacaoChange}
+        valorVenda={valorVenda}
+        onValorVendaChange={setValorVenda}
+        percentualComissao={percentualComissao}
+        onPercentualChange={setPercentualComissao}
+        onApprove={handleApprove}
+        approving={approving === selectedCliente?.id}
+        isValid={isApprovalValid}
+        documents={selectedCliente ? [
+          { label: "Identidade / RG / CNH", urls: (selectedCliente as any).identidade_urls || ((selectedCliente as any).identidade_url ? [(selectedCliente as any).identidade_url] : null) },
+          { label: "Comprovante de endereço", urls: (selectedCliente as any).comprovante_endereco_urls || ((selectedCliente as any).comprovante_endereco_url ? [(selectedCliente as any).comprovante_endereco_url] : null) },
+          { label: "Comprovante beneficiária", urls: (selectedCliente as any).comprovante_beneficiaria_urls || null },
+        ] : []}
+      />
 
       {/* Rejection Dialog */}
       <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
