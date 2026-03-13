@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
+import { useReopenLead } from "@/hooks/useReopenLead";
 
 interface LeadSimulacao {
   id: string;
