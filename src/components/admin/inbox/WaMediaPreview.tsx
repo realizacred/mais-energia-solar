@@ -49,9 +49,27 @@ export function WaMediaPreview({ mediaPreview, onClose }: WaMediaPreviewProps) {
                   </Button>
                 </>
               )}
-              <a href={mediaPreview?.url} download target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-white/10 transition-colors">
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(mediaPreview!.url);
+                    const blob = await res.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = blobUrl;
+                    a.download = mediaPreview!.caption || "download";
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                  } catch {
+                    window.open(mediaPreview!.url, "_blank");
+                  }
+                }}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
                 <Download className="h-5 w-5 text-white/80" />
-              </a>
+              </button>
               <a href={mediaPreview?.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-white/10 transition-colors">
                 <Maximize2 className="h-5 w-5 text-white/80" />
               </a>
