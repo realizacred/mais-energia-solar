@@ -290,19 +290,18 @@ Deno.serve(async (req) => {
     const backendFioBPercent = GD_FIO_B_BY_YEAR[anoAtual] ?? (anoAtual >= 2029 ? 0.90 : 0.60);
 
     // ── ENFORCEMENT: Validate required variables ──
+    // Template-only mode: não bloquear por variáveis técnicas/financeiras ausentes.
+    // Mantemos apenas lead_id como salvaguarda defensiva.
     const missingRequired: string[] = [];
     if (!body.lead_id) missingRequired.push("lead_id");
-    if (!body.potencia_kwp || body.potencia_kwp <= 0) missingRequired.push("sistema_solar.potencia_sistema");
-    const consumoCheck = body.ucs.reduce((s, uc) => s + (uc.tipo_dimensionamento === "MT" ? uc.consumo_mensal_p + uc.consumo_mensal_fp : uc.consumo_mensal), 0);
-    if (consumoCheck <= 0) missingRequired.push("entrada.consumo_mensal");
-    const custoKitCheck = body.itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-    if (custoKitCheck <= 0) missingRequired.push("financeiro.preco_total");
 
     if (missingRequired.length > 0) {
-      // Log bypass attempt (audit_logs blocks direct INSERTs — use structured log)
       console.warn("[proposal-generate][BLOCKED] missing_required_variables", {
-        tenant_id: tenantId, user_id: userId, lead_id: body.lead_id,
-        missing: missingRequired, precisao: backendPrecisao,
+        tenant_id: tenantId,
+        user_id: userId,
+        lead_id: body.lead_id,
+        missing: missingRequired,
+        precisao: backendPrecisao,
       });
 
       return new Response(JSON.stringify({

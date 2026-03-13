@@ -273,11 +273,8 @@ function resolveFromContext(
 }
 
 // ── Required keys (variáveis que DEVEM existir para gerar PDF) ──
-// NOTE: financeiro.preco_total REMOVIDO dos obrigatórios — PDF gera com "-" se não preenchido
-
-const REQUIRED_KEYS = new Set([
-  "cliente.nome",
-]);
+// Sprint atual: template-only permitido, portanto nenhuma variável bloqueia geração.
+const REQUIRED_KEYS = new Set<string>();
 
 // ── Main resolver ────────────────────────────────────────────
 

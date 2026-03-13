@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.25.3",
+    date: "2026-03-13",
+    title: "Correção: backend não bloqueia PDF template-only",
+    type: "bugfix",
+    description: "Removido bloqueio no proposal-generate que ainda exigia financeiro.preco_total, mantendo geração de PDF mesmo com variáveis ausentes.",
+    details: [
+      "Edge function proposal-generate deixou de bloquear por financeiro.preco_total, entrada.consumo_mensal e sistema_solar.potencia_sistema",
+      "Enforcement de variáveis no resolver frontend passou a modo template-only (sem chaves obrigatórias)",
+      "Testes de resolver atualizados para refletir geração com fallback '-' em dados ausentes",
+      "Diagnóstico confirmado via logs: bloqueio vinha do backend com missing_required_variables",
+    ],
+  },
+  {
     version: "2.25.2",
     date: "2026-03-13",
     title: "Correção: PDF bloqueado por 'Valor total da proposta' ausente",

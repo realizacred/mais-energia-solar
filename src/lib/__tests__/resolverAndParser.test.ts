@@ -54,11 +54,11 @@ describe("resolveProposalVariables", () => {
     expect(result.canGeneratePdf).toBe(true);
   });
 
-  it("detects missing required variables", () => {
+  it("não bloqueia PDF quando variáveis estão ausentes (template-only)", () => {
     const ctx: ProposalResolverContext = {};
     const result = resolveProposalVariables(ctx);
-    expect(result.missing_required).toContain("cliente.nome");
-    expect(result.canGeneratePdf).toBe(false);
+    expect(result.missing_required).toEqual([]);
+    expect(result.canGeneratePdf).toBe(true);
   });
 
   it("resolves tariff precision correctly", () => {
