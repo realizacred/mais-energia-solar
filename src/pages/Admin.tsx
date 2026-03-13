@@ -456,7 +456,7 @@ export default function Admin() {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider style={{ "--sidebar-width": "18rem" } as React.CSSProperties}>
       <TourProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AdminSidebar
