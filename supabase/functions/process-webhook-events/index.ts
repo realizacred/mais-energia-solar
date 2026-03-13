@@ -53,6 +53,26 @@ function getAltJids(remoteJid: string): string[] {
   return [...new Set(jids)];
 }
 
+const INVALID_PROFILE_PICTURE_VALUES = new Set(["", "none", "null", "undefined"]);
+
+function extractContactProfilePictureUrl(contact: any): string | null {
+  const candidate =
+    contact?.profilePictureUrl ??
+    contact?.imgUrl ??
+    contact?.profilePicUrl ??
+    contact?.pictureUrl ??
+    contact?.data?.profilePictureUrl ??
+    contact?.data?.imgUrl ??
+    contact?.data?.profilePicUrl ??
+    contact?.data?.pictureUrl ??
+    null;
+
+  if (typeof candidate !== "string") return null;
+  const normalized = candidate.trim();
+  if (INVALID_PROFILE_PICTURE_VALUES.has(normalized.toLowerCase())) return null;
+  return normalized;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
