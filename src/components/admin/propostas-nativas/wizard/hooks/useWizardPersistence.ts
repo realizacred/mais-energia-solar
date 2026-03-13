@@ -286,10 +286,8 @@ async function persistProposalAtomic(
       };
     }
 
-    // Always overwrite the existing version (unlock if needed)
-
-    // Normal update
-    console.log("[persist] atualizando versão existente", effectiveVersaoId);
+    // Always overwrite the existing version (unlock if locked)
+    console.log("[persist] atualizando versão existente (sobrescrevendo)", effectiveVersaoId);
 
     const updateData: Record<string, any> = {
       potencia_kwp: params.potenciaKwp,
@@ -299,10 +297,15 @@ async function persistProposalAtomic(
       grupo: grupoNormalized,
       snapshot: sanitized,
       updated_at: new Date().toISOString(),
+      // Unlock so it can be overwritten
+      snapshot_locked: setActive,
+      finalized_at: null,
     };
     if (setActive) {
       updateData.status = "generated";
       updateData.gerado_em = new Date().toISOString();
+    } else {
+      updateData.status = "draft";
     }
 
     const { error: vErr } = await supabase
