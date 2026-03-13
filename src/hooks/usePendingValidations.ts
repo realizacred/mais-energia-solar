@@ -65,7 +65,7 @@ export function usePendingValidations() {
         .from("lead_status")
         .select("id")
         .eq("nome", "Aguardando Validação")
-        .single();
+        .maybeSingle();
 
       if (!statusData) {
         setPendingItems([]);
