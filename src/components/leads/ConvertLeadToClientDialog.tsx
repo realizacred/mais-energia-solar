@@ -892,7 +892,7 @@ export function ConvertLeadToClientDialog({
                   name="bairro"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Bairro</FormLabel>
+                      <FormLabel>Bairro *</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
