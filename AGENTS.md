@@ -1356,6 +1356,9 @@ Quais regras valem onde:
 ### WhatsApp Inbox
 - §36 (flexbox scroll obrigatório)
 
+### Storage e Documentos
+- §37 (resolução de URLs obrigatória)
+
 ### Conversão Lead → Venda
 - §38 (fallback de dados técnicos)
 
