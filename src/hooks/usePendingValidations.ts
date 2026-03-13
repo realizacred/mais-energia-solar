@@ -110,9 +110,8 @@ export function usePendingValidations() {
           comprovante_endereco_url,
           comprovante_endereco_urls,
           comprovante_beneficiaria_urls,
-          leads!clientes_lead_id_fkey(consultor, consultor_id, lead_code, media_consumo, arquivos_urls, consultores:consultor_id(id, nome)),
-          simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp, consumo_kwh),
-          orcamentos:lead_id(arquivos_urls, media_consumo)
+          leads!clientes_lead_id_fkey(consultor, consultor_id, lead_code, media_consumo, arquivos_urls, consultores:consultor_id(id, nome), orcamentos(arquivos_urls, media_consumo)),
+          simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp, consumo_kwh)
         `)
         .in("lead_id", leadIds)
         .order("created_at", { ascending: false });
