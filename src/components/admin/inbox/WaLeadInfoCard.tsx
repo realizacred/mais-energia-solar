@@ -182,7 +182,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
           initialData={{
             nome: lead.nome,
             telefone: lead.telefone,
-            consultor_id: lead.consultor || null,
+            consultor_id: (lead as any).consultor_id || null,
             consultor_nome: (lead as any).consultores?.nome || null,
             cidade: lead.cidade || "",
             estado: lead.estado || "",
