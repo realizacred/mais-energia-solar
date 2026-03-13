@@ -618,10 +618,11 @@ export function ValidacaoVendasManager() {
         isValid={isApprovalValid}
         documents={selectedCliente ? [
           { label: "Arquivos do Lead", urls: selectedCliente.leads?.arquivos_urls || null },
+          { label: "Arquivos do Orçamento", urls: selectedCliente.leads?.orcamentos?.flatMap(o => o.arquivos_urls || []).filter(Boolean) as string[] || null },
           { label: "Identidade / RG / CNH", urls: selectedCliente.identidade_urls || (selectedCliente.identidade_url ? [selectedCliente.identidade_url] : null) },
           { label: "Comprovante de endereço", urls: selectedCliente.comprovante_endereco_urls || (selectedCliente.comprovante_endereco_url ? [selectedCliente.comprovante_endereco_url] : null) },
           { label: "Comprovante beneficiária", urls: selectedCliente.comprovante_beneficiaria_urls || null },
-        ] : []}
+        ].filter(doc => doc.label !== "Arquivos do Orçamento" || (doc.urls && doc.urls.length > 0)) : []}
       />
 
       {/* Rejection Dialog */}

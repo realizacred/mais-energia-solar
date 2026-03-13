@@ -145,17 +145,42 @@ export function ApproveVendaDialog({
 
   if (!cliente) return null;
 
+  // Fallback chain: selected sim → accepted sim (FK) → first loaded sim → client fields → lead fields
   const selectedSim = leadSimulacoes.find(s => s.id === selectedSimulacaoId);
-  const potencia = selectedSim?.potencia_recomendada_kwp || cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
-  const consumo = selectedSim?.consumo_kwh || cliente.simulacoes?.consumo_kwh || cliente.leads?.media_consumo || 0;
-  const valorProposta = selectedSim?.investimento_estimado || cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
+  const firstSim = leadSimulacoes.length > 0 ? leadSimulacoes[0] : null;
+  const orcConsumo = cliente.leads?.orcamentos?.[0]?.media_consumo;
 
-  const valorComissao = () => {
-    const base = parseFloat(valorVenda) || 0;
-    return (base * (parseFloat(percentualComissao) || 0)) / 100;
-  };
+  const potencia = selectedSim?.potencia_recomendada_kwp
+    || cliente.simulacoes?.potencia_recomendada_kwp
+    || firstSim?.potencia_recomendada_kwp
+    || cliente.potencia_kwp
+    || 0;
 
-  return (
+  const consumo = selectedSim?.consumo_kwh
+    || cliente.simulacoes?.consumo_kwh
+    || firstSim?.consumo_kwh
+    || cliente.leads?.media_consumo
+    || orcConsumo
+    || 0;
+
+  const valorProposta = selectedSim?.investimento_estimado
+    || cliente.simulacoes?.investimento_estimado
+    || firstSim?.investimento_estimado
+    || cliente.valor_projeto
+    || 0;
+
+  console.debug("[ApproveVendaDialog] data:", {
+    selectedSimulacaoId,
+    selectedSim,
+    firstSim,
+    clienteSimulacoes: cliente.simulacoes,
+    leadMediaConsumo: cliente.leads?.media_consumo,
+    orcConsumo,
+    potencia, consumo, valorProposta,
+    documents,
+    leadArquivos: cliente.leads?.arquivos_urls,
+    orcArquivos: cliente.leads?.orcamentos?.map(o => o.arquivos_urls),
+  });
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[90vw] max-w-[780px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
