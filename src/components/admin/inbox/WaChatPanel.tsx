@@ -832,7 +832,7 @@ export function WaChatPanel({
             conversation.assigned_to !== currentUserId
           }
           readOnlyReason={
-            conversation.assigned_to && conversation.assigned_to !== currentUserId
+            !isAdmin && conversation.assigned_to && conversation.assigned_to !== currentUserId
               ? `Conversa atribuída a ${assignedConsultor?.nome || "outro atendente"}`
               : undefined
           }
