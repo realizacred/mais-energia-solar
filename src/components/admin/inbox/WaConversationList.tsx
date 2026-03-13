@@ -424,7 +424,115 @@ export function WaConversationList({
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-card/50">
       {/* Search & Filters */}
       <div className="shrink-0 p-3 border-b border-border/30 space-y-2 bg-card overflow-visible">
-...
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar conversa..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-9 h-9 text-sm bg-muted/30 border-border/30 focus:bg-background"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+            <SelectTrigger className="h-7 text-[11px] flex-1 border-border/30">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="open">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                  Abertas
+                </span>
+              </SelectItem>
+              <SelectItem value="pending">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-warning" />
+                  Pendentes
+                </span>
+              </SelectItem>
+              <SelectItem value="resolved">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                  Resolvidas
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          {!hideAssignedFilter && (
+            <Select value={filterAssigned} onValueChange={onFilterAssignedChange}>
+              <SelectTrigger className="h-7 text-[11px] flex-1 border-border/30">
+                <SelectValue placeholder="Atribuído" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="unassigned">Sem atribuição</SelectItem>
+                {vendedores.map((v) => (
+                  <SelectItem key={v.id} value={v.user_id || v.id}>
+                    {v.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        {instances.length > 1 && (
+          <Select value={filterInstance} onValueChange={onFilterInstanceChange}>
+            <SelectTrigger className="h-7 text-[11px] border-border/30">
+              <Smartphone className="h-3 w-3 mr-1.5" />
+              <SelectValue placeholder="Instância" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as instâncias</SelectItem>
+              {instances.map((inst) => (
+                <SelectItem key={inst.id} value={inst.id}>
+                  {inst.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {tags.length > 0 && (
+          <Select value={filterTag} onValueChange={onFilterTagChange}>
+            <SelectTrigger className="h-7 text-[11px] border-border/30">
+              <Tag className="h-3 w-3 mr-1.5" />
+              <SelectValue placeholder="Tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as tags</SelectItem>
+              {tags.map((tag) => (
+                <SelectItem key={tag.id} value={tag.id}>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color }} />
+                    {tag.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {/* Group & Hidden toggles */}
+        <div className="flex flex-wrap items-center gap-2">
+          {onShowGroupsChange && (
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="h-4 w-7 [&>span]:!h-3 [&>span]:!w-3 [&>span[data-state=checked]]:!translate-x-3 [&>span[data-state=unchecked]]:!translate-x-0.5" />
+              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                <Users className="h-3 w-3" /> Grupos
+              </span>
+            </label>
+          )}
+          {onShowHiddenChange && (
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Switch checked={showHidden} onCheckedChange={onShowHiddenChange} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3" />
+              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                <Eye className="h-3 w-3" /> Ocultas
+              </span>
+            </label>
+          )}
+        </div>
+      </div>
+
       {/* Conversations */}
       <div className="flex-1 min-h-0 overflow-hidden">
         <div className="h-full min-h-0 overflow-y-auto">
