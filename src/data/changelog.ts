@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.25.2",
+    date: "2026-03-13",
+    title: "Correção: PDF bloqueado por 'Valor total da proposta' ausente",
+    type: "bugfix",
+    description: "Adicionadas salvaguardas e diagnóstico no resolver de variáveis para prevenir bloqueio indevido de geração de PDF quando precoTotal é 0 ou NaN.",
+    details: [
+      "Resolver agora valida isNaN além de null check em financeiro.preco_total",
+      "Adicionados fallbacks para calcular preço total de fontes alternativas",
+      "Safeguard ?? 0 no resolverContext para precoTotal",
+      "Console.debug no handleGenerate e resolver para diagnóstico de bloqueios futuros",
+    ],
+  },
+  {
     version: "2.25.1",
     date: "2026-03-13",
     title: "Correção: status 'Negociação' não encontrado na Validação de Vendas",

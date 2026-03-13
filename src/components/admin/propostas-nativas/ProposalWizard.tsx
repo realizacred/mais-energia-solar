@@ -746,7 +746,7 @@ export function ProposalWizard() {
     potenciaKwp,
     geracaoMensal: potenciaKwp > 0 && locIrradiacao > 0
       ? Math.round(potenciaKwp * locIrradiacao * 30 * 0.80) : undefined,
-    precoTotal: precoFinal,
+    precoTotal: precoFinal ?? 0,
     consultorNome: undefined, // filled by backend
   }), [cliente, selectedLead, ucs, premissas, potenciaKwp, locIrradiacao, precoFinal, locCidade, locEstado]);
 
@@ -1216,8 +1216,15 @@ export function ProposalWizard() {
     }
 
     // ── Enforcement gate: block if missing variables or estimativa not accepted
+    console.debug("[ProposalWizard] Enforcement check:", {
+      precoFinal,
+      resolverPrecoTotal: resolverContext.precoTotal,
+      potenciaKwp,
+      resolverResult: enforcement.resolverResult,
+    });
     const gate = enforcement.checkGate();
     if (!gate.allowed) {
+      console.warn("[ProposalWizard] PDF blocked:", gate);
       setBlockReason(gate.reason!);
       setBlockMissing(gate.missingVariables || []);
       setShowBlockModal(true);
