@@ -188,7 +188,7 @@ export function ValidacaoVendasManager() {
           } else if (sims.length > 0) {
             setSelectedSimulacaoId(sims[0].id);
             if (sims[0].investimento_estimado && sims[0].investimento_estimado > 0) {
-              setValorVenda(sims[0].investimento_estimado.toString());
+              setValorVenda(sims[0].investimento_estimado);
             }
           }
         };
