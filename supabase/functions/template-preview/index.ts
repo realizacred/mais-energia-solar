@@ -21,9 +21,20 @@ async function processDocxTemplate(
   const zip = await JSZip.loadAsync(templateBytes);
   const missingVars: string[] = [];
 
-  const xmlFiles = Object.keys(zip.files).filter((fileName) =>
-    /^word\/(document|header\d+|footer\d+|footnotes|endnotes|comments)\.xml$/i.test(fileName),
-  );
+  // Process ALL word/*.xml files (headers, footers, document, etc.)
+  // Exclude non-content files like styles, settings, fonts, themes
+  const excludePatterns = /\/(theme|media|_rels|fontTable|settings|webSettings|styles|numbering|glossary)\b/i;
+  const xmlFiles: string[] = [];
+  zip.forEach((relativePath) => {
+    if (
+      relativePath.startsWith("word/") &&
+      relativePath.endsWith(".xml") &&
+      !excludePatterns.test(relativePath)
+    ) {
+      xmlFiles.push(relativePath);
+    }
+  });
+  console.log("[template-preview] XML files to process:", xmlFiles);
 
   for (const fileName of xmlFiles) {
     const file = zip.file(fileName);

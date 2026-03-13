@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.32.1",
+    date: "2026-03-13",
+    title: "DOCX: processamento de headers, footers e todos os XMLs do template",
+    type: "bugfix",
+    description: "Template-preview agora processa dinamicamente todos os arquivos word/*.xml do ZIP, incluindo headers e footers onde placeholders sobre imagens de fundo ficavam sem substituição.",
+    details: [
+      "Substituído filtro regex estático por varredura dinâmica de word/*.xml",
+      "Headers com imagem de fundo (behindDoc) agora têm placeholders substituídos",
+      "Exclusão inteligente de arquivos não-conteúdo (styles, settings, fonts, themes)",
+    ],
+  },
+  {
     version: "2.32.0",
     date: "2026-03-13",
     title: "DOCX: normalização de placeholders em text boxes sobre imagens",
