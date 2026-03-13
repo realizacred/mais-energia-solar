@@ -4,6 +4,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { formatCEP, emailFieldSchema } from "@/lib/validations";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
