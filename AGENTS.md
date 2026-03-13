@@ -865,6 +865,32 @@ REGRA: SEMPRE usar `w-[90vw]` para aproveitar a tela em notebooks e monitores.
 - NUNCA `bg-white` em nenhuma parte do modal
 - NUNCA criar modal sem ícone no header
 
+### Layout em 2 colunas (modais com 4+ seções)
+Quando um modal tiver 4 ou mais seções de conteúdo (ex: dados do cliente,
+dados da proposta, documentos, comissão), usar layout em 2 colunas
+para aproveitar a tela e evitar scroll excessivo:
+
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+  {/* Coluna esquerda — dados principais */}
+  <div className="p-5 space-y-5">
+    {/* seções de dados */}
+  </div>
+  {/* Coluna direita — ações e detalhes */}
+  <div className="p-5 space-y-5">
+    {/* seções de ações */}
+  </div>
+</div>
+```
+
+Regras:
+- Em mobile (< md): voltar para coluna única automaticamente
+- Largura do modal com 2 colunas: `w-[90vw] max-w-[780px]`
+- Divisor entre colunas: `divide-x divide-border` (nunca cor hardcoded)
+- Coluna esquerda: dados do cliente, dados da proposta, informações
+- Coluna direita: documentos, ações, formulários, comissão
+- NUNCA usar 2 colunas em modais simples com menos de 4 seções
+
 ---
 
 ## §26. PADRÃO DE HEADER DE PÁGINA
