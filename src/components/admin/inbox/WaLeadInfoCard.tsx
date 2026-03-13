@@ -23,6 +23,11 @@ interface WaLeadInfoCardProps {
 
 export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardProps) {
   const [editOpen, setEditOpen] = useState(false);
+
+  const handleOpenEdit = () => {
+    onOpenChange(false); // close info card first to avoid nested dialog issues on mobile
+    setTimeout(() => setEditOpen(true), 150);
+  };
   const { data: lead, isLoading } = useQuery({
     queryKey: ["wa-lead-info", leadId],
     queryFn: async () => {
@@ -39,6 +44,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
   });
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
@@ -152,7 +158,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
                   size="sm"
                   variant="default"
                   className="h-7 text-xs gap-1"
-                  onClick={() => setEditOpen(true)}
+                  onClick={handleOpenEdit}
                 >
                   <Pencil className="h-3 w-3" />
                   Editar Lead
@@ -172,32 +178,33 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
         )}
         </div>
       </DialogContent>
-
-      {/* Lead Edit Dialog */}
-      {lead && editOpen && (
-        <LeadEditDialog
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          leadId={lead.id}
-          initialData={{
-            nome: lead.nome,
-            telefone: lead.telefone,
-            consultor_id: (lead as any).consultor_id || null,
-            consultor_nome: (lead as any).consultores?.nome || null,
-            cidade: lead.cidade || "",
-            estado: lead.estado || "",
-            bairro: lead.bairro || null,
-            rua: lead.rua || null,
-            numero: lead.numero || null,
-            area: lead.area || "",
-            tipo_telhado: lead.tipo_telhado || "",
-            rede_atendimento: lead.rede_atendimento || "",
-            media_consumo: lead.media_consumo || undefined,
-            consumo_previsto: lead.consumo_previsto || undefined,
-            observacoes: lead.observacoes || null,
-          }}
-        />
-      )}
     </Dialog>
+
+    {/* Lead Edit Dialog — rendered outside parent Dialog to avoid nested dialog issues on mobile */}
+    {lead && editOpen && (
+      <LeadEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        leadId={lead.id}
+        initialData={{
+          nome: lead.nome,
+          telefone: lead.telefone,
+          consultor_id: (lead as any).consultor_id || null,
+          consultor_nome: (lead as any).consultores?.nome || null,
+          cidade: lead.cidade || "",
+          estado: lead.estado || "",
+          bairro: lead.bairro || null,
+          rua: lead.rua || null,
+          numero: lead.numero || null,
+          area: lead.area || "",
+          tipo_telhado: lead.tipo_telhado || "",
+          rede_atendimento: lead.rede_atendimento || "",
+          media_consumo: lead.media_consumo || undefined,
+          consumo_previsto: lead.consumo_previsto || undefined,
+          observacoes: lead.observacoes || null,
+        }}
+      />
+    )}
+    </>
   );
 }
