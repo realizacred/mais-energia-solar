@@ -676,7 +676,7 @@ Nunca formatar valores manualmente. Usar utilitários em `src/lib/formatters`:
 ```
 formatBRL        formatKwh
 formatPercent    formatDateBR
-formatBRLCompact
+formatBRLCompact formatPhoneBR
 ```
 
 ---
