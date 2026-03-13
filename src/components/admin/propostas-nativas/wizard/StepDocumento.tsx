@@ -15,29 +15,12 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { sendProposal } from "@/services/proposalApi";
+import { useProposalTemplates, useEmailTemplates } from "@/hooks/useProposalTemplates";
 import { formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
 
 // ─── Types ────────────────────────────────────────────────
-
-interface PropostaTemplate {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  grupo: string;
-  categoria: string;
-  tipo: string;
-  thumbnail_url: string | null;
-}
-
-interface EmailTemplate {
-  id: string;
-  nome: string;
-  assunto: string;
-  corpo_html: string;
-  ativo: boolean;
-}
 
 interface StepDocumentoProps {
   clienteNome: string;
@@ -73,8 +56,10 @@ export function StepDocumento({
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
 }: StepDocumentoProps) {
-  const [templates, setTemplates] = useState<PropostaTemplate[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
+  const { data: templates = [], isLoading: loadingTemplates } = useProposalTemplates();
+  const { data: emailTemplatesData = [] } = useEmailTemplates();
+
   const [activeTab, setActiveTab] = useState("template");
 
   // WhatsApp state
@@ -82,7 +67,6 @@ export function StepDocumento({
   const [waMensagem, setWaMensagem] = useState("");
 
   // Email state
-  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [selectedEmailTemplate, setSelectedEmailTemplate] = useState("");
   const [emailDestinatario, setEmailDestinatario] = useState(clienteEmail || "");
   const [emailCc, setEmailCc] = useState("");
@@ -105,42 +89,22 @@ export function StepDocumento({
     return d.toISOString().split("T")[0];
   });
 
-  // ─── Load templates
+  // Auto-select first template
   useEffect(() => {
-    setLoadingTemplates(true);
-    supabase
-      .from("proposta_templates")
-      .select("id, nome, descricao, grupo, categoria, tipo, thumbnail_url")
-      .eq("ativo", true)
-      .order("ordem", { ascending: true })
-      .then(({ data }) => {
-        const tpls = (data || []) as PropostaTemplate[];
-        setTemplates(tpls);
-        setLoadingTemplates(false);
-        // Auto-select first template if none selected
-        if (!templateSelecionado && tpls.length > 0) {
-          onTemplateSelecionado(tpls[0].id);
-        }
-      });
-  }, []);
+    if (!templateSelecionado && templates.length > 0) {
+      onTemplateSelecionado(templates[0].id);
+    }
+  }, [templates, templateSelecionado, onTemplateSelecionado]);
 
-  // ─── Load email templates
+  // Auto-select first email template
   useEffect(() => {
-    supabase
-      .from("proposta_email_templates" as any)
-      .select("id, nome, assunto, corpo_html, ativo")
-      .eq("ativo", true)
-      .order("ordem", { ascending: true })
-      .then(({ data }) => {
-        const tpls = (data as unknown as EmailTemplate[]) || [];
-        setEmailTemplates(tpls);
-        if (tpls.length > 0) {
-          setSelectedEmailTemplate(tpls[0].id);
-          setEmailAssunto(tpls[0].assunto || "");
-          setEmailCorpo(tpls[0].corpo_html || "");
-        }
-      });
-  }, []);
+    if (emailTemplatesData.length > 0 && !selectedEmailTemplate) {
+      const first = emailTemplatesData[0];
+      setSelectedEmailTemplate(first.id);
+      setEmailAssunto(first.assunto || "");
+      setEmailCorpo(first.corpo_html || "");
+    }
+  }, [emailTemplatesData, selectedEmailTemplate]);
 
   // Update WA message when result is available
   useEffect(() => {
@@ -168,7 +132,7 @@ export function StepDocumento({
   // ─── Handlers
   const handleEmailTemplateChange = (id: string) => {
     setSelectedEmailTemplate(id);
-    const tpl = emailTemplates.find(t => t.id === id);
+    const tpl = emailTemplatesData.find(t => t.id === id);
     if (tpl) {
       setEmailAssunto(tpl.assunto || "");
       setEmailCorpo(tpl.corpo_html || "");
@@ -193,6 +157,7 @@ export function StepDocumento({
   const [sendingWa, setSendingWa] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
+  // ─── Send via proposalApi (§33 — centralizar chamadas de edge function) ───
   const handleSendWhatsapp = async () => {
     if (!result?.proposta_id || !result?.versao_id) {
       toast({ title: "Gere a proposta primeiro", variant: "destructive" });
@@ -204,17 +169,17 @@ export function StepDocumento({
     }
     setSendingWa(true);
     try {
-      const { data, error } = await supabase.functions.invoke("proposal-send", {
-        body: {
-          proposta_id: result.proposta_id,
-          versao_id: result.versao_id,
-          canal: "whatsapp",
-          lead_id: undefined,
-        },
+      const data = await sendProposal({
+        proposta_id: result.proposta_id,
+        versao_id: result.versao_id,
+        canal: "whatsapp",
       });
-      if (error) throw new Error("Erro ao enviar via WhatsApp");
-      if (!data?.success) throw new Error(data?.error || "Erro desconhecido");
-      toast({ title: "Proposta enviada via WhatsApp!", description: data.whatsapp_sent ? "Mensagem entregue pela API integrada." : "Link gerado com sucesso." });
+      toast({
+        title: "Proposta enviada via WhatsApp!",
+        description: data.whatsapp_sent
+          ? "Mensagem entregue pela API integrada."
+          : "Link gerado com sucesso.",
+      });
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
     } finally {
@@ -233,16 +198,11 @@ export function StepDocumento({
     }
     setSendingEmail(true);
     try {
-      const { data, error } = await supabase.functions.invoke("proposal-send", {
-        body: {
-          proposta_id: result.proposta_id,
-          versao_id: result.versao_id,
-          canal: "link",
-          lead_id: undefined,
-        },
+      const data = await sendProposal({
+        proposta_id: result.proposta_id,
+        versao_id: result.versao_id,
+        canal: "link",
       });
-      if (error) throw new Error("Erro ao enviar por e-mail");
-      if (!data?.success) throw new Error(data?.error || "Erro desconhecido");
       toast({ title: "Link da proposta gerado!", description: `URL: ${data.public_url}` });
     } catch (e: any) {
       toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
@@ -313,33 +273,37 @@ export function StepDocumento({
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Selecione o template</Label>
-              <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Selecione o template" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
-                    {webTemplates.length > 0 ? (
-                      webTemplates.map(t => (
-                        <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="_no_web" disabled className="text-xs text-muted-foreground">Nenhum template</SelectItem>
-                    )}
-                  </SelectGroup>
-                  <SelectGroup>
-                    <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
-                    {docTemplates.length > 0 ? (
-                      docTemplates.map(t => (
-                        <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="_no_doc" disabled className="text-xs text-muted-foreground">Nenhum template</SelectItem>
-                    )}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              {loadingTemplates ? (
+                <Skeleton className="h-9 w-full" />
+              ) : (
+                <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Selecione o template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
+                      {webTemplates.length > 0 ? (
+                        webTemplates.map(t => (
+                          <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="_no_web" disabled className="text-xs text-muted-foreground">Nenhum template</SelectItem>
+                      )}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
+                      {docTemplates.length > 0 ? (
+                        docTemplates.map(t => (
+                          <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="_no_doc" disabled className="text-xs text-muted-foreground">Nenhum template</SelectItem>
+                      )}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <Button onClick={onGenerate} disabled={!templateSelecionado || generating} className="w-full gap-2">
@@ -361,10 +325,10 @@ export function StepDocumento({
     }
 
     // After generation
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
-          {/* Left: Sidebar with actions */}
-          <div className="space-y-4">
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
+        {/* Left: Sidebar with actions */}
+        <div className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Template</Label>
             <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
@@ -388,18 +352,18 @@ export function StepDocumento({
             </Select>
           </div>
 
-          <button className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+          <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto">
             <Upload className="h-3.5 w-3.5" />
             Fazer upload de arquivo doc
-          </button>
+          </Button>
 
           <Separator />
 
           {/* Action buttons */}
           <Button
-            variant="default"
+            variant="success"
             size="sm"
-            className="w-full gap-2 bg-success hover:bg-success/90 text-white"
+            className="w-full gap-2"
             onClick={() => setActiveTab("whatsapp")}
           >
             <MessageCircle className="h-4 w-4" />
@@ -407,9 +371,9 @@ export function StepDocumento({
           </Button>
 
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
-            className="w-full gap-2 bg-info hover:bg-info/90 text-white"
+            className="w-full gap-2 border-info text-info hover:bg-info/10"
             onClick={() => setActiveTab("email")}
           >
             <Mail className="h-4 w-4" />
@@ -417,32 +381,36 @@ export function StepDocumento({
           </Button>
 
           <div className="space-y-2">
-            <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto">
               <Download className="h-3.5 w-3.5" />
               Download de PDF
-            </button>
-            <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+            </Button>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto">
               <FileDown className="h-3.5 w-3.5" />
               Download de Doc
-            </button>
-            <button
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
               onClick={() => handleCopyLink(true)}
             >
               {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
               Copiar link com rastreio
-            </button>
-            <button
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
               onClick={() => handleCopyLink(false)}
             >
               {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
               Copiar link sem rastreio
-            </button>
-            <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+            </Button>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
               Validade da proposta: {validade ? new Date(validade + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
-            </button>
+            </div>
           </div>
         </div>
 
@@ -519,13 +487,15 @@ export function StepDocumento({
     <div className="space-y-4">
       {/* Top bar */}
       <div className="flex items-center justify-between">
-        <button
-          className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto"
           onClick={() => setEditHtml(!editHtml)}
         >
           <Code className="h-3.5 w-3.5" />
           {editHtml ? "Editar Visual" : "Editar HTML"}
-        </button>
+        </Button>
 
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
@@ -552,7 +522,7 @@ export function StepDocumento({
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                {emailTemplates.map(t => (
+                {emailTemplatesData.map(t => (
                   <SelectItem key={t.id} value={t.id} className="text-xs">{t.nome}</SelectItem>
                 ))}
               </SelectContent>
@@ -720,16 +690,18 @@ export function StepDocumento({
 
 function ToolbarButton({ icon, cmd, value }: { icon: React.ReactNode; cmd: string; value?: string }) {
   return (
-    <button
+    <Button
       type="button"
-      className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+      variant="ghost"
+      size="icon-sm"
+      className="h-7 w-7 text-muted-foreground hover:text-foreground"
       onMouseDown={e => {
         e.preventDefault();
         document.execCommand(cmd, false, value || undefined);
       }}
     >
       {icon}
-    </button>
+    </Button>
   );
 }
 
