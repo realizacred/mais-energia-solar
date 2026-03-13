@@ -378,41 +378,16 @@ export function ProposalDetail() {
   };
 
   const isFinalized = !!versao?.finalized_at || !!versao?.snapshot_locked;
-  const [cloning, setCloning] = useState(false);
 
   const navigateToEdit = useCallback(async () => {
-    // If version is finalized/locked, clone it first
-    if (isFinalized) {
-      setCloning(true);
-      try {
-        const { data, error } = await supabase.rpc(
-          "clone_proposta_versao" as any,
-          { p_from_versao_id: versaoId }
-        );
-        if (error) throw error;
-        const result = data as any;
-        toast({ title: "✅ Nova versão criada", description: "A versão finalizada foi clonada para edição." });
-        const params = new URLSearchParams();
-        if (proposta?.deal_id) params.set("deal_id", proposta.deal_id);
-        if (proposta?.cliente_id) params.set("customer_id", proposta.cliente_id);
-        params.set("proposta_id", result.proposta_id);
-        params.set("versao_id", result.new_versao_id);
-        navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-      } catch (e: any) {
-        toast({ title: "Erro ao clonar versão", description: e.message, variant: "destructive" });
-      } finally {
-        setCloning(false);
-      }
-      return;
-    }
-
+    // Always navigate to edit the same version (overwrite mode)
     const params = new URLSearchParams();
     if (proposta?.deal_id) params.set("deal_id", proposta.deal_id);
     if (proposta?.cliente_id) params.set("customer_id", proposta.cliente_id);
     if (proposta?.id) params.set("proposta_id", proposta.id);
     if (versaoId) params.set("versao_id", versaoId);
     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-  }, [isFinalized, versaoId, proposta, navigate]);
+  }, [versaoId, proposta, navigate]);
 
   if (loading) {
     return (
