@@ -710,6 +710,7 @@ export function ConvertLeadToClientDialog({
         identidadeFiles,
         comprovanteFiles,
         beneficiariaFiles,
+        assinaturaFiles,
         savedAt: new Date().toISOString(),
         synced: false,
       };
