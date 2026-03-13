@@ -493,7 +493,6 @@ export function ValidacaoVendasManager() {
                       <TableHead className="font-semibold text-foreground">Cliente / Lead</TableHead>
                       <TableHead className="font-semibold text-foreground hidden lg:table-cell">Vendedor</TableHead>
                       <TableHead className="font-semibold text-foreground hidden sm:table-cell">Localização</TableHead>
-                      <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Consumo</TableHead>
                       <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Potência</TableHead>
                       <TableHead className="font-semibold text-foreground text-right hidden sm:table-cell">Geração</TableHead>
                       <TableHead className="font-semibold text-foreground text-right">Valor Venda</TableHead>
