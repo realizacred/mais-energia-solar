@@ -647,7 +647,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       >
         <div className="flex h-full min-w-0 w-full max-w-full overflow-hidden">
           {/* Sidebar - Conversations (Desktop) */}
-          <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col`}>
+          <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col min-h-0`}>
             <WaConversationList
               conversations={filteredConvs}
               loading={convsLoading}
