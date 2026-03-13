@@ -270,7 +270,7 @@ export async function uploadDocumentFiles(
   files: DocumentFile[],
   folder: string,
   supabaseClient: any,
-  bucket: string = "documentos-cliente"
+  bucket: string = "documentos-clientes"
 ): Promise<string[]> {
   const uploadedUrls: string[] = [];
   
