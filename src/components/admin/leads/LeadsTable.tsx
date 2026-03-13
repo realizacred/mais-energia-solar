@@ -64,9 +64,9 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
             return (
             <TableRow
               key={lead.id}
-              className={`${lead.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
+              className={`align-middle ${lead.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
             >
-              <TableCell>
+              <TableCell className="align-middle">
                 <Checkbox
                   checked={lead.visto_admin}
                   onCheckedChange={() => onToggleVisto(lead)}
