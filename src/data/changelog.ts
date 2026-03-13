@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.35.0",
+    date: "2026-03-13",
+    title: "Foto da assinatura no fechamento de venda",
+    type: "feature",
+    description: "Adicionado campo para anexar foto da assinatura do cliente no modal de conversão de lead em venda.",
+    details: [
+      "Novo campo 'Foto da Assinatura' na seção de documentos do modal de conversão",
+      "Upload salvo no bucket documentos-clientes com prefixo tenant",
+      "Coluna assinatura_url adicionada à tabela clientes",
+      "Suporte offline incluído na estrutura de conversão",
+    ],
+  },
+  {
     version: "2.34.0",
     date: "2026-03-13",
     title: "DOCX: reescrita completa da normalização de placeholders",
