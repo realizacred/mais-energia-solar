@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.28.3",
+    date: "2026-03-13",
+    title: "Correção: variáveis não preenchidas no DOCX e arquivo inflado",
+    type: "bugfix",
+    description: "A validação XML (DOMParser) rejeitava o document.xml após substituição de variáveis, mantendo o conteúdo original sem dados. Corrigido para salvar sempre e adicionada compressão DEFLATE ao ZIP.",
+    details: [
+      "isValidXmlDocument agora emite warning em vez de bloquear a gravação do XML modificado",
+      "DOMParser do Deno não suporta namespaces OOXML completos — validação era falso-negativo",
+      "Adicionada compressão DEFLATE level 6 ao generateAsync do JSZip para reduzir tamanho do arquivo",
+      "Variáveis como cliente_nome, cliente_cidade agora são corretamente substituídas no DOCX",
+    ],
+  },
+  {
     version: "2.28.2",
     date: "2026-03-13",
     title: "Hardening do DOCX: fim de corrupção por placeholders inválidos",
