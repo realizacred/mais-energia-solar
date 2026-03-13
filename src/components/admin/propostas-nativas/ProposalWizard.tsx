@@ -1237,6 +1237,7 @@ export function ProposalWizard() {
 
     setGenerating(true);
     setHtmlPreview(null);
+    setDocxBlob(null);
     setResult(null);
 
     try {
