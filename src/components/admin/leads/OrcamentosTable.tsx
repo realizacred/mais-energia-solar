@@ -172,7 +172,7 @@ export function OrcamentosTable({
                     {formatPhoneBR(orc.telefone)}
                   </div>
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">
+                <TableCell className="hidden lg:table-cell align-middle">
                   {(orc.vendedor_nome || orc.vendedor) ? (
                     <Badge
                       variant="outline"
