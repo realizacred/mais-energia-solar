@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.23.0",
+    date: "2026-03-13",
+    title: "Modal Aprovar Venda redesenhado com §25",
+    type: "improvement",
+    description: "Modal de aprovação de vendas reestruturado com seções claras, preview de documentos e formatadores canônicos.",
+    details: [
+      "Header com ícone bg-success/10 + título + subtítulo descritivo",
+      "Seção Dados do Cliente com cards bg-muted/50 e formatPhoneBR",
+      "Seção Dados da Proposta com formatBRL e badge de dado indisponível",
+      "Seção Documentos com status Anexado/Pendente e preview em Dialog secundário",
+      "Footer bg-muted/30 com botões alinhados à direita",
+      "Componente extraído para ApproveVendaDialog.tsx",
+    ],
+  },
+  {
     version: "2.22.17",
     date: "2026-03-13",
     title: "Sidebar: badge visível e descrições em tooltip",
