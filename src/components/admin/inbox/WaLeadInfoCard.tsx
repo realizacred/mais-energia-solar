@@ -147,20 +147,57 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
               <span className="text-[10px] text-muted-foreground">
                 Criado em {format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR })}
               </span>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1"
-                onClick={() => window.open(`/admin?tab=leads`, '_blank')}
-              >
-                <ExternalLink className="h-3 w-3" />
-                Abrir no Admin
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Pencil className="h-3 w-3" />
+                  Editar Lead
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => window.open(`/admin?tab=leads`, '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Abrir no Admin
+                </Button>
+              </div>
             </div>
           </div>
         )}
         </div>
       </DialogContent>
+
+      {/* Lead Edit Dialog */}
+      {lead && editOpen && (
+        <LeadEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          leadId={lead.id}
+          initialData={{
+            nome: lead.nome,
+            telefone: lead.telefone,
+            consultor_id: lead.consultor || null,
+            consultor_nome: (lead as any).consultores?.nome || null,
+            cidade: lead.cidade || "",
+            estado: lead.estado || "",
+            bairro: lead.bairro || null,
+            rua: lead.rua || null,
+            numero: lead.numero || null,
+            area: lead.area || "",
+            tipo_telhado: lead.tipo_telhado || "",
+            rede_atendimento: lead.rede_atendimento || "",
+            media_consumo: lead.media_consumo || undefined,
+            consumo_previsto: lead.consumo_previsto || undefined,
+            observacoes: lead.observacoes || null,
+          }}
+        />
+      )}
     </Dialog>
   );
 }
