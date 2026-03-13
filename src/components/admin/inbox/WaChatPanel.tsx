@@ -378,8 +378,8 @@ export function WaChatPanel({
   );
 
   return (
-    <div className="flex-1 flex min-w-0 w-full max-w-full overflow-x-hidden">
-      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full">
+    <div className="flex-1 flex min-w-0 min-h-0 w-full max-w-full overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 w-full max-w-full">
         {/* Chat Header */}
         <div className="border-b border-border/30 bg-card shadow-xs">
           {/* Row 1: Avatar + Name + Action icons */}
@@ -701,7 +701,7 @@ export function WaChatPanel({
 
         {/* Messages with virtualization */}
         <div
-          className="flex-1 relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10 min-w-0 overflow-x-hidden"
+          className="flex-1 min-h-0 relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10 min-w-0 overflow-x-hidden"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
@@ -901,7 +901,7 @@ export function WaChatPanel({
       )}
       {isMobileDevice && (
         <Sheet open={showAISidebar} onOpenChange={setShowAISidebar}>
-          <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
+          <SheetContent side="right" className="w-[85vw] max-w-sm p-0 flex flex-col h-full overflow-hidden">
             <SheetTitle className="sr-only">Assistente IA</SheetTitle>
             {showAISidebar && (
               <WaAISidebar
@@ -926,7 +926,7 @@ export function WaChatPanel({
       )}
       {isMobileDevice && (
         <Sheet open={showCRMSidebar} onOpenChange={setShowCRMSidebar}>
-            <SheetContent side="right" className="w-[85vw] max-w-sm p-0 [&>button.absolute]:hidden">
+            <SheetContent side="right" className="w-[85vw] max-w-sm p-0 flex flex-col h-full overflow-hidden [&>button.absolute]:hidden">
             <SheetTitle className="sr-only">Dados Comerciais</SheetTitle>
             {showCRMSidebar && (
               <WaCRMSidebar
