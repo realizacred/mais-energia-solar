@@ -21,11 +21,14 @@ export interface PendingValidation {
     consultor: string | null;
     consultor_id: string | null;
     lead_code: string | null;
+    media_consumo: number | null;
+    arquivos_urls: string[] | null;
     consultores?: { id: string; nome: string } | null;
   } | null;
   simulacoes?: {
     investimento_estimado: number | null;
     potencia_recomendada_kwp: number | null;
+    consumo_kwh: number | null;
   } | null;
 }
 
