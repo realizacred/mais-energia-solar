@@ -181,6 +181,13 @@ export function ApproveVendaDialog({
     leadArquivos: cliente.leads?.arquivos_urls,
     orcArquivos: cliente.leads?.orcamentos?.map(o => o.arquivos_urls),
   });
+
+  const valorComissao = () => {
+    const base = parseFloat(valorVenda) || 0;
+    return (base * (parseFloat(percentualComissao) || 0)) / 100;
+  };
+
+  return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[90vw] max-w-[780px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
