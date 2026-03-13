@@ -143,6 +143,7 @@ export function ProposalWizard() {
 
   // ─── Custom fields availability (extracted hook)
   const { hasCustomFieldsPre } = useCustomFieldsAvailability();
+  const { data: proposalTemplates = [] } = useProposalTemplates();
 
   // ─── Dynamic steps based on custom fields
   const activeSteps = useMemo(() => {
