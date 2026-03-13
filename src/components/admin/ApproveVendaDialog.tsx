@@ -174,11 +174,28 @@ function DocumentPreviewDialog({ urls, open, onClose }: { urls: string[]; open: 
           )}
         </div>
         <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
-          <a href={displayUrl} download target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-1.5" /> Baixar
-            </Button>
-          </a>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                const res = await fetch(displayUrl);
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = `documento-${currentIndex + 1}${isPdf ? ".pdf" : ".jpg"}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+              } catch {
+                window.open(displayUrl, "_blank");
+              }
+            }}
+          >
+            <Download className="w-4 h-4 mr-1.5" /> Baixar
+          </Button>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="w-4 h-4 mr-1.5" /> Fechar
           </Button>
