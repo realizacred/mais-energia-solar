@@ -84,12 +84,15 @@ export function SidebarSearch() {
             transition-all"
         />
         {query && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => { setQuery(""); setOpen(false); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground/40 hover:text-muted-foreground"
+            aria-label="Limpar busca"
           >
             <X className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         )}
       </div>
 
