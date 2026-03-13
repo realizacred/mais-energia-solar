@@ -395,7 +395,7 @@ function FavoritesSection({
         </CollapsibleTrigger>
         <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0 mt-1 ml-1 pl-2 border-l border-warning/20">
+            <SidebarMenu className="gap-0 mt-1 ml-4 pl-3 border-l border-warning/20">
               {resolvedItems.map(({ item, section }) => (
                 <SidebarItemButton
                   key={item.id}
