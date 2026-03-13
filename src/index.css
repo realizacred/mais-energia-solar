@@ -99,6 +99,8 @@
     --sidebar-section-ai: 270 60% 55%;
     --sidebar-section-integrations: 175 60% 42%;
     --sidebar-section-settings: 218 25% 55%;
+    --sidebar-section-energy: 45 90% 48%;
+    --sidebar-section-team: 340 65% 55%;
 
     /* Legacy aliases */
     --sidebar-section-intelligence: 25 95% 52%;
@@ -182,6 +184,8 @@
     --sidebar-section-ai: 270 55% 60%;
     --sidebar-section-integrations: 175 55% 48%;
     --sidebar-section-settings: 220 30% 55%;
+    --sidebar-section-energy: 45 85% 55%;
+    --sidebar-section-team: 340 60% 60%;
 
     /* Legacy aliases */
     --sidebar-section-intelligence: 27 100% 55%;
@@ -329,6 +333,8 @@
   .sidebar-indicator-ai { background: hsl(var(--sidebar-section-ai) / 0.12); color: hsl(var(--sidebar-section-ai)); }
   .sidebar-indicator-integrations { background: hsl(var(--sidebar-section-integrations) / 0.12); color: hsl(var(--sidebar-section-integrations)); }
   .sidebar-indicator-settings { background: hsl(var(--sidebar-section-settings) / 0.12); color: hsl(var(--sidebar-section-settings)); }
+  .sidebar-indicator-energy { background: hsl(var(--sidebar-section-energy) / 0.12); color: hsl(var(--sidebar-section-energy)); }
+  .sidebar-indicator-team { background: hsl(var(--sidebar-section-team) / 0.12); color: hsl(var(--sidebar-section-team)); }
   /* Legacy aliases */
   .sidebar-indicator-intelligence { background: hsl(var(--sidebar-section-intelligence) / 0.12); color: hsl(var(--sidebar-section-intelligence)); }
   .sidebar-indicator-atendimento { background: hsl(var(--sidebar-section-atendimento) / 0.12); color: hsl(var(--sidebar-section-atendimento)); }
@@ -344,6 +350,8 @@
   .sidebar-section-expanded-ai { background: hsl(var(--sidebar-section-ai) / 0.04); }
   .sidebar-section-expanded-integrations { background: hsl(var(--sidebar-section-integrations) / 0.04); }
   .sidebar-section-expanded-settings { background: hsl(var(--sidebar-section-settings) / 0.04); }
+  .sidebar-section-expanded-energy { background: hsl(var(--sidebar-section-energy) / 0.04); }
+  .sidebar-section-expanded-team { background: hsl(var(--sidebar-section-team) / 0.04); }
 
   /* ─── Modern Duotone Icon System ─── */
   

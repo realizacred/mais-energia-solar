@@ -88,6 +88,8 @@ export default {
           settings: "hsl(var(--sidebar-section-settings))",
           ai: "hsl(var(--sidebar-section-ai))",
           integrations: "hsl(var(--sidebar-section-integrations))",
+          energy: "hsl(var(--sidebar-section-energy))",
+          team: "hsl(var(--sidebar-section-team))",
         },
         surface: {
           1: "hsl(var(--surface-1))",
