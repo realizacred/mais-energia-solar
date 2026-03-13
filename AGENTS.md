@@ -1163,6 +1163,36 @@ SEMPRE testar visualmente em 320px e 1920px.
 
 ---
 
+## §35. SIDEBAR — Padrão Visual Obrigatório
+
+### Badge de notificação
+- SEMPRE `bg-primary text-primary-foreground`
+- Tamanho: `min-w-[20px] h-5 rounded-full text-xs font-bold flex items-center justify-center px-1`
+- Quando item ATIVO: `bg-background text-primary` para contrastar com o fundo primário
+- NUNCA cor hardcoded no badge
+
+### Descrições dos itens
+- NUNCA exibir descrição abaixo do nome do item como texto fixo
+- SEMPRE usar Tooltip do shadcn/ui com `delayDuration={600}`
+- `TooltipContent` com `side="right"`
+- O texto do tooltip é a descrição do item de navegação
+
+### Implementação obrigatória
+```tsx
+<TooltipProvider delayDuration={600}>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <NavItem ... />
+    </TooltipTrigger>
+    <TooltipContent side="right">
+      <p>{item.description}</p>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
+
+---
+
 # Bloco 4 — CONFLITOS E EXCEÇÕES OFICIAIS
 
 ### src/components/ui/ — exceções permitidas
