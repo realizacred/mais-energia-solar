@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.26.0",
+    date: "2026-03-13",
+    title: "Modal 'Converter Lead em Venda' — layout 2 colunas §25",
+    type: "improvement",
+    description: "Reestruturação completa do modal de conversão de lead para layout em 2 colunas conforme §25 do AGENTS.md.",
+    details: [
+      "Layout 2 colunas (dados à esquerda, documentos à direita) com fallback mobile 1 coluna",
+      "AddressFields compartilhado substituiu campos de endereço manuais (§13)",
+      "Badges semânticos de status: Pendente (warning), Anexado (success), Opcional (muted)",
+      "Footer com 3 botões: ghost (Cancelar), outline (Aguardando Doc), default (Converter)",
+      "Subtítulo do header agora exibe nome + lead_code do cliente",
+      "Fix RPC next_proposta_versao_numero: FOR UPDATE removido da query com MAX()",
+    ],
+  },
+  {
     version: "2.25.3",
     date: "2026-03-13",
     title: "Correção: backend não bloqueia PDF template-only",
