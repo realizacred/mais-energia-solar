@@ -585,7 +585,8 @@ export function WaConversationList({
               </div>
             )}
           </CrossInstanceWrapper>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Footer count */}
