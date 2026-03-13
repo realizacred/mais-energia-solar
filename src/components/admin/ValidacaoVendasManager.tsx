@@ -604,7 +604,7 @@ export function ValidacaoVendasManager() {
         </TabsContent>
       </Tabs>
 
-
+  const { reopenLead, reopening } = useReopenLead(() => refetchPending());
       {/* Approval Dialog */}
       <ApproveVendaDialog
         open={approvalDialogOpen}
