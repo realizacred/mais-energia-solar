@@ -215,9 +215,9 @@ export function VendorOrcamentosTable({
               return (
                 <TableRow
                   key={group.lead_id}
-                  className={`${orc.visto ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
+                  className={`align-middle ${orc.visto ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
                 >
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <Checkbox
                       checked={orc.visto}
                       onCheckedChange={() => onToggleVisto(orc)}
