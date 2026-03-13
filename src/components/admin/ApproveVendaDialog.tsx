@@ -369,7 +369,7 @@ export function ApproveVendaDialog({
                               ? "bg-muted/50 border-border hover:bg-muted cursor-pointer"
                               : "bg-muted/30 border-warning/30"
                           }`}
-                          onClick={() => hasFiles && doc.urls && setPreviewUrl(doc.urls[0])}
+                          onClick={() => hasFiles && doc.urls && setPreviewUrls(doc.urls)}
                         >
                           <div className="flex items-center gap-2.5">
                             <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
