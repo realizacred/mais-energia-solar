@@ -763,7 +763,7 @@ export function WaChatPanel({
                   if (hasOlderMessages && !isLoadingMore) onLoadOlder();
                 }}
                 className="h-full min-h-0"
-                style={{ height: "100%", overflowY: "auto" }}
+                style={{ height: "100%" }}
                 overscan={200}
                 increaseViewportBy={{ top: 400, bottom: 200 }}
                 components={{
