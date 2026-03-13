@@ -458,14 +458,10 @@ export function AdminSidebar({
       const customOrder = getSectionOrder(section.label);
       if (!customOrder || customOrder.length === 0) return section.items;
 
-      // If the saved order doesn't contain all current items, reset to default
-      // This ensures new items appear in their correct registry position
-      const savedSet = new Set(customOrder);
-      const hasNewItems = section.items.some((i) => !savedSet.has(i.id));
-      if (hasNewItems) return section.items;
-
       const itemMap = new Map(section.items.map((i) => [i.id, i]));
       const ordered: MenuItem[] = [];
+
+      // First: items in saved order
       for (const id of customOrder) {
         const item = itemMap.get(id);
         if (item) {
@@ -473,9 +469,19 @@ export function AdminSidebar({
           itemMap.delete(id);
         }
       }
-      for (const item of itemMap.values()) {
-        ordered.push(item);
+
+      // New items not in saved order: insert at their registry position
+      if (itemMap.size > 0) {
+        const newItems = [...itemMap.values()];
+        // Find each new item's natural position from section.items
+        for (const newItem of newItems) {
+          const naturalIdx = section.items.findIndex((i) => i.id === newItem.id);
+          // Insert at the natural position, clamped to current length
+          const insertAt = Math.min(naturalIdx, ordered.length);
+          ordered.splice(insertAt, 0, newItem);
+        }
       }
+
       return ordered;
     },
     [getSectionOrder]
