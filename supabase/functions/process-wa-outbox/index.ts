@@ -111,7 +111,28 @@ Deno.serve(async (req) => {
             ? item.remote_jid
             : (item.remote_jid_canonical || item.remote_jid);
 
-          const effectiveApiKey = inst.api_key || EVOLUTION_API_KEY;
+          if (!inst.api_key) {
+            const errMsg = `Instance ${inst.id} has no api_key configured — skipping to prevent cross-tenant credential leak`;
+            console.error(`[process-wa-outbox] ${errMsg}`);
+            logOps(inst.tenant_id, inst.id, "outbox_missing_api_key", { outbox_id: item.id, error: errMsg });
+
+            const retryCount = (item.retry_count || 0) + 1;
+            await supabase
+              .from("wa_outbox")
+              .update({ status: "failed", retry_count: retryCount, error_message: errMsg })
+              .eq("id", item.id);
+
+            if (item.message_id) {
+              await supabase
+                .from("wa_messages")
+                .update({ status: "failed", error_message: errMsg })
+                .eq("id", item.message_id);
+            }
+
+            totalFailed++;
+            continue;
+          }
+          const effectiveApiKey = inst.api_key;
           const sendResult = await sendEvolutionMessage(
             inst.evolution_api_url,
             inst.evolution_instance_key,

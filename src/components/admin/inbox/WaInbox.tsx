@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { MessageCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,8 @@ interface WaInboxProps {
 }
 
 export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = false, initialConversationId }: WaInboxProps) {
+  const { get: getSiteSetting } = useSiteSettings();
+  const nomeEmpresa = getSiteSetting("nome_empresa") || "nossa empresa";
   // Filters
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("open");
@@ -342,7 +345,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         if (autoMsg !== "false") {
           const parts: string[] = [];
           parts.push(`Olá ${data.nome || ""}! 👋`);
-          parts.push(`Aqui é ${data.consultor_nome || "a equipe"} da Mais Energia Solar ☀️`);
+          parts.push(`Aqui é ${data.consultor_nome || "a equipe"} da ${nomeEmpresa} ☀️`);
           parts.push("");
           parts.push("Recebi sua solicitação e já estou preparando sua simulação.");
           parts.push("");
@@ -807,6 +810,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
                 prefillMessage={prefillMessage}
                 onRetryMessage={(msg) => retryMessage(msg)}
+                isAdmin={isAdminUser}
               />
             )}
           </div>
