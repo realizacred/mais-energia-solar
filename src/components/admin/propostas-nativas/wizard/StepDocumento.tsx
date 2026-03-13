@@ -127,7 +127,9 @@ export function StepDocumento({
   const webTemplates = templates.filter(t => t.tipo === "html");
   const docTemplates = templates.filter(t => t.tipo === "docx");
 
-  const selectedTemplateName = templates.find(t => t.id === templateSelecionado)?.nome || "";
+  const selectedTpl = templates.find(t => t.id === templateSelecionado);
+  const selectedTemplateName = selectedTpl?.nome || "";
+  const isDocxSelected = selectedTpl?.tipo === "docx";
 
   // ─── Handlers
   const handleEmailTemplateChange = (id: string) => {
