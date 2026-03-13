@@ -498,6 +498,7 @@ export function AdminSidebar({
   return (
     <TooltipProvider delayDuration={600}>
     <Sidebar collapsible="icon" className="sidebar-premium border-0">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-3.5">
         <Link
           to="/"
           className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
