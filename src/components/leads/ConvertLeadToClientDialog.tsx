@@ -555,6 +555,17 @@ export function ConvertLeadToClientDialog({
       const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, "comprovante", supabase);
       const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, "beneficiaria", supabase);
 
+      // Extract potência and valor from the selected simulation
+      let potenciaKwp: number | null = null;
+      let valorProjeto: number | null = null;
+      if (data.simulacao_aceita_id && simulacoes.length > 0) {
+        const selectedSim = simulacoes.find(s => s.id === data.simulacao_aceita_id);
+        if (selectedSim) {
+          potenciaKwp = selectedSim.potencia_recomendada_kwp;
+          valorProjeto = selectedSim.investimento_estimado;
+        }
+      }
+
       const clientePayload = {
         nome: data.nome,
         telefone: data.telefone,
@@ -575,6 +586,8 @@ export function ConvertLeadToClientDialog({
         comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
         comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
         simulacao_aceita_id: data.simulacao_aceita_id || null,
+        potencia_kwp: potenciaKwp,
+        valor_projeto: valorProjeto,
       };
 
       // Check if a client already exists for this lead (CLI- deduplication)

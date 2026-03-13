@@ -19,6 +19,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.15",
+    date: "2026-03-13",
+    title: "Dados de potência e valor preenchidos na conversão de venda",
+    type: "bugfix",
+    description: "Ao converter lead em cliente, potência (kWp) e valor do projeto agora são extraídos da simulação selecionada.",
+    details: [
+      "ConvertLeadToClientDialog: potencia_kwp e valor_projeto populados a partir da simulação aceita",
+      "Validação de Vendas agora exibe dados completos para análise do admin",
+    ],
+  },
+  {
     version: "2.22.14",
     date: "2026-03-13",
     title: "Melhorias no menu lateral e paginação de leads",
