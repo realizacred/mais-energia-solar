@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.35.2",
+    date: "2026-03-13",
+    title: "Correção: vendas do consultor não apareciam na Validação",
+    type: "bugfix",
+    description: "Consultores não tinham permissão RLS para atualizar o status do lead durante a conversão, fazendo com que o lead ficasse com status antigo e não aparecesse na tela de Validação de Vendas.",
+    details: [
+      "Criada política RLS 'rls_leads_update_consultor' permitindo consultores atualizarem seus próprios leads",
+      "Corrigido lead 'Robert Gonçalves Alves' que ficou com status 'Novo' em vez de 'Aguardando Validação'",
+      "O cliente era criado mas o status do lead não era atualizado por falta de permissão",
+    ],
+  },
+  {
     version: "2.35.1",
     date: "2026-03-13",
     title: "Botão Editar Lead no card de informações do WhatsApp",
