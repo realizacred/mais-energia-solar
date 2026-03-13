@@ -602,7 +602,7 @@ export function ProposalDetail() {
       <ProposalActionCards
         navigateToEdit={navigateToEdit}
         isFinalized={isFinalized}
-        cloning={cloning}
+        cloning={false}
         lastEditDate={proposta?.updated_at || versao.updated_at}
         html={html}
         rendering={rendering}
