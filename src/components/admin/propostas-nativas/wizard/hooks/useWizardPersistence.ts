@@ -286,57 +286,8 @@ async function persistProposalAtomic(
       };
     }
 
-    // Check if version is locked
-    const { data: currentVersao } = await supabase
-      .from("proposta_versoes")
-      .select("snapshot_locked, status, finalized_at")
-      .eq("id", effectiveVersaoId)
-      .single();
-
-    const isLocked =
-      currentVersao?.snapshot_locked || currentVersao?.finalized_at;
-
-    if (isLocked) {
-      // Locked → create new version
-      console.log("[persist] versão locked — criando nova versão");
-
-      const { data: newVersao, error: createErr } = await supabase
-        .from("proposta_versoes")
-        .insert({
-          proposta_id: effectivePropostaId,
-          potencia_kwp: params.potenciaKwp,
-          valor_total: params.precoFinal,
-          economia_mensal: params.economiaMensal || null,
-          geracao_mensal: params.geracaoMensal || null,
-          grupo: grupoNormalized,
-          snapshot: sanitized as any,
-          status: setActive ? "generated" : "draft",
-          snapshot_locked: setActive,
-          gerado_em: setActive ? new Date().toISOString() : null,
-        } as any)
-        .select("id")
-        .single();
-
-      if (createErr) {
-        console.error("[persist] erro ao criar nova versão:", createErr.message);
-        return {
-          status: "error",
-          reason: createErr.message,
-          message: "Erro ao criar nova versão",
-        };
-      }
-
-      return {
-        status: "success",
-        propostaId: effectivePropostaId,
-        versaoId: newVersao.id,
-        newVersionCreated: true,
-        message: "Nova versão criada pois a anterior já foi gerada",
-      };
-    }
-
-    // Normal update
-    console.log("[persist] atualizando versão existente", effectiveVersaoId);
+    // Always overwrite the existing version (unlock if locked)
+    console.log("[persist] atualizando versão existente (sobrescrevendo)", effectiveVersaoId);
 
     const updateData: Record<string, any> = {
       potencia_kwp: params.potenciaKwp,
@@ -346,10 +297,15 @@ async function persistProposalAtomic(
       grupo: grupoNormalized,
       snapshot: sanitized,
       updated_at: new Date().toISOString(),
+      // Unlock so it can be overwritten
+      snapshot_locked: setActive,
+      finalized_at: null,
     };
     if (setActive) {
       updateData.status = "generated";
       updateData.gerado_em = new Date().toISOString();
+    } else {
+      updateData.status = "draft";
     }
 
     const { error: vErr } = await supabase
