@@ -35,6 +35,8 @@ interface LeadSimulacao {
   potencia_recomendada_kwp: number | null;
   economia_mensal: number | null;
   consumo_kwh: number | null;
+  geracao_mensal_estimada: number | null;
+  payback_meses: number | null;
   created_at: string;
 }
 
