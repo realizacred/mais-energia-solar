@@ -9,7 +9,7 @@ Padrões obrigatórios para toda tela nova ou editada.
 - [Bloco 0 — TL;DR Checklist](#bloco-0--tldr-checklist)
 - [Bloco 1 — Regras Bloqueantes](#bloco-1--regras-bloqueantes)
 - [Bloco 2 — Boas Práticas](#bloco-2--boas-práticas)
-- [Bloco 3 — Referência de Padrões (§1–§34)](#bloco-3--referência-de-padrões)
+- [Bloco 3 — Referência de Padrões (§1–§38)](#bloco-3--referência-de-padrões)
 - [Bloco 4 — Conflitos e Exceções Oficiais](#bloco-4--conflitos-e-exceções-oficiais)
 - [Bloco 5 — Validação Antes de Finalizar](#bloco-5--validação-antes-de-finalizar)
 - [Bloco 6 — Convenções de Nomenclatura](#bloco-6--convenções-de-nomenclatura)
@@ -19,7 +19,7 @@ Padrões obrigatórios para toda tela nova ou editada.
 
 # Bloco 0 — TL;DR CHECKLIST
 
-Antes de finalizar **qualquer** tarefa, verifique os 21 itens:
+Antes de finalizar **qualquer** tarefa, verifique os 24 itens:
 
 - [ ] Cores: `bg-primary`, `text-primary` (nunca hex, nunca `orange-*`, `blue-*`)
 - [ ] Button shadcn (`@/components/ui/button`) — nunca `<button>` nativo
@@ -42,6 +42,9 @@ Antes de finalizar **qualquer** tarefa, verifique os 21 itens:
 - [ ] Modal: `DialogHeader` + `DialogTitle` + botões shadcn — nunca `<button>` nativo
 - [ ] Formulário: `bg-card` + `text-foreground` — nunca `bg-white`/`gray-*`
 - [ ] Verificar `src/components/shared/`, `ui-kit/`, `ui/` antes de criar componente novo
+- [ ] Scroll interno: `min-h-0` em todo flex-col com overflow (ver §36)
+- [ ] Storage paths: resolver com signed URL antes de exibir (ver §37)
+- [ ] Conversão lead→venda: fallback de dados técnicos obrigatório (ver §38)
 
 ---
 
@@ -1339,3 +1342,92 @@ Quais regras valem onde:
 ### Tabelas e Grids
 - §4 (tabela padrão)
 - §10 (grid denso para relatórios)
+
+### WhatsApp Inbox
+- §36 (flexbox scroll obrigatório)
+
+### Conversão Lead → Venda
+- §38 (fallback de dados técnicos)
+
+---
+
+## §36. FLEXBOX SCROLL — Regra obrigatória
+
+Containers flexíveis (`flex-col`) que usam `flex-1` para preencher espaço e possuem conteúdo com scroll interno **DEVEM** incluir `min-h-0`.
+
+Sem `min-h-0`, o elemento flex não encolhe abaixo do tamanho do conteúdo, impedindo `overflow-y-auto` de funcionar.
+
+### Padrão obrigatório para painéis com scroll interno
+```tsx
+{/* Container pai — trava a altura */}
+<div className="flex flex-col h-full min-h-0 overflow-hidden">
+  
+  {/* Header fixo — nunca encolhe */}
+  <div className="shrink-0">
+    {/* header/toolbar */}
+  </div>
+  
+  {/* Conteúdo com scroll — flex-1 + min-h-0 */}
+  <div className="flex-1 min-h-0 overflow-y-auto">
+    {/* lista, chat, etc */}
+  </div>
+  
+  {/* Footer fixo (opcional) — nunca encolhe */}
+  <div className="shrink-0">
+    {/* input, botões */}
+  </div>
+</div>
+```
+
+### Regras
+- SEMPRE `min-h-0` em elementos `flex-1` dentro de `flex-col` que precisam scroll
+- SEMPRE `shrink-0` em headers/footers fixos dentro de flex containers
+- SEMPRE `overflow-hidden` no container pai para evitar scroll duplo
+- Usar `gap-*` em vez de `space-y-*` no container flex (space-y interfere no cálculo de overflow)
+- Em layouts full-height (ex: inbox), usar CSS para travar altura: `height: calc(100vh - 3.5rem)`
+
+### Onde se aplica
+- WhatsApp Inbox (lista de conversas + painel de chat)
+- Sidebars com listas longas
+- Qualquer painel split-view com scroll independente
+
+---
+
+## §37. STORAGE URLS — Resolução obrigatória
+
+Paths internos do Supabase Storage (ex: `tenantId/identidade/arquivo.jpg`) **NÃO** funcionam como `src` de `<img>` ou `<a href>`. Devem ser convertidos em **signed URLs** antes de exibir.
+
+### Helper obrigatório
+```tsx
+async function resolveStorageUrl(path: string, bucket = "documentos-clientes"): Promise<string | null> {
+  if (!path) return null;
+  if (path.startsWith("http") || path.startsWith("data:")) return path;
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  return data?.signedUrl || null;
+}
+```
+
+### Regras
+- NUNCA usar path raw de storage como `src` de imagem ou link de download
+- SEMPRE resolver com `createSignedUrl` (validade: 3600s padrão)
+- URLs que já começam com `http` ou `data:` devem passar direto (já são válidas)
+- Tratar `null` graciosamente — exibir placeholder se URL não resolver
+- Aplicar em: previews de documentos, fotos de identidade, comprovantes, assinaturas
+
+---
+
+## §38. CONVERSÃO LEAD → VENDA — Dados técnicos obrigatórios
+
+Ao converter lead em cliente/venda, os campos `potencia_kwp` e `valor_projeto` **DEVEM** ser preenchidos usando cadeia de fallback.
+
+### Cadeia de fallback (em ordem de prioridade)
+1. **Simulação selecionada** (`simulacoes.potencia_kwp`, `simulacoes.valor_total`)
+2. **Última proposta nativa** (`proposta_nativas` → última `proposta_versoes.potencia_kwp`, `proposta_versoes.valor_total`)
+3. **Dados do lead** (`leads.potencia_estimada`, `leads.valor_projeto`)
+4. **Zero** como último recurso (nunca `null`)
+
+### Regras
+- NUNCA criar cliente com `potencia_kwp = null` e `valor_projeto = null` se existir proposta/simulação
+- SEMPRE logar no console qual fonte de dados foi usada (`[ConvertLead] fonte: simulação | proposta | lead`)
+- Documentos anexados (identidade, comprovante) devem ter URLs resolvidas via §37 antes de exibir no modal de aprovação
+- Upload de documentos deve logar cada etapa e lançar erro explícito se todos falharem (nunca falha silenciosa)
