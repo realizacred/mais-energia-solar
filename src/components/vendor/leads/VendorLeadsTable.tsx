@@ -104,7 +104,8 @@ export function VendorLeadsTable({
           {leads.map((lead) => {
             // Check if lead has been converted (status = "Convertido")
             const convertidoStatus = statuses.find(s => s.nome === "Convertido");
-            const isConverted = convertidoStatus && lead.status_id === convertidoStatus.id;
+            const aguardandoValidacaoStatus = statuses.find(s => s.nome === "Aguardando Validação");
+            const isConverted = (convertidoStatus && lead.status_id === convertidoStatus.id) || (aguardandoValidacaoStatus && lead.status_id === aguardandoValidacaoStatus.id);
             
             // Cores: borda azul = admin viu, fundo verde = vendedor marcou
             const rowClasses = [
