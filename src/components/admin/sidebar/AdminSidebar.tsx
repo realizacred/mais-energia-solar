@@ -93,7 +93,7 @@ function SidebarItemButton({
       onDragOver={draggable ? (e) => onDragOver?.(e as any, item.id) : undefined}
       onDrop={draggable ? (e) => onDrop?.(e as any, item.id) : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
-      className="group/item"
+      className="group/item relative"
     >
       <SidebarMenuButton
         onClick={handleClick}
@@ -102,7 +102,7 @@ function SidebarItemButton({
         aria-label={item.title}
         className={`
           transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
-          pl-4 !overflow-visible
+          pl-4
           focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
           ${
             isActive
@@ -149,27 +149,29 @@ function SidebarItemButton({
           </Button>
         )}
 
-        {badgeCount > 0 && !collapsed && (
-          <span className="relative flex shrink-0">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-50 ${
-              isActive ? "bg-background" : "bg-primary"
-            }`} />
-            <span className={`relative min-w-[20px] h-5 px-1 text-[10px] font-bold rounded-full flex items-center justify-center ${
-              isActive
-                ? "bg-background text-primary"
-                : "bg-primary text-primary-foreground"
-            }`}>
-              {badgeCount}
-            </span>
-          </span>
-        )}
-        {badgeCount > 0 && collapsed && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" aria-label={`${badgeCount} pendências`} role="status" />
-        )}
         {isActive && !collapsed && badgeCount === 0 && (
           <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
         )}
       </SidebarMenuButton>
+
+      {/* Badge OUTSIDE the button to avoid overflow-hidden clipping */}
+      {badgeCount > 0 && !collapsed && (
+        <span className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex shrink-0 pointer-events-none">
+          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-50 ${
+            isActive ? "bg-background" : "bg-primary"
+          }`} />
+          <span className={`relative min-w-[20px] h-5 px-1 text-[10px] font-bold rounded-full flex items-center justify-center ${
+            isActive
+              ? "bg-background text-primary"
+              : "bg-primary text-primary-foreground"
+          }`}>
+            {badgeCount}
+          </span>
+        </span>
+      )}
+      {badgeCount > 0 && collapsed && (
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary z-10" aria-label={`${badgeCount} pendências`} role="status" />
+      )}
     </SidebarMenuItem>
   );
 
