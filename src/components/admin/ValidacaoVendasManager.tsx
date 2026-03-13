@@ -461,6 +461,7 @@ export function ValidacaoVendasManager() {
                       {filteredItems.map((cliente) => {
                         const clienteValorVenda = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
                         const potencia = cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
+                        const geracaoMensal = cliente.simulacoes?.geracao_mensal_estimada || 0;
                         const vendedorNome = cliente.leads?.consultores?.nome || cliente.leads?.consultor;
                         const vendedorFound = cliente.leads?.consultor_id
                           ? vendedores.some((v) => v.id === cliente.leads?.consultor_id)
