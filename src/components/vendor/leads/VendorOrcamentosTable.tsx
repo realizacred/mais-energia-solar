@@ -257,7 +257,7 @@ export function VendorOrcamentosTable({
                       {orc.lead_code || "-"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-foreground">{orc.nome}</span>
                       {!orc.visto && (
