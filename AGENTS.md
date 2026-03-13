@@ -721,7 +721,7 @@ w-full    flex-1    min-w-0    p-4 md:p-6
 
 ## §22. PADRÃO DE BOTÕES — Regra obrigatória
 
-- Ação principal (+ Novo, + Criar, Salvar, Confirmar): `variant="default"` — SEMPRE sólido laranja
+- Ação principal (+ Novo, + Criar, Salvar, Confirmar): `variant="default"` — SEMPRE sólido primário (`bg-primary`)
 - Ação secundária (Filtrar, Exportar, Atualizar): `variant="outline"`
 - Ação destrutiva (Excluir, Remover, Deletar): `variant="destructive"`
 - Navegação e fechamento (Voltar, Fechar, Cancelar): `variant="ghost"`
