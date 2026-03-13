@@ -700,12 +700,10 @@
     gap: 0;
   }
 
-  /* WaInbox: force bounded viewport height so internal panels can scroll */
+  /* WaInbox: keep internal scroll without creating page-level scrollbar */
   .admin-content:has([data-wa-inbox-active]) {
-    @apply flex flex-col min-h-0 overflow-hidden p-0;
+    @apply flex flex-1 flex-col min-h-0 overflow-hidden p-0;
     gap: 0;
-    height: calc(100vh - 3.5rem);
-    height: calc(100dvh - 3.5rem);
   }
   .admin-content:has([data-wa-inbox-active]) > * + * {
     margin-top: 0;
