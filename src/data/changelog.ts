@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.25.0",
+    date: "2026-03-13",
+    title: "Reformulação visual da Validação de Vendas",
+    type: "improvement",
+    description: "Tela de Validação de Vendas reformulada para seguir os mesmos padrões visuais da tela de Leads.",
+    details: [
+      "Header §26 com PageHeader + ícone bg-primary/10",
+      "KPI cards §27 com border-l-[3px] border-l-primary (uniforme)",
+      "Tabela §34 com ações inline em lg+ e DropdownMenu em mobile",
+      "Badges de consultor e localização idênticos aos de Leads",
+      "Modal de rejeição reformulado conforme §25",
+      "Skeleton loading para header + cards + tabela",
+    ],
+  },
+  {
     version: "2.24.0",
     date: "2026-03-13",
     title: "Reabrir leads convertidos",
