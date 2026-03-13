@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.14",
+    date: "2026-03-13",
+    title: "Melhorias no menu lateral e paginação de leads",
+    type: "improvement",
+    description: "Sidebar mais larga, drag & drop de itens corrigido e paginação reseta ao filtrar.",
+    details: [
+      "Sidebar ampliada de 16rem para 18rem para exibir textos completos",
+      "Drag & drop de reordenação do menu restaurado — novos itens são inseridos na posição correta",
+      "Paginação de leads reseta para página 1 ao alterar filtros",
+      "Paginação oculta quando filtros não retornam resultados",
+    ],
+  },
+  {
     version: "2.22.13",
     date: "2026-03-13",
     title: "Validação de Vendas movida para seção Comercial",
