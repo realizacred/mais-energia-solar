@@ -24,6 +24,10 @@ export interface PendingValidation {
     media_consumo: number | null;
     arquivos_urls: string[] | null;
     consultores?: { id: string; nome: string } | null;
+    orcamentos?: {
+      arquivos_urls: string[] | null;
+      media_consumo: number | null;
+    }[] | null;
   } | null;
   simulacoes?: {
     investimento_estimado: number | null;
@@ -106,7 +110,7 @@ export function usePendingValidations() {
           comprovante_endereco_url,
           comprovante_endereco_urls,
           comprovante_beneficiaria_urls,
-          leads(consultor, consultor_id, lead_code, media_consumo, arquivos_urls, consultores:consultor_id(id, nome)),
+          leads!clientes_lead_id_fkey(consultor, consultor_id, lead_code, media_consumo, arquivos_urls, consultores:consultor_id(id, nome), orcamentos(arquivos_urls, media_consumo)),
           simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp, consumo_kwh)
         `)
         .in("lead_id", leadIds)

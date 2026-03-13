@@ -70,6 +70,21 @@ export function useOfflineConversionSync() {
       const comprovanteUrls = await uploadDocumentFiles(conversion.comprovanteFiles, "comprovante", supabase);
       const beneficiariaUrls = await uploadDocumentFiles(conversion.beneficiariaFiles, "beneficiaria", supabase);
 
+      // Extract potência and valor from the selected simulation
+      let potenciaKwp: number | null = null;
+      let valorProjeto: number | null = null;
+      if (conversion.formData.simulacao_aceita_id) {
+        const { data: simData } = await supabase
+          .from("simulacoes")
+          .select("potencia_recomendada_kwp, investimento_estimado")
+          .eq("id", conversion.formData.simulacao_aceita_id)
+          .maybeSingle();
+        if (simData) {
+          potenciaKwp = simData.potencia_recomendada_kwp;
+          valorProjeto = simData.investimento_estimado;
+        }
+      }
+
       const clientePayload = {
         nome: conversion.formData.nome,
         telefone: conversion.formData.telefone,
@@ -90,6 +105,8 @@ export function useOfflineConversionSync() {
         comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
         comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
         simulacao_aceita_id: conversion.formData.simulacao_aceita_id || null,
+        potencia_kwp: potenciaKwp,
+        valor_projeto: valorProjeto,
       };
 
       // Check for existing client (CLI- deduplication)
