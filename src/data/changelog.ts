@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.27.0",
+    date: "2026-03-13",
+    title: "Templates DOCX agora funcionam na geração de propostas",
+    type: "bugfix",
+    description: "Corrigido fluxo que ignorava o template DOCX selecionado e sempre renderizava um HTML genérico hardcoded.",
+    details: [
+      "ProposalWizard agora detecta se o template selecionado é DOCX e chama template-preview em vez de proposal-render",
+      "Download automático do DOCX após geração quando template DOCX está selecionado",
+      "Preview mostra mensagem clara de 'DOCX gerado' em vez de tela vazia quando template é DOCX",
+      "Templates HTML continuam gerando preview visual normalmente",
+    ],
+  },
+  {
     version: "2.26.1",
     date: "2026-03-13",
     title: "Auditoria de navegação: itens perdidos no menu",
