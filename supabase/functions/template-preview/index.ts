@@ -248,16 +248,80 @@ function normalizeParagraphRuns(xml: string): string {
   return xml.replace(paraPattern, (paraXml) => {
     if (!paraXml.includes("[")) return paraXml;
 
-    // SAFETY: skip paragraphs with known complex structures that should not be touched.
-    if (
-      paraXml.includes("<w:drawing") ||
+    // SAFETY: skip paragraphs with field chars / instrText (complex Word fields)
+    if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) {
+      return paraXml;
+    }
+
+    // For paragraphs containing drawings/pict/AlternateContent:
+    // Only process runs OUTSIDE those structures (e.g. behind-text images
+    // have the drawing as a sibling of text runs, not containing them).
+    // We strip out drawing/pict/mc blocks temporarily, normalize the rest,
+    // then restore them.
+    const hasComplexContent = paraXml.includes("<w:drawing") ||
       paraXml.includes("<mc:AlternateContent") ||
       paraXml.includes("<w:pict") ||
-      paraXml.includes("<w:object") ||
-      paraXml.includes("<w:fldChar") ||
-      paraXml.includes("<w:instrText")
-    ) {
-      return paraXml;
+      paraXml.includes("<w:object");
+
+    if (hasComplexContent) {
+      // Extract text from runs outside complex structures to check for placeholders
+      const strippedXml = paraXml
+        .replace(/<w:drawing[^>]*>[^]*?<\/w:drawing>/g, "")
+        .replace(/<mc:AlternateContent[^>]*>[^]*?<\/mc:AlternateContent>/g, "")
+        .replace(/<w:pict[^>]*>[^]*?<\/w:pict>/g, "")
+        .replace(/<w:object[^>]*>[^]*?<\/w:object>/g, "");
+
+      // If no bracket in the remaining text, skip normalization
+      if (!strippedXml.includes("[")) return paraXml;
+
+      // Has placeholders outside complex structures — we need to normalize.
+      // Strategy: replace complex blocks with unique tokens, normalize, restore.
+      const complexBlocks: string[] = [];
+      let safePara = paraXml;
+
+      // Replace each complex block with a token run
+      const complexPatterns = [
+        /<w:r[\s>][^]*?<w:drawing[^>]*>[^]*?<\/w:drawing>[^]*?<\/w:r>/g,
+        /<w:r[\s>][^]*?<mc:AlternateContent[^>]*>[^]*?<\/mc:AlternateContent>[^]*?<\/w:r>/g,
+        /<w:r[\s>][^]*?<w:pict[^>]*>[^]*?<\/w:pict>[^]*?<\/w:r>/g,
+        /<w:r[\s>][^]*?<w:object[^>]*>[^]*?<\/w:object>[^]*?<\/w:r>/g,
+      ];
+
+      for (const pat of complexPatterns) {
+        safePara = safePara.replace(pat, (match) => {
+          const idx = complexBlocks.length;
+          complexBlocks.push(match);
+          return `<!--COMPLEX_BLOCK_${idx}-->`;
+        });
+      }
+
+      // Also handle standalone complex elements not wrapped in w:r
+      const standalonePatterns = [
+        /<w:drawing[^>]*>[^]*?<\/w:drawing>/g,
+        /<mc:AlternateContent[^>]*>[^]*?<\/mc:AlternateContent>/g,
+        /<w:pict[^>]*>[^]*?<\/w:pict>/g,
+        /<w:object[^>]*>[^]*?<\/w:object>/g,
+      ];
+
+      for (const pat of standalonePatterns) {
+        safePara = safePara.replace(pat, (match) => {
+          const idx = complexBlocks.length;
+          complexBlocks.push(match);
+          return `<!--COMPLEX_BLOCK_${idx}-->`;
+        });
+      }
+
+      // Now normalize the safe paragraph (only text runs remain)
+      // We call the inner normalizer which doesn't have the drawing skip
+      const normalized = normalizeParagraphRunsInner(safePara);
+
+      // Restore complex blocks
+      let result = normalized;
+      for (let i = 0; i < complexBlocks.length; i++) {
+        result = result.replace(`<!--COMPLEX_BLOCK_${i}-->`, complexBlocks[i]);
+      }
+
+      return result;
     }
 
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
