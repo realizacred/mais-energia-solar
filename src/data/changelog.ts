@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.35.4",
+    date: "2026-03-13",
+    title: "Correções de upload de documentos e dados na conversão de lead",
+    type: "bugfix",
+    description: "Adicionado logging detalhado no fluxo de upload de documentos, fallback para propostas nativas nos dados técnicos, e resolução de URLs assinadas para preview de documentos.",
+    details: [
+      "uploadDocumentFiles agora loga cada etapa do upload para facilitar diagnóstico",
+      "ConvertLeadToClientDialog busca potência e valor de proposta_versoes quando sem simulação",
+      "ApproveVendaDialog resolve storage paths para signed URLs antes de exibir documentos",
+      "Preview de documentos agora funciona com caminhos de storage (não apenas URLs diretas)",
+    ],
+  },
+  {
     version: "2.35.3",
     date: "2026-03-13",
     title: "Auditoria e correções na Validação de Vendas",

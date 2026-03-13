@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,6 +20,7 @@ import { formatPhoneBR } from "@/lib/formatters/index";
 import { formatKwh } from "@/lib/formatters/index";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 import type { PendingValidation } from "@/hooks/usePendingValidations";
 
 interface LeadSimulacao {
@@ -89,8 +90,41 @@ function DataCard({ label, value, icon: Icon, valueClass }: {
   );
 }
 
+/** Resolves a storage path to a signed URL. Returns the URL or null. */
+async function resolveStorageUrl(path: string, bucket = "documentos-clientes"): Promise<string | null> {
+  // Already a full URL
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+    return path;
+  }
+  try {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) {
+      console.warn("[resolveStorageUrl] Failed for path:", path, error?.message);
+      return null;
+    }
+    return data.signedUrl;
+  } catch (e) {
+    console.warn("[resolveStorageUrl] Error:", e);
+    return null;
+  }
+}
+
 function DocumentPreviewDialog({ url, open, onClose }: { url: string; open: boolean; onClose: () => void }) {
-  const isPdf = url.toLowerCase().includes(".pdf");
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!open || !url) return;
+    setLoading(true);
+    resolveStorageUrl(url).then((resolved) => {
+      setResolvedUrl(resolved || url);
+      setLoading(false);
+    });
+  }, [url, open]);
+
+  const displayUrl = resolvedUrl || url;
+  const isPdf = displayUrl.toLowerCase().includes(".pdf");
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden">
@@ -101,16 +135,20 @@ function DocumentPreviewDialog({ url, open, onClose }: { url: string; open: bool
           <DialogTitle className="text-sm font-semibold text-foreground flex-1">Preview do Documento</DialogTitle>
         </DialogHeader>
         <div className="p-4">
-          {isPdf ? (
-            <iframe src={url} className="w-full h-[70vh] rounded-lg border border-border" />
+          {loading ? (
+            <div className="flex items-center justify-center h-[50vh]">
+              <Spinner size="lg" />
+            </div>
+          ) : isPdf ? (
+            <iframe src={displayUrl} className="w-full h-[70vh] rounded-lg border border-border" />
           ) : (
             <div className="flex items-center justify-center">
-              <img src={url} alt="Documento" className="max-h-[70vh] object-contain rounded-lg" />
+              <img src={displayUrl} alt="Documento" className="max-h-[70vh] object-contain rounded-lg" />
             </div>
           )}
         </div>
         <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
-          <a href={url} download target="_blank" rel="noopener noreferrer">
+          <a href={displayUrl} download target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm">
               <Download className="w-4 h-4 mr-1.5" /> Baixar
             </Button>

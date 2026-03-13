@@ -272,22 +272,31 @@ export async function uploadDocumentFiles(
   supabaseClient: any,
   bucket: string = "documentos-clientes"
 ): Promise<string[]> {
+  if (files.length === 0) {
+    console.debug("[uploadDocumentFiles] No files to upload for folder:", folder);
+    return [];
+  }
+
+  console.debug(`[uploadDocumentFiles] Uploading ${files.length} file(s) to ${bucket}/${folder}`);
   const uploadedUrls: string[] = [];
   const errors: string[] = [];
   
   for (const file of files) {
     if (file.uploaded) {
+      console.debug(`[uploadDocumentFiles] File already uploaded: ${file.name} → ${file.data}`);
       uploadedUrls.push(file.data);
       continue;
     }
 
     try {
+      console.debug(`[uploadDocumentFiles] Converting ${file.name} (${(file.size / 1024).toFixed(1)}KB) from base64...`);
       const response = await fetch(file.data);
       const blob = await response.blob();
       
       const fileExt = file.name.split('.').pop();
       const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
+      console.debug(`[uploadDocumentFiles] Uploading to storage: ${fileName}`);
       const { error } = await supabaseClient.storage
         .from(bucket)
         .upload(fileName, blob, {
@@ -295,16 +304,22 @@ export async function uploadDocumentFiles(
         });
 
       if (error) {
-        console.error('Upload error:', error);
+        console.error('[uploadDocumentFiles] Storage upload error:', error.message, error);
         errors.push(`${file.name}: ${error.message}`);
         continue;
       }
 
+      console.debug(`[uploadDocumentFiles] ✓ Uploaded: ${fileName}`);
       uploadedUrls.push(fileName);
     } catch (error: any) {
-      console.error('Failed to upload file:', file.name, error);
+      console.error('[uploadDocumentFiles] Failed to upload file:', file.name, error);
       errors.push(`${file.name}: ${error?.message || 'Erro desconhecido'}`);
     }
+  }
+
+  // If ANY files failed, log warning
+  if (errors.length > 0) {
+    console.warn(`[uploadDocumentFiles] ${errors.length} upload error(s):`, errors);
   }
 
   // If ALL files failed, throw so the caller knows
@@ -312,5 +327,6 @@ export async function uploadDocumentFiles(
     throw new Error(`Falha ao enviar documentos: ${errors.join('; ')}`);
   }
   
+  console.debug(`[uploadDocumentFiles] Result: ${uploadedUrls.length}/${files.length} uploaded`);
   return uploadedUrls;
 }
