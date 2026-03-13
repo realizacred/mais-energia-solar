@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.16",
+    date: "2026-03-13",
+    title: "Edição de proposta sobrescreve versão existente",
+    type: "improvement",
+    description: "Ao editar uma proposta, o sistema agora sobrescreve a versão atual em vez de criar uma nova versão clonada.",
+    details: [
+      "ProposalDetail: botão Editar navega direto sem clonar versão",
+      "useWizardPersistence: versões locked são desbloqueadas e sobrescritas ao salvar",
+      "Removido fluxo de clone_proposta_versao na edição",
+    ],
+  },
+  {
     version: "2.22.15",
     date: "2026-03-13",
     title: "Dados de potência e valor preenchidos na conversão de venda",
