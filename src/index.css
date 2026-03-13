@@ -700,10 +700,12 @@
     gap: 0;
   }
 
-  /* WaInbox: make admin-content a flex column so inbox fills remaining height */
+  /* WaInbox: force bounded viewport height so internal panels can scroll */
   .admin-content:has([data-wa-inbox-active]) {
     @apply flex flex-col min-h-0 overflow-hidden;
     gap: 0;
+    height: calc(100vh - 3.5rem);
+    height: calc(100dvh - 3.5rem);
   }
 }
 

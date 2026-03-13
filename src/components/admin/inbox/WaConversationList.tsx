@@ -24,7 +24,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -535,7 +534,7 @@ export function WaConversationList({
       </div>
 
       {/* Conversations */}
-      <ScrollArea className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {loading ? (
           <div className="p-2 space-y-1">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -586,10 +585,10 @@ export function WaConversationList({
             )}
           </CrossInstanceWrapper>
         )}
-      </ScrollArea>
+      </div>
 
       {/* Footer count */}
-      <div className="p-2 border-t border-border/40 text-center">
+      <div className="shrink-0 p-2 border-t border-border/40 text-center">
         <p className="text-[10px] text-muted-foreground font-medium">{conversations.length} conversas</p>
       </div>
     </div>
