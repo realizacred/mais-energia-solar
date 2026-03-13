@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { User, Phone, MapPin, Zap, ExternalLink, X } from "lucide-react";
+import { User, Phone, MapPin, Zap, ExternalLink, Pencil } from "lucide-react";
+import { LeadEditDialog } from "@/components/admin/leads/LeadEditDialog";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
