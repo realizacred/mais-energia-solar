@@ -166,7 +166,7 @@ export function VendorLeadsTable({
                   onStatusChange={(newStatusId) => onStatusChange(lead.id, newStatusId)}
                 />
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
+              <TableCell className="hidden lg:table-cell align-middle">
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Calendar className="h-3 w-3" />
                   {format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR })}
