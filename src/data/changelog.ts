@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22.13",
+    date: "2026-03-13",
+    title: "Validação de Vendas movida para seção Comercial",
+    type: "improvement",
+    description: "Menu 'Validação de Vendas' movido de Operações para Comercial (após Pipeline) e corrigido lead com status NULL.",
+    details: [
+      "Validação de Vendas agora fica em Comercial → após Pipeline no menu lateral",
+      "Corrigido lead 'Robert Gonçalves Alves' que ficou com status_id NULL após conversão",
+      "Atualizado navRegistry.ts com nova posição e ordem dos itens Comercial",
+    ],
+  },
+  {
     version: "2.22.12",
     date: "2026-03-13",
     title: "Alinhamento vertical nas tabelas de leads e orçamentos",
