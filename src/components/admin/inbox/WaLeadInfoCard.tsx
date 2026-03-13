@@ -44,6 +44,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
   });
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
