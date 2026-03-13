@@ -3,7 +3,7 @@ import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap } from "lucide-react";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { formatCEP } from "@/lib/validations";
@@ -956,7 +956,10 @@ export function ConvertLeadToClientDialog({
                   {/* Identidade */}
                   <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Identidade (RG/CNH)</span>
+                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <CreditCard className="h-3.5 w-3.5 text-primary" />
+                        Identidade (RG/CNH)
+                      </span>
                       {identidadeFiles.length > 0 ? (
                         <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
                       ) : (
@@ -975,7 +978,10 @@ export function ConvertLeadToClientDialog({
                   {/* Comprovante de Endereço */}
                   <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Comprovante de Endereço</span>
+                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Home className="h-3.5 w-3.5 text-primary" />
+                        Comprovante de Endereço
+                      </span>
                       {comprovanteFiles.length > 0 ? (
                         <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
                       ) : (
@@ -994,7 +1000,10 @@ export function ConvertLeadToClientDialog({
                   {/* Beneficiária (opcional) */}
                   <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Comprovante Beneficiária UC</span>
+                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Zap className="h-3.5 w-3.5 text-primary" />
+                        Comprovante Beneficiária UC
+                      </span>
                       {beneficiariaFiles.length > 0 ? (
                         <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
                       ) : (
