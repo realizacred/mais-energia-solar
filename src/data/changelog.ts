@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.31.0",
+    date: "2026-03-13",
+    title: "flattenSnapshot() — utilitário compartilhado para templates",
+    type: "improvement",
+    description: "Criada função reutilizável em _shared/flattenSnapshot.ts que achata snapshots aninhados em chaves flat para qualquer template DOCX/HTML.",
+    details: [
+      "Extrai tecnico, financeiro, itens, ucs, cliente, pagamentoOpcoes, consultor",
+      "Gera aliases canônicos (consumo_mensal, valor_total, modulo_*, inversor_*, etc.)",
+      "template-preview refatorado para usar flattenSnapshot em vez de lógica inline",
+      "Qualquer nova edge function de documento pode importar o mesmo utilitário",
+    ],
+  },
     version: "2.30.0",
     date: "2026-03-13",
     title: "DOCX: flatten de snapshot aninhado para placeholders",
