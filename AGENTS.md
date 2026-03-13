@@ -1155,6 +1155,11 @@ SEMPRE testar visualmente em 320px e 1920px.
 
 ## §34. TABELA DE LEADS/ORÇAMENTOS — Padrão Obrigatório
 
+### Alinhamento vertical obrigatório
+- SEMPRE adicionar `align-middle` em `<TableRow>` e `<TableCell>` do `<TableBody>`
+- NUNCA deixar células sem alinhamento vertical explícito em tabelas com conteúdo de altura variável
+- Garante que todas as células fiquem centralizadas verticalmente quando o nome ou outro campo ocupa 2+ linhas
+
 ### Coluna TELEFONE
 - SEMPRE `w-[155px] min-w-[155px]` na definição da `<TableHead>`
 - SEMPRE `whitespace-nowrap` na célula `<TableCell>` do telefone

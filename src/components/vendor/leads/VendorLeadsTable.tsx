@@ -172,7 +172,7 @@ export function VendorLeadsTable({
                   {format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 </div>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right align-middle">
                 <TooltipProvider>
                   <div className="flex items-center justify-end gap-1">
                     <Tooltip>

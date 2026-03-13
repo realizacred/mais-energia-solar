@@ -313,10 +313,10 @@ export function VendorOrcamentosTable({
                       onStatusChange={(newStatusId) => onStatusChange(orc.id, newStatusId)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right align-middle">
                     <TooltipProvider>
                       <div className="flex items-center justify-end gap-1">
                         <Tooltip>

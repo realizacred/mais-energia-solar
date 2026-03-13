@@ -161,7 +161,7 @@ export default function LeadsTrashPage() {
                     <TableCell className="text-sm text-muted-foreground align-middle">
                       {format(new Date(lead.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right align-middle">
                       <Button
                         variant="outline"
                         size="sm"

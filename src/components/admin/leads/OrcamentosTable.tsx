@@ -213,7 +213,7 @@ export function OrcamentosTable({
                 <TableCell className="hidden sm:table-cell text-sm text-muted-foreground align-middle">
                   {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 </TableCell>
-                <TableCell>
+                <TableCell className="align-middle">
                   {/* Inline actions for lg+ */}
                   <TooltipProvider>
                     <div className="hidden lg:flex items-center gap-1">
