@@ -3,8 +3,9 @@ import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench } from "lucide-react";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
+import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { formatCEP } from "@/lib/validations";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -13,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmailInput } from "@/components/ui/EmailInput";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -104,6 +105,15 @@ interface ConvertLeadToClientDialogProps {
   orcamentoId?: string | null;
 }
 
+/* ─── Section title helper ─── */
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      {children}
+    </p>
+  );
+}
+
 export function ConvertLeadToClientDialog({
   lead,
   open,
@@ -162,6 +172,30 @@ export function ConvertLeadToClientDialog({
     if (result.rua) form.setValue("rua", result.rua);
   }, [form, lookupCep]);
 
+  // Bridge AddressFields ↔ react-hook-form
+  const addressValue: AddressData = {
+    cep: form.watch("cep") || "",
+    rua: form.watch("rua") || "",
+    numero: form.watch("numero") || "",
+    complemento: form.watch("complemento") || "",
+    bairro: form.watch("bairro") || "",
+    cidade: form.watch("cidade") || "",
+    estado: form.watch("estado") || "",
+  };
+
+  const handleAddressChange = useCallback(
+    (addr: AddressData) => {
+      form.setValue("cep", addr.cep, { shouldValidate: true });
+      form.setValue("rua", addr.rua, { shouldValidate: true });
+      form.setValue("numero", addr.numero, { shouldValidate: true });
+      form.setValue("complemento", addr.complemento);
+      form.setValue("bairro", addr.bairro, { shouldValidate: true });
+      form.setValue("cidade", addr.cidade, { shouldValidate: true });
+      form.setValue("estado", addr.estado, { shouldValidate: true });
+    },
+    [form]
+  );
+
   // Track online status
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -216,13 +250,10 @@ export function ConvertLeadToClientDialog({
   const [formInitialized, setFormInitialized] = useState<string | null>(null);
 
   // Pre-fill form when lead changes - restore saved partial data if available
-  // Only run once per lead+open combination to avoid overwriting user input
   useEffect(() => {
     if (lead && open) {
-      // Skip if already initialized for this lead
       if (formInitialized === lead.id) return;
 
-      // Check if there's saved partial conversion data for this lead
       const storageKey = `lead_conversion_${lead.id}`;
       let savedData: {
         formData?: FormData;
@@ -241,7 +272,6 @@ export function ConvertLeadToClientDialog({
         console.warn("Could not parse saved conversion data:", e);
       }
 
-      // If we have saved data, restore it; otherwise use lead data
       if (savedData?.formData) {
         form.reset({
           nome: savedData.formData.nome || lead.nome || "",
@@ -262,12 +292,10 @@ export function ConvertLeadToClientDialog({
           simulacao_aceita_id: savedData.formData.simulacao_aceita_id || "",
         });
         
-        // Restore document files if saved
         setIdentidadeFiles(savedData.identidadeFiles || []);
         setComprovanteFiles(savedData.comprovanteFiles || []);
         setBeneficiariaFiles(savedData.beneficiariaFiles || []);
         
-        // Show toast that we restored saved data
         if (savedData.savedAt) {
           const savedDate = new Date(savedData.savedAt);
           const formattedDate = savedDate.toLocaleDateString("pt-BR", {
@@ -282,7 +310,6 @@ export function ConvertLeadToClientDialog({
           });
         }
       } else {
-        // No saved data - use lead data as defaults
         form.reset({
           nome: lead.nome || "",
           telefone: lead.telefone || "",
@@ -306,7 +333,6 @@ export function ConvertLeadToClientDialog({
         setBeneficiariaFiles([]);
       }
 
-      // Mark as initialized for this lead
       setFormInitialized(lead.id);
     }
   }, [lead, open, formInitialized, form, toast]);
@@ -329,11 +355,8 @@ export function ConvertLeadToClientDialog({
     }
 
     setGettingLocation(true);
-    console.log("[Geolocation] Requesting current position...");
 
-    // Fallback timeout in case the browser never invokes either callback
     const fallbackTimeout = setTimeout(() => {
-      console.warn("[Geolocation] Fallback timeout triggered (15s without response).");
       setGettingLocation(false);
       toast({
         title: "Erro",
@@ -353,7 +376,6 @@ export function ConvertLeadToClientDialog({
           shouldTouch: true 
         });
         setGettingLocation(false);
-        console.log("[Geolocation] Success:", latitude, longitude, "Link:", googleMapsLink);
         toast({
           title: "Localização obtida!",
           description: `Coordenadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
@@ -362,7 +384,6 @@ export function ConvertLeadToClientDialog({
       (error) => {
         clearTimeout(fallbackTimeout);
         setGettingLocation(false);
-        console.error("[Geolocation] Error:", error.code, error.message);
         let message = "Erro ao obter localização.";
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -422,19 +443,15 @@ export function ConvertLeadToClientDialog({
   };
 
   // Save as lead with "Aguardando Documentação" status
-  // This saves partial data ONLY to the lead record (not creating a client yet)
   const handleSaveAsLead = async () => {
     if (!lead) return;
 
-    // Only validate basic required fields (nome, telefone, estado, cidade)
-    // Don't require documents or localizacao for partial save
     const isValid = await form.trigger(["nome", "telefone", "estado", "cidade"]);
     if (!isValid) return;
 
     setSavingAsLead(true);
 
     try {
-      // Get "Aguardando Documentação" status
       const { data: aguardandoStatus } = await supabase
         .from("lead_status")
         .select("id")
@@ -445,7 +462,6 @@ export function ConvertLeadToClientDialog({
         throw new Error("Status 'Aguardando Documentação' não encontrado.");
       }
 
-      // Build observation note about what's missing
       const missing: string[] = [];
       if (!form.getValues("email")) missing.push("E-mail");
       if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
@@ -458,38 +474,32 @@ export function ConvertLeadToClientDialog({
       if (!form.getValues("transformador_id")) missing.push("Transformador");
       if (!form.getValues("localizacao")) missing.push("Localização");
 
-      // Get current observations and remove any existing "[Documentação Pendente: ...]" prefix
       const observacoesAtuais = form.getValues("observacoes") || "";
       const observacoesSemPendencia = observacoesAtuais
         .replace(/^\[Documentação Pendente:[^\]]*\]\s*/i, "")
         .trim();
 
-      // Build new observation with pending items (only if there are missing items)
       const novaObservacao = missing.length > 0 
         ? `[Documentação Pendente: ${missing.join(", ")}]${observacoesSemPendencia ? ` ${observacoesSemPendencia}` : ""}`
         : observacoesSemPendencia;
 
       const formData = form.getValues();
 
-      // Store partial conversion data in localStorage for later completion
-      // This allows continuing the conversion process without creating a client yet
       const partialData = {
         leadId: lead.id,
         formData: {
           ...formData,
           observacoes: novaObservacao,
         },
-        identidadeFiles: identidadeFiles,
-        comprovanteFiles: comprovanteFiles,
-        beneficiariaFiles: beneficiariaFiles,
+        identidadeFiles,
+        comprovanteFiles,
+        beneficiariaFiles,
         savedAt: new Date().toISOString(),
       };
 
-      // Save to localStorage for persistence
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.setItem(storageKey, JSON.stringify(partialData));
 
-      // Update lead status (and also the current orcamento when provided)
       const nowIso = new Date().toISOString();
 
       const [{ error: leadUpdateError }, { error: orcUpdateError }] = await Promise.all([
@@ -520,7 +530,6 @@ export function ConvertLeadToClientDialog({
           : Promise.resolve({ error: null } as any),
       ]);
 
-      // If BOTH failed, treat as error. If at least one succeeded, keep UX flowing.
       if (leadUpdateError && orcUpdateError) throw leadUpdateError;
 
       toast({
@@ -545,7 +554,6 @@ export function ConvertLeadToClientDialog({
   const handleSubmit = async (data: FormData) => {
     if (!lead) return;
 
-    // Validate required documents before submission
     const missingItems = getMissingItems();
     if (missingItems.length > 0) {
       toast({
@@ -556,9 +564,7 @@ export function ConvertLeadToClientDialog({
       return;
     }
 
-    // Check if we're offline
     if (!navigator.onLine) {
-      // Save locally for later sync
       saveConversionOffline(data);
       return;
     }
@@ -566,16 +572,13 @@ export function ConvertLeadToClientDialog({
     setLoading(true);
 
     try {
-      // Get tenant_id for storage path (RLS requires tenant_id as first folder segment)
       const { data: tenantId } = await supabase.rpc("get_user_tenant_id");
       if (!tenantId) throw new Error("Não foi possível identificar o tenant. Faça login novamente.");
 
-      // Upload all documents using the new utility function
       const identidadeUrls = await uploadDocumentFiles(identidadeFiles, `${tenantId}/identidade`, supabase);
       const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, `${tenantId}/comprovante`, supabase);
       const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, `${tenantId}/beneficiaria`, supabase);
 
-      // Extract potência and valor from the selected simulation
       let potenciaKwp: number | null = null;
       let valorProjeto: number | null = null;
       if (data.simulacao_aceita_id && simulacoes.length > 0) {
@@ -610,7 +613,6 @@ export function ConvertLeadToClientDialog({
         valor_projeto: valorProjeto,
       };
 
-      // Check if a client already exists for this lead (CLI- deduplication)
       const { data: existingCliente } = await supabase
         .from("clientes")
         .select("id")
@@ -620,7 +622,6 @@ export function ConvertLeadToClientDialog({
       let cliente: { id: string } | null = null;
 
       if (existingCliente) {
-        // Update existing client instead of creating duplicate
         const { data: updated, error: updateError } = await supabase
           .from("clientes")
           .update({ ...clientePayload, updated_at: new Date().toISOString() })
@@ -630,24 +631,19 @@ export function ConvertLeadToClientDialog({
 
         if (updateError) throw updateError;
         cliente = updated;
-        console.log("[ConvertLead] Updated existing client:", existingCliente.id);
       } else {
-        // Create new client
         const { data: created, error: insertError } = await supabase
           .from("clientes")
-          // cliente_code é gerado automaticamente pelo trigger generate_cliente_code()
           .insert({ ...clientePayload, lead_id: lead.id } as any)
           .select("id")
           .single();
 
         if (insertError) throw insertError;
         cliente = created;
-        console.log("[ConvertLead] Created new client:", created?.id);
       }
 
       if (!cliente) throw new Error("Falha ao criar/atualizar cliente.");
 
-      // Update lead status to "Aguardando Validação" (admin needs to approve)
       const { data: convertidoStatus } = await supabase
         .from("lead_status")
         .select("id")
@@ -671,9 +667,6 @@ export function ConvertLeadToClientDialog({
         ]);
       }
 
-      // Commission will be created when admin validates the sale
-
-      // Clear saved partial conversion data since conversion is complete
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
 
@@ -705,7 +698,6 @@ export function ConvertLeadToClientDialog({
       const storedData = localStorage.getItem(OFFLINE_CONVERSION_KEY);
       const conversions: OfflineConversion[] = storedData ? JSON.parse(storedData) : [];
 
-      // Add or update conversion for this lead
       const existingIndex = conversions.findIndex(c => c.leadId === lead.id);
       const newConversion: OfflineConversion = {
         leadId: lead.id,
@@ -745,10 +737,12 @@ export function ConvertLeadToClientDialog({
 
   if (!lead) return null;
 
+  const missingItems = getMissingItems();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden">
-        {/* §25 HEADER */}
+      <DialogContent className="w-[90vw] max-w-[820px] p-0 gap-0 overflow-hidden">
+        {/* ── HEADER §25 ─────────────────────────────────────── */}
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <ShoppingCart className="w-5 h-5 text-primary" />
@@ -758,430 +752,353 @@ export function ConvertLeadToClientDialog({
               Converter Lead em Venda
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Preencha os dados para transformar o lead em cliente
+              {lead.nome} {lead.lead_code ? `· ${lead.lead_code}` : ""}
             </p>
           </div>
         </DialogHeader>
 
-        {/* §25 BODY */}
-        <div className="overflow-y-auto max-h-[70vh]">
         {/* Offline indicator */}
         {!isOnline && (
-          <div className="flex items-center gap-2 mx-5 mt-4 p-3 bg-warning/20 text-warning-foreground rounded-lg text-sm">
-            <WifiOff className="w-4 h-4" />
-            <span>Modo offline - Os dados serão salvos localmente e sincronizados automaticamente quando a conexão voltar.</span>
+          <div className="flex items-center gap-2 mx-5 mt-4 p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-foreground">
+            <WifiOff className="w-4 h-4 text-warning shrink-0" />
+            <span>Modo offline — Os dados serão salvos localmente e sincronizados quando a conexão voltar.</span>
           </div>
         )}
 
+        {/* ── BODY — 2 colunas §25 ───────────────────────────── */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="p-5 space-y-6">
-            {/* Dados Pessoais */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Dados Pessoais
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="nome"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome *</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="telefone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone *</FormLabel>
-                      <FormControl>
-                        <PhoneInput value={field.value} onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email *</FormLabel>
-                      <FormControl>
-                        <EmailInput value={field.value || ""} onChange={field.onChange} required />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cpf_cnpj"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CPF/CNPJ *</FormLabel>
-                      <FormControl>
-                        <CpfCnpjInput value={field.value || ""} onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
+          <form onSubmit={form.handleSubmit(handleSubmit)}>
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border overflow-y-auto max-h-[70vh]">
 
-            {/* Endereço */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Endereço
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="cep"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CEP</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          maxLength={9}
-                          onChange={(e) => field.onChange(formatCEP(e.target.value))}
-                          onBlur={(e) => {
-                            field.onBlur();
-                            handleCEPBlur(e.target.value);
-                          }}
-                          placeholder="00000-000"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="estado"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado *</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="cidade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cidade *</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="bairro"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bairro *</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="sm:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="rua"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Rua *</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="numero"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número *</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="complemento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Complemento</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
+              {/* ═══ COLUNA ESQUERDA — dados ═══ */}
+              <div className="p-5 space-y-5">
 
-            {/* Documentos */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Documentos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <DocumentUpload
-                  label="Identidade (RG/CNH)"
-                  description="Tire uma foto ou selecione arquivos (frente e verso)"
-                  files={identidadeFiles}
-                  onFilesChange={setIdentidadeFiles}
-                  required
-                />
-                <DocumentUpload
-                  label="Comprovante de Endereço"
-                  description="Tire uma foto ou selecione arquivos"
-                  files={comprovanteFiles}
-                  onFilesChange={setComprovanteFiles}
-                  required
-                />
-                <DocumentUpload
-                  label="Comprovante Beneficiária da UC"
-                  description="Comprovante da unidade consumidora (opcional)"
-                  files={beneficiariaFiles}
-                  onFilesChange={setBeneficiariaFiles}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Proposta Aceita */}
-            {simulacoes.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Receipt className="h-4 w-4" />
-                    Proposta Aceita
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="simulacao_aceita_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Selecione a simulação/proposta aceita pelo cliente</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                {/* Dados Pessoais */}
+                <div className="space-y-3">
+                  <SectionTitle>Dados pessoais</SectionTitle>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="nome"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome *</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione a proposta aceita" />
-                            </SelectTrigger>
+                            <Input {...field} />
                           </FormControl>
-                          <SelectContent>
-                            {simulacoes.map((s) => {
-                              const dataFormatada = new Date(s.created_at).toLocaleDateString("pt-BR");
-                              const potencia = s.potencia_recomendada_kwp ? `${s.potencia_recomendada_kwp.toFixed(2)} kWp` : "N/A";
-                              const investimento = s.investimento_estimado 
-                                ? `R$ ${s.investimento_estimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                                : "N/A";
-                              const economia = s.economia_mensal 
-                                ? `R$ ${s.economia_mensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`
-                                : "";
-                              
-                              return (
-                                <SelectItem key={s.id} value={s.id}>
-                                  {dataFormatada} - {potencia} - {investimento} {economia && `(${economia})`}
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Dados Técnicos */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Wrench className="h-4 w-4" />
-                  Dados Técnicos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="disjuntor_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Disjuntor *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o disjuntor" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {disjuntores.map((d) => (
-                              <SelectItem key={d.id} value={d.id}>
-                                {d.amperagem}A {d.descricao ? `- ${d.descricao}` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="transformador_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Transformador *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o transformador" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {transformadores.map((t) => (
-                              <SelectItem key={t.id} value={t.id}>
-                                {t.potencia_kva} kVA {t.descricao ? `- ${t.descricao}` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="localizacao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        Localização (Coordenadas/Link do Mapa) *
-                      </FormLabel>
-                      <div className="flex gap-2">
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            value={localizacaoValue ?? ""}
-                            placeholder="Ex: -23.5505, -46.6333 ou link do Google Maps"
-                            className="flex-1"
-                          />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={getCurrentLocation}
-                          disabled={gettingLocation}
-                          className="shrink-0"
-                        >
-                          {gettingLocation ? (
-                            <Spinner size="sm" />
-                          ) : (
-                            <Navigation className="h-4 w-4" />
-                          )}
-                          <span className="ml-2 hidden sm:inline">
-                            {gettingLocation ? "Obtendo..." : "Minha Localização"}
-                          </span>
-                        </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Observações */}
-            <FormField
-              control={form.control}
-              name="observacoes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      {...field} 
-                      rows={3}
-                      placeholder="Informações adicionais sobre o cliente ou instalação..."
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormField
+                      control={form.control}
+                      name="telefone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefone *</FormLabel>
+                          <FormControl>
+                            <PhoneInput value={field.value} onChange={field.onChange} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>E-mail *</FormLabel>
+                          <FormControl>
+                            <EmailInput value={field.value || ""} onChange={field.onChange} required />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="cpf_cnpj"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CPF/CNPJ *</FormLabel>
+                          <FormControl>
+                            <CpfCnpjInput value={field.value || ""} onChange={field.onChange} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
 
-            {/* Missing items warning */}
-            {getMissingItems().length > 0 && (
-              <div className="w-full p-3 mb-2 bg-warning/20 text-warning-foreground rounded-lg text-sm flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Documentação incompleta</p>
-                  <p className="text-xs mt-1">
-                    Faltam: {getMissingItems().join(", ")}
-                  </p>
+                <div className="border-t border-border" />
+
+                {/* Endereço — AddressFields §13 */}
+                <div className="space-y-3">
+                  <SectionTitle>Endereço</SectionTitle>
+                  <AddressFields
+                    value={addressValue}
+                    onChange={handleAddressChange}
+                  />
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Dados Técnicos */}
+                <div className="space-y-3">
+                  <SectionTitle>Dados técnicos</SectionTitle>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="disjuntor_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Disjuntor *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o disjuntor" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {disjuntores.map((d) => (
+                                <SelectItem key={d.id} value={d.id}>
+                                  {d.amperagem}A {d.descricao ? `- ${d.descricao}` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="transformador_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Transformador *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o transformador" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {transformadores.map((t) => (
+                                <SelectItem key={t.id} value={t.id}>
+                                  {t.potencia_kva} kVA {t.descricao ? `- ${t.descricao}` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Localização — full width */}
+                  <FormField
+                    control={form.control}
+                    name="localizacao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <MapPin className="h-3.5 w-3.5" />
+                          Localização *
+                        </FormLabel>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              value={localizacaoValue ?? ""}
+                              placeholder="Link do Google Maps ou coordenadas"
+                              className="flex-1"
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={getCurrentLocation}
+                            disabled={gettingLocation}
+                            className="shrink-0"
+                            aria-label="Obter localização atual"
+                          >
+                            {gettingLocation ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              <Navigation className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </div>
-            )}
 
-            {/* §25 FOOTER */}
+              {/* ═══ COLUNA DIREITA — documentos e observações ═══ */}
+              <div className="p-5 space-y-5">
+
+                {/* Documentos */}
+                <div className="space-y-3">
+                  <SectionTitle>Documentos</SectionTitle>
+
+                  {/* Identidade */}
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">Identidade (RG/CNH)</span>
+                      {identidadeFiles.length > 0 ? (
+                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Pendente</Badge>
+                      )}
+                    </div>
+                    <DocumentUpload
+                      label=""
+                      description="Frente e verso"
+                      files={identidadeFiles}
+                      onFilesChange={setIdentidadeFiles}
+                      required
+                    />
+                  </div>
+
+                  {/* Comprovante de Endereço */}
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">Comprovante de Endereço</span>
+                      {comprovanteFiles.length > 0 ? (
+                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Pendente</Badge>
+                      )}
+                    </div>
+                    <DocumentUpload
+                      label=""
+                      description="Foto ou arquivo digital"
+                      files={comprovanteFiles}
+                      onFilesChange={setComprovanteFiles}
+                      required
+                    />
+                  </div>
+
+                  {/* Beneficiária (opcional) */}
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">Comprovante Beneficiária UC</span>
+                      {beneficiariaFiles.length > 0 ? (
+                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
+                      )}
+                    </div>
+                    <DocumentUpload
+                      label=""
+                      description="Comprovante da unidade consumidora"
+                      files={beneficiariaFiles}
+                      onFilesChange={setBeneficiariaFiles}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Proposta Aceita */}
+                {simulacoes.length > 0 && (
+                  <>
+                    <div className="space-y-3">
+                      <SectionTitle>Proposta aceita</SectionTitle>
+                      <FormField
+                        control={form.control}
+                        name="simulacao_aceita_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione a proposta aceita" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {simulacoes.map((s) => {
+                                  const dataFormatada = new Date(s.created_at).toLocaleDateString("pt-BR");
+                                  const potencia = s.potencia_recomendada_kwp ? `${s.potencia_recomendada_kwp.toFixed(2)} kWp` : "N/A";
+                                  const investimento = s.investimento_estimado 
+                                    ? `R$ ${s.investimento_estimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                                    : "N/A";
+                                  
+                                  return (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {dataFormatada} — {potencia} — {investimento}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="border-t border-border" />
+                  </>
+                )}
+
+                {/* Observações */}
+                <div className="space-y-3">
+                  <SectionTitle>Observações</SectionTitle>
+                  <FormField
+                    control={form.control}
+                    name="observacoes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            rows={3}
+                            placeholder="Informações adicionais sobre o cliente ou instalação..."
+                            className="bg-muted/50 min-h-[80px]"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Missing items warning */}
+                {missingItems.length > 0 && (
+                  <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Documentação incompleta</p>
+                      <p className="text-xs text-warning mt-1">
+                        Faltam: {missingItems.join(", ")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── FOOTER §25 ─────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row justify-end gap-2 p-4 border-t border-border bg-muted/30">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={() => onOpenChange(false)}
                 disabled={loading || savingAsLead}
               >
                 Cancelar
               </Button>
               
-              {/* Save as Lead button - shown when documentation is incomplete */}
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 onClick={handleSaveAsLead}
                 disabled={loading || savingAsLead}
               >
@@ -1214,7 +1131,6 @@ export function ConvertLeadToClientDialog({
             </div>
           </form>
         </Form>
-        </div>
       </DialogContent>
     </Dialog>
   );
