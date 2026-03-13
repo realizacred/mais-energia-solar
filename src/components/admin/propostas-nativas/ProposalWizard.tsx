@@ -1357,12 +1357,33 @@ export function ProposalWizard() {
             throw new Error(errorMsg);
           }
 
-          // Get the DOCX blob
-          const docxBlob = response.data instanceof Blob
-            ? response.data
-            : new Blob([response.data], {
-                type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-              });
+          // supabase.functions.invoke may return Blob, ArrayBuffer, or string depending on content-type
+          // We need to ensure we have a proper Blob with the DOCX data
+          let docxBlob: Blob;
+          if (response.data instanceof Blob) {
+            docxBlob = response.data;
+          } else if (response.data instanceof ArrayBuffer) {
+            docxBlob = new Blob([response.data], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+          } else {
+            // Fallback: re-fetch as blob using the raw URL
+            const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+            const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
+            const { data: { session } } = await supabase.auth.getSession();
+            const rawResp = await fetch(`https://${projectId}.supabase.co/functions/v1/template-preview`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session?.access_token || anonKey}`,
+                "apikey": anonKey,
+              },
+              body: JSON.stringify({ template_id: templateSelecionado, proposta_id: genResult.proposta_id }),
+            });
+            if (!rawResp.ok) {
+              const errBody = await rawResp.text();
+              throw new Error(errBody || `HTTP ${rawResp.status}`);
+            }
+            docxBlob = await rawResp.blob();
+          }
 
           // Store blob for downloads (DOCX + PDF)
           setDocxBlob(docxBlob);
@@ -1386,8 +1407,9 @@ export function ProposalWizard() {
               </style></head><body>${mammothResult.value}</body></html>
             `;
             setHtmlPreview(styledHtml);
-          } catch (convErr) {
-            console.warn("Mammoth conversion failed, preview unavailable:", convErr);
+          } catch (convErr: any) {
+            console.error("Mammoth conversion failed:", convErr?.message, convErr);
+            console.log("Blob type:", docxBlob.type, "size:", docxBlob.size);
             setHtmlPreview(null);
           }
 
