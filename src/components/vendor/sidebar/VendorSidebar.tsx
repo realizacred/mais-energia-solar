@@ -102,15 +102,18 @@ function VendorSidebarItem({
           <span className="text-[13px] truncate flex-1">{item.title}</span>
         )}
         {badgeCount > 0 && !collapsed && (
-          <Badge
-            variant="secondary"
-            className="h-5 min-w-5 px-1.5 text-[10px] font-bold bg-warning/15 text-warning border-0 shrink-0"
-          >
-            {badgeCount}
-          </Badge>
-        )}
-        {badgeCount > 0 && collapsed && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-warning" />
+          <span className="relative flex shrink-0">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-50 ${
+              isActive ? "bg-background" : "bg-primary"
+            }`} />
+            <span className={`relative min-w-[20px] h-5 px-1 text-[10px] font-bold rounded-full flex items-center justify-center ${
+              isActive
+                ? "bg-background text-primary"
+                : "bg-primary text-primary-foreground"
+            }`}>
+              {badgeCount}
+            </span>
+          </span>
         )}
         {isActive && !collapsed && badgeCount === 0 && (
           <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
