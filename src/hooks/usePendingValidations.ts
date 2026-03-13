@@ -139,7 +139,7 @@ export function usePendingValidations() {
         .from("lead_status")
         .select("id")
         .eq("nome", "Convertido")
-        .single();
+        .maybeSingle();
 
       if (!convertidoStatus) {
         setHistoryItems([]);
