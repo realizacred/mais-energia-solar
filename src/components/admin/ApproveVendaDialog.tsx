@@ -55,8 +55,8 @@ interface ApproveVendaDialogProps {
   onVendedorChange: (id: string) => void;
   selectedSimulacaoId: string;
   onSimulacaoChange: (id: string) => void;
-  valorVenda: string;
-  onValorVendaChange: (v: string) => void;
+  valorVenda: number;
+  onValorVendaChange: (v: number) => void;
   percentualComissao: string;
   onPercentualChange: (v: string) => void;
   onApprove: () => void;
