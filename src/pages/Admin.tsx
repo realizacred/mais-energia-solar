@@ -377,6 +377,7 @@ export default function Admin() {
     }
     return segments[0] || "leads";
   }, [location.pathname]);
+  const isInboxLayout = activeTab === "inbox";
 
   const badgeCounts = useMemo(() => ({
     validacao: pendingCount,
@@ -462,7 +463,7 @@ export default function Admin() {
   return (
     <SidebarProvider style={{ "--sidebar-width": "18rem" } as React.CSSProperties}>
       <TourProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className={`${isInboxLayout ? "h-[100dvh] overflow-hidden" : "min-h-screen"} flex w-full bg-background`}>
         <AdminSidebar
           activeTab={activeTab}
           userEmail={user?.email}
@@ -471,7 +472,7 @@ export default function Admin() {
           data-tour="sidebar"
         />
         
-        <SidebarInset className="flex-1 min-w-0 bg-background">
+        <SidebarInset className={`${isInboxLayout ? "h-[100dvh] overflow-hidden" : ""} flex-1 min-w-0 bg-background`}>
           <header className="sticky top-0 z-50 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-background/80 backdrop-blur-md border-b border-border/40">
             <SidebarTrigger className="-ml-1 h-8 w-8 shrink-0">
               <Menu className="h-4 w-4" />
@@ -495,7 +496,7 @@ export default function Admin() {
           <SistemaInstallBanner />
           <TrialBanner />
           <FeatureDiscoveryLayer />
-          <main className="flex-1 admin-content overflow-x-hidden animate-fade-in">
+          <main className={`flex-1 admin-content overflow-x-hidden animate-fade-in ${isInboxLayout ? "min-h-0 overflow-y-hidden" : ""}`}>
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
                 {/* Default redirect */}
