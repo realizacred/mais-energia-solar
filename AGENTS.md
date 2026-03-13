@@ -162,8 +162,8 @@ Usar `formatBRL`, `formatKwh`, `formatPercent`, `formatDateBR`, `formatBRLCompac
 SRP, DRY, SSOT, KISS, YAGNI. Patches incrementais.
 → Ver §20
 
-### 💡 RECOMENDADO — Inputs especializados
-Usar componentes prontos: `CpfCnpjInput`, `PhoneInput`, `CurrencyInput`, `AddressFields`, etc.
+### 💡 RECOMENDADO — Inputs especializados além dos obrigatórios
+Usar também: `CurrencyInput`, `DateInput`, `UnitInput` quando aplicável.
 → Ver §13
 
 ### 💡 RECOMENDADO — Safe query patterns
