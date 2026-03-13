@@ -1693,6 +1693,7 @@ export function ProposalWizard() {
               onViewDetail={handleViewDetail}
               customFieldValues={customFieldValues}
               onCustomFieldValuesChange={setCustomFieldValues}
+              docxBlob={docxBlob}
             />
           </>
         ));
