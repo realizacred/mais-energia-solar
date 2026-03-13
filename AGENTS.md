@@ -19,7 +19,7 @@ Padrões obrigatórios para toda tela nova ou editada.
 
 # Bloco 0 — TL;DR CHECKLIST
 
-Antes de finalizar **qualquer** tarefa, verifique os 21 itens:
+Antes de finalizar **qualquer** tarefa, verifique os 24 itens:
 
 - [ ] Cores: `bg-primary`, `text-primary` (nunca hex, nunca `orange-*`, `blue-*`)
 - [ ] Button shadcn (`@/components/ui/button`) — nunca `<button>` nativo
