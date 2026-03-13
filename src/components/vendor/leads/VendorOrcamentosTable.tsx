@@ -297,7 +297,7 @@ export function VendorOrcamentosTable({
                       {orc.cidade}, {orc.estado}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium">{orc.media_consumo} kWh</span>
                       <span className="text-xs text-muted-foreground">
