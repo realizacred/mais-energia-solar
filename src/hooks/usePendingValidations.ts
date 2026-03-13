@@ -12,6 +12,11 @@ export interface PendingValidation {
   simulacao_aceita_id: string | null;
   potencia_kwp: number | null;
   valor_projeto: number | null;
+  identidade_url: string | null;
+  identidade_urls: string[] | null;
+  comprovante_endereco_url: string | null;
+  comprovante_endereco_urls: string[] | null;
+  comprovante_beneficiaria_urls: string[] | null;
   leads?: {
     consultor: string | null;
     consultor_id: string | null;
@@ -93,6 +98,11 @@ export function usePendingValidations() {
           simulacao_aceita_id,
           potencia_kwp,
           valor_projeto,
+          identidade_url,
+          identidade_urls,
+          comprovante_endereco_url,
+          comprovante_endereco_urls,
+          comprovante_beneficiaria_urls,
           leads(consultor, consultor_id, lead_code, consultores:consultor_id(id, nome)),
           simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp)
         `)
