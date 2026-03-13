@@ -395,8 +395,25 @@ export function StepDocumento({
                   try {
                     const mammoth = await import("mammoth");
                     const arrayBuffer = await docxBlob.arrayBuffer();
-                    const mammothResult = await mammoth.convertToHtml({ arrayBuffer });
-                    htmlToRender = `<!DOCTYPE html><html><body>${mammothResult.value}</body></html>`;
+                    const mammothResult = await mammoth.convertToHtml({
+                      arrayBuffer,
+                      convertImage: mammoth.images.imgElement((image: any) =>
+                        image.read("base64").then((imageBuffer: string) => ({
+                          src: `data:${image.contentType};base64,${imageBuffer}`,
+                        }))
+                      ),
+                    });
+                    htmlToRender = `<!DOCTYPE html><html><head><style>
+                      * { box-sizing: border-box; }
+                      body { font-family: 'Segoe UI', Arial, sans-serif; width: 794px; margin: 0 auto; padding: 60px; color: #333; line-height: 1.6; font-size: 12px; background: #fff; }
+                      table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+                      td, th { border: 1px solid #ddd; padding: 6px 10px; vertical-align: middle; }
+                      th { background: #f5f5f5; font-weight: 600; }
+                      img { max-width: 100%; height: auto; display: block; margin: 8px 0; clear: both; position: relative; }
+                      p img, span img { display: inline; margin: 0 4px; vertical-align: middle; max-height: 1.5em; }
+                      h1 { font-size: 20px; } h2 { font-size: 17px; } h3 { font-size: 15px; }
+                      p { margin: 6px 0; }
+                    </style></head><body>${mammothResult.value}</body></html>`;
                   } catch (convErr: any) {
                     toast({ title: "Erro ao preparar preview para PDF", description: convErr?.message || "Conversão DOCX falhou", variant: "destructive" });
                     return;
@@ -406,21 +423,68 @@ export function StepDocumento({
                 try {
                   const html2canvas = (await import("html2canvas")).default;
                   const { jsPDF } = await import("jspdf");
-                  // Render HTML in hidden iframe to capture
+
+                  // A4 dimensions
+                  const A4_W_MM = 210;
+                  const A4_H_MM = 297;
+                  const MARGIN_MM = 10;
+                  const CONTENT_W_MM = A4_W_MM - MARGIN_MM * 2;
+                  const CONTENT_W_PX = 794; // ~A4 at 96dpi
+
+                  // Render HTML in hidden iframe
                   const iframe = document.createElement("iframe");
-                  iframe.style.cssText = "position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:none;";
+                  iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${CONTENT_W_PX}px;height:auto;border:none;`;
                   document.body.appendChild(iframe);
                   iframe.contentDocument?.open();
                   iframe.contentDocument?.write(htmlToRender);
                   iframe.contentDocument?.close();
-                  await new Promise(r => setTimeout(r, 500));
-                  const canvas = await html2canvas(iframe.contentDocument!.body, { scale: 2, useCORS: true, width: 800 });
+                  await new Promise(r => setTimeout(r, 800));
+
+                  // Auto-size iframe to content
+                  const bodyEl = iframe.contentDocument!.body;
+                  iframe.style.height = `${bodyEl.scrollHeight + 100}px`;
+                  await new Promise(r => setTimeout(r, 200));
+
+                  // Capture full content
+                  const canvas = await html2canvas(bodyEl, {
+                    scale: 2,
+                    useCORS: true,
+                    width: CONTENT_W_PX,
+                    windowWidth: CONTENT_W_PX,
+                    backgroundColor: "#ffffff",
+                  });
                   document.body.removeChild(iframe);
-                  const imgData = canvas.toDataURL("image/png");
+
                   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-                  const pdfW = pdf.internal.pageSize.getWidth();
-                  const pdfH = (canvas.height * pdfW) / canvas.width;
-                  pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+                  const scaleFactor = CONTENT_W_MM / (canvas.width / 2);
+                  const totalHeightMM = (canvas.height / 2) * scaleFactor;
+                  const pageContentH = A4_H_MM - MARGIN_MM * 2;
+
+                  // Slice canvas into A4 pages
+                  const totalPages = Math.ceil(totalHeightMM / pageContentH);
+                  for (let page = 0; page < totalPages; page++) {
+                    if (page > 0) pdf.addPage();
+
+                    const srcY = Math.round((page * pageContentH / scaleFactor) * 2);
+                    const srcH = Math.round((pageContentH / scaleFactor) * 2);
+                    const sliceH = Math.min(srcH, canvas.height - srcY);
+
+                    if (sliceH <= 0) break;
+
+                    // Create slice canvas for this page
+                    const sliceCanvas = document.createElement("canvas");
+                    sliceCanvas.width = canvas.width;
+                    sliceCanvas.height = sliceH;
+                    const ctx = sliceCanvas.getContext("2d")!;
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                    ctx.drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+                    const sliceImgData = sliceCanvas.toDataURL("image/png");
+                    const sliceHMM = (sliceH / 2) * scaleFactor;
+                    pdf.addImage(sliceImgData, "PNG", MARGIN_MM, MARGIN_MM, CONTENT_W_MM, sliceHMM);
+                  }
+
                   const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
                   pdf.save(`Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`);
                   toast({ title: "PDF baixado com sucesso!" });
