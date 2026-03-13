@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
