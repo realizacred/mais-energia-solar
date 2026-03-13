@@ -9,6 +9,7 @@ interface WaProfileAvatarProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   hasUnread?: boolean;
+  statusDotClassName?: string;
 }
 
 const sizeClasses = {
@@ -34,6 +35,7 @@ export function WaProfileAvatar({
   size = "md",
   className,
   hasUnread,
+  statusDotClassName,
 }: WaProfileAvatarProps) {
   const [imgError, setImgError] = useState(false);
 
@@ -50,7 +52,7 @@ export function WaProfileAvatar({
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0",
+        "relative rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0",
         !showImg && "bg-primary/10 text-primary",
         sizeClasses[size],
         className,
@@ -66,6 +68,15 @@ export function WaProfileAvatar({
         />
       ) : (
         fallback
+      )}
+      {statusDotClassName && (
+        <span
+          className={cn(
+            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card",
+            statusDotClassName,
+          )}
+          aria-hidden="true"
+        />
       )}
     </div>
   );

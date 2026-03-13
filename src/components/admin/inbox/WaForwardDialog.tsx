@@ -24,7 +24,7 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
     queryFn: async () => {
       const { data } = await supabase
         .from("wa_conversations")
-        .select("id, cliente_nome, cliente_telefone, instance_id, remote_jid, is_group, profile_picture_url, tenant_id")
+        .select("id, cliente_nome, cliente_telefone, instance_id, remote_jid, is_group, profile_picture_url, tenant_id, status")
         .neq("status", "resolved")
         .order("last_message_at", { ascending: false })
         .limit(100);
@@ -43,6 +43,12 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
         return (c.cliente_nome?.toLowerCase().includes(q) || c.cliente_telefone?.includes(q));
       });
   }, [conversations, search, currentConversationId]);
+
+  const getStatusDotClass = (status?: string | null) => {
+    if (status === "pending") return "bg-warning";
+    if (status === "resolved") return "bg-muted-foreground";
+    return "bg-success";
+  };
 
   const handleForward = async (targetConv: typeof conversations[0]) => {
     if (!message) return;
@@ -169,6 +175,7 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
                     isGroup={conv.is_group}
                     name={conv.cliente_nome}
                     size="md"
+                    statusDotClassName={getStatusDotClass(conv.status)}
                     className="bg-muted/80 text-muted-foreground"
                   />
                   <div className="min-w-0 flex-1">
