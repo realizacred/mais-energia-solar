@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,15 @@ export function DocumentPreviewDialog({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [zoom, setZoom] = useState(1);
   const [loading, setLoading] = useState(true);
+
+  // Reset state when dialog opens or files change
+  useEffect(() => {
+    if (open) {
+      setCurrentIndex(initialIndex);
+      setZoom(1);
+      setLoading(true);
+    }
+  }, [open, initialIndex]);
 
   const currentFile = files[currentIndex];
   const isImage = currentFile?.type?.startsWith("image/");
