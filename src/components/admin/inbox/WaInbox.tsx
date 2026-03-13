@@ -72,6 +72,19 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     }
   }, [permissionsLoading, canViewGroups]);
 
+  // Force stable inbox scroll layout in admin (prevents page-level scroll leaks)
+  useEffect(() => {
+    if (vendorMode) return;
+
+    document.documentElement.classList.add("wa-inbox-admin");
+    document.body.classList.add("wa-inbox-admin");
+
+    return () => {
+      document.documentElement.classList.remove("wa-inbox-admin");
+      document.body.classList.remove("wa-inbox-admin");
+    };
+  }, [vendorMode]);
+
   // Selected conversation
   const [selectedConv, setSelectedConv] = useState<WaConversation | null>(null);
 
