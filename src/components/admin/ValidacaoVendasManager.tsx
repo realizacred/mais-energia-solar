@@ -529,6 +529,15 @@ export function ValidacaoVendasManager() {
                                 >
                                   <XCircle className="h-4 w-4" />
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-warning hover:text-warning hover:bg-warning/10"
+                                  onClick={() => cliente.lead_id && reopenLead(cliente.lead_id, cliente.id)}
+                                  disabled={reopening || !cliente.lead_id}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
