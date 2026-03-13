@@ -164,7 +164,7 @@ Respeitar tenant isolation, evitar selects desnecessários, não quebrar RLS.
 
 # Bloco 3 — REFERÊNCIA DE PADRÕES
 
-Todas as seções originais §1–§33, reorganizadas sem duplicações.
+Todas as seções originais §1–§38, reorganizadas sem duplicações.
 
 ---
 
