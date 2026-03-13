@@ -59,7 +59,6 @@ interface ApproveVendaDialogProps {
   onApprove: () => void;
   approving: boolean;
   isValid: boolean;
-  /** Document URLs from the client record */
   documents: DocumentItem[];
 }
 
@@ -151,14 +150,6 @@ export function ApproveVendaDialog({
   const consumo = selectedSim?.consumo_kwh || cliente.simulacoes?.consumo_kwh || cliente.leads?.media_consumo || 0;
   const valorProposta = selectedSim?.investimento_estimado || cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
 
-  console.debug("[ApproveVendaDialog] data:", {
-    selectedSimulacaoId,
-    selectedSim,
-    clienteSimulacoes: cliente.simulacoes,
-    potencia, consumo, valorProposta,
-    documents,
-  });
-
   const valorComissao = () => {
     const base = parseFloat(valorVenda) || 0;
     return (base * (parseFloat(percentualComissao) || 0)) / 100;
@@ -181,202 +172,208 @@ export function ApproveVendaDialog({
             </div>
           </DialogHeader>
 
-          {/* BODY */}
-          <div className="space-y-5 p-5 overflow-y-auto min-h-0 flex-1 max-h-[70vh]">
-            {/* --- Dados do cliente --- */}
-            <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Dados do cliente
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <DataCard icon={User} label="Cliente" value={cliente.nome} />
-                <DataCard icon={Phone} label="Telefone" value={formatPhoneBR(cliente.telefone)} />
-                <DataCard icon={MapPin} label="Localização" value={[cliente.cidade, cliente.estado].filter(Boolean).join(", ") || "—"} />
-                <DataCard icon={FileText} label="Lead" value={cliente.leads?.lead_code || "—"} />
-              </div>
-            </div>
-
-            <div className="border-t border-border" />
-
-            {/* --- Dados da proposta --- */}
-            <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Dados da proposta
-              </p>
-              <div className="grid grid-cols-3 gap-3">
-                <DataCard icon={Zap} label="Potência" value={potencia ? `${potencia} kWp` : "—"} />
-                <DataCard icon={Zap} label="Consumo médio" value={consumo ? formatKwh(consumo, 0) : "—"} />
-                <DataCard icon={DollarSign} label="Valor proposta" value={formatBRL(valorProposta)} valueClass="text-success" />
-              </div>
-            </div>
-
-            <div className="border-t border-border" />
-
-            {/* --- Documentos --- */}
-            {documents.length > 0 && (
-              <>
+          {/* BODY — 2 colunas §25 */}
+          <div className="overflow-y-auto min-h-0 flex-1 max-h-[70vh]">
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+              {/* ═══ COLUNA ESQUERDA — Dados ═══ */}
+              <div className="p-5 space-y-5">
+                {/* Dados do cliente */}
                 <div className="space-y-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Documentos anexados
+                    Dados do cliente
                   </p>
-                  <div className="space-y-2">
-                    {documents.map((doc) => {
-                      const hasFiles = doc.urls && doc.urls.length > 0;
-                      return (
-                        <div
-                          key={doc.label}
-                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                            hasFiles
-                              ? "bg-muted/50 border-border hover:bg-muted cursor-pointer"
-                              : "bg-muted/30 border-warning/30"
-                          }`}
-                          onClick={() => hasFiles && doc.urls && setPreviewUrl(doc.urls[0])}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                            <span className="text-sm text-foreground">{doc.label}</span>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${
-                              hasFiles
-                                ? "bg-success/10 text-success border-success/20"
-                                : "bg-warning/10 text-warning border-warning/20"
-                            }`}
-                          >
-                            {hasFiles ? `Anexado (${doc.urls!.length})` : "Pendente"}
-                          </Badge>
-                        </div>
-                      );
-                    })}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <DataCard icon={User} label="Cliente" value={cliente.nome} />
+                    <DataCard icon={Phone} label="Telefone" value={formatPhoneBR(cliente.telefone)} />
+                    <DataCard icon={MapPin} label="Localização" value={[cliente.cidade, cliente.estado].filter(Boolean).join(", ") || "—"} />
+                    <DataCard icon={FileText} label="Lead" value={cliente.leads?.lead_code || "—"} />
                   </div>
                 </div>
+
                 <div className="border-t border-border" />
-              </>
-            )}
 
-            {/* --- Comissão --- */}
-            <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Comissão
-              </p>
-
-              {/* Vendedor selector */}
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5 text-sm">
-                  <User className="h-3.5 w-3.5" />
-                  Vendedor Responsável *
-                </Label>
-                <Select value={selectedVendedorId} onValueChange={onVendedorChange}>
-                  <SelectTrigger className={!selectedVendedorId ? "border-destructive" : ""}>
-                    <SelectValue placeholder="Selecione o consultor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vendedores.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.nome}
-                        {v.percentual_comissao != null && (
-                          <span className="text-muted-foreground ml-1">({v.percentual_comissao}%)</span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!selectedVendedorId && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Selecione o vendedor para gerar a comissão
+                {/* Dados da proposta */}
+                <div className="space-y-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Dados da proposta
                   </p>
-                )}
-              </div>
-
-              {/* Simulação selector */}
-              {loadingVendedor ? (
-                <div className="flex items-center justify-center py-4">
-                  <Spinner size="sm" />
-                  <span className="ml-2 text-sm text-muted-foreground">Carregando propostas...</span>
-                </div>
-              ) : leadSimulacoes.length > 0 ? (
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5 text-sm">
-                    <FileText className="h-3.5 w-3.5" />
-                    Proposta ({leadSimulacoes.length})
-                  </Label>
-                  <Select value={selectedSimulacaoId} onValueChange={onSimulacaoChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma proposta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leadSimulacoes.map((sim) => (
-                        <SelectItem key={sim.id} value={sim.id}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{sim.potencia_recomendada_kwp || 0} kWp</span>
-                            <span className="text-muted-foreground">—</span>
-                            <span>{sim.investimento_estimado ? formatBRL(sim.investimento_estimado) : "Sem valor"}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ({format(new Date(sim.created_at), "dd/MM/yy", { locale: ptBR })})
-                            </span>
-                            {sim.id === cliente.simulacao_aceita_id && (
-                              <Badge variant="secondary" className="text-[10px] h-4 px-1">Aceita</Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="manual">
-                        <span className="text-muted-foreground">✏️ Informar valor manualmente</span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-xs text-warning p-3 bg-warning/10 rounded-lg">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                  <span>Nenhuma proposta encontrada — informe o valor manualmente</span>
-                </div>
-              )}
-
-              {/* Valor da venda */}
-              <div className="space-y-1.5">
-                <Label htmlFor="av-valor">Valor da Venda (R$) *</Label>
-                <Input
-                  id="av-valor"
-                  type="number"
-                  step="0.01"
-                  placeholder="Ex: 35000.00"
-                  value={valorVenda}
-                  onChange={(e) => onValorVendaChange(e.target.value)}
-                />
-                {!valorVenda && (
-                  <p className="text-xs text-destructive">Informe o valor para gerar a comissão</p>
-                )}
-              </div>
-
-              {/* Percentual */}
-              <div className="space-y-1.5">
-                <Label htmlFor="av-perc" className="flex items-center gap-1.5">
-                  Percentual de Comissão (%)
-                  {loadingVendedor && <Spinner size="sm" />}
-                </Label>
-                <Input
-                  id="av-perc"
-                  type="number"
-                  step="0.1"
-                  value={percentualComissao}
-                  onChange={(e) => onPercentualChange(e.target.value)}
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Pré-preenchido do cadastro do vendedor. Altere se necessário.
-                </p>
-              </div>
-
-              {/* Comissão preview */}
-              <div className="p-4 bg-success/10 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-success" />
-                    <span className="font-medium text-sm text-foreground">Valor da Comissão</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <DataCard icon={Zap} label="Potência" value={potencia ? `${potencia} kWp` : "—"} />
+                    <DataCard icon={Zap} label="Consumo médio" value={consumo ? formatKwh(consumo, 0) : "—"} />
+                    <DataCard icon={DollarSign} label="Valor proposta" value={formatBRL(valorProposta)} valueClass="text-success" />
                   </div>
-                  <span className="text-xl font-bold text-success">{formatBRL(valorComissao())}</span>
+                </div>
+              </div>
+
+              {/* ═══ COLUNA DIREITA — Documentos + Comissão ═══ */}
+              <div className="p-5 space-y-5">
+                {/* Documentos anexados */}
+                {documents.length > 0 && (
+                  <>
+                    <div className="space-y-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Documentos anexados
+                      </p>
+                      <div className="space-y-2">
+                        {documents.map((doc) => {
+                          const hasFiles = doc.urls && doc.urls.length > 0;
+                          return (
+                            <div
+                              key={doc.label}
+                              className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                                hasFiles
+                                  ? "bg-muted/50 border-border hover:bg-muted cursor-pointer"
+                                  : "bg-muted/30 border-warning/30"
+                              }`}
+                              onClick={() => hasFiles && doc.urls && setPreviewUrl(doc.urls[0])}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                                <span className="text-sm text-foreground">{doc.label}</span>
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] ${
+                                  hasFiles
+                                    ? "bg-success/10 text-success border-success/20"
+                                    : "bg-warning/10 text-warning border-warning/20"
+                                }`}
+                              >
+                                {hasFiles ? `Anexado (${doc.urls!.length})` : "Pendente"}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="border-t border-border" />
+                  </>
+                )}
+
+                {/* Comissão */}
+                <div className="space-y-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Comissão
+                  </p>
+
+                  {/* Vendedor selector */}
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5 text-sm">
+                      <User className="h-3.5 w-3.5" />
+                      Vendedor Responsável *
+                    </Label>
+                    <Select value={selectedVendedorId} onValueChange={onVendedorChange}>
+                      <SelectTrigger className={!selectedVendedorId ? "border-destructive" : ""}>
+                        <SelectValue placeholder="Selecione o consultor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendedores.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.nome}
+                            {v.percentual_comissao != null && (
+                              <span className="text-muted-foreground ml-1">({v.percentual_comissao}%)</span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!selectedVendedorId && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Selecione o vendedor para gerar a comissão
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Simulação selector */}
+                  {loadingVendedor ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Spinner size="sm" />
+                      <span className="ml-2 text-sm text-muted-foreground">Carregando propostas...</span>
+                    </div>
+                  ) : leadSimulacoes.length > 0 ? (
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5 text-sm">
+                        <FileText className="h-3.5 w-3.5" />
+                        Proposta ({leadSimulacoes.length})
+                      </Label>
+                      <Select value={selectedSimulacaoId} onValueChange={onSimulacaoChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma proposta" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {leadSimulacoes.map((sim) => (
+                            <SelectItem key={sim.id} value={sim.id}>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{sim.potencia_recomendada_kwp || 0} kWp</span>
+                                <span className="text-muted-foreground">—</span>
+                                <span>{sim.investimento_estimado ? formatBRL(sim.investimento_estimado) : "Sem valor"}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({format(new Date(sim.created_at), "dd/MM/yy", { locale: ptBR })})
+                                </span>
+                                {sim.id === cliente.simulacao_aceita_id && (
+                                  <Badge variant="secondary" className="text-[10px] h-4 px-1">Aceita</Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="manual">
+                            <span className="text-muted-foreground">✏️ Informar valor manualmente</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-warning p-3 bg-warning/10 rounded-lg">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      <span>Nenhuma proposta encontrada — informe o valor manualmente</span>
+                    </div>
+                  )}
+
+                  {/* Valor da venda */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="av-valor">Valor da Venda (R$) *</Label>
+                    <Input
+                      id="av-valor"
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 35000.00"
+                      value={valorVenda}
+                      onChange={(e) => onValorVendaChange(e.target.value)}
+                    />
+                    {!valorVenda && (
+                      <p className="text-xs text-destructive">Informe o valor para gerar a comissão</p>
+                    )}
+                  </div>
+
+                  {/* Percentual */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="av-perc" className="flex items-center gap-1.5">
+                      Percentual de Comissão (%)
+                      {loadingVendedor && <Spinner size="sm" />}
+                    </Label>
+                    <Input
+                      id="av-perc"
+                      type="number"
+                      step="0.1"
+                      value={percentualComissao}
+                      onChange={(e) => onPercentualChange(e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Pré-preenchido do cadastro do vendedor. Altere se necessário.
+                    </p>
+                  </div>
+
+                  {/* Comissão preview */}
+                  <div className="p-4 bg-success/10 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5 text-success" />
+                        <span className="font-medium text-sm text-foreground">Valor da Comissão</span>
+                      </div>
+                      <span className="text-xl font-bold text-success">{formatBRL(valorComissao())}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
