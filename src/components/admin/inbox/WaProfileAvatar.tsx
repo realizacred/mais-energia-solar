@@ -10,6 +10,7 @@ interface WaProfileAvatarProps {
   className?: string;
   hasUnread?: boolean;
   statusDotClassName?: string;
+  colorByName?: boolean;
 }
 
 const sizeClasses = {
@@ -25,6 +26,22 @@ const iconSizes = {
 } as const;
 
 const INVALID_PROFILE_VALUES = new Set(["", "none", "null", "undefined"]);
+
+// Avatar color palette for fallback when no photo — uses semantic-compatible soft tones
+const AVATAR_COLORS = [
+  { bg: "bg-blue-100 dark:bg-blue-900/40", text: "text-blue-800 dark:text-blue-300" },
+  { bg: "bg-green-100 dark:bg-green-900/40", text: "text-green-800 dark:text-green-300" },
+  { bg: "bg-purple-100 dark:bg-purple-900/40", text: "text-purple-800 dark:text-purple-300" },
+  { bg: "bg-amber-100 dark:bg-amber-900/40", text: "text-amber-800 dark:text-amber-300" },
+  { bg: "bg-rose-100 dark:bg-rose-900/40", text: "text-rose-800 dark:text-rose-300" },
+  { bg: "bg-cyan-100 dark:bg-cyan-900/40", text: "text-cyan-800 dark:text-cyan-300" },
+] as const;
+
+function getColorByName(name: string | null) {
+  if (!name) return AVATAR_COLORS[0];
+  const index = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+}
 
 function normalizeProfilePictureUrl(url: string | null): string | null {
   const normalized = (url ?? "").trim();
@@ -44,6 +61,7 @@ export function WaProfileAvatar({
   className,
   hasUnread,
   statusDotClassName,
+  colorByName = false,
 }: WaProfileAvatarProps) {
   const normalizedUrl = useMemo(() => normalizeProfilePictureUrl(profilePictureUrl), [profilePictureUrl]);
   const [imgSrc, setImgSrc] = useState<string | null>(normalizedUrl);
@@ -55,6 +73,7 @@ export function WaProfileAvatar({
   }, [normalizedUrl]);
 
   const showImg = !!imgSrc && !imgError;
+  const nameColor = colorByName ? getColorByName(name) : null;
 
   const fallback = isGroup ? (
     <Users className={iconSizes[size]} />
@@ -85,11 +104,18 @@ export function WaProfileAvatar({
     setImgError(true);
   };
 
+  // Determine fallback colors
+  const fallbackColorClasses = colorByName && nameColor && !showImg
+    ? `${nameColor.bg} ${nameColor.text}`
+    : !showImg
+      ? "bg-primary/10 text-primary"
+      : "";
+
   return (
     <div
       className={cn(
         "relative rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0",
-        !showImg && "bg-primary/10 text-primary",
+        fallbackColorClasses,
         sizeClasses[size],
         className,
       )}
