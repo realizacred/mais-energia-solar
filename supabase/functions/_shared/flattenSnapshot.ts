@@ -161,7 +161,18 @@ export function flattenSnapshot(snapshot: AnyObj | null | undefined): Record<str
   // ── 6. Flatten cliente ──
   const cliente = safeObj(snapshot.cliente);
   setIfMissing("cliente_nome", cliente.nome);
-  setIfMissing("vc_nome", cliente.nome);
+  setIfMissing("vc_nome", cliente.nome); // Legacy alias — maps to client name for backward compat
+  // vc_financeira_nome: resolved from financing data, not from cliente
+  const pagOpcoes = safeArr(snapshot.pagamento_opcoes).length > 0
+    ? safeArr(snapshot.pagamento_opcoes)
+    : safeArr(snapshot.pagamentoOpcoes);
+  const financeiraAtiva = pagOpcoes.find((p) => {
+    const tipo = str(p.tipo)?.toLowerCase() || "";
+    return tipo.includes("financ");
+  });
+  if (financeiraAtiva) {
+    setIfMissing("vc_financeira_nome", financeiraAtiva.nome || financeiraAtiva.banco || financeiraAtiva.banco_nome);
+  }
   setIfMissing("cliente_celular", cliente.telefone);
   setIfMissing("cliente_email", cliente.email);
   setIfMissing("cliente_cnpj_cpf", cliente.cpf_cnpj);

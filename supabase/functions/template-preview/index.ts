@@ -54,32 +54,52 @@ async function processDocxTemplate(
     // ── STEP 1b: Normalize split runs in regular paragraphs ──
     content = normalizeParagraphRuns(content);
 
-    // ── STEP 2: Direct [key] → value substitution ──
+    // ── STEP 2: Direct substitution for both formats ──
+    // Supports [key] (legacy) and {{key}} (canonical)
     for (const [key, value] of Object.entries(vars)) {
       const safeValue = escapeXml(value);
-      const pattern = `[${key}]`;
-      if (content.includes(pattern)) {
-        content = content.replaceAll(pattern, safeValue);
+      // Legacy format: [key]
+      const legacyPattern = `[${key}]`;
+      if (content.includes(legacyPattern)) {
+        content = content.replaceAll(legacyPattern, safeValue);
+        modified = true;
+      }
+      // Canonical format: {{key}}
+      const canonicalPattern = `{{${key}}}`;
+      if (content.includes(canonicalPattern)) {
+        content = content.replaceAll(canonicalPattern, safeValue);
         modified = true;
       }
     }
 
     // ── STEP 3: Final sweep — blank remaining *valid placeholders* only ──
-    // Important: avoid matching arbitrary bracket tokens like [3212], which can exist in DOCX internals.
-    const remainingPattern = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
-    let remaining;
+    // Supports both [key] and {{key}} formats
     const localMissing: string[] = [];
-    while ((remaining = remainingPattern.exec(content)) !== null) {
+
+    // Sweep [key] format
+    const remainingBracket = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
+    let remaining;
+    while ((remaining = remainingBracket.exec(content)) !== null) {
       const varName = remaining[1];
-      if (!localMissing.includes(varName)) {
-        localMissing.push(varName);
-      }
+      if (!localMissing.includes(varName)) localMissing.push(varName);
+    }
+
+    // Sweep {{key}} format
+    const remainingMustache = /\{\{([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\}\}/g;
+    while ((remaining = remainingMustache.exec(content)) !== null) {
+      const varName = remaining[1];
+      if (!localMissing.includes(varName)) localMissing.push(varName);
     }
 
     for (const varName of localMissing) {
-      const pattern = `[${varName}]`;
-      if (content.includes(pattern)) {
-        content = content.replaceAll(pattern, "");
+      const bracketPattern = `[${varName}]`;
+      const mustachePattern = `{{${varName}}}`;
+      if (content.includes(bracketPattern)) {
+        content = content.replaceAll(bracketPattern, "");
+        modified = true;
+      }
+      if (content.includes(mustachePattern)) {
+        content = content.replaceAll(mustachePattern, "");
         modified = true;
       }
       if (!missingVars.includes(varName)) {
@@ -574,7 +594,7 @@ Deno.serve(async (req) => {
     // ═══════════════════════════════════════════════════════
     const nomeCliente = cliente?.nome || lead?.nome;
     set("cliente_nome", nomeCliente);
-    set("vc_nome", nomeCliente);
+    set("vc_nome", nomeCliente); // Legacy alias — kept for backward compat with old templates
     set("cliente_celular", cliente?.telefone || lead?.telefone);
     set("cliente_email", cliente?.email);
     set("cliente_cnpj_cpf", cliente?.cpf_cnpj);
@@ -1253,6 +1273,112 @@ Deno.serve(async (req) => {
       setIfMissing("co2_evitado_ano", fmtNum(co2Kg, 0));
     }
 
+    // ═══════════════════════════════════════════════════════
+    // DUAL-KEY SUPPORT: Canonical {{grupo.campo}} aliases
+    // ═══════════════════════════════════════════════════════
+    // For every flat key in vars, also populate the canonical dotted form.
+    // This allows templates using {{sistema_solar.modulo_fabricante}} to work
+    // alongside legacy templates using [modulo_fabricante].
+    // 
+    // Mapping is derived from the catalog convention:
+    //   legacyKey = flatKey (e.g. "modulo_fabricante")
+    //   canonicalKey = "grupo.campo" (e.g. "sistema_solar.modulo_fabricante")
+    //
+    // We use a static map of known prefixes → canonical groups to avoid
+    // shipping the full catalog into the edge function.
+    const canonicalPrefixMap: Record<string, string> = {
+      // cliente
+      "cliente_": "cliente.",
+      // entrada
+      "consumo_": "entrada.consumo_",
+      "dis_energia": "entrada.dis_energia",
+      "tarifa_distribuidora": "entrada.tarifa_distribuidora",
+      "tipo_telhado": "entrada.tipo_telhado",
+      "fase": "entrada.fase",
+      "tensao_rede": "entrada.tensao_rede",
+      "custo_disponibilidade_kwh": "entrada.custo_disponibilidade_kwh",
+      "tipo_sistema": "entrada.tipo_sistema",
+      "area_util": "entrada.area_util",
+      // sistema_solar
+      "potencia_sistema": "sistema_solar.potencia_sistema",
+      "geracao_mensal": "sistema_solar.geracao_mensal",
+      "modulo_": "sistema_solar.modulo_",
+      "inversor_": "sistema_solar.inversor_",
+      "inversores_": "sistema_solar.inversores_",
+      "otimizador_": "sistema_solar.otimizador_",
+      "bateria_": "sistema_solar.bateria_",
+      "transformador_": "sistema_solar.transformador_",
+      // financeiro
+      "preco": "financeiro.preco",
+      "preco_total": "financeiro.preco_total",
+      "preco_final": "financeiro.preco_final",
+      "valor_total": "financeiro.valor_total",
+      "economia_": "financeiro.economia_",
+      "payback": "financeiro.payback",
+      "vpl": "financeiro.vpl",
+      "tir": "financeiro.tir",
+      "margem_": "financeiro.margem_",
+      "comissao_": "financeiro.comissao_",
+      // conta_energia
+      "gasto_": "conta_energia.gasto_",
+      "creditos_": "conta_energia.creditos_",
+      "co2_evitado": "conta_energia.co2_evitado",
+      // comercial
+      "proposta_": "comercial.proposta_",
+      "consultor_": "comercial.consultor_",
+      "responsavel_": "comercial.responsavel_",
+      "empresa_": "comercial.empresa_",
+      // premissas
+      "inflacao_": "premissas.inflacao_",
+      "perda_eficiencia": "premissas.perda_eficiencia",
+      "vida_util_sistema": "premissas.vida_util_sistema",
+      // tarifa
+      "tarifa_te_": "tarifa.tarifa_te_",
+      "tarifa_tusd_": "tarifa.tarifa_tusd_",
+      "tarifa_fio_b_": "tarifa.tarifa_fio_b_",
+      "tarifa_precisao": "tarifa.tarifa_precisao",
+      "tarifa_origem": "tarifa.tarifa_origem",
+      // gd
+      "gd_": "gd.",
+      // aneel
+      "aneel_": "aneel.",
+      // calculo
+      "calc_": "calculo.calc_",
+    };
+
+    // Generate canonical keys from existing flat keys
+    const canonicalEntries: Record<string, string> = {};
+    for (const [flatKey, value] of Object.entries(vars)) {
+      // Try to find matching prefix (longest match first for specificity)
+      for (const [prefix, canonicalPrefix] of Object.entries(canonicalPrefixMap)) {
+        if (flatKey === prefix || flatKey.startsWith(prefix)) {
+          const canonicalKey = flatKey.replace(prefix, canonicalPrefix);
+          if (canonicalKey !== flatKey && !vars[canonicalKey]) {
+            canonicalEntries[canonicalKey] = value;
+          }
+          break;
+        }
+      }
+    }
+    // Also populate the dotted form for vc_* and f_* as customizada.*
+    for (const [flatKey, value] of Object.entries(vars)) {
+      if ((flatKey.startsWith("vc_") || flatKey.startsWith("f_")) && !vars[`customizada.${flatKey}`]) {
+        canonicalEntries[`customizada.${flatKey}`] = value;
+      }
+    }
+    Object.assign(vars, canonicalEntries);
+
+    // vc_financeira_nome — populate from financing data
+    if (!vars["vc_financeira_nome"]) {
+      const financeiraAtiva = normalizedPagOpcoes.find((p) => p.tipo === "financiamento");
+      if (financeiraAtiva) {
+        set("vc_financeira_nome", financeiraAtiva.nome);
+        setIfMissing("customizada.vc_financeira_nome", financeiraAtiva.nome);
+      }
+    }
+
+    console.log(`[template-preview] Dual-key canonical aliases added: ${Object.keys(canonicalEntries).length}`);
+
     // AUDIT LOG: dump critical placeholder values for debugging
     const auditKeys = [
       "potencia_sistema", "modulo_fabricante", "modulo_potencia", "modulo_quantidade",
@@ -1263,11 +1389,12 @@ Deno.serve(async (req) => {
       "f_nome_1", "f_entrada_1", "f_valor_1", "f_prazo_1", "f_taxa_1", "f_parcela_1",
       "responsavel_nome", "vc_observacao", "consumo_mensal", "geracao_mensal", "vc_aumento",
       "dis_energia", "subgrupo_uc1", "cidade", "estado", "vpl", "tir",
+      "vc_nome", "vc_financeira_nome",
     ];
     const auditPayload: Record<string, string> = {};
     for (const k of auditKeys) auditPayload[k] = vars[k] ?? "(MISSING)";
     console.log("[template-preview] AUDIT PAYLOAD:", JSON.stringify(auditPayload, null, 2));
-    console.log(`[template-preview] Variables mapped: ${Object.keys(vars).length} keys`);
+    console.log(`[template-preview] Variables mapped: ${Object.keys(vars).length} keys (includes canonical)`);
     console.log(`[template-preview] Snapshot keys: ${snapshot ? Object.keys(snapshot).length : 0}`);
 
     // ── 7. BAIXAR O DOCX DO STORAGE ───────────────────────

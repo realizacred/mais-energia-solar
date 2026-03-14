@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.40.0",
+    date: "2026-03-14",
+    title: "Auditoria e correção estrutural de variáveis de proposta",
+    type: "improvement",
+    description: "Corrige conflito semântico de vc_nome, implementa suporte dual-key no backend e amplia cobertura do resolver frontend.",
+    details: [
+      "vc_nome redefinida como alias de cliente_nome; nova vc_financeira_nome para banco/financeira",
+      "Suporte dual-key no template-preview: chaves canônicas {{grupo.campo}} geradas automaticamente",
+      "Templates DOCX agora suportam tanto [key] quanto {{key}} como placeholders",
+      "Resolver frontend ampliado: equipamentos, financeiro detalhado, financiamento, conta de energia",
+      "Catálogo atualizado com descrições claras e sem ambiguidade",
+    ],
+  },
+  {
     version: "2.39.0",
     date: "2026-03-14",
     title: "Motor de Composição de Pagamento para Vendas",

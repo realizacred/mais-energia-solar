@@ -239,9 +239,28 @@ function resolveFromContext(
   if (key === "entrada.tensao_rede") return s(uc1?.tensao_rede);
   if (key === "entrada.tipo_sistema") return s(ctx.kit?.tipo_sistema);
 
-  // ── Sistema Solar ──
+  // ── Sistema Solar — Equipamentos ──
   if (key === "sistema_solar.potencia_sistema") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
   if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
+  if (key === "sistema_solar.numero_modulos") return ctx.numeroPlacas ? String(ctx.numeroPlacas) : null;
+
+  // Equipment from kit items
+  const kitItens = (ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined;
+  if (kitItens && Array.isArray(kitItens)) {
+    const findItem = (cat: string) => kitItens.find((i) => String(i.categoria || i.tipo || "").toLowerCase().includes(cat));
+    const modulo = findItem("modulo") || findItem("painel") || findItem("placa");
+    const inversor = findItem("inversor");
+
+    if (key === "sistema_solar.modulo_fabricante") return s(modulo?.fabricante as string);
+    if (key === "sistema_solar.modulo_modelo") return s(modulo?.modelo as string);
+    if (key === "sistema_solar.modulo_potencia") return modulo?.potencia ? `${modulo.potencia} Wp` : null;
+    if (key === "sistema_solar.modulo_quantidade") return s((modulo?.quantidade ?? ctx.numeroPlacas) as string | number);
+    if (key === "sistema_solar.inversor_fabricante") return s(inversor?.fabricante as string);
+    if (key === "sistema_solar.inversor_fabricante_1") return s(inversor?.fabricante as string);
+    if (key === "sistema_solar.inversor_modelo") return s(inversor?.modelo as string);
+    if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia ? `${inversor.potencia} W` : null;
+    if (key === "sistema_solar.inversor_quantidade") return s(inversor?.quantidade as string | number);
+  }
 
   // ── Financeiro ──
   if (key === "financeiro.preco_total") {
@@ -258,13 +277,101 @@ function resolveFromContext(
     }
     return null;
   }
+  if (key === "financeiro.preco") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
+  if (key === "financeiro.preco_final") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
+  if (key === "financeiro.valor_total") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
   if (key === "financeiro.economia_mensal") return ctx.economiaMensal ? fmtCurrency(ctx.economiaMensal) : null;
   if (key === "financeiro.economia_anual") return ctx.economiaAnual ? fmtCurrency(ctx.economiaAnual) : null;
   if (key === "financeiro.economia_25_anos") return ctx.economia25Anos ? fmtCurrency(ctx.economia25Anos) : null;
   if (key === "financeiro.payback_anos") return ctx.paybackAnos ? fmtNumber(ctx.paybackAnos, 1) : null;
+  if (key === "financeiro.payback_meses") return ctx.paybackAnos ? fmtNumber(ctx.paybackAnos * 12, 0) : null;
+  if (key === "financeiro.preco_kwp") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtCurrency(ctx.precoTotal / ctx.potenciaKwp) : null;
+  if (key === "financeiro.preco_watt") return (ctx.precoTotal && ctx.potenciaKwp) ? `${fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2)} R$/W` : null;
+
+  // Equipment financials from kit
+  if (kitItens && Array.isArray(kitItens)) {
+    const findItem = (cat: string) => kitItens.find((i) => String(i.categoria || i.tipo || "").toLowerCase().includes(cat));
+    const modulo = findItem("modulo") || findItem("painel") || findItem("placa");
+    const inversor = findItem("inversor");
+
+    if (key === "financeiro.modulo_custo_un") return modulo?.custo_unitario ? fmtCurrency(Number(modulo.custo_unitario)) : null;
+    if (key === "financeiro.modulo_preco_un") return modulo?.preco_unitario ? fmtCurrency(Number(modulo.preco_unitario)) : null;
+    if (key === "financeiro.modulo_custo_total") return (modulo?.custo_unitario && modulo?.quantidade) ? fmtCurrency(Number(modulo.custo_unitario) * Number(modulo.quantidade)) : null;
+    if (key === "financeiro.modulo_preco_total") return (modulo?.preco_unitario && modulo?.quantidade) ? fmtCurrency(Number(modulo.preco_unitario) * Number(modulo.quantidade)) : null;
+    if (key === "financeiro.inversor_custo_un") return inversor?.custo_unitario ? fmtCurrency(Number(inversor.custo_unitario)) : null;
+    if (key === "financeiro.inversor_preco_un") return inversor?.preco_unitario ? fmtCurrency(Number(inversor.preco_unitario)) : null;
+    if (key === "financeiro.inversor_custo_total") return (inversor?.custo_unitario && inversor?.quantidade) ? fmtCurrency(Number(inversor.custo_unitario) * Number(inversor.quantidade)) : null;
+    if (key === "financeiro.inversor_preco_total") return (inversor?.preco_unitario && inversor?.quantidade) ? fmtCurrency(Number(inversor.preco_unitario) * Number(inversor.quantidade)) : null;
+  }
+
+  // Financiamento from pagamento opcoes
+  if (ctx.pagamentoOpcoes && ctx.pagamentoOpcoes.length > 0) {
+    const pOps = ctx.pagamentoOpcoes;
+    // Financeira ativa (first financiamento)
+    const finAtiva = pOps.find((p) => (p as any).tipo?.toLowerCase?.()?.includes("financ"));
+    if (key === "customizada.vc_financeira_nome") return s((finAtiva as any)?.nome ?? (finAtiva as any)?.banco);
+
+    // vc_nome = client name (not financing)
+    if (key === "customizada.vc_nome") return s(ctx.cliente?.nome);
+
+    // Indexed financing variables
+    const fins = pOps.filter((p) =>
+      (p as any).tipo?.toLowerCase?.()?.includes("financ") ||
+      (p as any).tipo?.toLowerCase?.()?.includes("parcel")
+    );
+    for (let i = 0; i < Math.min(fins.length, 3); i++) {
+      const f = fins[i] as any;
+      if (key === `customizada.vc_parcela_${i + 1}`) return f.valor_parcela ? fmtCurrency(Number(f.valor_parcela)) : null;
+      if (key === `customizada.vc_taxa_${i + 1}`) return f.taxa_mensal ? `${fmtNumber(Number(f.taxa_mensal), 2)}%` : null;
+      if (key === `customizada.vc_prazo_${i + 1}`) return f.num_parcelas ? String(f.num_parcelas) : null;
+      if (key === `customizada.vc_entrada_${i + 1}`) return f.entrada ? fmtCurrency(Number(f.entrada)) : null;
+    }
+
+    // f_* indexed
+    const allOps = [...pOps] as any[];
+    for (let i = 0; i < Math.min(allOps.length, 5); i++) {
+      const p = allOps[i];
+      if (key === `financeiro.f_nome_${i + 1}`) return s(p.nome ?? p.banco);
+      if (key === `financeiro.f_parcela_${i + 1}`) return p.valor_parcela ? fmtCurrency(Number(p.valor_parcela)) : null;
+      if (key === `financeiro.f_taxa_${i + 1}`) return p.taxa_mensal ? `${fmtNumber(Number(p.taxa_mensal), 2)}%` : null;
+      if (key === `financeiro.f_prazo_${i + 1}`) return p.num_parcelas ? String(p.num_parcelas) : null;
+      if (key === `financeiro.f_entrada_${i + 1}`) return p.entrada ? fmtCurrency(Number(p.entrada)) : null;
+      if (key === `financeiro.f_valor_${i + 1}`) return p.valor_financiado ? fmtCurrency(Number(p.valor_financiado)) : null;
+    }
+
+    // f_ativo_* (first active financing)
+    if (finAtiva) {
+      const fa = finAtiva as any;
+      if (key === "financeiro.f_ativo_nome") return s(fa.nome ?? fa.banco);
+      if (key === "financeiro.f_ativo_parcela") return fa.valor_parcela ? fmtCurrency(Number(fa.valor_parcela)) : null;
+      if (key === "financeiro.f_ativo_taxa") return fa.taxa_mensal ? `${fmtNumber(Number(fa.taxa_mensal), 2)}%` : null;
+      if (key === "financeiro.f_ativo_prazo") return fa.num_parcelas ? String(fa.num_parcelas) : null;
+      if (key === "financeiro.f_ativo_entrada") return fa.entrada ? fmtCurrency(Number(fa.entrada)) : null;
+      if (key === "financeiro.f_ativo_valor") return fa.valor_financiado ? fmtCurrency(Number(fa.valor_financiado)) : null;
+    }
+
+    // à vista
+    const aVista = pOps.find((p) => (p as any).tipo?.toLowerCase?.()?.includes("vista"));
+    if (key === "customizada.vc_a_vista") return aVista ? fmtCurrency(Number((aVista as any).valor ?? ctx.precoTotal)) : (ctx.precoTotal ? fmtCurrency(ctx.precoTotal) : null);
+  } else {
+    // vc_nome fallback when no pagamento opcoes
+    if (key === "customizada.vc_nome") return s(ctx.cliente?.nome);
+    if (key === "customizada.vc_a_vista") return ctx.precoTotal ? fmtCurrency(ctx.precoTotal) : null;
+  }
 
   // ── Conta Energia ──
   if (key === "conta_energia.co2_evitado_ano") return ctx.co2Evitado ? fmtNumber(ctx.co2Evitado, 0) : null;
+  // Try to resolve conta_energia fields from gdResult
+  if (key === "conta_energia.gasto_atual_mensal" && ctx.gdResult) {
+    const consumo = ctx.gdResult.consumo_kwh;
+    const tarifa = (ctx.gdResult.valor_credito_breakdown as any)?.tarifa_energia ?? ctx.gdResult.valor_credito_breakdown?.te;
+    if (consumo && tarifa) return fmtCurrency(consumo * tarifa);
+  }
+  if (key === "conta_energia.economia_percentual" && ctx.economiaMensal && ctx.gdResult) {
+    const tarifa = (ctx.gdResult.valor_credito_breakdown as any)?.tarifa_energia ?? ctx.gdResult.valor_credito_breakdown?.te ?? 0;
+    const gastoAtual = ctx.gdResult.consumo_kwh * tarifa;
+    if (gastoAtual > 0) return `${fmtNumber((ctx.economiaMensal / gastoAtual) * 100, 0)}%`;
+  }
 
   // ── Extras override ──
   if (ctx.extras && key in ctx.extras) return String(ctx.extras[key]);
