@@ -1467,6 +1467,10 @@ export function ProposalWizard() {
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     setPdfBlobUrl(null);
     setDocxBlob(null);
+    setOutputDocxPath(null);
+    setOutputPdfPath(null);
+    setGenerationStatus("idle");
+    setGenerationError(null);
     // Go back to UCs step
     const ucsIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.UCS);
     setStep(ucsIndex >= 0 ? ucsIndex : 1);
