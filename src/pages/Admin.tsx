@@ -117,6 +117,7 @@ const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").th
 const CustomFieldsSettings = lazy(() => import("@/components/admin/projetos/CustomFieldsSettings").then(m => ({ default: m.CustomFieldsSettings })));
 const DocumentosPage = lazy(() => import("@/components/admin/documentos/DocumentosPage").then(m => ({ default: m.DocumentosPage })));
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
+const VariaveisSystemPage = lazy(() => import("@/components/admin/variaveis/VariaveisSystemPage").then(m => ({ default: m.VariaveisSystemPage })));
 const PremissasPage = lazy(() => import("@/components/admin/premissas/PremissasPage").then(m => ({ default: m.PremissasPage })));
 const BaseMeteorologicaPage = lazy(() => import("@/pages/admin/BaseMeteorologicaPage").then(m => ({ default: m.BaseMeteorologicaPage })));
 const PropostaComercialPage = lazy(() => import("@/components/admin/proposta-comercial").then(m => ({ default: m.PropostaComercialPage })));
@@ -310,6 +311,7 @@ const TAB_TITLES: Record<string, string> = {
   "tenant-settings": "Dados da empresa",
   "monitoramento-solar": "Monitoramento Solar",
   "conf-solar": "Premissas solar",
+  "variaveis-sistema": "Variáveis do Sistema",
   "pricing-policy": "Política de precificação",
   "politica-precos": "Política de precificação",
   "custom-fields": "Campos customizados",
@@ -582,6 +584,7 @@ export default function Admin() {
                 <Route path="aneel-sync-status" element={<AneelSyncStatusPage />} />
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="conf-solar" element={<ConfSolarPage />} />
+                <Route path="variaveis-sistema" element={<VariaveisSystemPage />} />
                 <Route path="premissas" element={<PremissasPage />} />
                 <Route path="irradiancia" element={<Navigate to="/admin/meteorologia" replace />} />
                 <Route path="insumos-irradiacao" element={<Navigate to="/admin/meteorologia" replace />} />
