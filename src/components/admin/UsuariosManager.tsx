@@ -540,9 +540,10 @@ export function UsuariosManager() {
                                   className={`${roleInfo?.color || ""} gap-1`}
                                 >
                                   {roleInfo?.label || role}
-                                  <Button variant="destructive"
+                                  <Button variant="outline"
+                                    size="icon"
                                     onClick={() => handleRemoveRole(user.user_id, role)}
-                                    className="ml-1 hover:text-destructive"
+                                    className="ml-1 h-5 w-5 border-destructive text-destructive hover:bg-destructive/10"
                                     title="Remover perfil"
                                   >
                                     <Trash2 className="w-3 h-3" />
