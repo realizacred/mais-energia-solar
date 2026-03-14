@@ -273,3 +273,7 @@ verify_jwt = false
 
 [functions.get-wa-qrcode]
 verify_jwt = false
+
+[functions.docx-to-pdf]
+verify_jwt = false
+wall_clock_limit = 120

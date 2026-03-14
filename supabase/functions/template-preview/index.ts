@@ -110,10 +110,12 @@ async function processDocxTemplate(
  * to its inner paragraphs independently.
  */
 function normalizeTextBoxRuns(xml: string): string {
-  // Match all <w:txbxContent>...</w:txbxContent> blocks
-  return xml.replace(/<w:txbxContent[^>]*>[^]*?<\/w:txbxContent>/g, (txbxBlock) => {
-    // Apply the same paragraph-level normalization inside the text box
-    return normalizeParagraphRunsInner(txbxBlock);
+  // Match <w:txbx>...<w:txbxContent>...</w:txbxContent>...</w:txbx> blocks
+  // Process ONLY the inner <w:txbxContent> content, preserving the outer anchor structure
+  return xml.replace(/<w:txbxContent[^>]*>([^]*?)<\/w:txbxContent>/g, (_match, innerContent) => {
+    // Apply paragraph normalization only to the inner content of the text box
+    const processed = normalizeParagraphRunsInner(innerContent);
+    return `<w:txbxContent>${processed}</w:txbxContent>`;
   });
 }
 
@@ -1040,15 +1042,30 @@ Deno.serve(async (req) => {
 
     // ── 8. PROCESSAR TEMPLATE ─────────────────────────────
     console.log(`[template-preview] Processing DOCX with JSZip-based replacer`);
+    const originalSize = templateBuffer.byteLength;
 
     let report: Uint8Array;
     try {
       const result = await processDocxTemplate(templateBuffer, vars);
       report = result.output;
-      if (result.missingVars.length > 0) {
-        console.warn(`[template-preview] Missing variables (${result.missingVars.length}):`, result.missingVars);
+
+      // ── DIAGNOSTIC: size comparison ──
+      const outputSize = report.length;
+      const ratio = originalSize > 0 ? ((outputSize / originalSize) * 100).toFixed(1) : "N/A";
+      console.log(`[template-preview] Size comparison: original=${originalSize}B → output=${outputSize}B (${ratio}%)`);
+      if (originalSize > 0 && outputSize < originalSize * 0.95) {
+        console.warn(`[template-preview] ⚠️ Output is <95% of original — possible content loss!`);
       }
-      console.log(`[template-preview] Processing OK, output: ${report.length} bytes`);
+
+      // ── DIAGNOSTIC: substitution stats ──
+      const totalVars = Object.keys(vars).length;
+      const missingCount = result.missingVars.length;
+      const substituted = totalVars - missingCount;
+      console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing out of ${totalVars} total vars`);
+      if (result.missingVars.length > 0) {
+        console.warn(`[template-preview] Missing variables (${missingCount}):`, result.missingVars.slice(0, 30));
+      }
+      console.log(`[template-preview] Processing OK, output: ${outputSize} bytes`);
     } catch (processErr: any) {
       console.error("[template-preview] Processing error:", processErr?.message, processErr?.stack);
       return jsonError(`Erro ao processar template DOCX: ${processErr?.message || "unknown"}`, 500);
