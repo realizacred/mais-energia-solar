@@ -1343,6 +1343,7 @@ Changelog **NÃO** é obrigatório para:
 | `GoogleMapView` | estilos inline do Google Maps | API externa controla renderização |
 | Media player overlays | `bg-black/XX` | Padrão UX para players de vídeo/áudio |
 | Heroes institucionais | `bg-white/XX` com opacidade | Overlays sobre gradientes em landing pages |
+| KPI cards de estado/urgência | `border-l-destructive`, `border-l-warning`, `border-l-success` | Cards que representam estados distintos (urgente, pendente, ok) mantêm cores semânticas para clareza visual |
 
 ### Ambiguidade: "sólido laranja" em botões (§22)
 "SEMPRE sólido laranja" = usa `variant="default"` que renderiza `bg-primary`. A cor depende do tenant — pode ser laranja, azul ou qualquer outra. NUNCA hardcode `bg-orange-*`.
