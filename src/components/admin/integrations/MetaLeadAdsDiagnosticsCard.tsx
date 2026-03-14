@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, RefreshCw, ShieldCheck, ShieldX, Webhook, KeyRound, ExternalLink } from "lucide-react";
+import { Loader2, RefreshCw, ShieldCheck, ShieldX, Webhook, KeyRound, ExternalLink, AlertTriangle, Plug } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   fetchMetaDiagnostics,
+  subscribeLeadgenWebhook,
   type LeadAccessDiagnosticStatus,
   type MetaDiagnosticsResult,
   type TokenDiagnosticStatus,
@@ -76,18 +78,80 @@ function renderDetails(data: MetaDiagnosticsResult) {
   );
 }
 
+function LeadAccessManualAlert({ appId }: { appId: string | null }) {
+  return (
+    <div className="p-4 rounded-lg bg-warning/10 border border-warning/20 mt-2">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Ação manual necessária no Facebook
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Seu app ainda não está autorizado a acessar leads desta página.
+          </p>
+          <ol className="text-xs text-muted-foreground mt-2 space-y-1 list-decimal list-inside">
+            <li>Acesse sua Página no Facebook</li>
+            <li>Vá em Configurações → Acesso a Leads (Lead Access Manager)</li>
+            {appId && <li>Adicione o App ID: <code className="bg-muted px-1 py-0.5 rounded">{appId}</code></li>}
+            <li>Conceda permissão de acesso a leads</li>
+            <li>Volte aqui e clique em "Verificar agora"</li>
+          </ol>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 gap-1.5"
+            onClick={() => window.open("https://www.facebook.com/leads/ads/page/", "_blank")}
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Abrir Lead Access Manager
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResubscribeWebhookButton({ onSuccess }: { onSuccess: () => void }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleResubscribe = async () => {
+    setLoading(true);
+    try {
+      const result = await subscribeLeadgenWebhook();
+      toast.success(result.message || "Webhook inscrito com sucesso!");
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao inscrever webhook");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button variant="outline" size="sm" onClick={handleResubscribe} disabled={loading} className="gap-1.5 mt-2">
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+      Reinscrever Webhook (leadgen)
+    </Button>
+  );
+}
+
 export function MetaLeadAdsDiagnosticsCard() {
   const queryClient = useQueryClient();
 
   const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ["meta-facebook-diagnostics"],
     queryFn: fetchMetaDiagnostics,
+    staleTime: 1000 * 60 * 5,
   });
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ["meta-facebook-diagnostics"] });
     toast.success("Diagnóstico Meta atualizado");
   };
+
+  const webhookNotSubscribed = data?.statuses.webhook.status === "NOT_SUBSCRIBED";
+  const leadAccessRevoked = data?.statuses.lead_access.status === "REVOKED";
 
   return (
     <Card className="rounded-xl">
@@ -168,7 +232,14 @@ export function MetaLeadAdsDiagnosticsCard() {
               title="2) Permissão de Lead Access na Página"
               status={data.statuses.lead_access.status}
               message={data.statuses.lead_access.message}
-              details={renderDetails(data)}
+              details={
+                <>
+                  {renderDetails(data)}
+                  {leadAccessRevoked && (
+                    <LeadAccessManualAlert appId={data.context.app_id} />
+                  )}
+                </>
+              }
             />
 
             <DiagnosticRow
@@ -192,6 +263,12 @@ export function MetaLeadAdsDiagnosticsCard() {
                       ))}
                     </ul>
                   ) : null}
+
+                  {/* Resubscribe button when webhook is not subscribed */}
+                  {webhookNotSubscribed && (
+                    <ResubscribeWebhookButton onSuccess={refresh} />
+                  )}
+
                   {!data.context.has_pages_manage_metadata && (
                     <Alert className="mt-2">
                       <AlertTitle className="text-xs font-semibold">Webhook manual necessário</AlertTitle>
