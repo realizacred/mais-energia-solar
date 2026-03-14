@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical, XCircle } from "lucide-react";
+import { Plus, Trash2, GripVertical, TrendingDown } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { InlineLoader } from "@/components/loading/InlineLoader";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -27,20 +27,21 @@ export function MotivoPerdaManager() {
 
   return (
     <div className="space-y-6">
+      {/* Header — §26 */}
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-destructive/20 to-destructive/5 border border-destructive/10">
-          <XCircle className="h-6 w-6 text-destructive" />
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+          <TrendingDown className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-xl font-bold">Motivos de Perda</h2>
+          <h1 className="text-xl font-bold text-foreground">Motivos de Perda</h1>
           <p className="text-sm text-muted-foreground">
             Configure os motivos exibidos ao marcar um lead como perdido
           </p>
         </div>
       </div>
 
-      {/* Add new */}
-      <Card>
+      {/* Add new — input com bg-card */}
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <Input
@@ -48,6 +49,7 @@ export function MotivoPerdaManager() {
               onChange={(e) => setNewNome(e.target.value)}
               placeholder="Ex: Preço alto, Optou por concorrente..."
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              className="bg-card border-border text-foreground placeholder:text-muted-foreground"
             />
             <Button onClick={handleAdd} disabled={saving || !newNome.trim()} className="gap-2 shrink-0">
               {saving ? <Spinner size="sm" /> : <Plus className="h-4 w-4" />}
@@ -63,33 +65,42 @@ export function MotivoPerdaManager() {
           <CardContent><InlineLoader context="data_load" /></CardContent>
         </Card>
       ) : motivos.length === 0 ? (
-        <Card className="border-dashed border-2">
+        <Card className="border-dashed border-2 border-border">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <XCircle className="h-8 w-8 text-muted-foreground mb-3" />
-            <p className="text-base font-semibold">Nenhum motivo cadastrado</p>
+            <TrendingDown className="h-8 w-8 text-muted-foreground/40 mb-3" />
+            <p className="text-sm font-medium text-muted-foreground">Nenhum motivo cadastrado</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">Adicione um motivo acima para começar</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-2">
           {motivos.map((motivo) => (
-            <Card key={motivo.id}>
-              <CardContent className="p-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <GripVertical className="h-4 w-4 text-muted-foreground/40" />
-                  <p className="text-sm font-medium">{motivo.nome}</p>
-                  {!motivo.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
+            <div
+              key={motivo.id}
+              className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={motivo.ativo ?? true}
-                    onCheckedChange={(checked) => upsert({ id: motivo.id, nome: motivo.nome, ativo: checked })}
-                  />
-                  <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => remove(motivo.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                <p className="text-sm font-medium text-foreground">{motivo.nome}</p>
+                {!motivo.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={motivo.ativo ?? true}
+                  onCheckedChange={(checked) => upsert({ id: motivo.id, nome: motivo.nome, ativo: checked })}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-destructive text-destructive hover:bg-destructive/10 h-8 w-8"
+                  onClick={() => remove(motivo.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}
