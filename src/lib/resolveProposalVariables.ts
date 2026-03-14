@@ -364,11 +364,12 @@ function resolveFromContext(
   // Try to resolve conta_energia fields from gdResult
   if (key === "conta_energia.gasto_atual_mensal" && ctx.gdResult) {
     const consumo = ctx.gdResult.consumo_kwh;
-    const tarifa = ctx.gdResult.valor_credito_breakdown?.tarifa_energia;
+    const tarifa = (ctx.gdResult.valor_credito_breakdown as any)?.tarifa_energia ?? ctx.gdResult.valor_credito_breakdown?.te;
     if (consumo && tarifa) return fmtCurrency(consumo * tarifa);
   }
   if (key === "conta_energia.economia_percentual" && ctx.economiaMensal && ctx.gdResult) {
-    const gastoAtual = ctx.gdResult.consumo_kwh * (ctx.gdResult.valor_credito_breakdown?.tarifa_energia || 0);
+    const tarifa = (ctx.gdResult.valor_credito_breakdown as any)?.tarifa_energia ?? ctx.gdResult.valor_credito_breakdown?.te ?? 0;
+    const gastoAtual = ctx.gdResult.consumo_kwh * tarifa;
     if (gastoAtual > 0) return `${fmtNumber((ctx.economiaMensal / gastoAtual) * 100, 0)}%`;
   }
 
