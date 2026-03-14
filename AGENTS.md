@@ -1488,7 +1488,7 @@ Sempre que houver layout com **header + conteúdo + footer**, usar obrigatoriame
 - NUNCA usar `max-h-[70vh]` no corpo do modal — usar `flex-1 min-h-0 overflow-y-auto` com o DialogContent sendo `flex flex-col max-h-[calc(100dvh-2rem)]`
 
 ### Onde se aplica
-- WhatsApp Inbox — **CRÍTICO**: a coluna de lista de conversas e o painel de chat DEVEM ter scroll próprio e independente. NUNCA usar scroll global na página do inbox. Cada painel é um container `flex-col h-full overflow-hidden` separado.
+- WhatsApp Inbox — **CRÍTICO**: a coluna de lista de conversas e o painel de chat são containers **SEPARADOS**, cada um com `flex-col h-full overflow-hidden` próprio. NUNCA scroll global na página do inbox. NUNCA um scroll englobando os dois painéis. Cada painel gerencia seu próprio `overflow-y-auto` de forma independente.
 - Qualquer `Dialog`, `Sheet`, `Drawer` com formulário longo
 - Sidebars com listas longas
 - Split-views com scroll independente
