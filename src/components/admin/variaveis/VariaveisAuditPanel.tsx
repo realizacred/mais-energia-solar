@@ -2,9 +2,9 @@ import { useMemo, useState, useCallback } from "react";
 import {
   CheckCircle2, AlertTriangle, XCircle, Download, Search, X,
   Filter, ShieldCheck, Clock, AlertCircle, Ban, FileWarning,
-  Database, BarChart3, ListOrdered, Loader2,
+  Database, BarChart3, ListOrdered, Loader2, Info, Code2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,12 +31,12 @@ const STATUS_CONFIG: Record<AuditStatus, { label: string; icon: React.ElementTyp
   OK: { label: "OK", icon: CheckCircle2, className: "bg-success/10 text-success border-success/20" },
   LEGADA: { label: "Legada", icon: Clock, className: "bg-info/10 text-info border-info/20" },
   NOT_IMPLEMENTED: { label: "Não Impl.", icon: Ban, className: "bg-muted text-muted-foreground border-border" },
-  FALTA_RESOLVER_FRONTEND: { label: "Falta Frontend", icon: AlertTriangle, className: "bg-warning/10 text-warning border-warning/20" },
-  FALTA_RESOLVER_BACKEND: { label: "Falta Backend", icon: AlertTriangle, className: "bg-warning/10 text-warning border-warning/20" },
-  FALTA_ORIGEM: { label: "Falta Origem", icon: XCircle, className: "bg-destructive/10 text-destructive border-destructive/20" },
-  FALTA_CATALOGAR: { label: "Falta Catálogo", icon: FileWarning, className: "bg-destructive/10 text-destructive border-destructive/20" },
+  FALTA_RESOLVER_FRONTEND: { label: "Falta FE", icon: AlertTriangle, className: "bg-warning/10 text-warning border-warning/20" },
+  FALTA_RESOLVER_BACKEND: { label: "Falta BE", icon: AlertTriangle, className: "bg-warning/10 text-warning border-warning/20" },
+  FALTA_ORIGEM: { label: "S/ Origem", icon: XCircle, className: "bg-destructive/10 text-destructive border-destructive/20" },
+  FALTA_CATALOGAR: { label: "S/ Catálogo", icon: FileWarning, className: "bg-destructive/10 text-destructive border-destructive/20" },
   ORFA: { label: "Órfã", icon: AlertCircle, className: "bg-destructive/10 text-destructive border-destructive/20" },
-  CONFLITANTE: { label: "Conflitante", icon: XCircle, className: "bg-destructive/10 text-destructive border-destructive/20" },
+  CONFLITANTE: { label: "Conflito", icon: XCircle, className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 export function VariaveisAuditPanel() {
@@ -54,12 +57,12 @@ export function VariaveisAuditPanel() {
       let snapshotData: Record<string, SnapshotObservation> | undefined;
 
       if (withSnapshots) {
-        // First run static audit to get all keys
         const staticResult = runVariableAudit();
         const keys = staticResult.records.map(r => r.key);
 
         const { data, error } = await supabase.functions.invoke("audit-variables-snapshot", {
           body: { keys },
+          headers: { "x-client-timeout": "120" },
         });
 
         if (error) {
@@ -71,16 +74,17 @@ export function VariaveisAuditPanel() {
         }
       }
 
-      // Run audit with or without snapshot data
       const result = runVariableAudit(snapshotData);
       setAudit(result);
-      toast.success(`Auditoria concluída: ${result.summary.total} variáveis analisadas`);
+      const meta = result.analysis_metadata;
+      toast.success(
+        `Auditoria real concluída: ${result.summary.total} variáveis | FE: ${meta.frontend_resolver.total_explicit_keys} keys | BE: ${meta.backend_flatten.total_explicit_keys} keys | Preview: ${meta.template_preview.total_explicit_keys} keys`
+      );
     } catch (err) {
       console.error("Audit error:", err);
-      // Fallback to static audit
       const result = runVariableAudit();
       setAudit(result);
-      toast.error("Erro parcial na auditoria. Dados estáticos exibidos.");
+      toast.error("Erro parcial na auditoria.");
     } finally {
       setLoading(false);
       setLoadingSnapshots(false);
@@ -133,32 +137,31 @@ export function VariaveisAuditPanel() {
     toast.success("CSV exportado");
   }, [audit]);
 
-  // Initial state — no audit yet
   if (!audit && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         <ShieldCheck className="w-12 h-12 text-muted-foreground/40" />
         <div className="text-center space-y-1">
-          <p className="text-sm font-medium text-foreground">Auditoria de Consistência</p>
+          <p className="text-sm font-medium text-foreground">Auditoria Real de Consistência</p>
           <p className="text-xs text-muted-foreground max-w-md">
-            Analisa todas as variáveis do catálogo cruzando com frontend, backend, templates e snapshots reais de propostas.
+            Analisa o código-fonte real do resolver frontend, flatten backend e template-preview
+            para verificar cobertura de cada variável do catálogo.
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => runAudit(false)}>
-            <ShieldCheck className="w-4 h-4 mr-1.5" />
-            Auditoria Estática
+            <Code2 className="w-4 h-4 mr-1.5" />
+            Auditoria de Código
           </Button>
           <Button size="sm" onClick={() => runAudit(true)}>
             <Database className="w-4 h-4 mr-1.5" />
-            Auditoria Completa (+ Snapshots)
+            Completa (+ Snapshots Reais)
           </Button>
         </div>
       </div>
     );
   }
 
-  // Loading state
   if (loading) {
     return (
       <div className="space-y-4 p-4">
@@ -184,10 +187,26 @@ export function VariaveisAuditPanel() {
   }
 
   if (!audit) return null;
-  const { summary } = audit;
+  const { summary, analysis_metadata: meta } = audit;
 
   return (
     <div className="flex flex-col h-full min-h-0">
+      {/* Analysis metadata banner */}
+      <div className="shrink-0 px-3 pt-2 pb-1 border-b border-border bg-muted/30">
+        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="font-medium text-foreground">Análise real de código-fonte:</span>
+          <span>FE Resolver: <strong className="text-foreground">{meta.frontend_resolver.total_explicit_keys}</strong> keys ({meta.frontend_resolver.source_lines} linhas)</span>
+          <span>BE Flatten: <strong className="text-foreground">{meta.backend_flatten.total_explicit_keys}</strong> keys ({meta.backend_flatten.source_lines} linhas)</span>
+          <span>Preview: <strong className="text-foreground">{meta.template_preview.total_explicit_keys}</strong> keys ({meta.template_preview.source_lines} linhas)</span>
+          {meta.template_preview.has_dynamic_snapshot_passthrough && (
+            <Badge variant="outline" className="text-[9px] h-4 border-info/30 text-info">passthrough dinâmico</Badge>
+          )}
+          {meta.frontend_resolver.has_final_snapshot_fallback && (
+            <Badge variant="outline" className="text-[9px] h-4 border-info/30 text-info">finalSnapshot fallback</Badge>
+          )}
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="shrink-0 p-3 border-b border-border">
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-11 gap-2">
@@ -205,7 +224,6 @@ export function VariaveisAuditPanel() {
         </div>
       </div>
 
-      {/* Inner tabs: Detalhes / Grupos / Backlog */}
       <Tabs defaultValue="detalhes" className="flex flex-col flex-1 min-h-0">
         <div className="shrink-0 px-3 pt-2 border-b border-border">
           <TabsList className="h-8">
@@ -223,7 +241,6 @@ export function VariaveisAuditPanel() {
 
         {/* ── Details Tab ── */}
         <TabsContent value="detalhes" className="flex flex-col flex-1 min-h-0 mt-0">
-          {/* Filters */}
           <div className="shrink-0 p-3 border-b border-border flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -240,9 +257,7 @@ export function VariaveisAuditPanel() {
               )}
             </div>
             <Select value={filterGroup} onValueChange={setFilterGroup}>
-              <SelectTrigger className="h-8 w-[160px] text-xs">
-                <SelectValue placeholder="Grupo" />
-              </SelectTrigger>
+              <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Grupo" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os grupos</SelectItem>
                 {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
@@ -251,9 +266,7 @@ export function VariaveisAuditPanel() {
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-8 w-[160px] text-xs">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
+              <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os status</SelectItem>
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => (
@@ -262,9 +275,7 @@ export function VariaveisAuditPanel() {
               </SelectContent>
             </Select>
             <Select value={filterLegacy} onValueChange={setFilterLegacy}>
-              <SelectTrigger className="h-8 w-[130px] text-xs">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
+              <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue placeholder="Tipo" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="legacy">Legadas</SelectItem>
@@ -274,9 +285,7 @@ export function VariaveisAuditPanel() {
             </Select>
             {audit.snapshot_data_loaded && (
               <Select value={filterSnapshot} onValueChange={setFilterSnapshot}>
-                <SelectTrigger className="h-8 w-[150px] text-xs">
-                  <SelectValue placeholder="Snapshot" />
-                </SelectTrigger>
+                <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Snapshot" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="observed">Observadas</SelectItem>
@@ -285,100 +294,107 @@ export function VariaveisAuditPanel() {
               </Select>
             )}
             <div className="flex items-center gap-1 ml-auto">
-              <Badge variant="outline" className="text-[10px]">
-                {filteredRecords.length} de {summary.total}
-              </Badge>
+              <Badge variant="outline" className="text-[10px]">{filteredRecords.length} de {summary.total}</Badge>
               <Button variant="outline" size="sm" className="h-8 text-xs" onClick={exportJSON}>
                 <Download className="w-3 h-3 mr-1" /> JSON
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs" onClick={exportCSV}>
                 <Download className="w-3 h-3 mr-1" /> CSV
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => runAudit(true)}>
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => runAudit(audit.snapshot_data_loaded)}>
                 Reexecutar
               </Button>
             </div>
           </div>
 
-          {/* Table */}
           <ScrollArea className="flex-1 min-h-0">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-muted/80 z-10 backdrop-blur-sm">
-                <tr className="text-[10px] uppercase text-muted-foreground">
-                  <th className="text-left py-2 px-3 font-medium">Variável</th>
-                  <th className="text-left py-2 px-3 font-medium">Grupo</th>
-                  <th className="text-left py-2 px-3 font-medium">Status</th>
-                  <th className="text-center py-2 px-3 font-medium">FE</th>
-                  <th className="text-center py-2 px-3 font-medium">BE</th>
-                  <th className="text-center py-2 px-3 font-medium">DOCX</th>
-                  {audit.snapshot_data_loaded && (
-                    <th className="text-center py-2 px-3 font-medium">Snap.</th>
-                  )}
-                  <th className="text-left py-2 px-3 font-medium">Origem</th>
-                  <th className="text-left py-2 px-3 font-medium">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRecords.map((r) => {
-                  const sc = STATUS_CONFIG[r.status];
-                  const Icon = sc.icon;
-                  return (
-                    <tr key={r.key} className="border-b border-border/10 hover:bg-muted/20 transition-colors">
-                      <td className="py-2 px-3">
-                        <div>
+            <TooltipProvider delayDuration={300}>
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-muted/80 z-10 backdrop-blur-sm">
+                  <tr className="text-[10px] uppercase text-muted-foreground">
+                    <th className="text-left py-2 px-3 font-medium">Variável</th>
+                    <th className="text-left py-2 px-3 font-medium">Grupo</th>
+                    <th className="text-left py-2 px-3 font-medium">Status</th>
+                    <th className="text-center py-2 px-3 font-medium">FE</th>
+                    <th className="text-center py-2 px-3 font-medium">BE</th>
+                    <th className="text-center py-2 px-3 font-medium">Preview</th>
+                    {audit.snapshot_data_loaded && (
+                      <th className="text-center py-2 px-3 font-medium">Snap.</th>
+                    )}
+                    <th className="text-left py-2 px-3 font-medium">Origem</th>
+                    <th className="text-left py-2 px-3 font-medium">Ação</th>
+                    <th className="w-6" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRecords.map((r) => {
+                    const sc = STATUS_CONFIG[r.status];
+                    const Icon = sc.icon;
+                    return (
+                      <tr key={r.key} className="border-b border-border/10 hover:bg-muted/20 transition-colors">
+                        <td className="py-2 px-3">
                           <code className="font-mono text-[10px] text-primary bg-primary/5 px-1.5 py-0.5 rounded">
                             {`{{${r.key}}}`}
                           </code>
                           <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[220px]">{r.label}</p>
-                        </div>
-                      </td>
-                      <td className="py-2 px-3">
-                        <span className="text-[10px] text-muted-foreground">
-                          {CATEGORY_LABELS[r.group as VariableCategory] || r.group}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3">
-                        <Badge variant="outline" className={`text-[9px] gap-0.5 ${sc.className}`}>
-                          <Icon className="w-2.5 h-2.5" />
-                          {sc.label}
-                        </Badge>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <BoolBadge value={r.exists_in_frontend_resolver} />
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <BoolBadge value={r.exists_in_backend_flatten} />
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <BoolBadge value={r.exists_in_backend_template_preview} />
-                      </td>
-                      {audit.snapshot_data_loaded && (
-                        <td className="py-2 px-3 text-center">
-                          <BoolBadge value={r.observed_in_real_snapshots} />
                         </td>
-                      )}
-                      <td className="py-2 px-3">
-                        <span className="text-[10px] text-muted-foreground truncate block max-w-[140px]">
-                          {r.canonical_source}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3">
-                        <span className={`text-[10px] font-medium ${r.recommended_action === "NENHUMA" ? "text-muted-foreground" : "text-warning"}`}>
-                          {r.recommended_action}
-                        </span>
+                        <td className="py-2 px-3">
+                          <span className="text-[10px] text-muted-foreground">
+                            {CATEGORY_LABELS[r.group as VariableCategory] || r.group}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          <Badge variant="outline" className={`text-[9px] gap-0.5 ${sc.className}`}>
+                            <Icon className="w-2.5 h-2.5" />
+                            {sc.label}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-3 text-center"><BoolBadge value={r.exists_in_frontend_resolver} /></td>
+                        <td className="py-2 px-3 text-center"><BoolBadge value={r.exists_in_backend_flatten} /></td>
+                        <td className="py-2 px-3 text-center"><BoolBadge value={r.exists_in_backend_template_preview} /></td>
+                        {audit.snapshot_data_loaded && (
+                          <td className="py-2 px-3 text-center"><BoolBadge value={r.observed_in_real_snapshots} /></td>
+                        )}
+                        <td className="py-2 px-3">
+                          <span className="text-[10px] text-muted-foreground truncate block max-w-[140px]">
+                            {r.canonical_source}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={`text-[10px] font-medium ${r.recommended_action === "NENHUMA" ? "text-muted-foreground" : "text-warning"}`}>
+                            {r.recommended_action}
+                          </span>
+                        </td>
+                        <td className="py-1 px-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5">
+                                <Info className="w-3 h-3 text-muted-foreground" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="max-w-[300px]">
+                              <p className="text-xs">{r.evidence}</p>
+                              {r.snapshot_sample_value && (
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  Exemplo: <code>{r.snapshot_sample_value}</code>
+                                </p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredRecords.length === 0 && (
+                    <tr>
+                      <td colSpan={audit.snapshot_data_loaded ? 10 : 9} className="py-12 text-center text-muted-foreground text-sm">
+                        Nenhuma variável encontrada com os filtros aplicados
                       </td>
                     </tr>
-                  );
-                })}
-                {filteredRecords.length === 0 && (
-                  <tr>
-                    <td colSpan={audit.snapshot_data_loaded ? 9 : 8} className="py-12 text-center text-muted-foreground text-sm">
-                      Nenhuma variável encontrada com os filtros aplicados
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </TooltipProvider>
           </ScrollArea>
         </TabsContent>
 
