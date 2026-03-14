@@ -13,7 +13,6 @@ import { Bug, Download, FileText, Play, CheckCircle, XCircle, AlertTriangle } fr
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { useTenantId } from "@/hooks/useTenantId";
 
 interface DebugSummary {
   total_merges: number;
