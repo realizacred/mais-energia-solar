@@ -592,10 +592,6 @@ export function WaChatPanel({
                       Liberar atendimento
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={onOpenTags}>
-                    <Tag className="h-4 w-4 mr-2" />
-                    Tags
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLinkLead}>
                     <Link2 className="h-4 w-4 mr-2" />
