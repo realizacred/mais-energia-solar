@@ -160,10 +160,13 @@ export function useWaConversations(filters?: {
       const convIds = filtered.map((c: any) => c.id);
       let tagsMap: Record<string, WaConversationTag[]> = {};
       if (convIds.length > 0) {
-        const { data: ctData } = await supabase
+        const { data: ctData, error: ctError } = await supabase
           .from("wa_conversation_tags")
           .select("*, wa_tags(*)")
           .in("conversation_id", convIds);
+        if (ctError) {
+          console.error("[useWaConversations] tags query error:", ctError.message);
+        }
         if (ctData) {
           for (const ct of ctData) {
             if (!tagsMap[ct.conversation_id]) tagsMap[ct.conversation_id] = [];
