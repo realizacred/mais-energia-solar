@@ -57,9 +57,14 @@ export default function GotenbergConfigPanel() {
   const { data: connection, isLoading } = useGotenbergConnection();
 
   const [form, setForm] = useState<GotenbergConfig>(DEFAULT_CONFIG);
+  const [savedConfig, setSavedConfig] = useState<GotenbergConfig>(DEFAULT_CONFIG);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; health?: any; error?: string; tested_at?: string } | null>(null);
+
+  const isDirty = form.enabled !== savedConfig.enabled
+    || form.base_url !== savedConfig.base_url
+    || form.timeout_ms !== savedConfig.timeout_ms;
 
   useEffect(() => {
     if (connection?.config) {
