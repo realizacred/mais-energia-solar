@@ -45,6 +45,7 @@ interface StepDocumentoProps {
   outputPdfPath?: string | null;
   generationStatus?: "idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error";
   generationError?: string | null;
+  missingVars?: string[];
   onGenerate: () => void;
   onNewVersion: () => void;
   onViewDetail: () => void;
