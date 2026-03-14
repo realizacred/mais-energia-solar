@@ -57,19 +57,26 @@ export default function GotenbergConfigPanel() {
   const { data: connection, isLoading } = useGotenbergConnection();
 
   const [form, setForm] = useState<GotenbergConfig>(DEFAULT_CONFIG);
+  const [savedConfig, setSavedConfig] = useState<GotenbergConfig>(DEFAULT_CONFIG);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; health?: any; error?: string; tested_at?: string } | null>(null);
 
+  const isDirty = form.enabled !== savedConfig.enabled
+    || form.base_url !== savedConfig.base_url
+    || form.timeout_ms !== savedConfig.timeout_ms;
+
   useEffect(() => {
     if (connection?.config) {
-      setForm({
+      const loaded: GotenbergConfig = {
         enabled: connection.config.enabled ?? false,
         base_url: connection.config.base_url ?? "",
         timeout_ms: connection.config.timeout_ms ?? 30000,
         last_health: connection.config.last_health,
         last_health_at: connection.config.last_health_at,
-      });
+      };
+      setForm(loaded);
+      setSavedConfig(loaded);
     }
   }, [connection]);
 
@@ -134,6 +141,7 @@ export default function GotenbergConfigPanel() {
         }
       }
 
+      setSavedConfig({ ...form, base_url: form.base_url.trim().replace(/\/+$/, "") });
       toast.success("Configuração salva");
       qc.invalidateQueries({ queryKey: ["gotenberg-connection"] });
     } catch (err: any) {
@@ -288,7 +296,7 @@ export default function GotenbergConfigPanel() {
               {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               Testar conexão
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="gap-2">
+            <Button onClick={handleSave} disabled={saving || !isDirty} className="gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               Salvar
             </Button>
@@ -317,8 +325,8 @@ export default function GotenbergConfigPanel() {
               {testResult.health && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
                   <HealthItem label="Status" value={testResult.health.status} />
-                  <HealthItem label="Chromium" value={testResult.health.chromium?.status || "—"} />
-                  <HealthItem label="LibreOffice" value={testResult.health.libreOffice?.status || testResult.health.uno?.status || "—"} />
+                  <HealthItem label="Chromium" value={testResult.health.details?.chromium?.status || testResult.health.chromium?.status || "—"} />
+                  <HealthItem label="LibreOffice" value={testResult.health.details?.libreoffice?.status || testResult.health.details?.libreOffice?.status || testResult.health.libreOffice?.status || testResult.health.uno?.status || "—"} />
                 </div>
               )}
               {testResult.tested_at && (
@@ -338,8 +346,8 @@ export default function GotenbergConfigPanel() {
               {form.last_health && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <HealthItem label="Status" value={form.last_health.status || "—"} />
-                  <HealthItem label="Chromium" value={form.last_health.chromium?.status || "—"} />
-                  <HealthItem label="LibreOffice" value={form.last_health.libreOffice?.status || form.last_health.uno?.status || "—"} />
+                  <HealthItem label="Chromium" value={form.last_health.details?.chromium?.status || form.last_health.chromium?.status || "—"} />
+                  <HealthItem label="LibreOffice" value={form.last_health.details?.libreoffice?.status || form.last_health.details?.libreOffice?.status || form.last_health.libreOffice?.status || form.last_health.uno?.status || "—"} />
                 </div>
               )}
             </div>
