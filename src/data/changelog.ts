@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.45.0",
+    date: "2026-03-14",
+    title: "Auditoria completa com snapshots reais e backlog priorizado",
+    type: "feature",
+    description: "Auditoria de variáveis agora cruza com snapshots reais de proposta_versoes via edge function, inclui resumo por grupo com barras de completude e backlog priorizado das top 20 variáveis críticas.",
+    details: [
+      "Edge function audit-variables-snapshot analisa até 20 snapshots reais por tenant",
+      "Campo observed_in_real_snapshots indica se a variável já apareceu em produção",
+      "Aba 'Por Grupo' com barras de completude e observação em snapshots",
+      "Aba 'Backlog' com top 20 variáveis mais críticas ordenadas por impacto",
+      "Filtro por snapshot observado/não observado na tabela detalhada",
+      "Exportação JSON/CSV inclui dados de snapshot",
+    ],
+  },
+  {
     version: "2.44.0",
     date: "2026-03-14",
     title: "Auditoria automática do catálogo de variáveis",
