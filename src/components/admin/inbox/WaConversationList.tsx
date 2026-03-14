@@ -271,6 +271,24 @@ function ConversationItem({
                 {conv.instance_name}
               </span>
             )}
+            {conv.tags?.slice(0, 2).map((ct) => (
+              <span
+                key={ct.tag_id}
+                className="text-[10px] px-1.5 py-0.5 rounded border truncate max-w-[70px]"
+                style={{
+                  backgroundColor: ct.tag?.color ? `${ct.tag.color}20` : undefined,
+                  borderColor: ct.tag?.color ? `${ct.tag.color}40` : undefined,
+                  color: ct.tag?.color || undefined,
+                }}
+              >
+                {ct.tag?.name || "Tag"}
+              </span>
+            ))}
+            {(conv.tags?.length || 0) > 2 && (
+              <span className="text-[10px] text-muted-foreground px-1 py-0.5">
+                +{(conv.tags?.length || 0) - 2}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {crossInstanceCount && crossInstanceCount > 1 && (

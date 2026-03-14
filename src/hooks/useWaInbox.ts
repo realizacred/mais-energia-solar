@@ -846,7 +846,7 @@ export function useWaTags() {
       if (add) {
         const { error } = await supabase
           .from("wa_conversation_tags")
-          .insert({ conversation_id: conversationId, tag_id: tagId });
+          .upsert({ conversation_id: conversationId, tag_id: tagId }, { onConflict: "conversation_id,tag_id" });
         if (error) throw error;
       } else {
         const { error } = await supabase
@@ -859,6 +859,11 @@ export function useWaTags() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+      toast({ title: "Tag atualizada" });
+    },
+    onError: (err: any) => {
+      console.error("[toggleConversationTag]", err);
+      toast({ title: "Erro ao aplicar tag", description: err.message, variant: "destructive" });
     },
   });
 
