@@ -1589,3 +1589,44 @@ Ao receber um pedido de correção localizada:
 5. Checklist final com OK/FALHOU
 
 ---
+
+## §43. CRON JOBS E SINCRONIZAÇÕES — Padrão obrigatório
+
+Toda integração externa que busca dados periodicamente **DEVE** ter:
+
+1. **Edge function dedicada** para sincronização (ex: `meta-ads-sync`, `solarmarket-sync`)
+2. **Cron job configurado** no Supabase (`pg_cron` + `pg_net`) — mínimo diário
+3. **Última sincronização registrada** no banco (`last_sync_at` na tabela da integração)
+4. **Status visível na UI** — conectado / erro / nunca sincronizado
+5. **Botão de sincronização manual** na tela do dashboard/catálogo
+6. **Registro de erros** — se falhar, registrar erro com timestamp (nunca falha silenciosa)
+
+### Integrações que precisam de cron
+- **Meta Ads** — `meta-ads-sync` — diário às 06:00 BRT (09:00 UTC)
+- **Evolution API profile pics** — atualização periódica de fotos de perfil
+- **SLA alerts** — `process-sla-alerts` — a cada 2 minutos
+- **SolarMarket** — `solarmarket-sync` — diário
+- **Health check** — `integration-health-check` — periódico
+
+### Padrão de cron job (pg_cron + pg_net)
+```sql
+select cron.schedule(
+  'sync-meta-ads-daily',
+  '0 9 * * *',  -- 09:00 UTC = 06:00 BRT
+  $$
+  select net.http_post(
+    url:='https://<project-ref>.supabase.co/functions/v1/meta-ads-sync',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer <anon-key>"}'::jsonb,
+    body:='{"cron": true}'::jsonb
+  ) as request_id;
+  $$
+);
+```
+
+### Regras
+- NUNCA deixar integração sem cron configurado se ela depende de dados atualizados
+- SEMPRE ter fallback manual (botão na UI) além do cron
+- SEMPRE registrar resultado da sincronização (sucesso/erro + timestamp)
+- Se o cron falhar 3+ vezes consecutivas, deve gerar alerta visível no dashboard de saúde
+
+---
