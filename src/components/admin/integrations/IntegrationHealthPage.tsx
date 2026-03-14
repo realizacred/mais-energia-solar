@@ -59,6 +59,7 @@ const CONFIG_ROUTES: Record<string, string> = {
   pagamentos: "/admin/payment-gateway",
   automacoes: "/admin/n8n",
   evolution_api: "/admin/catalogo-integracoes?tab=instancias",
+  gotenberg: "/admin/catalogo-integracoes?integration=gotenberg&action=configure",
 };
 
 function getStatusConfig(status: string) {
