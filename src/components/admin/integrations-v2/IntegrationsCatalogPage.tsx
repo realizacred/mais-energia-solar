@@ -238,7 +238,7 @@ export default function IntegrationsCatalogPage() {
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       const status = getConnectionStatus(p.id);
       const isActive = status === "connected";
-      switch (tab) {
+       switch (tabFilter) {
         case "active": return isActive;
         case "inactive": return !isActive;
         default: return true;
