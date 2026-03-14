@@ -1481,7 +1481,7 @@ export function ProposalWizard() {
   // ─── Invalidate artifacts when template changes
   const handleTemplateChange = useCallback((newTemplateId: string) => {
     setTemplateSelecionado(newTemplateId);
-    // Clear stale artifacts when template changes
+    // Clear ALL stale artifacts when template changes
     if (result) {
       setResult(null);
       setHtmlPreview(null);
@@ -1492,6 +1492,7 @@ export function ProposalWizard() {
       setOutputPdfPath(null);
       setGenerationStatus("idle");
       setGenerationError(null);
+      setMissingVars([]);
     }
   }, [result, pdfBlobUrl]);
 
