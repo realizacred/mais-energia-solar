@@ -471,6 +471,7 @@ export default function IntegrationsCatalogPage() {
                       connStatus={getConnectionStatus(provider.id)}
                       plantCount={getPlantCount(provider.id)}
                       lastSync={getLastSync(provider.id)}
+                      syncError={getSyncError(provider.id)}
                       onConfigure={() => !isStubGroup && handleConfigure(provider)}
                       onSync={() => {
                         setSyncingProviderId(provider.id);
