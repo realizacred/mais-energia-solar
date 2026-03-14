@@ -20856,6 +20856,17 @@ export type Database = {
         Args: { _version_id: string }
         Returns: Json
       }
+      approve_venda_with_composition: {
+        Args: {
+          p_cliente_id: string
+          p_itens?: Json
+          p_lead_id?: string
+          p_observacoes?: string
+          p_status_convertido_id?: string
+          p_valor_total?: number
+        }
+        Returns: string
+      }
       assign_wa_conversation_by_phone: {
         Args: { _phone_digits: string }
         Returns: string

@@ -140,6 +140,7 @@ export function ValidacaoVendasManager() {
     setSelectedCliente(cliente);
     setLeadSimulacoes([]);
     setSelectedSimulacaoId("");
+    setPaymentItems([]); // Reset payment composition on new client
 
     const valor = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
     setValorVenda(valor > 0 ? valor : 0);
@@ -264,6 +265,7 @@ export function ValidacaoVendasManager() {
 
   const handleApprove = async () => {
     if (!selectedCliente) return;
+    if (approving) return; // prevent double submit
 
     const valorBase = valorVenda || 0;
     if (valorBase <= 0) {
@@ -276,8 +278,9 @@ export function ValidacaoVendasManager() {
     }
 
     // Validate payment composition if items exist
+    let computedItems: any[] = [];
     if (paymentItems.length > 0) {
-      const { validateComposition, computeSummary } = await import("@/services/paymentComposition/calculator");
+      const { validateComposition, computeSummary, computeItem } = await import("@/services/paymentComposition/calculator");
       const compositionErrors = validateComposition(paymentItems, valorBase);
       if (compositionErrors.length > 0) {
         toast({
@@ -296,90 +299,55 @@ export function ValidacaoVendasManager() {
         });
         return;
       }
+      // Pre-compute items for the RPC payload
+      computedItems = paymentItems.map((item) => {
+        const computed = computeItem(item);
+        return {
+          forma_pagamento: computed.forma_pagamento,
+          valor_base: computed.valor_base,
+          entrada: computed.entrada,
+          data_pagamento: computed.data_pagamento || null,
+          data_primeiro_vencimento: computed.data_primeiro_vencimento || null,
+          parcelas: computed.parcelas,
+          intervalo_dias: computed.intervalo_dias,
+          juros_tipo: computed.juros_tipo,
+          juros_valor: computed.juros_valor,
+          juros_responsavel: computed.juros_responsavel,
+          observacoes: computed.observacoes || null,
+          metadata_json: {},
+          parcelas_detalhes: computed.parcelas_detalhes.map((p) => ({
+            numero_parcela: p.numero_parcela,
+            tipo_parcela: p.tipo_parcela,
+            valor: p.valor,
+            vencimento: p.vencimento,
+          })),
+        };
+      });
     }
 
     setApproving(selectedCliente.id);
     try {
-      // 1. Get "Convertido" status
+      // Get "Convertido" status id
       const { data: convertidoStatus } = await supabase
         .from("lead_status").select("id").eq("nome", "Convertido").single();
       if (!convertidoStatus) throw new Error("Status 'Convertido' não encontrado");
 
-      // 2. Update lead/orcamento status
-      if (selectedCliente.lead_id) {
-        await supabase.from("leads").update({ status_id: convertidoStatus.id }).eq("id", selectedCliente.lead_id);
-        await supabase.from("orcamentos").update({ status_id: convertidoStatus.id }).eq("lead_id", selectedCliente.lead_id);
+      // Call atomic RPC — venda + composition + status updates in single transaction
+      const { data: vendaId, error: rpcError } = await (supabase as any).rpc("approve_venda_with_composition", {
+        p_cliente_id: selectedCliente.id,
+        p_lead_id: selectedCliente.lead_id || null,
+        p_valor_total: valorBase,
+        p_status_convertido_id: convertidoStatus.id,
+        p_observacoes: null,
+        p_itens: computedItems,
+      });
+
+      if (rpcError) {
+        console.error("[handleApprove] RPC error:", rpcError);
+        throw new Error(rpcError.message);
       }
 
-      // 3. Update client valor_projeto
-      if (valorBase > 0) {
-        await supabase.from("clientes").update({ valor_projeto: valorBase }).eq("id", selectedCliente.id);
-      }
-
-      // 4. Create venda record
-      const { data: vendaData, error: vendaError } = await (supabase as any)
-        .from("vendas")
-        .insert({
-          cliente_id: selectedCliente.id,
-          orcamento_id: selectedCliente.lead_id || null,
-          valor_total_bruto: valorBase,
-          valor_total_liquido: valorBase,
-          status: "aprovada",
-          observacoes: null,
-        })
-        .select("id")
-        .single();
-
-      if (vendaError) {
-        console.error("[handleApprove] Erro ao criar venda:", vendaError);
-        throw new Error(`Erro ao criar registro de venda: ${vendaError.message}`);
-      }
-
-      const vendaId = vendaData.id as string;
-      console.log("[handleApprove] Venda criada:", vendaId);
-
-      // 5. Save payment composition if items exist
-      if (paymentItems.length > 0) {
-        const { computeItem } = await import("@/services/paymentComposition/calculator");
-        const computedItems = paymentItems.map((item) => {
-          const computed = computeItem(item);
-          return {
-            forma_pagamento: computed.forma_pagamento,
-            valor_base: computed.valor_base,
-            entrada: computed.entrada,
-            data_pagamento: computed.data_pagamento || null,
-            data_primeiro_vencimento: computed.data_primeiro_vencimento || null,
-            parcelas: computed.parcelas,
-            intervalo_dias: computed.intervalo_dias,
-            juros_tipo: computed.juros_tipo,
-            juros_valor: computed.juros_valor,
-            juros_responsavel: computed.juros_responsavel,
-            observacoes: computed.observacoes || null,
-            metadata_json: {},
-            parcelas_detalhes: computed.parcelas_detalhes.map((p) => ({
-              numero_parcela: p.numero_parcela,
-              tipo_parcela: p.tipo_parcela,
-              valor: p.valor,
-              vencimento: p.vencimento,
-            })),
-          };
-        });
-
-        const { error: compError } = await (supabase as any).rpc("save_payment_composition", {
-          p_venda_id: vendaId,
-          p_observacoes: null,
-          p_itens: computedItems,
-        });
-
-        if (compError) {
-          console.error("[handleApprove] Erro ao salvar composição:", compError);
-          // Rollback: delete the venda we just created
-          await (supabase as any).from("vendas").delete().eq("id", vendaId);
-          throw new Error(`Erro ao salvar composição de pagamento: ${compError.message}`);
-        }
-
-        console.log("[handleApprove] Composição de pagamento salva para venda:", vendaId);
-      }
+      console.log("[handleApprove] Venda aprovada atomicamente:", vendaId);
 
       toast({
         title: "Venda validada!",
