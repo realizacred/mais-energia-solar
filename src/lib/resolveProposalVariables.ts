@@ -251,15 +251,15 @@ function resolveFromContext(
     const modulo = findItem("modulo") || findItem("painel") || findItem("placa");
     const inversor = findItem("inversor");
 
-    if (key === "sistema_solar.modulo_fabricante") return s(modulo?.fabricante);
-    if (key === "sistema_solar.modulo_modelo") return s(modulo?.modelo);
+    if (key === "sistema_solar.modulo_fabricante") return s(modulo?.fabricante as string);
+    if (key === "sistema_solar.modulo_modelo") return s(modulo?.modelo as string);
     if (key === "sistema_solar.modulo_potencia") return modulo?.potencia ? `${modulo.potencia} Wp` : null;
-    if (key === "sistema_solar.modulo_quantidade") return s(modulo?.quantidade ?? ctx.numeroPlacas);
-    if (key === "sistema_solar.inversor_fabricante") return s(inversor?.fabricante);
-    if (key === "sistema_solar.inversor_fabricante_1") return s(inversor?.fabricante);
-    if (key === "sistema_solar.inversor_modelo") return s(inversor?.modelo);
+    if (key === "sistema_solar.modulo_quantidade") return s((modulo?.quantidade ?? ctx.numeroPlacas) as string | number);
+    if (key === "sistema_solar.inversor_fabricante") return s(inversor?.fabricante as string);
+    if (key === "sistema_solar.inversor_fabricante_1") return s(inversor?.fabricante as string);
+    if (key === "sistema_solar.inversor_modelo") return s(inversor?.modelo as string);
     if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia ? `${inversor.potencia} W` : null;
-    if (key === "sistema_solar.inversor_quantidade") return s(inversor?.quantidade);
+    if (key === "sistema_solar.inversor_quantidade") return s(inversor?.quantidade as string | number);
   }
 
   // ── Financeiro ──
