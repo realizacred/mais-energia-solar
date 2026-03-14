@@ -328,7 +328,7 @@ export default function IntegrationsCatalogPage() {
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-lg transition-all",
                 tab === key
-                  ? "bg-card text-foreground shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -525,8 +525,8 @@ function SidebarItem({ icon: Icon, label, count, active, onClick }: {
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate flex-1">{label}</span>
       <span className={cn(
-        "text-xs tabular-nums font-medium min-w-[1.25rem] text-center rounded-full px-1.5",
-        active ? "bg-primary/20 text-primary" : "text-muted-foreground/50"
+        "text-xs tabular-nums font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5",
+        active ? "bg-background text-primary" : "bg-primary text-primary-foreground"
       )}>
         {count}
       </span>
