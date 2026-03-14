@@ -1004,8 +1004,68 @@ Deno.serve(async (req) => {
     setIfMissing("vc_parcela_2", snapshot?.parcela_48);
     setIfMissing("vc_parcela_3", snapshot?.parcela_60);
 
+    // ═══════════════════════════════════════════════════════
+    // PAGAMENTO_OPCOES → vc_parcela_* mapping
+    // ═══════════════════════════════════════════════════════
+    const pagOpcoes = Array.isArray(snapshot?.pagamento_opcoes) ? snapshot.pagamento_opcoes as Array<Record<string, any>>
+      : (Array.isArray(snapshot?.pagamentoOpcoes) ? snapshot.pagamentoOpcoes as Array<Record<string, any>> : []);
+    
+    if (pagOpcoes.length > 0) {
+      // Separate by type for vc_parcela (financiamento) and vc_cartao_credito_parcela
+      const financiamentos = pagOpcoes.filter((p: any) => p.tipo === "financiamento" || p.tipo === "parcelado");
+      const cartoes = pagOpcoes.filter((p: any) => p.tipo === "cartao" || String(p.nome ?? "").toLowerCase().includes("cartão") || String(p.nome ?? "").toLowerCase().includes("cartao"));
+      const aVista = pagOpcoes.find((p: any) => p.tipo === "a_vista");
+
+      // vc_a_vista from payment option
+      if (aVista && (aVista.valor_financiado || aVista.valor_parcela)) {
+        setCurIfMissing("vc_a_vista", Number(aVista.valor_financiado || aVista.valor_parcela));
+      }
+
+      // vc_parcela_1, _2, _3 from financiamentos
+      financiamentos.forEach((f: any, idx: number) => {
+        const i = idx + 1;
+        if (f.valor_parcela) setCurIfMissing(`vc_parcela_${i}`, Number(f.valor_parcela));
+        if (f.taxa_mensal != null) setIfMissing(`vc_taxa_${i}`, `${fmtNum(Number(f.taxa_mensal), 2)}%`);
+        if (f.entrada != null) setCurIfMissing(`vc_entrada_${i}`, Number(f.entrada));
+        if (f.num_parcelas != null) setIfMissing(`vc_prazo_${i}`, String(f.num_parcelas));
+      });
+
+      // vc_cartao_credito_parcela_1, _2, _3, _4 from cartoes
+      cartoes.forEach((c: any, idx: number) => {
+        const i = idx + 1;
+        if (c.valor_parcela) setCurIfMissing(`vc_cartao_credito_parcela_${i}`, Number(c.valor_parcela));
+      });
+
+      // Also map all payment options to f_* keys
+      pagOpcoes.forEach((p: any, idx: number) => {
+        const i = idx + 1;
+        setIfMissing(`f_nome_${i}`, p.nome);
+        if (p.entrada != null) setCurIfMissing(`f_entrada_${i}`, Number(p.entrada));
+        if (p.valor_financiado != null) setCurIfMissing(`f_valor_${i}`, Number(p.valor_financiado));
+        if (p.num_parcelas != null) setIfMissing(`f_prazo_${i}`, String(p.num_parcelas));
+        if (p.taxa_mensal != null) setIfMissing(`f_taxa_${i}`, `${fmtNum(Number(p.taxa_mensal), 2)}%`);
+        if (p.valor_parcela != null) setCurIfMissing(`f_parcela_${i}`, Number(p.valor_parcela));
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // VARIAVEIS_CUSTOM from snapshot
+    // ═══════════════════════════════════════════════════════
+    if (Array.isArray(snapshot?.variaveis_custom)) {
+      for (const vc of snapshot.variaveis_custom as Array<Record<string, any>>) {
+        if (vc.nome && vc.valor_calculado != null) {
+          setIfMissing(vc.nome, String(vc.valor_calculado));
+        }
+      }
+    }
+
+    // VPL, TIR from snapshot.financeiro
+    setIfMissing("vpl", finSnap?.vpl != null ? fmtCur(Number(finSnap.vpl)) : snapshot?.vpl);
+    setIfMissing("tir", finSnap?.tir != null ? `${fmtNum(Number(finSnap.tir), 1)}%` : snapshot?.tir);
+    setIfMissing("payback_anos", finSnap?.payback_anos != null ? fmtNum(Number(finSnap.payback_anos), 1) : undefined);
+
     // Observações
-    set("vc_observacao", lead?.observacoes || snapshot?.vc_observacao);
+    set("vc_observacao", lead?.observacoes || snapshot?.vc_observacao || snapshot?.observacoes);
 
     // ═══════════════════════════════════════════════════════
     // CATEGORIA: TARIFA / GD / ANEEL / CÁLCULO
