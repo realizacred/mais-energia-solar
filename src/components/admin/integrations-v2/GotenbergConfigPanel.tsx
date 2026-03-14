@@ -325,8 +325,8 @@ export default function GotenbergConfigPanel() {
               {testResult.health && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
                   <HealthItem label="Status" value={testResult.health.status} />
-                  <HealthItem label="Chromium" value={testResult.health.chromium?.status || "—"} />
-                  <HealthItem label="LibreOffice" value={testResult.health.libreOffice?.status || testResult.health.uno?.status || "—"} />
+                  <HealthItem label="Chromium" value={testResult.health.details?.chromium?.status || testResult.health.chromium?.status || "—"} />
+                  <HealthItem label="LibreOffice" value={testResult.health.details?.libreoffice?.status || testResult.health.details?.libreOffice?.status || testResult.health.libreOffice?.status || testResult.health.uno?.status || "—"} />
                 </div>
               )}
               {testResult.tested_at && (
