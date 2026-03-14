@@ -14,9 +14,11 @@ export function PriorityAlertBlock({ alerts, onViewAlerts }: PriorityAlertBlockP
 
   if (!hasCritical && alerts.length === 0) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-success/20 bg-success/5 px-5 py-4">
-        <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
-        <p className="text-sm font-medium text-foreground">Sistema operando dentro da normalidade</p>
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20">
+        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+        <span className="text-sm font-medium text-success">
+          Sistema operando dentro da normalidade
+        </span>
       </div>
     );
   }
@@ -25,7 +27,7 @@ export function PriorityAlertBlock({ alerts, onViewAlerts }: PriorityAlertBlockP
 
   return (
     <div className={cn(
-      "flex items-center justify-between gap-4 rounded-2xl border px-5 py-4",
+      "flex items-center justify-between gap-4 rounded-lg border px-5 py-4",
       hasCritical
         ? "border-destructive/25 bg-gradient-to-r from-destructive/5 via-destructive/3 to-transparent"
         : "border-warning/25 bg-gradient-to-r from-warning/5 via-warning/3 to-transparent"

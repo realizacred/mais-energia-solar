@@ -57,9 +57,8 @@ export default function MonitorDashboard() {
   const isEmpty = !stats || stats.total_plants === 0;
 
   return (
-    // width-exception: monitoring dashboard max-width for alignment
     <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-8 space-y-8">
-      {/* ─── Header ─── */}
+      {/* ─── Header (§26) ─── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <PageHeader
           title="Monitoramento Solar"
@@ -67,30 +66,32 @@ export default function MonitorDashboard() {
           icon={Sun}
         />
         {lastSync && (
-          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-2xl px-3 py-2 border border-border shrink-0">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2 border border-border shrink-0">
             <div className="flex items-center gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
-              <span>Sync: <strong className="text-foreground">{formatDistanceToNow(lastSync, { addSuffix: true, locale: ptBR })}</strong></span>
+              <span>Sync: <span className="text-foreground">{formatDistanceToNow(lastSync, { addSuffix: true, locale: ptBR })}</span></span>
             </div>
             <span className="text-border">|</span>
             <div className="flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
-              <span>Próxima: <strong className="text-foreground">{nextSync && nextSync > new Date() ? nextSync.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) : "em breve"}</strong></span>
+              <span>Próxima: <span className="text-foreground">{nextSync && nextSync > new Date() ? nextSync.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) : "em breve"}</span></span>
             </div>
           </div>
         )}
       </div>
 
+      {/* ─── Tabs (§29) ─── */}
       <MonitorNav />
 
       {isEmpty ? (
         <EmptyState icon={Sun} title="Nenhuma usina cadastrada" description="Conecte um provedor de monitoramento para começar." />
       ) : (
         <>
-          {/* ═══ KPI ROW — 4 columns top ═══ */}
+          {/* ═══ KPI ROW 1 ═══ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <EnterpriseKpi
               icon={Sun} label="Total Usinas" value={String(stats.total_plants)}
+              accentColor="primary"
               onClick={() => navigate("/admin/monitoramento/usinas")}
             />
             <EnterpriseKpi
@@ -104,40 +105,39 @@ export default function MonitorDashboard() {
             <EnterpriseKpi
               icon={WifiOff} label="Offline"
               value={String(stats.plants_offline || 0)}
-              accentColor={(stats.plants_offline || 0) > 0 ? "destructive" : "muted"}
-              highlight={(stats.plants_offline || 0) > 0}
+              accentColor="destructive"
               onClick={() => navigate("/admin/monitoramento/usinas?status=offline")}
             />
             <EnterpriseKpi
               icon={Moon} label="Standby"
               value={String(stats.plants_standby || 0)}
-              accentColor={(stats.plants_standby || 0) > 0 ? "warning" : "muted"}
+              accentColor="warning"
               onClick={() => navigate("/admin/monitoramento/usinas?status=standby")}
             />
           </div>
 
-          {/* ═══ KPI ROW 2 — metrics ═══ */}
+          {/* ═══ KPI ROW 2 ═══ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <EnterpriseKpi
               icon={AlertTriangle} label="Com Alerta"
               value={String(alertCount)}
-              accentColor={alertCount > 0 ? "destructive" : "muted"}
-              highlight={alertCount > 0}
+              accentColor={alertCount > 0 ? "warning" : "muted"}
               onClick={() => navigate("/admin/monitoramento/alertas")}
             />
             <EnterpriseKpi
               icon={Gauge} label="Potência Instalada"
               value={totalPowerMwp >= 1 ? `${totalPowerMwp.toFixed(1)} MWp` : `${(totalPowerMwp * 1000).toFixed(0)} kWp`}
+              accentColor="primary"
             />
             <EnterpriseKpi
               icon={Zap} label="Energia Hoje"
               value={totalEnergyTodayMwh >= 1 ? `${totalEnergyTodayMwh.toFixed(1)} MWh` : `${(stats.energy_today_kwh || 0).toFixed(0)} kWh`}
-              accentColor="primary"
+              accentColor="success"
             />
             <EnterpriseKpi
               icon={BatteryCharging} label="Energia do Mês"
               value={totalEnergyMonthMwh >= 1 ? `${totalEnergyMonthMwh.toFixed(1)} MWh` : `${(stats.energy_month_kwh || 0).toFixed(0)} kWh`}
-              accentColor="secondary"
+              accentColor="primary"
             />
           </div>
 
@@ -169,7 +169,7 @@ export default function MonitorDashboard() {
             )}
           </div>
 
-          {/* ═══ GERAÇÃO 30 DIAS (full width) ═══ */}
+          {/* ═══ GERAÇÃO 30 DIAS ═══ */}
           <SectionCard title="Geração — Últimos 30 dias" icon={BatteryCharging} variant="blue">
             <MonitorGenerationChart readings={readings} />
           </SectionCard>
