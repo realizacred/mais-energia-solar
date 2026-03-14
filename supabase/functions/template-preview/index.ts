@@ -1088,6 +1088,19 @@ Deno.serve(async (req) => {
       setIfMissing("co2_evitado_ano", fmtNum(co2Kg, 0));
     }
 
+    // AUDIT LOG: dump critical placeholder values for debugging
+    const auditKeys = [
+      "potencia_sistema", "modulo_fabricante", "modulo_potencia", "modulo_quantidade",
+      "inversor_fabricante_1", "inversor_modelo", "inversor_potencia_nominal", "inversores_utilizados",
+      "vc_a_vista", "kit_fechado_preco_total", "valor_total", "economia_mensal", "payback",
+      "fluxo_caixa_acumulado_anual_10", "vc_parcela_1", "vc_parcela_2", "vc_parcela_3",
+      "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "responsavel_nome", "vc_observacao", "consumo_mensal", "geracao_mensal", "vc_aumento",
+      "dis_energia", "subgrupo_uc1", "cidade", "estado", "vpl", "tir",
+    ];
+    const auditPayload: Record<string, string> = {};
+    for (const k of auditKeys) auditPayload[k] = vars[k] ?? "(MISSING)";
+    console.log("[template-preview] AUDIT PAYLOAD:", JSON.stringify(auditPayload, null, 2));
     console.log(`[template-preview] Variables mapped: ${Object.keys(vars).length} keys`);
     console.log(`[template-preview] Snapshot keys: ${snapshot ? Object.keys(snapshot).length : 0}`);
 
