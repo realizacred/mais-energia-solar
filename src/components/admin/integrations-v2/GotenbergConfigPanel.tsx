@@ -102,7 +102,7 @@ export default function GotenbergConfigPanel() {
       };
 
       if (connection?.id) {
-        await (supabase as any)
+        const { error: updateError } = await (supabase as any)
           .from("integration_connections")
           .update({
             config: configPayload,
@@ -110,6 +110,10 @@ export default function GotenbergConfigPanel() {
             updated_at: new Date().toISOString(),
           })
           .eq("id", connection.id);
+        if (updateError) {
+          console.error("[GotenbergConfig] Erro ao atualizar:", updateError);
+          throw new Error("Erro ao atualizar configuração: " + (updateError.message || "falha no banco"));
+        }
       } else {
         // Get current user's tenant
         const { data: { user } } = await supabase.auth.getUser();
