@@ -156,7 +156,6 @@ export function WaTagsDialog({
   const [newTagColor, setNewTagColor] = useState("#6366f1");
 
   const activeTagIds = new Set(conversation?.tags?.map((ct) => ct.tag_id) || []);
-  console.log("[WaTagsDialog] conversation:", conversation?.id, "tags:", conversation?.tags, "activeTagIds:", [...activeTagIds]);
   const PRESET_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#6366f1", "#a855f7", "#ec4899"];
 
   return (

@@ -263,14 +263,20 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   }, [initialConversationId, allConversations, filterStatus, queryClient]);
 
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
+  // Uses a ref to store the last synced conversation JSON to avoid re-render loops
+  const lastSyncedConvRef = useRef<string>("");
   useEffect(() => {
     if (selectedConv) {
       const fresh = allConversations.find((c) => c.id === selectedConv.id);
-      if (fresh && JSON.stringify(fresh) !== JSON.stringify(selectedConv)) {
-        setSelectedConv(fresh);
+      if (fresh) {
+        const freshJson = JSON.stringify(fresh);
+        if (freshJson !== lastSyncedConvRef.current) {
+          lastSyncedConvRef.current = freshJson;
+          setSelectedConv(fresh);
+        }
       }
     }
-  }, [allConversations]);
+  }, [allConversations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 🔔 Notification sound + vibration on new unread messages (even when on inbox)
   useEffect(() => {
@@ -401,6 +407,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   });
 
   const handleSelectConversation = (conv: WaConversation) => {
+    lastSyncedConvRef.current = JSON.stringify(conv);
     setSelectedConv(conv);
     if (conv.unread_count > 0) {
       updateConversation({ id: conv.id, updates: { unread_count: 0 } as any });
