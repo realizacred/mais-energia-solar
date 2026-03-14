@@ -38,6 +38,7 @@ interface StepDocumentoProps {
   rendering: boolean;
   result: any;
   htmlPreview: string | null;
+  pdfBlobUrl?: string | null;
   onGenerate: () => void;
   onNewVersion: () => void;
   onViewDetail: () => void;
