@@ -1102,7 +1102,9 @@ Deno.serve(async (req) => {
     let pdfBytes: Uint8Array | null = null;
     let pdfConversionError: string | null = null;
     try {
-      const GOTENBERG_URL = Deno.env.get("GOTENBERG_URL") || "https://demo.gotenberg.dev";
+      // Validate Gotenberg URL before attempting conversion
+      const rawGotenbergUrl = Deno.env.get("GOTENBERG_URL");
+      const GOTENBERG_URL = validateAndNormalizeBaseUrl(rawGotenbergUrl, "GOTENBERG_URL");
       console.log(`[template-preview] Converting to PDF via Gotenberg: ${GOTENBERG_URL}`);
       
       const formData = new FormData();
@@ -1113,8 +1115,11 @@ Deno.serve(async (req) => {
       formData.append("landscape", "false");
       formData.append("nativePageRanges", "1-");
 
+      const conversionUrl = `${GOTENBERG_URL}/forms/libreoffice/convert`;
+      console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
+
       const pdfResp = await fetch(
-        `${GOTENBERG_URL}/forms/libreoffice/convert`,
+        conversionUrl,
         {
           method: "POST",
           body: formData,
