@@ -155,7 +155,7 @@ export function WaChatComposer({
   const [isUploading, setIsUploading] = useState(false);
   const [spellCheckEnabled, setSpellCheckEnabled] = useState(() => {
     const saved = localStorage.getItem("wa-spellcheck");
-    return saved !== null ? saved === "true" : false;
+    return saved !== null ? saved === "true" : true;
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
