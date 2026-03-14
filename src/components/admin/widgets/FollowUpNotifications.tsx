@@ -126,13 +126,13 @@ export function FollowUpNotifications({
     const level = getPriorityLevel(days);
     switch (level) {
       case "critical":
-        return <Badge variant="destructive" className="text-xs">Crítico ({days}d)</Badge>;
+        return <Badge variant="destructive" className="text-xs font-medium">Crítico ({days}d)</Badge>;
       case "high":
-        return <Badge variant="destructive" className="text-xs opacity-80">{days} dias</Badge>;
+        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">{days} dias</Badge>;
       case "medium":
-        return <Badge variant="default" className="bg-warning text-warning-foreground text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">{days} dias</Badge>;
       default:
-        return <Badge variant="secondary" className="text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">{days} dias</Badge>;
     }
   };
 
