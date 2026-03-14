@@ -1136,9 +1136,8 @@ Deno.serve(async (req) => {
     let pdfBytes: Uint8Array | null = null;
     let pdfConversionError: string | null = null;
     try {
-      // Validate Gotenberg URL before attempting conversion
-      const rawGotenbergUrl = Deno.env.get("GOTENBERG_URL");
-      const GOTENBERG_URL = validateAndNormalizeBaseUrl(rawGotenbergUrl, "GOTENBERG_URL");
+      // Resolve Gotenberg URL: DB config → env → demo fallback
+      const GOTENBERG_URL = await resolveGotenbergUrl(adminClient, tenantId);
       console.log(`[template-preview] Converting to PDF via Gotenberg: ${GOTENBERG_URL}`);
       
       const formData = new FormData();
