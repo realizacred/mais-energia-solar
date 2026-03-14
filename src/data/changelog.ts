@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.47.0",
+    date: "2026-03-14",
+    title: "Correção de layout DOCX→PDF e normalização de runs",
+    type: "bugfix",
+    description: "Corrigida a causa raiz de sobreposição de texto no PDF: normalização destrutiva de runs e bug profiles.user_id no conversor.",
+    details: [
+      "Fix: normalizeParagraphRuns agora faz merge TARGETED (só runs com placeholder fragmentado), preservando formatação individual de cada run",
+      "Fix: profiles.user_id bug no docx-to-pdf (usava .eq('id') ao invés de .eq('user_id'))",
+      "Adicionado suporte a {{mustache}} na normalização de runs (antes só detectava [legacy])",
+      "Adicionados parâmetros nativePdfFormat=PDF/A-2b ao Gotenberg para melhor fidelidade",
+      "Text boxes internas (w:txbxContent) também normalizadas com suporte a {{}} e merge targeted",
+    ],
+  },
+  {
     version: "2.46.0",
     date: "2026-03-14",
     title: "Auditoria real de código-fonte para variáveis",
