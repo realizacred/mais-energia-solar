@@ -1051,9 +1051,11 @@ Deno.serve(async (req) => {
     const originalSize = templateBuffer.byteLength;
 
     let report: Uint8Array;
+    let processedMissingVars: string[] = [];
     try {
       const result = await processDocxTemplate(templateBuffer, vars);
       report = result.output;
+      processedMissingVars = result.missingVars;
 
       // ── DIAGNOSTIC: size comparison ──
       const outputSize = report.length;
