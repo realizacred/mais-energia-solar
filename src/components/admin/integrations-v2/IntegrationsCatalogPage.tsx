@@ -232,6 +232,19 @@ export default function IntegrationsCatalogPage() {
     return null;
   };
 
+  const getSyncError = (providerId: string): string | null => {
+    const conn = connections.find((c) => c.provider_id === providerId);
+    if (conn?.sync_error) return conn.sync_error as string;
+    const legacyId = CANONICAL_TO_LEGACY[providerId];
+    if (legacyId) {
+      const legacy = legacyIntegrations.find((i) => i.provider === legacyId);
+      if (legacy?.sync_error) return legacy.sync_error;
+    }
+    const directLegacy = legacyIntegrations.find((i) => i.provider === providerId);
+    if (directLegacy?.sync_error) return directLegacy.sync_error;
+    return null;
+  };
+
   const categories = useMemo(() => {
     const cats = new Set(providers.map((p) => p.category));
     return CATEGORY_ORDER.filter((c) => cats.has(c));
