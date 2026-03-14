@@ -45,7 +45,13 @@ export function SpendDistributionChart({ campaigns, isLoading }: Props) {
         {isLoading ? (
           <div className="h-[260px] bg-muted animate-pulse rounded-lg" />
         ) : data.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-12">Sem dados</p>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <PieIcon className="w-8 h-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Nenhum dado disponível</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Configure a integração com a Meta para visualizar métricas
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col items-center">
             <ResponsiveContainer width="100%" height={200}>

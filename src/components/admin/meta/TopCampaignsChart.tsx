@@ -92,9 +92,13 @@ export function TopCampaignsChart({ campaigns, isLoading }: Props) {
         {isLoading ? (
           <div className="h-[280px] bg-muted animate-pulse rounded-lg" />
         ) : chartData.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-12">
-            Nenhuma campanha encontrada
-          </p>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <BarChart3 className="w-8 h-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Nenhuma campanha encontrada</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Configure a integração com a Meta para visualizar métricas
+            </p>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
