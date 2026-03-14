@@ -407,6 +407,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   });
 
   const handleSelectConversation = (conv: WaConversation) => {
+    lastSyncedConvRef.current = JSON.stringify(conv);
     setSelectedConv(conv);
     if (conv.unread_count > 0) {
       updateConversation({ id: conv.id, updates: { unread_count: 0 } as any });
