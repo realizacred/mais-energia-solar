@@ -579,12 +579,12 @@ export function UsuariosManager() {
                         <div className="flex items-center justify-end gap-2">
                           {getAvailableRoles(user).length > 0 && (
                             <Button
-                              variant="default"
+                              variant="outline"
                               size="sm"
                               onClick={() => openAddRoleDialog(user)}
-                              className="gap-1"
+                              className="gap-1.5"
                             >
-                              <UserPlus className="w-3 h-3" />
+                              <UserPlus className="w-3.5 h-3.5" />
                               Adicionar Perfil
                             </Button>
                           )}
