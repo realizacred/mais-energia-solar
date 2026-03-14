@@ -86,7 +86,7 @@ export default function MetaDashboardPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/admin/catalogo-integracoes")}
+             onClick={() => navigate("/admin/meta-facebook-config")}
             className="gap-1.5"
           >
             <Settings className="w-3.5 h-3.5" />
