@@ -502,10 +502,8 @@ export default function Admin() {
                 <Route path="lixeira" element={<LeadsTrashPage />} />
                 <Route path="propostas" element={<PropostasManager />} />
                 <Route path="projetos" element={<ProjetosManagerPage />} />
-                <Route path="propostas-nativas" element={<ProposalListPage />} />
                 <Route path="propostas-nativas/nova" element={<ProposalWizardErrorBoundary><ProposalWizardPage /></ProposalWizardErrorBoundary>} />
                 <Route path="propostas/novo" element={<Navigate to="/admin/propostas-nativas/nova" replace />} />
-                <Route path="propostas-nativas/dashboard" element={<ProposalDashboardPage />} />
                 <Route path="propostas-nativas/templates" element={<TemplatesManagerPage />} />
                 <Route path="propostas-nativas/variaveis" element={<VariaveisCustomPage />} />
                 <Route path="propostas-nativas/:propostaId/versoes/:versaoId" element={<ProposalDetailPage />} />
