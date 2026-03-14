@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ interface StepDocumentoProps {
   outputPdfPath?: string | null;
   generationStatus?: "idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error";
   generationError?: string | null;
+  missingVars?: string[];
   onGenerate: () => void;
   onNewVersion: () => void;
   onViewDetail: () => void;
@@ -62,6 +64,7 @@ export function StepDocumento({
   generating, rendering, result, htmlPreview, pdfBlobUrl,
   outputDocxPath, outputPdfPath,
   generationStatus = "idle", generationError,
+  missingVars = [],
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
@@ -510,6 +513,26 @@ export function StepDocumento({
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-success/10 border border-success/20">
               <Check className="h-3.5 w-3.5 text-success" />
               <span className="text-xs font-medium text-success">Documento pronto</span>
+            </div>
+          )}
+
+          {/* Missing variables warning */}
+          {missingVars.length > 0 && (
+            <div className="rounded-lg border border-warning/30 bg-warning/5 p-2.5 space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+                <span className="text-xs font-semibold text-warning">Placeholders não resolvidos</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {missingVars.map(v => (
+                  <Badge key={v} variant="outline" className="text-[10px] border-warning/30 text-warning bg-warning/10">
+                    {v.replace(/[\[\]{}]/g, "")}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Esses campos ficaram em branco no documento. Verifique os dados nas etapas anteriores.
+              </p>
             </div>
           )}
 

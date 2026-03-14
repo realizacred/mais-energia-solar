@@ -224,6 +224,7 @@ export function ProposalWizard() {
   const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
   const [generationStatus, setGenerationStatus] = useState<"idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error">("idle");
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [missingVars, setMissingVars] = useState<string[]>([]);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
 
@@ -1383,9 +1384,12 @@ export function ProposalWizard() {
           const artifactResult = await rawResp.json();
           console.log("[ProposalWizard] Artifact result:", artifactResult);
 
-          // Handle missing_vars from backend
+          // Handle missing_vars from backend — store for UI display
           if (artifactResult.missing_vars?.length > 0) {
             console.warn("[ProposalWizard] Missing vars in template:", artifactResult.missing_vars);
+            setMissingVars(artifactResult.missing_vars);
+          } else {
+            setMissingVars([]);
           }
 
           // Store persisted paths
@@ -1477,7 +1481,7 @@ export function ProposalWizard() {
   // ─── Invalidate artifacts when template changes
   const handleTemplateChange = useCallback((newTemplateId: string) => {
     setTemplateSelecionado(newTemplateId);
-    // Clear stale artifacts when template changes
+    // Clear ALL stale artifacts when template changes
     if (result) {
       setResult(null);
       setHtmlPreview(null);
@@ -1488,6 +1492,7 @@ export function ProposalWizard() {
       setOutputPdfPath(null);
       setGenerationStatus("idle");
       setGenerationError(null);
+      setMissingVars([]);
     }
   }, [result, pdfBlobUrl]);
 
@@ -1502,6 +1507,7 @@ export function ProposalWizard() {
     setOutputPdfPath(null);
     setGenerationStatus("idle");
     setGenerationError(null);
+    setMissingVars([]);
     // Go back to UCs step
     const ucsIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.UCS);
     setStep(ucsIndex >= 0 ? ucsIndex : 1);
@@ -1751,6 +1757,7 @@ export function ProposalWizard() {
               outputPdfPath={outputPdfPath}
               generationStatus={generationStatus}
               generationError={generationError}
+              missingVars={missingVars}
               onGenerate={handleGenerate}
               onNewVersion={handleNewVersion}
               onViewDetail={handleViewDetail}
