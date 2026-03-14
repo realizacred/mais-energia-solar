@@ -197,6 +197,9 @@ export function WaChatPanel({
     enabled: !!conversation?.id,
     staleTime: 60_000, // cache 1min — participant count rarely changes
   });
+  // Detect if accept banner should show
+  const showAcceptBanner = !conversation?.assigned_to && !!onAccept;
+
   const [atBottom, setAtBottom] = useState(true);
   const [newMsgCount, setNewMsgCount] = useState(0);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
