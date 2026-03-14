@@ -270,7 +270,7 @@ export default function IntegrationsCatalogPage() {
       }
     });
     return counts;
-  }, [providers, search, tab, connections, legacyIntegrations]);
+  }, [providers, search, tabFilter, connections, legacyIntegrations]);
 
   if (loadingProviders) return <LoadingState message="Carregando integrações..." />;
 
