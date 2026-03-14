@@ -229,6 +229,8 @@ export function ApproveVendaDialog({
   approving,
   isValid,
   documents,
+  paymentItems,
+  onPaymentItemsChange,
 }: ApproveVendaDialogProps) {
   const [previewUrls, setPreviewUrls] = useState<string[] | null>(null);
 
