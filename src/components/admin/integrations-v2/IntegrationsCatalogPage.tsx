@@ -114,6 +114,13 @@ export default function IntegrationsCatalogPage() {
 
   const handleBackToCatalog = () => setInlineProviderId(null);
 
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value }, { replace: true });
+  };
+
+  // Auto-open integration config from URL params (e.g. ?integration=meta_facebook&action=configure)
+  const autoOpenDone = useRef(false);
+
   const { data: dbProviders = [], isLoading: loadingProviders } = useQuery({
     queryKey: ["integration-providers"],
     queryFn: listProviders,
