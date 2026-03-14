@@ -1741,7 +1741,7 @@ export function ProposalWizard() {
               numUcs={ucs.length}
               precoFinal={precoFinal}
               templateSelecionado={templateSelecionado}
-              onTemplateSelecionado={setTemplateSelecionado}
+              onTemplateSelecionado={handleTemplateChange}
               generating={generating}
               rendering={rendering}
               result={result}
