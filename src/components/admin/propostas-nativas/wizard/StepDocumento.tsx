@@ -38,6 +38,7 @@ interface StepDocumentoProps {
   rendering: boolean;
   result: any;
   htmlPreview: string | null;
+  pdfBlobUrl?: string | null;
   onGenerate: () => void;
   onNewVersion: () => void;
   onViewDetail: () => void;
@@ -53,7 +54,7 @@ export function StepDocumento({
   potenciaKwp, areaUtilM2 = 0, geracaoMensalKwh = 0,
   numUcs, precoFinal,
   templateSelecionado, onTemplateSelecionado,
-  generating, rendering, result, htmlPreview,
+  generating, rendering, result, htmlPreview, pdfBlobUrl,
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
@@ -389,108 +390,19 @@ export function StepDocumento({
               variant="ghost"
               size="sm"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={async () => {
-                let htmlToRender = htmlPreview;
-                if (!htmlToRender && docxBlob) {
-                  try {
-                    const mammoth = await import("mammoth");
-                    const arrayBuffer = await docxBlob.arrayBuffer();
-                    const mammothResult = await (mammoth as any).convertToHtml({
-                      arrayBuffer,
-                      convertImage: (mammoth as any).images.imgElement((image: any) =>
-                        image.read("base64").then((imageBuffer: string) => ({
-                          src: `data:${image.contentType};base64,${imageBuffer}`,
-                        }))
-                      ),
-                    });
-                    htmlToRender = `<!DOCTYPE html><html><head><style>
-                      * { box-sizing: border-box; }
-                      body { font-family: 'Segoe UI', Arial, sans-serif; width: 794px; margin: 0 auto; padding: 60px; color: #333; line-height: 1.6; font-size: 12px; background: #fff; }
-                      table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-                      td, th { border: 1px solid #ddd; padding: 6px 10px; vertical-align: middle; }
-                      th { background: #f5f5f5; font-weight: 600; }
-                      img { max-width: 100%; height: auto; display: block; margin: 8px 0; clear: both; position: relative; }
-                      p img, span img { display: inline; margin: 0 4px; vertical-align: middle; max-height: 1.5em; }
-                      h1 { font-size: 20px; } h2 { font-size: 17px; } h3 { font-size: 15px; }
-                      p { margin: 6px 0; }
-                    </style></head><body>${mammothResult.value}</body></html>`;
-                  } catch (convErr: any) {
-                    toast({ title: "Erro ao preparar preview para PDF", description: convErr?.message || "Conversão DOCX falhou", variant: "destructive" });
-                    return;
-                  }
+              onClick={() => {
+                if (!pdfBlobUrl) {
+                  toast({ title: "PDF não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
+                  return;
                 }
-                if (!htmlToRender) { toast({ title: "Preview não disponível para PDF", variant: "destructive" }); return; }
-                try {
-                  const html2canvas = (await import("html2canvas")).default;
-                  const { jsPDF } = await import("jspdf");
-
-                  // A4 dimensions
-                  const A4_W_MM = 210;
-                  const A4_H_MM = 297;
-                  const MARGIN_MM = 10;
-                  const CONTENT_W_MM = A4_W_MM - MARGIN_MM * 2;
-                  const CONTENT_W_PX = 794; // ~A4 at 96dpi
-
-                  // Render HTML in hidden iframe
-                  const iframe = document.createElement("iframe");
-                  iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${CONTENT_W_PX}px;height:auto;border:none;`;
-                  document.body.appendChild(iframe);
-                  iframe.contentDocument?.open();
-                  iframe.contentDocument?.write(htmlToRender);
-                  iframe.contentDocument?.close();
-                  await new Promise(r => setTimeout(r, 800));
-
-                  // Auto-size iframe to content
-                  const bodyEl = iframe.contentDocument!.body;
-                  iframe.style.height = `${bodyEl.scrollHeight + 100}px`;
-                  await new Promise(r => setTimeout(r, 200));
-
-                  // Capture full content
-                  const canvas = await html2canvas(bodyEl, {
-                    scale: 2,
-                    useCORS: true,
-                    width: CONTENT_W_PX,
-                    windowWidth: CONTENT_W_PX,
-                    backgroundColor: "#ffffff",
-                  });
-                  document.body.removeChild(iframe);
-
-                  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-                  const scaleFactor = CONTENT_W_MM / (canvas.width / 2);
-                  const totalHeightMM = (canvas.height / 2) * scaleFactor;
-                  const pageContentH = A4_H_MM - MARGIN_MM * 2;
-
-                  // Slice canvas into A4 pages
-                  const totalPages = Math.ceil(totalHeightMM / pageContentH);
-                  for (let page = 0; page < totalPages; page++) {
-                    if (page > 0) pdf.addPage();
-
-                    const srcY = Math.round((page * pageContentH / scaleFactor) * 2);
-                    const srcH = Math.round((pageContentH / scaleFactor) * 2);
-                    const sliceH = Math.min(srcH, canvas.height - srcY);
-
-                    if (sliceH <= 0) break;
-
-                    // Create slice canvas for this page
-                    const sliceCanvas = document.createElement("canvas");
-                    sliceCanvas.width = canvas.width;
-                    sliceCanvas.height = sliceH;
-                    const ctx = sliceCanvas.getContext("2d")!;
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-                    ctx.drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-
-                    const sliceImgData = sliceCanvas.toDataURL("image/png");
-                    const sliceHMM = (sliceH / 2) * scaleFactor;
-                    pdf.addImage(sliceImgData, "PNG", MARGIN_MM, MARGIN_MM, CONTENT_W_MM, sliceHMM);
-                  }
-
-                  const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-                  pdf.save(`Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`);
-                  toast({ title: "PDF baixado com sucesso!" });
-                } catch (err: any) {
-                  toast({ title: "Erro ao gerar PDF", description: err.message, variant: "destructive" });
-                }
+                const a = document.createElement("a");
+                a.href = pdfBlobUrl;
+                const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+                a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                toast({ title: "PDF baixado com sucesso!" });
               }}
             >
               <Download className="h-3.5 w-3.5" />
@@ -547,7 +459,16 @@ export function StepDocumento({
           {rendering ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-              <p className="text-sm text-muted-foreground animate-pulse">Renderizando proposta...</p>
+              <p className="text-sm text-muted-foreground animate-pulse">Convertendo para PDF...</p>
+            </div>
+          ) : pdfBlobUrl ? (
+            <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
+              <iframe
+                src={pdfBlobUrl}
+                title="Proposta PDF Preview"
+                className="w-full border-0"
+                style={{ height: 800 }}
+              />
             </div>
           ) : htmlPreview ? (
             <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
