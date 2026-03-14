@@ -328,7 +328,7 @@ export default function IntegrationsCatalogPage() {
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-lg transition-all",
                 tab === key
-                  ? "bg-card text-foreground shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
