@@ -269,10 +269,14 @@ export function StepDocumento({
 
   const renderTemplateTab = () => {
     if (generating) {
+      const statusMsg = generationStatus === "generating_docx" ? "Gerando documento DOCX..."
+        : generationStatus === "converting_pdf" ? "Convertendo para PDF..."
+        : generationStatus === "saving" ? "Salvando artefatos..."
+        : "Gerando proposta comercial...";
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse">Gerando proposta comercial...</p>
+          <p className="text-sm font-medium text-muted-foreground animate-pulse">{statusMsg}</p>
         </div>
       );
     }
