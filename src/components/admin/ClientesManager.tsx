@@ -694,7 +694,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   <TableCell>
                     {cliente.potencia_kwp ? (
                       <div className="text-sm">
-                        <Badge variant="secondary" className="gap-1">
+                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/30 gap-1 text-xs">
                           <Sun className="h-3 w-3" />
                           {cliente.potencia_kwp} kWp
                         </Badge>
