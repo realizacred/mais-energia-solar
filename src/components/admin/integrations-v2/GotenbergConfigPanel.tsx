@@ -116,25 +116,7 @@ export default function GotenbergConfigPanel() {
           throw new Error("Erro ao atualizar configuração: " + (updateError.message || "falha no banco"));
         }
       } else {
-        // Get current user's tenant
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Usuário não autenticado");
-        const { data: profile, error: profileError } = await (supabase as any)
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
-        if (profileError) {
-          console.error("[GotenbergConfig] Erro ao buscar perfil:", profileError);
-          throw new Error("Erro ao buscar seu perfil. Tente novamente.");
-        }
-        if (!profile?.tenant_id) {
-          throw new Error(
-            "Seu usuário não está vinculado a nenhuma empresa (tenant). " +
-            "Solicite ao administrador que vincule seu usuário antes de salvar esta integração."
-          );
-        }
+        const { tenantId } = await getCurrentTenantId();
 
         const { error: insertError } = await (supabase as any)
           .from("integration_connections")
