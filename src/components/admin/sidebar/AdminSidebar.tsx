@@ -136,8 +136,8 @@ function SidebarItemButton({
               focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1
               ${
                 isFav
-                  ? "opacity-100 text-warning"
-                  : "opacity-0 group-hover/item:opacity-40 hover:!opacity-100 text-muted-foreground hover:text-warning"
+                  ? "opacity-100 text-primary"
+                  : "opacity-0 group-hover/item:opacity-40 hover:!opacity-100 text-muted-foreground hover:text-primary"
               }
             `}
             aria-label={isFav ? `Remover ${item.title} dos favoritos` : `Adicionar ${item.title} aos favoritos`}
