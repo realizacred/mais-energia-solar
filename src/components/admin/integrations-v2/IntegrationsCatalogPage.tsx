@@ -62,6 +62,12 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   tuya_iot: lazy(() => import("@/components/admin/integrations-api/ApisPage")),
 };
 
+/* Tab-level lazy components */
+const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
+const WebhookManagerTab = lazy(() => import("@/components/admin/WebhookManager"));
+const WaInstancesManagerTab = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
+const WhatsAppAutomationConfigTab = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
+
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
   Object.entries(LEGACY_ID_MAP).map(([legacy, canonical]) => [canonical, legacy])
 );
