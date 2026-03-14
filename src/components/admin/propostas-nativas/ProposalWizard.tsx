@@ -1468,9 +1468,28 @@ export function ProposalWizard() {
         });
         return;
       }
+      setGenerationStatus("error");
+      setGenerationError(e.message || "Erro desconhecido ao gerar proposta");
       toast({ title: "Erro ao gerar proposta", description: e.message, variant: "destructive" });
     } finally { setGenerating(false); }
   };
+
+  // ─── Invalidate artifacts when template changes
+  const handleTemplateChange = useCallback((newTemplateId: string) => {
+    setTemplateSelecionado(newTemplateId);
+    // Clear stale artifacts when template changes
+    if (result) {
+      setResult(null);
+      setHtmlPreview(null);
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+      setPdfBlobUrl(null);
+      setDocxBlob(null);
+      setOutputDocxPath(null);
+      setOutputPdfPath(null);
+      setGenerationStatus("idle");
+      setGenerationError(null);
+    }
+  }, [result, pdfBlobUrl]);
 
   const handleNewVersion = () => {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
