@@ -101,18 +101,18 @@ export default function UCsListPage() {
     setDialogOpen(true);
   }
 
-  const filterTabs: { key: QuickFilter; label: string; count: number; icon: any; color: string }[] = [
-    { key: "all", label: "Ativas", count: counts.all, icon: CheckCircle2, color: "primary" },
-    { key: "no_concessionaria", label: "Sem Concessionária", count: counts.no_concessionaria, icon: ShieldAlert, color: "warning" },
-    { key: "no_billing", label: "Sem Credenciais", count: counts.no_billing, icon: AlertTriangle, color: "destructive" },
-    { key: "archived", label: "Arquivadas", count: counts.archived, icon: ArchiveIcon, color: "muted-foreground" },
+  const filterTabs: { key: QuickFilter; label: string; count: number; icon: any }[] = [
+    { key: "all", label: "Ativas", count: counts.all, icon: CheckCircle2 },
+    { key: "no_concessionaria", label: "Sem Concessionária", count: counts.no_concessionaria, icon: ShieldAlert },
+    { key: "no_billing", label: "Sem Credenciais", count: counts.no_billing, icon: AlertTriangle },
+    { key: "archived", label: "Arquivadas", count: counts.archived, icon: ArchiveIcon },
   ];
 
   const kpiCards = [
-    { label: "Total Ativas", value: counts.all, icon: Building2, color: "primary" },
-    { label: "Sem Concessionária", value: counts.no_concessionaria, icon: ShieldAlert, color: "warning" },
-    { label: "Sem Credenciais", value: counts.no_billing, icon: AlertTriangle, color: "destructive" },
-    { label: "Arquivadas", value: counts.archived, icon: ArchiveIcon, color: "info" },
+    { label: "Total Ativas", value: counts.all, icon: Building2, borderCls: "border-l-primary", bgCls: "bg-primary/10", textCls: "text-primary" },
+    { label: "Sem Concessionária", value: counts.no_concessionaria, icon: ShieldAlert, borderCls: "border-l-warning", bgCls: "bg-warning/10", textCls: "text-warning" },
+    { label: "Sem Credenciais", value: counts.no_billing, icon: AlertTriangle, borderCls: "border-l-destructive", bgCls: "bg-destructive/10", textCls: "text-destructive" },
+    { label: "Arquivadas", value: counts.archived, icon: ArchiveIcon, borderCls: "border-l-muted-foreground/40", bgCls: "bg-muted", textCls: "text-muted-foreground" },
   ];
 
   return (
@@ -142,10 +142,10 @@ export default function UCsListPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpiCards.map((kpi, i) => (
           <motion.div key={kpi.label} custom={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.35 }}>
-            <Card className={`border-l-[3px] border-l-${kpi.color} bg-card shadow-sm hover:shadow-md transition-shadow`}>
+            <Card className={cn("border-l-[3px] bg-card shadow-sm hover:shadow-md transition-shadow", kpi.borderCls)}>
               <CardContent className="flex items-center gap-4 p-5">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${kpi.color}/10 text-${kpi.color} shrink-0`}>
-                  <kpi.icon className="w-5 h-5" />
+                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", kpi.bgCls)}>
+                  <kpi.icon className={cn("w-5 h-5", kpi.textCls)} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{isLoading ? "—" : kpi.value}</p>
@@ -172,19 +172,21 @@ export default function UCsListPage() {
           {filterTabs.map(tab => (
             <Button
               key={tab.key}
-              variant={quickFilter === tab.key ? "default" : "outline"}
+              variant={quickFilter === tab.key ? "outline" : "ghost"}
               size="sm"
               onClick={() => setQuickFilter(tab.key)}
               className={cn(
                 "text-xs gap-1.5",
-                quickFilter === tab.key ? "" : "text-muted-foreground"
+                quickFilter === tab.key
+                  ? "bg-primary/10 text-primary border-primary hover:bg-primary/15"
+                  : "text-muted-foreground"
               )}
             >
               <tab.icon className="w-3.5 h-3.5" />
               {tab.label}
               <Badge variant="outline" className={cn(
                 "ml-1 text-[10px] h-5 px-1.5",
-                quickFilter === tab.key ? "border-primary-foreground/30 text-primary-foreground" : ""
+                quickFilter === tab.key ? "border-primary/30 text-primary" : ""
               )}>
                 {isLoading ? "…" : tab.count}
               </Badge>
