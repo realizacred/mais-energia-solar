@@ -809,8 +809,24 @@ export function WaChatPanel({
           />
         </div>
 
-        {/* Composer */}
+        {/* Composer + Accept Banner (combined shrink-0 block) */}
         <div className="shrink-0">
+          {showAcceptBanner && (
+            <div className="px-3 pt-2 pb-1 border-t border-border/20 bg-card">
+              <Button
+                size="sm"
+                className="w-full gap-2 bg-success hover:bg-success/90 text-white font-medium py-2.5"
+                onClick={onAccept}
+                disabled={isAccepting}
+              >
+                {isAccepting ? (
+                  <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Aceitando...</>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4" /> Aceitar atendimento</>
+                )}
+              </Button>
+            </div>
+          )}
           <WaChatComposer
             onSendMessage={(content, isNote, quotedId) => {
               onSendMessage(content, isNote, quotedId);
@@ -850,24 +866,6 @@ export function WaChatPanel({
             }
           />
         </div>
-
-        {/* Accept button below composer — only for unassigned conversations */}
-        {!conversation.assigned_to && onAccept && (
-          <div className="shrink-0 px-3 pb-3 pt-1 border-t border-border/20 bg-card">
-            <Button
-              size="sm"
-              className="w-full gap-2 bg-success hover:bg-success/90 text-white font-medium py-2.5"
-              onClick={onAccept}
-              disabled={isAccepting}
-            >
-              {isAccepting ? (
-                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Aceitando...</>
-              ) : (
-                <><CheckCircle2 className="h-4 w-4" /> Aceitar atendimento</>
-              )}
-            </Button>
-          </div>
-        )}
 
         {/* Lead Info Card */}
         {conversation.lead_id && (
