@@ -1757,6 +1757,7 @@ export function ProposalWizard() {
               outputPdfPath={outputPdfPath}
               generationStatus={generationStatus}
               generationError={generationError}
+              missingVars={missingVars}
               onGenerate={handleGenerate}
               onNewVersion={handleNewVersion}
               onViewDetail={handleViewDetail}
