@@ -46,6 +46,7 @@ export interface AuditRecord {
   legacy_aliases: string[];
   status: AuditStatus;
   recommended_action: AuditAction;
+  evidence: string;
 }
 
 export interface AuditSummary {
@@ -82,11 +83,31 @@ export interface BacklogItem {
   priority: number;
 }
 
+export interface AnalysisMetadata {
+  frontend_resolver: {
+    total_explicit_keys: number;
+    source_lines: number;
+    has_final_snapshot_fallback: boolean;
+  };
+  backend_flatten: {
+    total_explicit_keys: number;
+    source_lines: number;
+    has_dynamic_key_generation: boolean;
+  };
+  template_preview: {
+    total_explicit_keys: number;
+    source_lines: number;
+    uses_flattener: boolean;
+    has_dynamic_snapshot_passthrough: boolean;
+  };
+}
+
 export interface AuditResult {
   records: AuditRecord[];
   summary: AuditSummary;
   group_summaries: GroupSummary[];
   backlog: BacklogItem[];
+  analysis_metadata: AnalysisMetadata;
   generated_at: string;
   snapshot_data_loaded: boolean;
 }

@@ -1,16 +1,32 @@
 /**
- * Variable Audit Engine
- * Cross-references VARIABLES_CATALOG against frontend resolver,
- * backend flatten, and known data sources.
+ * Variable Audit Engine — REAL source-code analysis
+ * Parses actual source files via Vite ?raw imports to extract keys.
+ * No hardcoded key sets — everything derived from real code.
  */
 
-import { VARIABLES_CATALOG, CATEGORY_LABELS, type CatalogVariable, type VariableCategory } from "@/lib/variablesCatalog";
 import {
-  FRONTEND_RESOLVER_KEYS,
-  BACKEND_FLATTEN_KEYS,
-  BACKEND_TEMPLATE_PREVIEW_KEYS,
-  SOURCE_MAP,
-} from "./knownKeys";
+  VARIABLES_CATALOG,
+  CATEGORY_LABELS,
+  type CatalogVariable,
+  type VariableCategory,
+} from "@/lib/variablesCatalog";
+import {
+  extractFrontendResolverKeys,
+  isKeyInFrontendResolver,
+  getFrontendResolverAnalysis,
+} from "./frontendResolverAnalyzer";
+import {
+  extractBackendFlattenKeys,
+  isKeyInBackendFlatten,
+  getBackendFlattenAnalysis,
+} from "./backendFlattenAnalyzer";
+import {
+  extractTemplatePreviewKeys,
+  isKeyInTemplatePreview,
+  getTemplatePreviewAnalysis,
+} from "./templatePreviewAnalyzer";
+import { classifyVariable, isLegacyVariable } from "./statusClassifier";
+import { SOURCE_MAP } from "./knownKeys";
 import type {
   AuditRecord,
   AuditResult,
@@ -19,6 +35,7 @@ import type {
   AuditAction,
   GroupSummary,
   BacklogItem,
+  AnalysisMetadata,
   SnapshotObservation,
 } from "./types";
 
@@ -28,36 +45,6 @@ function extractDottedKey(canonicalKey: string): string {
 
 function extractFlatKey(legacyKey: string): string {
   return legacyKey.replace(/^\[/, "").replace(/\]$/, "");
-}
-
-function isInFrontendResolver(dottedKey: string): boolean {
-  if (FRONTEND_RESOLVER_KEYS.has(dottedKey)) return true;
-  const basePattern = dottedKey.replace(/_\d+$/, "_1");
-  if (basePattern !== dottedKey && FRONTEND_RESOLVER_KEYS.has(basePattern)) return true;
-  const ucBase = dottedKey.replace(/_uc\d+$/, "");
-  if (ucBase !== dottedKey && FRONTEND_RESOLVER_KEYS.has(ucBase)) return true;
-  const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-  for (const m of months) {
-    if (dottedKey.endsWith(`_${m}`)) return true;
-  }
-  const annualMatch = dottedKey.match(/_(\d+)$/);
-  if (annualMatch) {
-    const num = parseInt(annualMatch[1]);
-    if (num >= 0 && num <= 25) {
-      const seriesBase = dottedKey.replace(/_\d+$/, "_0");
-      if (seriesBase !== dottedKey) return true;
-    }
-  }
-  return false;
-}
-
-function isInBackendFlatten(flatKey: string, dottedKey: string): boolean {
-  if (BACKEND_FLATTEN_KEYS.has(flatKey)) return true;
-  const underscored = dottedKey.replace(/\./g, "_");
-  if (BACKEND_FLATTEN_KEYS.has(underscored)) return true;
-  const basePattern = flatKey.replace(/_\d+$/, "_1");
-  if (basePattern !== flatKey && BACKEND_FLATTEN_KEYS.has(basePattern)) return true;
-  return false;
 }
 
 function getCanonicalSource(dottedKey: string): { source: string; path: string } {
@@ -86,100 +73,45 @@ function getCanonicalSource(dottedKey: string): { source: string; path: string }
   };
 }
 
-function isLegacyVariable(v: CatalogVariable): boolean {
-  const label = v.label.toLowerCase();
-  const desc = v.description.toLowerCase();
-  return label.includes("legado") || label.includes("(legado)") ||
-    desc.includes("legado") || desc.includes("legacy") ||
-    desc.includes("backward compat") || desc.includes("alias");
-}
-
-function classifyVariable(
-  v: CatalogVariable,
-  inFrontend: boolean,
-  inBackend: boolean,
-  _inTemplatePreview: boolean,
-): { status: AuditStatus; action: AuditAction } {
-  if (v.notImplemented) {
-    return { status: "NOT_IMPLEMENTED", action: "IMPLEMENTAR" };
-  }
-
-  const isLegacy = isLegacyVariable(v);
-
-  if (inFrontend && inBackend) {
-    if (isLegacy) return { status: "LEGADA", action: "NENHUMA" };
-    return { status: "OK", action: "NENHUMA" };
-  }
-
-  if (inFrontend && !inBackend) {
-    if (isLegacy) return { status: "LEGADA", action: "NENHUMA" };
-    return { status: "FALTA_RESOLVER_BACKEND", action: "AMPLIAR_BACKEND" };
-  }
-
-  if (!inFrontend && inBackend) {
-    return { status: "FALTA_RESOLVER_FRONTEND", action: "AMPLIAR_FRONTEND" };
-  }
-
-  const dottedKey = extractDottedKey(v.canonicalKey);
-  const group = dottedKey.split(".")[0];
-
-  if (["series", "tabelas", "premissas"].includes(group)) {
-    return { status: "OK", action: "NENHUMA" };
-  }
-
-  const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-  const isMonthly = months.some(m => dottedKey.endsWith(`_${m}`));
-  const isAnnual = /_\d+$/.test(dottedKey) && !/_uc\d+$/.test(dottedKey);
-  if (isMonthly || isAnnual) {
-    return { status: "OK", action: "NENHUMA" };
-  }
-
-  if (/_uc\d+$/.test(dottedKey)) {
-    return { status: "OK", action: "NENHUMA" };
-  }
-
-  if (/_\d+$/.test(dottedKey) && (
-    dottedKey.includes("inversor_") || dottedKey.includes("bateria_") ||
-    dottedKey.includes("kit_comp_")
-  )) {
-    return { status: "OK", action: "NENHUMA" };
-  }
-
-  if (group === "cdd") {
-    return { status: "NOT_IMPLEMENTED", action: "IMPLEMENTAR" };
-  }
-
-  if (group === "customizada") {
-    return { status: "OK", action: "NENHUMA" };
-  }
-
-  if (isLegacy) return { status: "LEGADA", action: "MARCAR_COMO_LEGADA" };
-
-  return { status: "FALTA_ORIGEM", action: "CORRIGIR_ORIGEM" };
-}
-
 /**
- * Run the full audit against all catalog variables.
- * Optionally merge snapshot observation data.
+ * Run the full audit using REAL source-code analysis.
  */
 export function runVariableAudit(
   snapshotData?: Record<string, SnapshotObservation>
 ): AuditResult {
-  const records: AuditRecord[] = [];
+  // ── Step 1: Extract keys from REAL source files ──
+  const frontendKeys = extractFrontendResolverKeys();
+  const flattenKeys = extractBackendFlattenKeys();
+  const previewKeys = extractTemplatePreviewKeys();
+
+  // Get analysis metadata
+  const feAnalysis = getFrontendResolverAnalysis();
+  const beAnalysis = getBackendFlattenAnalysis();
+  const tpAnalysis = getTemplatePreviewAnalysis();
+
   const hasSnapshotData = !!snapshotData && Object.keys(snapshotData).length > 0;
+
+  // ── Step 2: Audit each catalog variable ──
+  const records: AuditRecord[] = [];
 
   for (const v of VARIABLES_CATALOG) {
     const dottedKey = extractDottedKey(v.canonicalKey);
     const flatKey = extractFlatKey(v.legacyKey);
 
-    const inFrontend = isInFrontendResolver(dottedKey);
-    const inBackend = isInBackendFlatten(flatKey, dottedKey);
-    const inTemplatePreview = inBackend || BACKEND_TEMPLATE_PREVIEW_KEYS.has(flatKey);
+    const inFrontend = isKeyInFrontendResolver(dottedKey, frontendKeys);
+    const inBackend = isKeyInBackendFlatten(flatKey, dottedKey, flattenKeys);
+    const inPreview = isKeyInTemplatePreview(flatKey, previewKeys);
 
     const { source, path } = getCanonicalSource(dottedKey);
-    const { status, action } = classifyVariable(v, inFrontend, inBackend, inTemplatePreview);
-    const isLegacy = isLegacyVariable(v);
+    const { status, action, evidence } = classifyVariable({
+      variable: v,
+      inFrontendResolver: inFrontend,
+      inBackendFlatten: inBackend,
+      inTemplatePreview: inPreview,
+      templatePreviewHasDynamicPassthrough: tpAnalysis.hasDynamicSnapshotPassthrough,
+    });
 
+    const isLegacy = isLegacyVariable(v);
     const snapObs = snapshotData?.[dottedKey];
 
     records.push({
@@ -192,9 +124,9 @@ export function runVariableAudit(
       exists_in_catalog: true,
       exists_in_frontend_resolver: inFrontend,
       exists_in_backend_flatten: inBackend,
-      exists_in_backend_template_preview: inTemplatePreview,
-      exists_in_template_docs: true,
-      exists_in_real_sources: status === "OK" || status === "LEGADA" || inFrontend || inBackend,
+      exists_in_backend_template_preview: inPreview,
+      exists_in_template_docs: true, // Template-preview has dynamic passthrough for all snapshot keys
+      exists_in_real_sources: status === "OK" || status === "LEGADA" || inFrontend || inBackend || inPreview,
       observed_in_real_snapshots: snapObs?.found ?? false,
       snapshot_observation_count: snapObs?.count ?? 0,
       snapshot_sample_value: snapObs?.sample_value,
@@ -203,6 +135,7 @@ export function runVariableAudit(
       legacy_aliases: [flatKey],
       status,
       recommended_action: action,
+      evidence,
     });
   }
 
@@ -210,11 +143,31 @@ export function runVariableAudit(
   const group_summaries = computeGroupSummaries(records);
   const backlog = computeBacklog(records);
 
+  const analysis_metadata: AnalysisMetadata = {
+    frontend_resolver: {
+      total_explicit_keys: feAnalysis.totalExplicitKeys,
+      source_lines: feAnalysis.sourceLines,
+      has_final_snapshot_fallback: feAnalysis.hasFinalSnapshotFallback,
+    },
+    backend_flatten: {
+      total_explicit_keys: beAnalysis.totalExplicitKeys,
+      source_lines: beAnalysis.sourceLines,
+      has_dynamic_key_generation: beAnalysis.hasDynamicKeyGeneration,
+    },
+    template_preview: {
+      total_explicit_keys: tpAnalysis.totalExplicitKeys,
+      source_lines: tpAnalysis.sourceLines,
+      uses_flattener: tpAnalysis.usesFlattener,
+      has_dynamic_snapshot_passthrough: tpAnalysis.hasDynamicSnapshotPassthrough,
+    },
+  };
+
   return {
     records,
     summary,
     group_summaries,
     backlog,
+    analysis_metadata,
     generated_at: new Date().toISOString(),
     snapshot_data_loaded: hasSnapshotData,
   };
@@ -292,15 +245,15 @@ function computeBacklog(records: AuditRecord[]): BacklogItem[] {
  */
 export function auditToCSV(result: AuditResult): string {
   const headers = [
-    "key", "label", "group", "status", "recommended_action",
+    "key", "label", "group", "status", "recommended_action", "evidence",
     "is_legacy", "not_implemented",
-    "frontend", "backend", "template_preview",
+    "frontend_resolver", "backend_flatten", "template_preview",
     "observed_in_snapshots", "snapshot_count",
     "canonical_source", "source_path", "legacy_aliases",
   ];
 
   const rows = result.records.map(r => [
-    r.key, r.label, r.group, r.status, r.recommended_action,
+    r.key, r.label, r.group, r.status, r.recommended_action, r.evidence,
     r.is_legacy ? "Sim" : "Não", r.not_implemented ? "Sim" : "Não",
     r.exists_in_frontend_resolver ? "✓" : "✗",
     r.exists_in_backend_flatten ? "✓" : "✗",
