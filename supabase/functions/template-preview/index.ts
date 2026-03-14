@@ -976,6 +976,9 @@ Deno.serve(async (req) => {
         return allPlaceholders.includes(bracket) || allPlaceholders.includes(mustache);
       });
 
+      const originalHash = await hashBytes(templateBuffer);
+      const processedHash = await hashBytes(report);
+
       const forensicReport: ForensicDebugReport = {
         timestamp: new Date().toISOString(),
         templateId: template_id,
@@ -985,6 +988,8 @@ Deno.serve(async (req) => {
         originalDocxSize: originalSize,
         processedDocxSize: report.length,
         pdfSize: pdfBytes?.length || null,
+        originalDocxHash: originalHash,
+        processedDocxHash: processedHash,
         templateStructure: debugResult.structureBefore,
         postNormalizationStructure: debugResult.structureAfter,
         structurePreserved:
@@ -999,6 +1004,7 @@ Deno.serve(async (req) => {
         placeholdersMissing: processedMissingVars,
         placeholdersFragmentedBeforeNorm: fragmentedBefore,
         placeholdersFragmentedAfterNorm: fragmentedAfter,
+        variableMap: vars,
         gotenbergUrl,
         gotenbergParams,
         gotenbergResponseStatus,
