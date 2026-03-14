@@ -574,7 +574,7 @@ Deno.serve(async (req) => {
     // ═══════════════════════════════════════════════════════
     const nomeCliente = cliente?.nome || lead?.nome;
     set("cliente_nome", nomeCliente);
-    set("vc_nome", nomeCliente);
+    set("vc_nome", nomeCliente); // Legacy alias — kept for backward compat with old templates
     set("cliente_celular", cliente?.telefone || lead?.telefone);
     set("cliente_email", cliente?.email);
     set("cliente_cnpj_cpf", cliente?.cpf_cnpj);
