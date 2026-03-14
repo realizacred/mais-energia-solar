@@ -39,6 +39,10 @@ interface StepDocumentoProps {
   result: any;
   htmlPreview: string | null;
   pdfBlobUrl?: string | null;
+  outputDocxPath?: string | null;
+  outputPdfPath?: string | null;
+  generationStatus?: "idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error";
+  generationError?: string | null;
   onGenerate: () => void;
   onNewVersion: () => void;
   onViewDetail: () => void;
