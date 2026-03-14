@@ -103,8 +103,8 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
               </TableCell>
               <TableCell className="align-middle">
                 <Badge
-                  variant="secondary"
-                  className="bg-secondary/10 text-secondary"
+                  variant="outline"
+                  className="bg-muted text-muted-foreground border-border text-xs"
                 >
                   {lead.cidade}, {lead.estado}
                 </Badge>

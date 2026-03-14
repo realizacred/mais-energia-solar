@@ -141,7 +141,7 @@ export function OrcamentosTable({
                         className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
                         onClick={() => handleOpenHistory(group)}
                       >
-                        <Badge variant="secondary" className="h-5 min-w-5 p-0 flex items-center justify-center text-xs">
+                        <Badge variant="outline" className="h-5 min-w-5 p-0 flex items-center justify-center text-xs bg-muted text-muted-foreground border-border rounded-full">
                           +{group.count - 1}
                         </Badge>
                       </Button>
@@ -204,8 +204,8 @@ export function OrcamentosTable({
                 </TableCell>
                 <TableCell className="hidden sm:table-cell align-middle">
                   <Badge
-                    variant="secondary"
-                    className="bg-secondary/10 text-secondary text-xs"
+                    variant="outline"
+                    className="bg-muted text-muted-foreground border-border text-xs"
                   >
                     {orc.cidade}, {orc.estado}
                   </Badge>

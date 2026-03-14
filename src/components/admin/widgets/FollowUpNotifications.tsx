@@ -126,13 +126,13 @@ export function FollowUpNotifications({
     const level = getPriorityLevel(days);
     switch (level) {
       case "critical":
-        return <Badge variant="destructive" className="text-xs">Crítico ({days}d)</Badge>;
+        return <Badge variant="destructive" className="text-xs font-medium">Crítico ({days}d)</Badge>;
       case "high":
-        return <Badge variant="destructive" className="text-xs opacity-80">{days} dias</Badge>;
+        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">{days} dias</Badge>;
       case "medium":
-        return <Badge variant="default" className="bg-warning text-warning-foreground text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">{days} dias</Badge>;
       default:
-        return <Badge variant="secondary" className="text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">{days} dias</Badge>;
     }
   };
 
@@ -177,19 +177,23 @@ export function FollowUpNotifications({
   const criticalCount = leads.filter(l => l.daysWithoutContact >= 7).length;
 
   return (
-    <Card className={criticalCount > 0 ? "border-destructive/30 bg-destructive/5" : "border-warning/30 bg-warning/5"}>
+    <Card className={criticalCount > 0 ? "border-l-[3px] border-l-destructive bg-card" : "border-l-[3px] border-l-warning bg-card"}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {criticalCount > 0 ? (
-              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </div>
             ) : (
-              <Bell className="h-5 w-5 text-warning" />
+              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Bell className="h-4 w-4 text-warning" />
+              </div>
             )}
             <CardTitle className="text-base">Follow-up Pendente</CardTitle>
             <Badge 
-              variant={criticalCount > 0 ? "destructive" : "secondary"} 
-              className={criticalCount > 0 ? "" : "bg-warning/20 text-warning-foreground"}
+              variant="outline"
+              className={criticalCount > 0 ? "bg-destructive/10 text-destructive border-destructive/20 text-xs" : "bg-warning/10 text-warning border-warning/20 text-xs"}
             >
               {leads.length}
             </Badge>

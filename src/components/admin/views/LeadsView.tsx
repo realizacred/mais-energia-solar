@@ -4,7 +4,7 @@ import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
-import { ClipboardList } from "lucide-react";
+import { Users } from "lucide-react";
 import { useOrcamentosAdmin } from "@/hooks/useOrcamentosAdmin";
 import { 
   OrcamentosTable, 
@@ -149,7 +149,7 @@ export function LeadsView() {
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <PageHeader
-        icon={ClipboardList}
+        icon={Users}
         title="Leads"
         description="Gerencie os orçamentos e leads recebidos"
       />
@@ -164,7 +164,7 @@ export function LeadsView() {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle className="text-foreground flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-primary" />
+              <Users className="h-4 w-4 text-primary" />
               Orçamentos Cadastrados
             </CardTitle>
             <OrcamentoSortSelector value={sortOption} onChange={updateSort} />
