@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.44.0",
+    date: "2026-03-14",
+    title: "Auditoria automática do catálogo de variáveis",
+    type: "feature",
+    description: "Motor de auditoria que cruza todas as variáveis do catálogo com frontend resolver, backend flatten e templates DOCX, gerando relatório de consistência.",
+    details: [
+      "Motor de auditoria em src/services/variableAudit com análise estática de cobertura",
+      "Aba 'Auditoria' em /admin/variaveis-sistema com cards de resumo e tabela filtrável",
+      "Classificação por status: OK, Legada, Falta Frontend/Backend, Não Implementada, Órfã",
+      "Exportação do relatório em JSON e CSV",
+      "Filtros por grupo, status, tipo (legada/não implementada)",
+      "Mapeamento de chaves conhecidas do resolver frontend e flatten backend",
+    ],
+  },
+  {
     version: "2.43.0",
     date: "2026-03-14",
     title: "Aprovação de venda atômica via RPC backend",
