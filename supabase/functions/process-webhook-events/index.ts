@@ -528,10 +528,12 @@ async function handleMessageUpsert(
           last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
           last_message_direction: direction,
           unread_count: fromMe ? 0 : 1,
-          profile_picture_url: null,
+         profile_picture_url: null,
         }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: false })
         .select("id")
         .single();
+
+      // Immediately enqueue profile_pic job for new conversations
 
       if (convError) {
         console.error("[process-webhook-events] Error upserting conversation:", convError);

@@ -535,7 +535,7 @@ export function WaConversationList({
 
       {/* Conversations */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="h-full min-h-0 overflow-y-auto">
+        <div className="h-full min-h-0 overflow-y-auto wa-conversation-list">
           {loading ? (
           <div className="p-2 space-y-1">
             {Array.from({ length: 8 }).map((_, i) => (

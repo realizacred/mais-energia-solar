@@ -910,3 +910,22 @@
     }
   }
 }
+
+/* ── WhatsApp conversation list scrollbar ── */
+.wa-conversation-list::-webkit-scrollbar {
+  width: 4px;
+}
+.wa-conversation-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.wa-conversation-list::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+.wa-conversation-list::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+.wa-conversation-list {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}

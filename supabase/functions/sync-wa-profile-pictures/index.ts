@@ -10,18 +10,27 @@ const PLACEHOLDER_NO_PIC = "none";
 const RETRY_AFTER_HOURS = 24;
 
 function extractProfilePictureUrl(payload: any): string | null {
-  const raw =
-    payload?.profilePictureUrl ||
-    payload?.profilePicUrl ||
-    payload?.data?.profilePictureUrl ||
-    payload?.data?.profilePicUrl ||
-    payload?.url ||
-    null;
-
-  if (!raw || typeof raw !== "string") return null;
-  const normalized = raw.trim();
-  if (!normalized || normalized.toLowerCase() === "none") return null;
-  return normalized;
+  const INVALID = new Set(["", "none", "null", "undefined"]);
+  const candidates = [
+    payload?.profilePictureUrl,
+    payload?.imgUrl,
+    payload?.profilePicUrl,
+    payload?.pictureUrl,
+    payload?.url,
+    payload?.data?.profilePictureUrl,
+    payload?.data?.imgUrl,
+    payload?.data?.profilePicUrl,
+    payload?.data?.pictureUrl,
+  ];
+  for (const url of candidates) {
+    if (typeof url === "string") {
+      const trimmed = url.trim();
+      if (!INVALID.has(trimmed.toLowerCase()) && trimmed.startsWith("http")) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
 }
 
 function shouldPersistNoPhoto(status: number): boolean {
@@ -49,6 +58,15 @@ Deno.serve(async (req) => {
       .eq("is_group", false)
       .limit(40);
 
+    // Also refresh conversations with invalid URLs (not starting with http)
+    const { data: convosInvalid } = await supabase
+      .from("wa_conversations")
+      .select("id, instance_id, remote_jid, profile_picture_url")
+      .not("profile_picture_url", "is", null)
+      .not("profile_picture_url", "like", "http%")
+      .eq("is_group", false)
+      .limit(20);
+
     const { data: convosNone } = await supabase
       .from("wa_conversations")
       .select("id, instance_id, remote_jid, profile_picture_url")
@@ -57,7 +75,7 @@ Deno.serve(async (req) => {
       .lt("updated_at", retryBefore)
       .limit(20);
 
-    const conversations = [...(convosNull || []), ...(convosNone || [])];
+    const conversations = [...(convosNull || []), ...(convosInvalid || []), ...(convosNone || [])];
 
     if (conversations.length === 0) {
       return jsonRes({ updated: 0, message: "No conversations need profile pictures" });
