@@ -1242,9 +1242,14 @@ export function ProposalWizard() {
     }
 
     setGenerating(true);
+    setGenerationStatus("generating_docx");
+    setGenerationError(null);
     setHtmlPreview(null);
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     setPdfBlobUrl(null);
     setDocxBlob(null);
+    setOutputDocxPath(null);
+    setOutputPdfPath(null);
     setResult(null);
 
     try {
