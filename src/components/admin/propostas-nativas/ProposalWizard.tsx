@@ -224,6 +224,7 @@ export function ProposalWizard() {
   const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
   const [generationStatus, setGenerationStatus] = useState<"idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error">("idle");
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [missingVars, setMissingVars] = useState<string[]>([]);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
 
