@@ -1384,9 +1384,12 @@ export function ProposalWizard() {
           const artifactResult = await rawResp.json();
           console.log("[ProposalWizard] Artifact result:", artifactResult);
 
-          // Handle missing_vars from backend
+          // Handle missing_vars from backend — store for UI display
           if (artifactResult.missing_vars?.length > 0) {
             console.warn("[ProposalWizard] Missing vars in template:", artifactResult.missing_vars);
+            setMissingVars(artifactResult.missing_vars);
+          } else {
+            setMissingVars([]);
           }
 
           // Store persisted paths
