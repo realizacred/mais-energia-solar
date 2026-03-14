@@ -102,7 +102,7 @@ function SidebarItemButton({
         aria-label={item.title}
         className={`
           transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
-          pl-4
+          pl-2
           focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
           ${
             isActive
