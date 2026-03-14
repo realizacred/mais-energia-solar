@@ -329,7 +329,7 @@ export function ApproveVendaDialog({
           </DialogHeader>
 
           {/* BODY — 2 COLUNAS OBRIGATÓRIO */}
-          <div className="grid grid-cols-2 divide-x divide-border overflow-y-auto max-h-[65vh]">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border flex-1 min-h-0 overflow-y-auto">
               {/* ═══ COLUNA ESQUERDA — Dados ═══ */}
               <div className="p-5 space-y-5">
                 {/* Dados do cliente */}
