@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.41.0",
+    date: "2026-03-14",
+    title: "PaymentComposer integrado na tela de Aprovação de Vendas",
+    type: "feature",
+    description: "Composição de pagamento agora disponível dentro do dialog de aprovação de vendas, com resumo financeiro e validação em tempo real.",
+    details: [
+      "PaymentComposer renderizado na coluna direita do ApproveVendaDialog",
+      "Estado de paymentItems gerenciado no ValidacaoVendasManager",
+      "Dialog responsivo com grid mobile-first (1col → 2col)",
+      "Scroll interno corrigido com flex-col + min-h-0 (§36/§39)",
+    ],
+  },
+  {
     version: "2.40.0",
     date: "2026-03-14",
     title: "Auditoria e correção estrutural de variáveis de proposta",

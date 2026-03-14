@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
+import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -64,6 +66,9 @@ interface ApproveVendaDialogProps {
   approving: boolean;
   isValid: boolean;
   documents: DocumentItem[];
+  /** Payment composition items — optional, enables the payment composer */
+  paymentItems?: PaymentItemInput[];
+  onPaymentItemsChange?: (items: PaymentItemInput[]) => void;
 }
 
 function DataCard({ label, value, icon: Icon, valueClass }: {
@@ -224,6 +229,8 @@ export function ApproveVendaDialog({
   approving,
   isValid,
   documents,
+  paymentItems,
+  onPaymentItemsChange,
 }: ApproveVendaDialogProps) {
   const [previewUrls, setPreviewUrls] = useState<string[] | null>(null);
 
@@ -307,7 +314,7 @@ export function ApproveVendaDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[90vw] max-w-[780px] p-0 gap-0 overflow-hidden">
+        <DialogContent className="w-[90vw] max-w-[900px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
           {/* HEADER §25 */}
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
@@ -322,7 +329,7 @@ export function ApproveVendaDialog({
           </DialogHeader>
 
           {/* BODY — 2 COLUNAS OBRIGATÓRIO */}
-          <div className="grid grid-cols-2 divide-x divide-border overflow-y-auto max-h-[65vh]">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border flex-1 min-h-0 overflow-y-auto">
               {/* ═══ COLUNA ESQUERDA — Dados ═══ */}
               <div className="p-5 space-y-5">
                 {/* Dados do cliente */}
@@ -530,8 +537,24 @@ export function ApproveVendaDialog({
                         <span className="font-medium text-sm text-foreground">Valor da Comissão</span>
                       </div>
                       <span className="text-xl font-bold text-success">{formatBRL(valorComissao())}</span>
+                {/* ── Composição de Pagamento ── */}
+                {paymentItems && onPaymentItemsChange && (
+                  <>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Composição de Pagamento
+                      </p>
+                      <PaymentComposer
+                        valorVenda={valorVenda}
+                        items={paymentItems}
+                        onChange={onPaymentItemsChange}
+                      />
                     </div>
-                  </div>
+                  </>
+                )}
+              </div>
+          </div>
                 </div>
               </div>
           </div>

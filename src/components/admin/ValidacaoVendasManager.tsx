@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ApproveVendaDialog } from "./ApproveVendaDialog";
 import { supabase } from "@/integrations/supabase/client";
+import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { PageHeader, EmptyState } from "@/components/ui-kit";
@@ -68,6 +69,7 @@ export function ValidacaoVendasManager() {
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [percentualComissao, setPercentualComissao] = useState("2.0");
   const [valorVenda, setValorVenda] = useState(0);
+  const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([]);
   const [loadingVendedor, setLoadingVendedor] = useState(false);
   const [activeTab, setActiveTab] = useState("pendentes");
   const [leadSimulacoes, setLeadSimulacoes] = useState<LeadSimulacao[]>([]);
@@ -758,6 +760,8 @@ export function ValidacaoVendasManager() {
           { label: "Comprovante beneficiária", urls: selectedCliente.comprovante_beneficiaria_urls || null },
           { label: "Assinatura do cliente", urls: selectedCliente.assinatura_url ? [selectedCliente.assinatura_url] : null },
         ].filter(doc => doc.label !== "Arquivos do Orçamento" || (doc.urls && doc.urls.length > 0)) : []}
+        paymentItems={paymentItems}
+        onPaymentItemsChange={setPaymentItems}
       />
 
       {/* Rejection Dialog — §25 */}
