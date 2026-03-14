@@ -141,6 +141,7 @@ export default function GotenbergConfigPanel() {
         }
       }
 
+      setSavedConfig({ ...form, base_url: form.base_url.trim().replace(/\/+$/, "") });
       toast.success("Configuração salva");
       qc.invalidateQueries({ queryKey: ["gotenberg-connection"] });
     } catch (err: any) {
