@@ -208,11 +208,6 @@ class ProposalWizardErrorBoundary extends React.Component<
 
 // SolarWizardPage removed — was a mock prototype, ProposalWizard is the real engine
 
-const ProposalListPage = lazy(() =>
-  import("@/components/admin/propostas-nativas/ProposalList").then((m) => ({
-    default: m.ProposalList,
-  }))
-);
 
 const ProposalDetailPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalDetail").then((m) => ({
