@@ -82,17 +82,36 @@ export function flattenSnapshot(snapshot: AnyObj | null | undefined): Record<str
 
   // ── 4. Flatten itens (módulos e inversores) ──
   const itens = safeArr(snapshot.itens);
-  const modulos = itens.filter(
-    (i) => String(i.tipo ?? "").toLowerCase().includes("modulo") || Number(i.potencia_w ?? 0) >= 300,
-  );
-  const inversores = itens.filter(
-    (i) => String(i.tipo ?? "").toLowerCase().includes("inversor") || (Number(i.potencia_w ?? 0) > 0 && Number(i.potencia_w ?? 0) < 300),
-  );
+
+  // Classify items by categoria (primary) or tipo (legacy), with power heuristic as last resort
+  const isModulo = (i: AnyObj): boolean => {
+    const cat = String(i.categoria ?? "").toLowerCase();
+    const tipo = String(i.tipo ?? "").toLowerCase();
+    if (cat.includes("modulo") || cat.includes("módulo") || cat === "module") return true;
+    if (tipo.includes("modulo") || tipo.includes("módulo")) return true;
+    // Heuristic: potencia_w >= 200 AND not explicitly inverter/bateria
+    if (!cat && !tipo && Number(i.potencia_w ?? 0) >= 200) return true;
+    return false;
+  };
+  const isInversor = (i: AnyObj): boolean => {
+    const cat = String(i.categoria ?? "").toLowerCase();
+    const tipo = String(i.tipo ?? "").toLowerCase();
+    if (cat.includes("inversor") || cat === "inverter") return true;
+    if (tipo.includes("inversor")) return true;
+    return false;
+  };
+
+  const modulos = itens.filter(i => isModulo(i) && !isInversor(i));
+  const inversores = itens.filter(i => isInversor(i));
 
   if (modulos[0]) {
     setIfMissing("modulo_fabricante", modulos[0].fabricante);
     setIfMissing("modulo_modelo", modulos[0].modelo);
-    if (modulos[0].potencia_w) setIfMissing("modulo_potencia", `${modulos[0].potencia_w} Wp`);
+    if (modulos[0].potencia_w) {
+      const pw = String(modulos[0].potencia_w);
+      // Avoid unit duplication: only append "Wp" if not already present
+      setIfMissing("modulo_potencia", pw.includes("Wp") ? pw : `${pw} Wp`);
+    }
     setIfMissing("vc_modulo_potencia", modulos[0].potencia_w);
     const totalMod = modulos.reduce((s, m) => s + Number(m.quantidade ?? 0), 0);
     if (totalMod > 0) {
@@ -105,7 +124,16 @@ export function flattenSnapshot(snapshot: AnyObj | null | undefined): Record<str
     setIfMissing("inversor_fabricante", inversores[0].fabricante);
     setIfMissing("inversor_fabricante_1", inversores[0].fabricante);
     setIfMissing("inversor_modelo", inversores[0].modelo);
-    if (inversores[0].potencia_w) setIfMissing("inversor_potencia_nominal", `${inversores[0].potencia_w} W`);
+    if (inversores[0].potencia_w) {
+      const pw = String(inversores[0].potencia_w);
+      setIfMissing("inversor_potencia_nominal", pw.includes("W") ? pw : `${pw} W`);
+    }
+    // Build inversores_utilizados summary
+    const invSummary = inversores
+      .filter(inv => inv.modelo)
+      .map(inv => `${inv.quantidade || 1}x ${inv.modelo}`)
+      .join(" + ");
+    if (invSummary) setIfMissing("inversores_utilizados", invSummary);
   }
 
   // Indexed inversores (_1, _2, ...)
@@ -113,7 +141,10 @@ export function flattenSnapshot(snapshot: AnyObj | null | undefined): Record<str
     const i = idx + 1;
     setIfMissing(`inversor_fabricante_${i}`, inv.fabricante);
     setIfMissing(`inversor_modelo_${i}`, inv.modelo);
-    if (inv.potencia_w) setIfMissing(`inversor_potencia_nominal_${i}`, `${inv.potencia_w} W`);
+    if (inv.potencia_w) {
+      const pw = String(inv.potencia_w);
+      setIfMissing(`inversor_potencia_nominal_${i}`, pw.includes("W") ? pw : `${pw} W`);
+    }
     setIfMissing(`inversor_quantidade_${i}`, inv.quantidade);
   });
 
@@ -146,16 +177,26 @@ export function flattenSnapshot(snapshot: AnyObj | null | undefined): Record<str
     setIfMissing("cidade_estado", `${cliente.cidade} - ${cliente.estado}`);
   }
 
-  // ── 7. Flatten pagamentoOpcoes ──
-  const pagamento = safeArr(snapshot.pagamentoOpcoes);
+  // ── 7. Flatten pagamentoOpcoes / pagamento_opcoes ──
+  const pagamento = safeArr(snapshot.pagamentoOpcoes).length > 0
+    ? safeArr(snapshot.pagamentoOpcoes)
+    : safeArr(snapshot.pagamento_opcoes);
   pagamento.forEach((p, idx) => {
-    setIfMissing(`vc_parcela_${idx + 1}`, p.parcela);
-    setIfMissing(`f_parcela_${idx + 1}`, p.parcela);
-    setIfMissing(`f_nome_${idx + 1}`, p.nome ?? p.banco);
-    setIfMissing(`f_prazo_${idx + 1}`, p.prazo);
-    setIfMissing(`f_taxa_${idx + 1}`, p.taxa);
-    setIfMissing(`f_entrada_${idx + 1}`, p.entrada);
-    setIfMissing(`f_valor_${idx + 1}`, p.valor);
+    // valor_parcela is the key from proposal-generate; parcela is legacy
+    const parcela = p.valor_parcela ?? p.parcela;
+    const nome = p.nome ?? p.banco;
+    const prazo = p.num_parcelas ?? p.prazo;
+    const taxa = p.taxa_mensal ?? p.taxa;
+    const entrada = p.entrada;
+    const valor = p.valor_financiado ?? p.valor;
+
+    setIfMissing(`vc_parcela_${idx + 1}`, parcela);
+    setIfMissing(`f_parcela_${idx + 1}`, parcela);
+    setIfMissing(`f_nome_${idx + 1}`, nome);
+    setIfMissing(`f_prazo_${idx + 1}`, prazo);
+    setIfMissing(`f_taxa_${idx + 1}`, taxa);
+    setIfMissing(`f_entrada_${idx + 1}`, entrada);
+    setIfMissing(`f_valor_${idx + 1}`, valor);
   });
 
   // ── 8. Flatten consultor (if present) ──

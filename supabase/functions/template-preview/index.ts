@@ -638,28 +638,39 @@ Deno.serve(async (req) => {
     // CATEGORIA: SISTEMA SOLAR
     // ═══════════════════════════════════════════════════════
     const potencia = versaoData?.potencia_kwp || projeto?.potencia_kwp || cliente?.potencia_kwp || snapNum("potencia_kwp") || snapNum("potencia_sistema");
-    set("potencia_sistema", potencia ? `${fmtNum(potencia)} kWp` : undefined);
-    set("potencia_si", potencia ? `${fmtNum(potencia)} kWp` : undefined);
+    if (potencia) {
+      // Guard against unit duplication: if value already contains "kWp", don't append again
+      const potStr = String(potencia);
+      const formatted = potStr.includes("kWp") ? potStr : `${fmtNum(potencia)} kWp`;
+      set("potencia_sistema", formatted);
+      set("potencia_si", formatted);
+    }
     setIfMissing("potencia_ideal_total", snapshot?.potencia_ideal_total);
 
     const numModulos = projeto?.numero_modulos || cliente?.numero_placas || snapshot?.numero_modulos || snapshot?.modulo_quantidade;
     set("modulo_quantidade", numModulos);
     set("vc_total_modulo", numModulos);
 
-    // Módulo specs
+    // Módulo specs — guard against "Wp Wp" duplication
     set("modulo_modelo", projeto?.modelo_modulos || snapshot?.modulo_modelo);
     setIfMissing("modulo_fabricante", snapshot?.modulo_fabricante);
-    setIfMissing("modulo_potencia", snapshot?.modulo_potencia ? `${snapshot.modulo_potencia} Wp` : undefined);
+    if (snapshot?.modulo_potencia) {
+      const mp = String(snapshot.modulo_potencia);
+      setIfMissing("modulo_potencia", mp.includes("Wp") ? mp : `${mp} Wp`);
+    }
     setIfMissing("vc_modulo_potencia", snapshot?.modulo_potencia);
-    const moduloSpecs = ["modulo_celulas", "modulo_tensao_maxima", "modulo_comprimento", "modulo_largura", "modulo_profundidade",
-      "modulo_vmp", "modulo_voc", "modulo_imp", "modulo_isc", "modulo_tipo_celula", "modulo_eficiencia", "modulo_codigo",
-      "modulo_coef_temp_voc", "modulo_coef_temp_isc", "modulo_coef_temp_pmax", "modulo_area", "modulo_garantia"];
-    for (const k of moduloSpecs) setIfMissing(k, snapshot?.[k]);
 
-    // Inversor specs (indexed _1, _2, etc. and concatenated)
+    // Inversor specs — guard against "W W" duplication
     set("inversor_modelo", projeto?.modelo_inversor || cliente?.modelo_inversor || snapshot?.inversor_modelo);
-    setIfMissing("inversor_fabricante_1", snapshot?.inversor_fabricante || snapshot?.inversor_fabricante_1);
-    setIfMissing("inversor_potencia_nominal", snapshot?.inversor_potencia || snapshot?.inversor_potencia_nominal);
+    const invFab = snapshot?.inversor_fabricante || snapshot?.inversor_fabricante_1;
+    setIfMissing("inversor_fabricante_1", invFab);
+    setIfMissing("inversor_fabricante", invFab);
+    const invPot = snapshot?.inversor_potencia || snapshot?.inversor_potencia_nominal;
+    if (invPot) {
+      const ipStr = String(invPot);
+      const fmtInvPot = ipStr.includes("W") ? ipStr : `${ipStr} W`;
+      setIfMissing("inversor_potencia_nominal", fmtInvPot);
+    }
     setIfMissing("inversores_utilizados", snapshot?.inversores_utilizados || (projeto?.modelo_inversor ? `1x ${projeto.modelo_inversor}` : undefined));
     const inversorFields = ["inversor_fabricante", "inversor_modelo", "inversor_quantidade", "inversor_potencia",
       "inversor_potencia_nominal", "inversor_tensao", "inversor_tipo", "inversor_corrente_saida",
@@ -747,8 +758,10 @@ Deno.serve(async (req) => {
     // ═══════════════════════════════════════════════════════
     // CATEGORIA: FINANCEIRO
     // ═══════════════════════════════════════════════════════
-    const valorTotal = versaoData?.valor_total || projeto?.valor_total || lead?.valor_estimado || cliente?.valor_projeto || snapNum("preco_total") || snapNum("preco");
-    if (valorTotal) {
+    // Use ?? for 0-safe chaining; || skips legitimate 0 values
+    const finSnap = (snapshot?.financeiro && typeof snapshot.financeiro === "object") ? snapshot.financeiro as Record<string, any> : {};
+    const valorTotal = versaoData?.valor_total ?? finSnap?.valor_total ?? projeto?.valor_total ?? lead?.valor_estimado ?? cliente?.valor_projeto ?? snapNum("preco_total") ?? snapNum("preco");
+    if (valorTotal != null && Number(valorTotal) > 0) {
       const vt = Number(valorTotal);
       setCur("valor_total", vt);
       setCur("preco_final", vt);
@@ -766,8 +779,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Economia
-    const econMensal = versaoData?.economia_mensal || snapNum("economia_mensal");
+    // Economia — also check snapshot.financeiro
+    const econMensal = versaoData?.economia_mensal ?? finSnap?.economia_mensal ?? snapNum("economia_mensal");
     if (econMensal) {
       setCur("economia_mensal", Number(econMensal));
       setCurIfMissing("economia_anual", Number(econMensal) * 12);
@@ -777,14 +790,18 @@ Deno.serve(async (req) => {
       setCurIfMissing("vc_economia_conta_total_rs", Number(econMensal) * 12);
     }
 
-    // Payback
-    if (versaoData?.payback_meses != null) {
-      const paybackMeses = versaoData.payback_meses;
-      const anos = Math.floor(paybackMeses / 12);
-      const mesesPb = paybackMeses % 12;
+    // Payback — also check snapshot.financeiro
+    const paybackMeses = versaoData?.payback_meses ?? finSnap?.payback_meses;
+    if (paybackMeses != null && Number(paybackMeses) > 0) {
+      const pm = Number(paybackMeses);
+      const anos = Math.floor(pm / 12);
+      const mesesPb = Math.round(pm % 12);
       set("payback", `${anos} anos e ${mesesPb} meses`);
-      set("payback_meses", String(paybackMeses));
-      set("payback_anos", fmtNum(paybackMeses / 12, 1));
+      set("payback_meses", String(pm));
+      set("payback_anos", fmtNum(pm / 12, 1));
+    } else {
+      // Don't show "0 anos e 0 meses" — leave unset or show fallback
+      setIfMissing("payback", "-");
     }
 
     // Retorno em 10 anos
@@ -987,8 +1004,68 @@ Deno.serve(async (req) => {
     setIfMissing("vc_parcela_2", snapshot?.parcela_48);
     setIfMissing("vc_parcela_3", snapshot?.parcela_60);
 
+    // ═══════════════════════════════════════════════════════
+    // PAGAMENTO_OPCOES → vc_parcela_* mapping
+    // ═══════════════════════════════════════════════════════
+    const pagOpcoes = Array.isArray(snapshot?.pagamento_opcoes) ? snapshot.pagamento_opcoes as Array<Record<string, any>>
+      : (Array.isArray(snapshot?.pagamentoOpcoes) ? snapshot.pagamentoOpcoes as Array<Record<string, any>> : []);
+    
+    if (pagOpcoes.length > 0) {
+      // Separate by type for vc_parcela (financiamento) and vc_cartao_credito_parcela
+      const financiamentos = pagOpcoes.filter((p: any) => p.tipo === "financiamento" || p.tipo === "parcelado");
+      const cartoes = pagOpcoes.filter((p: any) => p.tipo === "cartao" || String(p.nome ?? "").toLowerCase().includes("cartão") || String(p.nome ?? "").toLowerCase().includes("cartao"));
+      const aVista = pagOpcoes.find((p: any) => p.tipo === "a_vista");
+
+      // vc_a_vista from payment option
+      if (aVista && (aVista.valor_financiado || aVista.valor_parcela)) {
+        setCurIfMissing("vc_a_vista", Number(aVista.valor_financiado || aVista.valor_parcela));
+      }
+
+      // vc_parcela_1, _2, _3 from financiamentos
+      financiamentos.forEach((f: any, idx: number) => {
+        const i = idx + 1;
+        if (f.valor_parcela) setCurIfMissing(`vc_parcela_${i}`, Number(f.valor_parcela));
+        if (f.taxa_mensal != null) setIfMissing(`vc_taxa_${i}`, `${fmtNum(Number(f.taxa_mensal), 2)}%`);
+        if (f.entrada != null) setCurIfMissing(`vc_entrada_${i}`, Number(f.entrada));
+        if (f.num_parcelas != null) setIfMissing(`vc_prazo_${i}`, String(f.num_parcelas));
+      });
+
+      // vc_cartao_credito_parcela_1, _2, _3, _4 from cartoes
+      cartoes.forEach((c: any, idx: number) => {
+        const i = idx + 1;
+        if (c.valor_parcela) setCurIfMissing(`vc_cartao_credito_parcela_${i}`, Number(c.valor_parcela));
+      });
+
+      // Also map all payment options to f_* keys
+      pagOpcoes.forEach((p: any, idx: number) => {
+        const i = idx + 1;
+        setIfMissing(`f_nome_${i}`, p.nome);
+        if (p.entrada != null) setCurIfMissing(`f_entrada_${i}`, Number(p.entrada));
+        if (p.valor_financiado != null) setCurIfMissing(`f_valor_${i}`, Number(p.valor_financiado));
+        if (p.num_parcelas != null) setIfMissing(`f_prazo_${i}`, String(p.num_parcelas));
+        if (p.taxa_mensal != null) setIfMissing(`f_taxa_${i}`, `${fmtNum(Number(p.taxa_mensal), 2)}%`);
+        if (p.valor_parcela != null) setCurIfMissing(`f_parcela_${i}`, Number(p.valor_parcela));
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // VARIAVEIS_CUSTOM from snapshot
+    // ═══════════════════════════════════════════════════════
+    if (Array.isArray(snapshot?.variaveis_custom)) {
+      for (const vc of snapshot.variaveis_custom as Array<Record<string, any>>) {
+        if (vc.nome && vc.valor_calculado != null) {
+          setIfMissing(vc.nome, String(vc.valor_calculado));
+        }
+      }
+    }
+
+    // VPL, TIR from snapshot.financeiro
+    setIfMissing("vpl", finSnap?.vpl != null ? fmtCur(Number(finSnap.vpl)) : snapshot?.vpl);
+    setIfMissing("tir", finSnap?.tir != null ? `${fmtNum(Number(finSnap.tir), 1)}%` : snapshot?.tir);
+    setIfMissing("payback_anos", finSnap?.payback_anos != null ? fmtNum(Number(finSnap.payback_anos), 1) : undefined);
+
     // Observações
-    set("vc_observacao", lead?.observacoes || snapshot?.vc_observacao);
+    set("vc_observacao", lead?.observacoes || snapshot?.vc_observacao || snapshot?.observacoes);
 
     // ═══════════════════════════════════════════════════════
     // CATEGORIA: TARIFA / GD / ANEEL / CÁLCULO
@@ -1011,6 +1088,19 @@ Deno.serve(async (req) => {
       setIfMissing("co2_evitado_ano", fmtNum(co2Kg, 0));
     }
 
+    // AUDIT LOG: dump critical placeholder values for debugging
+    const auditKeys = [
+      "potencia_sistema", "modulo_fabricante", "modulo_potencia", "modulo_quantidade",
+      "inversor_fabricante_1", "inversor_modelo", "inversor_potencia_nominal", "inversores_utilizados",
+      "vc_a_vista", "kit_fechado_preco_total", "valor_total", "economia_mensal", "payback",
+      "fluxo_caixa_acumulado_anual_10", "vc_parcela_1", "vc_parcela_2", "vc_parcela_3",
+      "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "responsavel_nome", "vc_observacao", "consumo_mensal", "geracao_mensal", "vc_aumento",
+      "dis_energia", "subgrupo_uc1", "cidade", "estado", "vpl", "tir",
+    ];
+    const auditPayload: Record<string, string> = {};
+    for (const k of auditKeys) auditPayload[k] = vars[k] ?? "(MISSING)";
+    console.log("[template-preview] AUDIT PAYLOAD:", JSON.stringify(auditPayload, null, 2));
     console.log(`[template-preview] Variables mapped: ${Object.keys(vars).length} keys`);
     console.log(`[template-preview] Snapshot keys: ${snapshot ? Object.keys(snapshot).length : 0}`);
 

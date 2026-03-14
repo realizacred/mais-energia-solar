@@ -19,6 +19,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.38.0",
+    date: "2026-03-14",
+    title: "Correção de payload DOCX: equipamentos, financeiro e unidades",
+    type: "bugfix",
+    description: "Auditoria e correção do pipeline de variáveis enviadas ao template DOCX, resolvendo placeholders vazios e dados trocados.",
+    details: [
+      "Corrigida classificação de equipamentos em flattenSnapshot: usa campo 'categoria' em vez de heurística por potência que confundia inversores com módulos",
+      "Corrigido mismatch de chave pagamento_opcoes vs pagamentoOpcoes que impedia mapeamento de parcelas",
+      "Prevenção de duplicação de unidades (kWp kWp, Wp Wp) em potência de sistema e módulos",
+      "Payback=0 não exibe mais '0 anos e 0 meses' — mostra fallback",
+      "Financeiro agora lê snapshot.financeiro.* como fallback para valor_total, economia e payback",
+      "Variáveis customizadas (variaveis_custom) e pagamento_opcoes mapeadas para vc_parcela_*/vc_cartao_credito_parcela_*",
+      "Audit log adicionado com valores críticos antes do merge DOCX",
+    ],
+  },
+  {
     version: "2.37.0",
     date: "2026-03-14",
     title: "Gotenberg como integração administrável no catálogo",
