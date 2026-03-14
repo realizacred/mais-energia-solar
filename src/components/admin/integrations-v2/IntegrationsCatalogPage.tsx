@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
+import { useSearchParams } from "react-router-dom";
 import { IntegrationTutorialSection } from "./IntegrationTutorialSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
