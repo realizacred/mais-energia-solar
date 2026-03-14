@@ -760,6 +760,8 @@ export function ValidacaoVendasManager() {
           { label: "Comprovante beneficiária", urls: selectedCliente.comprovante_beneficiaria_urls || null },
           { label: "Assinatura do cliente", urls: selectedCliente.assinatura_url ? [selectedCliente.assinatura_url] : null },
         ].filter(doc => doc.label !== "Arquivos do Orçamento" || (doc.urls && doc.urls.length > 0)) : []}
+        paymentItems={paymentItems}
+        onPaymentItemsChange={setPaymentItems}
       />
 
       {/* Rejection Dialog — §25 */}
