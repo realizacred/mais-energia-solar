@@ -153,13 +153,14 @@ function ConversationItem({
 
   const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
 
-  // Border left color by status
+  // Border left color by urgency (time since last message)
+  const urgencyColor = getUrgencyColor(conv.last_message_at, conv.status);
+  const hoursAgo = getHoursAgo(conv.last_message_at);
+  const isUrgent = hoursAgo !== null && hoursAgo > 6 && conv.status !== "resolved";
+
   const borderLeftColor = cn(
     "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl",
-    conv.status === "open" && conv.assigned_to ? "bg-success" : "",
-    conv.status === "pending" ? "bg-warning" : "",
-    !conv.assigned_to && conv.status !== "pending" ? "bg-info" : "",
-    conv.status === "resolved" ? "bg-muted-foreground/40" : "",
+    urgencyColor,
   );
 
   const preview = isNote
