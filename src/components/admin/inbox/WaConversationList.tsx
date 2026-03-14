@@ -149,7 +149,7 @@ function ConversationItem({
 
   const preview = isNote
     ? "📝 Nota interna"
-    : getMessagePreview(conv.last_message_type, conv.last_message_preview || conv.last_message_body);
+    : conv.last_message_preview || "Sem mensagens";
 
   return (
     <button
