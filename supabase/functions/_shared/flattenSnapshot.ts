@@ -177,16 +177,26 @@ export function flattenSnapshot(snapshot: AnyObj | null | undefined): Record<str
     setIfMissing("cidade_estado", `${cliente.cidade} - ${cliente.estado}`);
   }
 
-  // ── 7. Flatten pagamentoOpcoes ──
-  const pagamento = safeArr(snapshot.pagamentoOpcoes);
+  // ── 7. Flatten pagamentoOpcoes / pagamento_opcoes ──
+  const pagamento = safeArr(snapshot.pagamentoOpcoes).length > 0
+    ? safeArr(snapshot.pagamentoOpcoes)
+    : safeArr(snapshot.pagamento_opcoes);
   pagamento.forEach((p, idx) => {
-    setIfMissing(`vc_parcela_${idx + 1}`, p.parcela);
-    setIfMissing(`f_parcela_${idx + 1}`, p.parcela);
-    setIfMissing(`f_nome_${idx + 1}`, p.nome ?? p.banco);
-    setIfMissing(`f_prazo_${idx + 1}`, p.prazo);
-    setIfMissing(`f_taxa_${idx + 1}`, p.taxa);
-    setIfMissing(`f_entrada_${idx + 1}`, p.entrada);
-    setIfMissing(`f_valor_${idx + 1}`, p.valor);
+    // valor_parcela is the key from proposal-generate; parcela is legacy
+    const parcela = p.valor_parcela ?? p.parcela;
+    const nome = p.nome ?? p.banco;
+    const prazo = p.num_parcelas ?? p.prazo;
+    const taxa = p.taxa_mensal ?? p.taxa;
+    const entrada = p.entrada;
+    const valor = p.valor_financiado ?? p.valor;
+
+    setIfMissing(`vc_parcela_${idx + 1}`, parcela);
+    setIfMissing(`f_parcela_${idx + 1}`, parcela);
+    setIfMissing(`f_nome_${idx + 1}`, nome);
+    setIfMissing(`f_prazo_${idx + 1}`, prazo);
+    setIfMissing(`f_taxa_${idx + 1}`, taxa);
+    setIfMissing(`f_entrada_${idx + 1}`, entrada);
+    setIfMissing(`f_valor_${idx + 1}`, valor);
   });
 
   // ── 8. Flatten consultor (if present) ──
