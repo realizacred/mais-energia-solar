@@ -1630,3 +1630,48 @@ select cron.schedule(
 - Se o cron falhar 3+ vezes consecutivas, deve gerar alerta visível no dashboard de saúde
 
 ---
+
+## §44. GOVERNANÇA ARQUITETURAL DO AGENTE
+
+Estas regras complementam o §20 e valem para qualquer implementação nova, refactor ou correção.
+
+### Princípios obrigatórios
+- Seguir estritamente SRP, DRY, SSOT, KISS, YAGNI e, quando aplicável, SOLID.
+- Separar sempre UI de lógica de negócio.
+- Componentes visuais devem lidar apenas com apresentação, interação e composição.
+- Regras de negócio, transformação de dados, integrações e cálculos devem ficar em hooks, services ou utilitários apropriados.
+- Preferir composição à herança.
+- Aplicar fail-fast: validar cedo, tipar estritamente e falhar de forma explícita.
+- Aplicar o princípio do menor espanto: código previsível, consistente e intuitivo.
+
+### Organização de código
+- NUNCA duplicar lógica já existente.
+- Antes de criar novo componente, hook, utilitário ou service, verificar se já existe implementação reutilizável.
+- Toda regra crítica deve ter uma única fonte de verdade.
+- Estado compartilhado não deve ser duplicado em múltiplos pontos sem necessidade clara.
+- Evitar estados locais redundantes quando já existir fonte canônica.
+
+### Testabilidade e manutenção
+- Todo código novo deve ser escrito de forma testável.
+- Sempre que possível, usar funções puras e dependências injetáveis.
+- Evitar acoplamento forte entre UI, acesso a dados e regras de negócio.
+- Preferir patches incrementais e localizados, preservando o comportamento já validado.
+
+### Complexidade e escopo
+- NUNCA introduzir abstrações especulativas.
+- NUNCA implementar funcionalidade "porque pode ser útil depois".
+- Implementar apenas o que o escopo atual exige.
+- Em caso de dúvida, preferir a solução mais simples que preserve clareza, escalabilidade e manutenção.
+
+### Consistência visual
+- Componentes visuais DEVEM respeitar o design system do projeto.
+- NUNCA criar padrão visual paralelo.
+- Cores, tipografia, espaçamento, estados e variações devem seguir os componentes e tokens já padronizados neste AGENTS.md.
+
+### Regra de precedência
+- Em caso de conflito, este bloco complementa o projeto, mas NÃO substitui:
+  1. Regras bloqueantes do Bloco 1
+  2. Regras específicas de UI/UX, responsividade, modais, hooks, services e proposal flow
+  3. Regras anti-scope-creep e validação final
+
+---
