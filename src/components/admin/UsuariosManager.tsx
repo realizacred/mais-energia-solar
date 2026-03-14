@@ -94,12 +94,12 @@ interface NewUserForm {
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  super_admin: { label: "Super Admin", color: "bg-primary/15 text-primary border-primary/30", icon: ShieldAlert },
-  admin: { label: "Administrador", color: "bg-destructive/10 text-destructive border-destructive/30", icon: ShieldAlert },
-  gerente: { label: "Gerente", color: "bg-accent text-accent-foreground border-border", icon: ShieldCheck },
-  consultor: { label: "Consultor", color: "bg-info/10 text-info border-info/30", icon: Users },
-  instalador: { label: "Instalador", color: "bg-success/10 text-success border-success/30", icon: Users },
-  financeiro: { label: "Financeiro", color: "bg-warning/10 text-warning border-warning/30", icon: Users },
+  super_admin: { label: "Super Admin", color: "bg-warning/5 text-warning border-warning/30", icon: ShieldAlert },
+  admin: { label: "Administrador", color: "bg-primary/5 text-primary border-primary/30", icon: ShieldAlert },
+  gerente: { label: "Gerente", color: "bg-primary/5 text-primary border-primary/30", icon: ShieldCheck },
+  consultor: { label: "Consultor", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
+  instalador: { label: "Instalador", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
+  financeiro: { label: "Financeiro", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
 };
 
 export function UsuariosManager() {
@@ -481,7 +481,7 @@ export function UsuariosManager() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={Shield}
+        icon={Users}
         title="Gestão de Usuários"
         description="Gerencie usuários e seus perfis de acesso"
         actions={
@@ -540,9 +540,10 @@ export function UsuariosManager() {
                                   className={`${roleInfo?.color || ""} gap-1`}
                                 >
                                   {roleInfo?.label || role}
-                                  <Button variant="destructive"
+                                  <Button variant="outline"
+                                    size="icon"
                                     onClick={() => handleRemoveRole(user.user_id, role)}
-                                    className="ml-1 hover:text-destructive"
+                                    className="ml-1 h-5 w-5 border-destructive text-destructive hover:bg-destructive/10"
                                     title="Remover perfil"
                                   >
                                     <Trash2 className="w-3 h-3" />
@@ -578,12 +579,12 @@ export function UsuariosManager() {
                         <div className="flex items-center justify-end gap-2">
                           {getAvailableRoles(user).length > 0 && (
                             <Button
-                              variant="default"
+                              variant="outline"
                               size="sm"
                               onClick={() => openAddRoleDialog(user)}
-                              className="gap-1"
+                              className="gap-1.5"
                             >
-                              <UserPlus className="w-3 h-3" />
+                              <UserPlus className="w-3.5 h-3.5" />
                               Adicionar Perfil
                             </Button>
                           )}
