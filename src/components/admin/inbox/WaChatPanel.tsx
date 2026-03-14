@@ -537,6 +537,19 @@ export function WaChatPanel({
                 </TooltipTrigger>
                 <TooltipContent>CRM</TooltipContent>
               </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={onOpenTags}
+                  >
+                    <Tag className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Etiquetas</TooltipContent>
+              </Tooltip>
 
               {conversation.status !== "resolved" ? (
                 <Tooltip>
