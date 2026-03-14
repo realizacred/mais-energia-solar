@@ -44,18 +44,7 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 export async function seedMonitorData(): Promise<{ plants: number; readings: number; events: number }> {
-  // Get current user to determine tenant
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Não autenticado");
-
-  const { data: profile } = await supabase
-    .from("profiles" as any)
-    .select("tenant_id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!profile) throw new Error("Perfil não encontrado");
-  const tenantId = (profile as any).tenant_id;
+  const { tenantId } = await getCurrentTenantId();
 
   // 1) Create 20 plants
   const plantInserts = CITIES.map((city, i) => ({

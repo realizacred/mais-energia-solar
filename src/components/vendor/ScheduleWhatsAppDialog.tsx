@@ -202,15 +202,7 @@ export function ScheduleWhatsAppDialog({
       const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
 
       // Resolve tenant_id from user profile
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", authUser?.id)
-        .single();
-      const tenantId = profile?.tenant_id;
-
-      if (!tenantId) throw new Error("Tenant não encontrado");
+      const { tenantId } = await getCurrentTenantId();
 
       // Deterministic idempotency key: lead + date (not timestamp)
       const dateKey = `${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}-${scheduledDate.getHours()}-${scheduledDate.getMinutes()}`;

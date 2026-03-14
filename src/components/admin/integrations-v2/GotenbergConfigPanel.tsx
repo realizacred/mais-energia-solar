@@ -122,7 +122,7 @@ export default function GotenbergConfigPanel() {
           .from("integration_connections")
           .insert({
             provider_id: "gotenberg",
-            tenant_id: profile.tenant_id,
+            tenant_id: tenantId,
             config: configPayload,
             status: form.enabled ? "disconnected" : "disconnected",
             credentials: {},

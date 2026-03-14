@@ -373,14 +373,8 @@ export function RolePermissionsManager() {
         }
       }
 
-      // Need to get tenant_id for upsert
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
-        .single();
-
-      if (!profileData?.tenant_id) throw new Error("Tenant não encontrado");
+      const { tenantId } = await getCurrentTenantId();
+      const tenantIdValue = tenantId;
 
       const { error } = await supabase
         .from("role_permissions")
