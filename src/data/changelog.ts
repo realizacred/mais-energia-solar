@@ -19,6 +19,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.36.0",
+    date: "2026-03-14",
+    title: "Pipeline DOCX/PDF de produção com persistência e preview real",
+    type: "feature",
+    description: "Implementação completa do pipeline de geração de propostas DOCX→PDF com artefatos persistidos em storage, preview real via PDF, downloads via signed URL e estados explícitos de geração.",
+    details: [
+      "DOCX e PDF gerados são salvos no bucket 'proposta-documentos' com tenant isolation",
+      "Caminhos persistidos em proposta_versoes (output_docx_path, output_pdf_path, generation_status)",
+      "Preview oficial usa PDF real via signed URL — HTML fallback removido para templates DOCX",
+      "Downloads (PDF/DOCX) usam fetch-to-blob de signed URLs do storage (não mais blobs temporários)",
+      "Estados explícitos: idle → generating_docx → converting_pdf → saving → ready/error",
+      "Troca de template invalida artefatos anteriores e força nova geração",
+      "Placeholders ausentes reportados via missing_vars no retorno da edge function",
+    ],
+  },
+  {
     version: "2.35.6",
     date: "2026-03-13",
     title: "WhatsApp: correção de avatar e estabilidade de scroll",

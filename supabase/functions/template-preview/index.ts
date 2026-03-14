@@ -1051,9 +1051,11 @@ Deno.serve(async (req) => {
     const originalSize = templateBuffer.byteLength;
 
     let report: Uint8Array;
+    let processedMissingVars: string[] = [];
     try {
       const result = await processDocxTemplate(templateBuffer, vars);
       report = result.output;
+      processedMissingVars = result.missingVars;
 
       // ── DIAGNOSTIC: size comparison ──
       const outputSize = report.length;
@@ -1181,14 +1183,15 @@ Deno.serve(async (req) => {
     }
 
     // ── 10. RETURN RESPONSE ──────────────────────────────
-    // Return JSON with paths + the DOCX as binary for backward compatibility
     const responsePayload = {
       success: true,
       output_docx_path: docxUploadErr ? null : docxStoragePath,
       output_pdf_path: (pdfBytes && !pdfConversionError) ? pdfStoragePath : null,
-      generation_status: (pdfBytes && !pdfConversionError) ? "ready" : "docx_only",
-      generation_error: pdfConversionError,
-      missing_vars: [],
+      generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "error" : "docx_only"),
+      generation_error: pdfConversionError || (docxUploadErr ? docxUploadErr.message : null),
+      missing_vars: processedMissingVars,
+      template_name: template.nome,
+      generated_at: new Date().toISOString(),
     };
 
     // Check if caller wants JSON response (new flow) vs binary DOCX (legacy)

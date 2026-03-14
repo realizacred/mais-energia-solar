@@ -268,6 +268,7 @@ export function StepDocumento({
   // ─── TAB: TEMPLATE ──────────────────────────────────────
 
   const renderTemplateTab = () => {
+    // ── Generation in progress
     if (generating) {
       const statusMsg = generationStatus === "generating_docx" ? "Gerando documento DOCX..."
         : generationStatus === "converting_pdf" ? "Convertendo para PDF..."
@@ -277,11 +278,65 @@ export function StepDocumento({
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
           <p className="text-sm font-medium text-muted-foreground animate-pulse">{statusMsg}</p>
+          <div className="flex items-center gap-2">
+            {["generating_docx", "converting_pdf", "saving"].map((s, i) => (
+              <div key={s} className={cn(
+                "h-1.5 w-8 rounded-full transition-colors",
+                generationStatus === s ? "bg-primary animate-pulse" :
+                ["generating_docx", "converting_pdf", "saving"].indexOf(generationStatus) > i ? "bg-primary" : "bg-muted"
+              )} />
+            ))}
+          </div>
         </div>
       );
     }
 
-    // Before generation
+    // ── Error state
+    if (generationStatus === "error" && generationError) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Selecione o template</Label>
+              {loadingTemplates ? (
+                <Skeleton className="h-9 w-full" />
+              ) : (
+                <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione o template" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
+                      {webTemplates.map(t => (<SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
+                      {docTemplates.map(t => (<SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <Button onClick={onGenerate} disabled={!templateSelecionado} className="w-full gap-2">
+              <Zap className="h-4 w-4" />
+              Tentar Novamente
+            </Button>
+          </div>
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <Info className="h-6 w-6 text-destructive" />
+            </div>
+            <p className="text-sm font-semibold text-destructive mb-2">Erro na geração do documento</p>
+            <p className="text-xs text-muted-foreground max-w-md">{generationError}</p>
+            <Button variant="outline" size="sm" className="mt-4 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
+              <Zap className="h-3.5 w-3.5" />
+              Regenerar Proposta
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Before generation
     if (!result) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
@@ -340,7 +395,82 @@ export function StepDocumento({
       );
     }
 
-    // After generation
+    // After generation — download helpers using storage-persisted files
+    const handleDownloadPdf = async () => {
+      if (outputPdfPath) {
+        // Fetch from storage via signed URL (fetch-to-blob for cross-origin download)
+        const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputPdfPath, 300);
+        if (data?.signedUrl) {
+          const resp = await fetch(data.signedUrl);
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+          a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast({ title: "PDF baixado com sucesso!" });
+          return;
+        }
+      }
+      // Fallback to pdfBlobUrl (signed URL already available)
+      if (pdfBlobUrl) {
+        const resp = await fetch(pdfBlobUrl);
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+        a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: "PDF baixado com sucesso!" });
+        return;
+      }
+      toast({ title: "PDF não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
+    };
+
+    const handleDownloadDocx = async () => {
+      if (outputDocxPath) {
+        const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputDocxPath, 300);
+        if (data?.signedUrl) {
+          const resp = await fetch(data.signedUrl);
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+          a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast({ title: "DOCX baixado!" });
+          return;
+        }
+      }
+      // Fallback to local blob
+      if (docxBlob) {
+        const url = URL.createObjectURL(docxBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+        a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: "DOCX baixado!" });
+        return;
+      }
+      toast({ title: "DOCX não disponível", variant: "destructive" });
+    };
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
         {/* Left: Sidebar with actions */}
@@ -375,6 +505,14 @@ export function StepDocumento({
 
           <Separator />
 
+          {/* Generation status badge */}
+          {generationStatus === "ready" && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-success/10 border border-success/20">
+              <Check className="h-3.5 w-3.5 text-success" />
+              <span className="text-xs font-medium text-success">Documento pronto</span>
+            </div>
+          )}
+
           {/* Action buttons */}
           <Button
             variant="success"
@@ -401,20 +539,7 @@ export function StepDocumento({
               variant="ghost"
               size="sm"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={() => {
-                if (!pdfBlobUrl) {
-                  toast({ title: "PDF não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
-                  return;
-                }
-                const a = document.createElement("a");
-                a.href = pdfBlobUrl;
-                const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-                a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                toast({ title: "PDF baixado com sucesso!" });
-              }}
+              onClick={handleDownloadPdf}
             >
               <Download className="h-3.5 w-3.5" />
               Download de PDF
@@ -423,19 +548,7 @@ export function StepDocumento({
               variant="ghost"
               size="sm"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={() => {
-                if (!docxBlob) { toast({ title: "DOCX não disponível", variant: "destructive" }); return; }
-                const url = URL.createObjectURL(docxBlob);
-                const a = document.createElement("a");
-                a.href = url;
-                const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-                a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                toast({ title: "DOCX baixado!" });
-              }}
+              onClick={handleDownloadDocx}
             >
               <FileDown className="h-3.5 w-3.5" />
               Download de Doc
@@ -465,12 +578,16 @@ export function StepDocumento({
           </div>
         </div>
 
-        {/* Right: Preview */}
+        {/* Right: Preview — PDF real only, no HTML fallback */}
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
           {rendering ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-              <p className="text-sm text-muted-foreground animate-pulse">Convertendo para PDF...</p>
+              <p className="text-sm text-muted-foreground animate-pulse">
+                {generationStatus === "converting_pdf" ? "Convertendo para PDF..." :
+                 generationStatus === "saving" ? "Salvando artefatos..." :
+                 "Processando documento..."}
+              </p>
             </div>
           ) : pdfBlobUrl ? (
             <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
@@ -481,7 +598,8 @@ export function StepDocumento({
                 style={{ height: 800 }}
               />
             </div>
-          ) : htmlPreview ? (
+          ) : htmlPreview && !isDocxSelected ? (
+            /* HTML preview ONLY for HTML/web templates — never for DOCX */
             <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
               <iframe
                 srcDoc={htmlPreview}
@@ -489,6 +607,18 @@ export function StepDocumento({
                 className="w-full border-0"
                 style={{ height: 800, background: "#fff" }}
               />
+            </div>
+          ) : generationStatus === "error" ? (
+            <div className="border border-destructive/30 rounded-xl flex flex-col items-center justify-center h-[400px] bg-destructive/5 p-6 text-center">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
+                <Info className="h-5 w-5 text-destructive" />
+              </div>
+              <p className="text-sm font-medium text-destructive mb-1">Erro ao gerar preview</p>
+              <p className="text-xs text-muted-foreground max-w-sm">{generationError}</p>
+              <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
+                <Zap className="h-3.5 w-3.5" />
+                Regenerar
+              </Button>
             </div>
           ) : (
             <div className="border border-border/50 rounded-xl flex items-center justify-center h-[400px] bg-muted/20">

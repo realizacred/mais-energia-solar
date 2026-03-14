@@ -1383,45 +1383,57 @@ export function ProposalWizard() {
           const artifactResult = await rawResp.json();
           console.log("[ProposalWizard] Artifact result:", artifactResult);
 
+          // Handle missing_vars from backend
+          if (artifactResult.missing_vars?.length > 0) {
+            console.warn("[ProposalWizard] Missing vars in template:", artifactResult.missing_vars);
+          }
+
           // Store persisted paths
           setOutputDocxPath(artifactResult.output_docx_path || null);
           setOutputPdfPath(artifactResult.output_pdf_path || null);
 
-          // Generate signed URL for PDF preview
-          let previewReady = false;
-          if (artifactResult.output_pdf_path) {
+          // Handle generation status from backend
+          if (artifactResult.generation_status === "error" || (!artifactResult.output_pdf_path && !artifactResult.output_docx_path)) {
+            setGenerationStatus("error");
+            setGenerationError(artifactResult.generation_error || "Falha na geração do documento");
+            toast({
+              title: "Erro na geração",
+              description: artifactResult.generation_error || "Não foi possível gerar o documento.",
+              variant: "destructive",
+            });
+          } else if (artifactResult.output_pdf_path) {
+            // Generate signed URL for PDF preview from persisted storage
             setGenerationStatus("saving");
             const { data: signedData } = await supabase.storage
               .from("proposta-documentos")
               .createSignedUrl(artifactResult.output_pdf_path, 3600);
             if (signedData?.signedUrl) {
               setPdfBlobUrl(signedData.signedUrl);
-              previewReady = true;
               setGenerationStatus("ready");
+              toast({
+                title: "Proposta gerada!",
+                description: "PDF salvo e preview exibido. Use os botões para baixar ou enviar.",
+              });
+            } else {
+              setGenerationStatus("error");
+              setGenerationError("Não foi possível gerar URL de preview do PDF");
             }
-          }
-
-          if (!previewReady) {
+          } else {
+            // DOCX only (PDF conversion failed)
             setGenerationStatus("error");
-            setGenerationError(artifactResult.generation_error || "PDF não foi gerado");
+            setGenerationError(artifactResult.generation_error || "Conversão PDF falhou. DOCX disponível para download.");
           }
-
-          toast({
-            title: previewReady ? "Proposta gerada!" : "DOCX gerado com aviso",
-            description: previewReady
-              ? "PDF salvo e preview exibido. Use os botões para baixar ou enviar."
-              : artifactResult.generation_error || "O DOCX foi gerado, mas o preview PDF falhou.",
-          });
         } else {
           // HTML template: use proposal-render as before
           const renderResult = await renderProposal(genResult.versao_id);
           setHtmlPreview(renderResult.html);
+          setGenerationStatus("ready");
         }
       } catch (e: any) {
+        setGenerationStatus("error");
+        setGenerationError(e.message || "Erro ao renderizar documento");
         toast({ title: "Erro ao renderizar", description: e.message, variant: "destructive" });
       } finally { setRendering(false); }
-
-      toast({ title: "Proposta gerada!", description: `Versão ${genResult.versao_numero} criada.` });
 
       // Save pricing history for smart defaults in future proposals
       const instalacaoVal = servicos.find(s => s.categoria === "instalacao")?.valor || 0;
@@ -1456,9 +1468,28 @@ export function ProposalWizard() {
         });
         return;
       }
+      setGenerationStatus("error");
+      setGenerationError(e.message || "Erro desconhecido ao gerar proposta");
       toast({ title: "Erro ao gerar proposta", description: e.message, variant: "destructive" });
     } finally { setGenerating(false); }
   };
+
+  // ─── Invalidate artifacts when template changes
+  const handleTemplateChange = useCallback((newTemplateId: string) => {
+    setTemplateSelecionado(newTemplateId);
+    // Clear stale artifacts when template changes
+    if (result) {
+      setResult(null);
+      setHtmlPreview(null);
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+      setPdfBlobUrl(null);
+      setDocxBlob(null);
+      setOutputDocxPath(null);
+      setOutputPdfPath(null);
+      setGenerationStatus("idle");
+      setGenerationError(null);
+    }
+  }, [result, pdfBlobUrl]);
 
   const handleNewVersion = () => {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
@@ -1710,7 +1741,7 @@ export function ProposalWizard() {
               numUcs={ucs.length}
               precoFinal={precoFinal}
               templateSelecionado={templateSelecionado}
-              onTemplateSelecionado={setTemplateSelecionado}
+              onTemplateSelecionado={handleTemplateChange}
               generating={generating}
               rendering={rendering}
               result={result}
