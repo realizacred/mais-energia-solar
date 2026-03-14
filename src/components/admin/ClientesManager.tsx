@@ -451,7 +451,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
           onSubmit={handleSubmit}
           submitLabel={editingCliente ? "Salvar" : "Cadastrar"}
           saving={saving}
-          className="max-w-2xl"
+          className="w-[90vw] max-w-2xl"
           asForm
         >
               {/* Vincular Lead */}
