@@ -33,14 +33,23 @@ import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
-// ── Urgency color by time since last message ──────────
-function getUrgencyColor(lastMessageAt: string | null, status: string): string {
-  if (status === "resolved") return "bg-muted-foreground/40";
-  if (!lastMessageAt) return "bg-warning";
+// ── Urgency style by time since last message ──────────
+function getUrgencyStyle(lastMessageAt: string | null, status: string): React.CSSProperties {
+  if (status === "resolved") return { background: "hsl(var(--muted-foreground) / 0.4)" };
+  if (!lastMessageAt) return { background: "hsl(var(--warning))" };
   const hoursAgo = (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
-  if (hoursAgo < 1) return "bg-success";
-  if (hoursAgo < 6) return "bg-warning";
-  return "bg-destructive";
+  if (hoursAgo < 1) return { background: "hsl(var(--success))" };
+  if (hoursAgo < 6) return { background: "hsl(var(--warning))" };
+  return { background: "hsl(var(--destructive))" };
+}
+
+function getUrgencyLabel(lastMessageAt: string | null, status: string): string {
+  if (status === "resolved") return "Conversa resolvida";
+  if (!lastMessageAt) return "Sem mensagens";
+  const hoursAgo = (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
+  if (hoursAgo < 1) return "✅ Em dia — respondido há menos de 1 hora";
+  if (hoursAgo < 6) return "⚠️ Atenção — sem resposta há mais de 1 hora";
+  return "🔴 Urgente — sem resposta há mais de 6 horas";
 }
 
 function getHoursAgo(lastMessageAt: string | null): number | null {
