@@ -175,15 +175,16 @@ function SidebarItemButton({
     </SidebarMenuItem>
   );
 
-  // Wrap with tooltip showing description (only when not collapsed — collapsed uses built-in tooltip)
-  if (item.description && !collapsed) {
+  // Wrap with tooltip showing full title + description (only when not collapsed — collapsed uses built-in tooltip)
+  if (!collapsed) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
           {menuButton}
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-[220px] text-xs">
-          {item.description}
+          <p className="font-medium">{item.title}</p>
+          {item.description && <p className="text-muted-foreground mt-0.5">{item.description}</p>}
         </TooltipContent>
       </Tooltip>
     );
