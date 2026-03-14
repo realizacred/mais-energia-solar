@@ -272,12 +272,13 @@ async function jobProfilePic(supabase: any, instanceId: string, p: any) {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: inst.apiKey },
     body: JSON.stringify({ number: p.remote_jid }),
+    signal: AbortSignal.timeout(7000),
   });
 
   if (!res.ok) return;
 
   const data = await res.json();
-  const picUrl = data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || null;
+  const picUrl = extractProfilePictureUrlFromPayload(data);
   if (picUrl) {
     await supabase
       .from("wa_conversations")
@@ -285,6 +286,31 @@ async function jobProfilePic(supabase: any, instanceId: string, p: any) {
       .eq("instance_id", instanceId)
       .eq("remote_jid", p.remote_jid);
   }
+}
+
+/** Robust extraction of profile picture URL from API response (§41 AGENTS.md) */
+function extractProfilePictureUrlFromPayload(payload: any): string | null {
+  const INVALID = new Set(["", "none", "null", "undefined"]);
+  const candidates = [
+    payload?.profilePictureUrl,
+    payload?.imgUrl,
+    payload?.profilePicUrl,
+    payload?.pictureUrl,
+    payload?.url,
+    payload?.data?.profilePictureUrl,
+    payload?.data?.imgUrl,
+    payload?.data?.profilePicUrl,
+    payload?.data?.pictureUrl,
+  ];
+  for (const url of candidates) {
+    if (typeof url === "string") {
+      const trimmed = url.trim();
+      if (!INVALID.has(trimmed.toLowerCase()) && trimmed.startsWith("http")) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
 }
 
 // ── JOB: Push Notification ──
