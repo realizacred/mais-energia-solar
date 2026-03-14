@@ -38,6 +38,9 @@ export interface AuditRecord {
   exists_in_backend_template_preview: boolean;
   exists_in_template_docs: boolean;
   exists_in_real_sources: boolean;
+  observed_in_real_snapshots: boolean;
+  snapshot_observation_count: number;
+  snapshot_sample_value?: string;
   canonical_source: string;
   source_path: string;
   legacy_aliases: string[];
@@ -55,10 +58,41 @@ export interface AuditSummary {
   missing_backend: number;
   missing_origin: number;
   not_implemented: number;
+  observed_in_snapshots: number;
+  not_observed_in_snapshots: number;
+}
+
+export interface GroupSummary {
+  group: string;
+  group_label: string;
+  total: number;
+  ok: number;
+  problems: number;
+  completeness_pct: number;
+  observed_pct: number;
+}
+
+export interface BacklogItem {
+  key: string;
+  label: string;
+  group: string;
+  status: AuditStatus;
+  action: AuditAction;
+  impact: string;
+  priority: number;
 }
 
 export interface AuditResult {
   records: AuditRecord[];
   summary: AuditSummary;
+  group_summaries: GroupSummary[];
+  backlog: BacklogItem[];
   generated_at: string;
+  snapshot_data_loaded: boolean;
+}
+
+export interface SnapshotObservation {
+  found: boolean;
+  count: number;
+  sample_value?: string;
 }
