@@ -214,8 +214,12 @@ function ConversationItem({
             {isHidden && <EyeOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
             {isFollowup && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
           </div>
-          <span className="text-[11px] text-muted-foreground shrink-0">
+          <span className={cn(
+            "text-[11px] shrink-0",
+            isUrgent ? "text-destructive font-medium" : "text-muted-foreground",
+          )}>
             {conv.last_message_at && formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: ptBR })}
+            {isUrgent && " ⚠"}
           </span>
         </div>
 
