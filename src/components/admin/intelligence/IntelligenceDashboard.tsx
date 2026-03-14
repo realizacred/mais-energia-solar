@@ -49,11 +49,11 @@ export function IntelligenceDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Brain className="h-5 w-5 text-primary" />
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Brain className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">Inteligência Comercial</h2>
+            <h2 className="text-xl font-bold text-foreground">Inteligência Comercial</h2>
             <p className="text-xs text-muted-foreground">
               {scores.length > 0 ? (
                 <>

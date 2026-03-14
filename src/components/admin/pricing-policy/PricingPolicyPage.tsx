@@ -27,9 +27,11 @@ export function PricingPolicyPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">Política de Precificação</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Regras financeiras versionadas que controlam o cálculo de propostas.
-          </p>
+              <p className="text-sm text-muted-foreground">
+                Regras financeiras versionadas que controlam o cálculo de propostas.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -31,17 +31,17 @@ export function StatsCards({ totalLeads, totalKwh, uniqueEstados }: StatsCardsPr
       label: "kWh Total",
       value: totalKwh.toLocaleString(),
       icon: Zap,
-      borderColor: "border-l-success",
-      iconBg: "bg-success/10",
-      iconColor: "text-success",
+      borderColor: "border-l-primary",
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
     },
     {
       label: "Estados",
       value: uniqueEstados.toString(),
       icon: MapPin,
-      borderColor: "border-l-secondary",
-      iconBg: "bg-secondary/10",
-      iconColor: "text-secondary",
+      borderColor: "border-l-primary",
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
     },
   ];
 
