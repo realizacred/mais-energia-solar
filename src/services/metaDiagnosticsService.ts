@@ -81,3 +81,28 @@ export async function fetchMetaDiagnostics(): Promise<MetaDiagnosticsResult> {
     },
   };
 }
+
+export interface WebhookSetupResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  callback_url?: string;
+  app_id?: string;
+}
+
+export async function subscribeLeadgenWebhook(): Promise<WebhookSetupResult> {
+  const { data, error } = await supabase.functions.invoke("meta-webhook-setup", {
+    body: {},
+  });
+
+  if (error) {
+    const message = await parseEdgeFunctionError(error, "Erro ao inscrever webhook");
+    throw new Error(message);
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.error || "Falha ao inscrever webhook no Meta");
+  }
+
+  return data as WebhookSetupResult;
+}
