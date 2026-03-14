@@ -53,8 +53,8 @@ export function SlaBreachDashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-destructive/20 to-destructive/5 border border-destructive/10">
-          <AlertTriangle className="h-6 w-6 text-destructive" />
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <AlertTriangle className="w-5 h-5 text-primary" />
         </div>
         <div>
           <h2 className="text-xl font-bold">Violações de SLA</h2>

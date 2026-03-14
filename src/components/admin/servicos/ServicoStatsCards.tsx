@@ -33,16 +33,14 @@ export function ServicoStatsCards({ servicos }: ServicoStatsCardsProps) {
       {cards.map((card) => {
         const Icon = card.icon;
         return (
-          <Card key={card.label} className={`card-stat-elevated border-2 border-${card.color}/40 bg-${card.color}/5`}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-${card.color}/10`}>
-                  <Icon className={`h-5 w-5 text-${card.color}`} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{card.value}</p>
-                  <p className="text-xs text-muted-foreground">{card.label}</p>
-                </div>
+          <Card key={card.label} className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+                <Icon className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{card.value}</p>
+                <p className="text-sm text-muted-foreground mt-1">{card.label}</p>
               </div>
             </CardContent>
           </Card>

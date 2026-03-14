@@ -23,8 +23,8 @@ export function CommercialDirectorDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-          <Sparkles className="h-6 w-6 text-primary" />
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Sparkles className="w-5 h-5 text-primary" />
         </div>
         <div>
           <h2 className="text-xl font-bold text-foreground">Diretor Comercial IA</h2>

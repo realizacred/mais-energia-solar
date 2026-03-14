@@ -21,13 +21,17 @@ export function PricingPolicyPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            Política de Precificação
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Regras financeiras versionadas que controlam o cálculo de propostas.
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Política de Precificação</h1>
+              <p className="text-sm text-muted-foreground">
+                Regras financeiras versionadas que controlam o cálculo de propostas.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

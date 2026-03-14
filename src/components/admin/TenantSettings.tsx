@@ -183,8 +183,8 @@ export function TenantSettings() {
       {/* Header */}
       <div className="admin-page-header">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10">
-            <Building2 className="h-6 w-6 text-primary" />
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-primary" />
           </div>
           <div>
             <h2 className="text-xl font-bold">Configurações da Empresa</h2>

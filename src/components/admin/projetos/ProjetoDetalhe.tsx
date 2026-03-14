@@ -1036,11 +1036,9 @@ function GerenciamentoTab({
             <CardContent className="p-4 pt-0">
               {activities.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <div className="h-11 w-11 rounded-xl bg-warning/10 flex items-center justify-center mb-3">
-                    <AlertCircle className="h-5 w-5 text-warning" />
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">Nenhuma atividade encontrada</p>
-                  <p className="text-xs text-muted-foreground mt-1">Crie uma atividade para acompanhar este projeto</p>
+                  <AlertCircle className="w-10 h-10 text-muted-foreground/40 mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">Nenhuma atividade encontrada</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Crie uma atividade para acompanhar este projeto</p>
                 </div>
               ) : (
                 <div className="space-y-2">
