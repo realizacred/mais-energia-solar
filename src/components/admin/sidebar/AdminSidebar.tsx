@@ -101,8 +101,8 @@ function SidebarItemButton({
         tooltip={collapsed ? item.title : undefined}
         aria-label={item.title}
         className={`
-          transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
-          pl-0
+          transition-all duration-200 ease-in-out rounded-lg mx-0.5 my-px group/btn relative overflow-visible
+          pl-1
           focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
           ${
             isActive
