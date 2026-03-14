@@ -1,0 +1,126 @@
+/**
+ * Domain resolver: financeiro.* variables
+ * Sources: snapshot.financeiro, snapshot top-level, versaoData, ext.projeto
+ */
+import { type AnyObj, safeObj, str, num, fmtCur, fmtNum, type ResolverExternalContext } from "./types.ts";
+
+export function resolveFinanceiro(
+  snapshot: AnyObj | null | undefined,
+  ext?: ResolverExternalContext,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  const snap = snapshot ?? {};
+  const fin = safeObj(snap.financeiro);
+  const versao = ext?.versaoData ?? {};
+  const projeto = ext?.projeto ?? {};
+  const lead = ext?.lead ?? {};
+  const cliente = ext?.cliente ?? {};
+
+  const set = (k: string, v: unknown) => {
+    const s = str(v);
+    if (s && !out[k]) out[k] = s;
+  };
+  const setCur = (k: string, v: number | null) => {
+    if (v != null && !isNaN(v)) out[k] = fmtCur(v);
+  };
+  const setCurIfMissing = (k: string, v: number | null) => {
+    if (!out[k] && v != null && !isNaN(v)) out[k] = fmtCur(v);
+  };
+
+  // ── Valor Total / Preço ──
+  const valorTotal = num(versao.valor_total) ?? num(fin.valor_total) ?? num(projeto.valor_total)
+    ?? num(lead.valor_estimado) ?? num(cliente.valor_projeto) ?? num(snap.preco_total) ?? num(snap.preco);
+  
+  if (valorTotal != null && valorTotal > 0) {
+    setCur("valor_total", valorTotal);
+    setCur("preco_final", valorTotal);
+    setCur("preco_total", valorTotal);
+    setCur("preco", valorTotal);
+    setCur("capo_i", valorTotal);
+    setCur("vc_a_vista", valorTotal);
+
+    const potencia = num(versao.potencia_kwp) ?? num(projeto.potencia_kwp) ?? num(cliente.potencia_kwp)
+      ?? num(snap.potencia_kwp) ?? num(snap.potencia_sistema);
+    if (potencia && potencia > 0) {
+      out["preco_kwp"] = fmtCur(valorTotal / potencia);
+      out["preco_watt"] = `${fmtNum(valorTotal / (potencia * 1000), 2)} R$/W`;
+    }
+  }
+
+  // ── Economia ──
+  const econMensal = num(versao.economia_mensal) ?? num(fin.economia_mensal) ?? num(snap.economia_mensal);
+  if (econMensal != null) {
+    setCur("economia_mensal", econMensal);
+    setCurIfMissing("economia_anual", econMensal * 12);
+    setCurIfMissing("roi_25_anos", econMensal * 12 * 25);
+    setCurIfMissing("economia_25_anos", econMensal * 12 * 25);
+  }
+
+  // ── Payback ──
+  const paybackMeses = num(versao.payback_meses) ?? num(fin.payback_meses) ?? num(snap.payback_meses);
+  if (paybackMeses != null && paybackMeses > 0) {
+    const anos = Math.floor(paybackMeses / 12);
+    const meses = Math.round(paybackMeses % 12);
+    out["payback"] = `${anos} anos e ${meses} meses`;
+    out["payback_meses"] = String(paybackMeses);
+    out["payback_anos"] = fmtNum(paybackMeses / 12, 1);
+  }
+
+  // ── VPL / TIR / ROI ──
+  set("vpl", fin.vpl ?? snap.vpl);
+  set("tir", fin.tir ?? snap.tir);
+  set("roi_anual", fin.roi_anual ?? snap.roi_anual);
+
+  // ── Equipment costs from snapshot ──
+  const costFields = [
+    "modulo_custo_un", "modulo_preco_un", "modulo_custo_total", "modulo_preco_total",
+    "inversor_custo_un", "inversor_preco_un", "inversor_custo_total", "inversor_preco_total",
+    "inversores_custo_total", "inversores_preco_total",
+    "otimizador_custo_un", "otimizador_preco_un", "otimizador_custo_total", "otimizador_preco_total",
+    "kit_fechado_custo_total",
+    "instalacao_custo_total", "instalacao_preco_total",
+    "estrutura_custo_total", "estrutura_preco_total",
+    "equipamentos_custo_total", "kits_custo_total", "componentes_custo_total",
+    "baterias_custo_total", "baterias_preco_total",
+    "margem_lucro", "margem_percentual", "desconto_percentual", "desconto_valor",
+    "custo_modulos", "custo_inversores", "custo_estrutura", "custo_instalacao", "custo_kit",
+    "comissao_percentual", "comissao_valor", "comissao_res", "comissao_rep",
+    "distribuidor_categoria", "preco_por_extenso",
+  ];
+  for (const k of costFields) set(k, snap[k]);
+
+  // ── Indexed inverter/battery costs ──
+  for (let i = 1; i <= 5; i++) {
+    for (const prefix of ["inversor_custo_un_", "inversor_preco_un_", "inversor_preco_total_",
+      "transformador_custo_un_", "transformador_preco_un_",
+      "bateria_custo_un_", "bateria_preco_un_", "bateria_preco_total_",
+      "item_a_nome_", "item_a_custo_", "item_a_preco_"]) {
+      set(`${prefix}${i}`, snap[`${prefix}${i}`]);
+    }
+  }
+  set("transformadores_custo_total", snap.transformadores_custo_total);
+  set("transformadores_preco_total", snap.transformadores_preco_total);
+
+  // ── Indexed f_* (from snapshot direct — pagamento resolver handles from array) ──
+  for (let i = 1; i <= 5; i++) {
+    for (const k of ["f_nome_", "f_entrada_", "f_entrada_p_", "f_valor_", "f_valor_p_",
+      "f_prazo_", "f_carencia_", "f_taxa_", "f_parcela_"]) {
+      set(`${k}${i}`, snap[`${k}${i}`]);
+    }
+  }
+  for (const k of ["f_ativo_nome", "f_ativo_entrada", "f_ativo_entrada_p", "f_ativo_valor",
+    "f_ativo_valor_p", "f_ativo_prazo", "f_ativo_carencia", "f_ativo_taxa", "f_ativo_parcela",
+    "f_banco", "f_taxa_juros", "f_parcelas", "f_valor_parcela", "f_entrada", "f_valor_financiado", "f_cet"]) {
+    set(k, snap[k]);
+  }
+
+  // ── Annual series ──
+  for (let i = 0; i <= 25; i++) {
+    for (const prefix of ["investimento_anual_", "economia_anual_valor_", "fluxo_caixa_acumulado_anual_"]) {
+      set(`${prefix}${i}`, snap[`${prefix}${i}`]);
+    }
+  }
+  for (const k of ["solar_25", "renda_25", "poupanca_25"]) set(k, snap[k]);
+
+  return out;
+}
