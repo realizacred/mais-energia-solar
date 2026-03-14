@@ -117,12 +117,12 @@ export function PendingDocumentationWidget({
 
   const getUrgencyBadge = (days: number) => {
     if (days >= 7) {
-      return <Badge variant="destructive" className="text-xs">Crítico ({days}d)</Badge>;
+      return <Badge variant="destructive" className="text-xs font-medium">Crítico ({days}d)</Badge>;
     }
     if (days >= 3) {
-      return <Badge variant="default" className="bg-warning text-warning-foreground text-xs">Atenção ({days}d)</Badge>;
+      return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">{days}d</Badge>;
     }
-    return <Badge variant="secondary" className="text-xs">{days}d</Badge>;
+    return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">{days}d</Badge>;
   };
 
   const handleClick = (lead: PendingLead) => {
