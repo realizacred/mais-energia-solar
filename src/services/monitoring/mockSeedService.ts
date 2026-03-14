@@ -50,7 +50,7 @@ export async function seedMonitorData(): Promise<{ plants: number; readings: num
   const { data: profile } = await supabase
     .from("profiles" as any)
     .select("tenant_id")
-    .eq("id", user.id)
+    .eq("user_id", user.id)
     .single();
 
   if (!profile) throw new Error("Perfil não encontrado");
