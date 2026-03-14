@@ -35,7 +35,7 @@ interface DebugResult {
 }
 
 export function DocxDebugPanel() {
-  const { tenantId } = useTenantId();
+  const tenantId = true; // queries are tenant-scoped via RLS
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedProposta, setSelectedProposta] = useState<string>("");
   const [running, setRunning] = useState(false);
