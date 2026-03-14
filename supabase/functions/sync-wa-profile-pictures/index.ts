@@ -10,18 +10,27 @@ const PLACEHOLDER_NO_PIC = "none";
 const RETRY_AFTER_HOURS = 24;
 
 function extractProfilePictureUrl(payload: any): string | null {
-  const raw =
-    payload?.profilePictureUrl ||
-    payload?.profilePicUrl ||
-    payload?.data?.profilePictureUrl ||
-    payload?.data?.profilePicUrl ||
-    payload?.url ||
-    null;
-
-  if (!raw || typeof raw !== "string") return null;
-  const normalized = raw.trim();
-  if (!normalized || normalized.toLowerCase() === "none") return null;
-  return normalized;
+  const INVALID = new Set(["", "none", "null", "undefined"]);
+  const candidates = [
+    payload?.profilePictureUrl,
+    payload?.imgUrl,
+    payload?.profilePicUrl,
+    payload?.pictureUrl,
+    payload?.url,
+    payload?.data?.profilePictureUrl,
+    payload?.data?.imgUrl,
+    payload?.data?.profilePicUrl,
+    payload?.data?.pictureUrl,
+  ];
+  for (const url of candidates) {
+    if (typeof url === "string") {
+      const trimmed = url.trim();
+      if (!INVALID.has(trimmed.toLowerCase()) && trimmed.startsWith("http")) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
 }
 
 function shouldPersistNoPhoto(status: number): boolean {
