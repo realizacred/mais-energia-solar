@@ -33,14 +33,23 @@ import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
-// ── Urgency color by time since last message ──────────
-function getUrgencyColor(lastMessageAt: string | null, status: string): string {
-  if (status === "resolved") return "bg-muted-foreground/40";
-  if (!lastMessageAt) return "bg-warning";
+// ── Urgency style by time since last message ──────────
+function getUrgencyStyle(lastMessageAt: string | null, status: string): { background: string } {
+  if (status === "resolved") return { background: "hsl(var(--muted-foreground) / 0.4)" };
+  if (!lastMessageAt) return { background: "hsl(var(--warning))" };
   const hoursAgo = (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
-  if (hoursAgo < 1) return "bg-success";
-  if (hoursAgo < 6) return "bg-warning";
-  return "bg-destructive";
+  if (hoursAgo < 1) return { background: "hsl(var(--success))" };
+  if (hoursAgo < 6) return { background: "hsl(var(--warning))" };
+  return { background: "hsl(var(--destructive))" };
+}
+
+function getUrgencyLabel(lastMessageAt: string | null, status: string): string {
+  if (status === "resolved") return "Conversa resolvida";
+  if (!lastMessageAt) return "Sem mensagens";
+  const hoursAgo = (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
+  if (hoursAgo < 1) return "✅ Em dia — respondido há menos de 1 hora";
+  if (hoursAgo < 6) return "⚠️ Atenção — sem resposta há mais de 1 hora";
+  return "🔴 Urgente — sem resposta há mais de 6 horas";
 }
 
 function getHoursAgo(lastMessageAt: string | null): number | null {
@@ -153,15 +162,11 @@ function ConversationItem({
 
   const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
 
-  // Border left color by urgency (time since last message)
-  const urgencyColor = getUrgencyColor(conv.last_message_at, conv.status);
+  // Urgency bar (inline style for reliable rendering)
+  const urgencyStyle = getUrgencyStyle(conv.last_message_at, conv.status);
+  const urgencyLabel = getUrgencyLabel(conv.last_message_at, conv.status);
   const hoursAgo = getHoursAgo(conv.last_message_at);
   const isUrgent = hoursAgo !== null && hoursAgo > 6 && conv.status !== "resolved";
-
-  const borderLeftColor = cn(
-    "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl",
-    urgencyColor,
-  );
 
   const preview = isNote
     ? "📝 Nota interna"
@@ -182,8 +187,27 @@ function ConversationItem({
         isMuted && "opacity-60",
       )}
     >
-      {/* Left border by status */}
-      <div className={borderLeftColor} />
+      {/* Left urgency bar with tooltip */}
+      <TooltipProvider delayDuration={600}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              style={{
+                ...urgencyStyle,
+                position: "absolute",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: "3px",
+                borderRadius: "10px 0 0 10px",
+              }}
+            />
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{urgencyLabel}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* Avatar */}
       <div className="relative ml-1.5 shrink-0 self-center">
