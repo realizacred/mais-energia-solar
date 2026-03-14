@@ -9,6 +9,7 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Search, Plug, Sun, Users, HardDrive,
