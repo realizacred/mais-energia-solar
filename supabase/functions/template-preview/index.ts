@@ -49,6 +49,8 @@ interface ForensicDebugReport {
   originalDocxSize: number;
   processedDocxSize: number;
   pdfSize: number | null;
+  originalDocxHash: string;
+  processedDocxHash: string;
   // Structure
   templateStructure: StructureReport;
   postNormalizationStructure: StructureReport;
@@ -63,6 +65,8 @@ interface ForensicDebugReport {
   placeholdersMissing: string[];
   placeholdersFragmentedBeforeNorm: string[];
   placeholdersFragmentedAfterNorm: string[];
+  // Variable map (full dump for diagnosis)
+  variableMap: Record<string, string>;
   // Gotenberg
   gotenbergUrl: string | null;
   gotenbergParams: Record<string, string>;
@@ -74,6 +78,11 @@ interface ForensicDebugReport {
   // XML Samples (truncated for size)
   xmlSamplesBeforeNorm: Record<string, string>;
   xmlSamplesAfterNorm: Record<string, string>;
+}
+
+async function hashBytes(data: Uint8Array): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 // ═══════════════════════════════════════════════════════════════
