@@ -42,9 +42,13 @@ export function TopAdsBySpend({ ads, isLoading }: Props) {
             ))}
           </div>
         ) : top5.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">
-            Nenhum anúncio encontrado
-          </p>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <Trophy className="w-8 h-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Nenhum anúncio encontrado</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Configure a integração com a Meta para visualizar métricas
+            </p>
+          </div>
         ) : (
           top5.map((ad, i) => (
             <div

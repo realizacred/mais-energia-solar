@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { formatBRL, formatInteger } from "@/lib/formatters/index";
@@ -68,17 +70,20 @@ export function TopCampaignsChart({ campaigns, isLoading }: Props) {
           </CardTitle>
           <div className="flex gap-1">
             {TABS.map((tab) => (
-              <button
+              <Button
                 key={tab.key}
+                variant={activeMetric === tab.key ? "default" : "ghost"}
+                size="sm"
                 onClick={() => setActiveMetric(tab.key)}
-                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                className={cn(
+                  "h-7 px-2.5 text-xs",
                   activeMetric === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
+                    ? "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30"
+                    : "text-muted-foreground"
+                )}
               >
                 {tab.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -87,9 +92,13 @@ export function TopCampaignsChart({ campaigns, isLoading }: Props) {
         {isLoading ? (
           <div className="h-[280px] bg-muted animate-pulse rounded-lg" />
         ) : chartData.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-12">
-            Nenhuma campanha encontrada
-          </p>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <BarChart3 className="w-8 h-8 text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Nenhuma campanha encontrada</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Configure a integração com a Meta para visualizar métricas
+            </p>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
