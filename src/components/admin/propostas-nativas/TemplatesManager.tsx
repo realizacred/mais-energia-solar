@@ -364,30 +364,32 @@ export function TemplatesManager() {
 
       {/* Tipo Tabs */}
       <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/40 w-fit">
-        <button
+        <Button
+          variant={tipoTab === "html" ? "default" : "outline"}
+          size="sm"
           onClick={() => handleTabChange("html")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            tipoTab === "html"
-              ? "bg-secondary text-secondary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className={tipoTab === "html"
+            ? "gap-2 bg-primary/10 text-primary border-primary hover:bg-primary/15 shadow-sm"
+            : "gap-2 text-muted-foreground border-transparent"
+          }
         >
           <Globe className="h-4 w-4" />
           WEB
-          <Badge className="text-[9px] bg-secondary/80 text-secondary-foreground border-0">{htmlCount}</Badge>
-        </button>
-        <button
+          <Badge className={`text-[9px] border-0 ${tipoTab === "html" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{htmlCount}</Badge>
+        </Button>
+        <Button
+          variant={tipoTab === "docx" ? "default" : "outline"}
+          size="sm"
           onClick={() => handleTabChange("docx")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            tipoTab === "docx"
-              ? "bg-secondary text-secondary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className={tipoTab === "docx"
+            ? "gap-2 bg-primary/10 text-primary border-primary hover:bg-primary/15 shadow-sm"
+            : "gap-2 text-muted-foreground border-transparent"
+          }
         >
           <FileDown className="h-4 w-4" />
           DOCX
-          <Badge className="text-[9px] bg-secondary/80 text-secondary-foreground border-0">{docxCount}</Badge>
-        </button>
+          <Badge className={`text-[9px] border-0 ${tipoTab === "docx" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{docxCount}</Badge>
+        </Button>
       </div>
 
       {/* Dialog Form */}
