@@ -172,19 +172,21 @@ export default function UCsListPage() {
           {filterTabs.map(tab => (
             <Button
               key={tab.key}
-              variant={quickFilter === tab.key ? "default" : "outline"}
+              variant={quickFilter === tab.key ? "outline" : "ghost"}
               size="sm"
               onClick={() => setQuickFilter(tab.key)}
               className={cn(
                 "text-xs gap-1.5",
-                quickFilter === tab.key ? "" : "text-muted-foreground"
+                quickFilter === tab.key
+                  ? "bg-primary/10 text-primary border-primary hover:bg-primary/15"
+                  : "text-muted-foreground"
               )}
             >
               <tab.icon className="w-3.5 h-3.5" />
               {tab.label}
               <Badge variant="outline" className={cn(
                 "ml-1 text-[10px] h-5 px-1.5",
-                quickFilter === tab.key ? "border-primary-foreground/30 text-primary-foreground" : ""
+                quickFilter === tab.key ? "border-primary/30 text-primary" : ""
               )}>
                 {isLoading ? "…" : tab.count}
               </Badge>
