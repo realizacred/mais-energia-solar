@@ -277,3 +277,6 @@ verify_jwt = false
 [functions.docx-to-pdf]
 verify_jwt = false
 wall_clock_limit = 120
+
+[functions.gotenberg-health]
+verify_jwt = false
