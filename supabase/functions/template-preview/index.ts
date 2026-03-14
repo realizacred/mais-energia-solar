@@ -3,38 +3,6 @@ import JSZip from "npm:jszip@3.10.1";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 
-/**
- * Validates and normalizes a base URL for external services.
- * Ensures protocol is present (http/https), removes trailing slash.
- * Falls back to defaultUrl if rawUrl is empty/undefined.
- */
-function validateAndNormalizeBaseUrl(
-  rawUrl: string | undefined,
-  envVarName: string,
-  defaultUrl = "https://demo.gotenberg.dev",
-): string {
-  const urlStr = (rawUrl && rawUrl.trim()) ? rawUrl.trim() : defaultUrl;
-
-  if (!urlStr.startsWith("http://") && !urlStr.startsWith("https://")) {
-    throw new Error(
-      `Configuração inválida: ${envVarName} ("${urlStr}") não possui protocolo válido (http/https). ` +
-      `Verifique a variável de ambiente ${envVarName} nas configurações do projeto.`
-    );
-  }
-
-  try {
-    const parsed = new URL(urlStr);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error(`Protocolo "${parsed.protocol}" não suportado.`);
-    }
-    return parsed.origin + parsed.pathname.replace(/\/+$/, "");
-  } catch (e: any) {
-    throw new Error(
-      `Configuração inválida: ${envVarName} ("${urlStr}") não é uma URL válida. ` +
-      `Erro: ${e.message}. Verifique a variável de ambiente ${envVarName}.`
-    );
-  }
-}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
