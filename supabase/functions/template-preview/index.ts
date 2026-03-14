@@ -400,11 +400,17 @@ Deno.serve(async (req) => {
 
     // ── 2. PARSE BODY ─────────────────────────────────────
     const body = await req.json();
-    const { template_id, proposta_id, lead_id: bodyLeadId } = body;
+    const { template_id, proposta_id, lead_id: bodyLeadId, diagnostic } = body;
 
     if (!template_id) {
       return jsonError("template_id é obrigatório", 400);
     }
+
+    // ── DIAGNOSTIC MODE ───────────────────────────────────
+    if (diagnostic === true) {
+      return await handleDiagnostic(adminClient, template_id, tenantId);
+    }
+
     if (!proposta_id && !bodyLeadId) {
       return jsonError("proposta_id ou lead_id é obrigatório", 400);
     }
