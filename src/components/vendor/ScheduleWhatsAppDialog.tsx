@@ -205,7 +205,7 @@ export function ScheduleWhatsAppDialog({
       const { data: profile } = await supabase
         .from("profiles")
         .select("tenant_id")
-        .eq("id", authUser?.id)
+        .eq("user_id", authUser?.id)
         .single();
       const tenantId = profile?.tenant_id;
 
