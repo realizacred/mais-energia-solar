@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.36.1",
+    date: "2026-03-14",
+    title: "UX de variáveis ausentes e limpeza de estado stale no pipeline DOCX/PDF",
+    type: "improvement",
+    description: "Exibição visual de placeholders não resolvidos no documento, limpeza completa de estado ao trocar template/dados e consolidação do fluxo de envio.",
+    details: [
+      "missing_vars retornados pelo backend são exibidos como badges na sidebar da proposta",
+      "handleTemplateChange e handleNewVersion limpam missingVars, generationError e signed URLs anteriores",
+      "WhatsApp e e-mail enviam link rastreável da proposta (proposal-send), não arquivo local",
+      "Copiar link usa link rastreável da proposta com token de aceite",
+      "Downloads de PDF e DOCX usam signed URLs do storage persistido",
+    ],
+  },
+  {
     version: "2.36.0",
     date: "2026-03-14",
     title: "Pipeline DOCX/PDF de produção com persistência e preview real",
