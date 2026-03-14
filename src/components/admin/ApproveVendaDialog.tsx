@@ -537,8 +537,24 @@ export function ApproveVendaDialog({
                         <span className="font-medium text-sm text-foreground">Valor da Comissão</span>
                       </div>
                       <span className="text-xl font-bold text-success">{formatBRL(valorComissao())}</span>
+                {/* ── Composição de Pagamento ── */}
+                {paymentItems && onPaymentItemsChange && (
+                  <>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Composição de Pagamento
+                      </p>
+                      <PaymentComposer
+                        valorVenda={valorVenda}
+                        items={paymentItems}
+                        onChange={onPaymentItemsChange}
+                      />
                     </div>
-                  </div>
+                  </>
+                )}
+              </div>
+          </div>
                 </div>
               </div>
           </div>
