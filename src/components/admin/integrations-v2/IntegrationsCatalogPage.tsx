@@ -337,10 +337,10 @@ export default function IntegrationsCatalogPage() {
               key={key}
               variant="ghost"
               size="sm"
-              onClick={() => setTab(key)}
+               onClick={() => setTabFilter(key)}
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-lg transition-all",
-                tab === key
+                tabFilter === key
                   ? "bg-primary/10 text-primary shadow-sm font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
