@@ -381,7 +381,7 @@ export function RolePermissionsManager() {
         .upsert(
           rows.map((r) => ({
             ...r,
-            tenant_id: profileData.tenant_id,
+            tenant_id: tenantIdValue,
           })),
           { onConflict: "tenant_id,role,module_key" }
         );

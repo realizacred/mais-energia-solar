@@ -90,11 +90,8 @@ export function DicionarioAneelPage() {
         supabase
           .from("concessionaria_aneel_aliases")
           .select("id, concessionaria_id, alias_aneel"),
-        supabase
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
-          .maybeSingle(),
+        getCurrentTenantId().then(({ tenantId }) => ({ data: { tenant_id: tenantId }, error: null }))
+          .catch((e) => ({ data: null, error: e })),
       ]);
 
       if (concRes.error) throw concRes.error;
