@@ -1077,9 +1077,132 @@ Deno.serve(async (req) => {
       return jsonError(`Erro ao processar template DOCX: ${processErr?.message || "unknown"}`, 500);
     }
 
-    // ── 9. RETORNAR O ARQUIVO PROCESSADO ──────────────────
+    // ── 9. PERSIST DOCX + PDF TO STORAGE ──────────────────
     const clienteNome = cliente?.nome || lead?.nome || "preview";
-    const fileName = `preview_${template.nome.replace(/[^a-zA-Z0-9]/g, "_")}_${clienteNome.replace(/[^a-zA-Z0-9]/g, "_")}.docx`;
+    const safeClienteName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+    const timestamp = Date.now();
+    const docxStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_proposta.docx`;
+    const pdfStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_proposta.pdf`;
+
+    // 9a. Upload DOCX to storage
+    console.log(`[template-preview] Uploading DOCX to storage: ${docxStoragePath}`);
+    const { error: docxUploadErr } = await adminClient.storage
+      .from("proposta-documentos")
+      .upload(docxStoragePath, report, {
+        contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        upsert: true,
+      });
+    if (docxUploadErr) {
+      console.error("[template-preview] DOCX upload error:", docxUploadErr.message);
+    }
+
+    // 9b. Convert DOCX to PDF via Gotenberg
+    let pdfBytes: Uint8Array | null = null;
+    let pdfConversionError: string | null = null;
+    try {
+      const GOTENBERG_URL = Deno.env.get("GOTENBERG_URL") || "https://demo.gotenberg.dev";
+      console.log(`[template-preview] Converting to PDF via Gotenberg: ${GOTENBERG_URL}`);
+      
+      const formData = new FormData();
+      const blob = new Blob([report], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      formData.append("files", blob, "proposta.docx");
+      formData.append("landscape", "false");
+      formData.append("nativePageRanges", "1-");
+
+      const pdfResp = await fetch(
+        `${GOTENBERG_URL}/forms/libreoffice/convert`,
+        {
+          method: "POST",
+          body: formData,
+          signal: AbortSignal.timeout(90000),
+        },
+      );
+
+      if (pdfResp.ok) {
+        const pdfBuffer = await pdfResp.arrayBuffer();
+        pdfBytes = new Uint8Array(pdfBuffer);
+        console.log(`[template-preview] PDF generated: ${pdfBytes.length} bytes`);
+
+        // 9c. Upload PDF to storage
+        const { error: pdfUploadErr } = await adminClient.storage
+          .from("proposta-documentos")
+          .upload(pdfStoragePath, pdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+        if (pdfUploadErr) {
+          console.error("[template-preview] PDF upload error:", pdfUploadErr.message);
+          pdfConversionError = `PDF upload failed: ${pdfUploadErr.message}`;
+        }
+      } else {
+        const errText = await pdfResp.text();
+        pdfConversionError = `Gotenberg error ${pdfResp.status}: ${errText}`;
+        console.error("[template-preview] PDF conversion failed:", pdfConversionError);
+      }
+    } catch (pdfErr: any) {
+      pdfConversionError = pdfErr?.message || "Unknown PDF conversion error";
+      console.error("[template-preview] PDF conversion error:", pdfConversionError);
+    }
+
+    // 9d. Update proposta_versoes with artifact paths
+    if (proposta_id) {
+      // Get latest versao for this proposta
+      const { data: latestVersao } = await adminClient
+        .from("proposta_versoes")
+        .select("id")
+        .eq("proposta_id", proposta_id)
+        .order("versao_numero", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestVersao) {
+        const updatePayload: Record<string, unknown> = {
+          output_docx_path: docxUploadErr ? null : docxStoragePath,
+          output_pdf_path: (pdfBytes && !pdfConversionError) ? pdfStoragePath : null,
+          generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "error" : "docx_only"),
+          generation_error: pdfConversionError || (docxUploadErr ? docxUploadErr.message : null),
+          template_id_used: template_id,
+          generated_at: new Date().toISOString(),
+        };
+        
+        const { error: updateErr } = await adminClient
+          .from("proposta_versoes")
+          .update(updatePayload)
+          .eq("id", latestVersao.id);
+        
+        if (updateErr) {
+          console.error("[template-preview] Failed to update proposta_versoes:", updateErr.message);
+        } else {
+          console.log(`[template-preview] proposta_versoes ${latestVersao.id} updated with artifact paths`);
+        }
+      }
+    }
+
+    // ── 10. RETURN RESPONSE ──────────────────────────────
+    // Return JSON with paths + the DOCX as binary for backward compatibility
+    const responsePayload = {
+      success: true,
+      output_docx_path: docxUploadErr ? null : docxStoragePath,
+      output_pdf_path: (pdfBytes && !pdfConversionError) ? pdfStoragePath : null,
+      generation_status: (pdfBytes && !pdfConversionError) ? "ready" : "docx_only",
+      generation_error: pdfConversionError,
+      missing_vars: [],
+    };
+
+    // Check if caller wants JSON response (new flow) vs binary DOCX (legacy)
+    const acceptHeader = req.headers.get("Accept") || "";
+    const wantJson = acceptHeader.includes("application/json") || body.response_format === "json";
+
+    if (wantJson) {
+      return new Response(JSON.stringify(responsePayload), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Legacy: return binary DOCX
+    const fileName = `preview_${template.nome.replace(/[^a-zA-Z0-9]/g, "_")}_${safeClienteName}.docx`;
     console.log(`[template-preview] Returning ${report.length} bytes as ${fileName}`);
 
     return new Response(report, {
@@ -1087,6 +1210,9 @@ Deno.serve(async (req) => {
         ...corsHeaders,
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${fileName}"`,
+        "X-Output-Docx-Path": docxStoragePath,
+        "X-Output-Pdf-Path": (pdfBytes && !pdfConversionError) ? pdfStoragePath : "",
+        "X-Generation-Status": (pdfBytes && !pdfConversionError) ? "ready" : "docx_only",
       },
     });
   } catch (err: any) {
