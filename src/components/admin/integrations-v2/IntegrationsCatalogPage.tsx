@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  Search, Plug, Sun, Users, HardDrive,
+  Search, Plug, Sun, Users, HardDrive, FileText,
   Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText, Globe,
   Workflow, FileSignature, Zap, CloudSun, Sprout, Cpu, Gauge, Radio,
   Building2, Calculator, QrCode, Webhook, LayoutGrid, Power, ArrowLeft,
@@ -60,6 +60,7 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   asaas: lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig }))),
   public_api: lazy(() => import("@/pages/admin/OpenAIConfigPage")),
   tuya_iot: lazy(() => import("@/components/admin/integrations-api/ApisPage")),
+  gotenberg: lazy(() => import("@/components/admin/integrations-v2/GotenbergConfigPanel")),
 };
 
 /* Tab-level lazy components */
@@ -76,7 +77,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Sun, Zap, CloudSun, Sprout, Cpu, Gauge, Radio, Users, Building2,
   HardDrive, Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText,
   Globe, Workflow, FileSignature, Calculator, QrCode, Webhook,
-  Plug, LayoutGrid, Power,
+  Plug, LayoutGrid, Power, FileText,
 };
 
 function getIcon(key: string | null): React.ElementType {
