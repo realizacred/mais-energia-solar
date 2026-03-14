@@ -2,20 +2,19 @@
  * UCFormDialog — Create/Edit UC dialog with sections, CEP auto-fill, and input masks.
  */
 import { useState, useEffect, useCallback } from "react";
-import { useCepLookup } from "@/hooks/useCepLookup";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { unitService, type UCRecord } from "@/services/unitService";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, MapPin, Zap, FileText, Search } from "lucide-react";
+import { Loader2, MapPin, Zap, FileText } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 
 interface Props {
   open: boolean;
@@ -26,27 +25,22 @@ interface Props {
 
 const GRUPOS = ["A1", "A2", "A3", "A3a", "A4", "AS", "B1", "B2", "B3", "B4"];
 const MODALIDADES = ["Convencional", "Horossazonal Branca", "Horossazonal Verde", "Horossazonal Azul"];
-const UF_LIST = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
 
 const EMPTY_FORM = {
   codigo_uc: "", nome: "", tipo_uc: "consumo", concessionaria_id: "",
   classificacao_grupo: "", classificacao_subgrupo: "", modalidade_tarifaria: "",
   observacoes: "", ativo: true,
-  cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "",
 };
 
-/** Mask CEP: 00000-000 */
-function maskCep(v: string) {
-  const digits = v.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 5) return digits;
-  return digits.slice(0, 5) + "-" + digits.slice(5);
-}
+const EMPTY_ADDRESS: AddressData = {
+  cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "",
+};
 
 export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [fetchingCep, setFetchingCep] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [address, setAddress] = useState<AddressData>({ ...EMPTY_ADDRESS });
 
   const { data: concessionarias = [] } = useQuery({
     queryKey: ["concessionarias_select"],
@@ -71,51 +65,20 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         modalidade_tarifaria: editingUC.modalidade_tarifaria || "",
         observacoes: editingUC.observacoes || "",
         ativo: editingUC.status === "active",
-        cep: end.cep || "", logradouro: end.logradouro || "",
+      });
+      setAddress({
+        cep: end.cep || "", rua: end.logradouro || end.rua || "",
         numero: end.numero || "", complemento: end.complemento || "",
         bairro: end.bairro || "", cidade: end.cidade || "", estado: end.estado || "",
       });
     } else {
       setForm({ ...EMPTY_FORM });
+      setAddress({ ...EMPTY_ADDRESS });
     }
   }, [editingUC, open]);
 
   const set = (k: string) => (e: any) =>
     setForm(f => ({ ...f, [k]: typeof e === "string" ? e : e.target.value }));
-
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const masked = maskCep(e.target.value);
-    setForm(f => ({ ...f, cep: masked }));
-  };
-
-  const { lookup: lookupCep } = useCepLookup();
-
-  const fetchCep = useCallback(async () => {
-    setFetchingCep(true);
-    const result = await lookupCep(form.cep);
-    if (result === null) {
-      const digits = form.cep.replace(/\D/g, "");
-      if (digits.length === 8) {
-        toast({ title: "CEP não encontrado", variant: "destructive" });
-      }
-    } else {
-      setForm(f => ({
-        ...f,
-        logradouro: result.rua || f.logradouro,
-        bairro: result.bairro || f.bairro,
-        cidade: result.cidade || f.cidade,
-        estado: result.estado || f.estado,
-        complemento: result.complemento || f.complemento,
-      }));
-    }
-    setFetchingCep(false);
-  }, [form.cep, toast, lookupCep]);
-
-  // Auto-fetch on CEP complete
-  useEffect(() => {
-    const digits = form.cep.replace(/\D/g, "");
-    if (digits.length === 8) fetchCep();
-  }, [form.cep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave() {
     if (!form.codigo_uc.trim() || !form.nome.trim()) {
@@ -137,8 +100,9 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         observacoes: form.observacoes || null,
         status: form.ativo ? "active" : "inactive",
         endereco: {
-          cep: form.cep, logradouro: form.logradouro, numero: form.numero,
-          complemento: form.complemento, bairro: form.bairro, cidade: form.cidade, estado: form.estado,
+          cep: address.cep, logradouro: address.rua, numero: address.numero,
+          complemento: address.complemento, bairro: address.bairro,
+          cidade: address.cidade, estado: address.estado,
         },
       };
 
@@ -159,26 +123,33 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-[1100px] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle className="flex items-center gap-2.5 text-lg">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
-              <Zap className="w-4 h-4" />
-            </div>
-            {editingUC ? "Editar Unidade Consumidora" : "Nova Unidade Consumidora"}
-          </DialogTitle>
+      <DialogContent className="w-[90vw] max-w-[1100px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        {/* Header — §25 */}
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Zap className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              {editingUC ? "Editar Unidade Consumidora" : "Nova Unidade Consumidora"}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {editingUC ? "Atualize os dados da unidade consumidora" : "Cadastre uma nova unidade consumidora"}
+            </p>
+          </div>
         </DialogHeader>
 
-        <div className="px-6 py-5 space-y-5">
-          {/* ── Row 1: Dados da UC + Classificação lado a lado ── */}
+        {/* Body — §39 flex-1 min-h-0 overflow-y-auto */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
+          {/* Row 1: Dados da UC + Classificação */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Dados da UC */}
-            <section className="rounded-lg border border-border bg-card p-5 space-y-4 min-w-0">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Zap className="w-4 h-4 text-primary" />
+            {/* Dados da UC — §2 bg-muted/30 */}
+            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-primary" />
                 Dados da UC
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Código da UC <span className="text-destructive">*</span></Label>
                   <Input value={form.codigo_uc} onChange={set("codigo_uc")} placeholder="Ex: 0012345678" autoComplete="off" />
@@ -212,13 +183,13 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
               </div>
             </section>
 
-            {/* Classificação Tarifária + Observações */}
-            <section className="rounded-lg border border-border bg-card p-5 space-y-4 min-w-0">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <FileText className="w-4 h-4 text-primary" />
+            {/* Classificação Tarifária — §2 bg-muted/30 */}
+            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-primary" />
                 Classificação Tarifária
-              </div>
-              <div className="grid grid-cols-3 gap-4">
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5 min-w-0">
                   <Label className="text-xs">Grupo</Label>
                   <Select value={form.classificacao_grupo} onValueChange={set("classificacao_grupo")}>
@@ -257,59 +228,24 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
           </div>
 
-          {/* ── Row 2: Endereço largura total ── */}
-          <section className="rounded-lg border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <MapPin className="w-4 h-4 text-primary" />
+          {/* Row 2: Endereço — §13 AddressFields */}
+          <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
               Endereço
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
-              <div className="space-y-1.5 min-w-0 col-span-1">
-                <Label className="text-xs">CEP</Label>
-                <div className="relative">
-                  <Input value={form.cep} onChange={handleCepChange} placeholder="00000-000" maxLength={9} autoComplete="off" />
-                  {fetchingCep && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
-                  {!fetchingCep && form.cep.replace(/\D/g, "").length === 8 && (
-                    <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground cursor-pointer hover:text-primary" onClick={fetchCep} />
-                  )}
-                </div>
-              </div>
-              <div className="space-y-1.5 min-w-0 lg:col-span-2">
-                <Label className="text-xs">Logradouro</Label>
-                <Input value={form.logradouro} onChange={set("logradouro")} autoComplete="off" />
-              </div>
-              <div className="space-y-1.5 min-w-0 col-span-1">
-                <Label className="text-xs">Número</Label>
-                <Input value={form.numero} onChange={set("numero")} autoComplete="off" />
-              </div>
-              <div className="space-y-1.5 min-w-0 col-span-1">
-                <Label className="text-xs">Bairro</Label>
-                <Input value={form.bairro} onChange={set("bairro")} autoComplete="off" />
-              </div>
-              <div className="space-y-1.5 min-w-0 col-span-1">
-                <Label className="text-xs">Cidade</Label>
-                <Input value={form.cidade} onChange={set("cidade")} autoComplete="off" />
-              </div>
-              <div className="space-y-1.5 min-w-0 col-span-1">
-                <Label className="text-xs">Estado</Label>
-                <Select value={form.estado} onValueChange={set("estado")}>
-                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                  <SelectContent>
-                    {UF_LIST.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            </p>
+            <AddressFields value={address} onChange={setAddress} />
           </section>
         </div>
 
-        <DialogFooter className="px-6 pb-6 pt-3 border-t border-border flex-col-reverse sm:flex-row gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+        {/* Footer — §25 */}
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {saving ? "Salvando..." : editingUC ? "Salvar Alterações" : "Criar UC"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
