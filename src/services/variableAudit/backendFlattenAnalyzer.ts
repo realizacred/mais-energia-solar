@@ -1,34 +1,19 @@
 /**
  * Backend Flatten Analyzer
- * Parses the ACTUAL flattenSnapshot.ts source to extract produced keys.
- * Uses Vite ?raw import to read the real source code at build time.
+ * Derives keys from the static snapshot in knownKeys.ts.
+ *
+ * NOTE: Vite cannot ?raw-import files outside src/ (supabase/functions/).
+ * The BACKEND_FLATTEN_KEYS set in knownKeys.ts is a manually-maintained
+ * static snapshot of flattenSnapshot.ts — update it when the edge function changes.
  */
 
-// @ts-ignore — Vite raw import
-import flattenSource from "../../supabase/functions/_shared/flattenSnapshot.ts?raw";
+import { BACKEND_FLATTEN_KEYS } from "./knownKeys";
 
 /**
- * Extract all keys that flattenSnapshot explicitly produces via setIfMissing/set.
+ * Extract all keys that flattenSnapshot explicitly produces.
  */
 export function extractBackendFlattenKeys(): Set<string> {
-  const keys = new Set<string>();
-  const source = flattenSource as string;
-
-  // Pattern: setIfMissing("key", ...)  or  set("key", ...)
-  const setRegex = /(?:setIfMissing|set)\s*\(\s*["'`]([a-z_][a-z0-9_]*)["'`]/g;
-  let match: RegExpExecArray | null;
-  while ((match = setRegex.exec(source)) !== null) {
-    keys.add(match[1]);
-  }
-
-  // Pattern: setIfMissing(`key_${idx}`, ...) — template literals for indexed keys
-  const templateSetRegex = /(?:setIfMissing|set)\s*\(\s*`([a-z_][a-z0-9_]*)_\$\{/g;
-  while ((match = templateSetRegex.exec(source)) !== null) {
-    // Add base with _1 as representative
-    keys.add(`${match[1]}_1`);
-  }
-
-  return keys;
+  return new Set(BACKEND_FLATTEN_KEYS);
 }
 
 /**
@@ -39,14 +24,11 @@ export function isKeyInBackendFlatten(
   dottedKey: string,
   flattenKeys: Set<string>
 ): boolean {
-  // Direct flat key match
   if (flattenKeys.has(flatKey)) return true;
 
-  // Underscore-joined dotted key
   const underscored = dottedKey.replace(/\./g, "_");
   if (flattenKeys.has(underscored)) return true;
 
-  // Indexed variant: key_2 → key_1
   const basePattern = flatKey.replace(/_\d+$/, "_1");
   if (basePattern !== flatKey && flattenKeys.has(basePattern)) return true;
 
@@ -63,13 +45,11 @@ export function getBackendFlattenAnalysis(): {
   hasDynamicKeyGeneration: boolean;
 } {
   const keys = extractBackendFlattenKeys();
-  const source = flattenSource as string;
-  const lines = source.split("\n").length;
 
   return {
     totalExplicitKeys: keys.size,
     keys: Array.from(keys).sort(),
-    sourceLines: lines,
-    hasDynamicKeyGeneration: source.includes("forEach") || source.includes("for ("),
+    sourceLines: 0, // Unknown — file outside src/
+    hasDynamicKeyGeneration: true, // flattenSnapshot uses forEach loops
   };
 }
