@@ -1005,48 +1005,213 @@ Deno.serve(async (req) => {
     setIfMissing("vc_parcela_3", snapshot?.parcela_60);
 
     // ═══════════════════════════════════════════════════════
-    // PAGAMENTO_OPCOES → vc_parcela_* mapping
+    // PAGAMENTO_OPCOES → vc_* / f_* mapping (robusto)
     // ═══════════════════════════════════════════════════════
-    const pagOpcoes = Array.isArray(snapshot?.pagamento_opcoes) ? snapshot.pagamento_opcoes as Array<Record<string, any>>
-      : (Array.isArray(snapshot?.pagamentoOpcoes) ? snapshot.pagamentoOpcoes as Array<Record<string, any>> : []);
-    
-    if (pagOpcoes.length > 0) {
-      // Separate by type for vc_parcela (financiamento) and vc_cartao_credito_parcela
-      const financiamentos = pagOpcoes.filter((p: any) => p.tipo === "financiamento" || p.tipo === "parcelado");
-      const cartoes = pagOpcoes.filter((p: any) => p.tipo === "cartao" || String(p.nome ?? "").toLowerCase().includes("cartão") || String(p.nome ?? "").toLowerCase().includes("cartao"));
-      const aVista = pagOpcoes.find((p: any) => p.tipo === "a_vista");
+    const rawPagOpcoes = Array.isArray(snapshot?.pagamento_opcoes)
+      ? snapshot.pagamento_opcoes as Array<Record<string, unknown>>
+      : (Array.isArray(snapshot?.pagamentoOpcoes)
+        ? snapshot.pagamentoOpcoes as Array<Record<string, unknown>>
+        : []);
 
-      // vc_a_vista from payment option
-      if (aVista && (aVista.valor_financiado || aVista.valor_parcela)) {
-        setCurIfMissing("vc_a_vista", Number(aVista.valor_financiado || aVista.valor_parcela));
+    const invalidTokens = new Set(["", "-", "--", "n/a", "na", "null", "undefined"]);
+    const parseLocaleNumber = (value: unknown): number | null => {
+      if (value === null || value === undefined) return null;
+      if (typeof value === "number") return Number.isFinite(value) ? value : null;
+
+      const raw = String(value).trim();
+      if (!raw) return null;
+      if (invalidTokens.has(raw.toLowerCase())) return null;
+
+      let normalized = raw
+        .replace(/R\$/gi, "")
+        .replace(/%/g, "")
+        .replace(/\s/g, "")
+        .replace(/[^\d,.-]/g, "");
+
+      if (!normalized) return null;
+
+      const hasComma = normalized.includes(",");
+      const hasDot = normalized.includes(".");
+
+      if (hasComma && hasDot) {
+        if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+          normalized = normalized.replace(/\./g, "").replace(",", ".");
+        } else {
+          normalized = normalized.replace(/,/g, "");
+        }
+      } else if (hasComma) {
+        normalized = normalized.replace(/\./g, "").replace(/,/g, ".");
+      } else {
+        normalized = normalized.replace(/,/g, "");
       }
 
-      // vc_parcela_1, _2, _3 from financiamentos
-      financiamentos.forEach((f: any, idx: number) => {
+      const num = Number(normalized);
+      return Number.isFinite(num) ? num : null;
+    };
+
+    const pickText = (...values: unknown[]): string | undefined => {
+      for (const value of values) {
+        if (value === null || value === undefined) continue;
+        const txt = String(value).trim();
+        if (!txt || invalidTokens.has(txt.toLowerCase())) continue;
+        return txt;
+      }
+      return undefined;
+    };
+
+    type NormalizedPagamento = {
+      tipo: string;
+      nome: string;
+      valor_financiado: number | null;
+      valor_parcela: number | null;
+      entrada: number | null;
+      num_parcelas: number | null;
+      taxa_mensal: number | null;
+      fonte: "pagamento_opcoes" | "pagamentoOpcoes" | "none";
+      raw: Record<string, unknown>;
+    };
+
+    const rawPagamentoSource: "pagamento_opcoes" | "pagamentoOpcoes" | "none" = Array.isArray(snapshot?.pagamento_opcoes)
+      ? "pagamento_opcoes"
+      : (Array.isArray(snapshot?.pagamentoOpcoes) ? "pagamentoOpcoes" : "none");
+
+    const normalizedPagOpcoes: NormalizedPagamento[] = rawPagOpcoes.map((p) => {
+      const nome = pickText(p.nome, p.banco, p.banco_nome, p.label, p.descricao) || "Opção";
+      const rawTipo = pickText(p.tipo, p.metodo, p.forma_pagamento)?.toLowerCase() || "";
+      const nomeLower = nome.toLowerCase();
+
+      let tipo = rawTipo;
+      if (rawTipo.includes("vista")) tipo = "a_vista";
+      else if (rawTipo.includes("cart")) tipo = "cartao";
+      else if (rawTipo.includes("financ")) tipo = "financiamento";
+      else if (rawTipo.includes("parcel")) tipo = "parcelado";
+
+      if (!tipo) {
+        if (/cart[aã]o|cr[eé]dito/i.test(nomeLower)) tipo = "cartao";
+        else if (/a vista|à vista/i.test(nomeLower)) tipo = "a_vista";
+        else tipo = "outro";
+      }
+
+      const valorFinanciado = parseLocaleNumber(
+        p.valor_financiado ?? p.valorFinanciado ?? p.valor ?? p.valor_total,
+      );
+      const valorParcela = parseLocaleNumber(
+        p.valor_parcela ?? p.valorParcela ?? p.parcela ?? p.valor_mensal,
+      );
+      const entrada = parseLocaleNumber(p.entrada ?? p.valor_entrada ?? p.entrada_valor);
+      const prazoNum = parseLocaleNumber(p.num_parcelas ?? p.numParcelas ?? p.prazo ?? p.parcelas);
+      const taxaMensal = parseLocaleNumber(p.taxa_mensal ?? p.taxaMensal ?? p.taxa ?? p.juros_mensal);
+
+      return {
+        tipo,
+        nome,
+        valor_financiado: valorFinanciado,
+        valor_parcela: valorParcela,
+        entrada,
+        num_parcelas: prazoNum != null ? Math.round(prazoNum) : null,
+        taxa_mensal: taxaMensal,
+        fonte: rawPagamentoSource,
+        raw: p,
+      };
+    }).filter((p) =>
+      p.tipo === "a_vista" ||
+      p.valor_financiado != null ||
+      p.valor_parcela != null ||
+      p.num_parcelas != null ||
+      p.taxa_mensal != null ||
+      p.entrada != null,
+    );
+
+    if (normalizedPagOpcoes.length > 0) {
+      const aVista = normalizedPagOpcoes.find((p) => p.tipo === "a_vista")
+        || normalizedPagOpcoes.find((p) => /a vista|à vista/i.test(p.nome));
+
+      const aVistaValor = aVista?.valor_financiado
+        ?? aVista?.valor_parcela
+        ?? (valorTotal != null ? Number(valorTotal) : null);
+      if (aVistaValor != null) {
+        setCur("vc_a_vista", aVistaValor);
+      }
+
+      const cartoes = normalizedPagOpcoes
+        .filter((p) => p.tipo === "cartao" || /cart[aã]o|cr[eé]dito/i.test(p.nome))
+        .sort((a, b) => (a.num_parcelas ?? 999) - (b.num_parcelas ?? 999));
+
+      const financiamentos = normalizedPagOpcoes
+        .filter((p) => p.tipo === "financiamento" || p.tipo === "parcelado" || (p.tipo === "outro" && !/cart[aã]o|cr[eé]dito/i.test(p.nome)))
+        .sort((a, b) => (a.num_parcelas ?? 999) - (b.num_parcelas ?? 999));
+
+      financiamentos.slice(0, 3).forEach((f, idx) => {
         const i = idx + 1;
-        if (f.valor_parcela) setCurIfMissing(`vc_parcela_${i}`, Number(f.valor_parcela));
-        if (f.taxa_mensal != null) setIfMissing(`vc_taxa_${i}`, `${fmtNum(Number(f.taxa_mensal), 2)}%`);
-        if (f.entrada != null) setCurIfMissing(`vc_entrada_${i}`, Number(f.entrada));
+        const parcela = f.valor_parcela ?? ((f.valor_financiado != null && f.num_parcelas && f.num_parcelas > 0)
+          ? f.valor_financiado / f.num_parcelas
+          : null);
+
+        if (parcela != null) setCur(`vc_parcela_${i}`, parcela);
+        if (f.taxa_mensal != null) setIfMissing(`vc_taxa_${i}`, `${fmtNum(f.taxa_mensal, 2)}%`);
+        if (f.entrada != null) setCurIfMissing(`vc_entrada_${i}`, f.entrada);
         if (f.num_parcelas != null) setIfMissing(`vc_prazo_${i}`, String(f.num_parcelas));
       });
 
-      // vc_cartao_credito_parcela_1, _2, _3, _4 from cartoes
-      cartoes.forEach((c: any, idx: number) => {
+      cartoes.slice(0, 4).forEach((c, idx) => {
         const i = idx + 1;
-        if (c.valor_parcela) setCurIfMissing(`vc_cartao_credito_parcela_${i}`, Number(c.valor_parcela));
+        const parcela = c.valor_parcela ?? ((c.valor_financiado != null && c.num_parcelas && c.num_parcelas > 0)
+          ? c.valor_financiado / c.num_parcelas
+          : null);
+
+        if (parcela != null) setCur(`vc_cartao_credito_parcela_${i}`, parcela);
+        if (c.taxa_mensal != null) setIfMissing(`vc_cartao_credito_taxa_${i}`, `${fmtNum(c.taxa_mensal, 2)}%`);
       });
 
-      // Also map all payment options to f_* keys
-      pagOpcoes.forEach((p: any, idx: number) => {
+      const fOpcoes = [...financiamentos, ...cartoes].slice(0, 12);
+      fOpcoes.forEach((p, idx) => {
         const i = idx + 1;
+        const valorFinanciado = p.valor_financiado
+          ?? ((p.valor_parcela != null && p.num_parcelas && p.num_parcelas > 0)
+            ? (p.valor_parcela * p.num_parcelas) + (p.entrada ?? 0)
+            : null);
+        const parcela = p.valor_parcela ?? ((valorFinanciado != null && p.num_parcelas && p.num_parcelas > 0)
+          ? valorFinanciado / p.num_parcelas
+          : null);
+
         setIfMissing(`f_nome_${i}`, p.nome);
-        if (p.entrada != null) setCurIfMissing(`f_entrada_${i}`, Number(p.entrada));
-        if (p.valor_financiado != null) setCurIfMissing(`f_valor_${i}`, Number(p.valor_financiado));
+        if (p.entrada != null) setCurIfMissing(`f_entrada_${i}`, p.entrada);
+        if (valorFinanciado != null) setCurIfMissing(`f_valor_${i}`, valorFinanciado);
         if (p.num_parcelas != null) setIfMissing(`f_prazo_${i}`, String(p.num_parcelas));
-        if (p.taxa_mensal != null) setIfMissing(`f_taxa_${i}`, `${fmtNum(Number(p.taxa_mensal), 2)}%`);
-        if (p.valor_parcela != null) setCurIfMissing(`f_parcela_${i}`, Number(p.valor_parcela));
+        if (p.taxa_mensal != null) setIfMissing(`f_taxa_${i}`, `${fmtNum(p.taxa_mensal, 2)}%`);
+        if (parcela != null) setCurIfMissing(`f_parcela_${i}`, parcela);
       });
     }
+
+    const pagamentoAuditKeys = [
+      "vc_a_vista",
+      "vc_parcela_1", "vc_parcela_2", "vc_parcela_3",
+      "vc_cartao_credito_parcela_1", "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "f_nome_1", "f_nome_2", "f_nome_3",
+      "f_entrada_1", "f_entrada_2", "f_entrada_3",
+      "f_valor_1", "f_valor_2", "f_valor_3",
+      "f_prazo_1", "f_prazo_2", "f_prazo_3",
+      "f_taxa_1", "f_taxa_2", "f_taxa_3",
+      "f_parcela_1", "f_parcela_2", "f_parcela_3",
+    ] as const;
+    const pagamentoAuditPayload = Object.fromEntries(
+      pagamentoAuditKeys.map((k) => [k, vars[k] ?? "(MISSING)"]),
+    );
+    console.log("[template-preview] PAYMENT AUDIT:", JSON.stringify({
+      source: rawPagamentoSource,
+      raw_count: rawPagOpcoes.length,
+      normalized_count: normalizedPagOpcoes.length,
+      normalized: normalizedPagOpcoes.map((p) => ({
+        tipo: p.tipo,
+        nome: p.nome,
+        valor_financiado: p.valor_financiado,
+        valor_parcela: p.valor_parcela,
+        entrada: p.entrada,
+        num_parcelas: p.num_parcelas,
+        taxa_mensal: p.taxa_mensal,
+      })),
+      placeholders: pagamentoAuditPayload,
+    }, null, 2));
 
     // ═══════════════════════════════════════════════════════
     // VARIAVEIS_CUSTOM from snapshot
@@ -1094,7 +1259,8 @@ Deno.serve(async (req) => {
       "inversor_fabricante_1", "inversor_modelo", "inversor_potencia_nominal", "inversores_utilizados",
       "vc_a_vista", "kit_fechado_preco_total", "valor_total", "economia_mensal", "payback",
       "fluxo_caixa_acumulado_anual_10", "vc_parcela_1", "vc_parcela_2", "vc_parcela_3",
-      "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "vc_cartao_credito_parcela_1", "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "f_nome_1", "f_entrada_1", "f_valor_1", "f_prazo_1", "f_taxa_1", "f_parcela_1",
       "responsavel_nome", "vc_observacao", "consumo_mensal", "geracao_mensal", "vc_aumento",
       "dis_energia", "subgrupo_uc1", "cidade", "estado", "vpl", "tir",
     ];
