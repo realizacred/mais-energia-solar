@@ -1468,6 +1468,8 @@ export function ProposalWizard() {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
     setResult(null);
     setHtmlPreview(null);
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    setPdfBlobUrl(null);
     setDocxBlob(null);
     // Go back to UCs step
     const ucsIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.UCS);
