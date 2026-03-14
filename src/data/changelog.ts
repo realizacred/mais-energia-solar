@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.42.0",
+    date: "2026-03-14",
+    title: "Persistência end-to-end da composição de pagamento na aprovação de vendas",
+    type: "feature",
+    description: "Fluxo de aprovação agora cria registro de venda, salva composição de pagamento via RPC e valida integridade antes de aprovar.",
+    details: [
+      "Criação automática de registro na tabela vendas ao aprovar",
+      "Chamada da RPC save_payment_composition com venda_id real",
+      "Validação obrigatória da composição antes de aprovar (soma, parcelas, juros)",
+      "Rollback da venda caso a composição falhe",
+      "Reset do estado paymentItems ao fechar dialog",
+      "Correção de JSX quebrado no ApproveVendaDialog (seção comissão/pagamento)",
+    ],
+  },
+  {
     version: "2.41.0",
     date: "2026-03-14",
     title: "PaymentComposer integrado na tela de Aprovação de Vendas",
