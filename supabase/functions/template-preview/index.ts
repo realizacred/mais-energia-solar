@@ -172,7 +172,7 @@ function normalizeParagraphRunsInner(xml: string): string {
     if (runs.length < 2) return paraXml;
 
     const fullText = runs.map((r) => r.text).join("");
-    if (!fullText.includes("[")) return paraXml;
+    if (!fullText.includes("[") && !fullText.includes("{{")) return paraXml;
 
     const charRunIdx: number[] = [];
     for (let ri = 0; ri < runs.length; ri++) {
@@ -181,10 +181,25 @@ function normalizeParagraphRunsInner(xml: string): string {
       }
     }
 
+    const mergeSpans: Array<[number, number]> = [];
+
+    // Legacy [key] placeholders
     const phPattern = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
     let phMatch;
-    const mergeSpans: Array<[number, number]> = [];
     while ((phMatch = phPattern.exec(fullText)) !== null) {
+      const startChar = phMatch.index;
+      const endChar = startChar + phMatch[0].length - 1;
+      if (startChar >= charRunIdx.length || endChar >= charRunIdx.length) continue;
+      const startRun = charRunIdx[startChar];
+      const endRun = charRunIdx[endChar];
+      if (startRun !== endRun) {
+        mergeSpans.push([startRun, endRun]);
+      }
+    }
+
+    // Canonical {{key}} placeholders
+    const mustachePh = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
+    while ((phMatch = mustachePh.exec(fullText)) !== null) {
       const startChar = phMatch.index;
       const endChar = startChar + phMatch[0].length - 1;
       if (startChar >= charRunIdx.length || endChar >= charRunIdx.length) continue;
