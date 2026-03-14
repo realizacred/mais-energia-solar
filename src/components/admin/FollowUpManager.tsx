@@ -202,7 +202,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
   const getStatusBadge = (item: FollowUpItem) => {
     const lastContact = item.ultimo_contato ? parseISO(item.ultimo_contato) : parseISO(item.created_at);
     const days = differenceInDays(new Date(), lastContact);
-    if (days >= diasAlerta * 2) return <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" />{days}d</Badge>;
+    if (days >= diasAlerta * 2) return <Badge variant="outline" className="gap-1 border-destructive/50 text-destructive bg-destructive/10"><AlertTriangle className="w-3 h-3" />{days}d</Badge>;
     if (days >= diasAlerta) return <Badge variant="outline" className="gap-1 border-warning/50 text-warning bg-warning/10"><Clock className="w-3 h-3" />{days}d</Badge>;
     return <Badge variant="outline" className="gap-1 border-success/50 text-success bg-success/10"><CheckCircle className="w-3 h-3" />Em dia</Badge>;
   };
