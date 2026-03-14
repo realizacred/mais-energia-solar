@@ -481,7 +481,7 @@ export function UsuariosManager() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={Shield}
+        icon={Users}
         title="Gestão de Usuários"
         description="Gerencie usuários e seus perfis de acesso"
         actions={
