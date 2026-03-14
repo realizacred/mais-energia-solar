@@ -59,6 +59,8 @@ export function StepDocumento({
   numUcs, precoFinal,
   templateSelecionado, onTemplateSelecionado,
   generating, rendering, result, htmlPreview, pdfBlobUrl,
+  outputDocxPath, outputPdfPath,
+  generationStatus = "idle", generationError,
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
