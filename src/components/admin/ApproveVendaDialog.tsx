@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
+import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
