@@ -537,6 +537,10 @@ export function ApproveVendaDialog({
                         <span className="font-medium text-sm text-foreground">Valor da Comissão</span>
                       </div>
                       <span className="text-xl font-bold text-success">{formatBRL(valorComissao())}</span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* ── Composição de Pagamento ── */}
                 {paymentItems && onPaymentItemsChange && (
                   <>
@@ -553,9 +557,6 @@ export function ApproveVendaDialog({
                     </div>
                   </>
                 )}
-              </div>
-          </div>
-                </div>
               </div>
           </div>
 
