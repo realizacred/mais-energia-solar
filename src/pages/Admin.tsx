@@ -311,6 +311,7 @@ const TAB_TITLES: Record<string, string> = {
   "tenant-settings": "Dados da empresa",
   "monitoramento-solar": "Monitoramento Solar",
   "conf-solar": "Premissas solar",
+  "variaveis-sistema": "Variáveis do Sistema",
   "pricing-policy": "Política de precificação",
   "politica-precos": "Política de precificação",
   "custom-fields": "Campos customizados",
