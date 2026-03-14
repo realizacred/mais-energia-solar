@@ -33,6 +33,21 @@ import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
+// ── Urgency color by time since last message ──────────
+function getUrgencyColor(lastMessageAt: string | null, status: string): string {
+  if (status === "resolved") return "bg-muted-foreground/40";
+  if (!lastMessageAt) return "bg-warning";
+  const hoursAgo = (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
+  if (hoursAgo < 1) return "bg-success";
+  if (hoursAgo < 6) return "bg-warning";
+  return "bg-destructive";
+}
+
+function getHoursAgo(lastMessageAt: string | null): number | null {
+  if (!lastMessageAt) return null;
+  return (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
+}
+
 // ── Message preview helper ─────────────────────────────
 function getMessagePreview(type: string | null | undefined, body: string | null | undefined): string {
   if (type === "image") return "📷 Imagem";
@@ -138,13 +153,14 @@ function ConversationItem({
 
   const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
 
-  // Border left color by status
+  // Border left color by urgency (time since last message)
+  const urgencyColor = getUrgencyColor(conv.last_message_at, conv.status);
+  const hoursAgo = getHoursAgo(conv.last_message_at);
+  const isUrgent = hoursAgo !== null && hoursAgo > 6 && conv.status !== "resolved";
+
   const borderLeftColor = cn(
     "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl",
-    conv.status === "open" && conv.assigned_to ? "bg-success" : "",
-    conv.status === "pending" ? "bg-warning" : "",
-    !conv.assigned_to && conv.status !== "pending" ? "bg-info" : "",
-    conv.status === "resolved" ? "bg-muted-foreground/40" : "",
+    urgencyColor,
   );
 
   const preview = isNote
@@ -198,8 +214,12 @@ function ConversationItem({
             {isHidden && <EyeOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
             {isFollowup && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
           </div>
-          <span className="text-[11px] text-muted-foreground shrink-0">
+          <span className={cn(
+            "text-[11px] shrink-0",
+            isUrgent ? "text-destructive font-medium" : "text-muted-foreground",
+          )}>
             {conv.last_message_at && formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: ptBR })}
+            {isUrgent && " ⚠"}
           </span>
         </div>
 
