@@ -124,7 +124,7 @@ export default function MetaDashboardPage() {
             <AlertCircle className="h-5 w-5 text-warning shrink-0" />
             <p className="text-sm text-warning">
               Integração Meta não está ativa. Configure as credenciais em{" "}
-              <a href="/admin/catalogo-integracoes" className="underline font-medium">Integrações → Meta</a>.
+              <a href="/admin/meta-facebook-config" className="underline font-medium">Configurar Meta</a>.
             </p>
           </CardContent>
         </Card>
