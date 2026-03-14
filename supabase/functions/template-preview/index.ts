@@ -1259,7 +1259,8 @@ Deno.serve(async (req) => {
       "inversor_fabricante_1", "inversor_modelo", "inversor_potencia_nominal", "inversores_utilizados",
       "vc_a_vista", "kit_fechado_preco_total", "valor_total", "economia_mensal", "payback",
       "fluxo_caixa_acumulado_anual_10", "vc_parcela_1", "vc_parcela_2", "vc_parcela_3",
-      "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "vc_cartao_credito_parcela_1", "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "f_nome_1", "f_entrada_1", "f_valor_1", "f_prazo_1", "f_taxa_1", "f_parcela_1",
       "responsavel_nome", "vc_observacao", "consumo_mensal", "geracao_mensal", "vc_aumento",
       "dis_energia", "subgrupo_uc1", "cidade", "estado", "vpl", "tir",
     ];
