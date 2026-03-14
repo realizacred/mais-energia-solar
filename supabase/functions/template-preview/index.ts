@@ -73,21 +73,33 @@ async function processDocxTemplate(
     }
 
     // ── STEP 3: Final sweep — blank remaining *valid placeholders* only ──
-    // Important: avoid matching arbitrary bracket tokens like [3212], which can exist in DOCX internals.
-    const remainingPattern = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
-    let remaining;
+    // Supports both [key] and {{key}} formats
     const localMissing: string[] = [];
-    while ((remaining = remainingPattern.exec(content)) !== null) {
+
+    // Sweep [key] format
+    const remainingBracket = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
+    let remaining;
+    while ((remaining = remainingBracket.exec(content)) !== null) {
       const varName = remaining[1];
-      if (!localMissing.includes(varName)) {
-        localMissing.push(varName);
-      }
+      if (!localMissing.includes(varName)) localMissing.push(varName);
+    }
+
+    // Sweep {{key}} format
+    const remainingMustache = /\{\{([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\}\}/g;
+    while ((remaining = remainingMustache.exec(content)) !== null) {
+      const varName = remaining[1];
+      if (!localMissing.includes(varName)) localMissing.push(varName);
     }
 
     for (const varName of localMissing) {
-      const pattern = `[${varName}]`;
-      if (content.includes(pattern)) {
-        content = content.replaceAll(pattern, "");
+      const bracketPattern = `[${varName}]`;
+      const mustachePattern = `{{${varName}}}`;
+      if (content.includes(bracketPattern)) {
+        content = content.replaceAll(bracketPattern, "");
+        modified = true;
+      }
+      if (content.includes(mustachePattern)) {
+        content = content.replaceAll(mustachePattern, "");
         modified = true;
       }
       if (!missingVars.includes(varName)) {
