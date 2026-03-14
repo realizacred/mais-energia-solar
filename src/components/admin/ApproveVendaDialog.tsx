@@ -66,6 +66,9 @@ interface ApproveVendaDialogProps {
   approving: boolean;
   isValid: boolean;
   documents: DocumentItem[];
+  /** Payment composition items — optional, enables the payment composer */
+  paymentItems?: PaymentItemInput[];
+  onPaymentItemsChange?: (items: PaymentItemInput[]) => void;
 }
 
 function DataCard({ label, value, icon: Icon, valueClass }: {
