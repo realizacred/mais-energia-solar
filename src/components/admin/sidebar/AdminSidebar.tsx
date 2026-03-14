@@ -394,8 +394,8 @@ function FavoritesSection({
               focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
             `}
           >
-            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-warning/10">
-              <Star className="h-3.5 w-3.5 text-warning" fill="currentColor" />
+            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/10">
+              <Star className="h-3.5 w-3.5 text-primary" fill="currentColor" />
             </div>
             {!collapsed && (
               <>
