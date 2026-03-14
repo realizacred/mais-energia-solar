@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
+import { useSearchParams } from "react-router-dom";
 import { IntegrationTutorialSection } from "./IntegrationTutorialSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +9,7 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Search, Plug, Sun, Users, HardDrive,
@@ -60,6 +62,12 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   tuya_iot: lazy(() => import("@/components/admin/integrations-api/ApisPage")),
 };
 
+/* Tab-level lazy components */
+const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
+const WebhookManagerTab = lazy(() => import("@/components/admin/WebhookManager"));
+const WaInstancesManagerTab = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
+const WhatsAppAutomationConfigTab = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
+
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
   Object.entries(LEGACY_ID_MAP).map(([legacy, canonical]) => [canonical, legacy])
 );
@@ -84,8 +92,13 @@ const CATEGORY_ORDER: IntegrationCategory[] = [
 
 export default function IntegrationsCatalogPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab") || "catalogo";
+  const integrationParam = searchParams.get("integration");
+  const actionParam = searchParams.get("action");
+
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<TabFilter>("all");
+  const [tabFilter, setTabFilter] = useState<TabFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory | "all">("all");
   const [drawerProvider, setDrawerProvider] = useState<IntegrationProvider | null>(null);
   const [inlineProviderId, setInlineProviderId] = useState<string | null>(null);
@@ -100,6 +113,13 @@ export default function IntegrationsCatalogPage() {
   };
 
   const handleBackToCatalog = () => setInlineProviderId(null);
+
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value }, { replace: true });
+  };
+
+  // Auto-open integration config from URL params (e.g. ?integration=meta_facebook&action=configure)
+  const autoOpenDone = useRef(false);
 
   const { data: dbProviders = [], isLoading: loadingProviders } = useQuery({
     queryKey: ["integration-providers"],
@@ -225,13 +245,13 @@ export default function IntegrationsCatalogPage() {
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       const status = getConnectionStatus(p.id);
       const isActive = status === "connected";
-      switch (tab) {
+       switch (tabFilter) {
         case "active": return isActive;
         case "inactive": return !isActive;
         default: return true;
       }
     });
-  }, [providers, search, tab, selectedCategory, connections, legacyIntegrations]);
+  }, [providers, search, tabFilter, selectedCategory, connections, legacyIntegrations]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -242,7 +262,7 @@ export default function IntegrationsCatalogPage() {
       const status = getConnectionStatus(p.id);
       const isActive = status === "connected";
       let passTab = true;
-      switch (tab) {
+      switch (tabFilter) {
         case "active": passTab = isActive; break;
         case "inactive": passTab = !isActive; break;
       }
@@ -257,7 +277,17 @@ export default function IntegrationsCatalogPage() {
       }
     });
     return counts;
-  }, [providers, search, tab, connections, legacyIntegrations]);
+  }, [providers, search, tabFilter, connections, legacyIntegrations]);
+
+  // Auto-open integration config from URL params
+  useEffect(() => {
+    if (autoOpenDone.current || loadingProviders || !integrationParam || actionParam !== "configure") return;
+    const provider = providers.find(p => p.id === integrationParam);
+    if (provider) {
+      autoOpenDone.current = true;
+      handleConfigure(provider);
+    }
+  }, [loadingProviders, providers, integrationParam, actionParam]);
 
   if (loadingProviders) return <LoadingState message="Carregando integrações..." />;
 
@@ -296,187 +326,218 @@ export default function IntegrationsCatalogPage() {
 
   return (
     <div className="space-y-6 w-full max-w-none">
-      {/* ─── Header ─── */}
+      {/* ─── Header §26 ─── */}
       <PageHeader
         title="Integrações"
         description={`Conecte inversores, monitoramento, CRM e serviços externos. ${connectedCount} integração(ões) ativa(s).`}
         icon={Plug}
       />
 
-      {/* ─── Toolbar ─── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pesquisar integração…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-10 text-sm bg-card border-border"
-          />
-        </div>
-        <div className="flex bg-muted rounded-xl p-1 gap-0.5">
-          {([
-            ["all", "Todas"],
-            ["active", "Ativas"],
-            ["inactive", "Disponíveis"],
-          ] as [TabFilter, string][]).map(([key, label]) => (
-            <Button
-              key={key}
-              variant="ghost"
-              size="sm"
-              onClick={() => setTab(key)}
-              className={cn(
-                "px-4 py-2 text-sm font-medium rounded-lg transition-all",
-                tab === key
-                  ? "bg-primary/10 text-primary shadow-sm font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      </div>
+      {/* ─── Main Tabs §29 ─── */}
+      <Tabs value={urlTab} onValueChange={handleTabChange}>
+        <TabsList className="bg-muted">
+          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+          <TabsTrigger value="saude">Saúde</TabsTrigger>
+          <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
+          <TabsTrigger value="instancias">Instâncias WA</TabsTrigger>
+          <TabsTrigger value="automacao">Automação</TabsTrigger>
+        </TabsList>
 
-      {/* ─── Mobile category chips ─── */}
-      <div className="lg:hidden">
-        <ScrollArea className="w-full">
-          <div className="flex gap-2 pb-4">
-            <Button
-              size="sm"
-              variant={selectedCategory === "all" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("all")}
-              className="text-xs shrink-0 h-8 rounded-full"
-            >
-              Todas
-            </Button>
-            {categories.map((cat) => (
-              <Button
-                key={cat}
-                size="sm"
-                variant={selectedCategory === cat ? "default" : "outline"}
-                onClick={() => setSelectedCategory(cat)}
-                className="text-xs shrink-0 h-8 rounded-full"
-              >
-                {CATEGORY_LABELS[cat]}
-              </Button>
-            ))}
+        <TabsContent value="catalogo" className="mt-6 space-y-6">
+          {/* ─── Toolbar ─── */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar integração…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-10 text-sm bg-card border-border"
+              />
+            </div>
+            <div className="flex bg-muted rounded-xl p-1 gap-0.5">
+              {([
+                ["all", "Todas"],
+                ["active", "Ativas"],
+                ["inactive", "Disponíveis"],
+              ] as [TabFilter, string][]).map(([key, label]) => (
+                <Button
+                  key={key}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTabFilter(key)}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium rounded-lg transition-all",
+                    tabFilter === key
+                      ? "bg-primary/10 text-primary shadow-sm font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
-        </ScrollArea>
-      </div>
 
-      <div className="flex gap-6">
-        {/* ─── Sidebar ─── */}
-        <aside className="hidden lg:block w-56 shrink-0">
-          <nav className="sticky top-24 space-y-1">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-3">
-              Categorias
-            </p>
-            <SidebarItem
-              icon={LayoutGrid}
-              label="Todas"
-              count={totalFiltered}
-              active={selectedCategory === "all"}
-              onClick={() => setSelectedCategory("all")}
-            />
-            {categories.map((cat) => {
-              const CatIcon = getIcon(CATEGORY_ICONS[cat]);
-              return (
+          {/* ─── Mobile category chips ─── */}
+          <div className="lg:hidden">
+            <ScrollArea className="w-full">
+              <div className="flex gap-2 pb-4">
+                <Button
+                  size="sm"
+                  variant={selectedCategory === "all" ? "default" : "outline"}
+                  onClick={() => setSelectedCategory("all")}
+                  className="text-xs shrink-0 h-8 rounded-full"
+                >
+                  Todas
+                </Button>
+                {categories.map((cat) => (
+                  <Button
+                    key={cat}
+                    size="sm"
+                    variant={selectedCategory === cat ? "default" : "outline"}
+                    onClick={() => setSelectedCategory(cat)}
+                    className="text-xs shrink-0 h-8 rounded-full"
+                  >
+                    {CATEGORY_LABELS[cat]}
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+
+          <div className="flex gap-6">
+            {/* ─── Sidebar ─── */}
+            <aside className="hidden lg:block w-56 shrink-0">
+              <nav className="sticky top-24 space-y-1">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-3">
+                  Categorias
+                </p>
                 <SidebarItem
-                  key={cat}
-                  icon={CatIcon}
-                  label={CATEGORY_LABELS[cat]}
-                  count={categoryCounts[cat] || 0}
-                  active={selectedCategory === cat}
-                  onClick={() => setSelectedCategory(cat)}
+                  icon={LayoutGrid}
+                  label="Todas"
+                  count={totalFiltered}
+                  active={selectedCategory === "all"}
+                  onClick={() => setSelectedCategory("all")}
                 />
-              );
-            })}
-          </nav>
-        </aside>
+                {categories.map((cat) => {
+                  const CatIcon = getIcon(CATEGORY_ICONS[cat]);
+                  return (
+                    <SidebarItem
+                      key={cat}
+                      icon={CatIcon}
+                      label={CATEGORY_LABELS[cat]}
+                      count={categoryCounts[cat] || 0}
+                      active={selectedCategory === cat}
+                      onClick={() => setSelectedCategory(cat)}
+                    />
+                  );
+                })}
+              </nav>
+            </aside>
 
-        {/* ─── Main Grid ─── */}
-        <div className="flex-1 min-w-0">
-          {filtered.length === 0 ? (
-            <EmptyState
-              icon={Search}
-              title="Nenhuma integração encontrada"
-              description="Tente outro termo de busca ou filtro."
-            />
-          ) : (
-            (() => {
-              // Split monitoring into functional vs stub groups
-              const isMonitoringView = selectedCategory === "monitoring" || selectedCategory === "all";
-              const monitoringFunctional = filtered.filter(p => p.category === "monitoring" && FUNCTIONAL_MONITORING_IDS.has(p.id));
-              const monitoringStub = filtered.filter(p => p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id));
-              const nonMonitoring = filtered.filter(p => p.category !== "monitoring");
-
-              const renderCard = (provider: IntegrationProvider, isStubGroup = false) => (
-                <IntegrationProviderCard
-                  key={provider.id}
-                  provider={provider}
-                  connStatus={getConnectionStatus(provider.id)}
-                  plantCount={getPlantCount(provider.id)}
-                  lastSync={getLastSync(provider.id)}
-                  onConfigure={() => !isStubGroup && handleConfigure(provider)}
-                  onSync={() => {
-                    setSyncingProviderId(provider.id);
-                    const mapped = CANONICAL_TO_LEGACY[provider.id] || provider.id;
-                    syncMut.mutate(mapped);
-                  }}
-                  onDisconnect={() => disconnectMut.mutate(provider.id)}
-                  syncing={syncingProviderId === provider.id}
+            {/* ─── Main Grid ─── */}
+            <div className="flex-1 min-w-0">
+              {filtered.length === 0 ? (
+                <EmptyState
+                  icon={Search}
+                  title="Nenhuma integração encontrada"
+                  description="Tente outro termo de busca ou filtro."
                 />
-              );
+              ) : (
+                (() => {
+                  const isMonitoringView = selectedCategory === "monitoring" || selectedCategory === "all";
+                  const monitoringFunctional = filtered.filter(p => p.category === "monitoring" && FUNCTIONAL_MONITORING_IDS.has(p.id));
+                  const monitoringStub = filtered.filter(p => p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id));
+                  const nonMonitoring = filtered.filter(p => p.category !== "monitoring");
 
-              return (
-                <div className="space-y-8">
-                  {/* Functional monitoring providers */}
-                  {monitoringFunctional.length > 0 && (
-                    <div>
-                      {isMonitoringView && (monitoringFunctional.length > 0 || monitoringStub.length > 0) && (
-                        <div className="flex items-center gap-2 mb-4">
-                          <CheckCircle2 className="h-5 w-5 text-success" />
-                          <h3 className="text-sm font-semibold text-foreground">Disponíveis agora</h3>
-                          <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">
-                            {monitoringFunctional.length}
-                          </Badge>
+                  const renderCard = (provider: IntegrationProvider, isStubGroup = false) => (
+                    <IntegrationProviderCard
+                      key={provider.id}
+                      provider={provider}
+                      connStatus={getConnectionStatus(provider.id)}
+                      plantCount={getPlantCount(provider.id)}
+                      lastSync={getLastSync(provider.id)}
+                      onConfigure={() => !isStubGroup && handleConfigure(provider)}
+                      onSync={() => {
+                        setSyncingProviderId(provider.id);
+                        const mapped = CANONICAL_TO_LEGACY[provider.id] || provider.id;
+                        syncMut.mutate(mapped);
+                      }}
+                      onDisconnect={() => disconnectMut.mutate(provider.id)}
+                      syncing={syncingProviderId === provider.id}
+                    />
+                  );
+
+                  return (
+                    <div className="space-y-8">
+                      {monitoringFunctional.length > 0 && (
+                        <div>
+                          {isMonitoringView && (monitoringFunctional.length > 0 || monitoringStub.length > 0) && (
+                            <div className="flex items-center gap-2 mb-4">
+                              <CheckCircle2 className="h-5 w-5 text-success" />
+                              <h3 className="text-sm font-semibold text-foreground">Disponíveis agora</h3>
+                              <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">
+                                {monitoringFunctional.length}
+                              </Badge>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {monitoringFunctional.map(p => renderCard(p))}
+                          </div>
                         </div>
                       )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {monitoringFunctional.map(p => renderCard(p))}
-                      </div>
+                      {nonMonitoring.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {nonMonitoring.map(p => renderCard(p))}
+                        </div>
+                      )}
+                      {monitoringStub.length > 0 && isMonitoringView && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <Wrench className="h-5 w-5 text-muted-foreground" />
+                            <h3 className="text-sm font-semibold text-muted-foreground">Em implementação</h3>
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
+                              {monitoringStub.length}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 opacity-60">
+                            {monitoringStub.map(p => renderCard(p, true))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  );
+                })()
+              )}
+            </div>
+          </div>
+        </TabsContent>
 
-                  {/* Non-monitoring providers */}
-                  {nonMonitoring.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {nonMonitoring.map(p => renderCard(p))}
-                    </div>
-                  )}
+        <TabsContent value="saude" className="mt-6">
+          <Suspense fallback={<LoadingState message="Carregando saúde das integrações…" />}>
+            <IntegrationHealthPage />
+          </Suspense>
+        </TabsContent>
 
-                  {/* Stub monitoring providers */}
-                  {monitoringStub.length > 0 && isMonitoringView && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <Wrench className="h-5 w-5 text-muted-foreground" />
-                        <h3 className="text-sm font-semibold text-muted-foreground">Em implementação</h3>
-                        <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
-                          {monitoringStub.length}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 opacity-60">
-                        {monitoringStub.map(p => renderCard(p, true))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()
-          )}
-        </div>
-      </div>
+        <TabsContent value="webhooks" className="mt-6">
+          <Suspense fallback={<LoadingState message="Carregando webhooks…" />}>
+            <WebhookManagerTab />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="instancias" className="mt-6">
+          <Suspense fallback={<LoadingState message="Carregando instâncias…" />}>
+            <WaInstancesManagerTab />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="automacao" className="mt-6">
+          <Suspense fallback={<LoadingState message="Carregando automação…" />}>
+            <WhatsAppAutomationConfigTab />
+          </Suspense>
+        </TabsContent>
+      </Tabs>
 
       {/* ─── Drawer ─── */}
       {drawerProvider && (

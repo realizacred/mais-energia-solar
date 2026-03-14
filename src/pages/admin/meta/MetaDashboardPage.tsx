@@ -86,7 +86,7 @@ export default function MetaDashboardPage() {
           <Button
             variant="outline"
             size="sm"
-             onClick={() => navigate("/admin/meta-facebook-config")}
+             onClick={() => navigate("/admin/catalogo-integracoes?integration=meta_facebook&action=configure")}
             className="gap-1.5"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -124,7 +124,7 @@ export default function MetaDashboardPage() {
             <AlertCircle className="h-5 w-5 text-warning shrink-0" />
             <p className="text-sm text-warning">
               Integração Meta não está ativa. Configure as credenciais em{" "}
-              <a href="/admin/meta-facebook-config" className="underline font-medium">Configurar Meta</a>.
+              <a href="/admin/catalogo-integracoes?integration=meta_facebook&action=configure" className="underline font-medium">Configurar Meta</a>.
             </p>
           </CardContent>
         </Card>

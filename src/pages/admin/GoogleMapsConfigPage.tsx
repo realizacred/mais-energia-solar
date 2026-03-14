@@ -154,7 +154,7 @@ export default function GoogleMapsConfigPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/admin/saude-integracoes")}
+          onClick={() => navigate("/admin/catalogo-integracoes?tab=saude")}
           className="gap-1.5"
         >
           <ShieldCheck className="h-4 w-4" />

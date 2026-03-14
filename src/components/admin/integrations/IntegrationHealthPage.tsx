@@ -47,18 +47,18 @@ const INTEGRATION_LABELS: Record<string, string> = {
 };
 
 const CONFIG_ROUTES: Record<string, string> = {
-  whatsapp: "/admin/wa-instances",
+  whatsapp: "/admin/catalogo-integracoes?tab=instancias",
   openai: "/admin/openai-config",
   google_gemini: "/admin/gemini-config",
   google_calendar: "/admin/integracoes",
-  google_maps: "/admin/google-maps-config",
-  solarmarket: "/admin/solarmarket-config",
+  google_maps: "/admin/catalogo-integracoes?integration=google_maps&action=configure",
+  solarmarket: "/admin/catalogo-integracoes?integration=solarmarket&action=configure",
   meta_facebook: "/admin/meta-facebook-config",
-  instagram: "/admin/instagram",
-  webhooks: "/admin/webhooks",
+  instagram: "/admin/catalogo-integracoes?integration=instagram_api&action=configure",
+  webhooks: "/admin/catalogo-integracoes?tab=webhooks",
   pagamentos: "/admin/payment-gateway",
   automacoes: "/admin/n8n",
-  evolution_api: "/admin/evolution-api",
+  evolution_api: "/admin/catalogo-integracoes?tab=instancias",
 };
 
 function getStatusConfig(status: string) {

@@ -600,29 +600,29 @@ export default function Admin() {
                 <Route path="diretor" element={<CommercialDirectorDashboard />} />
                 
                 {/* Integrações */}
-                <Route path="wa-instances" element={<WaInstancesManager />} />
-                <Route path="whatsapp" element={<WhatsAppAutomationConfig />} />
-                <Route path="instagram" element={<InstagramConfig />} />
+                <Route path="wa-instances" element={<Navigate to="/admin/catalogo-integracoes?tab=instancias" replace />} />
+                <Route path="whatsapp" element={<Navigate to="/admin/catalogo-integracoes?tab=automacao" replace />} />
+                <Route path="instagram" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
                 
-                <Route path="webhooks" element={<WebhookManager />} />
+                <Route path="webhooks" element={<Navigate to="/admin/catalogo-integracoes?tab=webhooks" replace />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
                 <Route path="integracoes" element={<IntegrationsPage />} />
                 <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
-                <Route path="saude-integracoes" element={<IntegrationHealthPage />} />
+                <Route path="saude-integracoes" element={<Navigate to="/admin/catalogo-integracoes?tab=saude" replace />} />
                 <Route path="monitoramento-solar" element={<Navigate to="/admin/monitoramento/integracoes" replace />} />
                 <Route path="monitoramento/*" element={<MonitoringModule />} />
                 <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
-                <Route path="solarmarket-config" element={<SolarMarketConfigPage />} />
+                <Route path="solarmarket-config" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
                 <Route path="solarmarket" element={<SolarMarketPage />} />
                 <Route path="meta-facebook-config" element={<MetaFacebookConfigPage />} />
                 <Route path="meta-dashboard" element={<MetaDashboardPage />} />
                 <Route path="meta-leads" element={<MetaLeadsPage />} />
                 <Route path="meta-campaigns" element={<MetaCampaignsPage />} />
                 <Route path="meta-config" element={<Navigate to="/admin/meta-facebook-config" replace />} />
-                <Route path="google-maps-config" element={<GoogleMapsConfigPage />} />
+                <Route path="google-maps-config" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
                 <Route path="ai-config" element={<AiConfigPage />} />
                 
                 {/* Site */}
