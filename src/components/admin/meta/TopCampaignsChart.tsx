@@ -70,17 +70,20 @@ export function TopCampaignsChart({ campaigns, isLoading }: Props) {
           </CardTitle>
           <div className="flex gap-1">
             {TABS.map((tab) => (
-              <button
+              <Button
                 key={tab.key}
+                variant={activeMetric === tab.key ? "default" : "ghost"}
+                size="sm"
                 onClick={() => setActiveMetric(tab.key)}
-                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                className={cn(
+                  "h-7 px-2.5 text-xs",
                   activeMetric === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
+                    ? "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30"
+                    : "text-muted-foreground"
+                )}
               >
                 {tab.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
