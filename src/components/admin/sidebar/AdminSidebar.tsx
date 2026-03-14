@@ -102,7 +102,7 @@ function SidebarItemButton({
         aria-label={item.title}
         className={`
           transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
-          pl-4
+          pl-2
           focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
           ${
             isActive
@@ -136,8 +136,8 @@ function SidebarItemButton({
               focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1
               ${
                 isFav
-                  ? "opacity-100 text-warning"
-                  : "opacity-0 group-hover/item:opacity-40 hover:!opacity-100 text-muted-foreground hover:text-warning"
+                  ? "opacity-100 text-primary"
+                  : "opacity-0 group-hover/item:opacity-40 hover:!opacity-100 text-muted-foreground hover:text-primary"
               }
             `}
             aria-label={isFav ? `Remover ${item.title} dos favoritos` : `Adicionar ${item.title} aos favoritos`}
@@ -175,15 +175,16 @@ function SidebarItemButton({
     </SidebarMenuItem>
   );
 
-  // Wrap with tooltip showing description (only when not collapsed — collapsed uses built-in tooltip)
-  if (item.description && !collapsed) {
+  // Wrap with tooltip showing full title + description (only when not collapsed — collapsed uses built-in tooltip)
+  if (!collapsed) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
           {menuButton}
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-[220px] text-xs">
-          {item.description}
+          <p className="font-medium">{item.title}</p>
+          {item.description && <p className="text-muted-foreground mt-0.5">{item.description}</p>}
         </TooltipContent>
       </Tooltip>
     );
@@ -296,7 +297,7 @@ function SidebarSectionGroup({
 
         <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0 mt-1 ml-4 pl-3 border-l border-sidebar-border/40">
+            <SidebarMenu className="gap-0 mt-1 ml-3 pl-2 border-l border-sidebar-border/40">
               {orderedItems.map((item, idx) => {
                 const isActive = activeTab === item.id || (item.id === "monitoramento" && activeTab.startsWith("monitoramento") && !activeTab.includes("/"));
                 const badgeCount = badgeCounts?.[item.id] || 0;
@@ -393,8 +394,8 @@ function FavoritesSection({
               focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
             `}
           >
-            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-warning/10">
-              <Star className="h-3.5 w-3.5 text-warning" fill="currentColor" />
+            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/10">
+              <Star className="h-3.5 w-3.5 text-primary" fill="currentColor" />
             </div>
             {!collapsed && (
               <>
@@ -406,7 +407,7 @@ function FavoritesSection({
         </CollapsibleTrigger>
         <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0 mt-1 ml-4 pl-3 border-l border-warning/20">
+            <SidebarMenu className="gap-0 mt-1 ml-3 pl-2 border-l border-primary/20">
               {resolvedItems.map(({ item, section }) => (
                 <SidebarItemButton
                   key={item.id}
