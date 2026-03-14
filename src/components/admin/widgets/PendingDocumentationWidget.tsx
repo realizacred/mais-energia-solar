@@ -171,13 +171,15 @@ export function PendingDocumentationWidget({
   }
 
   return (
-    <Card className="border-warning/30 bg-warning/5">
+    <Card className="border-l-[3px] border-l-warning bg-card">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileWarning className="h-5 w-5 text-warning" />
+            <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+              <FileWarning className="h-4 w-4 text-warning" />
+            </div>
             <CardTitle className="text-base">Aguardando Documentação</CardTitle>
-            <Badge variant="secondary" className="bg-warning/20 text-warning-foreground">
+            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
               {leads.length}
             </Badge>
           </div>
