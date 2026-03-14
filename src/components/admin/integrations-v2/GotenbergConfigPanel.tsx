@@ -296,7 +296,7 @@ export default function GotenbergConfigPanel() {
               {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               Testar conexão
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="gap-2">
+            <Button onClick={handleSave} disabled={saving || !isDirty} className="gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               Salvar
             </Button>
