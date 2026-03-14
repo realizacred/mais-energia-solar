@@ -1507,6 +1507,7 @@ export function ProposalWizard() {
     setOutputPdfPath(null);
     setGenerationStatus("idle");
     setGenerationError(null);
+    setMissingVars([]);
     // Go back to UCs step
     const ucsIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.UCS);
     setStep(ucsIndex >= 0 ? ucsIndex : 1);
