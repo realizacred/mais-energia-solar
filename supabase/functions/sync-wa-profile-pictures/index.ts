@@ -58,6 +58,15 @@ Deno.serve(async (req) => {
       .eq("is_group", false)
       .limit(40);
 
+    // Also refresh conversations with invalid URLs (not starting with http)
+    const { data: convosInvalid } = await supabase
+      .from("wa_conversations")
+      .select("id, instance_id, remote_jid, profile_picture_url")
+      .not("profile_picture_url", "is", null)
+      .not("profile_picture_url", "like", "http%")
+      .eq("is_group", false)
+      .limit(20);
+
     const { data: convosNone } = await supabase
       .from("wa_conversations")
       .select("id, instance_id, remote_jid, profile_picture_url")
@@ -66,7 +75,7 @@ Deno.serve(async (req) => {
       .lt("updated_at", retryBefore)
       .limit(20);
 
-    const conversations = [...(convosNull || []), ...(convosNone || [])];
+    const conversations = [...(convosNull || []), ...(convosInvalid || []), ...(convosNone || [])];
 
     if (conversations.length === 0) {
       return jsonRes({ updated: 0, message: "No conversations need profile pictures" });
