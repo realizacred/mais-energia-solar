@@ -92,8 +92,13 @@ const CATEGORY_ORDER: IntegrationCategory[] = [
 
 export default function IntegrationsCatalogPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab") || "catalogo";
+  const integrationParam = searchParams.get("integration");
+  const actionParam = searchParams.get("action");
+
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<TabFilter>("all");
+  const [tabFilter, setTabFilter] = useState<TabFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState<IntegrationCategory | "all">("all");
   const [drawerProvider, setDrawerProvider] = useState<IntegrationProvider | null>(null);
   const [inlineProviderId, setInlineProviderId] = useState<string | null>(null);
