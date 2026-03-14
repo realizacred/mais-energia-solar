@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { SectionCard } from "@/components/ui-kit/SectionCard";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +24,9 @@ import {
   Eye,
   CreditCard,
   Navigation,
+  MessageSquare,
+  Zap,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -95,7 +97,7 @@ function DocumentThumbnail({ path, onClick }: { path: string; onClick: () => voi
 
   if (loading) {
     return (
-      <div className="w-20 h-20 rounded-lg border bg-muted flex items-center justify-center">
+      <div className="w-20 h-20 rounded-lg border border-border bg-muted flex items-center justify-center">
         <Spinner size="sm" />
       </div>
     );
@@ -103,7 +105,7 @@ function DocumentThumbnail({ path, onClick }: { path: string; onClick: () => voi
 
   if (error || !url) {
     return (
-      <div className="w-20 h-20 rounded-lg border bg-muted flex items-center justify-center">
+      <div className="w-20 h-20 rounded-lg border border-border bg-muted flex items-center justify-center">
         <FileText className="h-6 w-6 text-muted-foreground" />
       </div>
     );
@@ -143,7 +145,7 @@ function ReadOnlyDocumentSection({ label, paths }: { label: string; paths: strin
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-muted-foreground">{label}</h4>
+      <h4 className="text-xs font-medium text-muted-foreground">{label}</h4>
 
       {paths.length > 0 ? (
         <div className="flex flex-wrap gap-2">
@@ -156,11 +158,11 @@ function ReadOnlyDocumentSection({ label, paths }: { label: string; paths: strin
       )}
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-          <DialogHeader className="p-4 border-b">
+        <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="p-4 border-b border-border shrink-0">
             <DialogTitle className="text-sm">{label}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-[400px] max-h-[75vh] overflow-auto bg-muted/50 flex items-center justify-center p-4">
+          <div className="flex-1 min-h-0 overflow-auto bg-muted/50 flex items-center justify-center p-4">
             {previewUrl && /\.(jpg|jpeg|png|gif|webp)/i.test(previewUrl) ? (
               <img src={previewUrl} alt="Documento" className="max-w-full max-h-full object-contain" />
             ) : previewUrl ? (
@@ -173,15 +175,12 @@ function ReadOnlyDocumentSection({ label, paths }: { label: string; paths: strin
   );
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string | null | undefined }) {
+function InfoField({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
-    <div className="flex items-start gap-2 text-sm">
-      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-      <div>
-        <span className="text-muted-foreground">{label}: </span>
-        <span className="font-medium">{value}</span>
-      </div>
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium text-foreground">{value}</p>
     </div>
   );
 }
@@ -197,99 +196,146 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
     .join(", ");
   const cidadeEstado = [cliente.cidade, cliente.estado].filter(Boolean).join(" - ");
 
+  const googleMapsQuery = [cliente.rua, cliente.numero, cliente.bairro, cliente.cidade, cliente.estado]
+    .filter(Boolean)
+    .join(", ");
+  const googleMapsUrl = cliente.localizacao || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(googleMapsQuery)}`;
+
+  const totalDocs = (cliente.identidade_urls?.length || 0) +
+    (cliente.comprovante_endereco_urls?.length || 0) +
+    (cliente.comprovante_beneficiaria_urls?.length || 0);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <User className="h-5 w-5 text-primary" />
+      <DialogContent className="w-[90vw] max-w-[780px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+
+        {/* HEADER */}
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <User className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
               {cliente.nome}
             </DialogTitle>
-            <Badge variant={cliente.ativo ? "default" : "secondary"} className={cliente.ativo ? "bg-success" : ""}>
-              {cliente.ativo ? "Ativo" : "Inativo"}
-            </Badge>
-          </div>
-          <DialogDescription className="flex items-center gap-4 pt-1">
-            <span className="flex items-center gap-1">
-              <Phone className="h-3.5 w-3.5" />
-              {cliente.telefone}
-            </span>
-            {cliente.email && (
-              <span className="flex items-center gap-1">
-                <Mail className="h-3.5 w-3.5" />
-                {cliente.email}
+            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Phone className="w-3 h-3" />{cliente.telefone}
               </span>
-            )}
-          </DialogDescription>
+              {cliente.email && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Mail className="w-3 h-3" />{cliente.email}
+                </span>
+              )}
+              <Badge
+                variant="outline"
+                className={
+                  cliente.ativo
+                    ? "bg-success/10 text-success border-success/20 text-xs"
+                    : "bg-muted text-muted-foreground border-border text-xs"
+                }
+              >
+                {cliente.ativo ? "Ativo" : "Inativo"}
+              </Badge>
+            </div>
+          </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 pb-6">
-          <div className="space-y-4 pt-4">
-            {/* Card: Dados Pessoais */}
-            <SectionCard icon={User} title="Dados do Cliente" variant="blue">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <InfoRow icon={CreditCard} label="CPF/CNPJ" value={cliente.cpf_cnpj} />
-                <InfoRow
-                  icon={Calendar}
-                  label="Nascimento"
+        {/* BODY 2 COLUNAS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border flex-1 min-h-0 overflow-y-auto">
+
+          {/* COLUNA ESQUERDA */}
+          <div className="p-5 space-y-5">
+
+            {/* Dados do cliente */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <User className="w-3 h-3" /> Dados do cliente
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <InfoField label="CPF/CNPJ" value={cliente.cpf_cnpj} />
+                <InfoField
+                  label="Data de nascimento"
                   value={cliente.data_nascimento ? format(new Date(cliente.data_nascimento + "T12:00:00"), "dd/MM/yyyy") : null}
                 />
-                <InfoRow
-                  icon={Calendar}
+                <InfoField
                   label="Cliente desde"
                   value={format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 />
               </div>
-            </SectionCard>
+            </div>
 
-            {/* Card: Endereço */}
-            <SectionCard icon={MapPin} title="Endereço" variant="green">
-              <div className="space-y-2">
-                {endereco && <InfoRow icon={MapPin} label="Endereço" value={endereco} />}
-                {cidadeEstado && <InfoRow icon={MapPin} label="Cidade" value={cidadeEstado} />}
-                <InfoRow icon={MapPin} label="CEP" value={cliente.cep} />
-                {cliente.localizacao && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Navigation className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <a
-                      href={cliente.localizacao}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline flex items-center gap-1"
-                    >
-                      Ver no Google Maps
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
+            <div className="border-t border-border" />
+
+            {/* Endereço */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <MapPin className="w-3 h-3" /> Endereço
+              </p>
+              <div className="space-y-1.5">
+                {endereco && <p className="text-sm text-foreground">{endereco}</p>}
+                <div className="grid grid-cols-2 gap-3">
+                  <InfoField label="Cidade/UF" value={cidadeEstado || null} />
+                  <InfoField label="CEP" value={cliente.cep} />
+                </div>
+                {(endereco || cliente.localizacao) && (
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary flex items-center gap-1 hover:underline"
+                  >
+                    <ExternalLink className="w-3 h-3" /> Ver no Google Maps
+                  </a>
                 )}
               </div>
-            </SectionCard>
+            </div>
 
-            {/* Card: Projeto Solar */}
-            <SectionCard icon={Sun} title="Projeto Solar" variant="neutral">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <InfoRow icon={Sun} label="Potência" value={cliente.potencia_kwp ? `${cliente.potencia_kwp} kWp` : null} />
-                <InfoRow icon={DollarSign} label="Valor" value={formatCurrency(cliente.valor_projeto)} />
-                <InfoRow icon={Sun} label="Placas" value={cliente.numero_placas?.toString()} />
-                <InfoRow icon={Sun} label="Inversor" value={cliente.modelo_inversor} />
-                <InfoRow
-                  icon={Calendar}
-                  label="Instalação"
-                  value={cliente.data_instalacao ? format(new Date(cliente.data_instalacao + "T12:00:00"), "dd/MM/yyyy") : null}
-                />
-              </div>
-            </SectionCard>
+            <div className="border-t border-border" />
 
-            {/* Card: Observações */}
-            {cliente.observacoes && (
-              <SectionCard icon={FileText} title="Observações" variant="neutral">
-                <p className="text-sm whitespace-pre-wrap text-muted-foreground">{cliente.observacoes}</p>
-              </SectionCard>
-            )}
+            {/* Projeto Solar */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <Zap className="w-3 h-3" /> Projeto solar
+              </p>
+              {cliente.potencia_kwp ? (
+                <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/30 gap-1">
+                      <Zap className="w-3 h-3" />{cliente.potencia_kwp} kWp
+                    </Badge>
+                    {cliente.valor_projeto && (
+                      <span className="text-xs text-muted-foreground">{formatCurrency(cliente.valor_projeto)}</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <InfoField label="Placas" value={cliente.numero_placas?.toString() || null} />
+                    <InfoField label="Inversor" value={cliente.modelo_inversor} />
+                    <InfoField
+                      label="Data instalação"
+                      value={cliente.data_instalacao ? format(new Date(cliente.data_instalacao + "T12:00:00"), "dd/MM/yyyy") : null}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">Nenhum projeto vinculado</p>
+              )}
+            </div>
+          </div>
 
-            {/* Card: Documentos */}
-            <SectionCard icon={Image} title="Documentos" variant="blue">
+          {/* COLUNA DIREITA */}
+          <div className="p-5 space-y-5">
+
+            {/* Documentos */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <FileText className="w-3 h-3" /> Documentos
+                {totalDocs > 0 && (
+                  <Badge variant="outline" className="bg-primary/5 text-primary border-primary/30 text-[10px] px-1.5 py-0">
+                    {totalDocs}
+                  </Badge>
+                )}
+              </p>
               <div className="space-y-4">
                 {DOC_CATEGORIES.map((cat) => (
                   <ReadOnlyDocumentSection
@@ -299,9 +345,26 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                   />
                 ))}
               </div>
-            </SectionCard>
+            </div>
+
+            <div className="border-t border-border" />
+
+            {/* Observações */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <MessageSquare className="w-3 h-3" /> Observações
+              </p>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border text-sm text-muted-foreground leading-relaxed min-h-[80px]">
+                {cliente.observacoes || "Sem observações"}
+              </div>
+            </div>
           </div>
-        </ScrollArea>
+        </div>
+
+        {/* FOOTER */}
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
