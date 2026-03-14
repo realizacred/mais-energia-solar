@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useToast } from "@/hooks/use-toast";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { PageHeader } from "@/components/ui-kit/PageHeader";

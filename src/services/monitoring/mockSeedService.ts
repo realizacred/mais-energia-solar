@@ -3,6 +3,7 @@
  * Only for development/demo purposes.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import type { MonitorPlantStatus, AlertSeverity, AlertType } from "./monitorTypes";
 
 const CITIES = [
