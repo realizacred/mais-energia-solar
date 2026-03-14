@@ -279,6 +279,16 @@ export default function IntegrationsCatalogPage() {
     return counts;
   }, [providers, search, tabFilter, connections, legacyIntegrations]);
 
+  // Auto-open integration config from URL params
+  useEffect(() => {
+    if (autoOpenDone.current || loadingProviders || !integrationParam || actionParam !== "configure") return;
+    const provider = providers.find(p => p.id === integrationParam);
+    if (provider) {
+      autoOpenDone.current = true;
+      handleConfigure(provider);
+    }
+  }, [loadingProviders, providers, integrationParam, actionParam]);
+
   if (loadingProviders) return <LoadingState message="Carregando integrações..." />;
 
   const totalFiltered = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
