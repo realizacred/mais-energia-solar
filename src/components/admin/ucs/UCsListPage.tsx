@@ -142,10 +142,10 @@ export default function UCsListPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpiCards.map((kpi, i) => (
           <motion.div key={kpi.label} custom={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.35 }}>
-            <Card className={`border-l-[3px] border-l-${kpi.color} bg-card shadow-sm hover:shadow-md transition-shadow`}>
+            <Card className={cn("border-l-[3px] bg-card shadow-sm hover:shadow-md transition-shadow", kpi.borderCls)}>
               <CardContent className="flex items-center gap-4 p-5">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${kpi.color}/10 text-${kpi.color} shrink-0`}>
-                  <kpi.icon className="w-5 h-5" />
+                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", kpi.bgCls)}>
+                  <kpi.icon className={cn("w-5 h-5", kpi.textCls)} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{isLoading ? "—" : kpi.value}</p>
