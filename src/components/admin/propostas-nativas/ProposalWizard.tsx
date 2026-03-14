@@ -1856,7 +1856,7 @@ export function ProposalWizard() {
       </div>
 
       {/* ── Body: Content — responsive padding, max-width for readability */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         <div className="w-full px-2 sm:px-3 lg:px-4 py-2 lg:py-3 pb-24 sm:pb-20">
           <AnimatePresence mode="wait">
             {renderStepContent()}
