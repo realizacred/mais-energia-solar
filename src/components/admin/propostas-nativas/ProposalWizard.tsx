@@ -219,6 +219,11 @@ export function ProposalWizard() {
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
+  // Persisted artifact paths (from storage)
+  const [outputDocxPath, setOutputDocxPath] = useState<string | null>(null);
+  const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<"idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error">("idle");
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
 
