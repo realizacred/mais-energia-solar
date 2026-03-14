@@ -525,8 +525,8 @@ function SidebarItem({ icon: Icon, label, count, active, onClick }: {
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate flex-1">{label}</span>
       <span className={cn(
-        "text-xs tabular-nums font-medium min-w-[1.25rem] text-center rounded-full px-1.5",
-        active ? "bg-primary/20 text-primary" : "text-muted-foreground/50"
+        "text-xs tabular-nums font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5",
+        active ? "bg-background text-primary" : "bg-primary text-primary-foreground"
       )}>
         {count}
       </span>

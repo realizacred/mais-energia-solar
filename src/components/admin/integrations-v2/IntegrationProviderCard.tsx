@@ -51,7 +51,7 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
   }
   if (isError) {
     return (
-      <Badge variant="destructive" className="text-[10px] font-semibold px-2.5 py-0.5 gap-1">
+      <Badge variant="outline" className="text-[10px] font-semibold bg-destructive/10 text-destructive border-destructive/20 px-2.5 py-0.5 gap-1">
         <AlertCircle className="h-3 w-3" /> Erro
       </Badge>
     );
