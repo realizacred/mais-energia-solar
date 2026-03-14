@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ApproveVendaDialog } from "./ApproveVendaDialog";
 import { supabase } from "@/integrations/supabase/client";
+import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { PageHeader, EmptyState } from "@/components/ui-kit";
