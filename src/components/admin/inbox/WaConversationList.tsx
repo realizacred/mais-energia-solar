@@ -162,15 +162,11 @@ function ConversationItem({
 
   const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
 
-  // Border left color by urgency (time since last message)
-  const urgencyColor = getUrgencyColor(conv.last_message_at, conv.status);
+  // Urgency bar (inline style for reliable rendering)
+  const urgencyStyle = getUrgencyStyle(conv.last_message_at, conv.status);
+  const urgencyLabel = getUrgencyLabel(conv.last_message_at, conv.status);
   const hoursAgo = getHoursAgo(conv.last_message_at);
   const isUrgent = hoursAgo !== null && hoursAgo > 6 && conv.status !== "resolved";
-
-  const borderLeftColor = cn(
-    "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl",
-    urgencyColor,
-  );
 
   const preview = isNote
     ? "📝 Nota interna"
