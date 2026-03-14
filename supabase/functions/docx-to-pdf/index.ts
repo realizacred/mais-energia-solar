@@ -14,6 +14,37 @@
  *   - GOTENBERG_URL: Gotenberg service URL (default: https://demo.gotenberg.dev)
  */
 
+/**
+ * Validates and normalizes a base URL for external services.
+ */
+function validateAndNormalizeBaseUrl(
+  rawUrl: string | undefined,
+  envVarName: string,
+  defaultUrl = "https://demo.gotenberg.dev",
+): string {
+  const urlStr = (rawUrl && rawUrl.trim()) ? rawUrl.trim() : defaultUrl;
+
+  if (!urlStr.startsWith("http://") && !urlStr.startsWith("https://")) {
+    throw new Error(
+      `Configuração inválida: ${envVarName} ("${urlStr}") não possui protocolo válido (http/https). ` +
+      `Verifique a variável de ambiente ${envVarName} nas configurações do projeto.`
+    );
+  }
+
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error(`Protocolo "${parsed.protocol}" não suportado.`);
+    }
+    return parsed.origin + parsed.pathname.replace(/\/+$/, "");
+  } catch (e: any) {
+    throw new Error(
+      `Configuração inválida: ${envVarName} ("${urlStr}") não é uma URL válida. ` +
+      `Erro: ${e.message}. Verifique a variável de ambiente ${envVarName}.`
+    );
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -54,11 +85,14 @@ Deno.serve(async (req) => {
     formData.append("landscape", "false");
     formData.append("nativePageRanges", "1-");
 
-    const GOTENBERG_URL = Deno.env.get("GOTENBERG_URL") || "https://demo.gotenberg.dev";
-    console.log(`[docx-to-pdf] Sending to Gotenberg: ${GOTENBERG_URL}`);
+    // Validate and normalize URL before using
+    const rawGotenbergUrl = Deno.env.get("GOTENBERG_URL");
+    const GOTENBERG_URL = validateAndNormalizeBaseUrl(rawGotenbergUrl, "GOTENBERG_URL");
+    const conversionUrl = `${GOTENBERG_URL}/forms/libreoffice/convert`;
+    console.log(`[docx-to-pdf] Sending to Gotenberg: ${conversionUrl}`);
 
     const response = await fetch(
-      `${GOTENBERG_URL}/forms/libreoffice/convert`,
+      conversionUrl,
       {
         method: "POST",
         body: formData,

@@ -222,7 +222,7 @@ export function ProposalWizard() {
   // Persisted artifact paths (from storage)
   const [outputDocxPath, setOutputDocxPath] = useState<string | null>(null);
   const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
-  const [generationStatus, setGenerationStatus] = useState<"idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error">("idle");
+  const [generationStatus, setGenerationStatus] = useState<"idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error">("idle");
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [missingVars, setMissingVars] = useState<string[]>([]);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
@@ -1399,10 +1399,15 @@ export function ProposalWizard() {
           // Handle generation status from backend
           if (artifactResult.generation_status === "error" || (!artifactResult.output_pdf_path && !artifactResult.output_docx_path)) {
             setGenerationStatus("error");
-            setGenerationError(artifactResult.generation_error || "Falha na geração do documento");
+            // Translate raw URL errors to friendly messages
+            const rawError = artifactResult.generation_error || "Falha na geração do documento";
+            const friendlyError = rawError.includes("Invalid URL") || rawError.includes("Configuração inválida")
+              ? "Falha na configuração do serviço de conversão PDF. Verifique a variável GOTENBERG_URL nas configurações do projeto."
+              : rawError;
+            setGenerationError(friendlyError);
             toast({
               title: "Erro na geração",
-              description: artifactResult.generation_error || "Não foi possível gerar o documento.",
+              description: friendlyError,
               variant: "destructive",
             });
           } else if (artifactResult.output_pdf_path) {
@@ -1423,9 +1428,19 @@ export function ProposalWizard() {
               setGenerationError("Não foi possível gerar URL de preview do PDF");
             }
           } else {
-            // DOCX only (PDF conversion failed)
-            setGenerationStatus("error");
-            setGenerationError(artifactResult.generation_error || "Conversão PDF falhou. DOCX disponível para download.");
+            // DOCX only (PDF conversion failed) - show as partial success, not full error
+            setGenerationStatus("docx_only");
+            const rawPdfError = artifactResult.generation_error || "";
+            const friendlyPdfError = rawPdfError.includes("Invalid URL") || rawPdfError.includes("Configuração inválida")
+              ? "Falha na configuração do serviço de conversão PDF. O DOCX foi salvo e está disponível para download."
+              : `Conversão PDF falhou. O DOCX foi salvo e está disponível para download.`;
+            setGenerationError(friendlyPdfError);
+            console.warn("[ProposalWizard] PDF conversion failed, DOCX available:", rawPdfError);
+            toast({
+              title: "DOCX gerado com sucesso",
+              description: friendlyPdfError,
+              variant: "default",
+            });
           }
         } else {
           // HTML template: use proposal-render as before
