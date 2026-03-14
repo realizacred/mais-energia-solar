@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,31 +116,13 @@ export default function GotenbergConfigPanel() {
           throw new Error("Erro ao atualizar configuração: " + (updateError.message || "falha no banco"));
         }
       } else {
-        // Get current user's tenant
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Usuário não autenticado");
-        const { data: profile, error: profileError } = await (supabase as any)
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        
-        if (profileError) {
-          console.error("[GotenbergConfig] Erro ao buscar perfil:", profileError);
-          throw new Error("Erro ao buscar seu perfil. Tente novamente.");
-        }
-        if (!profile?.tenant_id) {
-          throw new Error(
-            "Seu usuário não está vinculado a nenhuma empresa (tenant). " +
-            "Solicite ao administrador que vincule seu usuário antes de salvar esta integração."
-          );
-        }
+        const { tenantId } = await getCurrentTenantId();
 
         const { error: insertError } = await (supabase as any)
           .from("integration_connections")
           .insert({
             provider_id: "gotenberg",
-            tenant_id: profile.tenant_id,
+            tenant_id: tenantId,
             config: configPayload,
             status: form.enabled ? "disconnected" : "disconnected",
             credentials: {},

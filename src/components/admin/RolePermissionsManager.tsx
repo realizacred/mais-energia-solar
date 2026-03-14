@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useToast } from "@/hooks/use-toast";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -372,21 +373,15 @@ export function RolePermissionsManager() {
         }
       }
 
-      // Need to get tenant_id for upsert
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
-        .single();
-
-      if (!profileData?.tenant_id) throw new Error("Tenant não encontrado");
+      const { tenantId } = await getCurrentTenantId();
+      const tenantIdValue = tenantId;
 
       const { error } = await supabase
         .from("role_permissions")
         .upsert(
           rows.map((r) => ({
             ...r,
-            tenant_id: profileData.tenant_id,
+            tenant_id: tenantIdValue,
           })),
           { onConflict: "tenant_id,role,module_key" }
         );

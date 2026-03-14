@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { toast } from "sonner";
 import type { DocumentTemplate, DocumentCategory } from "./types";
 
@@ -7,12 +8,7 @@ const QUERY_KEY = "document_templates";
 
 // ── Shared helper ────────────────────────────────────────────
 async function getTenantIdOrThrow(): Promise<{ tenantId: string; userId: string }> {
-  const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
-  const tenantId = profile?.tenant_id;
-  if (!tenantId) throw new Error("Tenant não encontrado");
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.id) throw new Error("Usuário não autenticado");
-  return { tenantId, userId: user.id };
+  return getCurrentTenantId();
 }
 
 export function useDocumentTemplates(categoria?: DocumentCategory) {
