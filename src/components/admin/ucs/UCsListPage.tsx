@@ -101,18 +101,18 @@ export default function UCsListPage() {
     setDialogOpen(true);
   }
 
-  const filterTabs: { key: QuickFilter; label: string; count: number; icon: any; color: string }[] = [
-    { key: "all", label: "Ativas", count: counts.all, icon: CheckCircle2, color: "primary" },
-    { key: "no_concessionaria", label: "Sem Concessionária", count: counts.no_concessionaria, icon: ShieldAlert, color: "warning" },
-    { key: "no_billing", label: "Sem Credenciais", count: counts.no_billing, icon: AlertTriangle, color: "destructive" },
-    { key: "archived", label: "Arquivadas", count: counts.archived, icon: ArchiveIcon, color: "muted-foreground" },
+  const filterTabs: { key: QuickFilter; label: string; count: number; icon: any }[] = [
+    { key: "all", label: "Ativas", count: counts.all, icon: CheckCircle2 },
+    { key: "no_concessionaria", label: "Sem Concessionária", count: counts.no_concessionaria, icon: ShieldAlert },
+    { key: "no_billing", label: "Sem Credenciais", count: counts.no_billing, icon: AlertTriangle },
+    { key: "archived", label: "Arquivadas", count: counts.archived, icon: ArchiveIcon },
   ];
 
   const kpiCards = [
-    { label: "Total Ativas", value: counts.all, icon: Building2, color: "primary" },
-    { label: "Sem Concessionária", value: counts.no_concessionaria, icon: ShieldAlert, color: "warning" },
-    { label: "Sem Credenciais", value: counts.no_billing, icon: AlertTriangle, color: "destructive" },
-    { label: "Arquivadas", value: counts.archived, icon: ArchiveIcon, color: "info" },
+    { label: "Total Ativas", value: counts.all, icon: Building2, borderCls: "border-l-primary", bgCls: "bg-primary/10", textCls: "text-primary" },
+    { label: "Sem Concessionária", value: counts.no_concessionaria, icon: ShieldAlert, borderCls: "border-l-warning", bgCls: "bg-warning/10", textCls: "text-warning" },
+    { label: "Sem Credenciais", value: counts.no_billing, icon: AlertTriangle, borderCls: "border-l-destructive", bgCls: "bg-destructive/10", textCls: "text-destructive" },
+    { label: "Arquivadas", value: counts.archived, icon: ArchiveIcon, borderCls: "border-l-muted-foreground/40", bgCls: "bg-muted", textCls: "text-muted-foreground" },
   ];
 
   return (
