@@ -8,4 +8,5 @@ export type {
   GroupSummary,
   BacklogItem,
   SnapshotObservation,
+  AnalysisMetadata,
 } from "./types";
