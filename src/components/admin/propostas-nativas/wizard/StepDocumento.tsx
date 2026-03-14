@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { sendProposal } from "@/services/proposalApi";
+import { supabase } from "@/integrations/supabase/client";
 import { useProposalTemplates, useEmailTemplates } from "@/hooks/useProposalTemplates";
 import { formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
