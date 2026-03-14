@@ -227,11 +227,6 @@ const VariaveisCustomPage = lazy(() =>
   }))
 );
 
-const ProposalDashboardPage = lazy(() =>
-  import("@/components/admin/propostas-nativas/ProposalDashboard").then((m) => ({
-    default: m.ProposalDashboard,
-  }))
-);
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
