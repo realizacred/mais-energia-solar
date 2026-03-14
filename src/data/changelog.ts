@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.46.0",
+    date: "2026-03-14",
+    title: "Auditoria real de código-fonte para variáveis",
+    type: "improvement",
+    description: "Substituída auditoria baseada em listas hardcoded por análise real dos arquivos-fonte via Vite ?raw imports. Keys são extraídas diretamente do resolver frontend, flatten backend e template-preview.",
+    details: [
+      "Analyzers reais: frontendResolverAnalyzer, backendFlattenAnalyzer, templatePreviewAnalyzer",
+      "Classificador com evidência textual por variável (statusClassifier.ts)",
+      "Metadata de análise: total de keys extraídas, linhas de código, flags de passthrough",
+      "Tooltip com evidência de classificação em cada linha da tabela",
+      "Banner de metadata mostrando contagem real de keys por camada",
+    ],
+  },
+  {
     version: "2.45.0",
     date: "2026-03-14",
     title: "Auditoria completa com snapshots reais e backlog priorizado",
