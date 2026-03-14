@@ -60,6 +60,7 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   asaas: lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig }))),
   public_api: lazy(() => import("@/pages/admin/OpenAIConfigPage")),
   tuya_iot: lazy(() => import("@/components/admin/integrations-api/ApisPage")),
+  gotenberg: lazy(() => import("@/components/admin/integrations-v2/GotenbergConfigPanel")),
 };
 
 /* Tab-level lazy components */
