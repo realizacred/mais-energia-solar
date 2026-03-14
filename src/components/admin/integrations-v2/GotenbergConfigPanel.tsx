@@ -121,7 +121,7 @@ export default function GotenbergConfigPanel() {
         const { data: profile, error: profileError } = await (supabase as any)
           .from("profiles")
           .select("tenant_id")
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .maybeSingle();
         
         if (profileError) {
