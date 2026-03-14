@@ -1,4 +1,5 @@
 import { useMetaAdsData } from "@/hooks/useMetaAdsData";
+import { formatBRL } from "@/lib/formatters";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -151,19 +152,19 @@ export default function MetaDashboardPage() {
         </div>
       ) : metrics ? (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            <StatCard icon={DollarSign} label="Investimento" value={`R$ ${metrics.spend.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
-            <StatCard icon={Eye} label="Alcance" value={metrics.reach.toLocaleString("pt-BR")} />
-            <StatCard icon={BarChart2} label="Impressões" value={metrics.impressions.toLocaleString("pt-BR")} />
-            <StatCard icon={MousePointerClick} label="Cliques" value={metrics.clicks.toLocaleString("pt-BR")} />
-            <StatCard icon={TrendingUp} label="CTR" value={`${metrics.ctr.toFixed(2)}%`} />
-            <StatCard icon={Users} label="Leads" value={metrics.leads.toLocaleString("pt-BR")} />
-            <StatCard icon={Target} label="CPL" value={`R$ ${metrics.cpl.toFixed(2)}`} />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <StatCard icon={MousePointerClick} label="CPC" value={`R$ ${metrics.cpc.toFixed(2)}`} subtitle="Custo por clique" />
-            <StatCard icon={Target} label="CPL" value={`R$ ${metrics.cpl.toFixed(2)}`} subtitle="Custo por lead" />
-            <StatCard icon={Repeat} label="Frequência" value={metrics.frequency.toFixed(2)} subtitle="Impressões / Alcance" />
+           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+             <StatCard icon={DollarSign} label="Investimento" value={formatBRL(metrics.spend)} />
+             <StatCard icon={Eye} label="Alcance" value={metrics.reach.toLocaleString("pt-BR")} />
+             <StatCard icon={BarChart2} label="Impressões" value={metrics.impressions.toLocaleString("pt-BR")} />
+             <StatCard icon={MousePointerClick} label="Cliques" value={metrics.clicks.toLocaleString("pt-BR")} />
+             <StatCard icon={TrendingUp} label="CTR" value={`${metrics.ctr.toFixed(2)}%`} />
+             <StatCard icon={Users} label="Leads" value={metrics.leads.toLocaleString("pt-BR")} />
+             <StatCard icon={Target} label="CPL" value={formatBRL(metrics.cpl)} />
+           </div>
+           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+             <StatCard icon={MousePointerClick} label="CPC" value={formatBRL(metrics.cpc)} subtitle="Custo por clique" />
+             <StatCard icon={Target} label="CPL" value={formatBRL(metrics.cpl)} subtitle="Custo por lead" />
+             <StatCard icon={Repeat} label="Frequência" value={metrics.frequency.toFixed(2)} subtitle="Impressões / Alcance" />
           </div>
         </>
       ) : null}
