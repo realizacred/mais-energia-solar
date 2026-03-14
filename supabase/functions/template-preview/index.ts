@@ -150,10 +150,9 @@ function normalizeParagraphRunsInner(xml: string): string {
   const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
 
   return xml.replace(paraPattern, (paraXml) => {
-    if (!paraXml.includes("[")) return paraXml;
+    if (!paraXml.includes("[") && !paraXml.includes("{{")) return paraXml;
 
     // Inside text boxes we don't skip complex structures
-    // (they shouldn't have nested drawings)
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) {
       return paraXml;
     }
