@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.43.0",
+    date: "2026-03-14",
+    title: "Aprovação de venda atômica via RPC backend",
+    type: "security",
+    description: "Fluxo de aprovação migrado para RPC transacional approve_venda_with_composition — zero estado parcial possível.",
+    details: [
+      "RPC approve_venda_with_composition criada (SECURITY DEFINER, transação única)",
+      "Cria venda + composição + atualiza status do lead/cliente em uma transação",
+      "Proteção contra duplicidade (verifica venda aprovada existente)",
+      "Reset de paymentItems ao abrir novo cliente e ao fechar dialog",
+      "Guard contra double submit no frontend",
+      "orcamento_id mapeado corretamente (FK aponta para leads — confirmado)",
+    ],
+  },
+  {
     version: "2.42.0",
     date: "2026-03-14",
     title: "Persistência end-to-end da composição de pagamento na aprovação de vendas",
