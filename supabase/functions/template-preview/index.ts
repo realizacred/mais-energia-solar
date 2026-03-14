@@ -110,10 +110,12 @@ async function processDocxTemplate(
  * to its inner paragraphs independently.
  */
 function normalizeTextBoxRuns(xml: string): string {
-  // Match all <w:txbxContent>...</w:txbxContent> blocks
-  return xml.replace(/<w:txbxContent[^>]*>[^]*?<\/w:txbxContent>/g, (txbxBlock) => {
-    // Apply the same paragraph-level normalization inside the text box
-    return normalizeParagraphRunsInner(txbxBlock);
+  // Match <w:txbx>...<w:txbxContent>...</w:txbxContent>...</w:txbx> blocks
+  // Process ONLY the inner <w:txbxContent> content, preserving the outer anchor structure
+  return xml.replace(/<w:txbxContent[^>]*>([^]*?)<\/w:txbxContent>/g, (_match, innerContent) => {
+    // Apply paragraph normalization only to the inner content of the text box
+    const processed = normalizeParagraphRunsInner(innerContent);
+    return `<w:txbxContent>${processed}</w:txbxContent>`;
   });
 }
 
