@@ -244,7 +244,7 @@ export default function IntegrationsCatalogPage() {
         default: return true;
       }
     });
-  }, [providers, search, tab, selectedCategory, connections, legacyIntegrations]);
+  }, [providers, search, tabFilter, selectedCategory, connections, legacyIntegrations]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
