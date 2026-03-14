@@ -339,6 +339,65 @@ export function StepDocumento({
       );
     }
 
+    // ── DOCX only state (PDF conversion failed but DOCX is available)
+    if (generationStatus === "docx_only" && outputDocxPath) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Selecione o template</Label>
+              {loadingTemplates ? (
+                <Skeleton className="h-9 w-full" />
+              ) : (
+                <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione o template" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
+                      {webTemplates.map(t => (<SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
+                      {docTemplates.map(t => (<SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <Button onClick={onGenerate} disabled={!templateSelecionado} className="w-full gap-2">
+              <Zap className="h-4 w-4" />
+              Regenerar com PDF
+            </Button>
+            <Button variant="outline" size="sm" className="w-full gap-2" onClick={async () => {
+              const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputDocxPath, 3600);
+              if (data?.signedUrl) {
+                const resp = await fetch(data.signedUrl);
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "proposta.docx";
+                a.click();
+                URL.revokeObjectURL(url);
+              }
+            }}>
+              <FileDown className="h-3.5 w-3.5" />
+              Baixar DOCX
+            </Button>
+          </div>
+          <div className="rounded-xl border border-warning/30 bg-warning/5 flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center mb-4">
+              <Info className="h-6 w-6 text-warning" />
+            </div>
+            <p className="text-sm font-semibold text-warning mb-2">DOCX gerado com sucesso</p>
+            <p className="text-xs text-muted-foreground max-w-md">
+              {generationError || "A conversão para PDF não foi possível. O DOCX está disponível para download."}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     // ── Before generation
     if (!result) {
       return (
