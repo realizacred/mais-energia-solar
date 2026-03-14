@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { sendProposal } from "@/services/proposalApi";
+import { supabase } from "@/integrations/supabase/client";
 import { useProposalTemplates, useEmailTemplates } from "@/hooks/useProposalTemplates";
 import { formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
@@ -39,6 +40,10 @@ interface StepDocumentoProps {
   result: any;
   htmlPreview: string | null;
   pdfBlobUrl?: string | null;
+  outputDocxPath?: string | null;
+  outputPdfPath?: string | null;
+  generationStatus?: "idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error";
+  generationError?: string | null;
   onGenerate: () => void;
   onNewVersion: () => void;
   onViewDetail: () => void;
@@ -55,6 +60,8 @@ export function StepDocumento({
   numUcs, precoFinal,
   templateSelecionado, onTemplateSelecionado,
   generating, rendering, result, htmlPreview, pdfBlobUrl,
+  outputDocxPath, outputPdfPath,
+  generationStatus = "idle", generationError,
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
@@ -262,10 +269,14 @@ export function StepDocumento({
 
   const renderTemplateTab = () => {
     if (generating) {
+      const statusMsg = generationStatus === "generating_docx" ? "Gerando documento DOCX..."
+        : generationStatus === "converting_pdf" ? "Convertendo para PDF..."
+        : generationStatus === "saving" ? "Salvando artefatos..."
+        : "Gerando proposta comercial...";
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse">Gerando proposta comercial...</p>
+          <p className="text-sm font-medium text-muted-foreground animate-pulse">{statusMsg}</p>
         </div>
       );
     }

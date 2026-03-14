@@ -13263,6 +13263,9 @@ export type Database = {
           enviado_em: string | null
           final_snapshot: Json | null
           finalized_at: string | null
+          generated_at: string | null
+          generation_error: string | null
+          generation_status: string | null
           geracao_anual: number | null
           geracao_mensal: number | null
           gerado_em: string | null
@@ -13278,6 +13281,8 @@ export type Database = {
           motivo_rejeicao: string | null
           observacoes: string | null
           origem: string
+          output_docx_path: string | null
+          output_pdf_path: string | null
           payback_meses: number | null
           perda_eficiencia_anual: number | null
           potencia_kwp: number | null
@@ -13289,6 +13294,7 @@ export type Database = {
           sobredimensionamento: number | null
           status: Database["public"]["Enums"]["proposta_nativa_status"]
           tarifa_distribuidora: number | null
+          template_id_used: string | null
           tenant_id: string
           tir: number | null
           updated_at: string
@@ -13312,6 +13318,9 @@ export type Database = {
           enviado_em?: string | null
           final_snapshot?: Json | null
           finalized_at?: string | null
+          generated_at?: string | null
+          generation_error?: string | null
+          generation_status?: string | null
           geracao_anual?: number | null
           geracao_mensal?: number | null
           gerado_em?: string | null
@@ -13327,6 +13336,8 @@ export type Database = {
           motivo_rejeicao?: string | null
           observacoes?: string | null
           origem?: string
+          output_docx_path?: string | null
+          output_pdf_path?: string | null
           payback_meses?: number | null
           perda_eficiencia_anual?: number | null
           potencia_kwp?: number | null
@@ -13338,6 +13349,7 @@ export type Database = {
           sobredimensionamento?: number | null
           status?: Database["public"]["Enums"]["proposta_nativa_status"]
           tarifa_distribuidora?: number | null
+          template_id_used?: string | null
           tenant_id: string
           tir?: number | null
           updated_at?: string
@@ -13361,6 +13373,9 @@ export type Database = {
           enviado_em?: string | null
           final_snapshot?: Json | null
           finalized_at?: string | null
+          generated_at?: string | null
+          generation_error?: string | null
+          generation_status?: string | null
           geracao_anual?: number | null
           geracao_mensal?: number | null
           gerado_em?: string | null
@@ -13376,6 +13391,8 @@ export type Database = {
           motivo_rejeicao?: string | null
           observacoes?: string | null
           origem?: string
+          output_docx_path?: string | null
+          output_pdf_path?: string | null
           payback_meses?: number | null
           perda_eficiencia_anual?: number | null
           potencia_kwp?: number | null
@@ -13387,6 +13404,7 @@ export type Database = {
           sobredimensionamento?: number | null
           status?: Database["public"]["Enums"]["proposta_nativa_status"]
           tarifa_distribuidora?: number | null
+          template_id_used?: string | null
           tenant_id?: string
           tir?: number | null
           updated_at?: string
@@ -13410,6 +13428,13 @@ export type Database = {
             columns: ["proposta_id"]
             isOneToOne: false
             referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versoes_template_id_used_fkey"
+            columns: ["template_id_used"]
+            isOneToOne: false
+            referencedRelation: "proposta_templates"
             referencedColumns: ["id"]
           },
           {

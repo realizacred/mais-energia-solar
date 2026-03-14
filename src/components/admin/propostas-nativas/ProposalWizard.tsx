@@ -219,6 +219,11 @@ export function ProposalWizard() {
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
+  // Persisted artifact paths (from storage)
+  const [outputDocxPath, setOutputDocxPath] = useState<string | null>(null);
+  const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<"idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "error">("idle");
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
 
@@ -1237,9 +1242,14 @@ export function ProposalWizard() {
     }
 
     setGenerating(true);
+    setGenerationStatus("generating_docx");
+    setGenerationError(null);
     setHtmlPreview(null);
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     setPdfBlobUrl(null);
     setDocxBlob(null);
+    setOutputDocxPath(null);
+    setOutputPdfPath(null);
     setResult(null);
 
     try {
@@ -1341,9 +1351,10 @@ export function ProposalWizard() {
       const isDocxTemplate = selectedTpl?.tipo === "docx";
 
       setRendering(true);
+      setGenerationStatus("converting_pdf");
       try {
         if (isDocxTemplate && genResult.proposta_id) {
-          // DOCX template: use raw fetch to preserve binary integrity
+          // DOCX template: call template-preview with JSON response to get persisted paths
           const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
           const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
           const { data: { session } } = await supabase.auth.getSession();
@@ -1351,10 +1362,16 @@ export function ProposalWizard() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "Accept": "application/json",
               "Authorization": `Bearer ${session?.access_token || anonKey}`,
               "apikey": anonKey,
+              "x-client-timeout": "120",
             },
-            body: JSON.stringify({ template_id: templateSelecionado, proposta_id: genResult.proposta_id }),
+            body: JSON.stringify({
+              template_id: templateSelecionado,
+              proposta_id: genResult.proposta_id,
+              response_format: "json",
+            }),
           });
           if (!rawResp.ok) {
             const errBody = await rawResp.text();
@@ -1362,59 +1379,38 @@ export function ProposalWizard() {
             try { errorMsg = JSON.parse(errBody)?.error || errorMsg; } catch { errorMsg = errBody || errorMsg; }
             throw new Error(errorMsg);
           }
-          const docxBlob = await rawResp.blob();
 
-          // Store blob for downloads (DOCX + PDF)
-          setDocxBlob(docxBlob);
+          const artifactResult = await rawResp.json();
+          console.log("[ProposalWizard] Artifact result:", artifactResult);
 
-          // Convert DOCX → PDF via Gotenberg for real preview
+          // Store persisted paths
+          setOutputDocxPath(artifactResult.output_docx_path || null);
+          setOutputPdfPath(artifactResult.output_pdf_path || null);
+
+          // Generate signed URL for PDF preview
           let previewReady = false;
-          try {
-            const docxArrayBuffer = await docxBlob.arrayBuffer();
-            const docxBytes = new Uint8Array(docxArrayBuffer);
-            // Base64 encode
-            let docxBase64 = "";
-            const chunkSize = 32768;
-            for (let i = 0; i < docxBytes.length; i += chunkSize) {
-              const chunk = docxBytes.subarray(i, i + chunkSize);
-              docxBase64 += String.fromCharCode(...chunk);
-            }
-            docxBase64 = btoa(docxBase64);
-
-            const pdfResp = await fetch(`https://${projectId}.supabase.co/functions/v1/docx-to-pdf`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${session?.access_token || anonKey}`,
-                "apikey": anonKey,
-                "x-client-timeout": "120",
-              },
-              body: JSON.stringify({ docxBase64, filename: "proposta.docx" }),
-            });
-
-            if (pdfResp.ok) {
-              const { pdf: pdfBase64 } = await pdfResp.json();
-              const pdfBinary = atob(pdfBase64);
-              const pdfBytes = new Uint8Array(pdfBinary.length);
-              for (let i = 0; i < pdfBinary.length; i++) {
-                pdfBytes[i] = pdfBinary.charCodeAt(i);
-              }
-              const pdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
-              const url = URL.createObjectURL(pdfBlob);
-              setPdfBlobUrl(url);
+          if (artifactResult.output_pdf_path) {
+            setGenerationStatus("saving");
+            const { data: signedData } = await supabase.storage
+              .from("proposta-documentos")
+              .createSignedUrl(artifactResult.output_pdf_path, 3600);
+            if (signedData?.signedUrl) {
+              setPdfBlobUrl(signedData.signedUrl);
               previewReady = true;
-            } else {
-              console.error("[ProposalWizard] PDF conversion failed:", await pdfResp.text());
+              setGenerationStatus("ready");
             }
-          } catch (pdfErr: any) {
-            console.error("[ProposalWizard] PDF preview error:", pdfErr?.message);
+          }
+
+          if (!previewReady) {
+            setGenerationStatus("error");
+            setGenerationError(artifactResult.generation_error || "PDF não foi gerado");
           }
 
           toast({
             title: previewReady ? "Proposta gerada!" : "DOCX gerado com aviso",
             description: previewReady
-              ? "Preview do PDF exibido na tela. Use os botões para baixar."
-              : "O DOCX foi gerado, mas o preview PDF falhou. Você ainda pode baixar o DOCX.",
+              ? "PDF salvo e preview exibido. Use os botões para baixar ou enviar."
+              : artifactResult.generation_error || "O DOCX foi gerado, mas o preview PDF falhou.",
           });
         } else {
           // HTML template: use proposal-render as before
@@ -1471,6 +1467,10 @@ export function ProposalWizard() {
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     setPdfBlobUrl(null);
     setDocxBlob(null);
+    setOutputDocxPath(null);
+    setOutputPdfPath(null);
+    setGenerationStatus("idle");
+    setGenerationError(null);
     // Go back to UCs step
     const ucsIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.UCS);
     setStep(ucsIndex >= 0 ? ucsIndex : 1);
@@ -1716,6 +1716,10 @@ export function ProposalWizard() {
               result={result}
               htmlPreview={htmlPreview}
               pdfBlobUrl={pdfBlobUrl}
+              outputDocxPath={outputDocxPath}
+              outputPdfPath={outputPdfPath}
+              generationStatus={generationStatus}
+              generationError={generationError}
               onGenerate={handleGenerate}
               onNewVersion={handleNewVersion}
               onViewDetail={handleViewDetail}
