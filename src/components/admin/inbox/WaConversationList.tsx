@@ -33,6 +33,21 @@ import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
+// ── Urgency color by time since last message ──────────
+function getUrgencyColor(lastMessageAt: string | null, status: string): string {
+  if (status === "resolved") return "bg-muted-foreground/40";
+  if (!lastMessageAt) return "bg-warning";
+  const hoursAgo = (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
+  if (hoursAgo < 1) return "bg-success";
+  if (hoursAgo < 6) return "bg-warning";
+  return "bg-destructive";
+}
+
+function getHoursAgo(lastMessageAt: string | null): number | null {
+  if (!lastMessageAt) return null;
+  return (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
+}
+
 // ── Message preview helper ─────────────────────────────
 function getMessagePreview(type: string | null | undefined, body: string | null | undefined): string {
   if (type === "image") return "📷 Imagem";
