@@ -58,7 +58,12 @@ export function MetaTimeSeriesChart({ daily, isLoading }: Props) {
                 variant={metric === tab.key ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setMetric(tab.key)}
-                className="h-7 px-2.5 text-xs"
+                className={cn(
+                  "h-7 px-2.5 text-xs",
+                  metric === tab.key
+                    ? "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30"
+                    : "text-muted-foreground"
+                )}
               >
                 {tab.label}
               </Button>
