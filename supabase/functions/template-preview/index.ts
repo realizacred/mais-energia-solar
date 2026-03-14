@@ -1183,22 +1183,13 @@ Deno.serve(async (req) => {
     }
 
     // ── 10. RETURN RESPONSE ──────────────────────────────
-    // Return JSON with paths + the DOCX as binary for backward compatibility
-    // Collect missing vars from processDocxTemplate
-    const { missingVars: templateMissingVars } = await (async () => {
-      // Re-read from the result we already computed above
-      // We need the missingVars from the processDocxTemplate call
-      // Since we already processed, let's re-extract from the local scope
-      return { missingVars: [] as string[] };
-    })();
-
     const responsePayload = {
       success: true,
       output_docx_path: docxUploadErr ? null : docxStoragePath,
       output_pdf_path: (pdfBytes && !pdfConversionError) ? pdfStoragePath : null,
       generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "error" : "docx_only"),
       generation_error: pdfConversionError || (docxUploadErr ? docxUploadErr.message : null),
-      missing_vars: [] as string[],
+      missing_vars: processedMissingVars,
       template_name: template.nome,
       generated_at: new Date().toISOString(),
     };
