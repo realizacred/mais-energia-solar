@@ -341,13 +341,16 @@ export function TemplatesManager() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <FileText className="h-5 w-5 text-secondary" /> Templates de proposta
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Gerencie modelos WEB e DOCX usados na geração de propostas
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Templates de Proposta</h2>
+            <p className="text-sm text-muted-foreground">
+              Gerencie modelos WEB e DOCX usados na geração de propostas
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={seedDefaultTemplates} className="gap-1.5 text-xs" disabled={loading}>
