@@ -578,12 +578,16 @@ export function StepDocumento({
           </div>
         </div>
 
-        {/* Right: Preview */}
+        {/* Right: Preview — PDF real only, no HTML fallback */}
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
           {rendering ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-              <p className="text-sm text-muted-foreground animate-pulse">Convertendo para PDF...</p>
+              <p className="text-sm text-muted-foreground animate-pulse">
+                {generationStatus === "converting_pdf" ? "Convertendo para PDF..." :
+                 generationStatus === "saving" ? "Salvando artefatos..." :
+                 "Processando documento..."}
+              </p>
             </div>
           ) : pdfBlobUrl ? (
             <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
@@ -594,7 +598,8 @@ export function StepDocumento({
                 style={{ height: 800 }}
               />
             </div>
-          ) : htmlPreview ? (
+          ) : htmlPreview && !isDocxSelected ? (
+            /* HTML preview ONLY for HTML/web templates — never for DOCX */
             <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
               <iframe
                 srcDoc={htmlPreview}
@@ -602,6 +607,18 @@ export function StepDocumento({
                 className="w-full border-0"
                 style={{ height: 800, background: "#fff" }}
               />
+            </div>
+          ) : generationStatus === "error" ? (
+            <div className="border border-destructive/30 rounded-xl flex flex-col items-center justify-center h-[400px] bg-destructive/5 p-6 text-center">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
+                <Info className="h-5 w-5 text-destructive" />
+              </div>
+              <p className="text-sm font-medium text-destructive mb-1">Erro ao gerar preview</p>
+              <p className="text-xs text-muted-foreground max-w-sm">{generationError}</p>
+              <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
+                <Zap className="h-3.5 w-3.5" />
+                Regenerar
+              </Button>
             </div>
           ) : (
             <div className="border border-border/50 rounded-xl flex items-center justify-center h-[400px] bg-muted/20">
