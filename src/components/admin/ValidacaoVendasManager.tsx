@@ -140,6 +140,7 @@ export function ValidacaoVendasManager() {
     setSelectedCliente(cliente);
     setLeadSimulacoes([]);
     setSelectedSimulacaoId("");
+    setPaymentItems([]); // Reset payment composition on new client
 
     const valor = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
     setValorVenda(valor > 0 ? valor : 0);
