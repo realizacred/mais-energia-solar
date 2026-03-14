@@ -34,7 +34,7 @@ import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversati
 import type { WaInstance } from "@/hooks/useWaInstances";
 
 // ── Urgency style by time since last message ──────────
-function getUrgencyStyle(lastMessageAt: string | null, status: string): React.CSSProperties {
+function getUrgencyStyle(lastMessageAt: string | null, status: string): { background: string } {
   if (status === "resolved") return { background: "hsl(var(--muted-foreground) / 0.4)" };
   if (!lastMessageAt) return { background: "hsl(var(--warning))" };
   const hoursAgo = (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
