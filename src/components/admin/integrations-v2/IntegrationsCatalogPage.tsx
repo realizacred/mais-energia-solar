@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  Search, Plug, Sun, Users, HardDrive,
+  Search, Plug, Sun, Users, HardDrive, FileText,
   Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText, Globe,
   Workflow, FileSignature, Zap, CloudSun, Sprout, Cpu, Gauge, Radio,
   Building2, Calculator, QrCode, Webhook, LayoutGrid, Power, ArrowLeft,
