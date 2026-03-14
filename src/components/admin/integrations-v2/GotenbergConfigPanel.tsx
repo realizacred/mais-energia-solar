@@ -102,7 +102,7 @@ export default function GotenbergConfigPanel() {
       };
 
       if (connection?.id) {
-        await (supabase as any)
+        const { error: updateError } = await (supabase as any)
           .from("integration_connections")
           .update({
             config: configPayload,
@@ -110,18 +110,32 @@ export default function GotenbergConfigPanel() {
             updated_at: new Date().toISOString(),
           })
           .eq("id", connection.id);
+        if (updateError) {
+          console.error("[GotenbergConfig] Erro ao atualizar:", updateError);
+          throw new Error("Erro ao atualizar configuração: " + (updateError.message || "falha no banco"));
+        }
       } else {
         // Get current user's tenant
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Usuário não autenticado");
-        const { data: profile } = await (supabase as any)
+        const { data: profile, error: profileError } = await (supabase as any)
           .from("profiles")
           .select("tenant_id")
           .eq("id", user.id)
-          .single();
-        if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+          .maybeSingle();
+        
+        if (profileError) {
+          console.error("[GotenbergConfig] Erro ao buscar perfil:", profileError);
+          throw new Error("Erro ao buscar seu perfil. Tente novamente.");
+        }
+        if (!profile?.tenant_id) {
+          throw new Error(
+            "Seu usuário não está vinculado a nenhuma empresa (tenant). " +
+            "Solicite ao administrador que vincule seu usuário antes de salvar esta integração."
+          );
+        }
 
-        await (supabase as any)
+        const { error: insertError } = await (supabase as any)
           .from("integration_connections")
           .insert({
             provider_id: "gotenberg",
@@ -131,6 +145,10 @@ export default function GotenbergConfigPanel() {
             credentials: {},
             tokens: {},
           });
+        if (insertError) {
+          console.error("[GotenbergConfig] Erro ao inserir conexão:", insertError);
+          throw new Error("Erro ao salvar configuração: " + (insertError.message || "falha no banco"));
+        }
       }
 
       toast.success("Configuração salva");
