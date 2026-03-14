@@ -846,17 +846,29 @@ export function useWaTags() {
 
   const toggleConversationTag = useMutation({
     mutationFn: async ({ conversationId, tagId, add }: { conversationId: string; tagId: string; add: boolean }) => {
+      console.log("[toggleConversationTag] called:", { conversationId, tagId, add });
       if (add) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("wa_conversation_tags")
-          .upsert({ conversation_id: conversationId, tag_id: tagId }, { onConflict: "conversation_id,tag_id" });
-        if (error) throw error;
+          .insert({ conversation_id: conversationId, tag_id: tagId })
+          .select();
+        console.log("[toggleConversationTag] insert result:", { data, error });
+        if (error) {
+          // Ignore duplicate key (tag already applied)
+          if (error.code === "23505") {
+            console.log("[toggleConversationTag] tag already exists, ignoring");
+            return;
+          }
+          throw error;
+        }
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("wa_conversation_tags")
           .delete()
           .eq("conversation_id", conversationId)
-          .eq("tag_id", tagId);
+          .eq("tag_id", tagId)
+          .select();
+        console.log("[toggleConversationTag] delete result:", { data, error });
         if (error) throw error;
       }
     },
@@ -865,7 +877,7 @@ export function useWaTags() {
       toast({ title: "Tag atualizada" });
     },
     onError: (err: any) => {
-      console.error("[toggleConversationTag]", err);
+      console.error("[toggleConversationTag] ERROR:", err);
       toast({ title: "Erro ao aplicar tag", description: err.message, variant: "destructive" });
     },
   });
