@@ -869,7 +869,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("customizada", "customizada.vc_economia_conta_total_pc", "vc_economia_conta_total_pc", "Economia Conta Total (%)", "Percentual de economia na conta MT", "%", "85"),
 
   // ── Financiamento / Banco ──
-  v("customizada", "customizada.vc_nome", "vc_nome", "Nome (Financiamento)", "Nome do banco/financeira ativo", "-", "BV"),
+  v("customizada", "customizada.vc_nome", "vc_nome", "Nome do Cliente (legado)", "Nome do cliente — alias legado usado em templates antigos. Para banco/financeira, use vc_financeira_nome.", "-", "João da Silva"),
+  v("customizada", "customizada.vc_financeira_nome", "vc_financeira_nome", "Nome do Banco/Financeira", "Nome do banco ou financeira ativo no financiamento", "-", "BV"),
   v("customizada", "customizada.vc_taxa_1", "vc_taxa_1", "Taxa 1", "Taxa de juros condição 1 (SWITCH por banco)", "%", "1.99"),
   v("customizada", "customizada.vc_taxa_2", "vc_taxa_2", "Taxa 2", "Taxa de juros condição 2 (SWITCH por banco)", "%", "2.49"),
   v("customizada", "customizada.vc_taxa_3", "vc_taxa_3", "Taxa 3", "Taxa de juros condição 3 (SWITCH por banco)", "%", "2.99"),
