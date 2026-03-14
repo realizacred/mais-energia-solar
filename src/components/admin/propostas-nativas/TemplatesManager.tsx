@@ -539,60 +539,81 @@ export function TemplatesManager() {
       ) : (
         <div className="space-y-2">
           {filteredTemplates.map(t => (
-            <Card key={t.id} className={`border-border/40 ${!t.ativo ? "opacity-50" : ""}`}>
-              <CardContent className="py-3 px-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {t.thumbnail_url ? (
-                      <img src={t.thumbnail_url} alt={t.nome} className="h-10 w-10 rounded object-cover" />
-                    ) : (
-                      <div className="h-10 w-10 rounded bg-muted/50 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold">{t.nome}</p>
-                        <Badge variant="outline" className="text-[9px]">Grupo {t.grupo}</Badge>
-                        <Badge variant="secondary" className="text-[9px]">{t.tipo.toUpperCase()}</Badge>
-                        {t.file_url && <Badge variant="outline" className="text-[9px] text-success border-success/30">📎 DOCX</Badge>}
-                        {!t.ativo && <Badge variant="destructive" className="text-[9px]">Inativo</Badge>}
-                      </div>
-                      {t.descricao && <p className="text-[11px] text-muted-foreground">{t.descricao}</p>}
-                    </div>
+            <div
+              key={t.id}
+              className={`flex items-center justify-between p-4 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors ${!t.ativo ? "opacity-50" : ""}`}
+            >
+              <div className="flex items-center gap-3">
+                {t.thumbnail_url ? (
+                  <img src={t.thumbnail_url} alt={t.nome} className="h-9 w-9 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    {t.tipo === "html" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1.5 text-[10px] font-semibold border-primary/30 text-primary hover:bg-primary/10"
-                        onClick={() => setBuilderTemplate(t)}
-                      >
-                        <Paintbrush className="h-3 w-3" />
-                        Editar Visual
-                      </Button>
-                    )}
-                    {((t.tipo === "html" && t.template_html) || (t.tipo === "docx" && t.file_url)) && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-secondary" onClick={() => setPreviewTemplate(t)} title="Preview com dados reais">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    )}
-                    {t.file_url && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar DOCX" onClick={() => downloadDocx(t.file_url!)}>
-                        <Download className="h-3 w-3" />
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(t)} disabled={dialogOpen}>
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => handleDelete(t.id)} disabled={dialogOpen}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{t.nome}</p>
+                    <Badge variant="outline" className="text-[9px] border-primary/30 text-primary bg-primary/5">Grupo {t.grupo}</Badge>
+                    <Badge variant="outline" className="text-[9px] border-primary/30 text-primary bg-primary/5">{t.tipo.toUpperCase()}</Badge>
+                    {t.file_url && <Badge variant="outline" className="text-[9px] text-success border-success/30 bg-success/5">📎 DOCX</Badge>}
+                    {!t.ativo && <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30 bg-destructive/5">Inativo</Badge>}
                   </div>
+                  {t.descricao && <p className="text-xs text-muted-foreground mt-0.5">{t.descricao}</p>}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex items-center gap-1">
+                {t.tipo === "html" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1.5 text-[10px] font-semibold border-primary/30 text-primary hover:bg-primary/10"
+                    onClick={() => setBuilderTemplate(t)}
+                  >
+                    <Paintbrush className="h-3 w-3" />
+                    Editar Visual
+                  </Button>
+                )}
+                <TooltipProvider delayDuration={600}>
+                  {((t.tipo === "html" && t.template_html) || (t.tipo === "docx" && t.file_url)) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => setPreviewTemplate(t)}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Preview</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {t.file_url && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => downloadDocx(t.file_url!)}>
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Baixar DOCX</TooltipContent>
+                    </Tooltip>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-warning" onClick={() => startEdit(t)} disabled={dialogOpen}>
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Editar</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(t.id)} disabled={dialogOpen}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Excluir</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
           ))}
         </div>
       )}
