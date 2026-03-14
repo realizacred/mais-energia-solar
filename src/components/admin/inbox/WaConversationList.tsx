@@ -187,8 +187,27 @@ function ConversationItem({
         isMuted && "opacity-60",
       )}
     >
-      {/* Left border by status */}
-      <div className={borderLeftColor} />
+      {/* Left urgency bar with tooltip */}
+      <TooltipProvider delayDuration={600}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              style={{
+                ...urgencyStyle,
+                position: "absolute",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: "3px",
+                borderRadius: "10px 0 0 10px",
+              }}
+            />
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{urgencyLabel}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* Avatar */}
       <div className="relative ml-1.5 shrink-0 self-center">
