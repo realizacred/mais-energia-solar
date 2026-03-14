@@ -5,9 +5,13 @@ import {
   Plug, RefreshCw, Power, Sun, Clock, CheckCircle2,
   AlertCircle, AlertTriangle, Settings, Zap, Users, HardDrive, Calendar,
   Mail, MessageCircle, Video, CreditCard, ReceiptText,
-  Globe, Workflow, FileSignature,
+  Globe, Workflow, FileSignature, FileOutput,
 } from "lucide-react";
 import type { IntegrationCategory } from "@/services/integrations/types";
+
+const PROVIDER_ICON_OVERRIDES: Record<string, React.ElementType> = {
+  gotenberg: FileOutput,
+};
 
 const CATEGORY_FALLBACK_ICONS: Record<IntegrationCategory, React.ElementType> = {
   monitoring: Sun, crm: Users, storage: HardDrive, calendar: Calendar,
@@ -118,7 +122,7 @@ export function IntegrationProviderCard({
 
   // Static icon resolution — instant, zero HTTP fallback
   const iconUrl = getProviderIconUrl(provider.id);
-  const FallbackIcon = CATEGORY_FALLBACK_ICONS[provider.category] || Sun;
+  const FallbackIcon = PROVIDER_ICON_OVERRIDES[provider.id] || CATEGORY_FALLBACK_ICONS[provider.category] || Sun;
 
   return (
     <div
