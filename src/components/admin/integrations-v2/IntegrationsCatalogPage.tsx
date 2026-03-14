@@ -255,7 +255,7 @@ export default function IntegrationsCatalogPage() {
       const status = getConnectionStatus(p.id);
       const isActive = status === "connected";
       let passTab = true;
-      switch (tab) {
+      switch (tabFilter) {
         case "active": passTab = isActive; break;
         case "inactive": passTab = !isActive; break;
       }
