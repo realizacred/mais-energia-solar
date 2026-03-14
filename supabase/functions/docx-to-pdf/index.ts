@@ -6,44 +6,16 @@
  * Input (JSON):
  *   - docxBase64: string (base64-encoded DOCX file)
  *   - filename?: string (optional filename, default "proposta.docx")
+ *   - tenant_id?: string (optional, to resolve config from DB)
  *
  * Output (JSON):
  *   - pdf: string (base64-encoded PDF)
  *
  * Environment:
- *   - GOTENBERG_URL: Gotenberg service URL (default: https://demo.gotenberg.dev)
+ *   - GOTENBERG_URL: Gotenberg service URL (fallback if DB config not found)
  */
-
-/**
- * Validates and normalizes a base URL for external services.
- */
-function validateAndNormalizeBaseUrl(
-  rawUrl: string | undefined,
-  envVarName: string,
-  defaultUrl = "https://demo.gotenberg.dev",
-): string {
-  const urlStr = (rawUrl && rawUrl.trim()) ? rawUrl.trim() : defaultUrl;
-
-  if (!urlStr.startsWith("http://") && !urlStr.startsWith("https://")) {
-    throw new Error(
-      `Configuração inválida: ${envVarName} ("${urlStr}") não possui protocolo válido (http/https). ` +
-      `Verifique a variável de ambiente ${envVarName} nas configurações do projeto.`
-    );
-  }
-
-  try {
-    const parsed = new URL(urlStr);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error(`Protocolo "${parsed.protocol}" não suportado.`);
-    }
-    return parsed.origin + parsed.pathname.replace(/\/+$/, "");
-  } catch (e: any) {
-    throw new Error(
-      `Configuração inválida: ${envVarName} ("${urlStr}") não é uma URL válida. ` +
-      `Erro: ${e.message}. Verifique a variável de ambiente ${envVarName}.`
-    );
-  }
-}
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +29,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { docxBase64, filename } = await req.json();
+    const { docxBase64, filename, tenant_id } = await req.json();
 
     if (!docxBase64 || typeof docxBase64 !== "string") {
       return new Response(
@@ -85,9 +57,33 @@ Deno.serve(async (req) => {
     formData.append("landscape", "false");
     formData.append("nativePageRanges", "1-");
 
-    // Validate and normalize URL before using
-    const rawGotenbergUrl = Deno.env.get("GOTENBERG_URL");
-    const GOTENBERG_URL = validateAndNormalizeBaseUrl(rawGotenbergUrl, "GOTENBERG_URL");
+    // Resolve Gotenberg URL: DB config → env → demo fallback
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    let resolvedTenantId = tenant_id;
+    if (!resolvedTenantId) {
+      // Try to get tenant from auth header
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || supabaseKey;
+        const anonClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: { user } } = await anonClient.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("tenant_id")
+            .eq("id", user.id)
+            .single();
+          resolvedTenantId = profile?.tenant_id;
+        }
+      }
+    }
+
+    const GOTENBERG_URL = await resolveGotenbergUrl(supabase, resolvedTenantId);
     const conversionUrl = `${GOTENBERG_URL}/forms/libreoffice/convert`;
     console.log(`[docx-to-pdf] Sending to Gotenberg: ${conversionUrl}`);
 
