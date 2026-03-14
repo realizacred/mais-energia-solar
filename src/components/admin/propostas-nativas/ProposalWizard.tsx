@@ -1238,6 +1238,7 @@ export function ProposalWizard() {
 
     setGenerating(true);
     setHtmlPreview(null);
+    setPdfBlobUrl(null);
     setDocxBlob(null);
     setResult(null);
 
