@@ -49,6 +49,8 @@ interface ForensicDebugReport {
   originalDocxSize: number;
   processedDocxSize: number;
   pdfSize: number | null;
+  originalDocxHash: string;
+  processedDocxHash: string;
   // Structure
   templateStructure: StructureReport;
   postNormalizationStructure: StructureReport;
@@ -63,6 +65,8 @@ interface ForensicDebugReport {
   placeholdersMissing: string[];
   placeholdersFragmentedBeforeNorm: string[];
   placeholdersFragmentedAfterNorm: string[];
+  // Variable map (full dump for diagnosis)
+  variableMap: Record<string, string>;
   // Gotenberg
   gotenbergUrl: string | null;
   gotenbergParams: Record<string, string>;
@@ -74,6 +78,11 @@ interface ForensicDebugReport {
   // XML Samples (truncated for size)
   xmlSamplesBeforeNorm: Record<string, string>;
   xmlSamplesAfterNorm: Record<string, string>;
+}
+
+async function hashBytes(data: Uint8Array): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -967,6 +976,9 @@ Deno.serve(async (req) => {
         return allPlaceholders.includes(bracket) || allPlaceholders.includes(mustache);
       });
 
+      const originalHash = await hashBytes(templateBuffer);
+      const processedHash = await hashBytes(report);
+
       const forensicReport: ForensicDebugReport = {
         timestamp: new Date().toISOString(),
         templateId: template_id,
@@ -976,6 +988,8 @@ Deno.serve(async (req) => {
         originalDocxSize: originalSize,
         processedDocxSize: report.length,
         pdfSize: pdfBytes?.length || null,
+        originalDocxHash: originalHash,
+        processedDocxHash: processedHash,
         templateStructure: debugResult.structureBefore,
         postNormalizationStructure: debugResult.structureAfter,
         structurePreserved:
@@ -990,6 +1004,7 @@ Deno.serve(async (req) => {
         placeholdersMissing: processedMissingVars,
         placeholdersFragmentedBeforeNorm: fragmentedBefore,
         placeholdersFragmentedAfterNorm: fragmentedAfter,
+        variableMap: vars,
         gotenbergUrl,
         gotenbergParams,
         gotenbergResponseStatus,

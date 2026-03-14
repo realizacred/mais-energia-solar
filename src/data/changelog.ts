@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.48.0",
+    date: "2026-03-14",
+    title: "Debug Forense DOCX→PDF com painel admin",
+    type: "feature",
+    description: "Modo debug forense no pipeline DOCX→PDF: captura completa de artefatos, mapa de variáveis, hashes, merges e estrutura XML para diagnóstico definitivo.",
+    details: [
+      "Flag debug_docx_pdf=true no template-preview persiste relatório JSON completo no storage",
+      "Relatório inclui: mapa completo de variáveis, hashes SHA-256, merges de runs, fontes, estrutura XML antes/depois",
+      "Painel admin DocxDebugPanel para gerar PDF com debug e visualizar resultados inline",
+      "Download do relatório forense completo em JSON para análise externa",
+    ],
+  },
+  {
     version: "2.47.0",
     date: "2026-03-14",
     title: "Correção de layout DOCX→PDF e normalização de runs",
