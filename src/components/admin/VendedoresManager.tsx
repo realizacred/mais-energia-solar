@@ -700,9 +700,19 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                      {leadCounts[vendedor.nome.toLowerCase()] || 0} leads
-                    </Badge>
+                    {(() => {
+                      const count = leadCounts[vendedor.nome.toLowerCase()] || 0;
+                      const badgeCls = count === 0
+                        ? "bg-muted text-muted-foreground border-border"
+                        : count <= 10
+                          ? "bg-warning/10 text-warning border-warning/20"
+                          : "bg-success/10 text-success border-success/20";
+                      return (
+                        <Badge variant="outline" className={`text-xs rounded-full ${badgeCls}`}>
+                          {count} leads
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     {/* §28 Switch with padding, no overflow-hidden */}
