@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import JSZip from "npm:jszip@3.10.1";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
+import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 
 /**
  * Validates and normalizes a base URL for external services.
