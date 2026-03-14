@@ -1427,12 +1427,13 @@ export function ProposalWizard() {
           // HTML template: use proposal-render as before
           const renderResult = await renderProposal(genResult.versao_id);
           setHtmlPreview(renderResult.html);
+          setGenerationStatus("ready");
         }
       } catch (e: any) {
+        setGenerationStatus("error");
+        setGenerationError(e.message || "Erro ao renderizar documento");
         toast({ title: "Erro ao renderizar", description: e.message, variant: "destructive" });
       } finally { setRendering(false); }
-
-      toast({ title: "Proposta gerada!", description: `Versão ${genResult.versao_numero} criada.` });
 
       // Save pricing history for smart defaults in future proposals
       const instalacaoVal = servicos.find(s => s.categoria === "instalacao")?.valor || 0;
