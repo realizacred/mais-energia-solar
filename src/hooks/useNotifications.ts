@@ -137,7 +137,7 @@ export function useNotifications() {
       try {
         const { data: slaAlerts } = await supabase
           .from("wa_sla_alerts" as any)
-          .select("id, alert_type, created_at, conversation_id")
+          .select("id, tipo, created_at, conversation_id")
           .eq("acknowledged", false)
           .order("created_at", { ascending: false })
           .limit(5);
@@ -146,7 +146,7 @@ export function useNotifications() {
             items.push({
               id: `sla-${alert.id}`,
               type: "sla",
-              title: alert.alert_type === "breach" ? "SLA violado" : "SLA em risco",
+              title: alert.tipo === "breach" ? "SLA violado" : "SLA em risco",
               description: `Conversa ${(alert.conversation_id as string).slice(0, 8)}...`,
               timestamp: alert.created_at,
               link: "/admin/whatsapp",
