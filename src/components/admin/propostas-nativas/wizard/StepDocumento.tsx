@@ -64,6 +64,7 @@ export function StepDocumento({
   generating, rendering, result, htmlPreview, pdfBlobUrl,
   outputDocxPath, outputPdfPath,
   generationStatus = "idle", generationError,
+  missingVars = [],
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
