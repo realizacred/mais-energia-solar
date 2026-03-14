@@ -314,6 +314,65 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_logs: {
+        Row: {
+          backup_type: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          error_message: string | null
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          metadata: Json | null
+          started_at: string | null
+          status: string
+          tables_included: string[]
+          tables_row_counts: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          backup_type?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string
+          tables_included?: string[]
+          tables_row_counts?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          backup_type?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string
+          tables_included?: string[]
+          tables_row_counts?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       baterias: {
         Row: {
           ativo: boolean
