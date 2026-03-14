@@ -346,8 +346,8 @@ export default function GotenbergConfigPanel() {
               {form.last_health && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <HealthItem label="Status" value={form.last_health.status || "—"} />
-                  <HealthItem label="Chromium" value={form.last_health.chromium?.status || "—"} />
-                  <HealthItem label="LibreOffice" value={form.last_health.libreOffice?.status || form.last_health.uno?.status || "—"} />
+                  <HealthItem label="Chromium" value={form.last_health.details?.chromium?.status || form.last_health.chromium?.status || "—"} />
+                  <HealthItem label="LibreOffice" value={form.last_health.details?.libreoffice?.status || form.last_health.details?.libreOffice?.status || form.last_health.libreOffice?.status || form.last_health.uno?.status || "—"} />
                 </div>
               )}
             </div>
