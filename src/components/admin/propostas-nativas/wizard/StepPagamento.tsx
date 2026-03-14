@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, CreditCard, Building2, ChevronRight, Calendar, TrendingUp, DollarSign, X, Search, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,11 +58,11 @@ export function StepPagamento({
 
   // ─── Bank groups with auto-generated options
   const buildBancoGroups = (bankList: BancoFinanciamento[], price: number): BancoGroup[] =>
-    bankList.map(b => ({
+    bankList.map((b) => ({
       banco: b,
       opcoes: DEFAULT_PARCELAS
-        .filter(p => p <= b.max_parcelas)
-        .map(parcelas => ({
+        .filter((p) => p <= b.max_parcelas)
+        .map((parcelas) => ({
           id: crypto.randomUUID(),
           banco_id: b.id,
           banco_nome: b.nome,
@@ -75,7 +75,77 @@ export function StepPagamento({
         })),
     }));
 
-  const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() => buildBancoGroups(bancos, precoFinal));
+  const mapOpcoesToBancoGroups = (existingOpcoes: PagamentoOpcao[], bankList: BancoFinanciamento[], fallbackPrice: number): BancoGroup[] => {
+    const financiamento = existingOpcoes.filter((o) => o.tipo === "financiamento" || o.tipo === "parcelado");
+    if (financiamento.length === 0) return buildBancoGroups(bankList, fallbackPrice);
+
+    const byBanco = new Map<string, BancoOpcao[]>();
+    financiamento.forEach((op) => {
+      const key = op.nome || "Financiamento";
+      const list = byBanco.get(key) || [];
+      list.push({
+        id: op.id,
+        banco_id: op.id,
+        banco_nome: key,
+        entrada: op.entrada,
+        num_parcelas: op.num_parcelas,
+        taxa_mensal: op.taxa_mensal,
+        carencia_meses: op.carencia_meses,
+        valor_financiado: op.valor_financiado,
+        valor_parcela: op.valor_parcela,
+      });
+      byBanco.set(key, list);
+    });
+
+    return Array.from(byBanco.entries()).map(([nome, opcoesBanco]) => {
+      const fromCatalog = bankList.find((b) => b.nome === nome);
+      return {
+        banco: fromCatalog || {
+          id: opcoesBanco[0]?.banco_id || crypto.randomUUID(),
+          nome,
+          taxa_mensal: opcoesBanco[0]?.taxa_mensal || 0,
+          max_parcelas: Math.max(...opcoesBanco.map((o) => o.num_parcelas), 60),
+        },
+        opcoes: opcoesBanco,
+      };
+    });
+  };
+
+  const flattenBancoGroupsToOpcoes = (groups: BancoGroup[], price: number): PagamentoOpcao[] => {
+    const financiamento = groups.flatMap((g) =>
+      g.opcoes.map((op) => ({
+        id: op.id,
+        nome: g.banco.nome,
+        tipo: "financiamento" as const,
+        valor_financiado: Number.isFinite(op.valor_financiado) ? op.valor_financiado : price,
+        entrada: Number.isFinite(op.entrada) ? op.entrada : 0,
+        taxa_mensal: Number.isFinite(op.taxa_mensal) ? op.taxa_mensal : 0,
+        carencia_meses: Number.isFinite(op.carencia_meses) ? op.carencia_meses : 0,
+        num_parcelas: Number.isFinite(op.num_parcelas) ? op.num_parcelas : 0,
+        valor_parcela: Number.isFinite(op.valor_parcela) ? op.valor_parcela : 0,
+      }))
+    );
+
+    return [
+      {
+        id: "a-vista-default",
+        nome: "À Vista",
+        tipo: "a_vista",
+        valor_financiado: price,
+        entrada: price,
+        taxa_mensal: 0,
+        carencia_meses: 0,
+        num_parcelas: 1,
+        valor_parcela: price,
+      },
+      ...financiamento,
+    ];
+  };
+
+  const [hasUserEditedBancoGroups, setHasUserEditedBancoGroups] = useState(false);
+  const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() =>
+    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal) : buildBancoGroups(bancos, precoFinal)
+  );
   const [selectedBancoIdx, setSelectedBancoIdx] = useState(0);
   const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
   // Novo financiamento form state
@@ -87,12 +157,20 @@ export function StepPagamento({
   const [novoPrazo, setNovoPrazo] = useState("");
   const [novoCarencia, setNovoCarencia] = useState("0");
 
-  // Sync bank groups when bancos load
-  useMemo(() => {
-    if (bancos.length > 0 && bancoGroups.length === 0) {
+  useEffect(() => {
+    if (hasUserEditedBancoGroups) return;
+    if (opcoes.length > 0) {
+      setBancoGroups(mapOpcoesToBancoGroups(opcoes, bancos, precoFinal));
+      return;
+    }
+    if (bancos.length > 0) {
       setBancoGroups(buildBancoGroups(bancos, precoFinal));
     }
-  }, [bancos]);
+  }, [opcoes, bancos, precoFinal, hasUserEditedBancoGroups]);
+
+  useEffect(() => {
+    onOpcoesChange(flattenBancoGroupsToOpcoes(bancoGroups, precoFinal));
+  }, [bancoGroups, precoFinal, onOpcoesChange]);
 
   // ─── Derived metrics (aligned with calc-engine.ts)
   const prem = premissas || { inflacao_energetica: 9.5, perda_eficiencia_anual: 0.5, vpl_taxa_desconto: 10, imposto: 0, inflacao_ipca: 4.5, sobredimensionamento: 0, troca_inversor_anos: 15, troca_inversor_custo: 30 };
