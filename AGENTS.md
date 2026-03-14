@@ -9,7 +9,7 @@ Padrões obrigatórios para toda tela nova ou editada.
 - [Bloco 0 — TL;DR Checklist](#bloco-0--tldr-checklist)
 - [Bloco 1 — Regras Bloqueantes](#bloco-1--regras-bloqueantes)
 - [Bloco 2 — Boas Práticas](#bloco-2--boas-práticas)
-- [Bloco 3 — Referência de Padrões (§1–§38)](#bloco-3--referência-de-padrões)
+- [Bloco 3 — Referência de Padrões (§1–§43)](#bloco-3--referência-de-padrões)
 - [Bloco 4 — Conflitos e Exceções Oficiais](#bloco-4--conflitos-e-exceções-oficiais)
 - [Bloco 5 — Validação Antes de Finalizar](#bloco-5--validação-antes-de-finalizar)
 - [Bloco 6 — Convenções de Nomenclatura](#bloco-6--convenções-de-nomenclatura)
@@ -1344,6 +1344,7 @@ Changelog **NÃO** é obrigatório para:
 | Media player overlays | `bg-black/XX` | Padrão UX para players de vídeo/áudio |
 | Heroes institucionais | `bg-white/XX` com opacidade | Overlays sobre gradientes em landing pages |
 | KPI cards de estado/urgência | `border-l-destructive`, `border-l-warning`, `border-l-success` | Cards que representam estados distintos (urgente, pendente, ok) mantêm cores semânticas para clareza visual |
+| Ícone WhatsApp (MessageSquare) | `text-[#25D366] hover:text-green-700` | Cor oficial da marca WhatsApp — exceção aceita em botões de ação |
 
 ### Ambiguidade: "sólido laranja" em botões (§22)
 "SEMPRE sólido laranja" = usa `variant="default"` que renderiza `bg-primary`. A cor depende do tenant — pode ser laranja, azul ou qualquer outra. NUNCA hardcode `bg-orange-*`.
@@ -1487,7 +1488,7 @@ Sempre que houver layout com **header + conteúdo + footer**, usar obrigatoriame
 - NUNCA usar `max-h-[70vh]` no corpo do modal — usar `flex-1 min-h-0 overflow-y-auto` com o DialogContent sendo `flex flex-col max-h-[calc(100dvh-2rem)]`
 
 ### Onde se aplica
-- WhatsApp Inbox — **CRÍTICO**: a coluna de lista de conversas e o painel de chat DEVEM ter scroll próprio e independente. NUNCA usar scroll global na página do inbox. Cada painel é um container `flex-col h-full overflow-hidden` separado.
+- WhatsApp Inbox — **CRÍTICO**: a coluna de lista de conversas e o painel de chat são containers **SEPARADOS**, cada um com `flex-col h-full overflow-hidden` próprio. NUNCA scroll global na página do inbox. NUNCA um scroll englobando os dois painéis. Cada painel gerencia seu próprio `overflow-y-auto` de forma independente.
 - Qualquer `Dialog`, `Sheet`, `Drawer` com formulário longo
 - Sidebars com listas longas
 - Split-views com scroll independente
@@ -1586,5 +1587,46 @@ Ao receber um pedido de correção localizada:
 3. Diff real por arquivo
 4. Código final dos trechos críticos
 5. Checklist final com OK/FALHOU
+
+---
+
+## §43. CRON JOBS E SINCRONIZAÇÕES — Padrão obrigatório
+
+Toda integração externa que busca dados periodicamente **DEVE** ter:
+
+1. **Edge function dedicada** para sincronização (ex: `meta-ads-sync`, `solarmarket-sync`)
+2. **Cron job configurado** no Supabase (`pg_cron` + `pg_net`) — mínimo diário
+3. **Última sincronização registrada** no banco (`last_sync_at` na tabela da integração)
+4. **Status visível na UI** — conectado / erro / nunca sincronizado
+5. **Botão de sincronização manual** na tela do dashboard/catálogo
+6. **Registro de erros** — se falhar, registrar erro com timestamp (nunca falha silenciosa)
+
+### Integrações que precisam de cron
+- **Meta Ads** — `meta-ads-sync` — diário às 06:00 BRT (09:00 UTC)
+- **Evolution API profile pics** — atualização periódica de fotos de perfil
+- **SLA alerts** — `process-sla-alerts` — a cada 2 minutos
+- **SolarMarket** — `solarmarket-sync` — diário
+- **Health check** — `integration-health-check` — periódico
+
+### Padrão de cron job (pg_cron + pg_net)
+```sql
+select cron.schedule(
+  'sync-meta-ads-daily',
+  '0 9 * * *',  -- 09:00 UTC = 06:00 BRT
+  $$
+  select net.http_post(
+    url:='https://<project-ref>.supabase.co/functions/v1/meta-ads-sync',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer <anon-key>"}'::jsonb,
+    body:='{"cron": true}'::jsonb
+  ) as request_id;
+  $$
+);
+```
+
+### Regras
+- NUNCA deixar integração sem cron configurado se ela depende de dados atualizados
+- SEMPRE ter fallback manual (botão na UI) além do cron
+- SEMPRE registrar resultado da sincronização (sucesso/erro + timestamp)
+- Se o cron falhar 3+ vezes consecutivas, deve gerar alerta visível no dashboard de saúde
 
 ---
