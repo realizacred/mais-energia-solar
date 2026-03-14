@@ -17884,6 +17884,290 @@ export type Database = {
           },
         ]
       }
+      venda_pagamento_itens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_pagamento: string | null
+          data_primeiro_vencimento: string | null
+          entrada: boolean
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento_enum"]
+          id: string
+          intervalo_dias: number | null
+          juros_responsavel: Database["public"]["Enums"]["juros_responsavel_enum"]
+          juros_tipo: Database["public"]["Enums"]["juros_tipo_enum"]
+          juros_valor: number | null
+          metadata_json: Json | null
+          observacoes: string | null
+          ordem: number
+          parcelas: number | null
+          tenant_id: string
+          updated_at: string
+          valor_base: number
+          valor_com_juros: number | null
+          valor_juros: number | null
+          venda_pagamento_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_primeiro_vencimento?: string | null
+          entrada?: boolean
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento_enum"]
+          id?: string
+          intervalo_dias?: number | null
+          juros_responsavel?: Database["public"]["Enums"]["juros_responsavel_enum"]
+          juros_tipo?: Database["public"]["Enums"]["juros_tipo_enum"]
+          juros_valor?: number | null
+          metadata_json?: Json | null
+          observacoes?: string | null
+          ordem?: number
+          parcelas?: number | null
+          tenant_id?: string
+          updated_at?: string
+          valor_base?: number
+          valor_com_juros?: number | null
+          valor_juros?: number | null
+          venda_pagamento_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_primeiro_vencimento?: string | null
+          entrada?: boolean
+          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento_enum"]
+          id?: string
+          intervalo_dias?: number | null
+          juros_responsavel?: Database["public"]["Enums"]["juros_responsavel_enum"]
+          juros_tipo?: Database["public"]["Enums"]["juros_tipo_enum"]
+          juros_valor?: number | null
+          metadata_json?: Json | null
+          observacoes?: string | null
+          ordem?: number
+          parcelas?: number | null
+          tenant_id?: string
+          updated_at?: string
+          valor_base?: number
+          valor_com_juros?: number | null
+          valor_juros?: number | null
+          venda_pagamento_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venda_pagamento_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venda_pagamento_itens_venda_pagamento_id_fkey"
+            columns: ["venda_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "venda_pagamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venda_pagamento_parcelas: {
+        Row: {
+          created_at: string
+          id: string
+          metadata_json: Json | null
+          numero_parcela: number
+          status: Database["public"]["Enums"]["parcela_status_enum"]
+          tenant_id: string
+          tipo_parcela: Database["public"]["Enums"]["tipo_parcela_enum"]
+          updated_at: string
+          valor: number
+          vencimento: string
+          venda_pagamento_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata_json?: Json | null
+          numero_parcela: number
+          status?: Database["public"]["Enums"]["parcela_status_enum"]
+          tenant_id?: string
+          tipo_parcela?: Database["public"]["Enums"]["tipo_parcela_enum"]
+          updated_at?: string
+          valor?: number
+          vencimento: string
+          venda_pagamento_item_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata_json?: Json | null
+          numero_parcela?: number
+          status?: Database["public"]["Enums"]["parcela_status_enum"]
+          tenant_id?: string
+          tipo_parcela?: Database["public"]["Enums"]["tipo_parcela_enum"]
+          updated_at?: string
+          valor?: number
+          vencimento?: string
+          venda_pagamento_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venda_pagamento_parcelas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venda_pagamento_parcelas_venda_pagamento_item_id_fkey"
+            columns: ["venda_pagamento_item_id"]
+            isOneToOne: false
+            referencedRelation: "venda_pagamento_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venda_pagamentos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          observacoes: string | null
+          status_validacao: Database["public"]["Enums"]["pagamento_validacao_enum"]
+          tenant_id: string
+          updated_at: string
+          valor_total_cliente: number
+          valor_total_empresa_absorve: number
+          valor_total_itens_base: number
+          valor_total_juros: number
+          valor_total_venda: number
+          venda_id: string
+          versao: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          status_validacao?: Database["public"]["Enums"]["pagamento_validacao_enum"]
+          tenant_id?: string
+          updated_at?: string
+          valor_total_cliente?: number
+          valor_total_empresa_absorve?: number
+          valor_total_itens_base?: number
+          valor_total_juros?: number
+          valor_total_venda?: number
+          venda_id: string
+          versao?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          status_validacao?: Database["public"]["Enums"]["pagamento_validacao_enum"]
+          tenant_id?: string
+          updated_at?: string
+          valor_total_cliente?: number
+          valor_total_empresa_absorve?: number
+          valor_total_itens_base?: number
+          valor_total_juros?: number
+          valor_total_venda?: number
+          venda_id?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venda_pagamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venda_pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendas: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          observacoes: string | null
+          orcamento_id: string | null
+          projeto_id: string | null
+          status: Database["public"]["Enums"]["venda_status_enum"]
+          tenant_id: string
+          updated_at: string
+          valor_total_bruto: number
+          valor_total_liquido: number
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          orcamento_id?: string | null
+          projeto_id?: string | null
+          status?: Database["public"]["Enums"]["venda_status_enum"]
+          tenant_id?: string
+          updated_at?: string
+          valor_total_bruto?: number
+          valor_total_liquido?: number
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          orcamento_id?: string | null
+          projeto_id?: string | null
+          status?: Database["public"]["Enums"]["venda_status_enum"]
+          tenant_id?: string
+          updated_at?: string
+          valor_total_bruto?: number
+          valor_total_liquido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_invites: {
         Row: {
           consultor_id: string
@@ -21439,6 +21723,10 @@ export type Database = {
         }
         Returns: Json
       }
+      save_payment_composition: {
+        Args: { p_itens?: Json; p_observacoes?: string; p_venda_id: string }
+        Returns: string
+      }
       set_billing_pdf_password: {
         Args: { p_password: string; p_unit_id: string }
         Returns: undefined
@@ -21569,6 +21857,17 @@ export type Database = {
         | "visit"
         | "follow_up"
         | "other"
+      forma_pagamento_enum:
+        | "pix"
+        | "dinheiro"
+        | "transferencia"
+        | "boleto"
+        | "cartao_credito"
+        | "cartao_debito"
+        | "cheque"
+        | "financiamento"
+        | "crediario"
+        | "outro"
       integration_audit_action:
         | "connect_started"
         | "connect_completed"
@@ -21588,7 +21887,11 @@ export type Database = {
         | "revoked"
         | "expired"
       invoice_source: "email" | "manual" | "import" | "api"
+      juros_responsavel_enum: "empresa" | "cliente" | "nao_aplica"
+      juros_tipo_enum: "percentual" | "valor_fixo" | "sem_juros"
       meter_link_type: "principal" | "auxiliar" | "backup"
+      pagamento_validacao_enum: "valido" | "divergente" | "pendente"
+      parcela_status_enum: "pendente" | "pago" | "atrasado" | "cancelado"
       pipeline_kind: "process" | "owner_board"
       plant_relation_type: "geradora" | "beneficiaria" | "compensacao"
       pricing_method_type: "margin_on_sale" | "margin_on_cost"
@@ -21625,8 +21928,15 @@ export type Database = {
         | "canceled"
         | "expired"
       tenant_status: "active" | "suspended" | "disabled" | "pending"
+      tipo_parcela_enum: "entrada" | "regular" | "intermediaria" | "final"
       tipo_sistema_inversor: "ON_GRID" | "HIBRIDO" | "OFF_GRID"
       uc_type: "consumo" | "gd_geradora" | "beneficiaria"
+      venda_status_enum:
+        | "rascunho"
+        | "pendente"
+        | "aprovada"
+        | "cancelada"
+        | "concluida"
       wa_participant_role: "owner" | "collaborator" | "viewer"
     }
     CompositeTypes: {
@@ -21831,6 +22141,18 @@ export const Constants = {
         "follow_up",
         "other",
       ],
+      forma_pagamento_enum: [
+        "pix",
+        "dinheiro",
+        "transferencia",
+        "boleto",
+        "cartao_credito",
+        "cartao_debito",
+        "cheque",
+        "financiamento",
+        "crediario",
+        "outro",
+      ],
       integration_audit_action: [
         "connect_started",
         "connect_completed",
@@ -21852,7 +22174,11 @@ export const Constants = {
         "expired",
       ],
       invoice_source: ["email", "manual", "import", "api"],
+      juros_responsavel_enum: ["empresa", "cliente", "nao_aplica"],
+      juros_tipo_enum: ["percentual", "valor_fixo", "sem_juros"],
       meter_link_type: ["principal", "auxiliar", "backup"],
+      pagamento_validacao_enum: ["valido", "divergente", "pendente"],
+      parcela_status_enum: ["pendente", "pago", "atrasado", "cancelado"],
       pipeline_kind: ["process", "owner_board"],
       plant_relation_type: ["geradora", "beneficiaria", "compensacao"],
       pricing_method_type: ["margin_on_sale", "margin_on_cost"],
@@ -21893,8 +22219,16 @@ export const Constants = {
         "expired",
       ],
       tenant_status: ["active", "suspended", "disabled", "pending"],
+      tipo_parcela_enum: ["entrada", "regular", "intermediaria", "final"],
       tipo_sistema_inversor: ["ON_GRID", "HIBRIDO", "OFF_GRID"],
       uc_type: ["consumo", "gd_geradora", "beneficiaria"],
+      venda_status_enum: [
+        "rascunho",
+        "pendente",
+        "aprovada",
+        "cancelada",
+        "concluida",
+      ],
       wa_participant_role: ["owner", "collaborator", "viewer"],
     },
   },

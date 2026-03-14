@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.39.0",
+    date: "2026-03-14",
+    title: "Motor de Composição de Pagamento para Vendas",
+    type: "feature",
+    description: "Sistema composicional de pagamentos que permite múltiplos itens por venda com juros, parcelamento e validação em tempo real.",
+    details: [
+      "Tabelas normalizadas: vendas, venda_pagamentos, venda_pagamento_itens, venda_pagamento_parcelas",
+      "10 formas de pagamento (pix, cartão, cheque, financiamento, etc.) com regras dinâmicas por tipo",
+      "Calculadora de juros (percentual/fixo) com responsável (cliente/empresa)",
+      "Gerador de parcelas automático com preview em tempo real",
+      "RPC save_payment_composition transacional com versionamento",
+      "Componente PaymentComposer com resumo financeiro completo",
+    ],
+  },
+  {
     version: "2.38.1",
     date: "2026-03-14",
     title: "DOCX: hardening do mapeamento de pagamento no template-preview",
