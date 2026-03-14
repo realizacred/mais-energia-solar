@@ -1715,6 +1715,7 @@ export function ProposalWizard() {
               rendering={rendering}
               result={result}
               htmlPreview={htmlPreview}
+              pdfBlobUrl={pdfBlobUrl}
               onGenerate={handleGenerate}
               onNewVersion={handleNewVersion}
               onViewDetail={handleViewDetail}
