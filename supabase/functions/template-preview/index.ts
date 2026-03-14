@@ -400,11 +400,17 @@ Deno.serve(async (req) => {
 
     // ── 2. PARSE BODY ─────────────────────────────────────
     const body = await req.json();
-    const { template_id, proposta_id, lead_id: bodyLeadId } = body;
+    const { template_id, proposta_id, lead_id: bodyLeadId, diagnostic } = body;
 
     if (!template_id) {
       return jsonError("template_id é obrigatório", 400);
     }
+
+    // ── DIAGNOSTIC MODE ───────────────────────────────────
+    if (diagnostic === true) {
+      return await handleDiagnostic(adminClient, template_id, tenantId);
+    }
+
     if (!proposta_id && !bodyLeadId) {
       return jsonError("proposta_id ou lead_id é obrigatório", 400);
     }
@@ -1094,4 +1100,190 @@ function jsonError(msg: string, status: number) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// ─── Diagnostic handler ──────────────────────────────────
+async function handleDiagnostic(
+  adminClient: ReturnType<typeof createClient>,
+  templateId: string,
+  tenantId: string,
+) {
+  const corsJson = { ...corsHeaders, "Content-Type": "application/json" };
+
+  // 1. Fetch template record
+  const { data: tmpl, error: tmplErr } = await adminClient
+    .from("proposta_templates")
+    .select("id, nome, tipo, file_url")
+    .eq("id", templateId)
+    .eq("tenant_id", tenantId)
+    .single();
+
+  if (tmplErr || !tmpl || !tmpl.file_url) {
+    return new Response(JSON.stringify({ error: "Template não encontrado ou sem file_url", tmplErr }), { status: 404, headers: corsJson });
+  }
+
+  // 2. Download template bytes
+  const fileUrl = tmpl.file_url.startsWith("http")
+    ? tmpl.file_url
+    : (() => {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const bucket = "proposta-templates";
+        return `${supabaseUrl}/storage/v1/object/authenticated/${bucket}/${tmpl.file_url}`;
+      })();
+
+  let templateBytes: Uint8Array;
+  if (tmpl.file_url.startsWith("http")) {
+    const resp = await fetch(fileUrl);
+    if (!resp.ok) return new Response(JSON.stringify({ error: `Download failed: ${resp.status}` }), { status: 500, headers: corsJson });
+    templateBytes = new Uint8Array(await resp.arrayBuffer());
+  } else {
+    const { data: dlData, error: dlErr } = await adminClient.storage
+      .from("proposta-templates")
+      .download(tmpl.file_url);
+    if (dlErr || !dlData) return new Response(JSON.stringify({ error: `Storage download failed: ${dlErr?.message}` }), { status: 500, headers: corsJson });
+    templateBytes = new Uint8Array(await dlData.arrayBuffer());
+  }
+
+  // 3. Unzip and read document.xml
+  const zip = await JSZip.loadAsync(templateBytes);
+  const docFile = zip.file("word/document.xml");
+  if (!docFile) {
+    return new Response(JSON.stringify({ error: "word/document.xml not found in ZIP" }), { status: 500, headers: corsJson });
+  }
+  const docXml = await docFile.async("string");
+
+  // 4. Find all w:txbx text boxes
+  const txbxPattern = /<w:txbx[^>]*>[^]*?<\/w:txbx>/g;
+  const textBoxes: Array<{
+    index: number;
+    visibleText: string;
+    runsCount: number;
+    placeholdersIntact: string[];
+    placeholdersFragmented: string[];
+    rawSnippet: string;
+  }> = [];
+
+  let txbxMatch;
+  let txbxIdx = 0;
+  while ((txbxMatch = txbxPattern.exec(docXml)) !== null) {
+    const txbxXml = txbxMatch[0];
+
+    // Extract all runs within this textbox
+    const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
+    const runs: Array<{ text: string; xml: string }> = [];
+    let runMatch;
+    while ((runMatch = runPattern.exec(txbxXml)) !== null) {
+      const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+      let tMatch;
+      const texts: string[] = [];
+      while ((tMatch = tPattern.exec(runMatch[0])) !== null) {
+        texts.push(tMatch[1]);
+      }
+      runs.push({ text: texts.join(""), xml: runMatch[0] });
+    }
+
+    const fullText = runs.map(r => r.text).join("");
+
+    // Check for intact placeholders (within a single run)
+    const intactPlaceholders: string[] = [];
+    const phPattern = /\[([a-zA-Z_][a-zA-Z0-9_.\-]{0,120})\]/g;
+    for (const run of runs) {
+      let pm;
+      while ((pm = phPattern.exec(run.text)) !== null) {
+        intactPlaceholders.push(pm[0]);
+      }
+    }
+
+    // Check for fragmented placeholders (across runs)
+    const fragmentedPlaceholders: string[] = [];
+    let fpm;
+    const fullPhPattern = /\[([a-zA-Z_][a-zA-Z0-9_.\-]{0,120})\]/g;
+    while ((fpm = fullPhPattern.exec(fullText)) !== null) {
+      if (!intactPlaceholders.includes(fpm[0])) {
+        fragmentedPlaceholders.push(fpm[0]);
+      }
+    }
+
+    textBoxes.push({
+      index: txbxIdx++,
+      visibleText: fullText,
+      runsCount: runs.length,
+      placeholdersIntact: intactPlaceholders,
+      placeholdersFragmented: fragmentedPlaceholders,
+      rawSnippet: txbxXml.length > 2000 ? txbxXml.substring(0, 2000) + "..." : txbxXml,
+    });
+  }
+
+  // 5. Check all placeholders in the full document
+  const allPlaceholders: string[] = [];
+  const docPhPattern = /\[([a-zA-Z_][a-zA-Z0-9_.\-]{0,120})\]/g;
+  let dpm;
+  while ((dpm = docPhPattern.exec(docXml)) !== null) {
+    if (!allPlaceholders.includes(dpm[0])) allPlaceholders.push(dpm[0]);
+  }
+
+  // 6. Check wp:anchor occurrences
+  const anchorCount = (docXml.match(/<wp:anchor/g) || []).length;
+  const inlineCount = (docXml.match(/<wp:inline/g) || []).length;
+  const drawingCount = (docXml.match(/<w:drawing/g) || []).length;
+  const pictCount = (docXml.match(/<w:pict/g) || []).length;
+
+  // 7. Run normalization and compare
+  let normalizedXml = normalizeTextBoxRuns(docXml);
+  normalizedXml = normalizeParagraphRuns(normalizedXml);
+
+  // Check if normalization preserved anchors
+  const postAnchorCount = (normalizedXml.match(/<wp:anchor/g) || []).length;
+  const postDrawingCount = (normalizedXml.match(/<w:drawing/g) || []).length;
+  const postTxbxCount = (normalizedXml.match(/<w:txbx/g) || []).length;
+
+  // Check fragmented placeholders after normalization
+  const postPlaceholders: string[] = [];
+  const postPhPattern = /\[([a-zA-Z_][a-zA-Z0-9_.\-]{0,120})\]/g;
+  let ppm;
+  while ((ppm = postPhPattern.exec(normalizedXml)) !== null) {
+    if (!postPlaceholders.includes(ppm[0])) postPlaceholders.push(ppm[0]);
+  }
+
+  const report = {
+    template: { id: tmpl.id, nome: tmpl.nome, file_url: tmpl.file_url },
+    originalSize: templateBytes.length,
+    documentXmlSize: docXml.length,
+    normalizedXmlSize: normalizedXml.length,
+    xmlStructure: {
+      wpAnchor: anchorCount,
+      wpInline: inlineCount,
+      wDrawing: drawingCount,
+      wPict: pictCount,
+    },
+    postNormalization: {
+      wpAnchor: postAnchorCount,
+      wDrawing: postDrawingCount,
+      wTxbx: postTxbxCount,
+      anchorsPreserved: anchorCount === postAnchorCount,
+      drawingsPreserved: drawingCount === postDrawingCount,
+    },
+    textBoxes: {
+      count: textBoxes.length,
+      details: textBoxes,
+    },
+    placeholders: {
+      beforeNormalization: allPlaceholders,
+      afterNormalization: postPlaceholders,
+      totalBefore: allPlaceholders.length,
+      totalAfter: postPlaceholders.length,
+    },
+    fragmentationSummary: {
+      hasFragmentedPlaceholders: textBoxes.some(tb => tb.placeholdersFragmented.length > 0),
+      fragmented: textBoxes.filter(tb => tb.placeholdersFragmented.length > 0).map(tb => ({
+        textBox: tb.index,
+        text: tb.visibleText,
+        fragmentedVars: tb.placeholdersFragmented,
+      })),
+    },
+  };
+
+  console.log("[template-preview] DIAGNOSTIC REPORT:", JSON.stringify(report, null, 2));
+
+  return new Response(JSON.stringify(report, null, 2), { status: 200, headers: corsJson });
 }
