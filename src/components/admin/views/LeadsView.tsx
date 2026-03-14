@@ -4,7 +4,7 @@ import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
-import { ClipboardList } from "lucide-react";
+import { Users } from "lucide-react";
 import { useOrcamentosAdmin } from "@/hooks/useOrcamentosAdmin";
 import { 
   OrcamentosTable, 
