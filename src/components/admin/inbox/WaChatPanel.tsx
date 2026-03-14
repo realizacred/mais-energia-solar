@@ -250,6 +250,15 @@ export function WaChatPanel({
     prevMsgCountRef.current = visibleMessages.length;
   }, [visibleMessages.length, atBottom]);
 
+  // Re-scroll when accept banner toggles (changes available height for Virtuoso)
+  useEffect(() => {
+    if (atBottom && visibleMessages.length > 0) {
+      setTimeout(() => {
+        virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length - 1, behavior: "smooth" });
+      }, 80);
+    }
+  }, [showAcceptBanner]);
+
   // Mark as read when at bottom and messages exist
   useEffect(() => {
     if (atBottom && visibleMessages.length > 0 && onMarkAsRead) {
