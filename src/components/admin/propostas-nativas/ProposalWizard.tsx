@@ -1367,66 +1367,54 @@ export function ProposalWizard() {
           // Store blob for downloads (DOCX + PDF)
           setDocxBlob(docxBlob);
 
-          // Convert DOCX → HTML for inline preview using mammoth
+          // Convert DOCX → PDF via Gotenberg for real preview
           let previewReady = false;
           try {
-            const mammoth = await import("mammoth");
-            const arrayBuffer = await docxBlob.arrayBuffer();
-            const mammothResult = await (mammoth as any).convertToHtml({
-              arrayBuffer,
-              convertImage: (mammoth as any).images.imgElement((image: any) =>
-                image.read("base64").then((imageBuffer: string) => ({
-                  src: `data:${image.contentType};base64,${imageBuffer}`,
-                }))
-              ),
+            const docxArrayBuffer = await docxBlob.arrayBuffer();
+            const docxBytes = new Uint8Array(docxArrayBuffer);
+            // Base64 encode
+            let docxBase64 = "";
+            const chunkSize = 32768;
+            for (let i = 0; i < docxBytes.length; i += chunkSize) {
+              const chunk = docxBytes.subarray(i, i + chunkSize);
+              docxBase64 += String.fromCharCode(...chunk);
+            }
+            docxBase64 = btoa(docxBase64);
+
+            const pdfResp = await fetch(`https://${projectId}.supabase.co/functions/v1/docx-to-pdf`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session?.access_token || anonKey}`,
+                "apikey": anonKey,
+                "x-client-timeout": "120",
+              },
+              body: JSON.stringify({ docxBase64, filename: "proposta.docx" }),
             });
-            // Wrap in A4-styled container with proper image handling
-            const styledHtml = `
-              <!DOCTYPE html>
-              <html><head><meta charset="utf-8"><style>
-                @page { size: A4; margin: 20mm; }
-                * { box-sizing: border-box; }
-                body {
-                  font-family: 'Segoe UI', Arial, sans-serif;
-                  width: 210mm; min-height: 297mm;
-                  margin: 0 auto; padding: 20mm;
-                  color: #333; line-height: 1.6; font-size: 12px;
-                  background: #fff;
-                }
-                table { border-collapse: collapse; width: 100%; margin: 12px 0; page-break-inside: avoid; }
-                td, th { border: 1px solid #ddd; padding: 6px 10px; vertical-align: middle; }
-                th { background: #f5f5f5; font-weight: 600; }
-                img {
-                  max-width: 100%; height: auto; display: block;
-                  margin: 8px 0; page-break-inside: avoid;
-                  position: relative; /* prevent overlap */
-                  clear: both;
-                }
-                /* Inline images (small icons) stay inline */
-                p img, span img { display: inline; margin: 0 4px; vertical-align: middle; max-height: 1.5em; }
-                /* Large images get full-width block treatment */
-                img[src*="base64"] { display: block; clear: both; }
-                h1 { font-size: 20px; color: #222; margin: 16px 0 8px; page-break-after: avoid; }
-                h2 { font-size: 17px; color: #333; margin: 14px 0 6px; page-break-after: avoid; }
-                h3 { font-size: 15px; color: #444; margin: 12px 0 4px; page-break-after: avoid; }
-                p { margin: 6px 0; orphans: 3; widows: 3; }
-                /* Prevent content overflow */
-                div, section, article { overflow: hidden; }
-              </style></head><body>${mammothResult.value}</body></html>
-            `;
-            setHtmlPreview(styledHtml);
-            previewReady = true;
-          } catch (convErr: any) {
-            console.error("Mammoth conversion failed:", convErr?.message, convErr);
-            console.log("Blob type:", docxBlob.type, "size:", docxBlob.size);
-            setHtmlPreview(null);
+
+            if (pdfResp.ok) {
+              const { pdf: pdfBase64 } = await pdfResp.json();
+              const pdfBinary = atob(pdfBase64);
+              const pdfBytes = new Uint8Array(pdfBinary.length);
+              for (let i = 0; i < pdfBinary.length; i++) {
+                pdfBytes[i] = pdfBinary.charCodeAt(i);
+              }
+              const pdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
+              const url = URL.createObjectURL(pdfBlob);
+              setPdfBlobUrl(url);
+              previewReady = true;
+            } else {
+              console.error("[ProposalWizard] PDF conversion failed:", await pdfResp.text());
+            }
+          } catch (pdfErr: any) {
+            console.error("[ProposalWizard] PDF preview error:", pdfErr?.message);
           }
 
           toast({
-            title: previewReady ? "Proposta DOCX gerada!" : "DOCX gerado com aviso",
+            title: previewReady ? "Proposta gerada!" : "DOCX gerado com aviso",
             description: previewReady
-              ? "Preview exibido na tela. Use os botões para baixar PDF ou DOCX."
-              : "O DOCX foi gerado, mas o preview falhou. Você ainda pode baixar o DOCX.",
+              ? "Preview do PDF exibido na tela. Use os botões para baixar."
+              : "O DOCX foi gerado, mas o preview PDF falhou. Você ainda pode baixar o DOCX.",
           });
         } else {
           // HTML template: use proposal-render as before
