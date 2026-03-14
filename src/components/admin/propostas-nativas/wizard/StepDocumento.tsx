@@ -54,7 +54,7 @@ export function StepDocumento({
   potenciaKwp, areaUtilM2 = 0, geracaoMensalKwh = 0,
   numUcs, precoFinal,
   templateSelecionado, onTemplateSelecionado,
-  generating, rendering, result, htmlPreview,
+  generating, rendering, result, htmlPreview, pdfBlobUrl,
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
