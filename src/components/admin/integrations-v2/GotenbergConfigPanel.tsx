@@ -68,13 +68,15 @@ export default function GotenbergConfigPanel() {
 
   useEffect(() => {
     if (connection?.config) {
-      setForm({
+      const loaded: GotenbergConfig = {
         enabled: connection.config.enabled ?? false,
         base_url: connection.config.base_url ?? "",
         timeout_ms: connection.config.timeout_ms ?? 30000,
         last_health: connection.config.last_health,
         last_health_at: connection.config.last_health_at,
-      });
+      };
+      setForm(loaded);
+      setSavedConfig(loaded);
     }
   }, [connection]);
 
