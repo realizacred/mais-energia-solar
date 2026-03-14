@@ -204,8 +204,8 @@ export function OrcamentosTable({
                 </TableCell>
                 <TableCell className="hidden sm:table-cell align-middle">
                   <Badge
-                    variant="secondary"
-                    className="bg-secondary/10 text-secondary text-xs"
+                    variant="outline"
+                    className="bg-muted text-muted-foreground border-border text-xs"
                   >
                     {orc.cidade}, {orc.estado}
                   </Badge>
