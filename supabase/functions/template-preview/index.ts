@@ -638,28 +638,39 @@ Deno.serve(async (req) => {
     // CATEGORIA: SISTEMA SOLAR
     // ═══════════════════════════════════════════════════════
     const potencia = versaoData?.potencia_kwp || projeto?.potencia_kwp || cliente?.potencia_kwp || snapNum("potencia_kwp") || snapNum("potencia_sistema");
-    set("potencia_sistema", potencia ? `${fmtNum(potencia)} kWp` : undefined);
-    set("potencia_si", potencia ? `${fmtNum(potencia)} kWp` : undefined);
+    if (potencia) {
+      // Guard against unit duplication: if value already contains "kWp", don't append again
+      const potStr = String(potencia);
+      const formatted = potStr.includes("kWp") ? potStr : `${fmtNum(potencia)} kWp`;
+      set("potencia_sistema", formatted);
+      set("potencia_si", formatted);
+    }
     setIfMissing("potencia_ideal_total", snapshot?.potencia_ideal_total);
 
     const numModulos = projeto?.numero_modulos || cliente?.numero_placas || snapshot?.numero_modulos || snapshot?.modulo_quantidade;
     set("modulo_quantidade", numModulos);
     set("vc_total_modulo", numModulos);
 
-    // Módulo specs
+    // Módulo specs — guard against "Wp Wp" duplication
     set("modulo_modelo", projeto?.modelo_modulos || snapshot?.modulo_modelo);
     setIfMissing("modulo_fabricante", snapshot?.modulo_fabricante);
-    setIfMissing("modulo_potencia", snapshot?.modulo_potencia ? `${snapshot.modulo_potencia} Wp` : undefined);
+    if (snapshot?.modulo_potencia) {
+      const mp = String(snapshot.modulo_potencia);
+      setIfMissing("modulo_potencia", mp.includes("Wp") ? mp : `${mp} Wp`);
+    }
     setIfMissing("vc_modulo_potencia", snapshot?.modulo_potencia);
-    const moduloSpecs = ["modulo_celulas", "modulo_tensao_maxima", "modulo_comprimento", "modulo_largura", "modulo_profundidade",
-      "modulo_vmp", "modulo_voc", "modulo_imp", "modulo_isc", "modulo_tipo_celula", "modulo_eficiencia", "modulo_codigo",
-      "modulo_coef_temp_voc", "modulo_coef_temp_isc", "modulo_coef_temp_pmax", "modulo_area", "modulo_garantia"];
-    for (const k of moduloSpecs) setIfMissing(k, snapshot?.[k]);
 
-    // Inversor specs (indexed _1, _2, etc. and concatenated)
+    // Inversor specs — guard against "W W" duplication
     set("inversor_modelo", projeto?.modelo_inversor || cliente?.modelo_inversor || snapshot?.inversor_modelo);
-    setIfMissing("inversor_fabricante_1", snapshot?.inversor_fabricante || snapshot?.inversor_fabricante_1);
-    setIfMissing("inversor_potencia_nominal", snapshot?.inversor_potencia || snapshot?.inversor_potencia_nominal);
+    const invFab = snapshot?.inversor_fabricante || snapshot?.inversor_fabricante_1;
+    setIfMissing("inversor_fabricante_1", invFab);
+    setIfMissing("inversor_fabricante", invFab);
+    const invPot = snapshot?.inversor_potencia || snapshot?.inversor_potencia_nominal;
+    if (invPot) {
+      const ipStr = String(invPot);
+      const fmtInvPot = ipStr.includes("W") ? ipStr : `${ipStr} W`;
+      setIfMissing("inversor_potencia_nominal", fmtInvPot);
+    }
     setIfMissing("inversores_utilizados", snapshot?.inversores_utilizados || (projeto?.modelo_inversor ? `1x ${projeto.modelo_inversor}` : undefined));
     const inversorFields = ["inversor_fabricante", "inversor_modelo", "inversor_quantidade", "inversor_potencia",
       "inversor_potencia_nominal", "inversor_tensao", "inversor_tipo", "inversor_corrente_saida",
