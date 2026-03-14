@@ -921,7 +921,7 @@ function GerenciamentoTab({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {customerPhone && (
-                    <DropdownMenuItem onClick={() => navigate("/admin/whatsapp")}>
+                    <DropdownMenuItem onClick={() => navigate("/admin/catalogo-integracoes?tab=automacao")}>
                       <Send className="h-3.5 w-3.5 mr-2" />Abrir WhatsApp interno
                     </DropdownMenuItem>
                   )}
