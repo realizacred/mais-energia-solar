@@ -86,7 +86,7 @@ export default function MetaDashboardPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/admin/catalogo-integracoes")}
+             onClick={() => navigate("/admin/meta-facebook-config")}
             className="gap-1.5"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -104,30 +104,17 @@ export default function MetaDashboardPage() {
         </div>
       </div>
 
-      {/* Connection Status §22 */}
-      <div className="p-4 rounded-lg bg-muted/50 border border-border">
-        <div className="flex items-center gap-2 mb-1">
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            isConnected ? "bg-success" : "bg-destructive"
-          )} />
-          <span className="text-sm font-medium text-foreground">
-            {isConnected ? "Conectado" : "Não configurado"}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-auto gap-1.5"
-            onClick={() => navigate("/admin/catalogo-integracoes")}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            Configurar
-          </Button>
-        </div>
+      {/* Connection Status */}
+      <div className="p-3 rounded-lg bg-muted/50 border border-border flex items-center gap-3">
+        <div className={cn("w-2 h-2 rounded-full shrink-0",
+          isConnected ? "bg-success" : "bg-destructive")} />
+        <span className="text-sm font-medium text-foreground">
+          {isConnected ? "Meta conectada e funcionando" : "Meta não configurada"}
+        </span>
         {!isConnected && (
-          <p className="text-xs text-muted-foreground">
-            Configure o Access Token e App Secret para começar a receber dados.
-          </p>
+          <span className="text-xs text-muted-foreground ml-1">
+            — use o botão "Configurar Meta" acima
+          </span>
         )}
       </div>
 
@@ -137,7 +124,7 @@ export default function MetaDashboardPage() {
             <AlertCircle className="h-5 w-5 text-warning shrink-0" />
             <p className="text-sm text-warning">
               Integração Meta não está ativa. Configure as credenciais em{" "}
-              <a href="/admin/catalogo-integracoes" className="underline font-medium">Integrações → Meta</a>.
+              <a href="/admin/meta-facebook-config" className="underline font-medium">Configurar Meta</a>.
             </p>
           </CardContent>
         </Card>
