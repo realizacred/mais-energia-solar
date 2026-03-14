@@ -2,7 +2,7 @@ import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { formatBRL } from "@/lib/formatters";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   BarChart2, DollarSign, MousePointerClick, Users, TrendingUp,
@@ -86,7 +86,7 @@ export default function MetaDashboardPage() {
           <Button
             variant="outline"
             size="sm"
-             onClick={() => navigate("/admin/catalogo-integracoes?integration=meta_facebook&action=configure")}
+            onClick={() => navigate("/admin/catalogo-integracoes?integration=meta_facebook&action=configure")}
             className="gap-1.5"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -104,17 +104,26 @@ export default function MetaDashboardPage() {
         </div>
       </div>
 
-      {/* Connection Status */}
-      <div className="p-3 rounded-lg bg-muted/50 border border-border flex items-center gap-3">
-        <div className={cn("w-2 h-2 rounded-full shrink-0",
-          isConnected ? "bg-success" : "bg-destructive")} />
-        <span className="text-sm font-medium text-foreground">
-          {isConnected ? "Meta conectada e funcionando" : "Meta não configurada"}
-        </span>
+      {/* Connection Status — card informativo §4 */}
+      <div className="p-4 rounded-lg bg-muted/50 border border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={cn("w-2 h-2 rounded-full",
+              isConnected ? "bg-success" : "bg-destructive")} />
+            <span className="text-sm font-medium text-foreground">
+              {isConnected ? "Meta conectada" : "Meta não configurada"}
+            </span>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5"
+            onClick={() => navigate("/admin/catalogo-integracoes?integration=meta_facebook&action=configure")}>
+            <Settings className="w-3.5 h-3.5" />
+            Configurar
+          </Button>
+        </div>
         {!isConnected && (
-          <span className="text-xs text-muted-foreground ml-1">
-            — use o botão "Configurar Meta" acima
-          </span>
+          <p className="text-xs text-muted-foreground mt-2">
+            Configure o Access Token e App Secret para receber dados de campanhas.
+          </p>
         )}
       </div>
 
@@ -130,7 +139,7 @@ export default function MetaDashboardPage() {
         </Card>
       )}
 
-      {/* KPI Cards §27 */}
+      {/* KPI Cards §27 — StatCard already follows border-l pattern */}
       {isLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           {[...Array(7)].map((_, i) => (
@@ -139,22 +148,31 @@ export default function MetaDashboardPage() {
         </div>
       ) : metrics ? (
         <>
-           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-             <StatCard icon={DollarSign} label="Investimento" value={formatBRL(metrics.spend)} />
-             <StatCard icon={Eye} label="Alcance" value={metrics.reach.toLocaleString("pt-BR")} />
-             <StatCard icon={BarChart2} label="Impressões" value={metrics.impressions.toLocaleString("pt-BR")} />
-             <StatCard icon={MousePointerClick} label="Cliques" value={metrics.clicks.toLocaleString("pt-BR")} />
-             <StatCard icon={TrendingUp} label="CTR" value={`${metrics.ctr.toFixed(2)}%`} />
-             <StatCard icon={Users} label="Leads" value={metrics.leads.toLocaleString("pt-BR")} />
-             <StatCard icon={Target} label="CPL" value={formatBRL(metrics.cpl)} />
-           </div>
-           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-             <StatCard icon={MousePointerClick} label="CPC" value={formatBRL(metrics.cpc)} subtitle="Custo por clique" />
-             <StatCard icon={Target} label="CPL" value={formatBRL(metrics.cpl)} subtitle="Custo por lead" />
-             <StatCard icon={Repeat} label="Frequência" value={metrics.frequency.toFixed(2)} subtitle="Impressões / Alcance" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            <StatCard icon={DollarSign} label="Investimento" value={formatBRL(metrics.spend)} />
+            <StatCard icon={Eye} label="Alcance" value={metrics.reach.toLocaleString("pt-BR")} />
+            <StatCard icon={BarChart2} label="Impressões" value={metrics.impressions.toLocaleString("pt-BR")} />
+            <StatCard icon={MousePointerClick} label="Cliques" value={metrics.clicks.toLocaleString("pt-BR")} />
+            <StatCard icon={TrendingUp} label="CTR" value={`${metrics.ctr.toFixed(2)}%`} />
+            <StatCard icon={Users} label="Leads" value={metrics.leads.toLocaleString("pt-BR")} />
+            <StatCard icon={Target} label="CPL" value={formatBRL(metrics.cpl)} />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <StatCard icon={MousePointerClick} label="CPC" value={formatBRL(metrics.cpc)} subtitle="Custo por clique" />
+            <StatCard icon={Target} label="CPL" value={formatBRL(metrics.cpl)} subtitle="Custo por lead" />
+            <StatCard icon={Repeat} label="Frequência" value={metrics.frequency.toFixed(2)} subtitle="Impressões / Alcance" />
           </div>
         </>
-      ) : null}
+      ) : (
+        /* Empty state §4 */
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <BarChart2 className="w-8 h-8 text-muted-foreground/40 mb-2" />
+          <p className="text-sm text-muted-foreground">Nenhum dado disponível</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            Configure a integração com a Meta para visualizar métricas
+          </p>
+        </div>
+      )}
 
       {/* Time Series + Spend Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

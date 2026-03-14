@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Plug, RefreshCw, Power, Sun, Clock, CheckCircle2,
-  AlertCircle, Settings, Zap, Users, HardDrive, Calendar,
+  AlertCircle, AlertTriangle, Settings, Zap, Users, HardDrive, Calendar,
   Mail, MessageCircle, Video, CreditCard, ReceiptText,
   Globe, Workflow, FileSignature,
 } from "lucide-react";
@@ -23,10 +23,45 @@ interface Props {
   connStatus: ConnectionStatus;
   plantCount: number;
   lastSync: string | null;
+  syncError?: string | null;
   onConfigure: () => void;
   onSync: () => void;
   onDisconnect: () => void;
   syncing: boolean;
+}
+
+/* ─── Error message translation ─── */
+function translateSyncError(error: string | null | undefined): { title: string; description: string } | null {
+  if (!error) return null;
+  const lower = error.toLowerCase();
+  if (lower.includes("login") || lower.includes("password") || lower.includes("auth") || lower.includes("credential") || lower.includes("token")) {
+    return {
+      title: "Falha na autenticação",
+      description: "Credenciais inválidas ou expiradas. Clique em Gerenciar para reconfigurar.",
+    };
+  }
+  if (lower.includes("timeout") || lower.includes("timed out")) {
+    return {
+      title: "Tempo esgotado",
+      description: "O servidor do provedor não respondeu a tempo. Tente sincronizar novamente.",
+    };
+  }
+  if (lower.includes("rate") || lower.includes("limit") || lower.includes("429")) {
+    return {
+      title: "Limite de requisições",
+      description: "Muitas requisições ao provedor. Aguarde alguns minutos e tente novamente.",
+    };
+  }
+  if (lower.includes("permission") || lower.includes("forbidden") || lower.includes("403")) {
+    return {
+      title: "Acesso negado",
+      description: "Sem permissão para acessar os dados. Verifique as credenciais e permissões da conta.",
+    };
+  }
+  return {
+    title: "Erro na sincronização",
+    description: "Ocorreu um problema na comunicação com o provedor. Tente reconfigurar a integração.",
+  };
 }
 
 /* ─── Status helpers ─── */
@@ -69,14 +104,17 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
 }
 
 export function IntegrationProviderCard({
-  provider, connStatus, plantCount, lastSync,
+  provider, connStatus, plantCount, lastSync, syncError,
   onConfigure, onSync, onDisconnect, syncing,
 }: Props) {
   const isConnected = connStatus === "connected";
+  const isError = connStatus === "error";
   const isMonitoring = provider.category === "monitoring";
   const isStub = isMonitoring && !provider.capabilities?.sync_plants;
   const isComingSoon = provider.status === "coming_soon";
   const isDisabled = isStub || isComingSoon;
+
+  const translatedError = isError ? translateSyncError(syncError) : null;
 
   // Static icon resolution — instant, zero HTTP fallback
   const iconUrl = getProviderIconUrl(provider.id);
@@ -90,9 +128,11 @@ export function IntegrationProviderCard({
         "hover:shadow-lg hover:-translate-y-0.5",
         isConnected
           ? "border-success/30 ring-1 ring-success/10"
-          : isDisabled
-            ? "border-border/30 bg-muted/20 opacity-60 cursor-default"
-            : "border-border/50 hover:border-primary/30",
+          : isError
+            ? "border-destructive/30 ring-1 ring-destructive/10"
+            : isDisabled
+              ? "border-border/30 bg-muted/20 opacity-60 cursor-default"
+              : "border-border/50 hover:border-primary/30",
       )}
     >
       {/* Top row: logo + status */}
@@ -101,7 +141,9 @@ export function IntegrationProviderCard({
           "flex items-center justify-center w-14 h-14 rounded-xl transition-all duration-300",
           isConnected
             ? "bg-success/10 group-hover:bg-success/15"
-            : "bg-muted/50 group-hover:bg-muted/70",
+            : isError
+              ? "bg-destructive/10 group-hover:bg-destructive/15"
+              : "bg-muted/50 group-hover:bg-muted/70",
         )}>
           {iconUrl ? (
             <img
@@ -125,6 +167,17 @@ export function IntegrationProviderCard({
       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-3 flex-1">
         {provider.description}
       </p>
+
+      {/* Error message — translated, never raw API text */}
+      {translatedError && (
+        <div className="flex items-start gap-2 p-2.5 rounded-md bg-destructive/5 border border-destructive/20 mb-3">
+          <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-medium text-destructive">{translatedError.title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{translatedError.description}</p>
+          </div>
+        </div>
+      )}
 
       {/* Connected metrics bar */}
       {isConnected && (plantCount > 0 || lastSync) && (
