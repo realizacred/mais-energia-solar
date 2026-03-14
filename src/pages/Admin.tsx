@@ -208,11 +208,6 @@ class ProposalWizardErrorBoundary extends React.Component<
 
 // SolarWizardPage removed — was a mock prototype, ProposalWizard is the real engine
 
-const ProposalListPage = lazy(() =>
-  import("@/components/admin/propostas-nativas/ProposalList").then((m) => ({
-    default: m.ProposalList,
-  }))
-);
 
 const ProposalDetailPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalDetail").then((m) => ({
@@ -232,11 +227,6 @@ const VariaveisCustomPage = lazy(() =>
   }))
 );
 
-const ProposalDashboardPage = lazy(() =>
-  import("@/components/admin/propostas-nativas/ProposalDashboard").then((m) => ({
-    default: m.ProposalDashboard,
-  }))
-);
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -289,10 +279,8 @@ const TAB_TITLES: Record<string, string> = {
   release: "Checklist de versão",
   propostas: "Propostas comerciais",
   projetos: "Projetos",
-  "propostas-nativas": "Propostas",
   "propostas/novo": "Nova proposta",
   "propostas-nativas/nova": "Nova proposta",
-  "propostas-nativas/dashboard": "Painel de propostas",
   "propostas-nativas/templates": "Templates de proposta",
   "propostas-nativas/variaveis": "Variáveis customizadas",
   "followup-wa": "Regras de retorno",
@@ -514,10 +502,8 @@ export default function Admin() {
                 <Route path="lixeira" element={<LeadsTrashPage />} />
                 <Route path="propostas" element={<PropostasManager />} />
                 <Route path="projetos" element={<ProjetosManagerPage />} />
-                <Route path="propostas-nativas" element={<ProposalListPage />} />
                 <Route path="propostas-nativas/nova" element={<ProposalWizardErrorBoundary><ProposalWizardPage /></ProposalWizardErrorBoundary>} />
                 <Route path="propostas/novo" element={<Navigate to="/admin/propostas-nativas/nova" replace />} />
-                <Route path="propostas-nativas/dashboard" element={<ProposalDashboardPage />} />
                 <Route path="propostas-nativas/templates" element={<TemplatesManagerPage />} />
                 <Route path="propostas-nativas/variaveis" element={<VariaveisCustomPage />} />
                 <Route path="propostas-nativas/:propostaId/versoes/:versaoId" element={<ProposalDetailPage />} />

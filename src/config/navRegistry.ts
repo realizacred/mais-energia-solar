@@ -176,11 +176,6 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "menus", label_default: "Personalizar Menus", group_default: "Administração", order_default: 8, icon: "LayoutList", description: "Reorganizar e ocultar itens do menu lateral", keywords: ["menu", "sidebar", "organizar", "ocultar", "personalizar", "navegação"], criticality: "normal", permission: "admin_only" },
   { nav_key: "data-reset", label_default: "Limpeza de Dados", group_default: "Administração", order_default: 9, icon: "Trash2", description: "Limpeza seletiva e reset de dados", keywords: ["reset", "limpeza", "deletar", "remover", "manutenção"], criticality: "normal", permission: "admin_only" },
 
-  // ── Propostas Nativas (Comercial) ──
-  { nav_key: "propostas-nativas", label_default: "Propostas", group_default: "Comercial", order_default: 9, icon: "FileText", description: "Geração e gestão de propostas comerciais", keywords: ["proposta", "orçamento", "gerar", "PDF", "wizard"], criticality: "business_critical", permission: "all", separator: true },
-  { nav_key: "propostas-nativas/templates", label_default: "Templates de Proposta", group_default: "Comercial", order_default: 10, icon: "LayoutTemplate", description: "Modelos visuais e DOCX para propostas", keywords: ["template", "modelo", "proposta", "docx", "layout"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "propostas-nativas/variaveis", label_default: "Variáveis de Proposta", group_default: "Comercial", order_default: 11, icon: "Variable", description: "Variáveis customizadas usadas nos templates", keywords: ["variável", "placeholder", "campo", "template", "custom"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "propostas-nativas/dashboard", label_default: "Dashboard Propostas", group_default: "Comercial", order_default: 12, icon: "BarChart3", description: "Métricas e análise de propostas geradas", keywords: ["dashboard", "proposta", "métricas", "conversão"], criticality: "normal", permission: "admin_only" },
 
   // ── Campos Customizados (Configurações) ──
   { nav_key: "custom-fields", label_default: "Campos Customizados", group_default: "Configurações", order_default: 4, icon: "Settings2", description: "Campos personalizados para leads e projetos", keywords: ["campo", "customizado", "personalizado", "opção"], criticality: "normal", permission: "admin_only" },
