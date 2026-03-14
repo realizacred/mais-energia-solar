@@ -61,8 +61,8 @@ export function OrcamentoHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col">
-        {/* §25 HEADER */}
+      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        {/* §25 HEADER — FIX 1: bg-primary/10 text-primary */}
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5 text-primary" />
@@ -73,7 +73,8 @@ export function OrcamentoHistoryDialog({
               <Badge variant="outline" className="font-mono text-xs">
                 {group.lead_code}
               </Badge>
-              <Badge variant="secondary" className="ml-auto text-xs">
+              {/* FIX 2: Badge orçamentos — sem azul hardcoded */}
+              <Badge variant="outline" className="ml-auto text-xs bg-primary/10 text-primary border-primary/30">
                 {group.count} orçamento{group.count > 1 ? "s" : ""}
               </Badge>
             </DialogTitle>
@@ -82,11 +83,12 @@ export function OrcamentoHistoryDialog({
                 <Phone className="h-3.5 w-3.5" />
                 {formatPhoneBR(group.telefone)}
               </span>
+              {/* FIX 7: WhatsApp — text-[#25D366] exceção aceita §34 */}
               {onWhatsApp && (
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-6 gap-1 text-xs text-success border-success/30 hover:bg-success/10"
+                  className="h-6 gap-1 text-xs text-[#25D366] border-success/30 hover:bg-success/10"
                   onClick={() => onWhatsApp(group.telefone, group.nome, group.lead_id)}
                 >
                   <MessageSquare className="h-3 w-3" />
@@ -97,22 +99,25 @@ export function OrcamentoHistoryDialog({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 p-5 max-h-[70vh]">
-          {/* Latest/Most Recent Orcamento Highlighted - DESTAQUE PRINCIPAL */}
+        {/* §39: flex-1 min-h-0 em vez de max-h-[70vh] */}
+        <ScrollArea className="flex-1 min-h-0 p-5">
+          {/* FIX 5: Card mais recente — border-l-[3px] border-l-primary */}
           <div className="mb-4">
             <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
               <Zap className="h-4 w-4 text-success" />
               Proposta Mais Recente
             </h4>
-            <div className="rounded-lg border border-border bg-card p-4">
+            <div className="rounded-lg border border-border border-l-[3px] border-l-primary bg-card p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="default" className="font-mono text-xs bg-success text-success-foreground">
+                    {/* FIX 3: Badge ORC mais recente — success semântico */}
+                    <Badge variant="outline" className="font-mono text-xs bg-success/10 text-success border-success/20">
                       {latestOrcamento.orc_code || "-"}
                     </Badge>
                     {getStatusBadge(latestOrcamento.status_id)}
-                    <Badge variant="secondary" className="text-xs bg-success/20 text-success border-success/30">
+                    {/* FIX 6: Badge "Mais Recente" */}
+                    <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
                       Mais Recente
                     </Badge>
                   </div>
@@ -146,7 +151,6 @@ export function OrcamentoHistoryDialog({
                     <Button
                       size="sm"
                       variant="default"
-                      className="bg-primary hover:bg-primary/90"
                       onClick={() => {
                         onConvertOrcamento(latestOrcamento);
                         onOpenChange(false);
@@ -188,22 +192,28 @@ export function OrcamentoHistoryDialog({
                         key={orcamento.id}
                         className={`rounded-lg border p-3 transition-colors ${
                           isFirst 
-                            ? "border-primary/30 bg-primary/5" 
-                            : "border-muted"
+                            ? "border-primary/20 bg-primary/5" 
+                            : "border-border bg-card"
                         }`}
                       >
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              {/* FIX 3: Badges ORC — primeiro=primary, intermediário=muted */}
                               <Badge 
-                                variant={isFirst ? "default" : "outline"} 
-                                className={`font-mono text-xs ${isFirst ? "bg-primary/80" : ""}`}
+                                variant="outline" 
+                                className={`font-mono text-xs ${
+                                  isFirst 
+                                    ? "bg-primary/10 text-primary border-primary/20" 
+                                    : "bg-muted text-muted-foreground border-border"
+                                }`}
                               >
                                 {orcamento.orc_code || "-"}
                               </Badge>
                               {getStatusBadge(orcamento.status_id)}
+                              {/* FIX 6: Badge "Primeiro Orçamento" */}
                               {isFirst && (
-                                <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
+                                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
                                   Primeiro Orçamento
                                 </Badge>
                               )}
@@ -238,7 +248,6 @@ export function OrcamentoHistoryDialog({
                               <Button
                                 size="sm"
                                 variant="default"
-                                className="bg-primary hover:bg-primary/90"
                                 onClick={() => {
                                   onConvertOrcamento(orcamento);
                                   onOpenChange(false);
