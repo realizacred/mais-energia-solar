@@ -395,7 +395,82 @@ export function StepDocumento({
       );
     }
 
-    // After generation
+    // After generation — download helpers using storage-persisted files
+    const handleDownloadPdf = async () => {
+      if (outputPdfPath) {
+        // Fetch from storage via signed URL (fetch-to-blob for cross-origin download)
+        const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputPdfPath, 300);
+        if (data?.signedUrl) {
+          const resp = await fetch(data.signedUrl);
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+          a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast({ title: "PDF baixado com sucesso!" });
+          return;
+        }
+      }
+      // Fallback to pdfBlobUrl (signed URL already available)
+      if (pdfBlobUrl) {
+        const resp = await fetch(pdfBlobUrl);
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+        a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: "PDF baixado com sucesso!" });
+        return;
+      }
+      toast({ title: "PDF não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
+    };
+
+    const handleDownloadDocx = async () => {
+      if (outputDocxPath) {
+        const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputDocxPath, 300);
+        if (data?.signedUrl) {
+          const resp = await fetch(data.signedUrl);
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+          a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast({ title: "DOCX baixado!" });
+          return;
+        }
+      }
+      // Fallback to local blob
+      if (docxBlob) {
+        const url = URL.createObjectURL(docxBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+        a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: "DOCX baixado!" });
+        return;
+      }
+      toast({ title: "DOCX não disponível", variant: "destructive" });
+    };
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
         {/* Left: Sidebar with actions */}
@@ -430,6 +505,14 @@ export function StepDocumento({
 
           <Separator />
 
+          {/* Generation status badge */}
+          {generationStatus === "ready" && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-success/10 border border-success/20">
+              <Check className="h-3.5 w-3.5 text-success" />
+              <span className="text-xs font-medium text-success">Documento pronto</span>
+            </div>
+          )}
+
           {/* Action buttons */}
           <Button
             variant="success"
@@ -456,20 +539,7 @@ export function StepDocumento({
               variant="ghost"
               size="sm"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={() => {
-                if (!pdfBlobUrl) {
-                  toast({ title: "PDF não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
-                  return;
-                }
-                const a = document.createElement("a");
-                a.href = pdfBlobUrl;
-                const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-                a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                toast({ title: "PDF baixado com sucesso!" });
-              }}
+              onClick={handleDownloadPdf}
             >
               <Download className="h-3.5 w-3.5" />
               Download de PDF
@@ -478,19 +548,7 @@ export function StepDocumento({
               variant="ghost"
               size="sm"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={() => {
-                if (!docxBlob) { toast({ title: "DOCX não disponível", variant: "destructive" }); return; }
-                const url = URL.createObjectURL(docxBlob);
-                const a = document.createElement("a");
-                a.href = url;
-                const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-                a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                toast({ title: "DOCX baixado!" });
-              }}
+              onClick={handleDownloadDocx}
             >
               <FileDown className="h-3.5 w-3.5" />
               Download de Doc
