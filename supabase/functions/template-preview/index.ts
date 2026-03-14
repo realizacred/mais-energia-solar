@@ -54,12 +54,20 @@ async function processDocxTemplate(
     // ── STEP 1b: Normalize split runs in regular paragraphs ──
     content = normalizeParagraphRuns(content);
 
-    // ── STEP 2: Direct [key] → value substitution ──
+    // ── STEP 2: Direct substitution for both formats ──
+    // Supports [key] (legacy) and {{key}} (canonical)
     for (const [key, value] of Object.entries(vars)) {
       const safeValue = escapeXml(value);
-      const pattern = `[${key}]`;
-      if (content.includes(pattern)) {
-        content = content.replaceAll(pattern, safeValue);
+      // Legacy format: [key]
+      const legacyPattern = `[${key}]`;
+      if (content.includes(legacyPattern)) {
+        content = content.replaceAll(legacyPattern, safeValue);
+        modified = true;
+      }
+      // Canonical format: {{key}}
+      const canonicalPattern = `{{${key}}}`;
+      if (content.includes(canonicalPattern)) {
+        content = content.replaceAll(canonicalPattern, safeValue);
         modified = true;
       }
     }
