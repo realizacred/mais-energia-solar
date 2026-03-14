@@ -268,6 +268,7 @@ export function StepDocumento({
   // ─── TAB: TEMPLATE ──────────────────────────────────────
 
   const renderTemplateTab = () => {
+    // ── Generation in progress
     if (generating) {
       const statusMsg = generationStatus === "generating_docx" ? "Gerando documento DOCX..."
         : generationStatus === "converting_pdf" ? "Convertendo para PDF..."
@@ -277,11 +278,65 @@ export function StepDocumento({
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
           <p className="text-sm font-medium text-muted-foreground animate-pulse">{statusMsg}</p>
+          <div className="flex items-center gap-2">
+            {["generating_docx", "converting_pdf", "saving"].map((s, i) => (
+              <div key={s} className={cn(
+                "h-1.5 w-8 rounded-full transition-colors",
+                generationStatus === s ? "bg-primary animate-pulse" :
+                ["generating_docx", "converting_pdf", "saving"].indexOf(generationStatus) > i ? "bg-primary" : "bg-muted"
+              )} />
+            ))}
+          </div>
         </div>
       );
     }
 
-    // Before generation
+    // ── Error state
+    if (generationStatus === "error" && generationError) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Selecione o template</Label>
+              {loadingTemplates ? (
+                <Skeleton className="h-9 w-full" />
+              ) : (
+                <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione o template" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
+                      {webTemplates.map(t => (<SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
+                      {docTemplates.map(t => (<SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <Button onClick={onGenerate} disabled={!templateSelecionado} className="w-full gap-2">
+              <Zap className="h-4 w-4" />
+              Tentar Novamente
+            </Button>
+          </div>
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <Info className="h-6 w-6 text-destructive" />
+            </div>
+            <p className="text-sm font-semibold text-destructive mb-2">Erro na geração do documento</p>
+            <p className="text-xs text-muted-foreground max-w-md">{generationError}</p>
+            <Button variant="outline" size="sm" className="mt-4 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
+              <Zap className="h-3.5 w-3.5" />
+              Regenerar Proposta
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Before generation
     if (!result) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
