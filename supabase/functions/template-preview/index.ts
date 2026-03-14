@@ -758,8 +758,10 @@ Deno.serve(async (req) => {
     // ═══════════════════════════════════════════════════════
     // CATEGORIA: FINANCEIRO
     // ═══════════════════════════════════════════════════════
-    const valorTotal = versaoData?.valor_total || projeto?.valor_total || lead?.valor_estimado || cliente?.valor_projeto || snapNum("preco_total") || snapNum("preco");
-    if (valorTotal) {
+    // Use ?? for 0-safe chaining; || skips legitimate 0 values
+    const finSnap = (snapshot?.financeiro && typeof snapshot.financeiro === "object") ? snapshot.financeiro as Record<string, any> : {};
+    const valorTotal = versaoData?.valor_total ?? finSnap?.valor_total ?? projeto?.valor_total ?? lead?.valor_estimado ?? cliente?.valor_projeto ?? snapNum("preco_total") ?? snapNum("preco");
+    if (valorTotal != null && Number(valorTotal) > 0) {
       const vt = Number(valorTotal);
       setCur("valor_total", vt);
       setCur("preco_final", vt);
@@ -777,8 +779,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Economia
-    const econMensal = versaoData?.economia_mensal || snapNum("economia_mensal");
+    // Economia — also check snapshot.financeiro
+    const econMensal = versaoData?.economia_mensal ?? finSnap?.economia_mensal ?? snapNum("economia_mensal");
     if (econMensal) {
       setCur("economia_mensal", Number(econMensal));
       setCurIfMissing("economia_anual", Number(econMensal) * 12);
@@ -788,14 +790,18 @@ Deno.serve(async (req) => {
       setCurIfMissing("vc_economia_conta_total_rs", Number(econMensal) * 12);
     }
 
-    // Payback
-    if (versaoData?.payback_meses != null) {
-      const paybackMeses = versaoData.payback_meses;
-      const anos = Math.floor(paybackMeses / 12);
-      const mesesPb = paybackMeses % 12;
+    // Payback — also check snapshot.financeiro
+    const paybackMeses = versaoData?.payback_meses ?? finSnap?.payback_meses;
+    if (paybackMeses != null && Number(paybackMeses) > 0) {
+      const pm = Number(paybackMeses);
+      const anos = Math.floor(pm / 12);
+      const mesesPb = Math.round(pm % 12);
       set("payback", `${anos} anos e ${mesesPb} meses`);
-      set("payback_meses", String(paybackMeses));
-      set("payback_anos", fmtNum(paybackMeses / 12, 1));
+      set("payback_meses", String(pm));
+      set("payback_anos", fmtNum(pm / 12, 1));
+    } else {
+      // Don't show "0 anos e 0 meses" — leave unset or show fallback
+      setIfMissing("payback", "-");
     }
 
     // Retorno em 10 anos
