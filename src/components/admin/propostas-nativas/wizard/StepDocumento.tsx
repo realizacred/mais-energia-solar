@@ -548,7 +548,16 @@ export function StepDocumento({
           {rendering ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-              <p className="text-sm text-muted-foreground animate-pulse">Renderizando proposta...</p>
+              <p className="text-sm text-muted-foreground animate-pulse">Convertendo para PDF...</p>
+            </div>
+          ) : pdfBlobUrl ? (
+            <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
+              <iframe
+                src={pdfBlobUrl}
+                title="Proposta PDF Preview"
+                className="w-full border-0"
+                style={{ height: 800 }}
+              />
             </div>
           ) : htmlPreview ? (
             <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
