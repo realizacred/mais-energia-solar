@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.38.1",
+    date: "2026-03-14",
+    title: "DOCX: hardening do mapeamento de pagamento no template-preview",
+    type: "bugfix",
+    description: "Normalização robusta de pagamento_opcoes/pagamentoOpcoes para preencher placeholders financeiros vc_* e f_* mesmo com formatos mistos de payload.",
+    details: [
+      "Fallback automático entre pagamento_opcoes (snake_case) e pagamentoOpcoes (camelCase)",
+      "Normalização numérica local (R$ 1.234,56 / 1,59%) com parse seguro para valor_financiado, valor_parcela, entrada, prazo e taxa",
+      "Mapeamento reforçado para vc_a_vista, vc_parcela_1..3, vc_cartao_credito_parcela_1..4 e f_nome/f_entrada/f_valor/f_prazo/f_taxa/f_parcela",
+      "Classificação resiliente de tipos por tipo e nome (a_vista, financiamento/parcelado, cartao)",
+      "Novo log PAYMENT AUDIT com payload normalizado e placeholders finais antes do merge DOCX",
+    ],
+  },
+  {
     version: "2.38.0",
     date: "2026-03-14",
     title: "Correção de payload DOCX: equipamentos, financeiro e unidades",
