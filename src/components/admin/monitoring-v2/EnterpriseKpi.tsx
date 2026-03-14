@@ -1,16 +1,17 @@
 import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type AccentColor = "primary" | "secondary" | "success" | "warning" | "destructive" | "info" | "muted";
 
-const ACCENT_MAP: Record<AccentColor, { iconBg: string; iconText: string; borderHighlight: string }> = {
-  primary:     { iconBg: "bg-primary/15",     iconText: "text-primary",         borderHighlight: "border-primary/30" },
-  secondary:   { iconBg: "bg-secondary/15",   iconText: "text-secondary",       borderHighlight: "border-secondary/30" },
-  success:     { iconBg: "bg-success/15",     iconText: "text-success",         borderHighlight: "border-success/30" },
-  warning:     { iconBg: "bg-warning/15",     iconText: "text-warning",         borderHighlight: "border-warning/30" },
-  destructive: { iconBg: "bg-destructive/15", iconText: "text-destructive",     borderHighlight: "border-destructive/40" },
-  info:        { iconBg: "bg-info/15",        iconText: "text-info",            borderHighlight: "border-info/30" },
-  muted:       { iconBg: "bg-muted",          iconText: "text-muted-foreground", borderHighlight: "border-border" },
+const ACCENT_MAP: Record<AccentColor, { iconBg: string; iconText: string; borderL: string }> = {
+  primary:     { iconBg: "bg-primary/10",     iconText: "text-primary",         borderL: "border-l-primary" },
+  secondary:   { iconBg: "bg-secondary/10",   iconText: "text-secondary",       borderL: "border-l-secondary" },
+  success:     { iconBg: "bg-success/10",     iconText: "text-success",         borderL: "border-l-success" },
+  warning:     { iconBg: "bg-warning/10",     iconText: "text-warning",         borderL: "border-l-warning" },
+  destructive: { iconBg: "bg-destructive/10", iconText: "text-destructive",     borderL: "border-l-destructive" },
+  info:        { iconBg: "bg-info/10",        iconText: "text-info",            borderL: "border-l-info" },
+  muted:       { iconBg: "bg-muted",          iconText: "text-muted-foreground", borderL: "border-l-border" },
 };
 
 export interface EnterpriseKpiProps {
@@ -23,31 +24,27 @@ export interface EnterpriseKpiProps {
   onClick?: () => void;
 }
 
-export function EnterpriseKpi({ icon: Icon, label, value, subtitle, accentColor = "muted", highlight = false, onClick }: EnterpriseKpiProps) {
+export function EnterpriseKpi({ icon: Icon, label, value, subtitle, accentColor = "primary", highlight = false, onClick }: EnterpriseKpiProps) {
   const a = ACCENT_MAP[accentColor];
   return (
-    <div
+    <Card
       onClick={onClick}
       className={cn(
-        "relative rounded-2xl border bg-card p-6 transition-all duration-200 shadow-sm",
-        highlight ? a.borderHighlight : "border-border",
-        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        "border-l-[3px] bg-card shadow-sm hover:shadow-md transition-shadow",
+        a.borderL,
+        onClick && "cursor-pointer",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium min-h-[28px] leading-[14px] flex items-end">{label}</p>
-          <p className="text-2xl font-bold text-foreground leading-none mt-1">{value}</p>
-          {subtitle ? (
-            <p className="text-[11px] text-muted-foreground mt-1.5">{subtitle}</p>
-          ) : (
-            <div className="h-[17px]" />
-          )}
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", a.iconBg)}>
+            <Icon className={cn("w-4 h-4", a.iconText)} />
+          </div>
         </div>
-        <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", a.iconBg)}>
-          <Icon className={cn("h-[18px] w-[18px]", a.iconText)} />
-        </div>
-      </div>
-    </div>
+        <p className="text-2xl font-bold text-foreground">{value}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      </CardContent>
+    </Card>
   );
 }
