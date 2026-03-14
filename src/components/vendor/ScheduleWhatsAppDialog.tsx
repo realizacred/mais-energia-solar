@@ -17,6 +17,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Clock, MessageCircle, Send } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { Lead } from "@/types/lead";
