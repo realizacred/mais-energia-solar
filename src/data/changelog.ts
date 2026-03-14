@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.37.0",
+    date: "2026-03-14",
+    title: "Gotenberg como integração administrável no catálogo",
+    type: "feature",
+    description: "O conversor DOCX→PDF (Gotenberg) agora é configurável visualmente no Catálogo de Integrações, com teste de conexão, tutorial e persistência em banco.",
+    details: [
+      "Card do Gotenberg no catálogo de integrações com config, teste /health e tutorial Docker",
+      "Edge function gotenberg-health para validar conexão e exibir status de Chromium/LibreOffice",
+      "Resolução de URL com prioridade: config do banco → env GOTENBERG_URL → fallback demo",
+      "Módulo _shared/resolveGotenbergUrl.ts reutilizado por docx-to-pdf e template-preview",
+      "Persistência da configuração em integration_connections com status visual",
+    ],
+  },
+  {
     version: "2.36.1",
     date: "2026-03-14",
     title: "UX de variáveis ausentes e limpeza de estado stale no pipeline DOCX/PDF",
