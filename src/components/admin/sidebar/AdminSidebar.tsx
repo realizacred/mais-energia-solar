@@ -93,7 +93,7 @@ function SidebarItemButton({
       onDragOver={draggable ? (e) => onDragOver?.(e as any, item.id) : undefined}
       onDrop={draggable ? (e) => onDrop?.(e as any, item.id) : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
-      className="group/item relative"
+      className="group/item relative overflow-visible"
     >
       <SidebarMenuButton
         onClick={handleClick}
@@ -101,8 +101,8 @@ function SidebarItemButton({
         tooltip={collapsed ? item.title : undefined}
         aria-label={item.title}
         className={`
-          transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
-          pl-0
+          transition-all duration-200 ease-in-out rounded-lg mx-0.5 my-px group/btn relative overflow-visible
+          pl-1
           focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:outline-none
           ${
             isActive
@@ -297,7 +297,7 @@ function SidebarSectionGroup({
 
         <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0 mt-1 ml-3 pl-2 border-l border-sidebar-border/40">
+            <SidebarMenu className="gap-0 mt-1 ml-2 pl-3 border-l border-sidebar-border/40">
               {orderedItems.map((item, idx) => {
                 const isActive = activeTab === item.id || (item.id === "monitoramento" && activeTab.startsWith("monitoramento") && !activeTab.includes("/"));
                 const badgeCount = badgeCounts?.[item.id] || 0;
@@ -407,7 +407,7 @@ function FavoritesSection({
         </CollapsibleTrigger>
         <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0 mt-1 ml-3 pl-2 border-l border-primary/20">
+            <SidebarMenu className="gap-0 mt-1 ml-2 pl-3 border-l border-primary/20">
               {resolvedItems.map(({ item, section }) => (
                 <SidebarItemButton
                   key={item.id}
