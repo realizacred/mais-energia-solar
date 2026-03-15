@@ -59,7 +59,7 @@ async function callOpenAI(
   action: Action,
   text: string,
   locale: string
-): Promise<string> {
+): Promise<{ suggestion: string; usage: any }> {
   const systemPrompt = `Você é um assistente de escrita para mensagens comerciais em ${locale}.
 Reescreva o texto do usuário conforme a instrução.
 Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
@@ -96,7 +96,7 @@ Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error("AI_EMPTY_RESPONSE");
-    return content.trim();
+    return { suggestion: content.trim(), usage: data.usage || {} };
   } finally {
     clearTimeout(timeout);
   }
