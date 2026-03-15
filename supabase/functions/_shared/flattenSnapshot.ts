@@ -20,5 +20,21 @@ export function flattenSnapshot(
   snapshot: AnyObj | null | undefined,
   ext?: ResolverExternalContext,
 ): Record<string, string> {
-  return resolveAllVariables(snapshot, ext);
+  const result = resolveAllVariables(snapshot, ext);
+
+  console.log("[flattenSnapshot] resolved keys sample:", {
+    subgrupo: result.subgrupo,
+    tipo_telhado: result.tipo_telhado,
+    estrutura: result.estrutura,
+    dis_energia: result.dis_energia,
+    cidade: result.cidade,
+    estado: result.estado,
+    tensao_rede: result.tensao_rede,
+    fator_geracao: result.fator_geracao,
+    valor_total: result.valor_total,
+    modulo_fabricante: result.modulo_fabricante,
+    inversor_fabricante: result.inversor_fabricante,
+  });
+
+  return result;
 }
