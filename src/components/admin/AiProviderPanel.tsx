@@ -131,17 +131,23 @@ export function AiProviderPanel() {
                   {isActive && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>
-                {(key === "gemini" || key === "openai") && (
-                  <a
-                    href="https://supabase.com/dashboard/project/_/settings/functions"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {key === "gemini" && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate("/admin/gemini-config"); }}
                     className="text-xs text-primary flex items-center gap-1 hover:underline mt-2"
-                    onClick={(e) => e.stopPropagation()}
                   >
                     <ExternalLink className="w-3 h-3" />
-                    Configurar nos Secrets do Supabase
-                  </a>
+                    Configurar chave de API
+                  </button>
+                )}
+                {key === "openai" && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate("/admin/openai-config"); }}
+                    className="text-xs text-primary flex items-center gap-1 hover:underline mt-2"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Configurar chave de API
+                  </button>
                 )}
               </button>
             );
