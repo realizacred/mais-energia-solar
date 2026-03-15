@@ -717,6 +717,8 @@ function cleanupRemainingFragments(xml: string): string {
       paraXml.includes("<mc:AlternateContent") ||
       paraXml.includes("<wp:anchor")
     ) return paraXml;
+    // Keep tabs and explicit line breaks untouched to avoid positional drift.
+    if (paraXml.includes("<w:tab") || paraXml.includes("<w:br")) return paraXml;
 
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
     interface RunInfo {
