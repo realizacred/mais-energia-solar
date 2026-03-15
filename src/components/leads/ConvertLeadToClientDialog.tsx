@@ -886,20 +886,7 @@ export function ConvertLeadToClientDialog({
     return true;
   };
 
-  const handleNext = async () => {
-    if (currentStep === 0) {
-      const fields = ["nome", "telefone", "email", "cpf_cnpj", "estado", "cidade", "bairro", "rua", "numero"] as const;
-      const valid = await form.trigger([...fields]);
-      if (!valid) return;
-      // Clear errors for valid fields so they leave the red state
-      fields.forEach((f) => { if (!form.getFieldState(f).error) form.clearErrors(f); });
-    }
-    if (currentStep === 1) {
-      const fields = ["disjuntor_id", "transformador_id", "localizacao"] as const;
-      const valid = await form.trigger([...fields]);
-      if (!valid) return;
-      fields.forEach((f) => { if (!form.getFieldState(f).error) form.clearErrors(f); });
-    }
+  const handleNext = () => {
     setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
