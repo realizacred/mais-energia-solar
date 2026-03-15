@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useAIProviderConfig, AVAILABLE_MODELS, PROVIDER_INFO } from "@/hooks/useAIProviderConfig";
 import { useAIUsageLogs } from "@/hooks/useAIUsageLogs";
 import { Card, CardContent } from "@/components/ui/card";
