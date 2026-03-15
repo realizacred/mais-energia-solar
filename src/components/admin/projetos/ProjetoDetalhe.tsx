@@ -1485,6 +1485,8 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                 payback_meses: (v as any).payback_meses,
                 created_at: (v as any).created_at,
                 geracao_mensal: geracao,
+                output_pdf_path: (v as any).output_pdf_path || null,
+                output_docx_path: (v as any).output_docx_path || null,
               };
             }),
           }));
