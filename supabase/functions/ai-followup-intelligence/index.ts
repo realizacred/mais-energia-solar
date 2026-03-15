@@ -134,10 +134,13 @@ Deno.serve(async (req) => {
       ? `\nFollow-ups anteriores: ${fuLogs.map((l: any) => `${l.action}(conf:${l.ai_confidence ?? "?"}, #${l.tentativa})`).join(", ")}`
       : "";
 
+    let aiResult: any;
+    let aiUsage: any = {};
+
     switch (action) {
       case "generate_message": {
         const { cenario, tentativa = 1 } = body;
-        const result = await callAI(keyData.api_key, model, temperature, {
+        const res = await callAI(keyData.api_key, model, temperature, {
           system: `Você é ${aiName}, especialista em energia solar. Gere uma mensagem de follow-up natural e personalizada para WhatsApp.
 
 REGRAS:
@@ -155,11 +158,13 @@ Retorne JSON: {"message":"...","confidence":0-100,"reasoning":"...","suggested_d
 HISTÓRICO:
 ${histText || "(vazio)"}`,
         });
-        return json(result);
+        aiResult = res.result;
+        aiUsage = res.usage;
+        break;
       }
 
       case "classify_urgency": {
-        const result = await callAI(keyData.api_key, model, temperature, {
+        const res = await callAI(keyData.api_key, model, temperature, {
           system: `Classificador de urgência para follow-up em vendas de energia solar.
 Analise o contexto e retorne JSON: {"urgency":"critical"|"high"|"medium"|"low","score":0-100,"reasons":["..."],"recommended_action":"..."}
 
@@ -173,7 +178,9 @@ Critérios:
 HISTÓRICO:
 ${histText || "(vazio)"}`,
         });
-        return json(result);
+        aiResult = res.result;
+        aiUsage = res.usage;
+        break;
       }
 
       case "suggest_timing": {
@@ -190,7 +197,7 @@ ${histText || "(vazio)"}`,
           .filter((l: any) => l.response_time_minutes != null)
           .reduce((acc: number, l: any, _: number, arr: any[]) => acc + l.response_time_minutes / arr.length, 0);
 
-        const result = await callAI(keyData.api_key, model, 0.3, {
+        const res = await callAI(keyData.api_key, model, 0.3, {
           system: `Analista de timing para follow-up solar. Com base no histórico e padrões de resposta, sugira o melhor momento para enviar o follow-up.
 
 Retorne JSON: {"best_hour":0-23,"best_day_of_week":"seg"|"ter"|"qua"|"qui"|"sex"|"sab","delay_minutes":número,"reasoning":"...","confidence":0-100}
@@ -207,11 +214,13 @@ Respostas recentes: ${responseLogs.length} registros${fuContext}
 HISTÓRICO RECENTE:
 ${histText || "(vazio)"}`,
         });
-        return json(result);
+        aiResult = res.result;
+        aiUsage = res.usage;
+        break;
       }
 
       case "summarize": {
-        const result = await callAI(keyData.api_key, model, 0.3, {
+        const res = await callAI(keyData.api_key, model, 0.3, {
           system: `Resumidor de conversas de vendas solar. Gere um resumo executivo conciso para o consultor.
 
 Retorne JSON: {"summary":"...","key_interests":["..."],"objections":["..."],"next_steps":["..."],"client_sentiment":"positive"|"neutral"|"negative"|"unknown","deal_potential":"high"|"medium"|"low"}`,
@@ -220,12 +229,40 @@ Retorne JSON: {"summary":"...","key_interests":["..."],"objections":["..."],"nex
 HISTÓRICO COMPLETO:
 ${histText || "(vazio)"}`,
         });
-        return json(result);
+        aiResult = res.result;
+        aiUsage = res.usage;
+        break;
       }
 
       default:
         return error(`Unknown action: ${action}`, 400);
     }
+
+    // Usage logging
+    try {
+      const promptTokens = aiUsage.prompt_tokens || 0;
+      const completionTokens = aiUsage.completion_tokens || 0;
+      const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+      const estimatedCost = (promptTokens / 1000) * 0.00015 +
+                            (completionTokens / 1000) * 0.0006;
+
+      await sb.from("ai_usage_logs").insert({
+        tenant_id: tenantId,
+        user_id: user.id,
+        function_name: "ai-followup-intelligence",
+        provider: "openai",
+        model,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCost,
+        is_fallback: false,
+      });
+    } catch (logError) {
+      console.error("[ai-followup-intelligence] log error:", logError);
+    }
+
+    return json(aiResult);
   } catch (e: any) {
     console.error("[ai-followup-intelligence] ERROR:", e.message);
     return error(e.message, 500);
@@ -237,7 +274,7 @@ async function callAI(
   model: string,
   temperature: number,
   prompt: { system: string; user: string }
-): Promise<any> {
+): Promise<{ result: any; usage: any }> {
   const ac = new AbortController();
   const to = setTimeout(() => ac.abort(), AI_TIMEOUT);
 
@@ -271,7 +308,7 @@ async function callAI(
     if (!raw) throw new Error("Empty AI response");
 
     const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    return JSON.parse(cleaned);
+    return { result: JSON.parse(cleaned), usage: d.usage || {} };
   } catch (e: any) {
     clearTimeout(to);
     if (e.name === "AbortError") throw new Error("AI timeout");
