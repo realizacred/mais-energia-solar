@@ -112,7 +112,36 @@ export function AiProviderPanel() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {(Object.keys(providerInfo) as Array<keyof typeof providerInfo>).map((key) => {
             const info = providerInfo[key];
-            const isActive = activeProvider === key;
+            const isActive = effectiveProvider === key;
+
+            // Locked state for providers without keys
+            if (key === "gemini" && !hasGeminiKey) {
+              return (
+                <div key={key} className="border border-dashed border-border rounded-lg p-4 flex items-center justify-between opacity-60">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Google Gemini</p>
+                    <p className="text-xs text-muted-foreground">Chave não configurada</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate("/admin/gemini-config")}>
+                    Configurar
+                  </Button>
+                </div>
+              );
+            }
+            if (key === "openai" && !hasOpenAIKey) {
+              return (
+                <div key={key} className="border border-dashed border-border rounded-lg p-4 flex items-center justify-between opacity-60">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">OpenAI</p>
+                    <p className="text-xs text-muted-foreground">Chave não configurada</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate("/admin/openai-config")}>
+                    Configurar
+                  </Button>
+                </div>
+              );
+            }
+
             return (
               <button
                 key={key}
@@ -123,14 +152,6 @@ export function AiProviderPanel() {
                     : "border-border bg-card hover:border-primary/40"
                 }`}
                 onClick={() => {
-                  if (key === "openai" && !hasOpenAIKey) {
-                    toast.warning("Configure a chave de API antes de ativar este provedor");
-                    return;
-                  }
-                  if (key === "gemini" && !hasGeminiKey) {
-                    toast.warning("Configure a chave de API antes de ativar este provedor");
-                    return;
-                  }
                   updateConfig.mutate({
                     active_provider: key,
                     active_model: AVAILABLE_MODELS[key][0].id,
@@ -146,16 +167,6 @@ export function AiProviderPanel() {
                     </Badge>
                   )}
                   {isActive && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                  {key === "openai" && !hasOpenAIKey && (
-                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px]">
-                      Sem chave
-                    </Badge>
-                  )}
-                  {key === "gemini" && !hasGeminiKey && (
-                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px]">
-                      Sem chave
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>
                 {key === "gemini" && (
