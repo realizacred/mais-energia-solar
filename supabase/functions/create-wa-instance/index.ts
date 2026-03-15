@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { instance_name, api_url, api_key } = await req.json();
+    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online } = await req.json();
 
     if (!instance_name || !api_url || !api_key) {
       return new Response(JSON.stringify({ error: "instance_name, api_url e api_key são obrigatórios" }), {
@@ -64,16 +64,24 @@ Deno.serve(async (req) => {
     const createUrl = `${baseUrl}/instance/create`;
     console.log(`[create-wa-instance] Creating instance: ${instance_name} at ${createUrl}`);
 
+    const createPayload: Record<string, unknown> = {
+      instanceName: instance_name,
+      qrcode: true,
+      integration: "WHATSAPP-BAILEYS",
+    };
+    // Optional enhanced settings
+    if (number) createPayload.number = String(number);
+    if (groups_ignore !== undefined) createPayload.groupsIgnore = Boolean(groups_ignore);
+    if (reject_call !== undefined) createPayload.rejectCall = Boolean(reject_call);
+    if (always_online !== undefined) createPayload.alwaysOnline = Boolean(always_online);
+
     const evoRes = await fetch(createUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         apikey: api_key,
       },
-      body: JSON.stringify({
-        instanceName: instance_name,
-        qrcode: true,
-      }),
+      body: JSON.stringify(createPayload),
     });
 
     if (!evoRes.ok) {
