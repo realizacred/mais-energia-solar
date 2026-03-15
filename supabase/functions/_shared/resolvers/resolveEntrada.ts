@@ -102,7 +102,8 @@ export function resolveEntrada(
   set("estrutura", uc1.tipo_telhado ?? snap.locTipoTelhado ?? snap.tipo_telhado ?? tecnico.tipo_telhado ?? uc1.estrutura);
   set("fase", lead.rede_atendimento ?? snap.fase ?? uc1.fase);
   set("fase_uc1", uc1.fase ?? snap.fase);
-  set("tensao_rede", lead.rede_atendimento ?? snap.tensao_rede ?? uc1.tensao_rede);
+  set("tensao_rede", uc1.tensao_rede ?? snap.tensao_rede ?? lead.rede_atendimento);
+  set("tensao", uc1.tensao_rede ?? snap.tensao_rede);
 
   // ── Custo de Disponibilidade ──
   set("custo_disponibilidade_kwh", snap.custo_disponibilidade_kwh ?? uc1.custo_disponibilidade_kwh);
