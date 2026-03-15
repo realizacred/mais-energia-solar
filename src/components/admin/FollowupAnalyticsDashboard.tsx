@@ -176,8 +176,24 @@ export function FollowupAnalyticsDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Spinner size="md" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="p-5">
+              <Skeleton className="h-8 w-24 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="p-5">
+              <Skeleton className="h-8 w-24 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </Card>
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }
