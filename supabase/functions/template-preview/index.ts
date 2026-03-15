@@ -1044,13 +1044,18 @@ Deno.serve(async (req) => {
     const gotenbergParams: Record<string, string> = {
       landscape: "false",
       nativePageRanges: "1-",
-      nativePdfFormat: "PDF/A-2b",
       skipNetworkIdleEvent: "false",
+      // Do NOT use nativePdfFormat PDF/A — it forces color space conversion
+      // which alters image X/Y coordinates and breaks anchored layout
     };
 
     try {
       gotenbergUrl = await resolveGotenbergUrl(adminClient, tenantId);
       console.log(`[template-preview] Converting to PDF via Gotenberg: ${gotenbergUrl}`);
+
+      // Hash the DOCX bytes to prove binary integrity
+      const docxHashForGotenberg = await hashBytes(report);
+      console.log(`[template-preview] DOCX hash sent to Gotenberg: ${docxHashForGotenberg} (${report.length} bytes)`);
 
       const formData = new FormData();
       const blob = new Blob([report], {
@@ -1059,9 +1064,11 @@ Deno.serve(async (req) => {
       formData.append("files", blob, "proposta.docx");
       formData.append("landscape", "false");
       formData.append("nativePageRanges", "1-");
-      // Improve PDF rendering fidelity vs Word
-      formData.append("nativePdfFormat", "PDF/A-2b");
+      // REMOVED nativePdfFormat PDF/A-2b — causes color conversion that shifts element positions
       formData.append("skipNetworkIdleEvent", "false");
+      // Disable PDF optimization that alters coordinates
+      formData.append("pdfa", "");
+      formData.append("pdfua", "false");
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
       console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
