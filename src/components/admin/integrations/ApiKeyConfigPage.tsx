@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2, type LucideIcon } from "lucide-react";
+import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2, Info, type LucideIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
@@ -145,94 +145,118 @@ export default function ApiKeyConfigPage({
     <div className="space-y-6">
       <PageHeader icon={Icon} title={title} description={description} />
 
-      <Card className="bg-card border-border shadow-sm rounded-xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">Chave de API</CardTitle>
-              <CardDescription>{helpText || "Configure sua chave de acesso para esta integração"}</CardDescription>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-card border-border shadow-sm rounded-xl">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Chave de API</CardTitle>
+                <CardDescription>{helpText || "Configure sua chave de acesso para esta integração"}</CardDescription>
+              </div>
+              {config?.id && (
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className={config.is_active ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground border-border"}>
+                    {config.is_active ? "Ativa" : "Inativa"}
+                  </Badge>
+                  <Switch
+                    checked={config.is_active}
+                    onCheckedChange={handleToggle}
+                    disabled={saveMutation.isPending}
+                  />
+                </div>
+              )}
             </div>
-            {config?.id && (
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className={config.is_active ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}>
-                  {config.is_active ? "Ativa" : "Inativa"}
-                </Badge>
-                <Switch
-                  checked={config.is_active}
-                  onCheckedChange={handleToggle}
-                  disabled={saveMutation.isPending}
-                />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Current key display */}
+            {maskedKey && !hasEdited && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-border">
+                <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                <span className="text-sm font-mono flex-1">{showKey ? config?.api_key : maskedKey}</span>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowKey(!showKey)}>
+                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
             )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Current key display */}
-          {maskedKey && !hasEdited && (
-            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-border">
-              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-              <span className="text-sm font-mono flex-1">{showKey ? config?.api_key : maskedKey}</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowKey(!showKey)}>
-                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-          )}
 
-          {/* Edit / New key input */}
-          <div className="space-y-2">
-            <Label>{maskedKey ? "Nova chave (substituir)" : "Chave de API"}</Label>
-            <div className="flex gap-2">
-              <Input
-                type="password"
-                placeholder={maskedKey ? "Cole a nova chave para substituir..." : "Cole sua chave de API aqui..."}
-                value={apiKey}
-                onChange={(e) => {
-                  setApiKey(e.target.value);
-                  setHasEdited(true);
-                }}
-              />
-              <Button onClick={handleSave} disabled={!apiKey.trim() || saveMutation.isPending}>
-                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                <span className="ml-1.5">Salvar</span>
-              </Button>
+            {/* Edit / New key input */}
+            <div className="space-y-2">
+              <Label>{maskedKey ? "Nova chave (substituir)" : "Chave de API"}</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder={maskedKey ? "Cole a nova chave para substituir..." : "Cole sua chave de API aqui..."}
+                  value={apiKey}
+                  onChange={(e) => {
+                    setApiKey(e.target.value);
+                    setHasEdited(true);
+                  }}
+                />
+                <Button onClick={handleSave} disabled={!apiKey.trim() || saveMutation.isPending}>
+                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  <span className="ml-1.5">Salvar</span>
+                </Button>
+              </div>
             </div>
-          </div>
 
-          {/* Help link */}
-          {helpUrl && (
-            <p className="text-xs text-muted-foreground">
-              Não tem uma chave?{" "}
-              <a href={helpUrl} target="_blank" rel="noopener noreferrer" className="underline text-primary">
-                Saiba como obter
-              </a>
-            </p>
-          )}
-
-          {/* Test + metadata */}
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <div className="text-xs text-muted-foreground space-y-0.5">
-              {config?.last_validated_at && (
-                <p>Última validação: {format(new Date(config.last_validated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
-              )}
-              {config?.updated_at && (
-                <p>Última atualização: {format(new Date(config.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
-              )}
-            </div>
-            {testEndpoint && config?.api_key && (
-              <Button variant="outline" size="sm" onClick={() => testMutation.mutate()} disabled={testMutation.isPending}>
-                {testMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                ) : testMutation.isSuccess ? (
-                  <CheckCircle2 className="h-4 w-4 text-success mr-1.5" />
-                ) : testMutation.isError ? (
-                  <XCircle className="h-4 w-4 text-destructive mr-1.5" />
-                ) : null}
-                Testar conexão
-              </Button>
+            {/* Help link */}
+            {helpUrl && (
+              <p className="text-xs text-muted-foreground">
+                Não tem uma chave?{" "}
+                <a href={helpUrl} target="_blank" rel="noopener noreferrer" className="underline text-primary">
+                  Saiba como obter
+                </a>
+              </p>
             )}
-          </div>
-        </CardContent>
-      </Card>
+
+            {/* Test + metadata */}
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                {config?.last_validated_at && (
+                  <p>Última validação: {format(new Date(config.last_validated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+                )}
+                {config?.updated_at && (
+                  <p>Última atualização: {format(new Date(config.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+                )}
+              </div>
+              {testEndpoint && config?.api_key && (
+                <Button variant="outline" size="sm" onClick={() => testMutation.mutate()} disabled={testMutation.isPending}>
+                  {testMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  ) : testMutation.isSuccess ? (
+                    <CheckCircle2 className="h-4 w-4 text-success mr-1.5" />
+                  ) : testMutation.isError ? (
+                    <XCircle className="h-4 w-4 text-destructive mr-1.5" />
+                  ) : null}
+                  Testar conexão
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Info card */}
+        <div className="space-y-4">
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-semibold text-foreground">Como obter sua chave</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-2">
+              <p>1. Acesse o portal do provedor</p>
+              <p>2. Crie ou copie sua API key</p>
+              <p>3. Cole no campo ao lado e salve</p>
+              {helpUrl && (
+                <a href={helpUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary underline text-xs mt-2">
+                  Acessar portal do provedor →
+                </a>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
