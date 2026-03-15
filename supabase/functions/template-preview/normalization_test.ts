@@ -158,28 +158,22 @@ Deno.test("Case 8: preserve inter-run XML markers while merging", () => {
   assertEquals(result.includes("<w:proofErr w:type=\"spellEnd\"/>"), true);
 });
 
-Deno.test("Case 9: paragraph with drawing (behind-text image) — text runs still normalized", () => {
+Deno.test("Case 9: paragraph with drawing (behind-text image) — untouched for layout safety", () => {
   const xml = `<w:p><w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:anchor behindDoc="1"><wp:extent cx="100" cy="100"/></wp:anchor></w:drawing></w:r><w:r><w:t>[potencia</w:t></w:r><w:r><w:t>_sistema]</w:t></w:r></w:p>`;
   const result = normalizeParagraphRuns(xml);
-  // Drawing run must be preserved exactly
-  assertEquals(result.includes("<w:drawing>"), true, "drawing preserved");
-  assertEquals(result.includes("behindDoc"), true, "anchor attributes preserved");
-  // Placeholder must be unified in a single run
-  assertEquals(result.includes("[potencia_sistema]"), true, "placeholder unified");
+  assertEquals(result, xml, "paragraph with anchor/drawing must remain untouched");
 });
 
-Deno.test("Case 10: paragraph with mc:AlternateContent — text runs normalized", () => {
+Deno.test("Case 10: paragraph with mc:AlternateContent — untouched for layout safety", () => {
   const xml = `<w:p><mc:AlternateContent><mc:Choice Requires="wps"><w:r><w:drawing><wp:anchor/></w:drawing></w:r></mc:Choice></mc:AlternateContent><w:r><w:t>[cidade</w:t></w:r><w:r><w:t>_estado]</w:t></w:r></w:p>`;
   const result = normalizeParagraphRuns(xml);
-  assertEquals(result.includes("[cidade_estado]"), true, "placeholder unified");
-  assertEquals(result.includes("<mc:AlternateContent>"), true, "mc:AlternateContent preserved");
+  assertEquals(result, xml, "alternate content paragraph must remain untouched");
 });
 
-Deno.test("Case 11: graphic run with w:pict — not modified", () => {
+Deno.test("Case 11: graphic run with w:pict — untouched for layout safety", () => {
   const xml = `<w:p><w:r><w:pict><v:shape/></w:pict></w:r><w:r><w:t>[nome</w:t></w:r><w:r><w:t>_cliente]</w:t></w:r></w:p>`;
   const result = normalizeParagraphRuns(xml);
-  assertEquals(result.includes("[nome_cliente]"), true, "placeholder unified");
-  assertEquals(result.includes("<w:pict><v:shape/></w:pict>"), true, "pict preserved");
+  assertEquals(result, xml, "paragraph with w:pict must remain untouched");
 });
 
 // ═══════════════════════════════════════════════════════════════
