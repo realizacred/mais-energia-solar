@@ -684,13 +684,14 @@ function isValidXmlDocument(xml: string): boolean {
 // FILE NAMING HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-function slugifyFilePart(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
+function slugifyFilePart(value: string, preserveHyphens = false): string {
+  let result = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (preserveHyphens) {
+    result = result.replace(/[^a-zA-Z0-9-]+/g, "_");
+  } else {
+    result = result.replace(/[^a-zA-Z0-9]+/g, "_");
+  }
+  return result.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
 }
 
 function buildProposalFileName(input: {
