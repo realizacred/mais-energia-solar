@@ -851,11 +851,39 @@ export function ConvertLeadToClientDialog({
 
   const missingItems = getMissingItems();
 
+  const STEPS = [
+    { label: "Dados Pessoais", icon: User, description: "Nome, contato e endereço" },
+    { label: "Técnico & Docs", icon: FileText, description: "Equipamentos e documentos" },
+    { label: "Pagamento", icon: Wallet, description: "Forma de pagamento e proposta" },
+  ];
+
+  const canAdvanceStep = (step: number): boolean => {
+    if (step === 0) {
+      const v = form.getValues();
+      return !!(v.nome && v.telefone && v.estado && v.cidade);
+    }
+    return true;
+  };
+
+  const handleNext = async () => {
+    if (currentStep === 0) {
+      const valid = await form.trigger(["nome", "telefone", "email", "cpf_cnpj", "estado", "cidade", "bairro", "rua", "numero"]);
+      if (!valid) return;
+    }
+    if (currentStep === 1) {
+      const valid = await form.trigger(["disjuntor_id", "transformador_id", "localizacao"]);
+      if (!valid) return;
+    }
+    setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
+  };
+
+  const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-[820px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
+      <DialogContent className="w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* ── HEADER §25 ─────────────────────────────────────── */}
-        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <ShoppingCart className="w-5 h-5 text-primary" />
           </div>
@@ -869,335 +897,163 @@ export function ConvertLeadToClientDialog({
           </div>
         </DialogHeader>
 
+        {/* ── STEPPER ── */}
+        <div className="flex items-center gap-1 px-5 py-3 border-b border-border bg-muted/20 shrink-0">
+          {STEPS.map((step, idx) => {
+            const StepIcon = step.icon;
+            const isActive = idx === currentStep;
+            const isDone = idx < currentStep;
+            return (
+              <div key={idx} className="flex items-center gap-1 flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => idx < currentStep && setCurrentStep(idx)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors w-full min-w-0 ${
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : isDone
+                      ? "text-success cursor-pointer hover:bg-muted/50"
+                      : "text-muted-foreground"
+                  }`}
+                  disabled={idx > currentStep}
+                >
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                    isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {isDone ? <Check className="w-3.5 h-3.5" /> : <StepIcon className="w-3.5 h-3.5" />}
+                  </div>
+                  <div className="min-w-0 text-left hidden sm:block">
+                    <p className="text-xs font-semibold truncate">{step.label}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{step.description}</p>
+                  </div>
+                </button>
+                {idx < STEPS.length - 1 && (
+                  <div className={`w-4 h-px shrink-0 ${isDone ? "bg-success" : "bg-border"}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
         {/* Offline indicator */}
         {!isOnline && (
-          <div className="flex items-center gap-2 mx-5 mt-4 p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-foreground">
+          <div className="flex items-center gap-2 mx-5 mt-3 p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-foreground shrink-0">
             <WifiOff className="w-4 h-4 text-warning shrink-0" />
-            <span>Modo offline — Os dados serão salvos localmente e sincronizados quando a conexão voltar.</span>
+            <span>Modo offline — Os dados serão salvos localmente.</span>
           </div>
         )}
 
-        {/* ── BODY — 2 colunas §25 ───────────────────────────── */}
+        {/* ── BODY — steps ── */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 min-h-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border flex-1 min-h-0 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
 
-              {/* ═══ COLUNA ESQUERDA — dados ═══ */}
-              <div className="p-5 space-y-5">
-
-                {/* Dados Pessoais */}
-                <div className="space-y-3">
-                  <SectionTitle>Dados pessoais</SectionTitle>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="nome"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome *</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="telefone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Telefone *</FormLabel>
-                          <FormControl>
-                            <PhoneInput value={field.value} onChange={field.onChange} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>E-mail *</FormLabel>
-                          <FormControl>
-                            <EmailInput value={field.value || ""} onChange={field.onChange} required />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="cpf_cnpj"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>CPF/CNPJ *</FormLabel>
-                          <FormControl>
-                            <CpfCnpjInput value={field.value || ""} onChange={field.onChange} label="" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                <div className="border-t border-border" />
-
-                {/* Endereço — AddressFields §13 */}
-                <div className="space-y-3">
-                  <SectionTitle>Endereço</SectionTitle>
-                  <AddressFields
-                    value={addressValue}
-                    onChange={handleAddressChange}
-                  />
-                </div>
-
-                <div className="border-t border-border" />
-
-                {/* Dados Técnicos */}
-                <div className="space-y-3">
-                  <SectionTitle>Dados técnicos</SectionTitle>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="disjuntor_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Disjuntor *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o disjuntor" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {disjuntores.map((d) => (
-                                <SelectItem key={d.id} value={d.id}>
-                                  {d.amperagem}A {d.descricao ? `- ${d.descricao}` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="transformador_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Transformador *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o transformador" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {transformadores.map((t) => (
-                                <SelectItem key={t.id} value={t.id}>
-                                  {t.potencia_kva} kVA {t.descricao ? `- ${t.descricao}` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Localização — full width */}
-                  <FormField
-                    control={form.control}
-                    name="localizacao"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5" />
-                          Localização *
-                        </FormLabel>
-                        <div className="flex gap-2">
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              value={localizacaoValue ?? ""}
-                              placeholder="Link do Google Maps ou coordenadas"
-                              className="flex-1"
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={getCurrentLocation}
-                            disabled={gettingLocation}
-                            className="shrink-0"
-                            aria-label="Obter localização atual"
-                          >
-                            {gettingLocation ? (
-                              <Spinner size="sm" />
-                            ) : (
-                              <Navigation className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* ═══ COLUNA DIREITA — documentos e observações ═══ */}
-              <div className="p-5 space-y-5">
-
-                {/* Documentos */}
-                <div className="space-y-3">
-                  <SectionTitle>Documentos</SectionTitle>
-
-                  {/* Identidade */}
-                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                        <CreditCard className="h-3.5 w-3.5 text-primary" />
-                        Identidade (RG/CNH)
-                      </span>
-                      {identidadeFiles.length > 0 ? (
-                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Pendente</Badge>
-                      )}
-                    </div>
-                    <DocumentUpload
-                      label=""
-                      description="Frente e verso"
-                      files={identidadeFiles}
-                      onFilesChange={setIdentidadeFiles}
-                      required
-                    />
-                  </div>
-
-                  {/* Comprovante de Endereço */}
-                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                        <Home className="h-3.5 w-3.5 text-primary" />
-                        Comprovante de Endereço
-                      </span>
-                      {comprovanteFiles.length > 0 ? (
-                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Pendente</Badge>
-                      )}
-                    </div>
-                    <DocumentUpload
-                      label=""
-                      description="Foto ou arquivo digital"
-                      files={comprovanteFiles}
-                      onFilesChange={setComprovanteFiles}
-                      required
-                    />
-                  </div>
-
-                  {/* Beneficiária (opcional) */}
-                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                        <Zap className="h-3.5 w-3.5 text-primary" />
-                        Comprovante Beneficiária UC
-                      </span>
-                      {beneficiariaFiles.length > 0 ? (
-                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
-                      )}
-                    </div>
-                    <DocumentUpload
-                      label=""
-                      description="Comprovante da unidade consumidora"
-                      files={beneficiariaFiles}
-                      onFilesChange={setBeneficiariaFiles}
-                    />
-                  </div>
-
-                  {/* Assinatura do Cliente */}
-                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                        <Signature className="h-3.5 w-3.5 text-primary" />
-                        Foto da Assinatura
-                      </span>
-                      {assinaturaFiles.length > 0 ? (
-                        <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
-                      )}
-                    </div>
-                    <DocumentUpload
-                      label=""
-                      description="Foto da assinatura do cliente no contrato"
-                      files={assinaturaFiles}
-                      onFilesChange={setAssinaturaFiles}
-                      accept="image/*"
-                    />
-                  </div>
-                </div>
-
-                <div className="border-t border-border" />
-
-                {/* Composição de Pagamento */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-primary" />
-                    <SectionTitle>Composição de Pagamento</SectionTitle>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Defina como o cliente vai pagar. Valor da venda: <span className="font-semibold text-foreground">{valorVenda > 0 ? `R$ ${valorVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Selecione a proposta aceita"}</span>
-                  </p>
-                  <PaymentComposer
-                    valorVenda={valorVenda}
-                    items={paymentItems}
-                    onChange={setPaymentItems}
-                  />
-                </div>
-
-                <div className="border-t border-border" />
-
-                {/* Proposta Aceita */}
-                {simulacoes.length > 0 && (
-                  <>
-                    <div className="space-y-3">
-                      <SectionTitle>Proposta aceita</SectionTitle>
+              {/* ═══ STEP 1: Dados Pessoais + Endereço ═══ */}
+              {currentStep === 0 && (
+                <>
+                  <div className="space-y-3">
+                    <SectionTitle>Dados pessoais</SectionTitle>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={form.control}
-                        name="simulacao_aceita_id"
+                        name="nome"
                         render={({ field }) => (
                           <FormItem>
+                            <FormLabel>Nome *</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="telefone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefone *</FormLabel>
+                            <FormControl><PhoneInput value={field.value} onChange={field.onChange} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>E-mail *</FormLabel>
+                            <FormControl><EmailInput value={field.value || ""} onChange={field.onChange} required /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="cpf_cnpj"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>CPF/CNPJ *</FormLabel>
+                            <FormControl><CpfCnpjInput value={field.value || ""} onChange={field.onChange} label="" /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border" />
+
+                  <div className="space-y-3">
+                    <SectionTitle>Endereço</SectionTitle>
+                    <AddressFields value={addressValue} onChange={handleAddressChange} />
+                  </div>
+                </>
+              )}
+
+              {/* ═══ STEP 2: Dados Técnicos + Documentos ═══ */}
+              {currentStep === 1 && (
+                <>
+                  <div className="space-y-3">
+                    <SectionTitle>Dados técnicos</SectionTitle>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="disjuntor_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Disjuntor *</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione a proposta aceita" />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Selecione o disjuntor" /></SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {simulacoes.map((s) => {
-                                  const dataFormatada = new Date(s.created_at).toLocaleDateString("pt-BR");
-                                  const potencia = s.potencia_recomendada_kwp ? `${s.potencia_recomendada_kwp.toFixed(2)} kWp` : "N/A";
-                                  const investimento = s.investimento_estimado 
-                                    ? `R$ ${s.investimento_estimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                                    : "N/A";
-                                  
-                                  return (
-                                    <SelectItem key={s.id} value={s.id}>
-                                      {dataFormatada} — {potencia} — {investimento}
-                                    </SelectItem>
-                                  );
-                                })}
+                                {disjuntores.map((d) => (
+                                  <SelectItem key={d.id} value={d.id}>
+                                    {d.amperagem}A {d.descricao ? `- ${d.descricao}` : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="transformador_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Transformador *</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Selecione o transformador" /></SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {transformadores.map((t) => (
+                                  <SelectItem key={t.id} value={t.id}>
+                                    {t.potencia_kva} kVA {t.descricao ? `- ${t.descricao}` : ""}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -1205,90 +1061,239 @@ export function ConvertLeadToClientDialog({
                         )}
                       />
                     </div>
-                    <div className="border-t border-border" />
-                  </>
-                )}
 
-                {/* Observações */}
-                <div className="space-y-3">
-                  <SectionTitle>Observações</SectionTitle>
-                  <FormField
-                    control={form.control}
-                    name="observacoes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Textarea 
-                            {...field} 
-                            rows={3}
-                            placeholder="Informações adicionais sobre o cliente ou instalação..."
-                            className="bg-muted/50 min-h-[80px]"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                    <FormField
+                      control={form.control}
+                      name="localizacao"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <MapPin className="h-3.5 w-3.5" /> Localização *
+                          </FormLabel>
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input
+                                {...field}
+                                value={localizacaoValue ?? ""}
+                                placeholder="Link do Google Maps ou coordenadas"
+                                className="flex-1"
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={getCurrentLocation}
+                              disabled={gettingLocation}
+                              className="shrink-0"
+                              aria-label="Obter localização atual"
+                            >
+                              {gettingLocation ? <Spinner size="sm" /> : <Navigation className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                {/* Missing items warning */}
-                {missingItems.length > 0 && (
-                  <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Documentação incompleta</p>
-                      <p className="text-xs text-warning mt-1">
-                        Faltam: {missingItems.join(", ")}
-                      </p>
+                  <div className="border-t border-border" />
+
+                  <div className="space-y-3">
+                    <SectionTitle>Documentos</SectionTitle>
+
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                          <CreditCard className="h-3.5 w-3.5 text-primary" /> Identidade (RG/CNH)
+                        </span>
+                        {identidadeFiles.length > 0 ? (
+                          <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Pendente</Badge>
+                        )}
+                      </div>
+                      <DocumentUpload label="" description="Frente e verso" files={identidadeFiles} onFilesChange={setIdentidadeFiles} required />
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                          <Home className="h-3.5 w-3.5 text-primary" /> Comprovante de Endereço
+                        </span>
+                        {comprovanteFiles.length > 0 ? (
+                          <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Pendente</Badge>
+                        )}
+                      </div>
+                      <DocumentUpload label="" description="Foto ou arquivo digital" files={comprovanteFiles} onFilesChange={setComprovanteFiles} required />
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                          <Zap className="h-3.5 w-3.5 text-primary" /> Comprovante Beneficiária UC
+                        </span>
+                        {beneficiariaFiles.length > 0 ? (
+                          <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
+                        )}
+                      </div>
+                      <DocumentUpload label="" description="Comprovante da unidade consumidora" files={beneficiariaFiles} onFilesChange={setBeneficiariaFiles} />
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                          <Signature className="h-3.5 w-3.5 text-primary" /> Foto da Assinatura
+                        </span>
+                        {assinaturaFiles.length > 0 ? (
+                          <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
+                        )}
+                      </div>
+                      <DocumentUpload label="" description="Foto da assinatura do cliente no contrato" files={assinaturaFiles} onFilesChange={setAssinaturaFiles} accept="image/*" />
                     </div>
                   </div>
-                )}
-              </div>
+                </>
+              )}
+
+              {/* ═══ STEP 3: Pagamento + Proposta + Observações ═══ */}
+              {currentStep === 2 && (
+                <>
+                  {/* Proposta Aceita */}
+                  {simulacoes.length > 0 && (
+                    <>
+                      <div className="space-y-3">
+                        <SectionTitle>Proposta aceita</SectionTitle>
+                        <FormField
+                          control={form.control}
+                          name="simulacao_aceita_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger><SelectValue placeholder="Selecione a proposta aceita" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {simulacoes.map((s) => {
+                                    const dataFormatada = new Date(s.created_at).toLocaleDateString("pt-BR");
+                                    const potencia = s.potencia_recomendada_kwp ? `${s.potencia_recomendada_kwp.toFixed(2)} kWp` : "N/A";
+                                    const investimento = s.investimento_estimado
+                                      ? `R$ ${s.investimento_estimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                                      : "N/A";
+                                    return (
+                                      <SelectItem key={s.id} value={s.id}>
+                                        {dataFormatada} — {potencia} — {investimento}
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="border-t border-border" />
+                    </>
+                  )}
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4 text-primary" />
+                      <SectionTitle>Composição de Pagamento</SectionTitle>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Defina como o cliente vai pagar. Valor da venda:{" "}
+                      <span className="font-semibold text-foreground">
+                        {valorVenda > 0
+                          ? `R$ ${valorVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                          : "Selecione a proposta aceita"}
+                      </span>
+                    </p>
+                    <PaymentComposer valorVenda={valorVenda} items={paymentItems} onChange={setPaymentItems} />
+                  </div>
+
+                  <div className="border-t border-border" />
+
+                  <div className="space-y-3">
+                    <SectionTitle>Observações</SectionTitle>
+                    <FormField
+                      control={form.control}
+                      name="observacoes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              rows={3}
+                              placeholder="Informações adicionais sobre o cliente ou instalação..."
+                              className="bg-muted/50 min-h-[80px]"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Missing items warning */}
+                  {missingItems.length > 0 && (
+                    <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Documentação incompleta</p>
+                        <p className="text-xs text-warning mt-1">Faltam: {missingItems.join(", ")}</p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-            {/* ── FOOTER §25 ─────────────────────────────────── */}
-            <div className="flex flex-col sm:flex-row justify-end gap-2 p-4 border-t border-border bg-muted/30">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onOpenChange(false)}
-                disabled={loading || savingAsLead}
-              >
-                Cancelar
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleSaveAsLead}
-                disabled={loading || savingAsLead}
-              >
-                {savingAsLead ? (
-                  <>
-                    <Spinner size="sm" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Aguardando Documentação
-                  </>
+            {/* ── FOOTER §25 — navigation + actions ── */}
+            <div className="flex items-center justify-between gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+              <div>
+                {currentStep > 0 && (
+                  <Button type="button" variant="ghost" onClick={handleBack} disabled={loading || savingAsLead}>
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
+                  </Button>
                 )}
-              </Button>
+              </div>
 
-              <Button type="submit" disabled={loading || savingAsLead}>
-                {loading ? (
-                  <>
-                    <Spinner size="sm" />
-                    Convertendo...
-                  </>
+              <div className="flex items-center gap-2">
+                {currentStep < STEPS.length - 1 ? (
+                  <Button type="button" onClick={handleNext}>
+                    Próximo <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
                 ) : (
                   <>
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Converter em Venda
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSaveAsLead}
+                      disabled={loading || savingAsLead}
+                    >
+                      {savingAsLead ? (
+                        <><Spinner size="sm" /> Salvando...</>
+                      ) : (
+                        <><Save className="mr-2 h-4 w-4" /> Aguardando Documentação</>
+                      )}
+                    </Button>
+                    <Button type="submit" disabled={loading || savingAsLead}>
+                      {loading ? (
+                        <><Spinner size="sm" /> Convertendo...</>
+                      ) : (
+                        <><ShoppingCart className="mr-2 h-4 w-4" /> Converter em Venda</>
+                      )}
+                    </Button>
                   </>
                 )}
-              </Button>
+              </div>
             </div>
           </form>
         </Form>
