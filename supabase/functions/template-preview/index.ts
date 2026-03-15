@@ -1231,14 +1231,10 @@ Deno.serve(async (req) => {
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
       formData.append("files", blob, "proposta.docx");
-      formData.append("landscape", "false");
-      formData.append("nativePageRanges", "1-");
-      // Keep conversion options minimal to avoid LibreOffice regressions in some versions.
-      formData.append("skipNetworkIdleEvent", "false");
-      formData.append("pdfua", "false");
-      formData.append("losslessImageCompression", "true");
-      formData.append("reduceImageResolution", "false");
-      formData.append("quality", "100");
+      // Append only LibreOffice-relevant params (no Chromium params like skipNetworkIdleEvent)
+      for (const [key, val] of Object.entries(gotenbergParams)) {
+        formData.append(key, val);
+      }
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
       console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
