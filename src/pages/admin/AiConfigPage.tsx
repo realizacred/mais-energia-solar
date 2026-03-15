@@ -14,17 +14,25 @@ export default function AiConfigPage() {
         description="Modelo, temperatura, limites e gate inteligente de follow-up"
       />
 
-      <Tabs defaultValue="settings" className="w-full">
+      <Tabs defaultValue="provider" className="w-full">
         <TabsList>
+          <TabsTrigger value="provider" className="gap-1.5">
+            <Bot className="h-4 w-4" />
+            Provedor & Consumo
+          </TabsTrigger>
           <TabsTrigger value="settings" className="gap-1.5">
             <Settings className="h-4 w-4" />
-            Configurações
+            Follow-up IA
           </TabsTrigger>
           <TabsTrigger value="analytics" className="gap-1.5">
             <BarChart3 className="h-4 w-4" />
             Analytics
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="provider" className="mt-4">
+          <AiProviderPanel />
+        </TabsContent>
 
         <TabsContent value="settings" className="mt-4">
           <AiFollowupSettingsPanel />
