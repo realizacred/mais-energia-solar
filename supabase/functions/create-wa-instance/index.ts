@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          apikey: api_key,
+          apikey: resolvedApiKey,
         },
         body: JSON.stringify(createPayload),
       });
