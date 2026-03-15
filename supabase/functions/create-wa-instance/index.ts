@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
         owner_user_id: user.id,
         status: initialStatus,
       })
-      .select("id")
+      .select("id, webhook_secret")
       .single();
 
     if (insertErr) {
@@ -230,10 +230,64 @@ Deno.serve(async (req) => {
 
     console.log(`[create-wa-instance] Instance created: ${newInstance.id} for tenant ${profile.tenant_id}`);
 
+    // Step 4: Auto-configure webhook on Evolution API (non-blocking)
+    let webhookConfigured = false;
+    let webhookWarning: string | null = null;
+
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      if (!supabaseUrl) throw new Error("SUPABASE_URL not available");
+
+      // Validate URL before using it
+      new URL(supabaseUrl);
+
+      const webhookUrl = `${supabaseUrl}/functions/v1/evolution-webhook?instance=${encodeURIComponent(effectiveInstanceKey)}&secret=${encodeURIComponent(newInstance.webhook_secret || "")}`;
+      const webhookEvents = [
+        "MESSAGES_UPSERT",
+        "MESSAGES_UPDATE",
+        "CONNECTION_UPDATE",
+        "CONTACTS_UPSERT",
+        "QRCODE_UPDATED",
+      ];
+
+      const encodedKey = encodeURIComponent(effectiveInstanceKey);
+      const webhookSetUrl = `${baseUrl}/webhook/set/${encodedKey}`;
+
+      console.log(`[create-wa-instance] Setting webhook: ${webhookSetUrl}`);
+
+      const webhookRes = await fetch(webhookSetUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: resolvedApiKey,
+        },
+        body: JSON.stringify({
+          url: webhookUrl,
+          webhook_by_events: false,
+          webhook_base64: false,
+          events: webhookEvents,
+        }),
+      });
+
+      if (webhookRes.ok) {
+        webhookConfigured = true;
+        console.log(`[create-wa-instance] Webhook configured successfully for ${effectiveInstanceKey}`);
+      } else {
+        const errText = await webhookRes.text();
+        webhookWarning = `Webhook setup failed (${webhookRes.status}): ${errText.substring(0, 200)}`;
+        console.warn(`[create-wa-instance] ${webhookWarning}`);
+      }
+    } catch (whErr: any) {
+      webhookWarning = `Webhook auto-config error: ${whErr.message}`;
+      console.warn(`[create-wa-instance] ${webhookWarning}`);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       instance_id: newInstance.id,
       qr_code_base64: qrBase64,
+      webhook_configured: webhookConfigured,
+      webhook_warning: webhookWarning,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
