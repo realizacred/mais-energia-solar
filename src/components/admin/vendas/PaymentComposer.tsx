@@ -134,8 +134,8 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
           onClick={onToggle}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <CreditCard className="w-4 h-4 text-primary" />
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-xs font-bold text-primary">{index + 1}</span>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
