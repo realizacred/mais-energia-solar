@@ -399,6 +399,14 @@ export function WaInstancesManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* QR Code Dialog for existing instances */}
+      <WaQRCodeDialog
+        open={!!qrInstance}
+        onOpenChange={(v) => !v && setQrInstance(null)}
+        instanceId={qrInstance?.id || ""}
+        instanceName={qrInstance?.nome}
+      />
     </div>
   );
 }

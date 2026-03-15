@@ -8,6 +8,7 @@ import { WhatsAppTemplates, FollowUpCalendar, SmartReminders } from "@/component
 import { LeadScoring } from "@/components/vendor/leads";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
+import { WaConnectionCard } from "@/components/vendor/WaConnectionCard";
 
 
 interface Props {
