@@ -169,7 +169,7 @@ export default function ApiKeyConfigPage({
         <CardContent className="space-y-4">
           {/* Current key display */}
           {maskedKey && !hasEdited && (
-            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border">
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-border">
               <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
               <span className="text-sm font-mono flex-1">{showKey ? config?.api_key : maskedKey}</span>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowKey(!showKey)}>
