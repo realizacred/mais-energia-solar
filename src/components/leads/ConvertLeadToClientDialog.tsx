@@ -359,6 +359,7 @@ export function ConvertLeadToClientDialog({
   useEffect(() => {
     if (!open) {
       setFormInitialized(null);
+      setCurrentStep(0);
     }
   }, [open]);
 
