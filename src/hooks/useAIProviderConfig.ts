@@ -71,7 +71,7 @@ export function useAIProviderConfig() {
       const { data } = await supabase
         .from("integration_configs")
         .select("service_key, is_active")
-        .in("service_key", ["openai", "gemini"])
+        .in("service_key", ["openai", "google_gemini"])
         .eq("is_active", true);
       return data || [];
     },
@@ -79,7 +79,7 @@ export function useAIProviderConfig() {
   });
 
   const hasOpenAIKey = activeKeys?.some(k => k.service_key === "openai") ?? false;
-  const hasGeminiKey = activeKeys?.some(k => k.service_key === "gemini") ?? false;
+  const hasGeminiKey = activeKeys?.some(k => k.service_key === "google_gemini") ?? false;
 
   const updateConfig = useMutation({
     mutationFn: async (
