@@ -60,7 +60,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
 };
 
 export function WaInstancesManager() {
-  const { instances, loading, createInstance, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory } = useWaInstances();
+  const { instances, loading, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory } = useWaInstances();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
@@ -79,7 +79,6 @@ export function WaInstancesManager() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch junction table data for all instances
   const { data: instanceVendedores = [] } = useQuery({
     queryKey: ["wa-instance-vendedores"],
     queryFn: async () => {
@@ -300,46 +299,40 @@ export function WaInstancesManager() {
         instance={editInstance}
         vendedores={vendedores as any}
         initialVendedorIds={editInstance ? getInstanceVendedorIds(editInstance.id) : []}
-        onSave={async (data, selectedVendedorIds) => {
-          let instanceId = editInstance?.id;
-          if (editInstance) {
-            updateInstance({ id: editInstance.id, updates: data });
-          } else {
-            const created = await createInstance(data as any);
-            instanceId = created?.id;
-          }
+        onSaveEdit={async (data, selectedVendedorIds) => {
+          if (!editInstance) return;
+          const instanceId = editInstance.id;
+          updateInstance({ id: instanceId, updates: data });
 
           // Sync junction table
-          if (instanceId) {
-            const tenantId = instances[0]?.tenant_id || editInstance?.tenant_id;
-            if (tenantId) {
-              // Delete existing links
-              await supabase.from("wa_instance_consultores").delete().eq("instance_id", instanceId);
-              // Insert new links
-              if (selectedVendedorIds.length > 0) {
-                await supabase.from("wa_instance_consultores").insert(
-                  selectedVendedorIds.map((vid) => ({
-                    instance_id: instanceId!,
-                    consultor_id: vid,
-                    tenant_id: tenantId,
-                  }))
-                );
-              }
-              // Also update legacy vendedor_id for backward compat
-              const legacyVendedorId = selectedVendedorIds.length === 1 ? selectedVendedorIds[0] : null;
-              await supabase.from("wa_instances").update({ consultor_id: legacyVendedorId } as any).eq("id", instanceId);
+          const tenantId = editInstance.tenant_id;
+          if (tenantId) {
+            await supabase.from("wa_instance_consultores").delete().eq("instance_id", instanceId);
+            if (selectedVendedorIds.length > 0) {
+              await supabase.from("wa_instance_consultores").insert(
+                selectedVendedorIds.map((vid) => ({
+                  instance_id: instanceId,
+                  consultor_id: vid,
+                  tenant_id: tenantId,
+                }))
+              );
             }
-            queryClient.invalidateQueries({ queryKey: ["wa-instance-consultores"] });
+            const legacyVendedorId = selectedVendedorIds.length === 1 ? selectedVendedorIds[0] : null;
+            await supabase.from("wa_instances").update({ consultor_id: legacyVendedorId } as any).eq("id", instanceId);
           }
-
-          setShowCreate(false);
+          queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
           setEditInstance(null);
+        }}
+        onCreateSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
+          queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
+          setShowCreate(false);
         }}
       />
 
       {/* Sync History Dialog */}
       <Dialog open={!!syncInstance} onOpenChange={(v) => !v && setSyncInstance(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5 text-primary" />
@@ -421,14 +414,16 @@ function InstanceFormDialog({
   instance,
   vendedores,
   initialVendedorIds,
-  onSave,
+  onSaveEdit,
+  onCreateSuccess,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   instance: WaInstance | null;
   vendedores: { id: string; nome: string; user_id: string | null }[];
   initialVendedorIds: string[];
-  onSave: (data: any, selectedVendedorIds: string[]) => Promise<void>;
+  onSaveEdit: (data: any, selectedVendedorIds: string[]) => Promise<void>;
+  onCreateSuccess: () => void;
 }) {
   const [nome, setNome] = useState("");
   const [instanceKey, setInstanceKey] = useState("");
@@ -462,13 +457,11 @@ function InstanceFormDialog({
       setQrStatus("waiting");
       setQrError(null);
     } else {
-      // Cleanup on close
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     }
   }, [open, instance, initialVendedorIds]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -484,12 +477,12 @@ function InstanceFormDialog({
     );
   };
 
-  // For editing existing instances — keep old flow
+  // For editing existing instances
   const handleSubmitEdit = async () => {
     if (!nome.trim() || !instanceKey.trim() || !apiUrl.trim()) return;
     setSaving(true);
     try {
-      await onSave(
+      await onSaveEdit(
         {
           nome: nome.trim(),
           evolution_instance_key: instanceKey.trim(),
@@ -503,7 +496,7 @@ function InstanceFormDialog({
     }
   };
 
-  // For new instances — create via edge function + show QR
+  // For new instances — create via edge function (single canonical path) + show QR
   const handleCreateWithQR = async () => {
     if (!nome.trim() || !apiUrl.trim() || !apiKey.trim()) return;
     setSaving(true);
@@ -518,6 +511,7 @@ function InstanceFormDialog({
           instance_name: nome.trim(),
           api_url: apiUrl.trim(),
           api_key: apiKey.trim(),
+          consultor_ids: selectedVendedorIds,
         },
       });
 
@@ -528,6 +522,7 @@ function InstanceFormDialog({
       setQrCode(data.qr_code_base64 || null);
       setStep("qrcode");
       queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
+      queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
 
       // Start polling for connection status
       startQrPolling(data.instance_id);
@@ -541,13 +536,11 @@ function InstanceFormDialog({
   };
 
   const startQrPolling = (instanceId: string) => {
-    // Clear existing timers
     if (pollingRef.current) clearInterval(pollingRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     setQrStatus("waiting");
 
-    // Poll every 3s
     pollingRef.current = setInterval(async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -561,20 +554,18 @@ function InstanceFormDialog({
         if (error) return;
 
         if (data?.status === "open") {
-          // Connected!
           setQrStatus("connected");
           if (pollingRef.current) clearInterval(pollingRef.current);
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
           toast({ title: "✅ WhatsApp conectado!" });
-          // Auto-close after 2s
           setTimeout(() => {
+            onCreateSuccess();
             onOpenChange(false);
           }, 2000);
           return;
         }
 
-        // Update QR code if available
         if (data?.qr_code_base64) {
           setQrCode(data.qr_code_base64);
         }
@@ -583,7 +574,6 @@ function InstanceFormDialog({
       }
     }, 3000);
 
-    // Timeout after 60s
     timeoutRef.current = setTimeout(() => {
       if (pollingRef.current) clearInterval(pollingRef.current);
       setQrStatus("expired");
@@ -597,15 +587,50 @@ function InstanceFormDialog({
     startQrPolling(createdInstanceId);
   };
 
-  // Editing existing instance → old form
+  // Vendedor selection section (reused for create and edit)
+  const vendedorSection = (
+    <div>
+      <Label>Vincular a Consultores (opcional)</Label>
+      <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+        {vendedores.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Nenhum consultor ativo encontrado.</p>
+        ) : (
+          vendedores.map((v) => (
+            <label
+              key={v.id}
+              className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5 transition-colors"
+            >
+              <Checkbox
+                checked={selectedVendedorIds.includes(v.id)}
+                onCheckedChange={() => toggleVendedor(v.id)}
+              />
+              <span className="text-sm">{v.nome}</span>
+            </label>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  // Editing existing instance
   if (instance) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Editar Instância</DialogTitle>
+        <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Edit className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                Editar Instância
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Atualize os dados de conexão da instância WhatsApp
+              </p>
+            </div>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
             <div>
               <Label>Nome da Instância *</Label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
@@ -638,35 +663,15 @@ function InstanceFormDialog({
                 className="font-mono text-sm"
               />
             </div>
-            <div>
-              <Label>Vincular a Consultores (opcional)</Label>
-              <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                {vendedores.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Nenhum consultor ativo encontrado.</p>
-                ) : (
-                  vendedores.map((v) => (
-                    <label
-                      key={v.id}
-                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5 transition-colors"
-                    >
-                      <Checkbox
-                        checked={selectedVendedorIds.includes(v.id)}
-                        onCheckedChange={() => toggleVendedor(v.id)}
-                      />
-                      <span className="text-sm">{v.nome}</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </div>
+            {vendedorSection}
           </div>
-          <DialogFooter>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button variant="default" onClick={handleSubmitEdit} disabled={!nome.trim() || !instanceKey.trim() || saving}>
               {saving && <Spinner size="sm" />}
               Salvar
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     );
@@ -675,26 +680,30 @@ function InstanceFormDialog({
   // New instance → 2-step QR flow
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             {step === "form" ? (
-              <>
-                <Smartphone className="w-5 h-5 text-primary" />
-                Nova Instância WhatsApp
-              </>
+              <Smartphone className="w-5 h-5 text-primary" />
             ) : (
-              <>
-                <QrCode className="w-5 h-5 text-primary" />
-                Conectar WhatsApp
-              </>
+              <QrCode className="w-5 h-5 text-primary" />
             )}
-          </DialogTitle>
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              {step === "form" ? "Nova Instância WhatsApp" : "Conectar WhatsApp"}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {step === "form"
+                ? "Preencha os dados de conexão com a Evolution API"
+                : "Escaneie o QR Code com o WhatsApp do celular"}
+            </p>
+          </div>
         </DialogHeader>
 
         {step === "form" ? (
           <>
-            <div className="space-y-4">
+            <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
               <div>
                 <Label>Nome da Instância *</Label>
                 <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
@@ -721,74 +730,77 @@ function InstanceFormDialog({
                   className="font-mono text-sm"
                 />
               </div>
+              {vendedorSection}
               {qrError && (
                 <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
                   {qrError}
                 </div>
               )}
             </div>
-            <DialogFooter>
+            <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
               <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button onClick={handleCreateWithQR} disabled={!nome.trim() || !apiUrl.trim() || !apiKey.trim() || saving}>
                 {saving ? <Spinner size="sm" className="mr-2" /> : <QrCode className="h-4 w-4 mr-2" />}
                 Criar e Gerar QR Code
               </Button>
-            </DialogFooter>
+            </div>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-4 py-4">
-            {qrStatus === "connected" ? (
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-                  <Check className="w-8 h-8 text-success" />
-                </div>
-                <p className="text-lg font-semibold text-foreground">WhatsApp conectado!</p>
-                <p className="text-sm text-muted-foreground">Fechando automaticamente...</p>
-              </div>
-            ) : qrStatus === "expired" ? (
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center">
-                  <RefreshCw className="w-8 h-8 text-warning" />
-                </div>
-                <p className="text-sm font-semibold text-foreground">QR Code expirado</p>
-                <p className="text-xs text-muted-foreground text-center">
-                  O tempo de escaneamento expirou. Clique abaixo para gerar um novo QR Code.
-                </p>
-                <Button variant="outline" onClick={handleRegenerateQR} className="gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  Gerar Novo QR Code
-                </Button>
-              </div>
-            ) : (
-              <>
-                {qrCode ? (
-                  <div className="rounded-xl border border-border bg-background p-3">
-                    <img
-                      src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
-                      alt="QR Code WhatsApp"
-                      className="w-64 h-64 object-contain"
-                    />
+          <>
+            <div className="flex flex-col items-center gap-4 p-5 flex-1 min-h-0">
+              {qrStatus === "connected" ? (
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
+                    <Check className="w-8 h-8 text-success" />
                   </div>
-                ) : (
-                  <div className="w-64 h-64 rounded-xl border border-border bg-muted/30 flex items-center justify-center">
-                    <Spinner size="lg" />
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Spinner size="sm" />
-                  <p className="text-sm text-muted-foreground">Aguardando escaneamento...</p>
+                  <p className="text-lg font-semibold text-foreground">WhatsApp conectado!</p>
+                  <p className="text-sm text-muted-foreground">Fechando automaticamente...</p>
                 </div>
-                <p className="text-xs text-muted-foreground text-center max-w-xs">
-                  Abra o WhatsApp no celular → Configurações → Aparelhos conectados → Conectar aparelho → Escaneie o QR Code acima
-                </p>
-              </>
-            )}
-            <DialogFooter className="w-full mt-2">
-              <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full">
+              ) : qrStatus === "expired" ? (
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center">
+                    <RefreshCw className="w-8 h-8 text-warning" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">QR Code expirado</p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    O tempo de escaneamento expirou. Clique abaixo para gerar um novo QR Code.
+                  </p>
+                  <Button variant="outline" onClick={handleRegenerateQR} className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Gerar Novo QR Code
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {qrCode ? (
+                    <div className="rounded-xl border border-border bg-background p-3">
+                      <img
+                        src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
+                        alt="QR Code WhatsApp"
+                        className="w-64 h-64 object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-64 h-64 rounded-xl border border-border bg-muted/30 flex items-center justify-center">
+                      <Spinner size="lg" />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Spinner size="sm" />
+                    <p className="text-sm text-muted-foreground">Aguardando escaneamento...</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center max-w-xs">
+                    Abra o WhatsApp no celular → Configurações → Aparelhos conectados → Conectar aparelho → Escaneie o QR Code acima
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="flex justify-end p-4 border-t border-border bg-muted/30">
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>
                 Fechar
               </Button>
-            </DialogFooter>
-          </div>
+            </div>
+          </>
         )}
       </DialogContent>
     </Dialog>
