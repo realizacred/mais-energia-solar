@@ -514,9 +514,13 @@ function InstanceFormDialog({
       const body: Record<string, unknown> = {
         instance_name: nome.trim(),
         api_url: apiUrl.trim(),
-        api_key: apiKey.trim(),
         consultor_ids: selectedVendedorIds,
       };
+
+      // Only send api_key if provided (register mode requires it; create mode uses server global)
+      if (apiKey.trim()) {
+        body.api_key = apiKey.trim();
+      }
 
       if (isRegister) {
         body.register_only = true;
