@@ -387,6 +387,7 @@ function normalizeParagraphRunsInner(
     paraIndex++;
     if (!paraXml.includes("[") && !paraXml.includes("{{")) return paraXml;
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) return paraXml;
+    if (hasSensitiveGraphicMarkup(paraXml)) return paraXml;
 
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
     const runs: Array<{ xml: string; text: string; rPr: string }> = [];
