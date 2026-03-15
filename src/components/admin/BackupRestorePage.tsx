@@ -123,9 +123,9 @@ export function BackupRestorePage() {
             <HardDrive className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Backup & Restore</h1>
+            <h1 className="text-xl font-bold text-foreground">Backup de Dados</h1>
             <p className="text-sm text-muted-foreground">
-              Exporte os dados do seu tenant para backup seguro
+              Exporte os dados do banco de dados do seu tenant para backup seguro
             </p>
           </div>
         </div>
