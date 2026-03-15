@@ -136,7 +136,7 @@ export default function ApiKeyConfigPage({
     return (
       <div className="space-y-6">
         <PageHeader icon={Icon} title={title} description={description} />
-        <Card className="rounded-xl animate-pulse"><CardContent className="p-6 h-32" /></Card>
+        <Card className="bg-card border-border shadow-sm rounded-xl animate-pulse"><CardContent className="p-6 h-32" /></Card>
       </div>
     );
   }
