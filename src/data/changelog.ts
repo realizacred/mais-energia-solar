@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.52.0",
+    date: "2026-03-14",
+    title: "AI Hub — todas as edge functions usam provedor dinâmico",
+    type: "improvement",
+    description: "All 7 AI edge functions now read active_provider and active_model from ai_provider_config per tenant, enabling model switching without code changes.",
+    details: [
+      "generate-ai-insights: callAI accepts model param, reads activeProvider/activeModel from config",
+      "ai-followup-intelligence: model var replaced with activeModel from config",
+      "ai-conversation-summary: config fetch added, model and logging updated",
+      "ai-suggest-message, ai-proposal-explainer, ai-followup-planner: config fetch added in lote 1",
+      "writing-assistant: already dynamic, untouched",
+      "All 7 functions log provider and model dynamically to ai_usage_logs",
+    ],
+  },
+  {
     version: "2.51.1",
     date: "2026-03-14",
     title: "AI Hub — usage logging em todas as edge functions",
