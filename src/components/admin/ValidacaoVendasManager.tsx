@@ -140,7 +140,21 @@ export function ValidacaoVendasManager() {
     setSelectedCliente(cliente);
     setLeadSimulacoes([]);
     setSelectedSimulacaoId("");
-    setPaymentItems([]); // Reset payment composition on new client
+    // Try to load payment composition pre-filled by consultant
+    const leadId = cliente.lead_id;
+    let prefilledItems: PaymentItemInput[] = [];
+    if (leadId) {
+      try {
+        const stored = localStorage.getItem(`lead_payment_composition_${leadId}`);
+        if (stored) {
+          prefilledItems = JSON.parse(stored);
+          console.debug("[ValidacaoVendas] Loaded pre-filled payment items from consultant:", prefilledItems.length);
+        }
+      } catch (e) {
+        console.warn("[ValidacaoVendas] Could not parse stored payment composition:", e);
+      }
+    }
+    setPaymentItems(prefilledItems);
 
     const valor = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
     setValorVenda(valor > 0 ? valor : 0);
@@ -356,6 +370,10 @@ export function ValidacaoVendasManager() {
       setApprovalDialogOpen(false);
       setSelectedCliente(null);
       setPaymentItems([]);
+      // Clean up consultant-prefilled payment data
+      if (selectedCliente?.lead_id) {
+        localStorage.removeItem(`lead_payment_composition_${selectedCliente.lead_id}`);
+      }
       refetchPending();
     } catch (error: any) {
       toast({ title: "Erro ao validar venda", description: error.message, variant: "destructive" });

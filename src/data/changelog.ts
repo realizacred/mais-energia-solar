@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.59.0",
+    date: "2026-03-15",
+    title: "Composição de Pagamento no modal de conversão do consultor",
+    type: "feature",
+    description: "O consultor agora define a composição de pagamento ao converter lead em venda. Os dados são pré-carregados no modal de aprovação do admin.",
+    details: [
+      "PaymentComposer adicionado na coluna direita do ConvertLeadToClientDialog",
+      "Valor da venda é derivado da proposta/simulação selecionada",
+      "Dados de pagamento persistidos via localStorage para o fluxo de aprovação",
+      "ApproveVendaDialog pré-carrega composição definida pelo consultor",
+      "Limpeza automática do cache após aprovação da venda",
+    ],
+  },
+  {
     version: "2.58.0",
     date: "2026-03-15",
     title: "PDF download via storage em PropostaExpandedDetail",

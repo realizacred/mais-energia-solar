@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet } from "lucide-react";
+import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
+import type { PaymentItemInput } from "@/services/paymentComposition/types";
+import { createEmptyItem } from "@/services/paymentComposition/types";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { formatCEP } from "@/lib/validations";
@@ -137,6 +140,7 @@ export function ConvertLeadToClientDialog({
   const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -159,6 +163,16 @@ export function ConvertLeadToClientDialog({
       simulacao_aceita_id: "",
     },
   });
+
+  // Compute valorVenda from selected simulation
+  const simulacaoAceitaId = useWatch({ control: form.control, name: "simulacao_aceita_id" });
+  const valorVenda = useMemo(() => {
+    if (simulacaoAceitaId) {
+      const sim = simulacoes.find(s => s.id === simulacaoAceitaId);
+      if (sim?.investimento_estimado) return sim.investimento_estimado;
+    }
+    return (lead as any)?.valor_projeto ?? 0;
+  }, [simulacaoAceitaId, simulacoes, lead]);
 
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
@@ -333,6 +347,7 @@ export function ConvertLeadToClientDialog({
         setIdentidadeFiles([]);
         setComprovanteFiles([]);
         setBeneficiariaFiles([]);
+        setPaymentItems([createEmptyItem()]);
       }
 
       setFormInitialized(lead.id);
@@ -496,6 +511,7 @@ export function ConvertLeadToClientDialog({
         identidadeFiles,
         comprovanteFiles,
         beneficiariaFiles,
+        paymentItems,
         savedAt: new Date().toISOString(),
       };
 
@@ -755,6 +771,14 @@ export function ConvertLeadToClientDialog({
 
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
+
+      // Persist payment composition for admin approval
+      if (paymentItems.length > 0) {
+        localStorage.setItem(
+          `lead_payment_composition_${lead.id}`,
+          JSON.stringify(paymentItems)
+        );
+      }
 
       const action = existingCliente ? "atualizado" : "cadastrado";
       toast({
@@ -1121,6 +1145,24 @@ export function ConvertLeadToClientDialog({
                       accept="image/*"
                     />
                   </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Composição de Pagamento */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-primary" />
+                    <SectionTitle>Composição de Pagamento</SectionTitle>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Defina como o cliente vai pagar. Valor da venda: <span className="font-semibold text-foreground">{valorVenda > 0 ? `R$ ${valorVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Selecione a proposta aceita"}</span>
+                  </p>
+                  <PaymentComposer
+                    valorVenda={valorVenda}
+                    items={paymentItems}
+                    onChange={setPaymentItems}
+                  />
                 </div>
 
                 <div className="border-t border-border" />
