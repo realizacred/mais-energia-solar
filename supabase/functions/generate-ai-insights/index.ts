@@ -11,7 +11,7 @@ async function callAI(
   tenantApiKey: string | null,
   messages: Array<{ role: string; content: string }>,
   options: { temperature?: number; max_tokens?: number } = {}
-): Promise<{ content: string; provider: string }> {
+): Promise<{ content: string; provider: string; usage: any }> {
   const { temperature = 0.4, max_tokens = 4000 } = options;
 
   if (!tenantApiKey) {
@@ -44,7 +44,7 @@ async function callAI(
 
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content || "{}";
-  return { content, provider: "openai_tenant" };
+  return { content, provider: "openai_tenant", usage: data.usage || {} };
 }
 
 Deno.serve(async (req) => {
@@ -337,7 +337,7 @@ Responda SEMPRE em JSON válido:
     // ── Call AI (tenant OpenAI only) ─────────────────────────────
     console.log(`[generate-ai-insights] Calling AI for ${insight_type}...`);
 
-    const { content: rawContent, provider } = await callAI(
+    const { content: rawContent, provider, usage: aiUsage } = await callAI(
       tenantApiKey,
       [
         { role: "system", content: systemPrompt },
@@ -379,6 +379,29 @@ Responda SEMPRE em JSON válido:
     }
 
     console.log(`[generate-ai-insights] Successfully generated ${insight_type} via ${provider}, saved as ${savedInsight.id}`);
+
+    // ── Log AI usage ─────────────────────────────────────────────
+    try {
+      const promptTokens = aiUsage.prompt_tokens || 0;
+      const completionTokens = aiUsage.completion_tokens || 0;
+      const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+      const estimatedCost = (promptTokens / 1000) * 0.00015 + (completionTokens / 1000) * 0.0006;
+
+      await supabase.from("ai_usage_logs").insert({
+        tenant_id: profile!.tenant_id,
+        user_id: user.id,
+        function_name: "generate-ai-insights",
+        provider: "openai_tenant",
+        model: "gpt-4o-mini",
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCost,
+        is_fallback: false,
+      });
+    } catch (logError) {
+      console.error("[generate-ai-insights] log error:", logError);
+    }
 
     return new Response(JSON.stringify({ success: true, insight: savedInsight }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
