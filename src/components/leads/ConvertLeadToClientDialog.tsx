@@ -1139,6 +1139,24 @@ export function ConvertLeadToClientDialog({
 
                 <div className="border-t border-border" />
 
+                {/* Composição de Pagamento */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-primary" />
+                    <SectionTitle>Composição de Pagamento</SectionTitle>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Defina como o cliente vai pagar. Valor da venda: <span className="font-semibold text-foreground">{valorVenda > 0 ? `R$ ${valorVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Selecione a proposta aceita"}</span>
+                  </p>
+                  <PaymentComposer
+                    valorVenda={valorVenda}
+                    items={paymentItems}
+                    onChange={setPaymentItems}
+                  />
+                </div>
+
+                <div className="border-t border-border" />
+
                 {/* Proposta Aceita */}
                 {simulacoes.length > 0 && (
                   <>
