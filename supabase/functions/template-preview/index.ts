@@ -135,16 +135,25 @@ async function processDocxTemplate(
   // IMPORTANT: Only exclude non-content XML files. Headers/footers MUST be processed.
   // "settings" excluded via exact filename match to avoid matching "header1Settings" etc.
   const excludePatterns = /\/(theme\d*|media|_rels|fontTable|webSettings|styles|numbering|glossary|settings)\.(xml|rels)$/i;
+  const excludeExact = new Set([
+    "word/theme/theme1.xml", "word/fontTable.xml", "word/settings.xml",
+    "word/webSettings.xml", "word/styles.xml", "word/numbering.xml",
+  ]);
   const xmlFiles: string[] = [];
   zip.forEach((relativePath) => {
     if (
       relativePath.startsWith("word/") &&
       relativePath.endsWith(".xml") &&
-      !excludePatterns.test(relativePath)
+      !relativePath.includes("/_rels/") &&
+      !relativePath.startsWith("word/media/") &&
+      !relativePath.startsWith("word/theme/") &&
+      !relativePath.startsWith("word/glossary/") &&
+      !excludeExact.has(relativePath)
     ) {
       xmlFiles.push(relativePath);
     }
   });
+  // Log which files are processed (headers/footers MUST appear here)
   console.log("[template-preview] XML files to process:", xmlFiles);
 
   for (const fileName of xmlFiles) {
