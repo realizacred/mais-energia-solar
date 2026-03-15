@@ -41,7 +41,7 @@ export function resolveEntrada(
   set("consumo_mensal_fp_uc1", uc1.consumo_mensal_fp);
 
   // ── Distribuidora e Subgrupo ──
-  set("dis_energia", snap.concessionaria_nome ?? snap.dis_energia ?? snap.locDistribuidoraNome ?? uc1.concessionaria ?? uc1.distribuidora ?? lead.distribuidora);
+  set("dis_energia", snap.locDistribuidoraNome ?? snap.concessionaria_nome ?? snap.dis_energia ?? uc1.concessionaria ?? uc1.distribuidora ?? lead.distribuidora);
   set("concessionaria_id", snap.concessionaria_id ?? snap.locDistribuidoraId);
   set("subgrupo", uc1.subgrupo ?? snap.subgrupo ?? uc1.grupo_tarifario ?? snap.grupo_tarifario ?? uc1.grupo);
   set("subgrupo_uc1", uc1.subgrupo ?? snap.subgrupo ?? uc1.grupo_tarifario ?? snap.grupo_tarifario ?? uc1.grupo);
