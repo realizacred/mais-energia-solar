@@ -878,7 +878,7 @@ export function ConvertLeadToClientDialog({
 
         {/* ── BODY — 2 colunas §25 ───────────────────────────── */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 min-h-0">
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border flex-1 min-h-0 overflow-y-auto">
 
               {/* ═══ COLUNA ESQUERDA — dados ═══ */}
@@ -934,7 +934,7 @@ export function ConvertLeadToClientDialog({
                         <FormItem>
                           <FormLabel>CPF/CNPJ *</FormLabel>
                           <FormControl>
-                            <CpfCnpjInput value={field.value || ""} onChange={field.onChange} />
+                            <CpfCnpjInput value={field.value || ""} onChange={field.onChange} label="" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
