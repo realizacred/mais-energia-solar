@@ -61,14 +61,14 @@ async function downloadDocx(fileUrl: string) {
     .from("proposta-templates")
     .download(normalizedPath);
   if (error || !data) {
-    console.error("[downloadDocx] Supabase download error:", error?.message, "| path:", path);
-    toast({ title: "Erro ao baixar template", description: `${error?.message || "Arquivo não encontrado"} — path: ${path}`, variant: "destructive" });
+    console.error("[downloadDocx] Supabase download error:", error?.message, "| path:", normalizedPath);
+    toast({ title: "Erro ao baixar template", description: `${error?.message || "Arquivo não encontrado"} — path: ${normalizedPath}`, variant: "destructive" });
     return;
   }
   const url = URL.createObjectURL(data);
   const a = document.createElement("a");
   a.href = url;
-  a.download = path.split("/").pop() || "template.docx";
+  a.download = normalizedPath.split("/").pop() || "template.docx";
   document.body.appendChild(a);
   a.click();
   a.remove();
