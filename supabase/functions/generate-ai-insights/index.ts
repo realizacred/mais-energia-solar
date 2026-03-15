@@ -337,7 +337,7 @@ Responda SEMPRE em JSON válido:
     // ── Call AI (tenant OpenAI only) ─────────────────────────────
     console.log(`[generate-ai-insights] Calling AI for ${insight_type}...`);
 
-    const { content: rawContent, provider } = await callAI(
+    const { content: rawContent, provider, usage: aiUsage } = await callAI(
       tenantApiKey,
       [
         { role: "system", content: systemPrompt },
