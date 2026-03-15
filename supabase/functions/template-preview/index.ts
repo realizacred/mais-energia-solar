@@ -1048,6 +1048,9 @@ Deno.serve(async (req) => {
       formData.append("files", blob, "proposta.docx");
       formData.append("landscape", "false");
       formData.append("nativePageRanges", "1-");
+      // Improve PDF rendering fidelity vs Word
+      formData.append("nativePdfFormat", "PDF/A-2b");
+      formData.append("skipNetworkIdleEvent", "false");
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
       console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
