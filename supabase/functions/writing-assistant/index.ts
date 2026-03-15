@@ -235,18 +235,42 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── Resolve preferred model from tenant settings ──
+    // ── Resolve preferred model: ai_provider_config > wa_ai_settings > default ──
     let primaryModel = DEFAULT_MODEL;
-    const { data: aiSettings } = await supabase
-      .from("wa_ai_settings")
-      .select("templates")
-      .maybeSingle();
+    let configProvider: string | null = null;
 
-    if (aiSettings?.templates) {
-      const tpl = aiSettings.templates as Record<string, any>;
-      const configuredModel = tpl?.writing_assistant?.model;
-      if (configuredModel && [...OPENAI_MODELS, ...GEMINI_MODELS].includes(configuredModel)) {
-        primaryModel = configuredModel;
+    try {
+      const { data: providerConfig } = await supabase
+        .from("ai_provider_config")
+        .select("active_provider, active_model")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (providerConfig?.active_model) {
+        // Only use if the model is one we support
+        const allModels = [...OPENAI_MODELS, ...GEMINI_MODELS];
+        if (allModels.includes(providerConfig.active_model)) {
+          primaryModel = providerConfig.active_model;
+          configProvider = providerConfig.active_provider || null;
+        }
+      }
+    } catch (configError) {
+      console.warn("[writing-assistant] ai_provider_config fetch failed, using defaults");
+    }
+
+    // Fallback: check wa_ai_settings for per-feature override
+    if (!configProvider) {
+      const { data: aiSettings } = await supabase
+        .from("wa_ai_settings")
+        .select("templates")
+        .maybeSingle();
+
+      if (aiSettings?.templates) {
+        const tpl = aiSettings.templates as Record<string, any>;
+        const configuredModel = tpl?.writing_assistant?.model;
+        if (configuredModel && [...OPENAI_MODELS, ...GEMINI_MODELS].includes(configuredModel)) {
+          primaryModel = configuredModel;
+        }
       }
     }
 
