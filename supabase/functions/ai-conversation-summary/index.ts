@@ -42,6 +42,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "tenant_inactive" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Get AI provider config
+    const { data: providerConfig } = await adminClient
+      .from("ai_provider_config")
+      .select("active_provider, active_model, fallback_enabled")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    const activeProvider = providerConfig?.active_provider || "lovable_gateway";
+    const activeModel = providerConfig?.active_model || "google/gemini-2.5-flash";
+
     // Get OpenAI key
     const { data: keyRow } = await adminClient
       .from("integration_configs")
@@ -171,7 +181,7 @@ PROPOSTA:
       })
       .join("\n");
 
-    const model = aiSettings?.modelo_preferido || "gpt-4o-mini";
+    const model = aiSettings?.modelo_preferido || activeModel;
     const temperature = aiSettings?.temperature ?? 0.4;
 
     const systemPrompt = `Você é um analista de CRM de energia solar. Analise o histórico completo da conversa e gere um resumo estratégico para o consultor.
@@ -311,8 +321,8 @@ Gere o resumo estratégico.`;
         tenant_id: tenantId,
         user_id: user.id,
         function_name: "ai-conversation-summary",
-        provider: "openai",
-        model,
+        provider: activeProvider,
+        model: activeModel,
         prompt_tokens: promptTokens,
         completion_tokens: completionTokens,
         total_tokens: totalTokens,

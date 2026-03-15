@@ -10,9 +10,9 @@ const corsHeaders = {
 async function callAI(
   tenantApiKey: string | null,
   messages: Array<{ role: string; content: string }>,
-  options: { temperature?: number; max_tokens?: number } = {}
+  options: { temperature?: number; max_tokens?: number; model?: string } = {}
 ): Promise<{ content: string; provider: string; usage: any }> {
-  const { temperature = 0.4, max_tokens = 4000 } = options;
+  const { temperature = 0.4, max_tokens = 4000, model = "gpt-4o-mini" } = options;
 
   if (!tenantApiKey) {
     throw new Error("No AI provider available. Configure OpenAI key in Admin > Integrations.");
@@ -25,7 +25,7 @@ async function callAI(
       Authorization: `Bearer ${tenantApiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model,
       messages,
       temperature,
       max_tokens,
@@ -108,12 +108,24 @@ Deno.serve(async (req) => {
       }
     }
 
+    const tenantId = profile?.tenant_id;
+
+    // Get AI provider config
+    const { data: providerConfig } = await supabase
+      .from("ai_provider_config")
+      .select("active_provider, active_model, fallback_enabled")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    const activeProvider = providerConfig?.active_provider || "lovable_gateway";
+    const activeModel = providerConfig?.active_model || "google/gemini-2.5-flash";
+
     let tenantApiKey: string | null = null;
-    if (profile?.tenant_id) {
+    if (tenantId) {
       const { data: keyRow } = await supabase
         .from("integration_configs")
         .select("api_key")
-        .eq("tenant_id", profile.tenant_id)
+        .eq("tenant_id", tenantId)
         .eq("service_key", "openai")
         .eq("is_active", true)
         .single();
@@ -343,7 +355,7 @@ Responda SEMPRE em JSON válido:
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      { temperature: 0.4, max_tokens: 4000 }
+      { temperature: 0.4, max_tokens: 4000, model: activeModel }
     );
 
     console.log(`[generate-ai-insights] AI response via ${provider}`);
@@ -388,11 +400,11 @@ Responda SEMPRE em JSON válido:
       const estimatedCost = (promptTokens / 1000) * 0.00015 + (completionTokens / 1000) * 0.0006;
 
       await supabase.from("ai_usage_logs").insert({
-        tenant_id: profile!.tenant_id,
+        tenant_id: tenantId,
         user_id: user.id,
         function_name: "generate-ai-insights",
-        provider: "openai_tenant",
-        model: "gpt-4o-mini",
+        provider: activeProvider,
+        model: activeModel,
         prompt_tokens: promptTokens,
         completion_tokens: completionTokens,
         total_tokens: totalTokens,
