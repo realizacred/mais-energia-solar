@@ -547,6 +547,9 @@ function normalizeParagraphRuns(
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) {
       return paraXml;
     }
+    if (hasSensitiveGraphicMarkup(paraXml)) {
+      return paraXml;
+    }
 
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
     interface RunInfo {
@@ -562,13 +565,7 @@ function normalizeParagraphRuns(
     let m;
     while ((m = runPattern.exec(paraXml)) !== null) {
       const full = m[0];
-      const isGraphic =
-        full.includes("<w:drawing") ||
-        full.includes("<w:pict") ||
-        full.includes("<mc:AlternateContent") ||
-        full.includes("<w:object") ||
-        full.includes("<wp:anchor") ||
-        full.includes("<wp:inline");
+      const isGraphic = hasSensitiveGraphicMarkup(full);
 
       const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
       let tMatch;
