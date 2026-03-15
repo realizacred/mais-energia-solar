@@ -145,7 +145,7 @@ export default function ApiKeyConfigPage({
     <div className="space-y-6">
       <PageHeader icon={Icon} title={title} description={description} />
 
-      <Card className="rounded-xl">
+      <Card className="bg-card border-border shadow-sm rounded-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
