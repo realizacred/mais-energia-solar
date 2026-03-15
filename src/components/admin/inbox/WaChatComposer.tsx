@@ -671,15 +671,11 @@ export function WaChatComposer({
                 setSpellCheckEnabled(next);
                 localStorage.setItem("wa-spellcheck", String(next));
                 if (next) {
-                  // Only show warning if browser doesn't have Portuguese configured
-                  const langs = navigator.languages || [navigator.language];
-                  const hasPt = langs.some(l => l.toLowerCase().startsWith("pt"));
-                  if (!hasPt) {
-                    toast({
-                      title: "Corretor ativado",
-                      description: "Para sugestões em Português, ative o idioma nas configurações do navegador (chrome://settings/languages).",
-                    });
-                  }
+                  toast({
+                    title: "Corretor ativado",
+                    description: "Se não funcionar, ative a verificação ortográfica nas configurações do Chrome.",
+                    duration: 5000,
+                  });
                 }
               }}
             >
