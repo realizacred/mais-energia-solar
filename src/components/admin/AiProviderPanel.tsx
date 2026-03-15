@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bot, Zap, BarChart2, DollarSign, CheckCircle2 } from "lucide-react";
+import { Bot, Zap, BarChart2, DollarSign, CheckCircle2, ExternalLink } from "lucide-react";
 import { formatDateTime } from "@/lib/formatters/index";
 
 const tokenFmt = new Intl.NumberFormat("pt-BR");
@@ -129,6 +129,18 @@ export function AiProviderPanel() {
                   {isActive && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>
+                {(key === "gemini" || key === "openai") && (
+                  <a
+                    href="https://supabase.com/dashboard/project/_/settings/functions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary flex items-center gap-1 hover:underline mt-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Configurar nos Secrets do Supabase
+                  </a>
+                )}
               </button>
             );
           })}
