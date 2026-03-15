@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     }
 
     // Get AI provider config
-    let activeProvider = "lovable_gateway";
+    let activeProvider = "openai";
     let activeModel = "gpt-4o-mini";
 
     try {
