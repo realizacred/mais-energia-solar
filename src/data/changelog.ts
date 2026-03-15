@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.57.0",
+    date: "2026-03-15",
+    title: "Auto-configuração de webhook na criação de instância WhatsApp",
+    type: "feature",
+    description: "Ao criar ou registrar uma instância WhatsApp, o webhook é configurado automaticamente na Evolution API usando a URL canônica do servidor.",
+    details: [
+      "Webhook auto-configurado via POST /webhook/set/{instance} após criação/registro",
+      "Eventos subscritos: MESSAGES_UPSERT, MESSAGES_UPDATE, CONNECTION_UPDATE, CONTACTS_UPSERT, QRCODE_UPDATED",
+      "URL do webhook construída server-side usando SUPABASE_URL (nunca hardcoded no frontend)",
+      "Falha no webhook não bloqueia a criação da instância — feedback visual via toast",
+      "Resposta inclui webhook_configured e webhook_warning para feedback estruturado",
+    ],
+  },
     version: "2.56.0",
     date: "2026-03-15",
     title: "Criação automática de instância WhatsApp sem API Key manual",

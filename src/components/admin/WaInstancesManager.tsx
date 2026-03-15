@@ -541,6 +541,18 @@ function InstanceFormDialog({
       queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
       queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
 
+      // Webhook feedback
+      if (data.webhook_configured) {
+        toast({ title: "✅ Webhook configurado automaticamente" });
+      } else if (data.webhook_warning) {
+        toast({
+          title: "⚠️ Webhook não configurado",
+          description: "Configure manualmente na Evolution API. Use o botão 'Copiar URL Webhook'.",
+          variant: "destructive",
+        });
+        console.warn("[webhook-auto-config]", data.webhook_warning);
+      }
+
       // Start polling for connection status
       startQrPolling(data.instance_id);
     } catch (e: any) {
