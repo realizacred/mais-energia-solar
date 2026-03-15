@@ -280,6 +280,7 @@ export function ConvertLeadToClientDialog({
         identidadeFiles?: DocumentFile[];
         comprovanteFiles?: DocumentFile[];
         beneficiariaFiles?: DocumentFile[];
+        paymentItems?: PaymentItemInput[];
         savedAt?: string;
       } | null = null;
 
