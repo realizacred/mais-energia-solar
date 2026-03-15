@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .eq("service_key", "openai")
       .eq("is_active", true)
-      .single();
+      .maybeSingle();
     if (!keyRow?.api_key) {
       return new Response(
         JSON.stringify({ error: "OpenAI API key not configured." }),
@@ -84,24 +84,25 @@ Deno.serve(async (req) => {
       .select("id, cliente_nome, cliente_telefone, lead_id, status, last_message_at, updated_at")
       .eq("id", conversation_id)
       .eq("tenant_id", tenantId)
-      .single();
+      .maybeSingle();
     if (!conv) throw new Error("Conversation not found");
 
     // Get last 15 messages
-    const { data: messages = [] } = await adminClient
+    const { data: messagesRaw } = await adminClient
       .from("wa_messages")
       .select("direction, content, message_type, created_at, is_internal_note")
       .eq("conversation_id", conversation_id)
       .eq("is_internal_note", false)
       .order("created_at", { ascending: false })
       .limit(15);
+    const messages = messagesRaw || [];
 
     // Get conversation tags
-    const { data: convTags = [] } = await adminClient
+    const { data: convTags } = await adminClient
       .from("wa_conversation_tags")
       .select("tag:wa_tags(nome)")
       .eq("conversation_id", conversation_id);
-    const tagNames = convTags.map((t: any) => t.tag?.nome).filter(Boolean);
+    const tagNames = (convTags || []).map((t: any) => t.tag?.nome).filter(Boolean);
 
     // Get lead data
     let leadInfo = "";
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
         .from("leads")
         .select("nome, status_id, data_proxima_acao, proxima_acao, ultimo_contato, created_at, lead_statuses(nome)")
         .eq("id", conv.lead_id)
-        .single();
+        .maybeSingle();
       if (lead) {
         leadInfo = `
 DADOS DO LEAD:
@@ -124,12 +125,13 @@ DADOS DO LEAD:
     }
 
     // Check existing followups
-    const { data: existingFollowups = [] } = await adminClient
+    const { data: existingFollowupsRaw } = await adminClient
       .from("wa_followup_queue")
       .select("status, tipo, created_at")
       .eq("conversation_id", conversation_id)
       .order("created_at", { ascending: false })
       .limit(5);
+    const existingFollowups = existingFollowupsRaw || [];
 
     // Calculate time since last message
     const lastMsgTime = conv.last_message_at ? new Date(conv.last_message_at) : null;
