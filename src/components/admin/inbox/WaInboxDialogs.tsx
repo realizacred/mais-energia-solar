@@ -160,7 +160,7 @@ export function WaTagsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-md p-0 gap-0">
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <Tag className="w-5 h-5 text-primary" />
@@ -174,56 +174,79 @@ export function WaTagsDialog({
             </p>
           </div>
         </DialogHeader>
-        <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
-          <div className="space-y-2">
-            {allTags.map((tag) => {
-              const isActive = activeTagIds.has(tag.id);
-              return (
-                <div key={tag.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: tag.color }} />
-                    <span className="text-sm">{tag.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch checked={isActive} onCheckedChange={(checked) => onToggleTag(tag.id, checked)} />
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => onDeleteTag(tag.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+
+        {/* Body — scrollable */}
+        <div className="p-5 space-y-2 flex-1 min-h-0 overflow-y-auto">
+          {allTags.map((tag) => {
+            const isActive = activeTagIds.has(tag.id);
+            return (
+              <div key={tag.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                  <span className="text-sm font-medium text-foreground truncate">{tag.name}</span>
                 </div>
-              );
-            })}
-            {allTags.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-4">Nenhuma tag criada.</p>
-            )}
-          </div>
-        </div>
-        <div className="p-4 border-t border-border bg-muted/30">
-          <Label className="text-xs font-medium mb-2 block">Criar Nova Tag</Label>
-          <div className="flex items-center gap-2">
-            <Input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Nome da tag" className="h-8 text-sm flex-1" />
-            <div className="flex gap-1 shrink-0">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  className={`w-5 h-5 rounded-full transition-all ${newTagColor === c ? "ring-2 ring-offset-1 ring-primary" : ""}`}
-                  style={{ backgroundColor: c }}
-                  onClick={() => setNewTagColor(c)}
-                />
-              ))}
+                <div className="flex items-center gap-2 shrink-0 overflow-visible">
+                  <Switch checked={isActive} onCheckedChange={(checked) => onToggleTag(tag.id, checked)} />
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive/80" onClick={() => onDeleteTag(tag.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+          {allTags.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Tag className="w-8 h-8 text-muted-foreground/40 mb-2" />
+              <p className="text-sm font-medium text-muted-foreground">Nenhuma tag criada</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Crie uma abaixo para começar</p>
             </div>
+          )}
+        </div>
+
+        {/* Footer — fixed */}
+        <div className="p-4 border-t border-border bg-muted/30 shrink-0 space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Criar Nova Tag
+          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              placeholder="Nome da tag"
+              className="h-9 text-sm flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newTagName.trim()) {
+                  onCreateTag({ name: newTagName.trim(), color: newTagColor });
+                  setNewTagName("");
+                }
+              }}
+            />
             <Button
-              size="icon"
+              size="sm"
               variant="default"
-              className="h-8 w-8"
+              className="h-9 px-3"
               disabled={!newTagName.trim()}
               onClick={() => {
                 onCreateTag({ name: newTagName.trim(), color: newTagColor });
                 setNewTagName("");
               }}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 mr-1" />
+              Criar
             </Button>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {PRESET_COLORS.map((c) => (
+              <Button
+                key={c}
+                variant="ghost"
+                size="icon"
+                className={`w-6 h-6 rounded-full p-0 transition-all ${newTagColor === c ? "ring-2 ring-offset-1 ring-offset-background ring-primary" : "hover:ring-1 hover:ring-border"}`}
+                style={{ backgroundColor: c }}
+                onClick={() => setNewTagColor(c)}
+                aria-label={`Cor ${c}`}
+              />
+            ))}
           </div>
         </div>
       </DialogContent>
