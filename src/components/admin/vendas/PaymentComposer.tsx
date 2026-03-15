@@ -188,7 +188,7 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
                 <Separator />
 
                 {/* Row 1: Forma + Valor + Entrada */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Forma de Pagamento</Label>
                     <Select
@@ -226,17 +226,16 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
                       className="h-9"
                     />
                   </div>
+                </div>
 
-                  <div className="flex items-end gap-3 pb-1">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={item.entrada}
-                        onCheckedChange={(v) => onUpdate({ entrada: v })}
-                        disabled={readOnly}
-                      />
-                      <Label className="text-xs">Entrada</Label>
-                    </div>
-                  </div>
+                {/* Row 1b: Entrada toggle */}
+                <div className="flex items-center gap-2 overflow-visible">
+                  <Switch
+                    checked={item.entrada}
+                    onCheckedChange={(v) => onUpdate({ entrada: v })}
+                    disabled={readOnly}
+                  />
+                  <Label className="text-xs">Marcar como entrada</Label>
                 </div>
 
                 {/* Row 2: Data */}
