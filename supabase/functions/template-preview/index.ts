@@ -664,6 +664,13 @@ function normalizeParagraphRuns(
 
 function escapeXml(str: string): string {
   return str
+    // Strip hidden line breaks, carriage returns, and tabs that corrupt XML layout
+    .replace(/\r\n/g, " ")
+    .replace(/\r/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/\t/g, " ")
+    // Collapse multiple spaces into one (prevents layout push)
+    .replace(/ {2,}/g, " ")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
