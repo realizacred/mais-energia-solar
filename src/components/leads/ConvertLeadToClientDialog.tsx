@@ -7,6 +7,7 @@ import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangl
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { createEmptyItem } from "@/services/paymentComposition/types";
+import { validateComposition } from "@/services/paymentComposition/calculator";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { formatCEP } from "@/lib/validations";
@@ -360,6 +361,11 @@ export function ConvertLeadToClientDialog({
     if (!open) {
       setFormInitialized(null);
       setCurrentStep(0);
+      setPaymentItems([createEmptyItem()]);
+      setIdentidadeFiles([]);
+      setComprovanteFiles([]);
+      setBeneficiariaFiles([]);
+      setAssinaturaFiles([]);
     }
   }, [open]);
 
@@ -581,6 +587,18 @@ export function ConvertLeadToClientDialog({
         description: `Itens obrigatórios faltando: ${missingItems.join(", ")}. Use "Aguardando Documentação" para salvar parcialmente.`,
         variant: "destructive",
       });
+      return;
+    }
+
+    // Validate payment composition
+    const paymentErrors = validateComposition(paymentItems, valorVenda);
+    if (paymentErrors.length > 0) {
+      toast({
+        title: "Composição de pagamento inválida",
+        description: paymentErrors[0],
+        variant: "destructive",
+      });
+      setCurrentStep(2); // Navigate to payment step
       return;
     }
 
