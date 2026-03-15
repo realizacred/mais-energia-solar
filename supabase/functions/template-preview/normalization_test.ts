@@ -263,15 +263,28 @@ Deno.test("Substitution: empty string → em-dash", () => {
   assertEquals(emptyVars, ["Area"]);
 });
 
-Deno.test("Substitution: value 0 is NOT empty", () => {
+Deno.test("Substitution: string '0' is NOT empty", () => {
   const { result, emptyVars, missingVars } = simulateSubstitution("Valor: [valor]", { valor: "0" });
   assertEquals(result, "Valor: 0");
   assertEquals(emptyVars.length, 0);
   assertEquals(missingVars.length, 0);
 });
 
-Deno.test("Substitution: value false is NOT empty", () => {
+Deno.test("Substitution: numeric 0 is NOT empty", () => {
+  const { result, emptyVars, missingVars } = simulateSubstitution("Valor: [valor]", { valor: 0 });
+  assertEquals(result, "Valor: 0");
+  assertEquals(emptyVars.length, 0);
+  assertEquals(missingVars.length, 0);
+});
+
+Deno.test("Substitution: string 'false' is NOT empty", () => {
   const { result, emptyVars } = simulateSubstitution("Ativo: [ativo]", { ativo: "false" });
+  assertEquals(result, "Ativo: false");
+  assertEquals(emptyVars.length, 0);
+});
+
+Deno.test("Substitution: boolean false is NOT empty", () => {
+  const { result, emptyVars } = simulateSubstitution("Ativo: [ativo]", { ativo: false });
   assertEquals(result, "Ativo: false");
   assertEquals(emptyVars.length, 0);
 });
