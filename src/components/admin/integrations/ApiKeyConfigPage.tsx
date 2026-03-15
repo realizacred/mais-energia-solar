@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2, type LucideIcon } from "lucide-react";
+import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2, Info, type LucideIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
