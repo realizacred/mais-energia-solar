@@ -504,6 +504,13 @@ export function StepDocumento({
     };
 
     const handleDownloadDocx = async () => {
+      const backendDocxName = result?.file_name_docx;
+      const fallbackDocxName = (() => {
+        const safeName = clienteNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").substring(0, 60);
+        return `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+      })();
+      const downloadName = backendDocxName || fallbackDocxName;
+
       if (outputDocxPath) {
         const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputDocxPath, 300);
         if (data?.signedUrl) {
@@ -512,8 +519,7 @@ export function StepDocumento({
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-          a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+          a.download = downloadName;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -527,8 +533,7 @@ export function StepDocumento({
         const url = URL.createObjectURL(docxBlob);
         const a = document.createElement("a");
         a.href = url;
-        const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-        a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

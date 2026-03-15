@@ -680,6 +680,39 @@ function isValidXmlDocument(xml: string): boolean {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// FILE NAMING HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function slugifyFilePart(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function buildProposalFileName(input: {
+  proposalNumber?: string | null;
+  proposalDate?: string | null;
+  customerName?: string | null;
+}): string {
+  const date =
+    input.proposalDate && String(input.proposalDate).trim()
+      ? String(input.proposalDate).trim().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+
+  const parts = ["Proposta"];
+
+  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber)));
+  if (date) parts.push(slugifyFilePart(date));
+  if (input.customerName) parts.push(slugifyFilePart(String(input.customerName)));
+
+  const fileName = parts.filter(Boolean).join("_").slice(0, 180);
+  return `${fileName}.pdf`;
+}
+
 // ─── Main handler ─────────────────────────────────────────
 
 Deno.serve(async (req) => {
