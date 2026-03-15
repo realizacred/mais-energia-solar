@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Tag } from "lucide-react";
 import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 
 // ── Transfer Dialog ───────────────────────────────────
