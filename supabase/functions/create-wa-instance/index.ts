@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
         nome: instance_name,
         evolution_instance_key: effectiveInstanceKey,
         evolution_api_url: baseUrl,
-        api_key: api_key,
+        api_key: api_key || null,  // Store only per-instance key; null = uses global
         owner_user_id: user.id,
         status: initialStatus,
       })
