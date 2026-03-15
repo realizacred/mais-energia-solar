@@ -36,7 +36,7 @@ export function AiProviderPanel() {
   const fallbackEnabled = config?.fallback_enabled ?? true;
 
   // Filter models based on active keys
-  const allModels = [...AVAILABLE_MODELS[activeProvider]] || [];
+  const allModels = [...AVAILABLE_MODELS[activeProvider]];
   const models = activeProvider === "openai" && !hasOpenAIKey
     ? allModels.filter(m => m.id === "gpt-4o-mini")
     : activeProvider === "gemini" && !hasGeminiKey
