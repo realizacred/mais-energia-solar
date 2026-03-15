@@ -280,6 +280,7 @@ export function ConvertLeadToClientDialog({
         identidadeFiles?: DocumentFile[];
         comprovanteFiles?: DocumentFile[];
         beneficiariaFiles?: DocumentFile[];
+        paymentItems?: PaymentItemInput[];
         savedAt?: string;
       } | null = null;
 
@@ -315,6 +316,9 @@ export function ConvertLeadToClientDialog({
         setIdentidadeFiles(savedData.identidadeFiles || []);
         setComprovanteFiles(savedData.comprovanteFiles || []);
         setBeneficiariaFiles(savedData.beneficiariaFiles || []);
+        if (savedData.paymentItems?.length) {
+          setPaymentItems(savedData.paymentItems);
+        }
         
         if (savedData.savedAt) {
           const savedDate = new Date(savedData.savedAt);
