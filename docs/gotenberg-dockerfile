@@ -1,0 +1,57 @@
+# ═══════════════════════════════════════════════════════════════
+# Gotenberg 8 — Production Dockerfile with Font Support
+# For DOCX → PDF conversion with LibreOffice
+# ═══════════════════════════════════════════════════════════════
+#
+# Build:   docker build -t gotenberg-custom -f docs/gotenberg-dockerfile .
+# Run:     docker run -d -p 3000:3000 gotenberg-custom
+# Health:  curl http://localhost:3000/health
+#
+# ═══════════════════════════════════════════════════════════════
+
+FROM gotenberg/gotenberg:8
+
+USER root
+
+# ── 1. Remove broken Chrome repo (if present) to prevent apt failures ──
+RUN rm -f /etc/apt/sources.list.d/google-chrome.list 2>/dev/null || true
+
+# ── 2. Install font packages ──
+# ttf-mscorefonts requires accepting EULA non-interactively
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      ttf-mscorefonts-installer \
+      fonts-liberation \
+      fonts-liberation2 \
+      fonts-dejavu \
+      fonts-dejavu-core \
+      fonts-dejavu-extra \
+      fonts-noto \
+      fonts-noto-core \
+      fonts-noto-cjk \
+      fonts-crosextra-carlito \
+      fonts-crosextra-caladea \
+      fonts-roboto \
+      fonts-open-sans \
+      fonts-inter \
+      fonts-freefont-ttf \
+      gsfonts \
+      fontconfig \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── 3. Rebuild font cache ──
+RUN fc-cache -fv
+
+# ── 4. Verify critical fonts are available ──
+RUN echo "=== Font Verification ===" && \
+    fc-match "Arial" && \
+    fc-match "Times New Roman" && \
+    fc-match "Calibri" && \
+    fc-match "Helvetica" && \
+    fc-match "Roboto" && \
+    echo "=== All critical fonts verified ==="
+
+# ── 5. Return to gotenberg user ──
+USER gotenberg
