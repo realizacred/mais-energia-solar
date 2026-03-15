@@ -855,7 +855,7 @@ export function ConvertLeadToClientDialog({
         {/* ── BODY — 2 colunas §25 ───────────────────────────── */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border overflow-y-auto max-h-[70vh]">
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border flex-1 min-h-0 overflow-y-auto">
 
               {/* ═══ COLUNA ESQUERDA — dados ═══ */}
               <div className="p-5 space-y-5">
