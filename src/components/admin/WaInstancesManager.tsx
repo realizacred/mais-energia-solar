@@ -408,6 +408,7 @@ export function WaInstancesManager() {
 // ── Form Dialog with QR Code Flow ────────────────────────────────────────
 
 type CreateStep = "form" | "qrcode";
+type CreateMode = "create" | "register";
 
 function InstanceFormDialog({
   open,
