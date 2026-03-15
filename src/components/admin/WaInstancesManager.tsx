@@ -427,6 +427,7 @@ function InstanceFormDialog({
   onSaveEdit: (data: any, selectedVendedorIds: string[]) => Promise<void>;
   onCreateSuccess: () => void;
 }) {
+  const [mode, setMode] = useState<CreateMode>("create");
   const [nome, setNome] = useState("");
   const [instanceKey, setInstanceKey] = useState("");
   const [apiUrl, setApiUrl] = useState("https://");
