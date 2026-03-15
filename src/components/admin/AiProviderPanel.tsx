@@ -32,14 +32,17 @@ export function AiProviderPanel() {
   const { config, isLoading: configLoading, updateConfig, providerInfo, hasOpenAIKey, hasGeminiKey } = useAIProviderConfig();
   const { logs, summary, isLoading: logsLoading } = useAIUsageLogs({ limit: 50 });
 
+  const activeProvider = (config?.active_provider || "lovable_gateway") as keyof typeof AVAILABLE_MODELS;
+  const activeModel = config?.active_model || "google/gemini-2.5-flash";
+  const fallbackEnabled = config?.fallback_enabled ?? true;
+
   // Auto-switch to gateway if active provider has no key
   const effectiveProvider = (
     (activeProvider === "openai" && !hasOpenAIKey) ||
     (activeProvider === "gemini" && !hasGeminiKey)
   ) ? "lovable_gateway" as keyof typeof AVAILABLE_MODELS : activeProvider;
 
-  const allModels = [...AVAILABLE_MODELS[effectiveProvider]];
-  const models = allModels;
+  const models = [...AVAILABLE_MODELS[effectiveProvider]];
   const showModelWarning = effectiveProvider !== activeProvider;
   const isLoading = configLoading || logsLoading;
 
