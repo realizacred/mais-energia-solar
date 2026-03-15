@@ -34,7 +34,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "2.49.0",
     date: "2026-03-14",
-    title: "Backup & Restore — módulo de exportação de dados do tenant",
+    title: "Backup de Dados — módulo de exportação de dados do tenant",
     type: "feature",
     description: "Módulo completo de backup de dados por tenant com exportação JSON, armazenamento privado e histórico de backups.",
     details: [
