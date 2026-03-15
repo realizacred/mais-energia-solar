@@ -485,13 +485,16 @@ function normalizeParagraphRunsInner(
     while (ri < runs.length) {
       const span = merged.find((s) => s[0] === ri);
       if (span) {
-        // Only include the inter-run content BEFORE the first run in the span
-        // to prevent XML duplication from bookmarks/proofErr between merged runs
+        // Preserve inter-run XML inside merged spans (bookmarks, tabs, breaks, proof marks)
+        // to avoid layout shifts while still collapsing split placeholders.
         rebuiltRegion += (interRunContent[span[0]] ?? "");
         const groupRuns = runs.slice(span[0], span[1] + 1);
         const combinedText = groupRuns.map((r) => r.text).join("");
         const rPr = groupRuns[0].rPr;
         rebuiltRegion += `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
+        for (let j = span[0] + 1; j <= span[1]; j++) {
+          rebuiltRegion += (interRunContent[j] ?? "");
+        }
         ri = span[1] + 1;
       } else {
         rebuiltRegion += (interRunContent[ri] ?? "") + runs[ri].xml;
@@ -669,14 +672,16 @@ function normalizeParagraphRuns(
     while (ri < textRuns.length) {
       const span = merged.find((s) => s[0] === ri);
       if (span) {
-        // CRITICAL FIX: Only include inter-run content that is NOT another run
-        // (e.g., bookmarkStart/End, proofErr). This prevents text duplication.
-        // Skip inter-run content between merged runs to avoid XML artifacts.
+        // Preserve inter-run XML inside merged spans (bookmarks, tabs, breaks, proof marks)
+        // to prevent layout loss while merging split placeholders.
         rebuiltRegion += (interRunContent[span[0]] ?? "");
         const groupRuns = textRuns.slice(span[0], span[1] + 1);
         const combinedText = groupRuns.map((r) => r.text).join("");
         const rPr = groupRuns[0].rPr;
         rebuiltRegion += `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
+        for (let j = span[0] + 1; j <= span[1]; j++) {
+          rebuiltRegion += (interRunContent[j] ?? "");
+        }
         ri = span[1] + 1;
       } else {
         rebuiltRegion += (interRunContent[ri] ?? "") + textRuns[ri].full;
@@ -712,6 +717,8 @@ function cleanupRemainingFragments(xml: string): string {
       paraXml.includes("<mc:AlternateContent") ||
       paraXml.includes("<wp:anchor")
     ) return paraXml;
+    // Keep tabs and explicit line breaks untouched to avoid positional drift.
+    if (paraXml.includes("<w:tab") || paraXml.includes("<w:br")) return paraXml;
 
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
     interface RunInfo {
@@ -1198,7 +1205,10 @@ Deno.serve(async (req) => {
       nativePageRanges: "1-",
       skipNetworkIdleEvent: "false",
       pdfua: "false",
-      // Keep options minimal; avoid PDF/A conversion paths that can shift anchors.
+      losslessImageCompression: "true",
+      reduceImageResolution: "false",
+      quality: "100",
+      // Keep options minimal and lossless; avoid conversion/compression paths that can shift anchors.
     };
 
     try {
@@ -1219,6 +1229,9 @@ Deno.serve(async (req) => {
       // Keep conversion options minimal to avoid LibreOffice regressions in some versions.
       formData.append("skipNetworkIdleEvent", "false");
       formData.append("pdfua", "false");
+      formData.append("losslessImageCompression", "true");
+      formData.append("reduceImageResolution", "false");
+      formData.append("quality", "100");
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
       console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
