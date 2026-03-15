@@ -140,9 +140,10 @@ export function GenerateFileDialog({
     setGenerating(true);
     try {
       if (isDocx) {
+        const docxBlob = await fetchDocxBlob(selectedTemplate, propostaId);
         const safeName = (selectedTpl?.nome || "doc").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").substring(0, 60);
         const filename = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
-        downloadBlob(blob, filename);
+        downloadBlob(docxBlob, filename);
         toast({ title: "DOCX gerado com sucesso!", description: "Download iniciado." });
         onGenerated(null);
       } else {
