@@ -1057,13 +1057,13 @@ export function replaceVariables(
   // 1. Replace {{grupo.campo}} format
   result = result.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
     const val = context[key] ?? context[key.replace(/\./g, "_")];
-    return val !== undefined && val !== null ? String(val) : match;
+    return val !== undefined && val !== null ? String(val) : "";
   });
 
   // 2. Replace [campo] format
   result = result.replace(/\[([^\]]+)\]/g, (match, key) => {
     const val = context[key];
-    return val !== undefined && val !== null ? String(val) : match;
+    return val !== undefined && val !== null ? String(val) : "";
   });
 
   return result;
