@@ -26,6 +26,7 @@ import { formatDateTime } from "@/lib/formatters/index";
 const tokenFmt = new Intl.NumberFormat("pt-BR");
 
 export function AiProviderPanel() {
+  const navigate = useNavigate();
   const { config, isLoading: configLoading, updateConfig, providerInfo } = useAIProviderConfig();
   const { logs, summary, isLoading: logsLoading } = useAIUsageLogs({ limit: 50 });
 
