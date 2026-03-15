@@ -60,6 +60,9 @@ Deno.serve(async (req) => {
     // which alters image X/Y coordinates and breaks anchored layout
     formData.append("skipNetworkIdleEvent", "false");
     formData.append("pdfua", "false");
+    formData.append("losslessImageCompression", "true");
+    formData.append("reduceImageResolution", "false");
+    formData.append("quality", "100");
 
     // Resolve Gotenberg URL: DB config → env → demo fallback
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

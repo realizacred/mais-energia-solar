@@ -1229,6 +1229,9 @@ Deno.serve(async (req) => {
       // Keep conversion options minimal to avoid LibreOffice regressions in some versions.
       formData.append("skipNetworkIdleEvent", "false");
       formData.append("pdfua", "false");
+      formData.append("losslessImageCompression", "true");
+      formData.append("reduceImageResolution", "false");
+      formData.append("quality", "100");
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
       console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
