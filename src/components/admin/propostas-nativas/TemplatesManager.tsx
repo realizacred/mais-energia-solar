@@ -17,28 +17,48 @@ import type { TemplateBlock } from "@/components/admin/proposal-builder";
 
 /** Extract storage path from a public/signed URL for the proposta-templates bucket */
 function extractStoragePath(fileUrl: string): string | null {
-  const marker = "/proposta-templates/";
-  const idx = fileUrl.indexOf(marker);
-  if (idx === -1) return null;
-  let path = fileUrl.substring(idx + marker.length);
-  // Remove query params
-  const qIdx = path.indexOf("?");
-  if (qIdx !== -1) path = path.substring(0, qIdx);
-  return decodeURIComponent(path);
+  // Handle both /object/public/ and /object/sign/ URL formats
+  const markers = ["/proposta-templates/"];
+  for (const marker of markers) {
+    const idx = fileUrl.indexOf(marker);
+    if (idx === -1) continue;
+    let path = fileUrl.substring(idx + marker.length);
+    // Remove query params
+    const qIdx = path.indexOf("?");
+    if (qIdx !== -1) path = path.substring(0, qIdx);
+    return decodeURIComponent(path);
+  }
+  return null;
 }
 
 async function downloadDocx(fileUrl: string) {
   const path = extractStoragePath(fileUrl);
+  console.log("[downloadDocx] fileUrl:", fileUrl, "| extractedPath:", path);
   if (!path) {
-    // Fallback: open directly
-    window.open(fileUrl, "_blank");
+    console.warn("[downloadDocx] Could not extract path, trying fetch-to-blob fallback");
+    try {
+      const res = await fetch(fileUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileUrl.split("/").pop()?.split("?")[0] || "template.docx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast({ title: "Erro ao baixar arquivo", description: err.message, variant: "destructive" });
+    }
     return;
   }
   const { data, error } = await supabase.storage
     .from("proposta-templates")
     .download(path);
   if (error || !data) {
-    toast({ title: "Erro ao baixar arquivo", description: error?.message || "Arquivo não encontrado", variant: "destructive" });
+    console.error("[downloadDocx] Supabase download error:", error?.message, "| path:", path);
+    toast({ title: "Erro ao baixar template", description: `${error?.message || "Arquivo não encontrado"} — path: ${path}`, variant: "destructive" });
     return;
   }
   const url = URL.createObjectURL(data);
