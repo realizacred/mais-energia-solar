@@ -107,17 +107,18 @@ Deno.test("missing variable → <varName> XML-safe marker", () => {
   assertEquals(missingVars, ["Area"]);
 });
 
-Deno.test("escapeXml produces XML entity-escaped angle brackets", () => {
-  const marker = escapeXml("<Area>");
+Deno.test("escapeXml escapes angle brackets", () => {
+  const marker = escapeXml(`<Area>`);
   assertEquals(marker, "&lt;Area&gt;");
 });
 
-Deno.test("missing variable marker in substituted content is entity-escaped, not raw XML", () => {
-  const { result } = simulateSubstitution("Área: [Area]", {});
-  // The result string must contain the literal characters & l t ; etc.
-  assertEquals(result.includes("&lt;Area&gt;"), true, "must contain &lt;Area&gt; entities");
-  // Must NOT contain raw <Area> which would be invalid XML markup
-  assertEquals(result.includes("<Area>"), false, "must NOT contain raw <Area> tag");
+Deno.test("raw XML content keeps missing variable marker escaped", () => {
+  const rawXml = `<w:document><w:body><w:p><w:r><w:t>Área: [Area]</w:t></w:r></w:p></w:body></w:document>`;
+  const { result: xmlContent } = simulateSubstitution(rawXml, {});
+
+  assertEquals(xmlContent.includes("&lt;Area&gt;"), true);
+  assertEquals(xmlContent.includes("<Area>"), false);
+  assertEquals(xmlContent.includes("<w:t>Área: &lt;Area&gt;</w:t>"), true);
 });
 
 Deno.test("empty variable (null) → em-dash —", () => {
