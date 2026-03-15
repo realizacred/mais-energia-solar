@@ -10,9 +10,9 @@ const corsHeaders = {
 async function callAI(
   tenantApiKey: string | null,
   messages: Array<{ role: string; content: string }>,
-  options: { temperature?: number; max_tokens?: number } = {}
+  options: { temperature?: number; max_tokens?: number; model?: string } = {}
 ): Promise<{ content: string; provider: string; usage: any }> {
-  const { temperature = 0.4, max_tokens = 4000 } = options;
+  const { temperature = 0.4, max_tokens = 4000, model = "gpt-4o-mini" } = options;
 
   if (!tenantApiKey) {
     throw new Error("No AI provider available. Configure OpenAI key in Admin > Integrations.");
