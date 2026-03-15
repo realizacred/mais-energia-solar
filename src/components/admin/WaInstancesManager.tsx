@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   History,
   Check,
+  ServerCog,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
