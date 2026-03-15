@@ -175,6 +175,13 @@ async function processDocxTemplate(
     // ── STEP 1b: Normalize split runs in regular paragraphs ──
     content = normalizeParagraphRuns(content, debugMode ? mergeEvents : null, fileName, debugMode ? fontsInAffectedBlocks : null);
 
+    // ── STEP 1c: AGGRESSIVE CLEANUP — catch any remaining fragmented placeholders ──
+    // Word sometimes splits variables across runs in ways that targeted merge misses
+    // (e.g., proofing runs, revision marks, empty runs between characters).
+    // This pass does a full-paragraph text consolidation for paragraphs that STILL
+    // contain partial bracket patterns after targeted normalization.
+    content = cleanupRemainingFragments(content);
+
     // ── DEBUG: Capture structure after normalization ──
     if (debugMode && fileName === "word/document.xml") {
       structureAfter = analyzeStructure(content);
