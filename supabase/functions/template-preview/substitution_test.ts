@@ -86,7 +86,7 @@ function simulateSubstitution(
   }
 
   for (const varName of missingVars) {
-    const safeMarker = `&lt;${varName}&gt;`;
+    const safeMarker = escapeXml(`<${varName}>`);
     content = content.replaceAll(`[${varName}]`, safeMarker);
     content = content.replaceAll(`{{${varName}}}`, safeMarker);
   }
