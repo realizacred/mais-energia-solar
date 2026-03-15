@@ -109,14 +109,12 @@ Deno.test("missing variable → <varName> XML-safe marker", () => {
 
 Deno.test("escapeXml escapes angle brackets", () => {
   const marker = escapeXml(`<Area>`);
-
   assertEquals(marker, "&lt;Area&gt;");
 });
 
 Deno.test("XML raw content contains escaped marker, never raw tag", () => {
   const rawXml = `Área: [Area]`;
   const { result: xmlContent } = simulateSubstitution(rawXml, {});
-
   assertEquals(xmlContent.includes("&lt;Area&gt;"), true);
   assertEquals(xmlContent.includes("<Area>"), false);
 });
