@@ -48,7 +48,10 @@ Deno.serve(async (req) => {
     }
     console.log(`[docx-to-pdf] DOCX size: ${docxBytes.length} bytes`);
 
-    // Build multipart form for Gotenberg
+    // Build multipart form for Gotenberg — ONLY LibreOffice-relevant params
+    // Do NOT send Chromium-only params (skipNetworkIdleEvent, pdfua, etc.)
+    // Do NOT use nativePdfFormat PDF/A — it forces color space conversion
+    // which alters image X/Y coordinates and breaks anchored layout
     const formData = new FormData();
     const blob = new Blob([docxBytes], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -56,13 +59,11 @@ Deno.serve(async (req) => {
     formData.append("files", blob, filename || "proposta.docx");
     formData.append("landscape", "false");
     formData.append("nativePageRanges", "1-");
-    // Do NOT use nativePdfFormat PDF/A — it forces color space conversion
-    // which alters image X/Y coordinates and breaks anchored layout
-    formData.append("skipNetworkIdleEvent", "false");
-    formData.append("pdfua", "false");
     formData.append("losslessImageCompression", "true");
     formData.append("reduceImageResolution", "false");
     formData.append("quality", "100");
+    formData.append("exportFormFields", "false");
+    formData.append("skipEmptyPages", "true");
 
     // Resolve Gotenberg URL: DB config → env → demo fallback
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

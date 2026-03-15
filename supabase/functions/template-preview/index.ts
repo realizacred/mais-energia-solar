@@ -148,6 +148,12 @@ async function processDocxTemplate(
       !relativePath.startsWith("word/media/") &&
       !relativePath.startsWith("word/theme/") &&
       !relativePath.startsWith("word/glossary/") &&
+      // Exclude charts and drawings — they never contain placeholders
+      // and processing them risks corrupting chart/drawing XML structure
+      !relativePath.startsWith("word/charts/") &&
+      !relativePath.startsWith("word/drawings/") &&
+      !relativePath.startsWith("word/diagrams/") &&
+      !relativePath.startsWith("word/embeddings/") &&
       !excludeExact.has(relativePath)
     ) {
       xmlFiles.push(relativePath);
@@ -1200,15 +1206,16 @@ Deno.serve(async (req) => {
     let gotenbergUrl: string | null = null;
     let gotenbergResponseStatus: number | null = null;
     let gotenbergResponseTime: number | null = null;
+    // Gotenberg params — ONLY LibreOffice-relevant fields.
+    // skipNetworkIdleEvent is Chromium-only and must NOT be sent to LibreOffice route.
     const gotenbergParams: Record<string, string> = {
       landscape: "false",
       nativePageRanges: "1-",
-      skipNetworkIdleEvent: "false",
-      pdfua: "false",
       losslessImageCompression: "true",
       reduceImageResolution: "false",
       quality: "100",
-      // Keep options minimal and lossless; avoid conversion/compression paths that can shift anchors.
+      exportFormFields: "false",
+      skipEmptyPages: "true",
     };
 
     try {
@@ -1224,14 +1231,10 @@ Deno.serve(async (req) => {
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
       formData.append("files", blob, "proposta.docx");
-      formData.append("landscape", "false");
-      formData.append("nativePageRanges", "1-");
-      // Keep conversion options minimal to avoid LibreOffice regressions in some versions.
-      formData.append("skipNetworkIdleEvent", "false");
-      formData.append("pdfua", "false");
-      formData.append("losslessImageCompression", "true");
-      formData.append("reduceImageResolution", "false");
-      formData.append("quality", "100");
+      // Append only LibreOffice-relevant params (no Chromium params like skipNetworkIdleEvent)
+      for (const [key, val] of Object.entries(gotenbergParams)) {
+        formData.append(key, val);
+      }
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
       console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
