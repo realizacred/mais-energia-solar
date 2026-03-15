@@ -124,12 +124,13 @@ DADOS DO LEAD:
     }
 
     // Check existing followups
-    const { data: existingFollowups = [] } = await adminClient
+    const { data: existingFollowupsRaw } = await adminClient
       .from("wa_followup_queue")
       .select("status, tipo, created_at")
       .eq("conversation_id", conversation_id)
       .order("created_at", { ascending: false })
       .limit(5);
+    const existingFollowups = existingFollowupsRaw || [];
 
     // Calculate time since last message
     const lastMsgTime = conv.last_message_at ? new Date(conv.last_message_at) : null;
