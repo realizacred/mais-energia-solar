@@ -187,13 +187,14 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function slugifyFilePart(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
+function slugifyFilePart(value: string, preserveHyphens = false): string {
+  let result = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (preserveHyphens) {
+    result = result.replace(/[^a-zA-Z0-9-]+/g, "_");
+  } else {
+    result = result.replace(/[^a-zA-Z0-9]+/g, "_");
+  }
+  return result.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
 }
 
 function buildProposalFileName(input: {
@@ -206,16 +207,17 @@ function buildProposalFileName(input: {
       ? String(input.proposalDate).trim().slice(0, 10)
       : new Date().toISOString().slice(0, 10);
   const parts = ["Proposta"];
-  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber)));
-  if (date) parts.push(slugifyFilePart(date));
+  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber), true));
+  if (date) parts.push(slugifyFilePart(date, true));
   if (input.customerName) parts.push(slugifyFilePart(String(input.customerName)));
   const fileName = parts.filter(Boolean).join("_").slice(0, 180);
   return `${fileName}.pdf`;
 }
 
+// deno-lint-ignore no-explicit-any
 function simulateSubstitution(
   template: string,
-  vars: Record<string, string | null | undefined>,
+  vars: Record<string, any>,
 ): { result: string; missingVars: string[]; emptyVars: string[] } {
   const missingVars: string[] = [];
   const emptyVars: string[] = [];
