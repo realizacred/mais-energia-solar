@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids } = await req.json();
+    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids, register_only, evolution_instance_key } = await req.json();
 
     if (!instance_name || !api_url || !api_key) {
       return new Response(JSON.stringify({ error: "instance_name, api_url e api_key são obrigatórios" }), {
@@ -74,53 +74,103 @@ Deno.serve(async (req) => {
       });
     }
 
-    const baseUrl = api_url.replace(/\/+$/, "");
-
-    // Step 1: Create instance on Evolution API
-    const createUrl = `${baseUrl}/instance/create`;
-    console.log(`[create-wa-instance] Creating instance: ${instance_name} at ${createUrl}`);
-
-    const createPayload: Record<string, unknown> = {
-      instanceName: instance_name,
-      qrcode: true,
-      integration: "WHATSAPP-BAILEYS",
-    };
-    if (number) createPayload.number = String(number);
-    if (groups_ignore !== undefined) createPayload.groupsIgnore = Boolean(groups_ignore);
-    if (reject_call !== undefined) createPayload.rejectCall = Boolean(reject_call);
-    if (always_online !== undefined) createPayload.alwaysOnline = Boolean(always_online);
-
-    const evoRes = await fetch(createUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: api_key,
-      },
-      body: JSON.stringify(createPayload),
-    });
-
-    if (!evoRes.ok) {
-      const errText = await evoRes.text();
-      console.error(`[create-wa-instance] Evolution error: ${evoRes.status} ${errText}`);
-
-      let friendlyMsg = "Erro ao criar instância na Evolution API";
-      try {
-        const parsed = JSON.parse(errText);
-        if (parsed?.message) friendlyMsg = parsed.message;
-        else if (parsed?.error) friendlyMsg = parsed.error;
-      } catch { /* ignore */ }
-
-      return new Response(JSON.stringify({ error: friendlyMsg }), {
-        status: 502,
+    // For register_only mode, evolution_instance_key is required (existing instance name on Evolution)
+    if (register_only && !evolution_instance_key) {
+      return new Response(JSON.stringify({ error: "evolution_instance_key é obrigatório ao registrar instância existente" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const evoData = await evoRes.json();
-    console.log(`[create-wa-instance] Evolution response keys:`, Object.keys(evoData));
+    const baseUrl = api_url.replace(/\/+$/, "");
+    let qrBase64: string | null = null;
+    const effectiveInstanceKey = register_only ? evolution_instance_key : instance_name;
 
-    // Extract QR code from response
-    const qrBase64 = evoData?.qrcode?.base64 || evoData?.base64 || null;
+    if (register_only) {
+      // ── REGISTER ONLY: skip Evolution create, just validate the instance exists ──
+      console.log(`[create-wa-instance] Register-only mode for existing instance: ${effectiveInstanceKey}`);
+
+      const encodedKey = encodeURIComponent(effectiveInstanceKey);
+      const stateUrl = `${baseUrl}/instance/connectionState/${encodedKey}`;
+      const stateRes = await fetch(stateUrl, {
+        method: "GET",
+        headers: { apikey: api_key },
+      });
+
+      if (!stateRes.ok) {
+        const errText = await stateRes.text();
+        console.error(`[create-wa-instance] Instance validation failed: ${stateRes.status} ${errText}`);
+        return new Response(JSON.stringify({ error: `Instância "${effectiveInstanceKey}" não encontrada na Evolution API. Verifique o nome.` }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if already connected
+      const stateData = await stateRes.json();
+      const connectionState = stateData?.instance?.state || stateData?.state || "unknown";
+      if (connectionState === "open") {
+        // Already connected — get QR not needed, but try to get connect info
+        qrBase64 = null;
+      } else {
+        // Try to get QR code for disconnected existing instance
+        const connectUrl = `${baseUrl}/instance/connect/${encodedKey}`;
+        const connectRes = await fetch(connectUrl, {
+          method: "GET",
+          headers: { apikey: api_key },
+        });
+        if (connectRes.ok) {
+          const connectData = await connectRes.json();
+          qrBase64 = connectData?.base64 || connectData?.qrcode?.base64 || null;
+        }
+      }
+    } else {
+      // ── CREATE NEW: call Evolution API to create instance ──
+      const createUrl = `${baseUrl}/instance/create`;
+      console.log(`[create-wa-instance] Creating instance: ${instance_name} at ${createUrl}`);
+
+      const createPayload: Record<string, unknown> = {
+        instanceName: instance_name,
+        qrcode: true,
+        integration: "WHATSAPP-BAILEYS",
+      };
+      if (number) createPayload.number = String(number);
+      if (groups_ignore !== undefined) createPayload.groupsIgnore = Boolean(groups_ignore);
+      if (reject_call !== undefined) createPayload.rejectCall = Boolean(reject_call);
+      if (always_online !== undefined) createPayload.alwaysOnline = Boolean(always_online);
+
+      const evoRes = await fetch(createUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: api_key,
+        },
+        body: JSON.stringify(createPayload),
+      });
+
+      if (!evoRes.ok) {
+        const errText = await evoRes.text();
+        console.error(`[create-wa-instance] Evolution error: ${evoRes.status} ${errText}`);
+
+        let friendlyMsg = "Erro ao criar instância na Evolution API";
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed?.message) friendlyMsg = parsed.message;
+          else if (parsed?.error) friendlyMsg = parsed.error;
+        } catch { /* ignore */ }
+
+        return new Response(JSON.stringify({ error: friendlyMsg }), {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const evoData = await evoRes.json();
+      console.log(`[create-wa-instance] Evolution response keys:`, Object.keys(evoData));
+
+      // Extract QR code from response
+      qrBase64 = evoData?.qrcode?.base64 || evoData?.base64 || null;
+    }
 
     // Step 2: Save to wa_instances table
     const { data: newInstance, error: insertErr } = await supabaseAdmin
