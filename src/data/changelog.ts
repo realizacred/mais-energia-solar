@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.53.0",
+    date: "2026-03-15",
+    title: "Pipeline DOCX→PDF — substituição segura de variáveis e nome de arquivo padronizado",
+    type: "bugfix",
+    description: "Corrigida a causa raiz de PDFs desalinhados: variáveis faltantes/vazias não são mais removidas do DOCX, preservando layout e espaçamento na conversão Gotenberg.",
+    details: [
+      "Variáveis ausentes no payload agora aparecem como <variavel> (visível para auditoria)",
+      "Variáveis vazias (null, undefined, '') agora aparecem como — (em-dash) preservando layout",
+      "Valores 0, '0', false NÃO são tratados como vazios — substituídos normalmente",
+      "Nome do arquivo padronizado: Proposta_{numero}_{data}_{cliente}.pdf com sanitização de acentos",
+      "Backend retorna file_name e empty_vars na resposta; frontend respeita o nome no download",
+      "9 testes automatizados adicionados cobrindo todas as regras de substituição e nomeação",
+    ],
+  },
+  {
     version: "2.52.1",
     date: "2026-03-14",
     title: "AI Hub — correções de configuração e navegação",
