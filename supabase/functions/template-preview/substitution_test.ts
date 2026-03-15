@@ -1,4 +1,3 @@
-import "https://deno.land/std@0.224.0/dotenv/load.ts";
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
 // ── Inline replicas of the exact logic from index.ts for unit testing ──
