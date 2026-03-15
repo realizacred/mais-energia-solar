@@ -53,20 +53,24 @@ Deno.serve(async (req) => {
     }
 
     // Get AI provider config
-    let activeProvider = "openai";
+    let activeProvider = "lovable_gateway";
     let activeModel = "gpt-4o-mini";
 
     try {
       const { data: providerConfig } = await adminClient
         .from("ai_provider_config")
-        .select("active_provider, active_model, fallback_enabled")
+        .select("active_provider, active_model")
         .eq("tenant_id", tenantId)
         .maybeSingle();
 
-      activeProvider = providerConfig?.active_provider || "openai";
-      activeModel = providerConfig?.active_model || "gpt-4o-mini";
+      if (providerConfig?.active_provider) {
+        activeProvider = providerConfig.active_provider;
+      }
+      if (providerConfig?.active_model) {
+        activeModel = providerConfig.active_model;
+      }
     } catch (configError) {
-      console.warn("[ai-suggest-message] config fetch failed, using defaults:", configError);
+      console.warn("[ai-suggest-message] config fetch failed, using defaults");
     }
 
     // Get OpenAI key for this tenant
