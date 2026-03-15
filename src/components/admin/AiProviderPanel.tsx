@@ -217,7 +217,7 @@ export function AiProviderPanel() {
           </Select>
           {showModelWarning && (
             <p className="text-xs text-warning mt-1">
-              ⚠️ Configure sua chave {activeProvider === "openai" ? "OpenAI" : "Gemini"} para acessar todos os modelos
+              ⚠️ Provedor {activeProvider === "openai" ? "OpenAI" : "Gemini"} sem chave — usando Lovable Gateway
             </p>
           )}
         </div>
