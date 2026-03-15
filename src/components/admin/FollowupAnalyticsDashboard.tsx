@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { StatCard } from "@/components/ui-kit";
-import { Spinner } from "@/components/ui-kit/Spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart3, TrendingUp, Zap, MessageCircle, CheckCircle2,
   AlertTriangle, Brain, Clock, Target, Sparkles,
