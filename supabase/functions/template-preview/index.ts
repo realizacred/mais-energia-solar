@@ -807,6 +807,41 @@ Deno.serve(async (req) => {
 
     console.log(`[template-preview] Variables resolved via domain resolvers: ${Object.keys(vars).length} keys`);
 
+    // ── 6b. POST-PROCESSING: fix cover-page variable issues ──
+
+    // FIX 1: potencia_sistema — strip unit suffix to avoid "6,00 kWp kWp"
+    if (vars["potencia_sistema"]) {
+      vars["potencia_sistema"] = vars["potencia_sistema"]
+        .replace(/\s*kWp\s*$/i, "")
+        .trim();
+    }
+
+    // FIX 2: subgrupo / grupo_tarifario — ensure top-level keys exist
+    const ucsArr = Array.isArray((snapshot as any)?.ucs) ? (snapshot as any).ucs : [];
+    const uc1 = ucsArr[0] ?? {};
+    if (!vars["subgrupo"]) {
+      const sg = (snapshot as any)?.subgrupo ?? (snapshot as any)?.grupo_tarifario
+        ?? uc1.subgrupo ?? uc1.grupo_tarifario ?? uc1.grupo
+        ?? (lead as any)?.subgrupo_tarifario;
+      if (sg) vars["subgrupo"] = String(sg);
+    }
+    if (!vars["grupo_tarifario"]) {
+      vars["grupo_tarifario"] = vars["subgrupo"] ?? "";
+    }
+
+    // FIX 3: estrutura / tipo_telhado — ensure top-level key exists
+    if (!vars["estrutura"]) {
+      const est = uc1.tipo_telhado ?? (snapshot as any)?.tecnico?.tipo_telhado
+        ?? (snapshot as any)?.tipo_telhado ?? vars["tipo_telhado"]
+        ?? vars["estrutura_tipo"];
+      if (est) vars["estrutura"] = String(est);
+    }
+
+    // FIX 4: vc_observacao — never show "N/A" literally
+    if (!vars["vc_observacao"] || vars["vc_observacao"] === "N/A" || vars["vc_observacao"] === "n/a") {
+      vars["vc_observacao"] = "";
+    }
+
     // ── 7. DOWNLOAD TEMPLATE DOCX ─────────────────────────
     let templateBuffer: Uint8Array;
     try {
