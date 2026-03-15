@@ -88,13 +88,14 @@ Deno.serve(async (req) => {
     if (!conv) throw new Error("Conversation not found");
 
     // Get last 15 messages
-    const { data: messages = [] } = await adminClient
+    const { data: messagesRaw } = await adminClient
       .from("wa_messages")
       .select("direction, content, message_type, created_at, is_internal_note")
       .eq("conversation_id", conversation_id)
       .eq("is_internal_note", false)
       .order("created_at", { ascending: false })
       .limit(15);
+    const messages = messagesRaw || [];
 
     // Get conversation tags
     const { data: convTags } = await adminClient
