@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.51.1",
+    date: "2026-03-14",
+    title: "AI Hub — usage logging em todas as edge functions",
+    type: "improvement",
+    description: "All 7 AI edge functions now log token consumption and estimated cost to ai_usage_logs, populating the AI Hub consumption report.",
+    details: [
+      "generate-ai-insights: callAI now returns usage, logging block added",
+      "writing-assistant: callOpenAI and callGemini return usage, logging added",
+      "ai-suggest-message: extracted usage from existing OpenAI response",
+      "ai-followup-intelligence: callAI return type updated to include usage",
+      "ai-conversation-summary, ai-proposal-explainer, ai-followup-planner: usage extracted and logged",
+      "AiProviderPanel: link to Supabase Secrets added for Gemini and OpenAI cards",
+    ],
+  },
+  {
     version: "2.51.0",
     date: "2026-03-14",
     title: "AI Hub — configuração central de provedor e tracking de consumo",
