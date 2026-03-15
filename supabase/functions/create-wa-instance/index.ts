@@ -12,22 +12,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate user session
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Validate user session
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) {
       return new Response(JSON.stringify({ error: "Sessão inválida" }), {
         status: 401,
@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get tenant_id from user's profile
-    const { data: profile } = await supabase
+    // Get profile with tenant_id
+    const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("tenant_id")
       .eq("id", user.id)
@@ -49,7 +49,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online } = await req.json();
+    // Role check: only admin or gerente can create instances
+    const { data: roleData } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "gerente"])
+      .limit(1)
+      .maybeSingle();
+
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Apenas administradores e gerentes podem criar instâncias" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids } = await req.json();
 
     if (!instance_name || !api_url || !api_key) {
       return new Response(JSON.stringify({ error: "instance_name, api_url e api_key são obrigatórios" }), {
@@ -69,7 +85,6 @@ Deno.serve(async (req) => {
       qrcode: true,
       integration: "WHATSAPP-BAILEYS",
     };
-    // Optional enhanced settings
     if (number) createPayload.number = String(number);
     if (groups_ignore !== undefined) createPayload.groupsIgnore = Boolean(groups_ignore);
     if (reject_call !== undefined) createPayload.rejectCall = Boolean(reject_call);
@@ -105,11 +120,10 @@ Deno.serve(async (req) => {
     console.log(`[create-wa-instance] Evolution response keys:`, Object.keys(evoData));
 
     // Extract QR code from response
-    // Evolution API v2 returns { instance: {...}, hash: "...", qrcode: { base64: "..." } }
     const qrBase64 = evoData?.qrcode?.base64 || evoData?.base64 || null;
 
     // Step 2: Save to wa_instances table
-    const { data: newInstance, error: insertErr } = await supabase
+    const { data: newInstance, error: insertErr } = await supabaseAdmin
       .from("wa_instances")
       .insert({
         tenant_id: profile.tenant_id,
@@ -130,6 +144,31 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Step 3: Create consultor linkages if provided
+    if (newInstance?.id && Array.isArray(consultor_ids) && consultor_ids.length > 0) {
+      const linkRows = consultor_ids.map((cid: string) => ({
+        instance_id: newInstance.id,
+        consultor_id: cid,
+        tenant_id: profile.tenant_id,
+      }));
+      const { error: linkErr } = await supabaseAdmin
+        .from("wa_instance_consultores")
+        .insert(linkRows);
+      if (linkErr) {
+        console.warn(`[create-wa-instance] Consultor linkage warning:`, linkErr);
+      }
+
+      // Legacy single consultor_id field for backward compat
+      if (consultor_ids.length === 1) {
+        await supabaseAdmin
+          .from("wa_instances")
+          .update({ consultor_id: consultor_ids[0] } as any)
+          .eq("id", newInstance.id);
+      }
+    }
+
+    console.log(`[create-wa-instance] Instance created: ${newInstance.id} for tenant ${profile.tenant_id}`);
 
     return new Response(JSON.stringify({
       success: true,

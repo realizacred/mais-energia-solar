@@ -12,8 +12,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -29,16 +29,83 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch instance
-    const { data: instance, error: instErr } = await supabase
+    // Validate user session
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Sessão inválida" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get profile with tenant_id
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.tenant_id) {
+      return new Response(JSON.stringify({ error: "Tenant não encontrado" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Role check: admin, gerente, or user linked to this instance via wa_instance_consultores
+    const { data: roleData } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "gerente"])
+      .limit(1)
+      .maybeSingle();
+
+    if (!roleData) {
+      // Check if user is a consultor linked to this instance
+      const { data: consultorLink } = await supabaseAdmin
+        .from("consultores")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("ativo", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (consultorLink) {
+        const { data: instanceLink } = await supabaseAdmin
+          .from("wa_instance_consultores")
+          .select("id")
+          .eq("instance_id", instance_id)
+          .eq("consultor_id", consultorLink.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (!instanceLink) {
+          return new Response(JSON.stringify({ error: "Sem permissão para esta instância" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        return new Response(JSON.stringify({ error: "Sem permissão para gerar QR Code" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Fetch instance with tenant isolation
+    const { data: instance, error: instErr } = await supabaseAdmin
       .from("wa_instances")
       .select("evolution_instance_key, evolution_api_url, api_key")
       .eq("id", instance_id)
+      .eq("tenant_id", profile.tenant_id)
       .single();
 
     if (instErr || !instance) {
@@ -48,9 +115,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY");
+    const apiKey = instance.api_key;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API Key não configurada" }), {
+      return new Response(JSON.stringify({ error: "API Key não configurada para esta instância" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -76,7 +143,7 @@ Deno.serve(async (req) => {
 
     // If already connected, update DB and return
     if (connectionState === "open") {
-      await supabase
+      await supabaseAdmin
         .from("wa_instances")
         .update({ status: "connected" })
         .eq("id", instance_id);
