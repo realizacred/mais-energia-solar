@@ -769,27 +769,35 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   // Download PDF
   const handleDownloadPdf = async () => {
-    if (!html) { toast({ title: "Gere o arquivo primeiro", variant: "destructive" }); return; }
     setDownloadingPdf(true);
     try {
-      const { default: jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const container = document.createElement("div");
-      container.innerHTML = html;
-      container.style.width = "800px";
-      container.style.position = "absolute";
-      container.style.left = "-9999px";
-      document.body.appendChild(container);
-      await doc.html(container, {
-        callback: (pdf) => {
-          pdf.save(`${p.codigo || p.titulo || "proposta"}_v${latestVersao?.versao_numero || 1}.pdf`);
-          document.body.removeChild(container);
-        },
-        x: 10, y: 10, width: 190, windowWidth: 800,
-      });
-      toast({ title: "PDF gerado!" });
+      const pdfPath = latestVersao?.output_pdf_path;
+      if (!pdfPath) {
+        toast({ title: "PDF não disponível", description: "Gere o arquivo DOCX/PDF primeiro na aba de documentos.", variant: "destructive" });
+        return;
+      }
+      const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(pdfPath, 3600);
+      if (!data?.signedUrl) {
+        toast({ title: "Erro ao obter URL do PDF", variant: "destructive" });
+        return;
+      }
+      const resp = await fetch(data.signedUrl);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeName = (p.codigo || p.titulo || "proposta")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9-]+/g, "_")
+        .replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+      a.download = `Proposta_${safeName}_v${latestVersao?.versao_numero || 1}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "PDF baixado!" });
     } catch (e: any) {
-      toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
+      toast({ title: "Erro ao baixar PDF", description: e.message, variant: "destructive" });
     } finally {
       setDownloadingPdf(false);
     }
