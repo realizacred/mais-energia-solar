@@ -209,7 +209,7 @@ export default function ApiKeyConfigPage({
           )}
 
           {/* Test + metadata */}
-          <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center justify-between pt-2 border-t border-border">
             <div className="text-xs text-muted-foreground space-y-0.5">
               {config?.last_validated_at && (
                 <p>Última validação: {format(new Date(config.last_validated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
