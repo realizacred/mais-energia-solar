@@ -97,11 +97,11 @@ Deno.serve(async (req) => {
       .limit(15);
 
     // Get conversation tags
-    const { data: convTags = [] } = await adminClient
+    const { data: convTags } = await adminClient
       .from("wa_conversation_tags")
       .select("tag:wa_tags(nome)")
       .eq("conversation_id", conversation_id);
-    const tagNames = convTags.map((t: any) => t.tag?.nome).filter(Boolean);
+    const tagNames = (convTags || []).map((t: any) => t.tag?.nome).filter(Boolean);
 
     // Get lead data
     let leadInfo = "";
