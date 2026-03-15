@@ -36,12 +36,13 @@ export function AiProviderPanel() {
   const fallbackEnabled = config?.fallback_enabled ?? true;
 
   // Filter models based on active keys
-  const allModels = AVAILABLE_MODELS[activeProvider] || [];
+  const allModels = [...AVAILABLE_MODELS[activeProvider]] || [];
   const models = activeProvider === "openai" && !hasOpenAIKey
     ? allModels.filter(m => m.id === "gpt-4o-mini")
     : activeProvider === "gemini" && !hasGeminiKey
       ? allModels.filter(m => m.id === "gemini-2.0-flash")
       : allModels;
+  const showModelWarning = (activeProvider === "openai" && !hasOpenAIKey) || (activeProvider === "gemini" && !hasGeminiKey);
   const isLoading = configLoading || logsLoading;
 
   return (
