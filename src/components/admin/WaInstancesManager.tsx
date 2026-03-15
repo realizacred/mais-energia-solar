@@ -184,6 +184,10 @@ export function WaInstancesManager() {
                           <CheckCircle2 className="h-4 w-4 mr-2" />
                           Verificar Conexão
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setQrInstance(inst)}>
+                          <QrCode className="h-4 w-4 mr-2" />
+                          Gerar QR Code
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditInstance(inst)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
