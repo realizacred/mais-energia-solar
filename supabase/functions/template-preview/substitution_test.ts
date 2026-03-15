@@ -106,7 +106,6 @@ Deno.test("missing variable → <varName> XML-safe marker", () => {
   assertEquals(result, "Área: &lt;Area&gt; Potência: 13,4");
   assertEquals(missingVars, ["Area"]);
 });
-
 Deno.test("escapeXml escapes angle brackets", () => {
   const marker = escapeXml(`<Area>`);
   assertEquals(marker, "&lt;Area&gt;");
