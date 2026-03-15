@@ -934,7 +934,7 @@ export function ConvertLeadToClientDialog({
                         <FormItem>
                           <FormLabel>CPF/CNPJ *</FormLabel>
                           <FormControl>
-                            <CpfCnpjInput value={field.value || ""} onChange={field.onChange} />
+                            <CpfCnpjInput value={field.value || ""} onChange={field.onChange} label="" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
