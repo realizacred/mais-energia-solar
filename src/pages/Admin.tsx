@@ -640,6 +640,7 @@ export default function Admin() {
                 <Route path="custom-fields" element={<CustomFieldsSettings />} />
                 <Route path="auditoria" element={<AuditLogsViewer />} />
                 <Route path="data-reset" element={<DataResetManager />} />
+                <Route path="backup" element={<BackupRestorePage />} />
                 <Route path="permissoes" element={<RolePermissionsManager />} />
                 
                 <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
