@@ -68,6 +68,8 @@ interface PropostaNativa {
     payback_meses: number | null;
     geracao_mensal: number | null;
     created_at: string;
+    output_pdf_path: string | null;
+    output_docx_path: string | null;
   }[];
 }
 
@@ -1420,7 +1422,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
           const ids = data.map(p => p.id);
           const { data: versoes } = await supabase
             .from("proposta_versoes")
-            .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot")
+            .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot, output_pdf_path, output_docx_path")
             .in("proposta_id", ids)
             .order("versao_numero", { ascending: false });
 
@@ -1483,6 +1485,8 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                 payback_meses: (v as any).payback_meses,
                 created_at: (v as any).created_at,
                 geracao_mensal: geracao,
+                output_pdf_path: (v as any).output_pdf_path || null,
+                output_docx_path: (v as any).output_docx_path || null,
               };
             }),
           }));

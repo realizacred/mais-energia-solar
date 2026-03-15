@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.58.0",
+    date: "2026-03-15",
+    title: "PDF download via storage em PropostaExpandedDetail",
+    type: "bugfix",
+    description: "Corrigido download de PDF que usava jsPDF client-side (qualidade ruim, nome genérico) para usar o PDF real gerado pelo Gotenberg no backend via signed URL do storage.",
+    details: [
+      "PropostaExpandedDetail.tsx agora baixa PDF do storage via fetch-to-blob (padrão §37)",
+      "Nome do arquivo usa padrão Proposta_{codigo}_v{numero}.pdf com sanitização de acentos",
+      "VersaoData e PropostaNativa agora incluem output_pdf_path e output_docx_path",
+      "Query de proposta_versoes ampliada para buscar output_pdf_path e output_docx_path",
+      "Testes unitários adicionados para substituição de variáveis DOCX e geração de nome de arquivo",
+    ],
+  },
+  {
     version: "2.57.0",
     date: "2026-03-15",
     title: "Auto-configuração de webhook na criação de instância WhatsApp",
