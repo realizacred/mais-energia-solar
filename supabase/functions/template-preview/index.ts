@@ -1205,7 +1205,10 @@ Deno.serve(async (req) => {
       nativePageRanges: "1-",
       skipNetworkIdleEvent: "false",
       pdfua: "false",
-      // Keep options minimal; avoid PDF/A conversion paths that can shift anchors.
+      losslessImageCompression: "true",
+      reduceImageResolution: "false",
+      quality: "100",
+      // Keep options minimal and lossless; avoid conversion/compression paths that can shift anchors.
     };
 
     try {
