@@ -259,15 +259,26 @@ export function WaInstancesManager() {
                     </div>
                   )}
 
-                  <div className="border-t pt-2 mt-1">
+                  <div className="border-t pt-2 mt-1 flex gap-2">
+                    {inst.status !== "connected" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-xs"
+                        onClick={() => setQrInstance(inst)}
+                      >
+                        <QrCode className="h-3.5 w-3.5" />
+                        QR Code
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full gap-2 text-xs"
+                      className="flex-1 gap-2 text-xs"
                       onClick={() => setSyncInstance(inst)}
                     >
                       <History className="h-3.5 w-3.5" />
-                      Sincronizar Histórico
+                      Sincronizar
                     </Button>
                   </div>
                 </CardContent>
