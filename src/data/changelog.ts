@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.52.1",
+    date: "2026-03-14",
+    title: "AI Hub — correções de configuração e navegação",
+    type: "bugfix",
+    description: "Fixed AI provider config fetch errors and corrected API key navigation to use internal routes instead of Supabase dashboard.",
+    details: [
+      "Fixed non-2xx errors in 6 edge functions — ai_provider_config fetch now wrapped in try/catch with safe defaults",
+      "Fixed gpt-4o model error — tenant config updated to gpt-4o-mini (account without gpt-4o access)",
+      "Replaced external Supabase Secrets links with internal navigation to /admin/gemini-config and /admin/openai-config",
+      "useAIProviderConfig staleTime reduced from 15min to 2min for faster config updates",
+      "AGENTS.md updated — API keys must always be configured via frontend integrations, never via Supabase dashboard",
+    ],
+  },
+  {
     version: "2.52.0",
     date: "2026-03-14",
     title: "AI Hub — todas as edge functions usam provedor dinâmico",
