@@ -67,8 +67,17 @@ Deno.serve(async (req) => {
 
     const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids, register_only, evolution_instance_key } = await req.json();
 
-    if (!instance_name || !api_url || !api_key) {
-      return new Response(JSON.stringify({ error: "instance_name, api_url e api_key são obrigatórios" }), {
+    if (!instance_name || !api_url) {
+      return new Response(JSON.stringify({ error: "instance_name e api_url são obrigatórios" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Resolve API key: per-instance > global env secret
+    const resolvedApiKey = api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
+    if (!resolvedApiKey) {
+      return new Response(JSON.stringify({ error: "API Key não fornecida e EVOLUTION_API_KEY não configurada no servidor" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
