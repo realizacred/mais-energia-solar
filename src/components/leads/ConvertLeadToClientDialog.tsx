@@ -164,6 +164,16 @@ export function ConvertLeadToClientDialog({
     },
   });
 
+  // Compute valorVenda from selected simulation
+  const simulacaoAceitaId = useWatch({ control: form.control, name: "simulacao_aceita_id" });
+  const valorVenda = useMemo(() => {
+    if (simulacaoAceitaId) {
+      const sim = simulacoes.find(s => s.id === simulacaoAceitaId);
+      if (sim?.investimento_estimado) return sim.investimento_estimado;
+    }
+    return lead?.valor_projeto ?? 0;
+  }, [simulacaoAceitaId, simulacoes, lead]);
+
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
 
