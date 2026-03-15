@@ -59,7 +59,7 @@ async function callOpenAI(
   action: Action,
   text: string,
   locale: string
-): Promise<string> {
+): Promise<{ suggestion: string; usage: any }> {
   const systemPrompt = `Você é um assistente de escrita para mensagens comerciais em ${locale}.
 Reescreva o texto do usuário conforme a instrução.
 Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
@@ -96,7 +96,7 @@ Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error("AI_EMPTY_RESPONSE");
-    return content.trim();
+    return { suggestion: content.trim(), usage: data.usage || {} };
   } finally {
     clearTimeout(timeout);
   }
@@ -109,7 +109,7 @@ async function callGemini(
   action: Action,
   text: string,
   locale: string
-): Promise<string> {
+): Promise<{ suggestion: string; usage: any }> {
   const systemPrompt = `Você é um assistente de escrita para mensagens comerciais em ${locale}.
 Reescreva o texto do usuário conforme a instrução.
 Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
@@ -143,7 +143,15 @@ Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
     const data = await response.json();
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!content) throw new Error("AI_EMPTY_RESPONSE");
-    return content.trim();
+    const meta = data.usageMetadata || {};
+    return {
+      suggestion: content.trim(),
+      usage: {
+        prompt_tokens: meta.promptTokenCount || 0,
+        completion_tokens: meta.candidatesTokenCount || 0,
+        total_tokens: meta.totalTokenCount || 0,
+      },
+    };
   } finally {
     clearTimeout(timeout);
   }
@@ -321,10 +329,13 @@ Deno.serve(async (req) => {
 
     // ── Call AI ──
     let suggestion: string;
+    let aiUsage: any = {};
     const callFn = provider === "openai" ? callOpenAI : callGemini;
 
     try {
-      suggestion = await callFn(keyRow.api_key, primaryModel, action, text.trim(), locale);
+      const result = await callFn(keyRow.api_key, primaryModel, action, text.trim(), locale);
+      suggestion = result.suggestion;
+      aiUsage = result.usage || {};
       logModel = primaryModel;
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "";
@@ -385,6 +396,42 @@ Deno.serve(async (req) => {
     }
 
     logStatus = 200;
+
+    // ── Log AI usage ─────────────────────────────────────────────
+    try {
+      const promptTokens = aiUsage.prompt_tokens || 0;
+      const completionTokens = aiUsage.completion_tokens || 0;
+      const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+
+      // Rate lookup by provider
+      const isOpenAI = provider === "openai";
+      const inputRate = isOpenAI
+        ? (primaryModel === "gpt-4o" ? 0.0025 : 0.00015)
+        : 0.00015;
+      const outputRate = isOpenAI
+        ? (primaryModel === "gpt-4o" ? 0.01 : 0.0006)
+        : 0.0006;
+
+      const estimatedCost =
+        (promptTokens / 1000) * inputRate +
+        (completionTokens / 1000) * outputRate;
+
+      await supabaseService.from("ai_usage_logs").insert({
+        tenant_id: tenantId,
+        user_id: userId,
+        function_name: "writing-assistant",
+        provider: isOpenAI ? "openai" : "gemini",
+        model: primaryModel,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCost,
+        is_fallback: false,
+      });
+    } catch (logError) {
+      console.error("[writing-assistant] log error:", logError);
+    }
+
     return new Response(
       JSON.stringify({ suggestion, model: logModel }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
