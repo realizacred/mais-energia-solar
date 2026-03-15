@@ -32,18 +32,15 @@ export function AiProviderPanel() {
   const { config, isLoading: configLoading, updateConfig, providerInfo, hasOpenAIKey, hasGeminiKey } = useAIProviderConfig();
   const { logs, summary, isLoading: logsLoading } = useAIUsageLogs({ limit: 50 });
 
-  const activeProvider = (config?.active_provider || "lovable_gateway") as keyof typeof AVAILABLE_MODELS;
-  const activeModel = config?.active_model || "google/gemini-2.5-flash";
-  const fallbackEnabled = config?.fallback_enabled ?? true;
+  // Auto-switch to gateway if active provider has no key
+  const effectiveProvider = (
+    (activeProvider === "openai" && !hasOpenAIKey) ||
+    (activeProvider === "gemini" && !hasGeminiKey)
+  ) ? "lovable_gateway" as keyof typeof AVAILABLE_MODELS : activeProvider;
 
-  // Filter models based on active keys
-  const allModels = [...AVAILABLE_MODELS[activeProvider]];
-  const models = activeProvider === "openai" && !hasOpenAIKey
-    ? allModels.filter(m => m.id === "gpt-4o-mini")
-    : activeProvider === "gemini" && !hasGeminiKey
-      ? allModels.filter(m => m.id === "gemini-2.0-flash")
-      : allModels;
-  const showModelWarning = (activeProvider === "openai" && !hasOpenAIKey) || (activeProvider === "gemini" && !hasGeminiKey);
+  const allModels = [...AVAILABLE_MODELS[effectiveProvider]];
+  const models = allModels;
+  const showModelWarning = effectiveProvider !== activeProvider;
   const isLoading = configLoading || logsLoading;
 
   return (
