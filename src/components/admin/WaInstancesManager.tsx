@@ -698,7 +698,7 @@ function InstanceFormDialog({
   const isRegister = mode === "register";
   const formValid = isRegister
     ? !!(nome.trim() && apiUrl.trim() && apiKey.trim() && instanceKey.trim())
-    : !!(nome.trim() && apiUrl.trim() && apiKey.trim());
+    : !!(nome.trim() && apiUrl.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
