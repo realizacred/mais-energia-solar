@@ -86,8 +86,8 @@ export function resolveEntrada(
   set("outros_encargos_novo_uc1", uc1.outros_encargos_novo);
 
   // ── Localização e Parâmetros ──
-  set("estado", cliente.estado ?? lead.estado ?? uc1.estado ?? snap.estado ?? snap.locEstado);
-  set("cidade", cliente.cidade ?? lead.cidade ?? uc1.cidade ?? snap.cidade ?? snap.locCidade);
+  set("estado", snap.locEstado ?? cliente.estado ?? lead.estado ?? uc1.estado ?? snap.estado);
+  set("cidade", snap.locCidade ?? cliente.cidade ?? lead.cidade ?? uc1.cidade ?? snap.cidade);
   set("distancia", snap.distancia ?? snap.distanciaKm);
   set("taxa_desempenho", snap.taxa_desempenho);
   set("desvio_azimutal", snap.desvio_azimutal);
