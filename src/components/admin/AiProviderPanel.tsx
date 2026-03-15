@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Bot, Zap, BarChart2, DollarSign, CheckCircle2 } from "lucide-react";
-import { formatDateTime } from "@/lib/formatters";
+import { formatDateTime } from "@/lib/formatters/index";
 
 const tokenFmt = new Intl.NumberFormat("pt-BR");
 
