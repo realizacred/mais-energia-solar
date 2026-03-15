@@ -1206,15 +1206,16 @@ Deno.serve(async (req) => {
     let gotenbergUrl: string | null = null;
     let gotenbergResponseStatus: number | null = null;
     let gotenbergResponseTime: number | null = null;
+    // Gotenberg params — ONLY LibreOffice-relevant fields.
+    // skipNetworkIdleEvent is Chromium-only and must NOT be sent to LibreOffice route.
     const gotenbergParams: Record<string, string> = {
       landscape: "false",
       nativePageRanges: "1-",
-      skipNetworkIdleEvent: "false",
-      pdfua: "false",
       losslessImageCompression: "true",
       reduceImageResolution: "false",
       quality: "100",
-      // Keep options minimal and lossless; avoid conversion/compression paths that can shift anchors.
+      exportFormFields: "false",
+      skipEmptyPages: "true",
     };
 
     try {
