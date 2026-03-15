@@ -187,13 +187,14 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function slugifyFilePart(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
+function slugifyFilePart(value: string, preserveHyphens = false): string {
+  let result = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (preserveHyphens) {
+    result = result.replace(/[^a-zA-Z0-9-]+/g, "_");
+  } else {
+    result = result.replace(/[^a-zA-Z0-9]+/g, "_");
+  }
+  return result.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
 }
 
 function buildProposalFileName(input: {
@@ -206,16 +207,17 @@ function buildProposalFileName(input: {
       ? String(input.proposalDate).trim().slice(0, 10)
       : new Date().toISOString().slice(0, 10);
   const parts = ["Proposta"];
-  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber)));
-  if (date) parts.push(slugifyFilePart(date));
+  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber), true));
+  if (date) parts.push(slugifyFilePart(date, true));
   if (input.customerName) parts.push(slugifyFilePart(String(input.customerName)));
   const fileName = parts.filter(Boolean).join("_").slice(0, 180);
   return `${fileName}.pdf`;
 }
 
+// deno-lint-ignore no-explicit-any
 function simulateSubstitution(
   template: string,
-  vars: Record<string, string | null | undefined>,
+  vars: Record<string, any>,
 ): { result: string; missingVars: string[]; emptyVars: string[] } {
   const missingVars: string[] = [];
   const emptyVars: string[] = [];
@@ -261,15 +263,28 @@ Deno.test("Substitution: empty string → em-dash", () => {
   assertEquals(emptyVars, ["Area"]);
 });
 
-Deno.test("Substitution: value 0 is NOT empty", () => {
+Deno.test("Substitution: string '0' is NOT empty", () => {
   const { result, emptyVars, missingVars } = simulateSubstitution("Valor: [valor]", { valor: "0" });
   assertEquals(result, "Valor: 0");
   assertEquals(emptyVars.length, 0);
   assertEquals(missingVars.length, 0);
 });
 
-Deno.test("Substitution: value false is NOT empty", () => {
+Deno.test("Substitution: numeric 0 is NOT empty", () => {
+  const { result, emptyVars, missingVars } = simulateSubstitution("Valor: [valor]", { valor: 0 });
+  assertEquals(result, "Valor: 0");
+  assertEquals(emptyVars.length, 0);
+  assertEquals(missingVars.length, 0);
+});
+
+Deno.test("Substitution: string 'false' is NOT empty", () => {
   const { result, emptyVars } = simulateSubstitution("Ativo: [ativo]", { ativo: "false" });
+  assertEquals(result, "Ativo: false");
+  assertEquals(emptyVars.length, 0);
+});
+
+Deno.test("Substitution: boolean false is NOT empty", () => {
+  const { result, emptyVars } = simulateSubstitution("Ativo: [ativo]", { ativo: false });
   assertEquals(result, "Ativo: false");
   assertEquals(emptyVars.length, 0);
 });
@@ -287,14 +302,14 @@ Deno.test("Substitution: no destructive cleanup", () => {
   assertEquals(result.includes("&lt;tarifa&gt;"), true);
 });
 
-Deno.test("FileName: complete data", () => {
+Deno.test("FileName: preserves hyphens in number and date", () => {
   const fn = buildProposalFileName({ proposalNumber: "N2025-1795-1", proposalDate: "2026-01-23", customerName: "Maria Luzia De Souza Silva" });
-  assertEquals(fn, "Proposta_N2025_1795_1_2026_01_23_Maria_Luzia_De_Souza_Silva.pdf");
+  assertEquals(fn, "Proposta_N2025-1795-1_2026-01-23_Maria_Luzia_De_Souza_Silva.pdf");
 });
 
-Deno.test("FileName: strips accents", () => {
+Deno.test("FileName: strips accents, preserves date hyphens", () => {
   const fn = buildProposalFileName({ proposalNumber: null, proposalDate: "2026-03-15", customerName: "José da Conceição" });
-  assertEquals(fn, "Proposta_2026_03_15_Jose_da_Conceicao.pdf");
+  assertEquals(fn, "Proposta_2026-03-15_Jose_da_Conceicao.pdf");
 });
 
 Deno.test("FileName: fallback with no data", () => {

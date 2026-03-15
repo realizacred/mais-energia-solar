@@ -175,7 +175,7 @@ async function processDocxTemplate(
       // Skip empty-value keys; they'll be handled in Step 3
       if (emptyKeysSet.has(key)) continue;
 
-      const safeValue = escapeXml(value);
+      const safeValue = escapeXml(String(value));
       const legacyPattern = `[${key}]`;
       if (content.includes(legacyPattern)) {
         content = content.replaceAll(legacyPattern, safeValue);
@@ -684,13 +684,14 @@ function isValidXmlDocument(xml: string): boolean {
 // FILE NAMING HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-function slugifyFilePart(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
+function slugifyFilePart(value: string, preserveHyphens = false): string {
+  let result = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (preserveHyphens) {
+    result = result.replace(/[^a-zA-Z0-9-]+/g, "_");
+  } else {
+    result = result.replace(/[^a-zA-Z0-9]+/g, "_");
+  }
+  return result.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
 }
 
 function buildProposalFileName(input: {
@@ -705,8 +706,8 @@ function buildProposalFileName(input: {
 
   const parts = ["Proposta"];
 
-  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber)));
-  if (date) parts.push(slugifyFilePart(date));
+  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber), true));
+  if (date) parts.push(slugifyFilePart(date, true));
   if (input.customerName) parts.push(slugifyFilePart(String(input.customerName)));
 
   const fileName = parts.filter(Boolean).join("_").slice(0, 180);
