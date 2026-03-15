@@ -792,16 +792,29 @@ function InstanceFormDialog({
                   className="font-mono text-sm"
                 />
               </div>
-              <div>
-                <Label>API Key *</Label>
-                <Input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Cole a API Key / Global Token"
-                  className="font-mono text-sm"
-                />
-              </div>
+              {isRegister && (
+                <div>
+                  <Label>API Key *</Label>
+                  <Input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Cole a API Key / Global Token"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Obrigatória para validar a instância existente.
+                  </p>
+                </div>
+              )}
+
+              {!isRegister && (
+                <div className="rounded-lg bg-muted/30 border border-border p-3">
+                  <p className="text-xs text-muted-foreground">
+                    🔑 A API Key global configurada no servidor será usada automaticamente para criar a instância.
+                  </p>
+                </div>
+              )}
               {vendedorSection}
               {qrError && (
                 <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
