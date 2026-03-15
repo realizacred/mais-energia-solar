@@ -132,6 +132,7 @@ export function ConvertLeadToClientDialog({
   const [transformadores, setTransformadores] = useState<Transformador[]>([]);
   const [simulacoes, setSimulacoes] = useState<Simulacao[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [currentStep, setCurrentStep] = useState(0);
   
   // Multiple files support with offline base64 storage
   const [identidadeFiles, setIdentidadeFiles] = useState<DocumentFile[]>([]);
