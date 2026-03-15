@@ -173,16 +173,17 @@ Deno.serve(async (req) => {
     }
 
     // Step 2: Save to wa_instances table
+    const initialStatus = register_only ? "disconnected" : "connecting";
     const { data: newInstance, error: insertErr } = await supabaseAdmin
       .from("wa_instances")
       .insert({
         tenant_id: profile.tenant_id,
         nome: instance_name,
-        evolution_instance_key: instance_name,
+        evolution_instance_key: effectiveInstanceKey,
         evolution_api_url: baseUrl,
         api_key: api_key,
         owner_user_id: user.id,
-        status: "connecting",
+        status: initialStatus,
       })
       .select("id")
       .single();
