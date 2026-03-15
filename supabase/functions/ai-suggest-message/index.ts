@@ -53,14 +53,21 @@ Deno.serve(async (req) => {
     }
 
     // Get AI provider config
-    const { data: providerConfig } = await adminClient
-      .from("ai_provider_config")
-      .select("active_provider, active_model, fallback_enabled")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+    let activeProvider = "openai";
+    let activeModel = "gpt-4o-mini";
 
-    const activeProvider = providerConfig?.active_provider || "lovable_gateway";
-    const activeModel = providerConfig?.active_model || "google/gemini-2.5-flash";
+    try {
+      const { data: providerConfig } = await adminClient
+        .from("ai_provider_config")
+        .select("active_provider, active_model, fallback_enabled")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      activeProvider = providerConfig?.active_provider || "openai";
+      activeModel = providerConfig?.active_model || "gpt-4o-mini";
+    } catch (configError) {
+      console.warn("[ai-suggest-message] config fetch failed, using defaults:", configError);
+    }
 
     // Get OpenAI key for this tenant
     const { data: keyRow } = await adminClient
@@ -164,6 +171,8 @@ ${proposalContext}`;
 ${chatHistory || "(sem mensagens ainda)"}
 
 Gere uma sugestão de resposta para o vendedor enviar ao cliente.`;
+
+    console.log("[ai-suggest-message] provider:", activeProvider, "model:", activeModel);
 
     // Call OpenAI
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
