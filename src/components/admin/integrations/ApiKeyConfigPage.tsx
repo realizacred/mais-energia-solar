@@ -261,27 +261,7 @@ export default function ApiKeyConfigPage({
           </CardContent>
         </Card>
 
-        {/* Info card */}
-        <div className="space-y-4">
-          <Card className="bg-card border-border shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-semibold text-foreground">Como obter sua chave</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2">
-              <p>1. Acesse o portal do provedor</p>
-              <p>2. Crie ou copie sua API key</p>
-              <p>3. Cole no campo ao lado e salve</p>
-              {helpUrl && (
-                <a href={helpUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary underline text-xs mt-2">
-                  Acessar portal do provedor →
-                </a>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {infoCard}
       </div>
     </div>
   );
