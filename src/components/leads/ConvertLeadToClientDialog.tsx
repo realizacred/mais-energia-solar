@@ -146,6 +146,8 @@ export function ConvertLeadToClientDialog({
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       nome: "",
       telefone: "",
@@ -886,12 +888,17 @@ export function ConvertLeadToClientDialog({
 
   const handleNext = async () => {
     if (currentStep === 0) {
-      const valid = await form.trigger(["nome", "telefone", "email", "cpf_cnpj", "estado", "cidade", "bairro", "rua", "numero"]);
+      const fields = ["nome", "telefone", "email", "cpf_cnpj", "estado", "cidade", "bairro", "rua", "numero"] as const;
+      const valid = await form.trigger([...fields]);
       if (!valid) return;
+      // Clear errors for valid fields so they leave the red state
+      fields.forEach((f) => { if (!form.getFieldState(f).error) form.clearErrors(f); });
     }
     if (currentStep === 1) {
-      const valid = await form.trigger(["disjuntor_id", "transformador_id", "localizacao"]);
+      const fields = ["disjuntor_id", "transformador_id", "localizacao"] as const;
+      const valid = await form.trigger([...fields]);
       if (!valid) return;
+      fields.forEach((f) => { if (!form.getFieldState(f).error) form.clearErrors(f); });
     }
     setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
@@ -964,7 +971,7 @@ export function ConvertLeadToClientDialog({
 
         {/* ── BODY — steps ── */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 min-h-0">
+          <form onSubmit={(e) => e.preventDefault()} className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
 
               {/* ═══ STEP 1: Dados Pessoais + Endereço ═══ */}
@@ -1303,7 +1310,16 @@ export function ConvertLeadToClientDialog({
                         <><Save className="mr-2 h-4 w-4" /> Aguardando Documentação</>
                       )}
                     </Button>
-                    <Button type="submit" disabled={loading || savingAsLead}>
+                    <Button
+                      type="button"
+                      disabled={loading || savingAsLead}
+                      onClick={async () => {
+                        const valid = await form.trigger();
+                        if (!valid) return;
+                        const data = form.getValues();
+                        handleSubmit(data);
+                      }}
+                    >
                       {loading ? (
                         <><Spinner size="sm" /> Convertendo...</>
                       ) : (
