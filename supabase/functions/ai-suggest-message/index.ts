@@ -172,6 +172,8 @@ ${chatHistory || "(sem mensagens ainda)"}
 
 Gere uma sugestão de resposta para o vendedor enviar ao cliente.`;
 
+    console.log("[ai-suggest-message] provider:", activeProvider, "model:", activeModel);
+
     // Call OpenAI
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
