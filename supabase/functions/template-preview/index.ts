@@ -780,7 +780,7 @@ function cleanupRemainingFragments(xml: string): string {
   });
 }
 
-
+function escapeXml(str: string): string {
   return str
     // Strip hidden line breaks, carriage returns, and tabs that corrupt XML layout
     .replace(/\r\n/g, " ")
