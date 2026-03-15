@@ -154,7 +154,7 @@ export default function ApiKeyConfigPage({
             </div>
             {config?.id && (
               <div className="flex items-center gap-3">
-                <Badge variant={config.is_active ? "default" : "secondary"}>
+                <Badge variant="outline" className={config.is_active ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}>
                   {config.is_active ? "Ativa" : "Inativa"}
                 </Badge>
                 <Switch
