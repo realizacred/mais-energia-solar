@@ -1184,6 +1184,19 @@ Deno.serve(async (req) => {
     }
 
     // ── 10. RETURN RESPONSE ──────────────────────────────
+    const resolvedVarsCount = Object.keys(vars).length - processedMissingVars.length - processedEmptyVars.length;
+
+    console.log("[template-preview] proposal_generation_completed", JSON.stringify({
+      proposalId: proposta_id,
+      proposalNumber,
+      templateName: template.nome,
+      outputFileName,
+      missingVars: processedMissingVars,
+      emptyVars: processedEmptyVars,
+      resolvedVarsCount,
+      gotenbergElapsedMs: gotenbergResponseTime,
+    }));
+
     const responsePayload: Record<string, unknown> = {
       success: true,
       output_docx_path: docxUploadErr ? null : docxStoragePath,
@@ -1191,6 +1204,10 @@ Deno.serve(async (req) => {
       generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "error" : "docx_only"),
       generation_error: pdfConversionError || (docxUploadErr ? docxUploadErr.message : null),
       missing_vars: processedMissingVars,
+      empty_vars: processedEmptyVars,
+      resolved_vars_count: resolvedVarsCount,
+      file_name: outputFileName,
+      file_name_docx: outputDocxFileName,
       template_name: template.nome,
       generated_at: new Date().toISOString(),
     };
@@ -1219,17 +1236,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const fileName = `preview_${template.nome.replace(/[^a-zA-Z0-9]/g, "_")}_${safeClienteName}.docx`;
-    console.log(`[template-preview] Returning ${report.length} bytes as ${fileName}`);
+    console.log(`[template-preview] Returning ${report.length} bytes as ${outputDocxFileName}`);
 
     return new Response(report, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Disposition": `attachment; filename="${outputDocxFileName}"`,
         "X-Output-Docx-Path": docxStoragePath,
         "X-Output-Pdf-Path": (pdfBytes && !pdfConversionError) ? pdfStoragePath : "",
         "X-Generation-Status": (pdfBytes && !pdfConversionError) ? "ready" : "docx_only",
+        "X-File-Name": outputFileName,
         "X-Debug-Report-Path": debugMode ? debugStoragePath : "",
       },
     });
