@@ -1,8 +1,9 @@
 import { AiFollowupSettingsPanel } from "@/components/admin/AiFollowupSettingsPanel";
 import { FollowupAnalyticsDashboard } from "@/components/admin/FollowupAnalyticsDashboard";
+import { AiProviderPanel } from "@/components/admin/AiProviderPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/ui-kit";
-import { Settings, BarChart3, Brain } from "lucide-react";
+import { Settings, BarChart3, Brain, Bot } from "lucide-react";
 
 export default function AiConfigPage() {
   return (
