@@ -931,12 +931,14 @@ Deno.serve(async (req) => {
 
     let report: Uint8Array;
     let processedMissingVars: string[] = [];
+    let processedEmptyVars: string[] = [];
     let debugResult: Awaited<ReturnType<typeof processDocxTemplate>> | null = null;
 
     try {
       const result = await processDocxTemplate(templateBuffer, vars, debugMode);
       report = result.output;
       processedMissingVars = result.missingVars;
+      processedEmptyVars = result.emptyVars;
       if (debugMode) debugResult = result;
 
       const outputSize = report.length;
@@ -948,10 +950,14 @@ Deno.serve(async (req) => {
 
       const totalVars = Object.keys(vars).length;
       const missingCount = result.missingVars.length;
-      const substituted = totalVars - missingCount;
-      console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing out of ${totalVars} total vars`);
+      const emptyCount = result.emptyVars.length;
+      const substituted = totalVars - missingCount - emptyCount;
+      console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing, ${emptyCount} empty out of ${totalVars} total vars`);
       if (result.missingVars.length > 0) {
-        console.warn(`[template-preview] Missing variables (${missingCount}):`, result.missingVars.slice(0, 30));
+        console.warn(`[template-preview] Missing variables (→ <key>):`, result.missingVars.slice(0, 30));
+      }
+      if (result.emptyVars.length > 0) {
+        console.warn(`[template-preview] Empty variables (→ —):`, result.emptyVars.slice(0, 30));
       }
     } catch (processErr: any) {
       console.error("[template-preview] Processing error:", processErr?.message, processErr?.stack);
