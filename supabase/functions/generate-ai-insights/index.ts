@@ -25,7 +25,7 @@ async function callAI(
       Authorization: `Bearer ${tenantApiKey}`,
     },
     body: JSON.stringify({
-      model: activeModel || "gpt-4o-mini",
+      model,
       messages,
       temperature,
       max_tokens,
