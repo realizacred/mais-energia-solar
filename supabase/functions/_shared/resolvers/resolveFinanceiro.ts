@@ -86,6 +86,7 @@ export function resolveFinanceiro(
     "custo_modulos", "custo_inversores", "custo_estrutura", "custo_instalacao", "custo_kit",
     "comissao_percentual", "comissao_valor", "comissao_res", "comissao_rep",
     "distribuidor_categoria", "preco_por_extenso",
+    "kit_fechado_preco_total",
   ];
   for (const k of costFields) set(k, snap[k]);
 

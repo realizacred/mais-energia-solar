@@ -1035,6 +1035,8 @@ Deno.serve(async (req) => {
     const gotenbergParams: Record<string, string> = {
       landscape: "false",
       nativePageRanges: "1-",
+      nativePdfFormat: "PDF/A-2b",
+      skipNetworkIdleEvent: "false",
     };
 
     try {
