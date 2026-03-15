@@ -146,6 +146,8 @@ export function ConvertLeadToClientDialog({
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       nome: "",
       telefone: "",
