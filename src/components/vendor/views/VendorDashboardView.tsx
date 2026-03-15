@@ -8,6 +8,7 @@ import { WhatsAppTemplates, FollowUpCalendar, SmartReminders } from "@/component
 import { LeadScoring } from "@/components/vendor/leads";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
+import { WaConnectionCard } from "@/components/vendor/WaConnectionCard";
 
 
 interface Props {
@@ -67,6 +68,8 @@ export default function VendorDashboardView({ portal }: Props) {
       )}
 
       <WaAutoMessageToggle />
+
+      <WaConnectionCard />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         {vendedor && (

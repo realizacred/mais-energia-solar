@@ -50,6 +50,7 @@ import { useWaInstances, type WaInstance } from "@/hooks/useWaInstances";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WaSetupGuide } from "@/components/admin/wa/WaSetupGuide";
+import { WaQRCodeDialog } from "@/components/admin/wa/WaQRCodeDialog";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: typeof Wifi }> = {
   connected: { label: "Conectado", className: "bg-success/10 text-success border-success/20", icon: Wifi },
@@ -65,6 +66,7 @@ export function WaInstancesManager() {
   const [showCreate, setShowCreate] = useState(false);
   const [editInstance, setEditInstance] = useState<WaInstance | null>(null);
   const [syncInstance, setSyncInstance] = useState<WaInstance | null>(null);
+  const [qrInstance, setQrInstance] = useState<WaInstance | null>(null);
   const [syncDays, setSyncDays] = useState("365");
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -182,6 +184,10 @@ export function WaInstancesManager() {
                           <CheckCircle2 className="h-4 w-4 mr-2" />
                           Verificar Conexão
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setQrInstance(inst)}>
+                          <QrCode className="h-4 w-4 mr-2" />
+                          Gerar QR Code
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditInstance(inst)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
@@ -253,15 +259,26 @@ export function WaInstancesManager() {
                     </div>
                   )}
 
-                  <div className="border-t pt-2 mt-1">
+                  <div className="border-t pt-2 mt-1 flex gap-2">
+                    {inst.status !== "connected" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-xs"
+                        onClick={() => setQrInstance(inst)}
+                      >
+                        <QrCode className="h-3.5 w-3.5" />
+                        QR Code
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full gap-2 text-xs"
+                      className="flex-1 gap-2 text-xs"
                       onClick={() => setSyncInstance(inst)}
                     >
                       <History className="h-3.5 w-3.5" />
-                      Sincronizar Histórico
+                      Sincronizar
                     </Button>
                   </div>
                 </CardContent>
@@ -382,6 +399,14 @@ export function WaInstancesManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* QR Code Dialog for existing instances */}
+      <WaQRCodeDialog
+        open={!!qrInstance}
+        onOpenChange={(v) => !v && setQrInstance(null)}
+        instanceId={qrInstance?.id || ""}
+        instanceName={qrInstance?.nome}
+      />
     </div>
   );
 }
