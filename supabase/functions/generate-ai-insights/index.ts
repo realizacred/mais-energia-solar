@@ -355,7 +355,7 @@ Responda SEMPRE em JSON válido:
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      { temperature: 0.4, max_tokens: 4000 }
+      { temperature: 0.4, max_tokens: 4000, model: activeModel }
     );
 
     console.log(`[generate-ai-insights] AI response via ${provider}`);
