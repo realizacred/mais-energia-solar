@@ -44,7 +44,7 @@ async function callAI(
 
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content || "{}";
-  return { content, provider: "openai_tenant" };
+  return { content, provider: "openai_tenant", usage: data.usage || {} };
 }
 
 Deno.serve(async (req) => {
