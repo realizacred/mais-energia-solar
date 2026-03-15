@@ -691,24 +691,33 @@ function InstanceFormDialog({
   }
 
   // New instance → 2-step QR flow
+  const isRegister = mode === "register";
+  const formValid = isRegister
+    ? !!(nome.trim() && apiUrl.trim() && apiKey.trim() && instanceKey.trim())
+    : !!(nome.trim() && apiUrl.trim() && apiKey.trim());
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             {step === "form" ? (
-              <Smartphone className="w-5 h-5 text-primary" />
+              isRegister ? <ServerCog className="w-5 h-5 text-primary" /> : <Smartphone className="w-5 h-5 text-primary" />
             ) : (
               <QrCode className="w-5 h-5 text-primary" />
             )}
           </div>
           <div className="flex-1">
             <DialogTitle className="text-base font-semibold text-foreground">
-              {step === "form" ? "Nova Instância WhatsApp" : "Conectar WhatsApp"}
+              {step === "form"
+                ? (isRegister ? "Registrar Instância Existente" : "Nova Instância WhatsApp")
+                : "Conectar WhatsApp"}
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
               {step === "form"
-                ? "Preencha os dados de conexão com a Evolution API"
+                ? (isRegister
+                    ? "Vincule uma instância já criada na Evolution API"
+                    : "Cria automaticamente na Evolution API e conecta")
                 : "Escaneie o QR Code com o WhatsApp do celular"}
             </p>
           </div>
@@ -717,13 +726,59 @@ function InstanceFormDialog({
         {step === "form" ? (
           <>
             <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
+              {/* Mode Toggle */}
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <button
+                  type="button"
+                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                    mode === "create"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                  }`}
+                  onClick={() => setMode("create")}
+                >
+                  <Plus className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
+                  Criar Nova
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                    mode === "register"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                  }`}
+                  onClick={() => setMode("register")}
+                >
+                  <ServerCog className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
+                  Registrar Existente
+                </button>
+              </div>
+
               <div>
                 <Label>Nome da Instância *</Label>
                 <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Será usado como identificador na Evolution API.
+                  {isRegister
+                    ? "Nome de exibição no sistema (pode ser diferente do nome na Evolution)."
+                    : "Será usado como identificador na Evolution API."}
                 </p>
               </div>
+
+              {isRegister && (
+                <div>
+                  <Label>Nome na Evolution API *</Label>
+                  <Input
+                    value={instanceKey}
+                    onChange={(e) => setInstanceKey(e.target.value)}
+                    placeholder="Ex: MaisEnergia, Escritorio"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Nome exato da instância já criada na Evolution API.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <Label>URL da Evolution API *</Label>
                 <Input
@@ -752,9 +807,9 @@ function InstanceFormDialog({
             </div>
             <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
               <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button onClick={handleCreateWithQR} disabled={!nome.trim() || !apiUrl.trim() || !apiKey.trim() || saving}>
+              <Button onClick={handleCreateWithQR} disabled={!formValid || saving}>
                 {saving ? <Spinner size="sm" className="mr-2" /> : <QrCode className="h-4 w-4 mr-2" />}
-                Criar e Gerar QR Code
+                {isRegister ? "Registrar e Conectar" : "Criar e Gerar QR Code"}
               </Button>
             </div>
           </>
