@@ -32,6 +32,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Resposta inclui webhook_configured e webhook_warning para feedback estruturado",
     ],
   },
+  {
     version: "2.56.0",
     date: "2026-03-15",
     title: "Criação automática de instância WhatsApp sem API Key manual",
