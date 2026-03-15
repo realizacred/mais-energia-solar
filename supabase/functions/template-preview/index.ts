@@ -148,6 +148,12 @@ async function processDocxTemplate(
       !relativePath.startsWith("word/media/") &&
       !relativePath.startsWith("word/theme/") &&
       !relativePath.startsWith("word/glossary/") &&
+      // Exclude charts and drawings — they never contain placeholders
+      // and processing them risks corrupting chart/drawing XML structure
+      !relativePath.startsWith("word/charts/") &&
+      !relativePath.startsWith("word/drawings/") &&
+      !relativePath.startsWith("word/diagrams/") &&
+      !relativePath.startsWith("word/embeddings/") &&
       !excludeExact.has(relativePath)
     ) {
       xmlFiles.push(relativePath);
