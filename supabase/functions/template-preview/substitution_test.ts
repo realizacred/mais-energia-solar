@@ -86,7 +86,7 @@ function simulateSubstitution(
   }
 
   for (const varName of missingVars) {
-    const safeMarker = `&lt;${varName}&gt;`;
+    const safeMarker = escapeXml(`<${varName}>`);
     content = content.replaceAll(`[${varName}]`, safeMarker);
     content = content.replaceAll(`{{${varName}}}`, safeMarker);
   }
@@ -105,6 +105,12 @@ Deno.test("missing variable → <varName> XML-safe marker", () => {
   );
   assertEquals(result, "Área: &lt;Area&gt; Potência: 13,4");
   assertEquals(missingVars, ["Area"]);
+});
+
+Deno.test("missing variable marker stays XML-escaped in content", () => {
+  const { result } = simulateSubstitution("Área: [Area]", {});
+  assertEquals(result.includes("&lt;Area&gt;"), true);
+  assertEquals(result.includes("<Area>"), false);
 });
 
 Deno.test("empty variable (null) → em-dash —", () => {

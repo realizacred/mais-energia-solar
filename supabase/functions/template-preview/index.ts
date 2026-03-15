@@ -223,8 +223,8 @@ async function processDocxTemplate(
     }
 
     for (const varName of localMissing) {
-      // Replace with XML-safe angle bracket marker: &lt;varName&gt;
-      const safeMarker = `&lt;${varName}&gt;`;
+      // Replace with XML-safe angle bracket marker by escaping literal <varName> text.
+      const safeMarker = escapeXml(`<${varName}>`);
       const bracketPattern = `[${varName}]`;
       const mustachePattern = `{{${varName}}}`;
       if (content.includes(bracketPattern)) {
