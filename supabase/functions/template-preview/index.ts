@@ -706,8 +706,8 @@ function buildProposalFileName(input: {
 
   const parts = ["Proposta"];
 
-  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber)));
-  if (date) parts.push(slugifyFilePart(date));
+  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber), true));
+  if (date) parts.push(slugifyFilePart(date, true));
   if (input.customerName) parts.push(slugifyFilePart(String(input.customerName)));
 
   const fileName = parts.filter(Boolean).join("_").slice(0, 180);

@@ -302,14 +302,14 @@ Deno.test("Substitution: no destructive cleanup", () => {
   assertEquals(result.includes("&lt;tarifa&gt;"), true);
 });
 
-Deno.test("FileName: complete data", () => {
+Deno.test("FileName: preserves hyphens in number and date", () => {
   const fn = buildProposalFileName({ proposalNumber: "N2025-1795-1", proposalDate: "2026-01-23", customerName: "Maria Luzia De Souza Silva" });
-  assertEquals(fn, "Proposta_N2025_1795_1_2026_01_23_Maria_Luzia_De_Souza_Silva.pdf");
+  assertEquals(fn, "Proposta_N2025-1795-1_2026-01-23_Maria_Luzia_De_Souza_Silva.pdf");
 });
 
-Deno.test("FileName: strips accents", () => {
+Deno.test("FileName: strips accents, preserves date hyphens", () => {
   const fn = buildProposalFileName({ proposalNumber: null, proposalDate: "2026-03-15", customerName: "José da Conceição" });
-  assertEquals(fn, "Proposta_2026_03_15_Jose_da_Conceicao.pdf");
+  assertEquals(fn, "Proposta_2026-03-15_Jose_da_Conceicao.pdf");
 });
 
 Deno.test("FileName: fallback with no data", () => {
