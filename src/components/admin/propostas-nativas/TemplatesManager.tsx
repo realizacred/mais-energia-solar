@@ -32,9 +32,9 @@ function extractStoragePath(fileUrl: string): string | null {
 }
 
 async function downloadDocx(fileUrl: string) {
-  const path = extractStoragePath(fileUrl);
-  console.log("[downloadDocx] fileUrl:", fileUrl, "| extractedPath:", path);
-  if (!path) {
+  const extracted = extractStoragePath(fileUrl);
+  console.log("[downloadDocx] fileUrl:", fileUrl, "| extractedPath:", extracted);
+  if (!extracted) {
     console.warn("[downloadDocx] Could not extract path, trying fetch-to-blob fallback");
     try {
       const res = await fetch(fileUrl);
@@ -53,18 +53,22 @@ async function downloadDocx(fileUrl: string) {
     }
     return;
   }
+  // Normalize path — decode first to avoid double-encoding,
+  // then keep as plain string for SDK (SDK handles encoding internally)
+  const normalizedPath = decodeURIComponent(extracted).replace(/\+/g, " ");
+  console.log("[downloadDocx] normalized path:", normalizedPath);
   const { data, error } = await supabase.storage
     .from("proposta-templates")
-    .download(path);
+    .download(normalizedPath);
   if (error || !data) {
-    console.error("[downloadDocx] Supabase download error:", error?.message, "| path:", path);
-    toast({ title: "Erro ao baixar template", description: `${error?.message || "Arquivo não encontrado"} — path: ${path}`, variant: "destructive" });
+    console.error("[downloadDocx] Supabase download error:", error?.message, "| path:", normalizedPath);
+    toast({ title: "Erro ao baixar template", description: `${error?.message || "Arquivo não encontrado"} — path: ${normalizedPath}`, variant: "destructive" });
     return;
   }
   const url = URL.createObjectURL(data);
   const a = document.createElement("a");
   a.href = url;
-  a.download = path.split("/").pop() || "template.docx";
+  a.download = normalizedPath.split("/").pop() || "template.docx";
   document.body.appendChild(a);
   a.click();
   a.remove();
