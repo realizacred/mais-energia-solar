@@ -28,14 +28,20 @@ const tokenFmt = new Intl.NumberFormat("pt-BR");
 
 export function AiProviderPanel() {
   const navigate = useNavigate();
-  const { config, isLoading: configLoading, updateConfig, providerInfo } = useAIProviderConfig();
+  const { config, isLoading: configLoading, updateConfig, providerInfo, hasOpenAIKey, hasGeminiKey } = useAIProviderConfig();
   const { logs, summary, isLoading: logsLoading } = useAIUsageLogs({ limit: 50 });
 
   const activeProvider = (config?.active_provider || "lovable_gateway") as keyof typeof AVAILABLE_MODELS;
   const activeModel = config?.active_model || "google/gemini-2.5-flash";
   const fallbackEnabled = config?.fallback_enabled ?? true;
-  const models = AVAILABLE_MODELS[activeProvider] || [];
 
+  // Filter models based on active keys
+  const allModels = AVAILABLE_MODELS[activeProvider] || [];
+  const models = activeProvider === "openai" && !hasOpenAIKey
+    ? allModels.filter(m => m.id === "gpt-4o-mini")
+    : activeProvider === "gemini" && !hasGeminiKey
+      ? allModels.filter(m => m.id === "gemini-2.0-flash")
+      : allModels;
   const isLoading = configLoading || logsLoading;
 
   return (
