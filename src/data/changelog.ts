@@ -19,6 +19,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.54.0",
+    date: "2026-03-15",
+    title: "Estabilização da integração WhatsApp / Evolution API",
+    type: "security",
+    description: "Correções estruturais e de segurança no fluxo de instâncias WhatsApp: criação unificada, isolamento multi-tenant e controle de acesso por papel.",
+    details: [
+      "Eliminado caminho duplicado de criação de instância (raw insert removido do hook, criação apenas via edge function)",
+      "Consultor linkage agora é persistido na criação via edge function (wa_instance_consultores)",
+      "create-wa-instance: adicionado role check (admin/gerente) e validação de tenant",
+      "get-wa-qrcode: adicionado auth, role check (admin/gerente ou consultor vinculado) e tenant isolation",
+      "check-wa-instance-status: removido fallback global EVOLUTION_API_KEY, adicionado tenant filtering e auth via getUser",
+      "WaSetupGuide: substituído <button> nativo por Button shadcn, corrigido max-h-[70vh] para flex-1 min-h-0",
+      "Modais de criação e edição alinhados ao padrão §25 (w-[90vw], header com ícone, footer bg-muted/30)",
+    ],
+  },
+  {
     version: "2.53.0",
     date: "2026-03-15",
     title: "Pipeline DOCX→PDF — substituição segura de variáveis e nome de arquivo padronizado",

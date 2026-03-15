@@ -21,7 +21,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 interface StepProps {
   number: number;
@@ -36,9 +35,10 @@ function GuideStep({ number, title, description, details, icon }: StepProps) {
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-start gap-3 p-4 text-left hover:bg-muted/50 transition-colors"
+        className="w-full flex items-start gap-3 p-4 text-left h-auto hover:bg-muted/50 transition-colors justify-start"
       >
         <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
           {number}
@@ -48,14 +48,14 @@ function GuideStep({ number, title, description, details, icon }: StepProps) {
             {icon}
             <h4 className="font-semibold text-sm text-foreground">{title}</h4>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal">{description}</p>
         </div>
         {open ? (
           <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
         ) : (
           <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
         )}
-      </button>
+      </Button>
       {open && (
         <div className="px-4 pb-4 pt-0 ml-11 text-sm text-muted-foreground space-y-2 border-t border-border/50">
           <div className="pt-3">{details}</div>
@@ -74,7 +74,7 @@ export function WaSetupGuide() {
           Como Configurar
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <MessageCircle className="w-5 h-5 text-primary" />
@@ -89,7 +89,7 @@ export function WaSetupGuide() {
           </div>
         </DialogHeader>
 
-        <div className="p-5 space-y-5 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 space-y-5 flex-1 min-h-0 overflow-y-auto">
 
         {/* Prerequisites */}
         <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-2">

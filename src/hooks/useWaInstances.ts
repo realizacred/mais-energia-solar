@@ -43,59 +43,13 @@ export function useWaInstances() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_instances")
-        .select("id, nome, status, phone_number, profile_name, profile_picture_url, evolution_api_url, evolution_instance_key, api_key, webhook_secret, consultor_id, owner_user_id, last_seen_at, last_sync_at, last_sync_conversations, last_sync_messages, created_at, updated_at")
+        .select("id, nome, status, phone_number, profile_name, profile_picture_url, evolution_api_url, evolution_instance_key, api_key, webhook_secret, consultor_id, owner_user_id, last_seen_at, last_sync_at, last_sync_conversations, last_sync_messages, created_at, updated_at, tenant_id")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as WaInstance[];
     },
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
-  });
-
-  const createInstance = useMutation({
-    mutationFn: async (instance: {
-      nome: string;
-      evolution_instance_key: string;
-      evolution_api_url: string;
-      owner_user_id?: string;
-      consultor_id?: string;
-    }) => {
-      const { data, error } = await supabase
-        .from("wa_instances")
-        .insert(instance)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: async (data) => {
-      queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
-      toast({ title: "Instância criada com sucesso" });
-      // Auto-check status after creation
-      if (data?.id) {
-        try {
-          const results = await checkInstanceStatus(data.id);
-          // If connected, auto-sync history
-          const connected = results?.some((r) => r.status === "connected");
-          if (connected) {
-            toast({ title: "Sincronizando histórico...", description: "Buscando mensagens dos últimos 365 dias." });
-            triggerHistorySync(data.id, 365).then((result) => {
-              toast({
-                title: "Histórico sincronizado!",
-                description: `${result?.conversations_created || 0} conversas, ${result?.messages_imported || 0} mensagens importadas.`,
-              });
-            }).catch((e) => {
-              toast({ title: "Erro na sincronização", description: e.message, variant: "destructive" });
-            });
-          }
-        } catch (e) {
-          console.warn("Auto-check status after create failed:", e);
-        }
-      }
-    },
-    onError: (err: any) => {
-      toast({ title: "Erro ao criar instância", description: err.message, variant: "destructive" });
-    },
   });
 
   const updateInstance = useMutation({
@@ -141,7 +95,6 @@ export function useWaInstances() {
     if (error) throw error;
     if (!data?.success) throw new Error(data?.error || "Erro ao verificar status");
 
-    // Refetch instances to get updated statuses
     queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
 
     return data.results as CheckStatusResult[];
@@ -156,7 +109,6 @@ export function useWaInstances() {
     let totalConversations = 0;
     let totalMessages = 0;
 
-    // Loop through batches until done
     while (true) {
       const { data, error } = await supabase.functions.invoke("sync-wa-history", {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -172,7 +124,6 @@ export function useWaInstances() {
       if (!data.has_more || !data.next_offset) break;
       offset = data.next_offset;
 
-      // Show progress toast for large syncs
       if (offset > 0) {
         toast({
           title: "Sincronizando...",
@@ -209,7 +160,6 @@ export function useWaInstances() {
   return {
     instances: instancesQuery.data || [],
     loading: instancesQuery.isLoading,
-    createInstance: createInstance.mutateAsync,
     updateInstance: updateInstance.mutate,
     deleteInstance: deleteInstance.mutate,
     checkStatus: checkStatusMutation.mutate,

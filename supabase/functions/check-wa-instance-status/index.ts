@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
         status: 401,
@@ -20,28 +20,40 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Validate user session
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) {
       return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
+    // Get profile with tenant_id
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
 
-    // Only admins can check instance status
-    const { data: roleData } = await supabase
+    if (!profile?.tenant_id) {
+      return new Response(JSON.stringify({ success: false, error: "Tenant not found" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Role check: only admin or gerente
+    const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .in("role", ["admin", "gerente"])
       .limit(1)
       .maybeSingle();
@@ -56,16 +68,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const instanceId = body.instance_id || null;
 
-    const globalApiKey = Deno.env.get("EVOLUTION_API_KEY") || "";
-
-    // Use service role to update instances
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Fetch instance(s)
-    let query = supabaseAdmin.from("wa_instances").select("*");
+    // Fetch instance(s) with tenant isolation
+    let query = supabaseAdmin
+      .from("wa_instances")
+      .select("*")
+      .eq("tenant_id", profile.tenant_id);
     if (instanceId) {
       query = query.eq("id", instanceId);
     }
@@ -79,27 +86,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Checking ${instances.length} instance(s)...`);
+    console.log(`[check-wa-instance-status] Checking ${instances.length} instance(s) for tenant ${profile.tenant_id}`);
 
     const results = [];
 
     for (const inst of instances) {
       const apiUrl = inst.evolution_api_url?.replace(/\/$/, "");
       const instanceKey = inst.evolution_instance_key;
-      const apiKey = inst.api_key || globalApiKey;
+      const apiKey = inst.api_key;
 
-      if (!apiUrl || !instanceKey) {
+      if (!apiUrl || !instanceKey || !apiKey) {
         results.push({
           id: inst.id,
           nome: inst.nome,
           status: "error",
-          error: "Missing API URL or instance key",
+          error: "Missing API URL, instance key, or API key",
         });
         continue;
       }
 
       try {
-        // Check connectionState — encode instance name for URL safety (may contain spaces)
         const encodedKey = encodeURIComponent(instanceKey);
         const stateUrl = `${apiUrl}/instance/connectionState/${encodedKey}`;
         console.log(`Checking: ${stateUrl}`);
@@ -116,7 +122,6 @@ Deno.serve(async (req) => {
           const errText = await stateRes.text();
           console.error(`connectionState error for ${instanceKey}:`, stateRes.status, errText);
 
-          // If 404 instance not found, try fetchInstances to confirm
           let newStatus = "error" as string;
           if (stateRes.status === 404 || stateRes.status === 400) {
             newStatus = "disconnected";
@@ -140,7 +145,6 @@ Deno.serve(async (req) => {
         const connectionState = stateJson?.instance?.state || stateJson?.state || "unknown";
         console.log(`Instance ${instanceKey} state:`, connectionState);
 
-        // Map Evolution state to our status
         let newStatus: string;
         switch (connectionState) {
           case "open":
@@ -157,7 +161,7 @@ Deno.serve(async (req) => {
             newStatus = "disconnected";
         }
 
-        // Also try to get instance info for phone/profile
+        // Fetch instance info if connected
         let phoneNumber = inst.phone_number;
         let profileName = inst.profile_name;
         let profilePictureUrl = inst.profile_picture_url;
@@ -172,7 +176,6 @@ Deno.serve(async (req) => {
             });
             if (infoRes.ok) {
               const infoData = await infoRes.json();
-              // Evolution API returns array or single object
               const instInfo = Array.isArray(infoData) ? infoData[0] : infoData;
               const instData = instInfo?.instance || instInfo;
 
@@ -180,7 +183,6 @@ Deno.serve(async (req) => {
               profileName = instData?.profileName || profileName;
               profilePictureUrl = instData?.profilePictureUrl || profilePictureUrl;
 
-              // Clean phone number
               if (phoneNumber && phoneNumber.includes("@")) {
                 phoneNumber = phoneNumber.split("@")[0];
               }
@@ -190,7 +192,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Update database
         await supabaseAdmin
           .from("wa_instances")
           .update({
