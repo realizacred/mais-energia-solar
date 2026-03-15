@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .eq("service_key", provider)
       .eq("is_active", true)
-      .single();
+      .maybeSingle();
 
     if (!keyRow?.api_key) {
       logStatus = 422;
