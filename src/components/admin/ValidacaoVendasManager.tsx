@@ -370,6 +370,10 @@ export function ValidacaoVendasManager() {
       setApprovalDialogOpen(false);
       setSelectedCliente(null);
       setPaymentItems([]);
+      // Clean up consultant-prefilled payment data
+      if (selectedCliente?.lead_id) {
+        localStorage.removeItem(`lead_payment_composition_${selectedCliente.lead_id}`);
+      }
       refetchPending();
     } catch (error: any) {
       toast({ title: "Erro ao validar venda", description: error.message, variant: "destructive" });
