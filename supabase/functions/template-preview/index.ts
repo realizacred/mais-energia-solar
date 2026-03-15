@@ -1197,8 +1197,8 @@ Deno.serve(async (req) => {
       landscape: "false",
       nativePageRanges: "1-",
       skipNetworkIdleEvent: "false",
-      // Do NOT use nativePdfFormat PDF/A — it forces color space conversion
-      // which alters image X/Y coordinates and breaks anchored layout
+      pdfua: "false",
+      // Keep options minimal; avoid PDF/A conversion paths that can shift anchors.
     };
 
     try {
