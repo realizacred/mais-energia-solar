@@ -108,12 +108,24 @@ Deno.serve(async (req) => {
       }
     }
 
+    const tenantId = profile?.tenant_id;
+
+    // Get AI provider config
+    const { data: providerConfig } = await supabase
+      .from("ai_provider_config")
+      .select("active_provider, active_model, fallback_enabled")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    const activeProvider = providerConfig?.active_provider || "lovable_gateway";
+    const activeModel = providerConfig?.active_model || "google/gemini-2.5-flash";
+
     let tenantApiKey: string | null = null;
-    if (profile?.tenant_id) {
+    if (tenantId) {
       const { data: keyRow } = await supabase
         .from("integration_configs")
         .select("api_key")
-        .eq("tenant_id", profile.tenant_id)
+        .eq("tenant_id", tenantId)
         .eq("service_key", "openai")
         .eq("is_active", true)
         .single();
