@@ -43,6 +43,10 @@ const GEMINI_MODELS = [
 
 type Provider = "openai" | "google_gemini";
 
+function normalizeModel(model: string): string {
+  return model.replace(/^(google|openai)\//, "");
+}
+
 function resolveProvider(model: string): Provider {
   if (OPENAI_MODELS.includes(model)) return "openai";
   return "google_gemini";
