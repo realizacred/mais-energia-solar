@@ -1930,8 +1930,7 @@ export function ProposalWizard() {
       </div>
 
       {/* ── Sticky Footer Navigation — responsive */}
-      {!result && (
-        <div className="fixed bottom-0 left-0 right-0 sm:sticky sm:bottom-auto flex items-center justify-between px-4 lg:px-6 py-3 border-t border-border/60 bg-card shrink-0 z-20 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] sm:shadow-none">
+      <div className="fixed bottom-0 left-0 right-0 sm:sticky sm:bottom-auto flex items-center justify-between px-4 lg:px-6 py-3 border-t border-border/60 bg-card shrink-0 z-20 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] sm:shadow-none">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 h-9 text-xs font-medium text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
             Cancelar
           </Button>
@@ -1962,7 +1961,6 @@ export function ProposalWizard() {
             )}
           </div>
         </div>
-      )}
 
       {/* Pos-dimensionamento dialog */}
       <DialogPosDimensionamento
