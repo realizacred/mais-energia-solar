@@ -141,7 +141,7 @@ export function ValidacaoVendasManager() {
     setLeadSimulacoes([]);
     setSelectedSimulacaoId("");
     // Try to load payment composition pre-filled by consultant
-    const leadId = cliente.leads?.id || cliente.lead_id;
+    const leadId = cliente.lead_id;
     let prefilledItems: PaymentItemInput[] = [];
     if (leadId) {
       try {
