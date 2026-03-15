@@ -242,6 +242,8 @@ Gere o resumo estratégico.`;
     const rawContent = aiData.choices?.[0]?.message?.content?.trim();
     if (!rawContent) throw new Error("Empty AI response");
 
+    const aiUsage = aiData.usage || {};
+
     let summary: any;
     try {
       const cleaned = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
@@ -295,6 +297,30 @@ Gere o resumo estratégico.`;
         .select("id")
         .single();
       cacheId = upserted?.id || null;
+    }
+
+    // Usage logging
+    try {
+      const promptTokens = aiUsage.prompt_tokens || 0;
+      const completionTokens = aiUsage.completion_tokens || 0;
+      const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+      const estimatedCost = (promptTokens / 1000) * 0.00015 +
+                            (completionTokens / 1000) * 0.0006;
+
+      await adminClient.from("ai_usage_logs").insert({
+        tenant_id: tenantId,
+        user_id: user.id,
+        function_name: "ai-conversation-summary",
+        provider: "openai",
+        model,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCost,
+        is_fallback: false,
+      });
+    } catch (logError) {
+      console.error("[ai-conversation-summary] log error:", logError);
     }
 
     return new Response(
