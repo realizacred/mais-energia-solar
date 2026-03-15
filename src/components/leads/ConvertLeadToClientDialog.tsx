@@ -360,6 +360,11 @@ export function ConvertLeadToClientDialog({
     if (!open) {
       setFormInitialized(null);
       setCurrentStep(0);
+      setPaymentItems([createEmptyItem()]);
+      setIdentidadeFiles([]);
+      setComprovanteFiles([]);
+      setBeneficiariaFiles([]);
+      setAssinaturaFiles([]);
     }
   }, [open]);
 
