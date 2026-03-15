@@ -1305,7 +1305,16 @@ export function ConvertLeadToClientDialog({
                         <><Save className="mr-2 h-4 w-4" /> Aguardando Documentação</>
                       )}
                     </Button>
-                    <Button type="submit" disabled={loading || savingAsLead}>
+                    <Button
+                      type="button"
+                      disabled={loading || savingAsLead}
+                      onClick={async () => {
+                        const valid = await form.trigger();
+                        if (!valid) return;
+                        const data = form.getValues();
+                        handleSubmit(data);
+                      }}
+                    >
                       {loading ? (
                         <><Spinner size="sm" /> Convertendo...</>
                       ) : (
