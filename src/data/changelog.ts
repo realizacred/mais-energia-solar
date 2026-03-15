@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.60.1",
+    date: "2026-03-15",
+    title: "Validação de pagamento e reset de estado no modal de conversão",
+    type: "bugfix",
+    description: "Corrigido bug que permitia salvar pagamento com valor R$ 0,00 e estado residual ao abrir outro lead.",
+    details: [
+      "Bloqueio de submit quando composição de pagamento tem valor zero",
+      "Reset completo de estado (pagamentos, documentos) ao fechar modal",
+      "Navegação automática para etapa de pagamento quando há erro",
+    ],
+  },
+  {
     version: "2.60.0",
     date: "2026-03-15",
     title: "Wizard multi-step na conversão de lead em venda",
