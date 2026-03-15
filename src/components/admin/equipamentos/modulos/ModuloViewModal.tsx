@@ -57,7 +57,7 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <Package className="w-5 h-5 text-primary" />
@@ -79,7 +79,7 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
           </div>
         </DialogHeader>
 
-        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
           {/* Completude */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
