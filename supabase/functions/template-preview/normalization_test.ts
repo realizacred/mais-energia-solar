@@ -173,3 +173,132 @@ Deno.test("Case 11: graphic run with w:pict — not modified", () => {
   assertEquals(result.includes("[nome_cliente]"), true, "placeholder unified");
   assertEquals(result.includes("<w:pict><v:shape/></w:pict>"), true, "pict preserved");
 });
+
+// ═══════════════════════════════════════════════════════════════
+// SUBSTITUTION RULES TESTS (layout-safe placeholders)
+// ═══════════════════════════════════════════════════════════════
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function slugifyFilePart(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function buildProposalFileName(input: {
+  proposalNumber?: string | null;
+  proposalDate?: string | null;
+  customerName?: string | null;
+}): string {
+  const date =
+    input.proposalDate && String(input.proposalDate).trim()
+      ? String(input.proposalDate).trim().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+  const parts = ["Proposta"];
+  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber)));
+  if (date) parts.push(slugifyFilePart(date));
+  if (input.customerName) parts.push(slugifyFilePart(String(input.customerName)));
+  const fileName = parts.filter(Boolean).join("_").slice(0, 180);
+  return `${fileName}.pdf`;
+}
+
+function simulateSubstitution(
+  template: string,
+  vars: Record<string, string | null | undefined>,
+): { result: string; missingVars: string[]; emptyVars: string[] } {
+  const missingVars: string[] = [];
+  const emptyVars: string[] = [];
+  const emptyKeysSet = new Set<string>();
+  for (const [key, value] of Object.entries(vars)) {
+    if (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) {
+      emptyKeysSet.add(key);
+    }
+  }
+  let content = template;
+  for (const [key, value] of Object.entries(vars)) {
+    if (emptyKeysSet.has(key)) continue;
+    content = content.replaceAll(`[${key}]`, escapeXml(String(value)));
+  }
+  for (const key of emptyKeysSet) {
+    if (content.includes(`[${key}]`)) {
+      content = content.replaceAll(`[${key}]`, escapeXml("—"));
+      if (!emptyVars.includes(key)) emptyVars.push(key);
+    }
+  }
+  const remaining = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
+  const localMissing: string[] = [];
+  let m;
+  while ((m = remaining.exec(content)) !== null) {
+    if (!localMissing.includes(m[1])) localMissing.push(m[1]);
+  }
+  for (const varName of localMissing) {
+    content = content.replaceAll(`[${varName}]`, `&lt;${varName}&gt;`);
+    if (!missingVars.includes(varName)) missingVars.push(varName);
+  }
+  return { result: content, missingVars, emptyVars };
+}
+
+Deno.test("Substitution: missing var → <key> marker", () => {
+  const { result, missingVars } = simulateSubstitution("Área: [Area]", {});
+  assertEquals(result, "Área: &lt;Area&gt;");
+  assertEquals(missingVars, ["Area"]);
+});
+
+Deno.test("Substitution: empty string → em-dash", () => {
+  const { result, emptyVars } = simulateSubstitution("Área: [Area]", { Area: "" });
+  assertEquals(result.includes("—"), true);
+  assertEquals(emptyVars, ["Area"]);
+});
+
+Deno.test("Substitution: value 0 is NOT empty", () => {
+  const { result, emptyVars, missingVars } = simulateSubstitution("Valor: [valor]", { valor: "0" });
+  assertEquals(result, "Valor: 0");
+  assertEquals(emptyVars.length, 0);
+  assertEquals(missingVars.length, 0);
+});
+
+Deno.test("Substitution: value false is NOT empty", () => {
+  const { result, emptyVars } = simulateSubstitution("Ativo: [ativo]", { ativo: "false" });
+  assertEquals(result, "Ativo: false");
+  assertEquals(emptyVars.length, 0);
+});
+
+Deno.test("Substitution: null var → em-dash", () => {
+  const { result, emptyVars } = simulateSubstitution("PB: [payback]", { payback: null as unknown as string });
+  assertEquals(result.includes("—"), true);
+  assertEquals(emptyVars, ["payback"]);
+});
+
+Deno.test("Substitution: no destructive cleanup", () => {
+  const { result } = simulateSubstitution("[nome] em [cidade] paga [tarifa]", { nome: "João" });
+  assertEquals(result.includes("João"), true);
+  assertEquals(result.includes("&lt;cidade&gt;"), true);
+  assertEquals(result.includes("&lt;tarifa&gt;"), true);
+});
+
+Deno.test("FileName: complete data", () => {
+  const fn = buildProposalFileName({ proposalNumber: "N2025-1795-1", proposalDate: "2026-01-23", customerName: "Maria Luzia De Souza Silva" });
+  assertEquals(fn, "Proposta_N2025_1795_1_2026_01_23_Maria_Luzia_De_Souza_Silva.pdf");
+});
+
+Deno.test("FileName: strips accents", () => {
+  const fn = buildProposalFileName({ proposalNumber: null, proposalDate: "2026-03-15", customerName: "José da Conceição" });
+  assertEquals(fn, "Proposta_2026_03_15_Jose_da_Conceicao.pdf");
+});
+
+Deno.test("FileName: fallback with no data", () => {
+  const fn = buildProposalFileName({ proposalNumber: null, proposalDate: null, customerName: null });
+  assertEquals(fn.startsWith("Proposta_"), true);
+  assertEquals(fn.endsWith(".pdf"), true);
+});

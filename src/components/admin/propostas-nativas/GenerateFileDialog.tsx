@@ -140,9 +140,10 @@ export function GenerateFileDialog({
     setGenerating(true);
     try {
       if (isDocx) {
-        const blob = await fetchDocxBlob(selectedTemplate, propostaId);
-        const filename = `proposta_${selectedTpl?.nome?.replace(/[^a-zA-Z0-9]/g, "_") || "doc"}.docx`;
-        downloadBlob(blob, filename);
+        const docxBlob = await fetchDocxBlob(selectedTemplate, propostaId);
+        const safeName = (selectedTpl?.nome || "doc").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").substring(0, 60);
+        const filename = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+        downloadBlob(docxBlob, filename);
         toast({ title: "DOCX gerado com sucesso!", description: "Download iniciado." });
         onGenerated(null);
       } else {
@@ -172,7 +173,8 @@ export function GenerateFileDialog({
       // Step 2: Convert to base64
       toast({ title: "Convertendo para PDF..." });
       const docxBase64 = await blobToBase64(docxBlob);
-      const filename = `proposta_${selectedTpl?.nome?.replace(/[^a-zA-Z0-9]/g, "_") || "doc"}.docx`;
+      const safeName = (selectedTpl?.nome || "doc").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").substring(0, 60);
+      const filename = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
 
       // Step 3: Call docx-to-pdf edge function
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";

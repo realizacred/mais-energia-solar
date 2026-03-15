@@ -93,7 +93,10 @@ async function hashBytes(data: Uint8Array): Promise<string> {
  * Robust DOCX template processor.
  * Step 1: Normalize split placeholders by merging <w:r> runs within each <w:p>.
  * Step 2: Simple [key] → value substitution on the normalized XML.
- * Step 3: Final sweep to blank out any unresolved [placeholder] tags.
+ * Step 3: Final sweep — layout-safe: missing→<key>, empty→— (NEVER blank).
+ *
+ * "Empty" means: null, undefined, or whitespace-only string in vars map.
+ * 0, "0", 0.00, false are NOT empty — they are valid values.
  */
 async function processDocxTemplate(
   templateBytes: Uint8Array,
@@ -102,6 +105,7 @@ async function processDocxTemplate(
 ): Promise<{
   output: Uint8Array;
   missingVars: string[];
+  emptyVars: string[];
   mergeEvents: MergeEvent[];
   xmlBefore: Record<string, string>;
   xmlAfter: Record<string, string>;
@@ -111,12 +115,21 @@ async function processDocxTemplate(
 }> {
   const zip = await JSZip.loadAsync(templateBytes);
   const missingVars: string[] = [];
+  const emptyVars: string[] = [];
   const mergeEvents: MergeEvent[] = [];
   const xmlBefore: Record<string, string> = {};
   const xmlAfter: Record<string, string> = {};
   let structureBefore: StructureReport = emptyStructure();
   let structureAfter: StructureReport = emptyStructure();
   const fontsInAffectedBlocks = new Set<string>();
+
+  // Build a set of keys that exist in vars but are effectively empty
+  const emptyKeysSet = new Set<string>();
+  for (const [key, value] of Object.entries(vars)) {
+    if (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) {
+      emptyKeysSet.add(key);
+    }
+  }
 
   // Process ALL word/*.xml files (headers, footers, document, etc.)
   const excludePatterns = /\/(theme|media|_rels|fontTable|settings|webSettings|styles|numbering|glossary)\b/i;
@@ -142,7 +155,6 @@ async function processDocxTemplate(
     // ── DEBUG: Capture structure before normalization ──
     if (debugMode && fileName === "word/document.xml") {
       structureBefore = analyzeStructure(content);
-      // Capture first 50KB of XML before normalization
       xmlBefore[fileName] = content.substring(0, 50000);
     }
 
@@ -158,8 +170,11 @@ async function processDocxTemplate(
       xmlAfter[fileName] = content.substring(0, 50000);
     }
 
-    // ── STEP 2: Direct substitution for both formats ──
+    // ── STEP 2: Direct substitution for keys with valid (non-empty) values ──
     for (const [key, value] of Object.entries(vars)) {
+      // Skip empty-value keys; they'll be handled in Step 3
+      if (emptyKeysSet.has(key)) continue;
+
       const safeValue = escapeXml(value);
       const legacyPattern = `[${key}]`;
       if (content.includes(legacyPattern)) {
@@ -173,7 +188,25 @@ async function processDocxTemplate(
       }
     }
 
-    // ── STEP 3: Final sweep — blank remaining *valid placeholders* only ──
+    // ── STEP 2b: Replace empty-value placeholders with em-dash "—" ──
+    for (const key of emptyKeysSet) {
+      const legacyPattern = `[${key}]`;
+      if (content.includes(legacyPattern)) {
+        content = content.replaceAll(legacyPattern, escapeXml("—"));
+        modified = true;
+        if (!emptyVars.includes(key)) emptyVars.push(key);
+      }
+      const canonicalPattern = `{{${key}}}`;
+      if (content.includes(canonicalPattern)) {
+        content = content.replaceAll(canonicalPattern, escapeXml("—"));
+        modified = true;
+        if (!emptyVars.includes(key)) emptyVars.push(key);
+      }
+    }
+
+    // ── STEP 3: Final sweep — remaining placeholders are MISSING (not in vars) ──
+    // Replace with <key> (angle brackets, XML-escaped) to preserve layout and enable auditing.
+    // NEVER blank them out — that collapses layout in DOCX→PDF conversion.
     const localMissing: string[] = [];
 
     const remainingBracket = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
@@ -190,14 +223,16 @@ async function processDocxTemplate(
     }
 
     for (const varName of localMissing) {
+      // Replace with XML-safe angle bracket marker: &lt;varName&gt;
+      const safeMarker = `&lt;${varName}&gt;`;
       const bracketPattern = `[${varName}]`;
       const mustachePattern = `{{${varName}}}`;
       if (content.includes(bracketPattern)) {
-        content = content.replaceAll(bracketPattern, "");
+        content = content.replaceAll(bracketPattern, safeMarker);
         modified = true;
       }
       if (content.includes(mustachePattern)) {
-        content = content.replaceAll(mustachePattern, "");
+        content = content.replaceAll(mustachePattern, safeMarker);
         modified = true;
       }
       if (!missingVars.includes(varName)) {
@@ -228,6 +263,7 @@ async function processDocxTemplate(
   return {
     output,
     missingVars,
+    emptyVars,
     mergeEvents,
     xmlBefore,
     xmlAfter,
@@ -644,6 +680,39 @@ function isValidXmlDocument(xml: string): boolean {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// FILE NAMING HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function slugifyFilePart(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function buildProposalFileName(input: {
+  proposalNumber?: string | null;
+  proposalDate?: string | null;
+  customerName?: string | null;
+}): string {
+  const date =
+    input.proposalDate && String(input.proposalDate).trim()
+      ? String(input.proposalDate).trim().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+
+  const parts = ["Proposta"];
+
+  if (input.proposalNumber) parts.push(slugifyFilePart(String(input.proposalNumber)));
+  if (date) parts.push(slugifyFilePart(date));
+  if (input.customerName) parts.push(slugifyFilePart(String(input.customerName)));
+
+  const fileName = parts.filter(Boolean).join("_").slice(0, 180);
+  return `${fileName}.pdf`;
+}
+
 // ─── Main handler ─────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -895,12 +964,14 @@ Deno.serve(async (req) => {
 
     let report: Uint8Array;
     let processedMissingVars: string[] = [];
+    let processedEmptyVars: string[] = [];
     let debugResult: Awaited<ReturnType<typeof processDocxTemplate>> | null = null;
 
     try {
       const result = await processDocxTemplate(templateBuffer, vars, debugMode);
       report = result.output;
       processedMissingVars = result.missingVars;
+      processedEmptyVars = result.emptyVars;
       if (debugMode) debugResult = result;
 
       const outputSize = report.length;
@@ -912,22 +983,34 @@ Deno.serve(async (req) => {
 
       const totalVars = Object.keys(vars).length;
       const missingCount = result.missingVars.length;
-      const substituted = totalVars - missingCount;
-      console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing out of ${totalVars} total vars`);
+      const emptyCount = result.emptyVars.length;
+      const substituted = totalVars - missingCount - emptyCount;
+      console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing, ${emptyCount} empty out of ${totalVars} total vars`);
       if (result.missingVars.length > 0) {
-        console.warn(`[template-preview] Missing variables (${missingCount}):`, result.missingVars.slice(0, 30));
+        console.warn(`[template-preview] Missing variables (→ <key>):`, result.missingVars.slice(0, 30));
+      }
+      if (result.emptyVars.length > 0) {
+        console.warn(`[template-preview] Empty variables (→ —):`, result.emptyVars.slice(0, 30));
       }
     } catch (processErr: any) {
       console.error("[template-preview] Processing error:", processErr?.message, processErr?.stack);
       return jsonError(`Erro ao processar template DOCX: ${processErr?.message || "unknown"}`, 500);
     }
 
-    // ── 9. PERSIST DOCX + PDF TO STORAGE ──────────────────
+    // ── 9. BUILD FILE NAME + PERSIST TO STORAGE ──────────
     const clienteNome = cliente?.nome || lead?.nome || "preview";
-    const safeClienteName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+    const proposalNumber = propostaData?.codigo || null;
+    const proposalDate = versaoData?.snapshot?.data_proposta || new Date().toISOString().slice(0, 10);
+    const outputFileName = buildProposalFileName({
+      proposalNumber,
+      proposalDate,
+      customerName: clienteNome,
+    });
+    const outputDocxFileName = outputFileName.replace(/\.pdf$/, ".docx");
+
     const timestamp = Date.now();
-    const docxStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_proposta.docx`;
-    const pdfStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_proposta.pdf`;
+    const docxStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_${outputDocxFileName}`;
+    const pdfStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_${outputFileName}`;
     const debugStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_debug_forensic.json`;
 
     // 9a. Upload DOCX to storage
@@ -1134,6 +1217,19 @@ Deno.serve(async (req) => {
     }
 
     // ── 10. RETURN RESPONSE ──────────────────────────────
+    const resolvedVarsCount = Object.keys(vars).length - processedMissingVars.length - processedEmptyVars.length;
+
+    console.log("[template-preview] proposal_generation_completed", JSON.stringify({
+      proposalId: proposta_id,
+      proposalNumber,
+      templateName: template.nome,
+      outputFileName,
+      missingVars: processedMissingVars,
+      emptyVars: processedEmptyVars,
+      resolvedVarsCount,
+      gotenbergElapsedMs: gotenbergResponseTime,
+    }));
+
     const responsePayload: Record<string, unknown> = {
       success: true,
       output_docx_path: docxUploadErr ? null : docxStoragePath,
@@ -1141,6 +1237,10 @@ Deno.serve(async (req) => {
       generation_status: (pdfBytes && !pdfConversionError) ? "ready" : (docxUploadErr ? "error" : "docx_only"),
       generation_error: pdfConversionError || (docxUploadErr ? docxUploadErr.message : null),
       missing_vars: processedMissingVars,
+      empty_vars: processedEmptyVars,
+      resolved_vars_count: resolvedVarsCount,
+      file_name: outputFileName,
+      file_name_docx: outputDocxFileName,
       template_name: template.nome,
       generated_at: new Date().toISOString(),
     };
@@ -1169,17 +1269,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const fileName = `preview_${template.nome.replace(/[^a-zA-Z0-9]/g, "_")}_${safeClienteName}.docx`;
-    console.log(`[template-preview] Returning ${report.length} bytes as ${fileName}`);
+    console.log(`[template-preview] Returning ${report.length} bytes as ${outputDocxFileName}`);
 
     return new Response(report, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Disposition": `attachment; filename="${outputDocxFileName}"`,
         "X-Output-Docx-Path": docxStoragePath,
         "X-Output-Pdf-Path": (pdfBytes && !pdfConversionError) ? pdfStoragePath : "",
         "X-Generation-Status": (pdfBytes && !pdfConversionError) ? "ready" : "docx_only",
+        "X-File-Name": outputFileName,
         "X-Debug-Report-Path": debugMode ? debugStoragePath : "",
       },
     });
