@@ -1422,7 +1422,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
           const ids = data.map(p => p.id);
           const { data: versoes } = await supabase
             .from("proposta_versoes")
-            .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot")
+            .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot, output_pdf_path, output_docx_path")
             .in("proposta_id", ids)
             .order("versao_numero", { ascending: false });
 
