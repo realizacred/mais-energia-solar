@@ -371,8 +371,14 @@ function normalizeParagraphRunsInner(
       const runXml = runMatch[0];
       const rPrMatch = runXml.match(/<w:rPr>[^]*?<\/w:rPr>/);
       const rPr = rPrMatch ? rPrMatch[0] : "";
-      const textMatch = runXml.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/);
-      const text = textMatch ? textMatch[1] : "";
+      // Extract ALL <w:t> text nodes (a run can have multiple)
+      const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+      let tMatch;
+      const textParts: string[] = [];
+      while ((tMatch = tPattern.exec(runXml)) !== null) {
+        textParts.push(tMatch[1]);
+      }
+      const text = textParts.join("");
       runs.push({ xml: runXml, text, rPr });
     }
 
