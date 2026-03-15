@@ -107,6 +107,12 @@ Deno.test("missing variable → <varName> XML-safe marker", () => {
   assertEquals(missingVars, ["Area"]);
 });
 
+Deno.test("missing variable marker stays XML-escaped in content", () => {
+  const { result } = simulateSubstitution("Área: [Area]", {});
+  assertEquals(result.includes("&lt;Area&gt;"), true);
+  assertEquals(result.includes("<Area>"), false);
+});
+
 Deno.test("empty variable (null) → em-dash —", () => {
   const { result, emptyVars } = simulateSubstitution(
     "Payback: [payback]",
