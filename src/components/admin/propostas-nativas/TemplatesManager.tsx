@@ -57,15 +57,32 @@ async function downloadDocx(fileUrl: string) {
   // then keep as plain string for SDK (SDK handles encoding internally)
   const normalizedPath = decodeURIComponent(extracted).replace(/\+/g, " ");
   console.log("[downloadDocx] normalized path:", normalizedPath);
-  const { data, error } = await supabase.storage
+
+  // Step 1: create signed URL (avoids SDK .download() encoding issues with special chars)
+  const { data: signedData, error: signedError } = await supabase.storage
     .from("proposta-templates")
-    .download(normalizedPath);
-  if (error || !data) {
-    console.error("[downloadDocx] Supabase download error:", error?.message, "| path:", normalizedPath);
-    toast({ title: "Erro ao baixar template", description: `${error?.message || "Arquivo não encontrado"} — path: ${normalizedPath}`, variant: "destructive" });
+    .createSignedUrl(normalizedPath, 300);
+
+  if (signedError || !signedData?.signedUrl) {
+    console.error("[downloadDocx] Signed URL error:", signedError?.message, "| path:", normalizedPath);
+    toast({ title: "Erro ao baixar template", description: `${signedError?.message || "Arquivo não encontrado"} — path: ${normalizedPath}`, variant: "destructive" });
     return;
   }
-  const url = URL.createObjectURL(data);
+
+  // Step 2: fetch the file using the signed URL
+  const fetchResponse = await fetch(signedData.signedUrl);
+  if (!fetchResponse.ok) {
+    console.error("[downloadDocx] Fetch error: HTTP", fetchResponse.status, "| path:", normalizedPath);
+    toast({ title: "Erro ao baixar template", description: `HTTP ${fetchResponse.status} — path: ${normalizedPath}`, variant: "destructive" });
+    return;
+  }
+
+  const arrayBuffer = await fetchResponse.arrayBuffer();
+  const docxBlob = new Blob([arrayBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
+
+  const url = URL.createObjectURL(docxBlob);
   const a = document.createElement("a");
   a.href = url;
   a.download = normalizedPath.split("/").pop() || "template.docx";
