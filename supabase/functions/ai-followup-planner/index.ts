@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .eq("service_key", "openai")
       .eq("is_active", true)
-      .single();
+      .maybeSingle();
     if (!keyRow?.api_key) {
       return new Response(
         JSON.stringify({ error: "OpenAI API key not configured." }),
