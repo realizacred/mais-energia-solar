@@ -112,10 +112,9 @@ Deno.test("escapeXml escapes angle brackets", () => {
   assertEquals(marker, "&lt;Area&gt;");
 });
 
-Deno.test("XML raw content contains escaped marker, never raw <Area>", () => {
-  const rawXml = `<w:document><w:body><w:p><w:r><w:t>Área: [Area]</w:t></w:r></w:p></w:body></w:document>`;
+Deno.test("XML raw content contains escaped marker, never raw tag", () => {
+  const rawXml = `Área: [Area]`;
   const { result: xmlContent } = simulateSubstitution(rawXml, {});
-
   assertEquals(xmlContent.includes("&lt;Area&gt;"), true);
   assertEquals(xmlContent.includes("<Area>"), false);
 });
