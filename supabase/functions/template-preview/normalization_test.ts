@@ -7,12 +7,26 @@ import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
 // ── Inline the function under test (edge functions can't be imported directly) ──
 
+function hasSensitiveGraphicMarkup(xml: string): boolean {
+  return (
+    xml.includes("<w:drawing") ||
+    xml.includes("<w:pict") ||
+    xml.includes("<mc:AlternateContent") ||
+    xml.includes("<w:object") ||
+    xml.includes("<wp:anchor") ||
+    xml.includes("<wp:inline")
+  );
+}
+
 function normalizeParagraphRuns(xml: string): string {
   const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
 
   return xml.replace(paraPattern, (paraXml) => {
     if (!paraXml.includes("[")) return paraXml;
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) {
+      return paraXml;
+    }
+    if (hasSensitiveGraphicMarkup(paraXml)) {
       return paraXml;
     }
 
@@ -29,13 +43,7 @@ function normalizeParagraphRuns(xml: string): string {
     let m;
     while ((m = runPattern.exec(paraXml)) !== null) {
       const full = m[0];
-      const isGraphic =
-        full.includes("<w:drawing") ||
-        full.includes("<w:pict") ||
-        full.includes("<mc:AlternateContent") ||
-        full.includes("<w:object") ||
-        full.includes("<wp:anchor") ||
-        full.includes("<wp:inline");
+      const isGraphic = hasSensitiveGraphicMarkup(full);
 
       const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
       let tMatch;

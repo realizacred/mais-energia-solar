@@ -349,6 +349,17 @@ function extractFontsFromRuns(runsXml: string): string[] {
   return Array.from(fonts);
 }
 
+function hasSensitiveGraphicMarkup(xml: string): boolean {
+  return (
+    xml.includes("<w:drawing") ||
+    xml.includes("<w:pict") ||
+    xml.includes("<mc:AlternateContent") ||
+    xml.includes("<w:object") ||
+    xml.includes("<wp:anchor") ||
+    xml.includes("<wp:inline")
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TEXT BOX NORMALIZATION
 // ═══════════════════════════════════════════════════════════════
