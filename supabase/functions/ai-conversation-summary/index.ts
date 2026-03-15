@@ -181,7 +181,7 @@ PROPOSTA:
       })
       .join("\n");
 
-    const model = aiSettings?.modelo_preferido || "gpt-4o-mini";
+    const model = aiSettings?.modelo_preferido || activeModel;
     const temperature = aiSettings?.temperature ?? 0.4;
 
     const systemPrompt = `Você é um analista de CRM de energia solar. Analise o histórico completo da conversa e gere um resumo estratégico para o consultor.
