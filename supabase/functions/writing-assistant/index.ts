@@ -329,10 +329,13 @@ Deno.serve(async (req) => {
 
     // ── Call AI ──
     let suggestion: string;
+    let aiUsage: any = {};
     const callFn = provider === "openai" ? callOpenAI : callGemini;
 
     try {
-      suggestion = await callFn(keyRow.api_key, primaryModel, action, text.trim(), locale);
+      const result = await callFn(keyRow.api_key, primaryModel, action, text.trim(), locale);
+      suggestion = result.suggestion;
+      aiUsage = result.usage || {};
       logModel = primaryModel;
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "";
