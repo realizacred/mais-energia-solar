@@ -584,6 +584,18 @@ export function ConvertLeadToClientDialog({
       return;
     }
 
+    // Validate payment composition
+    const paymentErrors = validateComposition(paymentItems, valorVenda);
+    if (paymentErrors.length > 0) {
+      toast({
+        title: "Composição de pagamento inválida",
+        description: paymentErrors[0],
+        variant: "destructive",
+      });
+      setCurrentStep(2); // Navigate to payment step
+      return;
+    }
+
     if (!navigator.onLine) {
       saveConversionOffline(data);
       return;
