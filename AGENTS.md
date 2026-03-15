@@ -1047,6 +1047,8 @@ O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.t
 
 **Princípio:** "Configurar conexão externa = INTEGRAÇÕES. Usar/monitorar dados = área funcional."
 
+**Regra de API keys:** API keys de provedores externos (OpenAI, Gemini, Evolution API, etc.) SEMPRE são configuradas via frontend em `/admin/catalogo-integracoes` ou páginas dedicadas (ex: `/admin/openai-config`, `/admin/gemini-config`). NUNCA linkar para o dashboard do Supabase — o usuário não tem acesso direto ao Supabase.
+
 1. **PAINEL** — Painel Geral, Performance
 2. **COMERCIAL** — Leads, Pipeline, Projetos, Acompanhamentos, Distribuição de Leads, SLA & Breaches, Inteligência Comercial, Aprovações
 3. **ATENDIMENTO** — Central WhatsApp, Fila de Follow-ups, Regras de Follow-up, Métricas de Atendimento, Regras de Retorno, Fila de Retorno, Etiquetas WhatsApp, Respostas Rápidas
