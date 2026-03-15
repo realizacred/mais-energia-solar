@@ -283,3 +283,7 @@ verify_jwt = false
 
 [functions.audit-variables-snapshot]
 verify_jwt = false
+
+[functions.tenant-backup]
+verify_jwt = false
+wall_clock_limit = 300
