@@ -50,6 +50,97 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_provider_config: {
+        Row: {
+          active_model: string
+          active_provider: string
+          fallback_enabled: boolean
+          id: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active_model?: string
+          active_provider?: string
+          fallback_enabled?: boolean
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active_model?: string
+          active_provider?: string
+          fallback_enabled?: boolean
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_provider_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage_logs: {
+        Row: {
+          completion_tokens: number
+          created_at: string
+          estimated_cost_usd: number
+          function_name: string
+          id: string
+          is_fallback: boolean
+          model: string
+          prompt_tokens: number
+          provider: string
+          tenant_id: string
+          total_tokens: number
+          user_id: string
+        }
+        Insert: {
+          completion_tokens?: number
+          created_at?: string
+          estimated_cost_usd?: number
+          function_name: string
+          id?: string
+          is_fallback?: boolean
+          model: string
+          prompt_tokens?: number
+          provider: string
+          tenant_id?: string
+          total_tokens?: number
+          user_id: string
+        }
+        Update: {
+          completion_tokens?: number
+          created_at?: string
+          estimated_cost_usd?: number
+          function_name?: string
+          id?: string
+          is_fallback?: boolean
+          model?: string
+          prompt_tokens?: number
+          provider?: string
+          tenant_id?: string
+          total_tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aneel_sync_runs: {
         Row: {
           created_at: string
