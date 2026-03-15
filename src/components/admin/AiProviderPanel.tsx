@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAIProviderConfig, AVAILABLE_MODELS, PROVIDER_INFO } from "@/hooks/useAIProviderConfig";
 import { useAIUsageLogs } from "@/hooks/useAIUsageLogs";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
