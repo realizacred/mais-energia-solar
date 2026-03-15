@@ -349,6 +349,17 @@ function extractFontsFromRuns(runsXml: string): string[] {
   return Array.from(fonts);
 }
 
+function hasSensitiveGraphicMarkup(xml: string): boolean {
+  return (
+    xml.includes("<w:drawing") ||
+    xml.includes("<w:pict") ||
+    xml.includes("<mc:AlternateContent") ||
+    xml.includes("<w:object") ||
+    xml.includes("<wp:anchor") ||
+    xml.includes("<wp:inline")
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TEXT BOX NORMALIZATION
 // ═══════════════════════════════════════════════════════════════
@@ -376,6 +387,7 @@ function normalizeParagraphRunsInner(
     paraIndex++;
     if (!paraXml.includes("[") && !paraXml.includes("{{")) return paraXml;
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) return paraXml;
+    if (hasSensitiveGraphicMarkup(paraXml)) return paraXml;
 
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
     const runs: Array<{ xml: string; text: string; rPr: string }> = [];
@@ -535,6 +547,9 @@ function normalizeParagraphRuns(
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) {
       return paraXml;
     }
+    if (hasSensitiveGraphicMarkup(paraXml)) {
+      return paraXml;
+    }
 
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
     interface RunInfo {
@@ -550,13 +565,7 @@ function normalizeParagraphRuns(
     let m;
     while ((m = runPattern.exec(paraXml)) !== null) {
       const full = m[0];
-      const isGraphic =
-        full.includes("<w:drawing") ||
-        full.includes("<w:pict") ||
-        full.includes("<mc:AlternateContent") ||
-        full.includes("<w:object") ||
-        full.includes("<wp:anchor") ||
-        full.includes("<wp:inline");
+      const isGraphic = hasSensitiveGraphicMarkup(full);
 
       const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
       let tMatch;
@@ -717,12 +726,7 @@ function cleanupRemainingFragments(xml: string): string {
     // Skip if no placeholders, or if paragraph has fields/graphics
     if (!paraXml.includes("[") && !paraXml.includes("{{")) return paraXml;
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) return paraXml;
-    if (
-      paraXml.includes("<w:drawing") ||
-      paraXml.includes("<w:pict") ||
-      paraXml.includes("<mc:AlternateContent") ||
-      paraXml.includes("<wp:anchor")
-    ) return paraXml;
+    if (hasSensitiveGraphicMarkup(paraXml)) return paraXml;
     // Keep tabs and explicit line breaks untouched to avoid positional drift.
     if (paraXml.includes("<w:tab") || paraXml.includes("<w:br")) return paraXml;
 
@@ -740,13 +744,7 @@ function cleanupRemainingFragments(xml: string): string {
     let m;
     while ((m = runPattern.exec(paraXml)) !== null) {
       const full = m[0];
-      const isGraphic =
-        full.includes("<w:drawing") ||
-        full.includes("<w:pict") ||
-        full.includes("<mc:AlternateContent") ||
-        full.includes("<w:object") ||
-        full.includes("<wp:anchor") ||
-        full.includes("<wp:inline");
+      const isGraphic = hasSensitiveGraphicMarkup(full);
 
       const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
       let tMatch;

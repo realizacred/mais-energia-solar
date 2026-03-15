@@ -19,6 +19,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.60.2",
+    date: "2026-03-15",
+    title: "Hardening do DOCX em parágrafos com elementos gráficos",
+    type: "bugfix",
+    description: "O pipeline de proposta deixou de reescrever parágrafos com drawing, anchor, pict e AlternateContent para reduzir deslocamentos de layout no LibreOffice/Gotenberg.",
+    details: [
+      "normalizeParagraphRuns agora aborta em parágrafos com markup gráfico sensível",
+      "cleanupRemainingFragments reaproveita a mesma guarda para não consolidar runs em blocos frágeis",
+      "Testes Deno atualizados para garantir preservação total de anchor, pict e AlternateContent",
+    ],
+  },
+  {
     version: "2.60.1",
     date: "2026-03-15",
     title: "Validação de pagamento e reset de estado no modal de conversão",

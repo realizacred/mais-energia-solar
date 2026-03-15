@@ -7,12 +7,26 @@ import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
 // ── Inline the function under test (edge functions can't be imported directly) ──
 
+function hasSensitiveGraphicMarkup(xml: string): boolean {
+  return (
+    xml.includes("<w:drawing") ||
+    xml.includes("<w:pict") ||
+    xml.includes("<mc:AlternateContent") ||
+    xml.includes("<w:object") ||
+    xml.includes("<wp:anchor") ||
+    xml.includes("<wp:inline")
+  );
+}
+
 function normalizeParagraphRuns(xml: string): string {
   const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
 
   return xml.replace(paraPattern, (paraXml) => {
     if (!paraXml.includes("[")) return paraXml;
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) {
+      return paraXml;
+    }
+    if (hasSensitiveGraphicMarkup(paraXml)) {
       return paraXml;
     }
 
@@ -29,13 +43,7 @@ function normalizeParagraphRuns(xml: string): string {
     let m;
     while ((m = runPattern.exec(paraXml)) !== null) {
       const full = m[0];
-      const isGraphic =
-        full.includes("<w:drawing") ||
-        full.includes("<w:pict") ||
-        full.includes("<mc:AlternateContent") ||
-        full.includes("<w:object") ||
-        full.includes("<wp:anchor") ||
-        full.includes("<wp:inline");
+      const isGraphic = hasSensitiveGraphicMarkup(full);
 
       const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
       let tMatch;
@@ -150,28 +158,22 @@ Deno.test("Case 8: preserve inter-run XML markers while merging", () => {
   assertEquals(result.includes("<w:proofErr w:type=\"spellEnd\"/>"), true);
 });
 
-Deno.test("Case 9: paragraph with drawing (behind-text image) — text runs still normalized", () => {
+Deno.test("Case 9: paragraph with drawing (behind-text image) — untouched for layout safety", () => {
   const xml = `<w:p><w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:anchor behindDoc="1"><wp:extent cx="100" cy="100"/></wp:anchor></w:drawing></w:r><w:r><w:t>[potencia</w:t></w:r><w:r><w:t>_sistema]</w:t></w:r></w:p>`;
   const result = normalizeParagraphRuns(xml);
-  // Drawing run must be preserved exactly
-  assertEquals(result.includes("<w:drawing>"), true, "drawing preserved");
-  assertEquals(result.includes("behindDoc"), true, "anchor attributes preserved");
-  // Placeholder must be unified in a single run
-  assertEquals(result.includes("[potencia_sistema]"), true, "placeholder unified");
+  assertEquals(result, xml, "paragraph with anchor/drawing must remain untouched");
 });
 
-Deno.test("Case 10: paragraph with mc:AlternateContent — text runs normalized", () => {
+Deno.test("Case 10: paragraph with mc:AlternateContent — untouched for layout safety", () => {
   const xml = `<w:p><mc:AlternateContent><mc:Choice Requires="wps"><w:r><w:drawing><wp:anchor/></w:drawing></w:r></mc:Choice></mc:AlternateContent><w:r><w:t>[cidade</w:t></w:r><w:r><w:t>_estado]</w:t></w:r></w:p>`;
   const result = normalizeParagraphRuns(xml);
-  assertEquals(result.includes("[cidade_estado]"), true, "placeholder unified");
-  assertEquals(result.includes("<mc:AlternateContent>"), true, "mc:AlternateContent preserved");
+  assertEquals(result, xml, "alternate content paragraph must remain untouched");
 });
 
-Deno.test("Case 11: graphic run with w:pict — not modified", () => {
+Deno.test("Case 11: graphic run with w:pict — untouched for layout safety", () => {
   const xml = `<w:p><w:r><w:pict><v:shape/></w:pict></w:r><w:r><w:t>[nome</w:t></w:r><w:r><w:t>_cliente]</w:t></w:r></w:p>`;
   const result = normalizeParagraphRuns(xml);
-  assertEquals(result.includes("[nome_cliente]"), true, "placeholder unified");
-  assertEquals(result.includes("<w:pict><v:shape/></w:pict>"), true, "pict preserved");
+  assertEquals(result, xml, "paragraph with w:pict must remain untouched");
 });
 
 // ═══════════════════════════════════════════════════════════════
