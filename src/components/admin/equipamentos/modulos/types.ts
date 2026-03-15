@@ -43,9 +43,9 @@ export const CELL_TYPES = [
 export const TENSAO_SISTEMAS = ["1000V", "1500V"] as const;
 
 export const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  rascunho: { label: "Rascunho", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
-  revisao: { label: "Revisão", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
-  publicado: { label: "Publicado", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
+  rascunho: { label: "Rascunho", color: "bg-warning/10 text-warning border-warning/20" },
+  revisao: { label: "Revisão", color: "bg-info/10 text-info border-info/20" },
+  publicado: { label: "Publicado", color: "bg-success/10 text-success border-success/20" },
 };
 
 export const MODULO_QUERY_KEY = ["modulos-solares"] as const;

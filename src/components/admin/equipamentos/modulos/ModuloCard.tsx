@@ -96,7 +96,7 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
         </div>
 
         {/* Footer: active toggle */}
-        <div className="flex items-center justify-between pt-1 border-t">
+        <div className="flex items-center justify-between pt-1 border-t border-border">
           <span className="text-xs text-muted-foreground">{m.ativo ? "Ativo" : "Inativo"}</span>
           <Switch
             checked={m.ativo}

@@ -79,7 +79,7 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
           </div>
         </DialogHeader>
 
-        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
           {/* Completude */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
