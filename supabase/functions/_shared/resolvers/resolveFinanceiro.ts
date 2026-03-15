@@ -57,13 +57,23 @@ export function resolveFinanceiro(
   }
 
   // ── Payback ──
-  const paybackMeses = num(versao.payback_meses) ?? num(fin.payback_meses) ?? num(snap.payback_meses);
+  const paybackMeses = num(versao.payback_meses) ?? num(fin.payback_meses) ?? num(snap.payback_meses) ?? num(snap.payback);
   if (paybackMeses != null && paybackMeses > 0) {
     const anos = Math.floor(paybackMeses / 12);
     const meses = Math.round(paybackMeses % 12);
     out["payback"] = `${anos} anos e ${meses} meses`;
     out["payback_meses"] = String(paybackMeses);
     out["payback_anos"] = fmtNum(paybackMeses / 12, 1);
+  } else {
+    // Fallback: snapshot may have payback as pre-formatted string
+    const paybackStr = str(snap.payback) ?? str(fin.payback);
+    if (paybackStr) out["payback"] = paybackStr;
+  }
+
+  // ── Kit Fechado ──
+  const kitFechadoPreco = num(snap.kit_fechado_preco_total) ?? num(fin.kit_fechado_preco_total);
+  if (kitFechadoPreco != null && kitFechadoPreco > 0) {
+    setCur("kit_fechado_preco_total", kitFechadoPreco);
   }
 
   // ── VPL / TIR / ROI ──
@@ -86,6 +96,7 @@ export function resolveFinanceiro(
     "custo_modulos", "custo_inversores", "custo_estrutura", "custo_instalacao", "custo_kit",
     "comissao_percentual", "comissao_valor", "comissao_res", "comissao_rep",
     "distribuidor_categoria", "preco_por_extenso",
+    "kit_fechado_preco_total",
   ];
   for (const k of costFields) set(k, snap[k]);
 

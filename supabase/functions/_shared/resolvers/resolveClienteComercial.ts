@@ -50,8 +50,8 @@ export function resolveClienteComercial(
   set("proposta_validade", validade.toLocaleDateString("pt-BR"));
   set("proposta_versao", versao.versao_numero);
 
-  set("responsavel_nome", consultor.nome);
-  set("consultor_nome", consultor.nome);
+  set("responsavel_nome", consultor.nome ?? ext?.tenantNome);
+  set("consultor_nome", consultor.nome ?? ext?.tenantNome);
   set("consultor_telefone", consultor.telefone);
   set("consultor_email", consultor.email);
   set("empresa_nome", ext?.tenantNome);
