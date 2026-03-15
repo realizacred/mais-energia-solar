@@ -347,6 +347,7 @@ export function ConvertLeadToClientDialog({
         setIdentidadeFiles([]);
         setComprovanteFiles([]);
         setBeneficiariaFiles([]);
+        setPaymentItems([createEmptyItem()]);
       }
 
       setFormInitialized(lead.id);
