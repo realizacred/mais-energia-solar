@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       const stateUrl = `${baseUrl}/instance/connectionState/${encodedKey}`;
       const stateRes = await fetch(stateUrl, {
         method: "GET",
-        headers: { apikey: api_key },
+        headers: { apikey: resolvedApiKey },
       });
 
       if (!stateRes.ok) {
