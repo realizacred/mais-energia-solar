@@ -646,8 +646,10 @@ function normalizeParagraphRuns(
     while (ri < textRuns.length) {
       const span = merged.find((s) => s[0] === ri);
       if (span) {
-        const spanInterContent = interRunContent.slice(span[0], span[1] + 1).join("");
-        rebuiltRegion += spanInterContent;
+        // CRITICAL FIX: Only include inter-run content that is NOT another run
+        // (e.g., bookmarkStart/End, proofErr). This prevents text duplication.
+        // Skip inter-run content between merged runs to avoid XML artifacts.
+        rebuiltRegion += (interRunContent[span[0]] ?? "");
         const groupRuns = textRuns.slice(span[0], span[1] + 1);
         const combinedText = groupRuns.map((r) => r.text).join("");
         const rPr = groupRuns[0].rPr;
