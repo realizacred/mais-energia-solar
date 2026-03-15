@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.51.0",
+    date: "2026-03-14",
+    title: "AI Hub — configuração central de provedor e tracking de consumo",
+    type: "feature",
+    description: "Central AI provider management with multi-provider support, automatic fallback and per-tenant token/cost tracking.",
+    details: [
+      "New tables: ai_provider_config (provider config per tenant) and ai_usage_logs (token + cost tracking) with RLS using current_tenant_id()",
+      "New edge function ai-generate: reads provider config from DB, supports Lovable Gateway / Gemini / OpenAI with automatic fallback",
+      "New hooks: useAIProviderConfig (staleTime 15min) and useAIUsageLogs (staleTime 5min)",
+      "New component AiProviderPanel: provider cards, model selector, fallback toggle and usage table",
+      "AiConfigPage updated: new default tab 'Provedor & Consumo' added without removing existing tabs",
+    ],
+  },
+  {
     version: "2.50.0",
     date: "2026-03-14",
     title: "Correções: Proposta, WhatsApp, Configurações da Empresa e Módulos Fotovoltaicos",
