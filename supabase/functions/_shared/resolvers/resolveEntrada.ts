@@ -41,8 +41,11 @@ export function resolveEntrada(
   set("consumo_mensal_fp_uc1", uc1.consumo_mensal_fp);
 
   // ── Distribuidora e Subgrupo ──
-  set("dis_energia", snap.concessionaria_nome ?? snap.dis_energia ?? uc1.concessionaria ?? uc1.distribuidora ?? lead.distribuidora);
-  set("subgrupo_uc1", snap.subgrupo ?? snap.grupo_tarifario ?? uc1.subgrupo ?? uc1.grupo);
+  set("dis_energia", snap.concessionaria_nome ?? snap.dis_energia ?? snap.locDistribuidoraNome ?? uc1.concessionaria ?? uc1.distribuidora ?? lead.distribuidora);
+  set("concessionaria_id", snap.concessionaria_id ?? snap.locDistribuidoraId);
+  set("subgrupo", uc1.subgrupo ?? snap.subgrupo ?? uc1.grupo_tarifario ?? snap.grupo_tarifario ?? uc1.grupo);
+  set("subgrupo_uc1", uc1.subgrupo ?? snap.subgrupo ?? uc1.grupo_tarifario ?? snap.grupo_tarifario ?? uc1.grupo);
+  set("grupo_tarifario", uc1.grupo_tarifario ?? snap.grupo_tarifario ?? uc1.subgrupo ?? snap.subgrupo);
 
   // ── Consumo mensal por mês ──
   for (const m of MESES) {
@@ -83,22 +86,24 @@ export function resolveEntrada(
   set("outros_encargos_novo_uc1", uc1.outros_encargos_novo);
 
   // ── Localização e Parâmetros ──
-  set("estado", cliente.estado ?? lead.estado ?? uc1.estado ?? snap.estado);
-  set("cidade", cliente.cidade ?? lead.cidade ?? uc1.cidade ?? snap.cidade);
-  set("distancia", snap.distancia);
+  set("estado", cliente.estado ?? lead.estado ?? uc1.estado ?? snap.estado ?? snap.locEstado);
+  set("cidade", cliente.cidade ?? lead.cidade ?? uc1.cidade ?? snap.cidade ?? snap.locCidade);
+  set("distancia", snap.distancia ?? snap.distanciaKm);
   set("taxa_desempenho", snap.taxa_desempenho);
   set("desvio_azimutal", snap.desvio_azimutal);
   set("inclinacao", snap.inclinacao);
-  set("fator_geracao", snap.fator_geracao);
+  set("fator_geracao", snap.fator_geracao ?? snap.locIrradiacao);
   for (const m of MESES) {
     set(`fator_geracao_${m}`, snap[`fator_geracao_${m}`]);
   }
 
   // ── Instalação ──
-  set("tipo_telhado", lead.tipo_telhado ?? snap.tipo_telhado ?? uc1.tipo_telhado);
+  set("tipo_telhado", uc1.tipo_telhado ?? snap.locTipoTelhado ?? lead.tipo_telhado ?? snap.tipo_telhado ?? tecnico.tipo_telhado ?? uc1.estrutura);
+  set("estrutura", uc1.tipo_telhado ?? snap.locTipoTelhado ?? snap.tipo_telhado ?? tecnico.tipo_telhado ?? uc1.estrutura);
   set("fase", lead.rede_atendimento ?? snap.fase ?? uc1.fase);
   set("fase_uc1", uc1.fase ?? snap.fase);
-  set("tensao_rede", lead.rede_atendimento ?? snap.tensao_rede ?? uc1.tensao_rede);
+  set("tensao_rede", uc1.tensao_rede ?? snap.tensao_rede ?? lead.rede_atendimento);
+  set("tensao", uc1.tensao_rede ?? snap.tensao_rede);
 
   // ── Custo de Disponibilidade ──
   set("custo_disponibilidade_kwh", snap.custo_disponibilidade_kwh ?? uc1.custo_disponibilidade_kwh);

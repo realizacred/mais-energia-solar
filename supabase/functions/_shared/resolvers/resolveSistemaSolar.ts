@@ -30,7 +30,16 @@ export function resolveSistemaSolar(
   const out: Record<string, string> = {};
   const snap = snapshot ?? {};
   const tecnico = safeObj(snap.tecnico);
-  const itens = safeArr(snap.itens);
+  
+  // ── Items: merge itens[] + manualKits[selectedKitIndex].itens ──
+  let itens = safeArr(snap.itens);
+  if (itens.length === 0) {
+    const kits = safeArr(snap.manualKits);
+    const selectedIdx = Number(snap.selectedKitIndex ?? 0);
+    const selectedKit = kits[selectedIdx] ? safeObj(kits[selectedIdx]) : {};
+    itens = safeArr(selectedKit.itens);
+  }
+  
   const projeto = ext?.projeto ?? {};
   const cliente = ext?.cliente ?? {};
   const versao = ext?.versaoData ?? {};
