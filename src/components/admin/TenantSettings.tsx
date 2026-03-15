@@ -12,10 +12,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLogo } from "@/hooks/useLogo";
+import { useTenantSettings, type TenantData, type TenantConfig } from "@/hooks/useTenantSettings";
 import { BusinessHoursConfig } from "./settings/BusinessHoursConfig";
 import { HolidaysConfig } from "./settings/HolidaysConfig";
 import { AutoReplyConfig } from "./settings/AutoReplyConfig";
@@ -36,76 +38,16 @@ const CRM_FIELD_OPTIONS = [
   { key: "city", label: "Cidade" },
 ] as const;
 
-type TenantConfig = {
-  crm?: {
-    block_duplicate_clients?: boolean;
-    required_fields?: string[];
-  };
-  branding?: {
-    ai_name?: string;
-    ai_emoji?: string;
-    wa_name?: string;
-    wa_emoji?: string;
-  };
-};
-
-type TenantData = {
-  id: string;
-  nome: string;
-  slug: string;
-  documento: string | null;
-  inscricao_estadual: string | null;
-  estado: string | null;
-  cidade: string | null;
-  tenant_config: TenantConfig;
-};
-
 export function TenantSettings() {
+  const { tenant: fetchedTenant, isLoading, refetch } = useTenantSettings();
   const [tenant, setTenant] = useState<TenantData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const logoUrl = useLogo();
 
+  // Sync local state from hook data
   useEffect(() => {
-    loadTenant();
-  }, []);
-
-  const loadTenant = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    // 1) Resolve tenant_id via profiles (nunca assumir .single() em tenants direto)
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (profileError || !profile?.tenant_id) {
-      console.error("Error loading profile:", profileError);
-      toast({ title: "Erro ao identificar empresa", variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
-    // 2) Busca tenant pelo id resolvido
-    const { data, error } = await supabase
-      .from("tenants")
-      .select("id, nome, slug, documento, inscricao_estadual, estado, cidade, tenant_config")
-      .eq("id", profile.tenant_id)
-      .single();
-
-    if (error) {
-      console.error("Error loading tenant:", error);
-      toast({ title: "Erro ao carregar dados", variant: "destructive" });
-    } else if (data) {
-      setTenant({
-        ...data,
-        tenant_config: (data.tenant_config as TenantConfig) || {},
-      });
-    }
-    setLoading(false);
-  };
+    if (fetchedTenant) setTenant(fetchedTenant);
+  }, [fetchedTenant]);
 
   const updateField = <K extends keyof TenantData>(key: K, value: TenantData[K]) => {
     if (!tenant) return;
@@ -136,6 +78,13 @@ export function TenantSettings() {
 
   const handleSave = async () => {
     if (!tenant) return;
+
+    // Validation — §20 fail-fast
+    if (!tenant.nome?.trim()) {
+      toast({ title: "Campo obrigatório", description: "O nome da empresa é obrigatório.", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
 
     const { error } = await supabase
@@ -154,14 +103,31 @@ export function TenantSettings() {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Configurações salvas!", description: "As alterações foram registradas no log de auditoria." });
+      await refetch();
     }
     setSaving(false);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+        <Skeleton className="h-10 w-full" />
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <Skeleton className="h-10 w-full" />
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
       </div>
     );
   }
