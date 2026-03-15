@@ -65,7 +65,12 @@ export function useBackupRestore() {
     mutationFn: (backupId: string) => invoke({ action: "download", backup_id: backupId }),
     onSuccess: (data) => {
       if (data.url) {
-        window.open(data.url, "_blank");
+        const link = document.createElement("a");
+        link.href = data.url;
+        link.download = `mais-energia-backup-${new Date().toISOString().split("T")[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     },
     onError: (e: Error) => toast.error(`Erro ao baixar: ${e.message}`),

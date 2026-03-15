@@ -195,15 +195,17 @@ Deno.serve(async (req) => {
 
         // Create backup JSON
         const backupPayload = {
+          system: "Mais Energia Solar",
+          backup_type: "tenant_database",
           version: "1.0",
+          generated_at: new Date().toISOString(),
           tenant_id: tenantId,
-          created_at: new Date().toISOString(),
           created_by: userId,
           tables: backupData,
           row_counts: rowCounts,
         };
 
-        const jsonString = JSON.stringify(backupPayload);
+        const jsonString = JSON.stringify(backupPayload, null, 2);
         const encoder = new TextEncoder();
         const bytes = encoder.encode(jsonString);
 
