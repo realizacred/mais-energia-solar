@@ -3,7 +3,7 @@ import { useCepLookup } from "@/hooks/useCepLookup";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { createEmptyItem } from "@/services/paymentComposition/types";
