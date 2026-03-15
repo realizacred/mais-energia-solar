@@ -66,6 +66,7 @@ export function WaInstancesManager() {
   const [showCreate, setShowCreate] = useState(false);
   const [editInstance, setEditInstance] = useState<WaInstance | null>(null);
   const [syncInstance, setSyncInstance] = useState<WaInstance | null>(null);
+  const [qrInstance, setQrInstance] = useState<WaInstance | null>(null);
   const [syncDays, setSyncDays] = useState("365");
   const [isSyncing, setIsSyncing] = useState(false);
 
