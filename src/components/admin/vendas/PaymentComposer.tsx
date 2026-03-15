@@ -134,13 +134,13 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
           onClick={onToggle}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <CreditCard className="w-3.5 h-3.5 text-primary" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <CreditCard className="w-4 h-4 text-primary" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-foreground">
-                  #{index + 1} — {FORMA_PAGAMENTO_LABELS[item.forma_pagamento]}
+                  {FORMA_PAGAMENTO_LABELS[item.forma_pagamento]}
                 </span>
                 {item.entrada && (
                   <Badge variant="outline" className="text-[10px] h-4 bg-success/10 text-success border-success/20">
@@ -165,6 +165,7 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
                 size="icon"
                 className="h-7 w-7 text-destructive hover:text-destructive/80"
                 onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                aria-label="Remover item"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
