@@ -1216,10 +1216,8 @@ Deno.serve(async (req) => {
       formData.append("files", blob, "proposta.docx");
       formData.append("landscape", "false");
       formData.append("nativePageRanges", "1-");
-      // REMOVED nativePdfFormat PDF/A-2b — causes color conversion that shifts element positions
+      // Keep conversion options minimal to avoid LibreOffice regressions in some versions.
       formData.append("skipNetworkIdleEvent", "false");
-      // Disable PDF optimization that alters coordinates
-      formData.append("pdfa", "");
       formData.append("pdfua", "false");
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
