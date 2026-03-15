@@ -50,6 +50,7 @@ import { useWaInstances, type WaInstance } from "@/hooks/useWaInstances";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WaSetupGuide } from "@/components/admin/wa/WaSetupGuide";
+import { WaQRCodeDialog } from "@/components/admin/wa/WaQRCodeDialog";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: typeof Wifi }> = {
   connected: { label: "Conectado", className: "bg-success/10 text-success border-success/20", icon: Wifi },
