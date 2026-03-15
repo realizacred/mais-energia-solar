@@ -203,6 +203,11 @@ export function AiProviderPanel() {
               ))}
             </SelectContent>
           </Select>
+          {showModelWarning && (
+            <p className="text-xs text-warning mt-1">
+              ⚠️ Configure sua chave {activeProvider === "openai" ? "OpenAI" : "Gemini"} para acessar todos os modelos
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
