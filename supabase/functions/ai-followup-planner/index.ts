@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
       .select("id, cliente_nome, cliente_telefone, lead_id, status, last_message_at, updated_at")
       .eq("id", conversation_id)
       .eq("tenant_id", tenantId)
-      .single();
+      .maybeSingle();
     if (!conv) throw new Error("Conversation not found");
 
     // Get last 15 messages
