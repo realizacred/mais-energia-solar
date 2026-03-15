@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     const { data: profile } = await supabase
       .from("profiles")
       .select("tenant_id")
-      .eq("id", userId)
+      .eq("user_id", userId)
       .single();
 
     if (!profile?.tenant_id) {
