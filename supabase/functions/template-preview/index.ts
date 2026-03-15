@@ -703,80 +703,116 @@ function cleanupRemainingFragments(xml: string): string {
   const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
 
   return xml.replace(paraPattern, (paraXml) => {
-    // Skip if no brackets at all, or if paragraph has graphics/fields
+    // Skip if no placeholders, or if paragraph has fields/graphics
     if (!paraXml.includes("[") && !paraXml.includes("{{")) return paraXml;
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) return paraXml;
-    if (paraXml.includes("<w:drawing") || paraXml.includes("<w:pict") || 
-        paraXml.includes("<mc:AlternateContent") || paraXml.includes("<wp:anchor")) return paraXml;
+    if (
+      paraXml.includes("<w:drawing") ||
+      paraXml.includes("<w:pict") ||
+      paraXml.includes("<mc:AlternateContent") ||
+      paraXml.includes("<wp:anchor")
+    ) return paraXml;
 
-    // Extract all text runs
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
-    const runs: Array<{ full: string; text: string; rPr: string; hasText: boolean }> = [];
+    interface RunInfo {
+      full: string;
+      start: number;
+      end: number;
+      text: string;
+      hasText: boolean;
+      isGraphic: boolean;
+    }
+
+    const allRuns: RunInfo[] = [];
     let m;
     while ((m = runPattern.exec(paraXml)) !== null) {
       const full = m[0];
-      // Skip graphic runs
-      if (full.includes("<w:drawing") || full.includes("<w:pict") || 
-          full.includes("<mc:AlternateContent") || full.includes("<wp:inline")) {
-        continue;
-      }
+      const isGraphic =
+        full.includes("<w:drawing") ||
+        full.includes("<w:pict") ||
+        full.includes("<mc:AlternateContent") ||
+        full.includes("<w:object") ||
+        full.includes("<wp:anchor") ||
+        full.includes("<wp:inline");
+
       const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
       let tMatch;
       const parts: string[] = [];
-      while ((tMatch = tPattern.exec(full)) !== null) parts.push(tMatch[1]);
-      const text = parts.join("");
-      const rPrMatch = full.match(/<w:rPr>[^]*?<\/w:rPr>/);
-      runs.push({ full, text, rPr: rPrMatch ? rPrMatch[0] : "", hasText: parts.length > 0 });
+      while ((tMatch = tPattern.exec(full)) !== null) {
+        parts.push(tMatch[1]);
+      }
+
+      allRuns.push({
+        full,
+        start: m.index,
+        end: m.index + full.length,
+        text: parts.join(""),
+        hasText: parts.length > 0,
+        isGraphic,
+      });
     }
 
-    if (runs.length < 2) return paraXml;
+    const textRuns = allRuns.filter((r) => !r.isGraphic && r.hasText);
+    if (textRuns.length < 2) return paraXml;
 
-    const fullText = runs.map(r => r.text).join("");
-    
-    // Check if there are COMPLETE placeholders in the joined text that DON'T exist
-    // as complete placeholders in any individual run (= still fragmented)
+    const fullText = textRuns.map((r) => r.text).join("");
+
     const completePh = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
     const mustachePh = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
-    
     const allComplete: string[] = [];
     let pm;
+
     while ((pm = completePh.exec(fullText)) !== null) allComplete.push(pm[0]);
     while ((pm = mustachePh.exec(fullText)) !== null) allComplete.push(pm[0]);
-    
-    if (allComplete.length === 0) return paraXml; // No placeholders in joined text
+    if (allComplete.length === 0) return paraXml;
 
-    // Check if ALL placeholders already exist intact in individual runs
     const intactInRuns = new Set<string>();
-    for (const run of runs) {
+    for (const run of textRuns) {
       const rPh = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
       const rMu = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
       while ((pm = rPh.exec(run.text)) !== null) intactInRuns.add(pm[0]);
       while ((pm = rMu.exec(run.text)) !== null) intactInRuns.add(pm[0]);
     }
 
-    const stillFragmented = allComplete.filter(ph => !intactInRuns.has(ph));
-    if (stillFragmented.length === 0) return paraXml; // All intact, no cleanup needed
+    const stillFragmented = allComplete.filter((ph) => !intactInRuns.has(ph));
+    if (stillFragmented.length === 0) return paraXml;
 
-    console.log(`[template-preview] CLEANUP: consolidating ${stillFragmented.length} fragmented placeholders: ${stillFragmented.join(", ")}`);
+    console.log(`[template-preview] CLEANUP: normalizing ${stillFragmented.length} fragmented placeholders: ${stillFragmented.join(", ")}`);
 
-    // Consolidate: merge ALL text runs into one, keeping first run's rPr
-    const textRuns = runs.filter(r => r.hasText);
-    if (textRuns.length < 2) return paraXml;
+    // SAFE cleanup: keep all runs/inter-run XML intact, only rewrite <w:t> contents.
+    let result = paraXml;
+    let offset = 0;
 
-    const firstRun = textRuns[0];
-    const lastRun = textRuns[textRuns.length - 1];
-    const firstIdx = paraXml.indexOf(firstRun.full);
-    const lastIdx = paraXml.lastIndexOf(lastRun.full);
-    if (firstIdx < 0 || lastIdx < 0) return paraXml;
+    for (let i = 0; i < textRuns.length; i++) {
+      const run = textRuns[i];
+      let newRunXml: string;
 
-    const lastEnd = lastIdx + lastRun.full.length;
-    const beforeRuns = paraXml.substring(0, firstIdx);
-    const afterRuns = paraXml.substring(lastEnd);
+      if (i === 0) {
+        let firstReplaced = false;
+        newRunXml = run.full.replace(
+          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
+          () => {
+            if (!firstReplaced) {
+              firstReplaced = true;
+              return `<w:t xml:space="preserve">${fullText}</w:t>`;
+            }
+            return "<w:t></w:t>";
+          },
+        );
+      } else {
+        newRunXml = run.full.replace(
+          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
+          "<w:t></w:t>",
+        );
+      }
 
-    // Build single consolidated run
-    const consolidatedRun = `<w:r>${firstRun.rPr}<w:t xml:space="preserve">${fullText}</w:t></w:r>`;
+      const adjStart = run.start + offset;
+      const adjEnd = run.end + offset;
+      result = result.substring(0, adjStart) + newRunXml + result.substring(adjEnd);
+      offset += newRunXml.length - run.full.length;
+    }
 
-    return beforeRuns + consolidatedRun + afterRuns;
+    return result;
   });
 }
 
@@ -1161,8 +1197,8 @@ Deno.serve(async (req) => {
       landscape: "false",
       nativePageRanges: "1-",
       skipNetworkIdleEvent: "false",
-      // Do NOT use nativePdfFormat PDF/A — it forces color space conversion
-      // which alters image X/Y coordinates and breaks anchored layout
+      pdfua: "false",
+      // Keep options minimal; avoid PDF/A conversion paths that can shift anchors.
     };
 
     try {
@@ -1180,10 +1216,8 @@ Deno.serve(async (req) => {
       formData.append("files", blob, "proposta.docx");
       formData.append("landscape", "false");
       formData.append("nativePageRanges", "1-");
-      // REMOVED nativePdfFormat PDF/A-2b — causes color conversion that shifts element positions
+      // Keep conversion options minimal to avoid LibreOffice regressions in some versions.
       formData.append("skipNetworkIdleEvent", "false");
-      // Disable PDF optimization that alters coordinates
-      formData.append("pdfa", "");
       formData.append("pdfua", "false");
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
