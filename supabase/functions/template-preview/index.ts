@@ -689,7 +689,98 @@ function normalizeParagraphRuns(
   });
 }
 
-function escapeXml(str: string): string {
+// ═══════════════════════════════════════════════════════════════
+// AGGRESSIVE FRAGMENT CLEANUP
+// ═══════════════════════════════════════════════════════════════
+// After targeted merge, some paragraphs may still have placeholders
+// split across runs (e.g., due to proofing marks, revision runs, or
+// empty intermediate runs). This function consolidates ALL text runs
+// in such paragraphs into a single run, preserving the first run's
+// formatting. Only applies to paragraphs that still contain partial
+// bracket patterns (orphan "[" without matching "]" in the same run).
+
+function cleanupRemainingFragments(xml: string): string {
+  const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
+
+  return xml.replace(paraPattern, (paraXml) => {
+    // Skip if no brackets at all, or if paragraph has graphics/fields
+    if (!paraXml.includes("[") && !paraXml.includes("{{")) return paraXml;
+    if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) return paraXml;
+    if (paraXml.includes("<w:drawing") || paraXml.includes("<w:pict") || 
+        paraXml.includes("<mc:AlternateContent") || paraXml.includes("<wp:anchor")) return paraXml;
+
+    // Extract all text runs
+    const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
+    const runs: Array<{ full: string; text: string; rPr: string; hasText: boolean }> = [];
+    let m;
+    while ((m = runPattern.exec(paraXml)) !== null) {
+      const full = m[0];
+      // Skip graphic runs
+      if (full.includes("<w:drawing") || full.includes("<w:pict") || 
+          full.includes("<mc:AlternateContent") || full.includes("<wp:inline")) {
+        continue;
+      }
+      const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+      let tMatch;
+      const parts: string[] = [];
+      while ((tMatch = tPattern.exec(full)) !== null) parts.push(tMatch[1]);
+      const text = parts.join("");
+      const rPrMatch = full.match(/<w:rPr>[^]*?<\/w:rPr>/);
+      runs.push({ full, text, rPr: rPrMatch ? rPrMatch[0] : "", hasText: parts.length > 0 });
+    }
+
+    if (runs.length < 2) return paraXml;
+
+    const fullText = runs.map(r => r.text).join("");
+    
+    // Check if there are COMPLETE placeholders in the joined text that DON'T exist
+    // as complete placeholders in any individual run (= still fragmented)
+    const completePh = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
+    const mustachePh = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
+    
+    const allComplete: string[] = [];
+    let pm;
+    while ((pm = completePh.exec(fullText)) !== null) allComplete.push(pm[0]);
+    while ((pm = mustachePh.exec(fullText)) !== null) allComplete.push(pm[0]);
+    
+    if (allComplete.length === 0) return paraXml; // No placeholders in joined text
+
+    // Check if ALL placeholders already exist intact in individual runs
+    const intactInRuns = new Set<string>();
+    for (const run of runs) {
+      const rPh = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
+      const rMu = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
+      while ((pm = rPh.exec(run.text)) !== null) intactInRuns.add(pm[0]);
+      while ((pm = rMu.exec(run.text)) !== null) intactInRuns.add(pm[0]);
+    }
+
+    const stillFragmented = allComplete.filter(ph => !intactInRuns.has(ph));
+    if (stillFragmented.length === 0) return paraXml; // All intact, no cleanup needed
+
+    console.log(`[template-preview] CLEANUP: consolidating ${stillFragmented.length} fragmented placeholders: ${stillFragmented.join(", ")}`);
+
+    // Consolidate: merge ALL text runs into one, keeping first run's rPr
+    const textRuns = runs.filter(r => r.hasText);
+    if (textRuns.length < 2) return paraXml;
+
+    const firstRun = textRuns[0];
+    const lastRun = textRuns[textRuns.length - 1];
+    const firstIdx = paraXml.indexOf(firstRun.full);
+    const lastIdx = paraXml.lastIndexOf(lastRun.full);
+    if (firstIdx < 0 || lastIdx < 0) return paraXml;
+
+    const lastEnd = lastIdx + lastRun.full.length;
+    const beforeRuns = paraXml.substring(0, firstIdx);
+    const afterRuns = paraXml.substring(lastEnd);
+
+    // Build single consolidated run
+    const consolidatedRun = `<w:r>${firstRun.rPr}<w:t xml:space="preserve">${fullText}</w:t></w:r>`;
+
+    return beforeRuns + consolidatedRun + afterRuns;
+  });
+}
+
+
   return str
     // Strip hidden line breaks, carriage returns, and tabs that corrupt XML layout
     .replace(/\r\n/g, " ")
