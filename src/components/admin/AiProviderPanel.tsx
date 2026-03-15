@@ -121,12 +121,20 @@ export function AiProviderPanel() {
                     ? "border-primary bg-primary/5 shadow-sm"
                     : "border-border bg-card hover:border-primary/40"
                 }`}
-                onClick={() =>
+                onClick={() => {
+                  if (key === "openai" && !hasOpenAIKey) {
+                    toast.warning("Configure a chave de API antes de ativar este provedor");
+                    return;
+                  }
+                  if (key === "gemini" && !hasGeminiKey) {
+                    toast.warning("Configure a chave de API antes de ativar este provedor");
+                    return;
+                  }
                   updateConfig.mutate({
                     active_provider: key,
                     active_model: AVAILABLE_MODELS[key][0].id,
-                  })
-                }
+                  });
+                }}
                 disabled={updateConfig.isPending}
               >
                 <div className="flex items-center justify-between mb-1">
