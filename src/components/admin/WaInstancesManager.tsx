@@ -503,8 +503,8 @@ function InstanceFormDialog({
   // For new instances — create or register via edge function (single canonical path) + show QR
   const handleCreateWithQR = async () => {
     const isRegister = mode === "register";
-    if (!nome.trim() || !apiUrl.trim() || !apiKey.trim()) return;
-    if (isRegister && !instanceKey.trim()) return;
+    if (!nome.trim() || !apiUrl.trim()) return;
+    if (isRegister && (!apiKey.trim() || !instanceKey.trim())) return;
     setSaving(true);
     setQrError(null);
     try {
@@ -514,9 +514,13 @@ function InstanceFormDialog({
       const body: Record<string, unknown> = {
         instance_name: nome.trim(),
         api_url: apiUrl.trim(),
-        api_key: apiKey.trim(),
         consultor_ids: selectedVendedorIds,
       };
+
+      // Only send api_key if provided (register mode requires it; create mode uses server global)
+      if (apiKey.trim()) {
+        body.api_key = apiKey.trim();
+      }
 
       if (isRegister) {
         body.register_only = true;
@@ -694,7 +698,7 @@ function InstanceFormDialog({
   const isRegister = mode === "register";
   const formValid = isRegister
     ? !!(nome.trim() && apiUrl.trim() && apiKey.trim() && instanceKey.trim())
-    : !!(nome.trim() && apiUrl.trim() && apiKey.trim());
+    : !!(nome.trim() && apiUrl.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -716,8 +720,8 @@ function InstanceFormDialog({
             <p className="text-xs text-muted-foreground mt-0.5">
               {step === "form"
                 ? (isRegister
-                    ? "Vincule uma instância já criada na Evolution API"
-                    : "Cria automaticamente na Evolution API e conecta")
+                    ? "Vincule uma instância já criada na Evolution API (requer API Key manual)"
+                    : "Cria automaticamente na Evolution API usando a chave global do servidor")
                 : "Escaneie o QR Code com o WhatsApp do celular"}
             </p>
           </div>
@@ -788,16 +792,29 @@ function InstanceFormDialog({
                   className="font-mono text-sm"
                 />
               </div>
-              <div>
-                <Label>API Key *</Label>
-                <Input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Cole a API Key / Global Token"
-                  className="font-mono text-sm"
-                />
-              </div>
+              {isRegister && (
+                <div>
+                  <Label>API Key *</Label>
+                  <Input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Cole a API Key / Global Token"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Obrigatória para validar a instância existente.
+                  </p>
+                </div>
+              )}
+
+              {!isRegister && (
+                <div className="rounded-lg bg-muted/30 border border-border p-3">
+                  <p className="text-xs text-muted-foreground">
+                    🔑 A API Key global configurada no servidor será usada automaticamente para criar a instância.
+                  </p>
+                </div>
+              )}
               {vendedorSection}
               {qrError && (
                 <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">

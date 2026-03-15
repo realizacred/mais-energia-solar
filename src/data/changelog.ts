@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.56.0",
+    date: "2026-03-15",
+    title: "Criação automática de instância WhatsApp sem API Key manual",
+    type: "improvement",
+    description: "Modo 'Criar Nova' agora usa a chave global EVOLUTION_API_KEY do servidor, eliminando a necessidade de inserir API Key manualmente.",
+    details: [
+      "Campo API Key removido do modo 'Criar Nova' — usa segredo global do servidor",
+      "Modo 'Registrar Existente' mantém API Key manual obrigatória",
+      "Edge function create-wa-instance resolve API Key: per-instance → env global",
+      "Instâncias criadas automaticamente não armazenam api_key (usa fallback global)",
+      "Mensagem informativa no modal indica uso da chave global",
+    ],
+  },
+  {
     version: "2.55.0",
     date: "2026-03-15",
     title: "Onboarding de instância WhatsApp: criar nova ou registrar existente",

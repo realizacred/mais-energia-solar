@@ -67,8 +67,17 @@ Deno.serve(async (req) => {
 
     const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids, register_only, evolution_instance_key } = await req.json();
 
-    if (!instance_name || !api_url || !api_key) {
-      return new Response(JSON.stringify({ error: "instance_name, api_url e api_key são obrigatórios" }), {
+    if (!instance_name || !api_url) {
+      return new Response(JSON.stringify({ error: "instance_name e api_url são obrigatórios" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Resolve API key: per-instance > global env secret
+    const resolvedApiKey = api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
+    if (!resolvedApiKey) {
+      return new Response(JSON.stringify({ error: "API Key não fornecida e EVOLUTION_API_KEY não configurada no servidor" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -94,7 +103,7 @@ Deno.serve(async (req) => {
       const stateUrl = `${baseUrl}/instance/connectionState/${encodedKey}`;
       const stateRes = await fetch(stateUrl, {
         method: "GET",
-        headers: { apikey: api_key },
+        headers: { apikey: resolvedApiKey },
       });
 
       if (!stateRes.ok) {
@@ -117,7 +126,7 @@ Deno.serve(async (req) => {
         const connectUrl = `${baseUrl}/instance/connect/${encodedKey}`;
         const connectRes = await fetch(connectUrl, {
           method: "GET",
-          headers: { apikey: api_key },
+          headers: { apikey: resolvedApiKey },
         });
         if (connectRes.ok) {
           const connectData = await connectRes.json();
@@ -143,7 +152,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          apikey: api_key,
+          apikey: resolvedApiKey,
         },
         body: JSON.stringify(createPayload),
       });
@@ -181,7 +190,7 @@ Deno.serve(async (req) => {
         nome: instance_name,
         evolution_instance_key: effectiveInstanceKey,
         evolution_api_url: baseUrl,
-        api_key: api_key,
+        api_key: api_key || null,  // Store only per-instance key; null = uses global
         owner_user_id: user.id,
         status: initialStatus,
       })
