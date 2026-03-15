@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useAIProviderConfig, AVAILABLE_MODELS, PROVIDER_INFO } from "@/hooks/useAIProviderConfig";
 import { useAIUsageLogs } from "@/hooks/useAIUsageLogs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,14 +28,21 @@ const tokenFmt = new Intl.NumberFormat("pt-BR");
 
 export function AiProviderPanel() {
   const navigate = useNavigate();
-  const { config, isLoading: configLoading, updateConfig, providerInfo } = useAIProviderConfig();
+  const { config, isLoading: configLoading, updateConfig, providerInfo, hasOpenAIKey, hasGeminiKey } = useAIProviderConfig();
   const { logs, summary, isLoading: logsLoading } = useAIUsageLogs({ limit: 50 });
 
   const activeProvider = (config?.active_provider || "lovable_gateway") as keyof typeof AVAILABLE_MODELS;
   const activeModel = config?.active_model || "google/gemini-2.5-flash";
   const fallbackEnabled = config?.fallback_enabled ?? true;
-  const models = AVAILABLE_MODELS[activeProvider] || [];
 
+  // Filter models based on active keys
+  const allModels = [...AVAILABLE_MODELS[activeProvider]];
+  const models = activeProvider === "openai" && !hasOpenAIKey
+    ? allModels.filter(m => m.id === "gpt-4o-mini")
+    : activeProvider === "gemini" && !hasGeminiKey
+      ? allModels.filter(m => m.id === "gemini-2.0-flash")
+      : allModels;
+  const showModelWarning = (activeProvider === "openai" && !hasOpenAIKey) || (activeProvider === "gemini" && !hasGeminiKey);
   const isLoading = configLoading || logsLoading;
 
   return (
@@ -113,12 +121,20 @@ export function AiProviderPanel() {
                     ? "border-primary bg-primary/5 shadow-sm"
                     : "border-border bg-card hover:border-primary/40"
                 }`}
-                onClick={() =>
+                onClick={() => {
+                  if (key === "openai" && !hasOpenAIKey) {
+                    toast.warning("Configure a chave de API antes de ativar este provedor");
+                    return;
+                  }
+                  if (key === "gemini" && !hasGeminiKey) {
+                    toast.warning("Configure a chave de API antes de ativar este provedor");
+                    return;
+                  }
                   updateConfig.mutate({
                     active_provider: key,
                     active_model: AVAILABLE_MODELS[key][0].id,
-                  })
-                }
+                  });
+                }}
                 disabled={updateConfig.isPending}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -129,6 +145,16 @@ export function AiProviderPanel() {
                     </Badge>
                   )}
                   {isActive && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  {key === "openai" && !hasOpenAIKey && (
+                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px]">
+                      Sem chave
+                    </Badge>
+                  )}
+                  {key === "gemini" && !hasGeminiKey && (
+                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px]">
+                      Sem chave
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>
                 {key === "gemini" && (
@@ -177,6 +203,11 @@ export function AiProviderPanel() {
               ))}
             </SelectContent>
           </Select>
+          {showModelWarning && (
+            <p className="text-xs text-warning mt-1">
+              ⚠️ Configure sua chave {activeProvider === "openai" ? "OpenAI" : "Gemini"} para acessar todos os modelos
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">

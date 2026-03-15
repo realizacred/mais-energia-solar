@@ -62,8 +62,24 @@ export function useAIProviderConfig() {
       if (error) throw error;
       return data as AIProviderConfig | null;
     },
-    staleTime: 1000 * 60 * 2, // config changes need faster reflection — §23
+    staleTime: 1000 * 60 * 2,
   });
+
+  const { data: activeKeys } = useQuery({
+    queryKey: ["ai-active-keys"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("integration_configs")
+        .select("service_key, is_active")
+        .in("service_key", ["openai", "gemini"])
+        .eq("is_active", true);
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const hasOpenAIKey = activeKeys?.some(k => k.service_key === "openai") ?? false;
+  const hasGeminiKey = activeKeys?.some(k => k.service_key === "gemini") ?? false;
 
   const updateConfig = useMutation({
     mutationFn: async (
@@ -102,5 +118,7 @@ export function useAIProviderConfig() {
     updateConfig,
     availableModels: AVAILABLE_MODELS,
     providerInfo: PROVIDER_INFO,
+    hasOpenAIKey,
+    hasGeminiKey,
   };
 }
