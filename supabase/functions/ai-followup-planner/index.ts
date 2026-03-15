@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
         .from("leads")
         .select("nome, status_id, data_proxima_acao, proxima_acao, ultimo_contato, created_at, lead_statuses(nome)")
         .eq("id", conv.lead_id)
-        .single();
+        .maybeSingle();
       if (lead) {
         leadInfo = `
 DADOS DO LEAD:
