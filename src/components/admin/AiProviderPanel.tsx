@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAIProviderConfig, AVAILABLE_MODELS, PROVIDER_INFO } from "@/hooks/useAIProviderConfig";
 import { useAIUsageLogs } from "@/hooks/useAIUsageLogs";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -35,14 +36,14 @@ export function AiProviderPanel() {
   const activeModel = config?.active_model || "google/gemini-2.5-flash";
   const fallbackEnabled = config?.fallback_enabled ?? true;
 
-  // Filter models based on active keys
-  const allModels = [...AVAILABLE_MODELS[activeProvider]];
-  const models = activeProvider === "openai" && !hasOpenAIKey
-    ? allModels.filter(m => m.id === "gpt-4o-mini")
-    : activeProvider === "gemini" && !hasGeminiKey
-      ? allModels.filter(m => m.id === "gemini-2.0-flash")
-      : allModels;
-  const showModelWarning = (activeProvider === "openai" && !hasOpenAIKey) || (activeProvider === "gemini" && !hasGeminiKey);
+  // Auto-switch to gateway if active provider has no key
+  const effectiveProvider = (
+    (activeProvider === "openai" && !hasOpenAIKey) ||
+    (activeProvider === "gemini" && !hasGeminiKey)
+  ) ? "lovable_gateway" as keyof typeof AVAILABLE_MODELS : activeProvider;
+
+  const models = [...AVAILABLE_MODELS[effectiveProvider]];
+  const showModelWarning = effectiveProvider !== activeProvider;
   const isLoading = configLoading || logsLoading;
 
   return (
@@ -111,7 +112,36 @@ export function AiProviderPanel() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {(Object.keys(providerInfo) as Array<keyof typeof providerInfo>).map((key) => {
             const info = providerInfo[key];
-            const isActive = activeProvider === key;
+            const isActive = effectiveProvider === key;
+
+            // Locked state for providers without keys
+            if (key === "gemini" && !hasGeminiKey) {
+              return (
+                <div key={key} className="border border-dashed border-border rounded-lg p-4 flex items-center justify-between opacity-60">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Google Gemini</p>
+                    <p className="text-xs text-muted-foreground">Chave não configurada</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate("/admin/gemini-config")}>
+                    Configurar
+                  </Button>
+                </div>
+              );
+            }
+            if (key === "openai" && !hasOpenAIKey) {
+              return (
+                <div key={key} className="border border-dashed border-border rounded-lg p-4 flex items-center justify-between opacity-60">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">OpenAI</p>
+                    <p className="text-xs text-muted-foreground">Chave não configurada</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate("/admin/openai-config")}>
+                    Configurar
+                  </Button>
+                </div>
+              );
+            }
+
             return (
               <button
                 key={key}
@@ -122,14 +152,6 @@ export function AiProviderPanel() {
                     : "border-border bg-card hover:border-primary/40"
                 }`}
                 onClick={() => {
-                  if (key === "openai" && !hasOpenAIKey) {
-                    toast.warning("Configure a chave de API antes de ativar este provedor");
-                    return;
-                  }
-                  if (key === "gemini" && !hasGeminiKey) {
-                    toast.warning("Configure a chave de API antes de ativar este provedor");
-                    return;
-                  }
                   updateConfig.mutate({
                     active_provider: key,
                     active_model: AVAILABLE_MODELS[key][0].id,
@@ -145,16 +167,6 @@ export function AiProviderPanel() {
                     </Badge>
                   )}
                   {isActive && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                  {key === "openai" && !hasOpenAIKey && (
-                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px]">
-                      Sem chave
-                    </Badge>
-                  )}
-                  {key === "gemini" && !hasGeminiKey && (
-                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px]">
-                      Sem chave
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>
                 {key === "gemini" && (
@@ -205,7 +217,7 @@ export function AiProviderPanel() {
           </Select>
           {showModelWarning && (
             <p className="text-xs text-warning mt-1">
-              ⚠️ Configure sua chave {activeProvider === "openai" ? "OpenAI" : "Gemini"} para acessar todos os modelos
+              ⚠️ Provedor {activeProvider === "openai" ? "OpenAI" : "Gemini"} sem chave — usando Lovable Gateway
             </p>
           )}
         </div>
