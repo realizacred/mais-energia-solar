@@ -11,7 +11,7 @@ async function callAI(
   tenantApiKey: string | null,
   messages: Array<{ role: string; content: string }>,
   options: { temperature?: number; max_tokens?: number } = {}
-): Promise<{ content: string; provider: string }> {
+): Promise<{ content: string; provider: string; usage: any }> {
   const { temperature = 0.4, max_tokens = 4000 } = options;
 
   if (!tenantApiKey) {
