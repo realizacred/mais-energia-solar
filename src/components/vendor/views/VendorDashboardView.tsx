@@ -69,6 +69,8 @@ export default function VendorDashboardView({ portal }: Props) {
 
       <WaAutoMessageToggle />
 
+      <WaConnectionCard />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         {vendedor && (
           <div className="lg:col-span-1 flex lg:h-[560px] min-h-0 overflow-hidden">
