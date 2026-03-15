@@ -376,7 +376,8 @@ export function StepDocumento({
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = "proposta.docx";
+                const docxName = result?.file_name_docx || `Proposta_${clienteNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").substring(0, 40)}.docx`;
+                a.download = docxName;
                 a.click();
                 URL.revokeObjectURL(url);
               }
