@@ -145,6 +145,16 @@ export function AiProviderPanel() {
                     </Badge>
                   )}
                   {isActive && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  {key === "openai" && !hasOpenAIKey && (
+                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px]">
+                      Sem chave
+                    </Badge>
+                  )}
+                  {key === "gemini" && !hasGeminiKey && (
+                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px]">
+                      Sem chave
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>
                 {key === "gemini" && (
