@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.60.0",
+    date: "2026-03-15",
+    title: "Wizard multi-step na conversão de lead em venda",
+    type: "improvement",
+    description: "O modal de conversão foi reorganizado em 3 etapas para melhor experiência do consultor.",
+    details: [
+      "Etapa 1: Dados Pessoais + Endereço",
+      "Etapa 2: Dados Técnicos + Documentos",
+      "Etapa 3: Pagamento + Proposta + Observações",
+      "Stepper visual com indicação de progresso",
+      "Correção de label CPF/CNPJ duplicado",
+      "Correção de scroll no corpo do modal",
+    ],
+  },
+  {
     version: "2.59.0",
     date: "2026-03-15",
     title: "Composição de Pagamento no modal de conversão do consultor",
