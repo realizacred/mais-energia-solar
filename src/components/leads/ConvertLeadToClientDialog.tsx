@@ -511,6 +511,7 @@ export function ConvertLeadToClientDialog({
         identidadeFiles,
         comprovanteFiles,
         beneficiariaFiles,
+        paymentItems,
         savedAt: new Date().toISOString(),
       };
 
