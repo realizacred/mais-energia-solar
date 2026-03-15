@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.55.0",
+    date: "2026-03-15",
+    title: "Onboarding de instância WhatsApp: criar nova ou registrar existente",
+    type: "feature",
+    description: "Modal de nova instância agora oferece dois modos explícitos: criar automaticamente na Evolution API ou registrar uma instância já existente.",
+    details: [
+      "Toggle 'Criar Nova' / 'Registrar Existente' no modal de criação",
+      "Modo registro valida existência da instância na Evolution antes de salvar",
+      "Campo 'Nome na Evolution API' aparece apenas no modo registro",
+      "Edge function create-wa-instance aceita flag register_only para pular criação na Evolution",
+      "QR Code exibido automaticamente após registro para conexão imediata",
+    ],
+  },
+  {
     version: "2.54.0",
     date: "2026-03-15",
     title: "Estabilização da integração WhatsApp / Evolution API",
