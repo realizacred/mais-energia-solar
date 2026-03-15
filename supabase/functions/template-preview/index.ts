@@ -964,12 +964,20 @@ Deno.serve(async (req) => {
       return jsonError(`Erro ao processar template DOCX: ${processErr?.message || "unknown"}`, 500);
     }
 
-    // ── 9. PERSIST DOCX + PDF TO STORAGE ──────────────────
+    // ── 9. BUILD FILE NAME + PERSIST TO STORAGE ──────────
     const clienteNome = cliente?.nome || lead?.nome || "preview";
-    const safeClienteName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
+    const proposalNumber = propostaData?.codigo || null;
+    const proposalDate = versaoData?.snapshot?.data_proposta || new Date().toISOString().slice(0, 10);
+    const outputFileName = buildProposalFileName({
+      proposalNumber,
+      proposalDate,
+      customerName: clienteNome,
+    });
+    const outputDocxFileName = outputFileName.replace(/\.pdf$/, ".docx");
+
     const timestamp = Date.now();
-    const docxStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_proposta.docx`;
-    const pdfStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_proposta.pdf`;
+    const docxStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_${outputDocxFileName}`;
+    const pdfStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_${outputFileName}`;
     const debugStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_debug_forensic.json`;
 
     // 9a. Upload DOCX to storage
