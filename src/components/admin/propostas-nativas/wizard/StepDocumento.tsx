@@ -459,6 +459,14 @@ export function StepDocumento({
 
     // After generation — download helpers using storage-persisted files
     const handleDownloadPdf = async () => {
+      // Build a good filename from backend response or local fallback
+      const backendFileName = result?.file_name;
+      const fallbackName = (() => {
+        const safeName = clienteNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").substring(0, 60);
+        return `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+      })();
+      const downloadName = backendFileName || fallbackName;
+
       if (outputPdfPath) {
         // Fetch from storage via signed URL (fetch-to-blob for cross-origin download)
         const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputPdfPath, 300);
@@ -468,8 +476,7 @@ export function StepDocumento({
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-          a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+          a.download = downloadName;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -485,8 +492,7 @@ export function StepDocumento({
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        const safeName = clienteNome.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
-        a.download = `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
