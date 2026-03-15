@@ -56,9 +56,10 @@ Deno.serve(async (req) => {
     formData.append("files", blob, filename || "proposta.docx");
     formData.append("landscape", "false");
     formData.append("nativePageRanges", "1-");
-    // Improve PDF rendering fidelity vs Word
-    formData.append("nativePdfFormat", "PDF/A-2b");
+    // Do NOT use nativePdfFormat PDF/A — it forces color space conversion
+    // which alters image X/Y coordinates and breaks anchored layout
     formData.append("skipNetworkIdleEvent", "false");
+    formData.append("pdfua", "false");
 
     // Resolve Gotenberg URL: DB config → env → demo fallback
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

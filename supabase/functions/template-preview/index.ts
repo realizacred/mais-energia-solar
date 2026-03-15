@@ -132,17 +132,28 @@ async function processDocxTemplate(
   }
 
   // Process ALL word/*.xml files (headers, footers, document, etc.)
-  const excludePatterns = /\/(theme|media|_rels|fontTable|settings|webSettings|styles|numbering|glossary)\b/i;
+  // IMPORTANT: Only exclude non-content XML files. Headers/footers MUST be processed.
+  // "settings" excluded via exact filename match to avoid matching "header1Settings" etc.
+  const excludePatterns = /\/(theme\d*|media|_rels|fontTable|webSettings|styles|numbering|glossary|settings)\.(xml|rels)$/i;
+  const excludeExact = new Set([
+    "word/theme/theme1.xml", "word/fontTable.xml", "word/settings.xml",
+    "word/webSettings.xml", "word/styles.xml", "word/numbering.xml",
+  ]);
   const xmlFiles: string[] = [];
   zip.forEach((relativePath) => {
     if (
       relativePath.startsWith("word/") &&
       relativePath.endsWith(".xml") &&
-      !excludePatterns.test(relativePath)
+      !relativePath.includes("/_rels/") &&
+      !relativePath.startsWith("word/media/") &&
+      !relativePath.startsWith("word/theme/") &&
+      !relativePath.startsWith("word/glossary/") &&
+      !excludeExact.has(relativePath)
     ) {
       xmlFiles.push(relativePath);
     }
   });
+  // Log which files are processed (headers/footers MUST appear here)
   console.log("[template-preview] XML files to process:", xmlFiles);
 
   for (const fileName of xmlFiles) {
@@ -461,8 +472,9 @@ function normalizeParagraphRunsInner(
     while (ri < runs.length) {
       const span = merged.find((s) => s[0] === ri);
       if (span) {
-        const spanInterContent = interRunContent.slice(span[0], span[1] + 1).join("");
-        rebuiltRegion += spanInterContent;
+        // Only include the inter-run content BEFORE the first run in the span
+        // to prevent XML duplication from bookmarks/proofErr between merged runs
+        rebuiltRegion += (interRunContent[span[0]] ?? "");
         const groupRuns = runs.slice(span[0], span[1] + 1);
         const combinedText = groupRuns.map((r) => r.text).join("");
         const rPr = groupRuns[0].rPr;
@@ -644,8 +656,10 @@ function normalizeParagraphRuns(
     while (ri < textRuns.length) {
       const span = merged.find((s) => s[0] === ri);
       if (span) {
-        const spanInterContent = interRunContent.slice(span[0], span[1] + 1).join("");
-        rebuiltRegion += spanInterContent;
+        // CRITICAL FIX: Only include inter-run content that is NOT another run
+        // (e.g., bookmarkStart/End, proofErr). This prevents text duplication.
+        // Skip inter-run content between merged runs to avoid XML artifacts.
+        rebuiltRegion += (interRunContent[span[0]] ?? "");
         const groupRuns = textRuns.slice(span[0], span[1] + 1);
         const combinedText = groupRuns.map((r) => r.text).join("");
         const rPr = groupRuns[0].rPr;
@@ -664,6 +678,13 @@ function normalizeParagraphRuns(
 
 function escapeXml(str: string): string {
   return str
+    // Strip hidden line breaks, carriage returns, and tabs that corrupt XML layout
+    .replace(/\r\n/g, " ")
+    .replace(/\r/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/\t/g, " ")
+    // Collapse multiple spaces into one (prevents layout push)
+    .replace(/ {2,}/g, " ")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -1035,13 +1056,18 @@ Deno.serve(async (req) => {
     const gotenbergParams: Record<string, string> = {
       landscape: "false",
       nativePageRanges: "1-",
-      nativePdfFormat: "PDF/A-2b",
       skipNetworkIdleEvent: "false",
+      // Do NOT use nativePdfFormat PDF/A — it forces color space conversion
+      // which alters image X/Y coordinates and breaks anchored layout
     };
 
     try {
       gotenbergUrl = await resolveGotenbergUrl(adminClient, tenantId);
       console.log(`[template-preview] Converting to PDF via Gotenberg: ${gotenbergUrl}`);
+
+      // Hash the DOCX bytes to prove binary integrity
+      const docxHashForGotenberg = await hashBytes(report);
+      console.log(`[template-preview] DOCX hash sent to Gotenberg: ${docxHashForGotenberg} (${report.length} bytes)`);
 
       const formData = new FormData();
       const blob = new Blob([report], {
@@ -1050,9 +1076,11 @@ Deno.serve(async (req) => {
       formData.append("files", blob, "proposta.docx");
       formData.append("landscape", "false");
       formData.append("nativePageRanges", "1-");
-      // Improve PDF rendering fidelity vs Word
-      formData.append("nativePdfFormat", "PDF/A-2b");
+      // REMOVED nativePdfFormat PDF/A-2b — causes color conversion that shifts element positions
       formData.append("skipNetworkIdleEvent", "false");
+      // Disable PDF optimization that alters coordinates
+      formData.append("pdfa", "");
+      formData.append("pdfua", "false");
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
       console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
