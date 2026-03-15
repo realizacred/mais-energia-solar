@@ -330,10 +330,11 @@ export function BackupRestorePage() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
             <div className="text-sm text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">Informações sobre backup</p>
+              <p className="font-medium text-foreground">Informações sobre o backup</p>
               <ul className="list-disc list-inside text-xs space-y-0.5">
-                <li>O backup exporta todos os dados do seu tenant em formato JSON</li>
-                <li>Arquivos de storage (fotos, documentos) não são incluídos no backup</li>
+                <li>O backup exporta apenas os dados do banco de dados do seu tenant em formato JSON</li>
+                <li>Arquivos de storage (fotos, documentos, PDFs) <strong>não</strong> são incluídos</li>
+                <li>Este recurso não substitui um plano de disaster recovery completo</li>
                 <li>Os backups são armazenados de forma privada e acessíveis apenas por administradores</li>
                 <li>Para restauração, entre em contato com o suporte técnico</li>
               </ul>

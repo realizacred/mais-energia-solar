@@ -171,7 +171,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "changelog", label_default: "Atualizações", group_default: "Administração", order_default: 7, icon: "History", description: "Novidades e melhorias recentes", keywords: ["changelog", "atualização", "novidade", "versão", "histórico"], criticality: "normal", permission: "admin_only" },
   { nav_key: "menus", label_default: "Personalizar Menus", group_default: "Administração", order_default: 8, icon: "LayoutList", description: "Reorganizar e ocultar itens do menu lateral", keywords: ["menu", "sidebar", "organizar", "ocultar", "personalizar", "navegação"], criticality: "normal", permission: "admin_only" },
   { nav_key: "data-reset", label_default: "Limpeza de Dados", group_default: "Administração", order_default: 9, icon: "Trash2", description: "Limpeza seletiva e reset de dados", keywords: ["reset", "limpeza", "deletar", "remover", "manutenção"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "backup", label_default: "Backup & Restore", group_default: "Administração", order_default: 10, icon: "HardDrive", description: "Exportar e restaurar dados do tenant", keywords: ["backup", "restore", "exportar", "dados", "segurança"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "backup", label_default: "Backup de Dados", group_default: "Administração", order_default: 10, icon: "HardDrive", description: "Exportar dados do tenant para backup seguro (somente banco de dados)", keywords: ["backup", "exportar", "dados", "segurança", "json"], criticality: "normal", permission: "admin_only" },
 
 
   // ── Campos Customizados (Configurações) ──
