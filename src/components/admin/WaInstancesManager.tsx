@@ -720,8 +720,8 @@ function InstanceFormDialog({
             <p className="text-xs text-muted-foreground mt-0.5">
               {step === "form"
                 ? (isRegister
-                    ? "Vincule uma instância já criada na Evolution API"
-                    : "Cria automaticamente na Evolution API e conecta")
+                    ? "Vincule uma instância já criada na Evolution API (requer API Key manual)"
+                    : "Cria automaticamente na Evolution API usando a chave global do servidor")
                 : "Escaneie o QR Code com o WhatsApp do celular"}
             </p>
           </div>
