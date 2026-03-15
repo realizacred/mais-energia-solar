@@ -33,6 +33,8 @@ interface VersaoData {
   payback_meses: number | null;
   created_at: string;
   geracao_mensal: number | null;
+  output_pdf_path: string | null;
+  output_docx_path: string | null;
 }
 
 interface PropostaData {
