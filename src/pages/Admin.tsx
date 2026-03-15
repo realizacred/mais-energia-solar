@@ -295,7 +295,7 @@ const TAB_TITLES: Record<string, string> = {
   documentos: "Documentos & assinatura",
   "documentos-assinaturas": "Documentos & assinatura",
   "data-reset": "Manutenção de dados",
-  "backup": "Backup & Restore",
+  "backup": "Backup de Dados",
   "integracoes": "Integrações",
   "aneel": "Integração ANEEL",
   "pos-venda": "Dashboard pós-venda",
