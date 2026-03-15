@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
         owner_user_id: user.id,
         status: initialStatus,
       })
-      .select("id")
+      .select("id, webhook_secret")
       .single();
 
     if (insertErr) {
