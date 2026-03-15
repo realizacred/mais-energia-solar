@@ -136,7 +136,7 @@ export default function ApiKeyConfigPage({
     return (
       <div className="space-y-6">
         <PageHeader icon={Icon} title={title} description={description} />
-        <Card className="rounded-xl animate-pulse"><CardContent className="p-6 h-32" /></Card>
+        <Card className="bg-card border-border shadow-sm rounded-xl animate-pulse"><CardContent className="p-6 h-32" /></Card>
       </div>
     );
   }
@@ -145,7 +145,7 @@ export default function ApiKeyConfigPage({
     <div className="space-y-6">
       <PageHeader icon={Icon} title={title} description={description} />
 
-      <Card className="rounded-xl">
+      <Card className="bg-card border-border shadow-sm rounded-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -154,7 +154,7 @@ export default function ApiKeyConfigPage({
             </div>
             {config?.id && (
               <div className="flex items-center gap-3">
-                <Badge variant={config.is_active ? "default" : "secondary"}>
+                <Badge variant="outline" className={config.is_active ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}>
                   {config.is_active ? "Ativa" : "Inativa"}
                 </Badge>
                 <Switch
@@ -169,7 +169,7 @@ export default function ApiKeyConfigPage({
         <CardContent className="space-y-4">
           {/* Current key display */}
           {maskedKey && !hasEdited && (
-            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border">
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border border-border">
               <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
               <span className="text-sm font-mono flex-1">{showKey ? config?.api_key : maskedKey}</span>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowKey(!showKey)}>
@@ -209,7 +209,7 @@ export default function ApiKeyConfigPage({
           )}
 
           {/* Test + metadata */}
-          <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center justify-between pt-2 border-t border-border">
             <div className="text-xs text-muted-foreground space-y-0.5">
               {config?.last_validated_at && (
                 <p>Última validação: {format(new Date(config.last_validated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
