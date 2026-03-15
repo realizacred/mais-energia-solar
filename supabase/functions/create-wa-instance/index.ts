@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
         const connectUrl = `${baseUrl}/instance/connect/${encodedKey}`;
         const connectRes = await fetch(connectUrl, {
           method: "GET",
-          headers: { apikey: api_key },
+          headers: { apikey: resolvedApiKey },
         });
         if (connectRes.ok) {
           const connectData = await connectRes.json();
