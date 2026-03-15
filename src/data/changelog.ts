@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.50.0",
+    date: "2026-03-14",
+    title: "Correções: Proposta, WhatsApp, Configurações da Empresa e Módulos Fotovoltaicos",
+    type: "bugfix",
+    description: "Quatro correções cirúrgicas aplicadas em produção seguindo SAFE MODIFICATION MODE.",
+    details: [
+      "Proposta: corrigido HTTP 400 no download de template — bucket privado não suportava URL pública, substituído por fetch-to-blob autenticado",
+      "WhatsApp: tags {{indefinidas}} e {{inexistentes}} agora retornam string vazia em vez de manter o placeholder no texto",
+      "Configurações da Empresa: query extraída para hook useTenantSettings com staleTime, Skeleton no loading, validação de campos obrigatórios e refetch pós-save",
+      "Módulos Fotovoltaicos: cores hardcoded substituídas por tokens semânticos, modal scroll corrigido de max-h-[70vh] para flex-1 min-h-0",
+    ],
+  },
+  {
     version: "2.49.0",
     date: "2026-03-14",
     title: "Backup & Restore — módulo de exportação de dados do tenant",
