@@ -500,23 +500,32 @@ function InstanceFormDialog({
     }
   };
 
-  // For new instances — create via edge function (single canonical path) + show QR
+  // For new instances — create or register via edge function (single canonical path) + show QR
   const handleCreateWithQR = async () => {
+    const isRegister = mode === "register";
     if (!nome.trim() || !apiUrl.trim() || !apiKey.trim()) return;
+    if (isRegister && !instanceKey.trim()) return;
     setSaving(true);
     setQrError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Sessão inválida");
 
+      const body: Record<string, unknown> = {
+        instance_name: nome.trim(),
+        api_url: apiUrl.trim(),
+        api_key: apiKey.trim(),
+        consultor_ids: selectedVendedorIds,
+      };
+
+      if (isRegister) {
+        body.register_only = true;
+        body.evolution_instance_key = instanceKey.trim();
+      }
+
       const { data, error } = await supabase.functions.invoke("create-wa-instance", {
         headers: { Authorization: `Bearer ${session.access_token}` },
-        body: {
-          instance_name: nome.trim(),
-          api_url: apiUrl.trim(),
-          api_key: apiKey.trim(),
-          consultor_ids: selectedVendedorIds,
-        },
+        body,
       });
 
       if (error) throw error;
@@ -532,8 +541,8 @@ function InstanceFormDialog({
       startQrPolling(data.instance_id);
     } catch (e: any) {
       console.error("[create-wa-instance]", e);
-      setQrError(e.message || "Erro ao criar instância");
-      toast({ title: "Erro ao criar instância", description: e.message, variant: "destructive" });
+      setQrError(e.message || (isRegister ? "Erro ao registrar instância" : "Erro ao criar instância"));
+      toast({ title: isRegister ? "Erro ao registrar" : "Erro ao criar instância", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
