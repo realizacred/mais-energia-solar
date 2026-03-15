@@ -966,7 +966,7 @@ export function ConvertLeadToClientDialog({
 
         {/* ── BODY — steps ── */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 min-h-0">
+          <form onSubmit={(e) => e.preventDefault()} className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
 
               {/* ═══ STEP 1: Dados Pessoais + Endereço ═══ */}
