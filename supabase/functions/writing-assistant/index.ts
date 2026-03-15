@@ -396,6 +396,42 @@ Deno.serve(async (req) => {
     }
 
     logStatus = 200;
+
+    // ── Log AI usage ─────────────────────────────────────────────
+    try {
+      const promptTokens = aiUsage.prompt_tokens || 0;
+      const completionTokens = aiUsage.completion_tokens || 0;
+      const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+
+      // Rate lookup by provider
+      const isOpenAI = provider === "openai";
+      const inputRate = isOpenAI
+        ? (primaryModel === "gpt-4o" ? 0.0025 : 0.00015)
+        : 0.00015;
+      const outputRate = isOpenAI
+        ? (primaryModel === "gpt-4o" ? 0.01 : 0.0006)
+        : 0.0006;
+
+      const estimatedCost =
+        (promptTokens / 1000) * inputRate +
+        (completionTokens / 1000) * outputRate;
+
+      await supabaseService.from("ai_usage_logs").insert({
+        tenant_id: tenantId,
+        user_id: userId,
+        function_name: "writing-assistant",
+        provider: isOpenAI ? "openai" : "gemini",
+        model: primaryModel,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCost,
+        is_fallback: false,
+      });
+    } catch (logError) {
+      console.error("[writing-assistant] log error:", logError);
+    }
+
     return new Response(
       JSON.stringify({ suggestion, model: logModel }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
