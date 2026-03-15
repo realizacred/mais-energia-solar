@@ -772,6 +772,14 @@ export function ConvertLeadToClientDialog({
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
 
+      // Persist payment composition for admin approval
+      if (paymentItems.length > 0) {
+        localStorage.setItem(
+          `lead_payment_composition_${lead.id}`,
+          JSON.stringify(paymentItems)
+        );
+      }
+
       const action = existingCliente ? "atualizado" : "cadastrado";
       toast({
         title: "Venda enviada para validação!",
