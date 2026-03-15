@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.49.0",
+    date: "2026-03-14",
+    title: "Backup & Restore — módulo de exportação de dados do tenant",
+    type: "feature",
+    description: "Módulo completo de backup de dados por tenant com exportação JSON, armazenamento privado e histórico de backups.",
+    details: [
+      "Tabela backup_logs com RLS admin-only e isolamento multi-tenant",
+      "Bucket privado tenant-backups com policies de storage por tenant_id",
+      "Edge function tenant-backup com ações: create, list, download, delete",
+      "Exportação em lotes (batch 500) para evitar sobrecarga de memória",
+      "Hook useBackupRestore com staleTime e mutations para todas as ações",
+      "Página admin com KPI cards, tabela de histórico e confirmação de exclusão",
+    ],
+  },
+  {
     version: "2.48.0",
     date: "2026-03-14",
     title: "Debug Forense DOCX→PDF com painel admin",

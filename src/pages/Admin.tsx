@@ -92,6 +92,7 @@ const InstalarApp = lazy(() => import("@/pages/Instalar"));
 const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalacaoPage").then(m => ({ default: m.LinksInstalacaoPage })));
 // CanaisCaptacaoPage removed — consolidated into LinksInstalacaoPage
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
+const BackupRestorePage = lazy(() => import("@/components/admin/BackupRestorePage").then(m => ({ default: m.BackupRestorePage })));
 const LeadsTrashPage = lazy(() => import("@/components/admin/leads/LeadsTrashPage"));
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
@@ -294,6 +295,7 @@ const TAB_TITLES: Record<string, string> = {
   documentos: "Documentos & assinatura",
   "documentos-assinaturas": "Documentos & assinatura",
   "data-reset": "Manutenção de dados",
+  "backup": "Backup & Restore",
   "integracoes": "Integrações",
   "aneel": "Integração ANEEL",
   "pos-venda": "Dashboard pós-venda",
@@ -639,6 +641,7 @@ export default function Admin() {
                 <Route path="custom-fields" element={<CustomFieldsSettings />} />
                 <Route path="auditoria" element={<AuditLogsViewer />} />
                 <Route path="data-reset" element={<DataResetManager />} />
+                <Route path="backup" element={<BackupRestorePage />} />
                 <Route path="permissoes" element={<RolePermissionsManager />} />
                 
                 <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
