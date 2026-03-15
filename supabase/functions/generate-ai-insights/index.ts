@@ -380,6 +380,29 @@ Responda SEMPRE em JSON válido:
 
     console.log(`[generate-ai-insights] Successfully generated ${insight_type} via ${provider}, saved as ${savedInsight.id}`);
 
+    // ── Log AI usage ─────────────────────────────────────────────
+    try {
+      const promptTokens = aiUsage.prompt_tokens || 0;
+      const completionTokens = aiUsage.completion_tokens || 0;
+      const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+      const estimatedCost = (promptTokens / 1000) * 0.00015 + (completionTokens / 1000) * 0.0006;
+
+      await supabase.from("ai_usage_logs").insert({
+        tenant_id: profile!.tenant_id,
+        user_id: user.id,
+        function_name: "generate-ai-insights",
+        provider: "openai_tenant",
+        model: "gpt-4o-mini",
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCost,
+        is_fallback: false,
+      });
+    } catch (logError) {
+      console.error("[generate-ai-insights] log error:", logError);
+    }
+
     return new Response(JSON.stringify({ success: true, insight: savedInsight }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
