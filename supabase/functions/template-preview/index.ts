@@ -485,13 +485,16 @@ function normalizeParagraphRunsInner(
     while (ri < runs.length) {
       const span = merged.find((s) => s[0] === ri);
       if (span) {
-        // Only include the inter-run content BEFORE the first run in the span
-        // to prevent XML duplication from bookmarks/proofErr between merged runs
+        // Preserve inter-run XML inside merged spans (bookmarks, tabs, breaks, proof marks)
+        // to avoid layout shifts while still collapsing split placeholders.
         rebuiltRegion += (interRunContent[span[0]] ?? "");
         const groupRuns = runs.slice(span[0], span[1] + 1);
         const combinedText = groupRuns.map((r) => r.text).join("");
         const rPr = groupRuns[0].rPr;
         rebuiltRegion += `<w:r>${rPr}<w:t xml:space="preserve">${combinedText}</w:t></w:r>`;
+        for (let j = span[0] + 1; j <= span[1]; j++) {
+          rebuiltRegion += (interRunContent[j] ?? "");
+        }
         ri = span[1] + 1;
       } else {
         rebuiltRegion += (interRunContent[ri] ?? "") + runs[ri].xml;
