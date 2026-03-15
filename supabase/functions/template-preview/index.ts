@@ -175,7 +175,7 @@ async function processDocxTemplate(
       // Skip empty-value keys; they'll be handled in Step 3
       if (emptyKeysSet.has(key)) continue;
 
-      const safeValue = escapeXml(value);
+      const safeValue = escapeXml(String(value));
       const legacyPattern = `[${key}]`;
       if (content.includes(legacyPattern)) {
         content = content.replaceAll(legacyPattern, safeValue);
