@@ -52,6 +52,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Get AI provider config
+    const { data: providerConfig } = await adminClient
+      .from("ai_provider_config")
+      .select("active_provider, active_model, fallback_enabled")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    const activeProvider = providerConfig?.active_provider || "lovable_gateway";
+    const activeModel = providerConfig?.active_model || "google/gemini-2.5-flash";
+
     // Get OpenAI key for this tenant
     const { data: keyRow } = await adminClient
       .from("integration_configs")
@@ -163,7 +173,7 @@ Gere uma sugestão de resposta para o vendedor enviar ao cliente.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: activeModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -216,8 +226,8 @@ Gere uma sugestão de resposta para o vendedor enviar ao cliente.`;
         tenant_id: tenantId,
         user_id: user.id,
         function_name: "ai-suggest-message",
-        provider: "openai",
-        model: "gpt-4o-mini",
+        provider: activeProvider,
+        model: activeModel,
         prompt_tokens: promptTokens,
         completion_tokens: completionTokens,
         total_tokens: totalTokens,
