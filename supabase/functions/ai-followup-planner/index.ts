@@ -191,10 +191,11 @@ Analise e retorne o JSON com a estratégia de follow-up.`;
     const rawContent = aiData.choices?.[0]?.message?.content?.trim();
     if (!rawContent) throw new Error("Empty AI response");
 
+    const aiUsage = aiData.usage || {};
+
     // Parse JSON response
     let plan: any;
     try {
-      // Strip markdown code fences if present
       const cleaned = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       plan = JSON.parse(cleaned);
     } catch {
@@ -229,6 +230,30 @@ Analise e retorne o JSON com a estratégia de follow-up.`;
       requested_by: user.id,
       generated_at: new Date().toISOString(),
     });
+
+    // Usage logging
+    try {
+      const promptTokens = aiUsage.prompt_tokens || 0;
+      const completionTokens = aiUsage.completion_tokens || 0;
+      const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+      const estimatedCost = (promptTokens / 1000) * 0.00015 +
+                            (completionTokens / 1000) * 0.0006;
+
+      await adminClient.from("ai_usage_logs").insert({
+        tenant_id: tenantId,
+        user_id: user.id,
+        function_name: "ai-followup-planner",
+        provider: "openai",
+        model: "gpt-4o-mini",
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCost,
+        is_fallback: false,
+      });
+    } catch (logError) {
+      console.error("[ai-followup-planner] log error:", logError);
+    }
 
     return new Response(
       JSON.stringify({ plan, task_type: "followup_planner" }),

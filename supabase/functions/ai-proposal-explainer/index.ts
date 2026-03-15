@@ -171,6 +171,8 @@ Gere a mensagem explicativa para o vendedor enviar.`;
     const suggestion = aiData.choices?.[0]?.message?.content?.trim();
     if (!suggestion) throw new Error("Empty AI response");
 
+    const aiUsage = aiData.usage || {};
+
     // Log task
     await adminClient.from("wa_ai_tasks").insert({
       tenant_id: tenantId,
@@ -183,6 +185,30 @@ Gere a mensagem explicativa para o vendedor enviar.`;
       requested_by: user.id,
       generated_at: new Date().toISOString(),
     });
+
+    // Usage logging
+    try {
+      const promptTokens = aiUsage.prompt_tokens || 0;
+      const completionTokens = aiUsage.completion_tokens || 0;
+      const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+      const estimatedCost = (promptTokens / 1000) * 0.00015 +
+                            (completionTokens / 1000) * 0.0006;
+
+      await adminClient.from("ai_usage_logs").insert({
+        tenant_id: tenantId,
+        user_id: user.id,
+        function_name: "ai-proposal-explainer",
+        provider: "openai",
+        model: "gpt-4o-mini",
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCost,
+        is_fallback: false,
+      });
+    } catch (logError) {
+      console.error("[ai-proposal-explainer] log error:", logError);
+    }
 
     return new Response(
       JSON.stringify({ suggestion, task_type: "proposal_explainer" }),
