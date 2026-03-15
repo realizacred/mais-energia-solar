@@ -400,11 +400,11 @@ Responda SEMPRE em JSON válido:
       const estimatedCost = (promptTokens / 1000) * 0.00015 + (completionTokens / 1000) * 0.0006;
 
       await supabase.from("ai_usage_logs").insert({
-        tenant_id: profile!.tenant_id,
+        tenant_id: tenantId,
         user_id: user.id,
         function_name: "generate-ai-insights",
-        provider: "openai_tenant",
-        model: "gpt-4o-mini",
+        provider: activeProvider,
+        model: activeModel,
         prompt_tokens: promptTokens,
         completion_tokens: completionTokens,
         total_tokens: totalTokens,
