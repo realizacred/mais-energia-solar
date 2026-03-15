@@ -39,7 +39,9 @@ function buildProposalFileName(input: {
 }
 
 /**
- * Simulates the substitution logic from processDocxTemplate (index.ts L126-241)
+ * Simulates the substitution logic from processDocxTemplate (index.ts).
+ * All operations happen on raw XML strings — angle brackets in markers
+ * are entity-escaped so the XML stays valid.
  */
 function simulateSubstitution(
   content: string,
@@ -56,24 +58,24 @@ function simulateSubstitution(
     }
   }
 
-  // Step 2: Replace valid values
+  // Step 2: Replace valid values (XML-escaped)
   for (const [key, value] of Object.entries(cleanVars)) {
     const safeValue = escapeXml(value);
     content = content.replaceAll(`[${key}]`, safeValue);
     content = content.replaceAll(`{{${key}}}`, safeValue);
   }
 
-  // Step 2b: Replace empty values with em-dash
+  // Step 2b: Replace empty values with em-dash (XML-escaped)
   const emptyVars: string[] = [];
   for (const key of emptyKeysSet) {
     if (content.includes(`[${key}]`) || content.includes(`{{${key}}}`)) {
-      content = content.replaceAll(`[${key}]`, escapeXml("—"));
-      content = content.replaceAll(`{{${key}}}`, escapeXml("—"));
+      content = content.replaceAll(`[${key}]`, escapeXml("\u2014"));
+      content = content.replaceAll(`{{${key}}}`, escapeXml("\u2014"));
       emptyVars.push(key);
     }
   }
 
-  // Step 3: Missing vars
+  // Step 3: Missing vars — replace with XML-safe angle bracket marker
   const missingVars: string[] = [];
   const remainingBracket = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
   let m;
@@ -86,6 +88,7 @@ function simulateSubstitution(
   }
 
   for (const varName of missingVars) {
+    // escapeXml("<Area>") produces the string: &lt;Area&gt;
     const safeMarker = escapeXml(`<${varName}>`);
     content = content.replaceAll(`[${varName}]`, safeMarker);
     content = content.replaceAll(`{{${varName}}}`, safeMarker);
@@ -95,30 +98,82 @@ function simulateSubstitution(
 }
 
 // ═══════════════════════════════════════════════════════════
-// TESTS
+// TESTS — escapeXml function
 // ═══════════════════════════════════════════════════════════
 
-Deno.test("missing variable → <varName> XML-safe marker", () => {
+Deno.test("escapeXml escapes ampersand", () => {
+  assertEquals(escapeXml("A & B"), "A &amp; B");
+});
+
+Deno.test("escapeXml escapes angle brackets", () => {
+  // Input is literal <Area>, output must be entity-escaped
+  const input = "<Area>";
+  const output = escapeXml(input);
+  // The output string contains the 4 literal characters & l t ; etc.
+  assertEquals(output, "&lt;Area&gt;");
+  // Verify it does NOT contain a raw < or > around Area
+  assertEquals(output.startsWith("<"), false);
+  assertEquals(output.includes(">"), false);
+});
+
+Deno.test("escapeXml escapes quotes", () => {
+  assertEquals(escapeXml('"hello"'), "&quot;hello&quot;");
+});
+
+Deno.test("escapeXml escapes apostrophes", () => {
+  assertEquals(escapeXml("it's"), "it&apos;s");
+});
+
+Deno.test("escapeXml handles combined unsafe chars", () => {
+  const input = 'A & B <C> "D" E\'s';
+  const expected = "A &amp; B &lt;C&gt; &quot;D&quot; E&apos;s";
+  assertEquals(escapeXml(input), expected);
+});
+
+// ═══════════════════════════════════════════════════════════
+// TESTS — substitution: missing variable
+// ═══════════════════════════════════════════════════════════
+
+Deno.test("missing variable produces entity-escaped marker in raw XML", () => {
+  // Simulate raw DOCX XML content with a placeholder
+  const rawXml = '<w:t>Area: [Area]</w:t>';
+  const { result, missingVars } = simulateSubstitution(rawXml, {});
+
+  // The raw XML string must contain entity-escaped angle brackets
+  assertEquals(result, "<w:t>Area: &lt;Area&gt;</w:t>");
+  assertEquals(missingVars, ["Area"]);
+
+  // Verify the entity-escaped marker is present as literal characters
+  assertEquals(result.indexOf("&lt;Area&gt;") > -1, true);
+
+  // Verify NO raw <Area> tag was injected (which would corrupt XML)
+  const afterWt = result.replace(/<w:t>/g, "").replace(/<\/w:t>/g, "");
+  assertEquals(afterWt.indexOf("<Area>") === -1, true);
+});
+
+Deno.test("missing variable with bracket syntax", () => {
   const { result, missingVars } = simulateSubstitution(
-    "Área: [Area] Potência: [potencia]",
+    "Potencia: [potencia] Area: [Area]",
     { potencia: "13,4" },
   );
-  assertEquals(result, "Área: &lt;Area&gt; Potência: 13,4");
+  assertEquals(result, "Potencia: 13,4 Area: &lt;Area&gt;");
   assertEquals(missingVars, ["Area"]);
 });
-Deno.test("escapeXml escapes angle brackets", () => {
-  const marker = escapeXml(`<Area>`);
-  assertEquals(marker, "&lt;Area&gt;");
+
+Deno.test("missing variable with mustache syntax", () => {
+  const { result, missingVars } = simulateSubstitution(
+    "Nome: {{cliente_nome}}",
+    {},
+  );
+  assertEquals(result, "Nome: &lt;cliente_nome&gt;");
+  assertEquals(missingVars, ["cliente_nome"]);
 });
 
-Deno.test("XML raw content contains escaped marker, never raw tag", () => {
-  const rawXml = `Área: [Area]`;
-  const { result: xmlContent } = simulateSubstitution(rawXml, {});
-  assertEquals(xmlContent.includes("&lt;Area&gt;"), true);
-  assertEquals(xmlContent.includes("<Area>"), false);
-});
+// ═══════════════════════════════════════════════════════════
+// TESTS — substitution: empty variable
+// ═══════════════════════════════════════════════════════════
 
-Deno.test("empty variable (null) → em-dash —", () => {
+Deno.test("empty variable (null) becomes em-dash", () => {
   const { result, emptyVars } = simulateSubstitution(
     "Payback: [payback]",
     { payback: null as any },
@@ -127,7 +182,7 @@ Deno.test("empty variable (null) → em-dash —", () => {
   assertEquals(emptyVars, ["payback"]);
 });
 
-Deno.test("empty variable (empty string) → em-dash —", () => {
+Deno.test("empty variable (empty string) becomes em-dash", () => {
   const { result, emptyVars } = simulateSubstitution(
     "Payback: [payback]",
     { payback: "" },
@@ -136,7 +191,7 @@ Deno.test("empty variable (empty string) → em-dash —", () => {
   assertEquals(emptyVars, ["payback"]);
 });
 
-Deno.test("empty variable (whitespace only) → em-dash —", () => {
+Deno.test("empty variable (whitespace only) becomes em-dash", () => {
   const { result, emptyVars } = simulateSubstitution(
     "Payback: [payback]",
     { payback: "   " },
@@ -144,6 +199,10 @@ Deno.test("empty variable (whitespace only) → em-dash —", () => {
   assertEquals(result, "Payback: \u2014");
   assertEquals(emptyVars, ["payback"]);
 });
+
+// ═══════════════════════════════════════════════════════════
+// TESTS — values that must NOT be treated as empty
+// ═══════════════════════════════════════════════════════════
 
 Deno.test("string '0' is NOT treated as empty", () => {
   const { result, emptyVars, missingVars } = simulateSubstitution(
@@ -156,7 +215,6 @@ Deno.test("string '0' is NOT treated as empty", () => {
 });
 
 Deno.test("numeric 0 (coerced) is NOT treated as empty", () => {
-  // Real payloads from JSON parse may arrive as number 0
   const { result, emptyVars, missingVars } = simulateSubstitution(
     "Valor: [valor]",
     { valor: 0 as any },
@@ -185,7 +243,6 @@ Deno.test("string 'false' is NOT treated as empty", () => {
 });
 
 Deno.test("boolean false (coerced) is NOT treated as empty", () => {
-  // Real payloads from JSON parse may arrive as boolean false
   const { result, emptyVars, missingVars } = simulateSubstitution(
     "Flag: [flag]",
     { flag: false as any },
@@ -195,37 +252,38 @@ Deno.test("boolean false (coerced) is NOT treated as empty", () => {
   assertEquals(missingVars, []);
 });
 
-Deno.test("mustache syntax {{var}} missing → XML-safe marker", () => {
-  const { result, missingVars } = simulateSubstitution(
-    "Nome: {{cliente_nome}}",
-    {},
-  );
-  assertEquals(result, "Nome: &lt;cliente_nome&gt;");
-  assertEquals(missingVars, ["cliente_nome"]);
-});
+// ═══════════════════════════════════════════════════════════
+// TESTS — mixed scenarios
+// ═══════════════════════════════════════════════════════════
 
 Deno.test("mixed: value + empty + missing", () => {
   const { result, missingVars, emptyVars } = simulateSubstitution(
-    "Área: [Area] Payback: [payback] Potência: [potencia]",
+    "Area: [Area] Payback: [payback] Potencia: [potencia]",
     { potencia: "13,4", payback: "" },
   );
-  assertEquals(result, "Área: &lt;Area&gt; Payback: \u2014 Potência: 13,4");
+  assertEquals(result, "Area: &lt;Area&gt; Payback: \u2014 Potencia: 13,4");
   assertEquals(missingVars, ["Area"]);
   assertEquals(emptyVars, ["payback"]);
 });
 
+// ═══════════════════════════════════════════════════════════
+// TESTS — XML-unsafe characters in values
+// ═══════════════════════════════════════════════════════════
+
 Deno.test("XML-unsafe characters in value are escaped", () => {
   const { result } = simulateSubstitution(
     "Nome: [nome]",
-    { nome: 'João & Maria <Ltda> "Solar"' },
+    { nome: 'A & B <C> "D"' },
   );
-  assertEquals(result, "Nome: João &amp; Maria &lt;Ltda&gt; &quot;Solar&quot;");
+  assertEquals(result, "Nome: A &amp; B &lt;C&gt; &quot;D&quot;");
 });
 
-// ── File name tests ──
+// ═══════════════════════════════════════════════════════════
+// TESTS — file name helpers
+// ═══════════════════════════════════════════════════════════
 
 Deno.test("slugifyFilePart removes accents", () => {
-  assertEquals(slugifyFilePart("Maria Lúzia De Souza"), "Maria_Luzia_De_Souza");
+  assertEquals(slugifyFilePart("Maria L\u00fazia De Souza"), "Maria_Luzia_De_Souza");
 });
 
 Deno.test("slugifyFilePart preserves hyphens when flag is set", () => {
@@ -233,14 +291,14 @@ Deno.test("slugifyFilePart preserves hyphens when flag is set", () => {
 });
 
 Deno.test("slugifyFilePart removes special characters", () => {
-  assertEquals(slugifyFilePart("João (da Silva) #3"), "Joao_da_Silva_3");
+  assertEquals(slugifyFilePart("Jo\u00e3o (da Silva) #3"), "Joao_da_Silva_3");
 });
 
 Deno.test("buildProposalFileName full example", () => {
   const result = buildProposalFileName({
     proposalNumber: "N2025-1795-1",
     proposalDate: "2026-01-23",
-    customerName: "Maria Lúzia De Souza Silva",
+    customerName: "Maria L\u00fazia De Souza Silva",
   });
   assertEquals(result, "Proposta_N2025-1795-1_2026-01-23_Maria_Luzia_De_Souza_Silva.pdf");
 });
@@ -251,7 +309,6 @@ Deno.test("buildProposalFileName with null fields", () => {
     proposalDate: null,
     customerName: null,
   });
-  // Should have Proposta + today's date
   assertEquals(result.startsWith("Proposta_"), true);
   assertEquals(result.endsWith(".pdf"), true);
 });
@@ -260,7 +317,7 @@ Deno.test("buildProposalFileName with accented name", () => {
   const result = buildProposalFileName({
     proposalNumber: "N1",
     proposalDate: "2026-03-15",
-    customerName: "José André Müller",
+    customerName: "Jos\u00e9 Andr\u00e9 M\u00fcller",
   });
   assertEquals(result, "Proposta_N1_2026-03-15_Jose_Andre_Muller.pdf");
 });
