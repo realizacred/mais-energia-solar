@@ -503,8 +503,8 @@ function InstanceFormDialog({
   // For new instances — create or register via edge function (single canonical path) + show QR
   const handleCreateWithQR = async () => {
     const isRegister = mode === "register";
-    if (!nome.trim() || !apiUrl.trim() || !apiKey.trim()) return;
-    if (isRegister && !instanceKey.trim()) return;
+    if (!nome.trim() || !apiUrl.trim()) return;
+    if (isRegister && (!apiKey.trim() || !instanceKey.trim())) return;
     setSaving(true);
     setQrError(null);
     try {
