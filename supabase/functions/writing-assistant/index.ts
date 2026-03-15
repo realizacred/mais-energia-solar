@@ -253,8 +253,9 @@ Deno.serve(async (req) => {
       if (providerConfig?.active_model) {
         // Only use if the model is one we support
         const allModels = [...OPENAI_MODELS, ...GEMINI_MODELS];
-        if (allModels.includes(providerConfig.active_model)) {
-          primaryModel = providerConfig.active_model;
+        const normalized = normalizeModel(providerConfig.active_model);
+        if (allModels.includes(normalized)) {
+          primaryModel = normalized;
           configProvider = providerConfig.active_provider || null;
         }
       }
