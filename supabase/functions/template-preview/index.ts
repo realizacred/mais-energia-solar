@@ -132,7 +132,9 @@ async function processDocxTemplate(
   }
 
   // Process ALL word/*.xml files (headers, footers, document, etc.)
-  const excludePatterns = /\/(theme|media|_rels|fontTable|settings|webSettings|styles|numbering|glossary)\b/i;
+  // IMPORTANT: Only exclude non-content XML files. Headers/footers MUST be processed.
+  // "settings" excluded via exact filename match to avoid matching "header1Settings" etc.
+  const excludePatterns = /\/(theme\d*|media|_rels|fontTable|webSettings|styles|numbering|glossary|settings)\.(xml|rels)$/i;
   const xmlFiles: string[] = [];
   zip.forEach((relativePath) => {
     if (
