@@ -160,11 +160,21 @@ export function WaTagsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Gerenciar Tags</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Tag className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Gerenciar Tags
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Crie e gerencie as etiquetas das conversas
+            </p>
+          </div>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
           <div className="space-y-2">
             {allTags.map((tag) => {
               const isActive = activeTagIds.has(tag.id);
@@ -187,32 +197,33 @@ export function WaTagsDialog({
               <p className="text-xs text-muted-foreground text-center py-4">Nenhuma tag criada.</p>
             )}
           </div>
-          <div className="border-t border-border/40 pt-3">
-            <Label className="text-xs font-medium mb-2 block">Criar Nova Tag</Label>
-            <div className="flex items-center gap-2">
-              <Input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Nome da tag" className="h-8 text-sm flex-1" />
-              <div className="flex gap-1 shrink-0">
-                {PRESET_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    className={`w-5 h-5 rounded-full transition-all ${newTagColor === c ? "ring-2 ring-offset-1 ring-primary" : ""}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setNewTagColor(c)}
-                  />
-                ))}
-              </div>
-              <Button
-                size="icon"
-                className="h-8 w-8"
-                disabled={!newTagName.trim()}
-                onClick={() => {
-                  onCreateTag({ name: newTagName.trim(), color: newTagColor });
-                  setNewTagName("");
-                }}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+        </div>
+        <div className="p-4 border-t border-border bg-muted/30">
+          <Label className="text-xs font-medium mb-2 block">Criar Nova Tag</Label>
+          <div className="flex items-center gap-2">
+            <Input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Nome da tag" className="h-8 text-sm flex-1" />
+            <div className="flex gap-1 shrink-0">
+              {PRESET_COLORS.map((c) => (
+                <button
+                  key={c}
+                  className={`w-5 h-5 rounded-full transition-all ${newTagColor === c ? "ring-2 ring-offset-1 ring-primary" : ""}`}
+                  style={{ backgroundColor: c }}
+                  onClick={() => setNewTagColor(c)}
+                />
+              ))}
             </div>
+            <Button
+              size="icon"
+              variant="default"
+              className="h-8 w-8"
+              disabled={!newTagName.trim()}
+              onClick={() => {
+                onCreateTag({ name: newTagName.trim(), color: newTagColor });
+                setNewTagName("");
+              }}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </DialogContent>
