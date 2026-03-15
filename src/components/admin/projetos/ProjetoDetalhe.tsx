@@ -68,6 +68,8 @@ interface PropostaNativa {
     payback_meses: number | null;
     geracao_mensal: number | null;
     created_at: string;
+    output_pdf_path: string | null;
+    output_docx_path: string | null;
   }[];
 }
 
