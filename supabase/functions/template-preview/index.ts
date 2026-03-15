@@ -811,9 +811,33 @@ Deno.serve(async (req) => {
     let templateBuffer: Uint8Array;
     try {
       if (template.file_url.startsWith("http")) {
-        const resp = await fetch(template.file_url);
-        if (!resp.ok) return jsonError(`Erro ao baixar template: HTTP ${resp.status}`, 500);
-        templateBuffer = new Uint8Array(await resp.arrayBuffer());
+        // Extract storage path from the public URL
+        const fileUrlStr = template.file_url as string;
+        const storageMarker = "/proposta-templates/";
+        const markerIdx = fileUrlStr.indexOf(storageMarker);
+        if (markerIdx === -1) {
+          return jsonError("Caminho do template inválido na URL", 400);
+        }
+        const rawPath = fileUrlStr.slice(markerIdx + storageMarker.length);
+        const storagePath = decodeURIComponent(rawPath).replace(/\+/g, " ");
+
+        console.log("[template-preview] downloading template from storage path:", storagePath);
+
+        // Download using authenticated admin client (bypasses RLS/public restriction)
+        const { data: templateBlob, error: downloadError } = await adminClient.storage
+          .from("proposta-templates")
+          .download(storagePath);
+
+        if (downloadError || !templateBlob) {
+          console.error("[template-preview] storage download error:", downloadError?.message, "path:", storagePath);
+          return jsonError(
+            `Erro ao baixar template: ${downloadError?.message || "arquivo não encontrado"} — path: ${storagePath}`,
+            500,
+          );
+        }
+
+        const arrayBuffer = await templateBlob.arrayBuffer();
+        templateBuffer = new Uint8Array(arrayBuffer);
       } else {
         const { data: fileData, error: dlError } = await adminClient.storage
           .from("proposta-templates")
