@@ -134,10 +134,21 @@ Deno.test("empty variable (whitespace only) → em-dash —", () => {
   assertEquals(emptyVars, ["payback"]);
 });
 
-Deno.test("numeric 0 is NOT treated as empty", () => {
+Deno.test("string '0' is NOT treated as empty", () => {
   const { result, emptyVars, missingVars } = simulateSubstitution(
     "Valor: [valor]",
     { valor: "0" },
+  );
+  assertEquals(result, "Valor: 0");
+  assertEquals(emptyVars, []);
+  assertEquals(missingVars, []);
+});
+
+Deno.test("numeric 0 (coerced) is NOT treated as empty", () => {
+  // Real payloads from JSON parse may arrive as number 0
+  const { result, emptyVars, missingVars } = simulateSubstitution(
+    "Valor: [valor]",
+    { valor: 0 as any },
   );
   assertEquals(result, "Valor: 0");
   assertEquals(emptyVars, []);
@@ -160,6 +171,17 @@ Deno.test("string 'false' is NOT treated as empty", () => {
   );
   assertEquals(result, "Flag: false");
   assertEquals(emptyVars, []);
+});
+
+Deno.test("boolean false (coerced) is NOT treated as empty", () => {
+  // Real payloads from JSON parse may arrive as boolean false
+  const { result, emptyVars, missingVars } = simulateSubstitution(
+    "Flag: [flag]",
+    { flag: false as any },
+  );
+  assertEquals(result, "Flag: false");
+  assertEquals(emptyVars, []);
+  assertEquals(missingVars, []);
 });
 
 Deno.test("mustache syntax {{var}} missing → XML-safe marker", () => {
