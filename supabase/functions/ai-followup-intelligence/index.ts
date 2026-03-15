@@ -237,7 +237,7 @@ async function callAI(
   model: string,
   temperature: number,
   prompt: { system: string; user: string }
-): Promise<any> {
+): Promise<{ result: any; usage: any }> {
   const ac = new AbortController();
   const to = setTimeout(() => ac.abort(), AI_TIMEOUT);
 
@@ -271,7 +271,7 @@ async function callAI(
     if (!raw) throw new Error("Empty AI response");
 
     const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    return JSON.parse(cleaned);
+    return { result: JSON.parse(cleaned), usage: d.usage || {} };
   } catch (e: any) {
     clearTimeout(to);
     if (e.name === "AbortError") throw new Error("AI timeout");
