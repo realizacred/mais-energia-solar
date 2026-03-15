@@ -109,7 +109,17 @@ Deno.serve(async (req) => {
       return error("Chave OpenAI não configurada. Configure em Integrações.", 400);
     }
 
-    const model = aiSettings?.modelo_preferido || "gpt-4o-mini";
+    // Get AI provider config
+    const { data: providerConfig } = await sb
+      .from("ai_provider_config")
+      .select("active_provider, active_model, fallback_enabled")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    const activeProvider = providerConfig?.active_provider || "lovable_gateway";
+    const activeModel = providerConfig?.active_model || "google/gemini-2.5-flash";
+
+    const model = aiSettings?.modelo_preferido || activeModel;
     const temperature = aiSettings?.temperature ?? 0.5;
 
     // Format history for AI
