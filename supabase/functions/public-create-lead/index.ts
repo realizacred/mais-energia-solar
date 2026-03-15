@@ -241,13 +241,15 @@ Deno.serve(async (req) => {
             consultor: vendedorNome,
             tenant_id: tenantId,
             origem: origem || null,
-            estado: "N/A",
-            cidade: "N/A",
-            area: "N/A",
-            tipo_telhado: "N/A",
-            rede_atendimento: "N/A",
-            media_consumo: 0,
-            consumo_previsto: 0,
+            estado: estado || "N/A",
+            cidade: cidade ? cidade.trim() : "N/A",
+            area: area || "N/A",
+            tipo_telhado: tipo_telhado || "N/A",
+            rede_atendimento: rede_atendimento || "N/A",
+            media_consumo: media_consumo || 0,
+            consumo_previsto: consumo_previsto || 0,
+            cep: cep || null,
+            bairro: bairro || null,
           });
 
         if (leadErr) {
