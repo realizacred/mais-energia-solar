@@ -449,6 +449,7 @@ function InstanceFormDialog({
   // Reset form when instance changes or dialog opens
   useEffect(() => {
     if (open) {
+      setMode("create");
       setNome(instance?.nome || "");
       setInstanceKey(instance?.evolution_instance_key || "");
       setApiUrl(instance?.evolution_api_url || "https://");
