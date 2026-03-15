@@ -62,7 +62,7 @@ export function useAIProviderConfig() {
       if (error) throw error;
       return data as AIProviderConfig | null;
     },
-    staleTime: 1000 * 60 * 15, // dados estáticos — §23
+    staleTime: 1000 * 60 * 2, // config changes need faster reflection — §23
   });
 
   const updateConfig = useMutation({
