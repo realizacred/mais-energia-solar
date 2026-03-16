@@ -9691,6 +9691,51 @@ export type Database = {
           },
         ]
       }
+      payment_interest_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          forma_pagamento: string
+          id: string
+          intervalo_dias_padrao: number
+          juros_responsavel: string
+          juros_tipo: string
+          juros_valor: number
+          observacoes: string | null
+          parcelas_padrao: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          forma_pagamento: string
+          id?: string
+          intervalo_dias_padrao?: number
+          juros_responsavel?: string
+          juros_tipo?: string
+          juros_valor?: number
+          observacoes?: string | null
+          parcelas_padrao?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          forma_pagamento?: string
+          id?: string
+          intervalo_dias_padrao?: number
+          juros_responsavel?: string
+          juros_tipo?: string
+          juros_valor?: number
+          observacoes?: string | null
+          parcelas_padrao?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pipeline_automation_logs: {
         Row: {
           acao_executada: string

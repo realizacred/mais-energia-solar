@@ -29,6 +29,7 @@ import {
   computeSummary,
   validateComposition,
 } from "@/services/paymentComposition/calculator";
+import { usePaymentInterestConfigMap, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
 
 interface PaymentComposerProps {
   valorVenda: number;
@@ -39,6 +40,7 @@ interface PaymentComposerProps {
 
 export function PaymentComposer({ valorVenda, items, onChange, readOnly = false }: PaymentComposerProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const { configMap } = usePaymentInterestConfigMap();
 
   const summary = useMemo(() => computeSummary(items, valorVenda), [items, valorVenda]);
   const errors = useMemo(() => validateComposition(items, valorVenda), [items, valorVenda]);
@@ -83,6 +85,7 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
             onUpdate={(patch) => updateItem(item.id, patch)}
             onRemove={() => removeItem(item.id)}
             readOnly={readOnly}
+            configMap={configMap}
           />
         ))}
       </AnimatePresence>
@@ -112,9 +115,10 @@ interface PaymentItemCardProps {
   onUpdate: (patch: Partial<PaymentItemInput>) => void;
   onRemove: () => void;
   readOnly: boolean;
+  configMap: Map<FormaPagamento, PaymentInterestConfig>;
 }
 
-function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, readOnly }: PaymentItemCardProps) {
+function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, readOnly, configMap }: PaymentItemCardProps) {
   const computed = useMemo(() => computeItem(item), [item]);
   const isParcelavel = FORMAS_PARCELAVEIS.includes(item.forma_pagamento);
   const hasJuros = FORMAS_COM_JUROS.includes(item.forma_pagamento);
@@ -194,11 +198,22 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
                     <Select
                       value={item.forma_pagamento}
                       onValueChange={(v) => {
-                        const patch: Partial<PaymentItemInput> = { forma_pagamento: v as FormaPagamento };
-                        if (!FORMAS_PARCELAVEIS.includes(v as FormaPagamento)) {
+                        const forma = v as FormaPagamento;
+                        const patch: Partial<PaymentItemInput> = { forma_pagamento: forma };
+                        if (!FORMAS_PARCELAVEIS.includes(forma)) {
                           patch.parcelas = 1;
                         }
-                        if (!FORMAS_COM_JUROS.includes(v as FormaPagamento)) {
+                        // Auto-fill from interest config
+                        const cfg = configMap.get(forma);
+                        if (cfg && cfg.ativo) {
+                          patch.juros_tipo = cfg.juros_tipo;
+                          patch.juros_valor = cfg.juros_valor;
+                          patch.juros_responsavel = cfg.juros_responsavel;
+                          if (FORMAS_PARCELAVEIS.includes(forma)) {
+                            patch.parcelas = cfg.parcelas_padrao;
+                            patch.intervalo_dias = cfg.intervalo_dias_padrao;
+                          }
+                        } else if (!FORMAS_COM_JUROS.includes(forma)) {
                           patch.juros_tipo = "sem_juros";
                           patch.juros_valor = 0;
                           patch.juros_responsavel = "nao_aplica";

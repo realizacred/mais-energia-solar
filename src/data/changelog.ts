@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.72.0",
+    date: "2026-03-16",
+    title: "Configuração de taxas de juros por forma de pagamento",
+    type: "feature",
+    description: "Nova aba 'Taxas de Juros' na Política de Preços permite cadastrar taxas padrão por forma de pagamento. O PaymentComposer auto-preenche juros, parcelas e intervalo ao selecionar a forma.",
+    details: [
+      "Tabela payment_interest_config com RLS por tenant e unique constraint por forma",
+      "CRUD completo: adicionar, editar, remover taxas (percentual, valor fixo ou sem juros)",
+      "Auto-preenchimento editável no compositor de pagamento ao trocar forma de pagamento",
+      "Suporte a parcelas padrão e intervalo de dias configuráveis por forma",
+    ],
+  },
+  {
     version: "2.71.0",
     date: "2026-03-16",
     title: "Auditoria fina: 100% das colunas mapeadas com variáveis reais",
