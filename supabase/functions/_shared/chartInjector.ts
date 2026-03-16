@@ -192,8 +192,8 @@ function addContentType(contentTypesXml: string): string {
   // Only add if not already present
   if (contentTypesXml.includes('Extension="png"')) return contentTypesXml;
   const pngType = `<Default Extension="png" ContentType="image/png"/>`;
-  return contentTypesXml.replace("<Types", `<Types`) // keep as-is
-    .replace(">", `>${pngType}`); // add after first >
+  // Insert after the opening <Types ...> tag
+  return contentTypesXml.replace(/<Types[^>]*>/, (match) => `${match}${pngType}`);
 }
 
 function getNextRid(relsXml: string): number {
