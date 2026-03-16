@@ -3,7 +3,7 @@
  * Centralizes all audit logic: schema coverage, custom vars sync, description quality.
  */
 import { useMemo } from "react";
-import { VARIABLES_CATALOG, type VariableCategory } from "@/lib/variablesCatalog";
+import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
 
 // ── Types ──────────────────────────────────────────────────
 export interface DbCustomVar {
@@ -47,6 +47,23 @@ export interface DescriptionIssue {
   label: string;
   category: VariableCategory;
   issue: "missing" | "too_short";
+}
+
+export interface CategoryAuditEntry {
+  category: VariableCategory;
+  label: string;
+  icon: string;
+  total: number;
+  variables: Array<{
+    key: string;
+    canonicalKey: string;
+    label: string;
+    description: string;
+    unit: string;
+    example: string;
+    hasSchemaMapping: boolean;
+    notImplemented?: boolean;
+  }>;
 }
 
 // ── System columns to ignore ──────────────────────────────
@@ -442,12 +459,56 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
 
   const totalCustomDivergences = customAudit.missingCatalog.length + customAudit.missingDb.length;
 
+  // ── Category audit ─────────────────────────────────────
+  const categoryAudit = useMemo(() => {
+    const CATEGORY_ICONS: Record<VariableCategory, string> = {
+      entrada: "📥", sistema_solar: "☀️", financeiro: "💰", conta_energia: "⚡",
+      comercial: "🏢", cliente: "👤", tabelas: "📊", series: "📈",
+      premissas: "⚙️", tarifa: "🏷️", aneel: "🔄", gd: "🌞",
+      calculo: "🧮", cdd: "🔗", customizada: "🧩",
+    };
+
+    // Build set of all expectedKeys for cross-reference
+    const allExpectedKeys = new Set<string>();
+    for (const table of SORTED_TABLES) {
+      for (const col of table.columns) {
+        if (col.expectedKey) allExpectedKeys.add(col.expectedKey);
+      }
+    }
+
+    const entries: CategoryAuditEntry[] = CATEGORY_ORDER.map((cat) => {
+      const catVars = VARIABLES_CATALOG.filter((v) => v.category === cat);
+      return {
+        category: cat,
+        label: CATEGORY_LABELS[cat],
+        icon: CATEGORY_ICONS[cat],
+        total: catVars.length,
+        variables: catVars.map((v) => {
+          const key = v.legacyKey.replace(/^\[|\]$/g, "");
+          return {
+            key,
+            canonicalKey: v.canonicalKey,
+            label: v.label,
+            description: v.description,
+            unit: v.unit,
+            example: v.example,
+            hasSchemaMapping: allExpectedKeys.has(key),
+            notImplemented: v.notImplemented,
+          };
+        }),
+      };
+    });
+
+    return entries;
+  }, []);
+
   return {
     customAudit,
     schemaAudit,
     descriptionAudit,
     ghostVariables,
     totalCustomDivergences,
+    categoryAudit,
     SORTED_TABLES,
     FLOW_GROUPS,
   };
