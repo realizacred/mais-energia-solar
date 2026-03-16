@@ -171,10 +171,10 @@ export function resolveSistemaSolar(
     if (coefs.coef_temp_pmax) set("modulo_coef_temp_pmax", coefs.coef_temp_pmax);
     if (coefs.coef_temp_voc) set("modulo_coef_temp_voc", coefs.coef_temp_voc);
     if (coefs.coef_temp_isc) set("modulo_coef_temp_isc", coefs.coef_temp_isc);
-    // Also set concatenated coef_temp
+    // Snapshot fallbacks for coef_temp (if parseCoefTemp didn't find them)
+    set("modulo_coef_temp_pmax", snap.modulo_coef_temp_pmax);
     set("modulo_coef_temp_voc", snap.modulo_coef_temp_voc);
     set("modulo_coef_temp_isc", snap.modulo_coef_temp_isc);
-    set("modulo_coef_temp_pmax", snap.modulo_coef_temp_pmax);
 
     // Garantia
     set("modulo_garantia", m0.garantia ?? m0.garantia_anos);
