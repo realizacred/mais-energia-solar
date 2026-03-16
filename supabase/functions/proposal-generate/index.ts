@@ -556,7 +556,7 @@ Deno.serve(async (req) => {
       },
     };
 
-    // ── 7. CRIAR OU REUTILIZAR propostas_nativas ────────────
+    // ── 8. CRIAR OU REUTILIZAR propostas_nativas ────────────
     let propostaId: string;
 
     const matchFilter: any = { tenant_id: tenantId, lead_id: body.lead_id };
