@@ -42,7 +42,7 @@ export function AuditTabContent({
   const [activeTable, setActiveTable] = useState<string | null>(null);
   const [showDescIssues, setShowDescIssues] = useState(false);
 
-  const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences } = useVariablesAudit(dbCustomVars);
+  const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit } = useVariablesAudit(dbCustomVars);
 
   // ── Filtered schema fields ──────────────────────────────────
   const filteredFields = useMemo(() => {
