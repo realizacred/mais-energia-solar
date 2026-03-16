@@ -9,10 +9,10 @@ import { PolicyVersionSelector } from "./PolicyVersionSelector";
 import { usePricingPolicy } from "./hooks/usePricingPolicy";
 
 const TABS = [
-  { value: "costs", label: "Componentes de Custo", icon: Layers },
-  { value: "margins", label: "Margens & Comissões", icon: Percent },
-  { value: "method", label: "Método de Precificação", icon: DollarSign },
-  { value: "interest", label: "Taxas de Juros", icon: CreditCard },
+  { value: "interest", label: "Taxas de Juros", icon: CreditCard, global: true },
+  { value: "costs", label: "Componentes de Custo", icon: Layers, global: false },
+  { value: "margins", label: "Margens & Comissões", icon: Percent, global: false },
+  { value: "method", label: "Método de Precificação", icon: DollarSign, global: false },
 ] as const;
 
 export function PricingPolicyPage() {
