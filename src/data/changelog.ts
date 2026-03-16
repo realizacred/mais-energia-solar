@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.73.0",
+    date: "2026-03-16",
+    title: "Enriquecimento de snapshot com catálogo técnico",
+    type: "improvement",
+    description: "Variáveis técnicas de módulos, inversores e baterias agora são resolvidas a partir do catálogo do banco de dados, eliminando campos fantasmas no PDF.",
+    details: [
+      "proposal-generate busca specs completas dos catálogos (modulos_fotovoltaicos, inversores, baterias) e injeta no snapshot",
+      "resolveSistemaSolar atualizado: lê campos enriquecidos (tipo_celula, vmp, voc, isc, dimensões, coef_temp, mppts, etc.)",
+      "Helper parseDimensoes() extrai comprimento/largura/profundidade de strings como '2279 x 1134 x 35'",
+      "Helper parseCoefTemp() extrai coeficientes individuais (Pmax, Voc, Isc) de string concatenada",
+      "Campos derivados: modulo_area, inversores_potencia_maxima_total, p_armazenamento_necessario",
+      "Compatibilidade total com snapshots antigos via fallbacks",
+    ],
+  },
+  {
     version: "2.72.0",
     date: "2026-03-16",
     title: "Configuração de taxas de juros por forma de pagamento",
