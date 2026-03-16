@@ -11563,6 +11563,86 @@ export type Database = {
           },
         ]
       }
+      proposal_charts: {
+        Row: {
+          active: boolean
+          chart_options: Json | null
+          chart_type: Database["public"]["Enums"]["chart_type"]
+          colors: Json | null
+          created_at: string
+          data_source: string
+          engine: Database["public"]["Enums"]["chart_engine"]
+          height: number
+          id: string
+          label_field: string
+          name: string
+          placeholder: string
+          show_grid: boolean
+          show_labels: boolean
+          show_legend: boolean
+          subtitle: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+          value_field: string
+          width: number
+        }
+        Insert: {
+          active?: boolean
+          chart_options?: Json | null
+          chart_type?: Database["public"]["Enums"]["chart_type"]
+          colors?: Json | null
+          created_at?: string
+          data_source?: string
+          engine?: Database["public"]["Enums"]["chart_engine"]
+          height?: number
+          id?: string
+          label_field?: string
+          name: string
+          placeholder: string
+          show_grid?: boolean
+          show_labels?: boolean
+          show_legend?: boolean
+          subtitle?: string | null
+          tenant_id: string
+          title?: string
+          updated_at?: string
+          value_field?: string
+          width?: number
+        }
+        Update: {
+          active?: boolean
+          chart_options?: Json | null
+          chart_type?: Database["public"]["Enums"]["chart_type"]
+          colors?: Json | null
+          created_at?: string
+          data_source?: string
+          engine?: Database["public"]["Enums"]["chart_engine"]
+          height?: number
+          id?: string
+          label_field?: string
+          name?: string
+          placeholder?: string
+          show_grid?: boolean
+          show_labels?: boolean
+          show_legend?: boolean
+          subtitle?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          value_field?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_charts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_variables: {
         Row: {
           created_at: string
@@ -21979,6 +22059,8 @@ export type Database = {
         | "anotacao"
         | "status_change"
       billing_setup_status: "pending" | "active" | "error" | "disabled"
+      chart_engine: "rendered_image" | "docx_native"
+      chart_type: "bar" | "line" | "pie" | "doughnut" | "area" | "stacked_bar"
       checklist_cliente_status:
         | "pendente"
         | "em_preenchimento"
@@ -22258,6 +22340,8 @@ export const Constants = {
         "status_change",
       ],
       billing_setup_status: ["pending", "active", "error", "disabled"],
+      chart_engine: ["rendered_image", "docx_native"],
+      chart_type: ["bar", "line", "pie", "doughnut", "area", "stacked_bar"],
       checklist_cliente_status: [
         "pendente",
         "em_preenchimento",

@@ -1,9 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Variable, FileText, Mail, Settings } from "lucide-react";
+import { Variable, FileText, Mail, Settings, BarChart3 } from "lucide-react";
 import { VariaveisDisponiveisPage } from "./VariaveisDisponiveisPage";
 import { TemplatesManager } from "@/components/admin/propostas-nativas/TemplatesManager";
 import { EmailTemplatesPage } from "./EmailTemplatesPage";
 import { PropostaConfigPage } from "./PropostaConfigPage";
+import { ProposalChartsManager } from "./ProposalChartsManager";
 
 export function PropostaComercialPage() {
   return (
@@ -30,6 +31,11 @@ export function PropostaComercialPage() {
             <span className="hidden sm:inline">Configurações</span>
             <span className="sm:hidden">Config</span>
           </TabsTrigger>
+          <TabsTrigger value="graficos" className="gap-1.5 text-xs sm:text-sm">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Gráficos</span>
+            <span className="sm:hidden">Gráficos</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="variaveis">
@@ -43,6 +49,9 @@ export function PropostaComercialPage() {
         </TabsContent>
         <TabsContent value="configuracoes">
           <PropostaConfigPage />
+        </TabsContent>
+        <TabsContent value="graficos">
+          <ProposalChartsManager />
         </TabsContent>
       </Tabs>
     </div>
