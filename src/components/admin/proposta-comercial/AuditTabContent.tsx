@@ -89,6 +89,78 @@ export function AuditTabContent({
       </div>
 
       {/* ════════════════════════════════════════════════════════ */}
+      {/* SUMMARY KPIS */}
+      {/* ════════════════════════════════════════════════════════ */}
+      <div className="px-4 py-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Campos no Banco</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{schemaAudit.fields.length}</p>
+            <p className="text-[10px] text-muted-foreground">{SORTED_TABLES.length} tabelas</p>
+          </div>
+          <div className="rounded-lg border border-success/30 bg-success/5 p-2.5 space-y-0.5">
+            <p className="text-[9px] text-success uppercase tracking-wider font-medium">Campos Mapeados</p>
+            <p className="text-lg font-bold text-success tabular-nums">{schemaAudit.totalMapped}</p>
+            <p className="text-[10px] text-muted-foreground">Com variável no catálogo</p>
+          </div>
+          <div className={cn(
+            "rounded-lg border p-2.5 space-y-0.5",
+            schemaAudit.totalMissing > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
+          )}>
+            <p className="text-[9px] text-warning uppercase tracking-wider font-medium">Sem Variável</p>
+            <p className="text-lg font-bold text-warning tabular-nums">{schemaAudit.totalMissing}</p>
+            <p className="text-[10px] text-muted-foreground">Precisam mapeamento</p>
+          </div>
+          <div className={cn(
+            "rounded-lg border p-2.5 space-y-0.5",
+            ghostVariables.length > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+          )}>
+            <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Variáveis Fantasma</p>
+            <p className="text-lg font-bold text-destructive tabular-nums">{ghostVariables.length}</p>
+            <p className="text-[10px] text-muted-foreground">Sem coluna no banco</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════ */}
+      {/* GHOST VARIABLES */}
+      {/* ════════════════════════════════════════════════════════ */}
+      {ghostVariables.length > 0 && (
+        <div className="px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Ghost className="h-4 w-4 text-destructive" />
+            <span className="text-xs font-semibold text-foreground">Variáveis Fantasma</span>
+            <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+              {ghostVariables.length}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">— Referenciam colunas que não existem mais no banco</span>
+          </div>
+          <div className="rounded-lg border border-destructive/20 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-destructive/5 border-b border-destructive/10">
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[30px]">⚠️</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Variável</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Problema</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ghostVariables.map((g, idx) => (
+                  <tr key={g.key} className={cn("border-b border-border/40", idx % 2 === 0 ? "bg-card" : "bg-muted/10")}>
+                    <td className="px-3 py-2"><Ghost className="h-3 w-3 text-destructive" /></td>
+                    <td className="px-3 py-2"><span className="text-[11px] font-medium text-foreground">{g.label}</span></td>
+                    <td className="px-3 py-2"><code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{g.key}]</code></td>
+                    <td className="px-3 py-2"><span className="text-[10px] text-destructive">{g.reason}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════ */}
       {/* SECTION 0: Description Quality */}
       {/* ════════════════════════════════════════════════════════ */}
       {descriptionAudit.totalIncomplete > 0 && (
