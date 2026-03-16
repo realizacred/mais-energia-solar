@@ -24,15 +24,17 @@ function CopyButton({ text }: { text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all shrink-0"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
           onClick={() => {
             navigator.clipboard.writeText(text);
             toast.success(`Copiado: ${text}`);
           }}
         >
           <Copy className="h-3 w-3" />
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side="top" className="text-[10px]">Copiar</TooltipContent>
     </Tooltip>
