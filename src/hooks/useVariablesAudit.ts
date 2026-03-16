@@ -241,7 +241,7 @@ export const SCHEMA_TABLES: {
       { column: "nome", label: "Nome", expectedKey: "responsavel_nome" },
       { column: "telefone", label: "Telefone", expectedKey: "consultor_telefone" },
       { column: "email", label: "Email", expectedKey: "consultor_email" },
-      { column: "codigo", label: "Código" },
+      { column: "codigo", label: "Código", colType: "string" },
       { column: "percentual_comissao", label: "% Comissão", expectedKey: "comissao_percentual" },
     ],
   },
