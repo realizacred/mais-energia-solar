@@ -88,6 +88,9 @@ export function PricingPolicyPage() {
               isReadOnly={policy.activeVersionStatus !== "draft"}
             />
           </TabsContent>
+          <TabsContent value="interest" className="mt-4">
+            <InterestRatesTab />
+          </TabsContent>
         </Tabs>
       )}
 
