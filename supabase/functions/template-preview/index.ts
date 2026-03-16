@@ -1450,6 +1450,12 @@ Deno.serve(async (req) => {
       file_name_docx: outputDocxFileName,
       template_name: template.nome,
       generated_at: new Date().toISOString(),
+      charts: chartInjectionResult ? {
+        detected: chartInjectionResult.chartsDetected,
+        rendered: chartInjectionResult.chartsRendered,
+        failed: chartInjectionResult.chartsFailed,
+        skipped: chartInjectionResult.chartsSkipped,
+      } : null,
     };
 
     // Include debug path in response if debug mode
