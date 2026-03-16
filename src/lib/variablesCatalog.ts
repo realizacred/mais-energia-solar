@@ -716,26 +716,57 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.empresa_logo_url", "empresa_logo_url", "Logo da empresa", "URL do logotipo da empresa", "-", "https://..."),
 
   // ── Deal / Negócio ──
-  v("comercial", "comercial.deal_titulo", "deal_titulo", "Título do Negócio", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial"),
+  v("comercial", "comercial.deal_title", "deal_title", "Título do Projeto", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial"),
+  v("comercial", "comercial.deal_status", "deal_status", "Status do Negócio", "Status do deal (open, won, lost)", "-", "open"),
+  v("comercial", "comercial.deal_etiqueta", "deal_etiqueta", "Etiqueta do Projeto", "Etiqueta/tag do deal no pipeline", "-", "Urgente"),
+  v("comercial", "comercial.deal_notas", "deal_notas", "Notas do Negócio", "Notas e observações do deal", "-", "Cliente com urgência"),
+  v("comercial", "comercial.deal_expected_close_date", "deal_expected_close_date", "Previsão de Fechamento", "Data prevista de fechamento do negócio", "data", "30/04/2026"),
 
   // ── Proposta (complementares) ──
-  v("comercial", "comercial.proposta_numero", "proposta_numero", "Número da Proposta", "Número sequencial da proposta", "-", "42"),
+  v("comercial", "comercial.proposta_num", "proposta_num", "Número da Proposta", "Número sequencial da proposta", "-", "42"),
+  v("comercial", "comercial.proposta_status", "proposta_status", "Status da Proposta", "Status atual da proposta (rascunho, enviada, aceita, etc.)", "-", "enviada"),
   v("comercial", "comercial.proposta_valido_ate", "proposta_valido_ate", "Proposta Válida Até", "Data limite de validade da proposta", "data", "30/04/2026"),
   v("comercial", "comercial.proposta_link_pdf", "proposta_link_pdf", "Link do PDF da Proposta", "URL para download do PDF da proposta", "-", "https://..."),
+  v("comercial", "comercial.proposta_aceita_at", "proposta_aceita_at", "Data de Aceite da Proposta", "Data em que a proposta foi aceita pelo cliente", "data", "15/03/2026"),
+  v("comercial", "comercial.proposta_enviada_at", "proposta_enviada_at", "Data de Envio da Proposta", "Data em que a proposta foi enviada ao cliente", "data", "10/03/2026"),
+  v("comercial", "comercial.proposta_recusa_motivo", "proposta_recusa_motivo", "Motivo de Recusa", "Motivo pelo qual a proposta foi recusada", "-", "Preço elevado"),
+  v("comercial", "comercial.proposta_recusada_at", "proposta_recusada_at", "Data de Recusa", "Data em que a proposta foi recusada", "data", "20/03/2026"),
+  v("comercial", "comercial.proposta_regra_gd", "proposta_regra_gd", "Regra GD Aplicada", "Regra de geração distribuída aplicada no cálculo", "-", "Lei 14.300"),
+  v("comercial", "comercial.proposta_origem_tarifa", "proposta_origem_tarifa", "Origem da Tarifa", "Fonte de dados da tarifa utilizada no cálculo", "-", "ANEEL"),
+  v("comercial", "comercial.proposta_precisao_calculo", "proposta_precisao_calculo", "Precisão do Cálculo", "Nível de precisão do cálculo da proposta", "-", "alta"),
+  v("comercial", "comercial.proposta_precisao_motivo", "proposta_precisao_motivo", "Motivo da Precisão", "Motivo da classificação de precisão do cálculo", "-", "Tarifa ANEEL atualizada"),
+  v("comercial", "comercial.proposta_versao_atual", "proposta_versao_atual", "Versão Atual da Proposta", "Número da versão atual da proposta", "-", "3"),
+
+  // ── Versão da Proposta (complementares) ──
+  v("comercial", "comercial.proposta_inflacao_energetica", "proposta_inflacao_energetica", "Inflação Energética (%)", "Premissa de inflação energética usada na proposta", "%", "6.5"),
+  v("comercial", "comercial.proposta_perda_eficiencia_anual", "proposta_perda_eficiencia_anual", "Perda de Eficiência Anual (%)", "Premissa de perda de eficiência anual do sistema", "%", "0.7"),
+  v("comercial", "comercial.proposta_sobredimensionamento", "proposta_sobredimensionamento", "Sobredimensionamento (%)", "Percentual de sobredimensionamento aplicado", "%", "10"),
+  v("comercial", "comercial.proposta_enviado_em", "proposta_enviado_em", "Versão Enviada Em", "Data de envio da versão da proposta", "data", "10/03/2026"),
+  v("comercial", "comercial.proposta_aceito_em", "proposta_aceito_em", "Versão Aceita Em", "Data de aceite da versão da proposta", "data", "15/03/2026"),
+  v("comercial", "comercial.proposta_rejeitado_em", "proposta_rejeitado_em", "Versão Rejeitada Em", "Data de rejeição da versão da proposta", "data", "20/03/2026"),
+  v("comercial", "comercial.proposta_motivo_rejeicao", "proposta_motivo_rejeicao", "Motivo de Rejeição da Versão", "Motivo de rejeição da versão da proposta", "-", "Valores incorretos"),
+  v("comercial", "comercial.proposta_output_docx_path", "proposta_output_docx_path", "Arquivo DOCX", "Caminho do arquivo DOCX gerado da proposta", "-", "propostas/v1.docx"),
+  v("comercial", "comercial.proposta_output_pdf_path", "proposta_output_pdf_path", "Arquivo PDF", "Caminho do arquivo PDF gerado da proposta", "-", "propostas/v1.pdf"),
+  v("comercial", "comercial.proposta_viewed_at", "proposta_viewed_at", "Visualizado Em", "Data em que a proposta foi visualizada pelo cliente", "data", "12/03/2026"),
+  v("comercial", "comercial.proposta_observacoes", "proposta_observacoes", "Observações da Proposta", "Observações e notas da proposta", "-", "Desconto negociado"),
+  v("comercial", "comercial.proposta_versao_status", "proposta_versao_status", "Status da Versão", "Status da versão da proposta (rascunho, enviada, aceita)", "-", "enviada"),
 
   // ── Projeto (detalhes) ──
   v("comercial", "comercial.projeto_tipo_instalacao", "projeto_tipo_instalacao", "Tipo de Instalação", "Tipo de instalação do projeto (Residencial, Comercial, etc.)", "-", "Residencial"),
   v("comercial", "comercial.projeto_valor_equipamentos", "projeto_valor_equipamentos", "Valor Equipamentos", "Valor total dos equipamentos do projeto", "R$", "30000.00"),
   v("comercial", "comercial.projeto_valor_mao_obra", "projeto_valor_mao_obra", "Valor Mão de Obra", "Valor da mão de obra do projeto", "R$", "8000.00"),
   v("comercial", "comercial.projeto_data_venda", "projeto_data_venda", "Data da Venda", "Data de fechamento da venda", "data", "01/03/2026"),
-  v("comercial", "comercial.projeto_data_previsao", "projeto_data_previsao", "Previsão de Instalação", "Data prevista para instalação do projeto", "data", "15/04/2026"),
+  v("comercial", "comercial.projeto_data_previsao_instalacao", "projeto_data_previsao_instalacao", "Previsão de Instalação", "Data prevista para instalação do projeto", "data", "15/04/2026"),
   v("comercial", "comercial.projeto_data_instalacao", "projeto_data_instalacao", "Data de Instalação", "Data efetiva da instalação do projeto", "data", "20/04/2026"),
+  v("comercial", "comercial.projeto_data_comissionamento", "projeto_data_comissionamento", "Data de Comissionamento", "Data de comissionamento do projeto", "data", "25/04/2026"),
+  v("comercial", "comercial.projeto_status", "projeto_status", "Status do Projeto", "Status atual do projeto (em andamento, concluído, etc.)", "-", "em_andamento"),
   v("comercial", "comercial.projeto_forma_pagamento", "projeto_forma_pagamento", "Forma de Pagamento", "Forma de pagamento do projeto", "-", "Financiamento"),
   v("comercial", "comercial.projeto_valor_entrada", "projeto_valor_entrada", "Valor de Entrada", "Valor de entrada do projeto", "R$", "10000.00"),
   v("comercial", "comercial.projeto_valor_financiado", "projeto_valor_financiado", "Valor Financiado", "Valor financiado do projeto", "R$", "35000.00"),
   v("comercial", "comercial.projeto_numero_parcelas", "projeto_numero_parcelas", "Nº de Parcelas", "Número de parcelas do financiamento do projeto", "UN", "60"),
   v("comercial", "comercial.projeto_valor_parcela", "projeto_valor_parcela", "Valor da Parcela", "Valor mensal da parcela do projeto", "R$", "850.00"),
-  v("comercial", "comercial.projeto_prazo_estimado", "projeto_prazo_estimado", "Prazo Estimado (dias)", "Prazo estimado em dias para conclusão do projeto", "dias", "30"),
+  v("comercial", "comercial.projeto_prazo_estimado_dias", "projeto_prazo_estimado_dias", "Prazo Estimado (dias)", "Prazo estimado em dias para conclusão do projeto", "dias", "30"),
+  v("comercial", "comercial.projeto_prazo_vistoria_dias", "projeto_prazo_vistoria_dias", "Prazo Vistoria (dias)", "Prazo em dias para vistoria da concessionária", "dias", "15"),
 
   // ── Projeto (endereço de instalação) ──
   v("comercial", "comercial.projeto_rua_instalacao", "projeto_rua_instalacao", "Rua Instalação", "Rua do local de instalação", "-", "Rua Solar"),
@@ -745,6 +776,9 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.projeto_cidade_instalacao", "projeto_cidade_instalacao", "Cidade Instalação", "Cidade do local de instalação", "-", "Belo Horizonte"),
   v("comercial", "comercial.projeto_uf_instalacao", "projeto_uf_instalacao", "UF Instalação", "Estado/UF do local de instalação", "-", "MG"),
   v("comercial", "comercial.projeto_cep_instalacao", "projeto_cep_instalacao", "CEP Instalação", "CEP do local de instalação", "-", "30130-000"),
+  v("comercial", "comercial.projeto_lat_instalacao", "projeto_lat_instalacao", "Latitude Instalação", "Latitude do local de instalação", "-", "-19.9167"),
+  v("comercial", "comercial.projeto_lon_instalacao", "projeto_lon_instalacao", "Longitude Instalação", "Longitude do local de instalação", "-", "-43.9345"),
+  v("comercial", "comercial.projeto_observacoes", "projeto_observacoes", "Observações do Projeto", "Observações e notas do projeto", "-", "Telhado com inclinação de 15°"),
 
   // ── Consultor (complementares) ──
   v("comercial", "comercial.consultor_telefone", "consultor_telefone", "Telefone do Consultor", "Telefone de contato do consultor", "-", "(31) 99999-0000"),
@@ -755,14 +789,19 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.concessionaria_sigla", "concessionaria_sigla", "Sigla da Concessionária", "Sigla/abreviação da concessionária", "-", "CEMIG"),
   v("comercial", "comercial.concessionaria_estado", "concessionaria_estado", "Estado da Concessionária", "Estado de atuação da concessionária", "-", "MG"),
   v("comercial", "comercial.concessionaria_tarifa_fio_b", "concessionaria_tarifa_fio_b", "Tarifa Fio B da Concessionária", "Valor da tarifa Fio B da concessionária", "R$/kWh", "0.21"),
-  v("comercial", "comercial.concessionaria_custo_disp_mono", "concessionaria_custo_disp_mono", "Custo Disp. Monofásico", "Custo de disponibilidade monofásico da concessionária", "kWh", "30"),
-  v("comercial", "comercial.concessionaria_custo_disp_bi", "concessionaria_custo_disp_bi", "Custo Disp. Bifásico", "Custo de disponibilidade bifásico da concessionária", "kWh", "50"),
-  v("comercial", "comercial.concessionaria_custo_disp_tri", "concessionaria_custo_disp_tri", "Custo Disp. Trifásico", "Custo de disponibilidade trifásico da concessionária", "kWh", "100"),
+  v("comercial", "comercial.concessionaria_custo_disponibilidade_monofasico", "concessionaria_custo_disponibilidade_monofasico", "Custo Disp. Monofásico", "Custo de disponibilidade monofásico da concessionária", "kWh", "30"),
+  v("comercial", "comercial.concessionaria_custo_disponibilidade_bifasico", "concessionaria_custo_disponibilidade_bifasico", "Custo Disp. Bifásico", "Custo de disponibilidade bifásico da concessionária", "kWh", "50"),
+  v("comercial", "comercial.concessionaria_custo_disponibilidade_trifasico", "concessionaria_custo_disponibilidade_trifasico", "Custo Disp. Trifásico", "Custo de disponibilidade trifásico da concessionária", "kWh", "100"),
   v("comercial", "comercial.concessionaria_aliquota_icms", "concessionaria_aliquota_icms", "Alíquota ICMS", "Alíquota de ICMS da concessionária", "%", "18"),
   v("comercial", "comercial.concessionaria_percentual_isencao", "concessionaria_percentual_isencao", "% Isenção SCEE", "Percentual de isenção SCEE da concessionária", "%", "100"),
+  v("comercial", "comercial.concessionaria_possui_isencao_scee", "concessionaria_possui_isencao_scee", "Possui Isenção SCEE", "Se a concessionária possui isenção SCEE", "-", "Sim"),
 
   // ── Simulação (complementares) ──
-  v("comercial", "comercial.co2_evitado_kg", "co2_evitado_kg", "CO₂ Evitado (kg)", "Quantidade de CO₂ evitada pela geração solar", "kg", "5400"),
+  v("comercial", "comercial.simulacao_tipo_conta", "simulacao_tipo_conta", "Tipo de Conta", "Tipo de conta de energia da simulação", "-", "Residencial"),
+  v("comercial", "comercial.simulacao_co2_evitado_kg", "simulacao_co2_evitado_kg", "CO₂ Evitado (kg)", "Quantidade de CO₂ evitada pela geração solar", "kg", "5400"),
+
+  // ── Cliente (complementares) ──
+  v("comercial", "comercial.cliente_observacoes", "cliente_observacoes", "Observações do Cliente", "Observações e notas sobre o cliente", "-", "Cliente preferencial"),
 
   // ──────────────────────────────────────────────────────────────
   // CLIENTE
