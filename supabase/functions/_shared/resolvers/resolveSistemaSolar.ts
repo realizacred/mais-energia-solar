@@ -176,8 +176,7 @@ export function resolveSistemaSolar(
     set("modulo_coef_temp_voc", snap.modulo_coef_temp_voc);
     set("modulo_coef_temp_isc", snap.modulo_coef_temp_isc);
 
-    // Garantia
-    set("modulo_garantia", m0.garantia ?? m0.garantia_anos);
+    // NOTE: modulo_garantia — no 'garantia'/'garantia_anos' column in modulos_fotovoltaicos yet. Passthrough only.
   }
 
   // Fallback from snapshot direct keys
