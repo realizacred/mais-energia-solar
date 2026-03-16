@@ -14,5 +14,5 @@
  */
 export function normalizeChartPlaceholder(input: string): string {
   if (!input) return "";
-  return input.trim().replace(/^\[|\]$/g, "").replace(/\s+/g, "_");
+  return input.trim().replace(/^\[|\]$/g, "").replace(/\s+/g, "_").toLowerCase();
 }

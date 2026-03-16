@@ -9,6 +9,7 @@ export interface ChartInjectionReport {
   rendered: string[];
   failed: string[];
   skipped: string[];
+  reasons?: Record<string, string>;
 }
 
 /**
