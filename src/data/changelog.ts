@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.61.0",
+    date: "2026-03-16",
+    title: "Módulo de Gráficos para Propostas",
+    type: "feature",
+    description: "Novo módulo de gráficos para propostas comerciais com renderização PNG via QuickChart e catálogo configurável por tenant.",
+    details: [
+      "Tabela proposal_charts com catálogo de gráficos por tenant (bar, line, pie, doughnut, area, stacked_bar)",
+      "Edge Function proposal-chart-render gera PNG de alta resolução via QuickChart.io API",
+      "Admin UI com CRUD de gráficos (aba Gráficos em Proposta Comercial)",
+      "Preview interativo com dados de exemplo e download PNG",
+      "Tipos, registry e dataset builder no frontend (src/lib/proposal-charts/)",
+      "Suporte a engines rendered_image e docx_native (futuro)",
+    ],
+  },
+  {
     version: "2.60.3",
     date: "2026-03-16",
     title: "Placeholders ausentes preservados como [variavel] no DOCX",
