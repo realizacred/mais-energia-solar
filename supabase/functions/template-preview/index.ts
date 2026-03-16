@@ -93,7 +93,7 @@ async function hashBytes(data: Uint8Array): Promise<string> {
  * Robust DOCX template processor.
  * Step 1: Normalize split placeholders by merging <w:r> runs within each <w:p>.
  * Step 2: Simple [key] → value substitution on the normalized XML.
- * Step 3: Final sweep — layout-safe: missing→<key>, empty→— (NEVER blank).
+ * Step 3: Final sweep — missing placeholders stay as-is ([key] or {{key}}), empty→— (NEVER blank).
  *
  * "Empty" means: null, undefined, or whitespace-only string in vars map.
  * 0, "0", 0.00, false are NOT empty — they are valid values.
@@ -229,8 +229,9 @@ async function processDocxTemplate(
     }
 
     // ── STEP 3: Final sweep — remaining placeholders are MISSING (not in vars) ──
-    // Replace with <key> (angle brackets, XML-escaped) to preserve layout and enable auditing.
-    // NEVER blank them out — that collapses layout in DOCX→PDF conversion.
+    // KEEP them exactly as-is ([varName] or {{varName}}) to preserve layout,
+    // enable easy identification, and avoid introducing different characters
+    // that change text width. Only collect them for logging/auditing.
     const localMissing: string[] = [];
 
     const remainingBracket = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
@@ -246,19 +247,8 @@ async function processDocxTemplate(
       if (!localMissing.includes(varName)) localMissing.push(varName);
     }
 
+    // Do NOT replace — just register for audit
     for (const varName of localMissing) {
-      // Replace with XML-safe angle bracket marker by escaping literal <varName> text.
-      const safeMarker = escapeXml(`<${varName}>`);
-      const bracketPattern = `[${varName}]`;
-      const mustachePattern = `{{${varName}}}`;
-      if (content.includes(bracketPattern)) {
-        content = content.replaceAll(bracketPattern, safeMarker);
-        modified = true;
-      }
-      if (content.includes(mustachePattern)) {
-        content = content.replaceAll(mustachePattern, safeMarker);
-        modified = true;
-      }
       if (!missingVars.includes(varName)) {
         missingVars.push(varName);
       }
@@ -1160,7 +1150,7 @@ Deno.serve(async (req) => {
       const substituted = totalVars - missingCount - emptyCount;
       console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing, ${emptyCount} empty out of ${totalVars} total vars`);
       if (result.missingVars.length > 0) {
-        console.warn(`[template-preview] Missing variables (→ <key>):`, result.missingVars.slice(0, 30));
+        console.warn(`[template-preview] missing_placeholders (kept as-is in output):`, result.missingVars);
       }
       if (result.emptyVars.length > 0) {
         console.warn(`[template-preview] Empty variables (→ —):`, result.emptyVars.slice(0, 30));
