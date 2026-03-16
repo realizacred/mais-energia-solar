@@ -151,14 +151,20 @@ export const SCHEMA_TABLES: {
   {
     name: "propostas_nativas", label: "Propostas", icon: "📄", flowOrder: 4,
     columns: [
-      { column: "titulo", label: "Título da Proposta" },
+      { column: "titulo", label: "Título da Proposta", expectedKey: "proposta_titulo" },
       { column: "codigo", label: "Código da Proposta", expectedKey: "proposta_identificador" },
+      { column: "proposta_num", label: "Número da Proposta" },
       { column: "status", label: "Status da Proposta" },
-      { column: "validade_dias", label: "Validade (dias)" },
+      { column: "validade_dias", label: "Validade (dias)", expectedKey: "proposta_validade" },
       { column: "aceita_at", label: "Data de Aceite" },
       { column: "enviada_at", label: "Data de Envio" },
       { column: "recusa_motivo", label: "Motivo de Recusa" },
       { column: "recusada_at", label: "Data de Recusa" },
+      { column: "regra_gd", label: "Regra GD Aplicada" },
+      { column: "origem_tarifa", label: "Origem da Tarifa" },
+      { column: "precisao_calculo", label: "Precisão do Cálculo" },
+      { column: "precisao_motivo", label: "Motivo da Precisão" },
+      { column: "versao_atual", label: "Versão Atual" },
     ],
   },
   {
