@@ -23,6 +23,46 @@ function isInversor(i: AnyObj): boolean {
   return false;
 }
 
+function isBateria(i: AnyObj): boolean {
+  const cat = String(i.categoria ?? "").toLowerCase();
+  const tipo = String(i.tipo ?? "").toLowerCase();
+  if (cat.includes("bateria") || cat === "battery") return true;
+  if (tipo.includes("bateria")) return true;
+  return false;
+}
+
+/**
+ * Parses "2279 x 1134 x 35" → { comprimento_mm, largura_mm, profundidade_mm }
+ */
+function parseDimensoes(dim: unknown): { comprimento_mm?: number; largura_mm?: number; profundidade_mm?: number } {
+  if (!dim || typeof dim !== "string") return {};
+  const parts = dim.split(/\s*[x×X]\s*/).map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+  if (parts.length >= 3) return { comprimento_mm: parts[0], largura_mm: parts[1], profundidade_mm: parts[2] };
+  if (parts.length === 2) return { comprimento_mm: parts[0], largura_mm: parts[1] };
+  return {};
+}
+
+/**
+ * Parses coef_temp string like "-0.34%/°C Pmax, -0.28%/°C Voc, +0.05%/°C Isc"
+ * Returns individual coefficients.
+ */
+function parseCoefTemp(coef: unknown): { coef_temp_pmax?: string; coef_temp_voc?: string; coef_temp_isc?: string } {
+  if (!coef || typeof coef !== "string") return {};
+  const result: Record<string, string> = {};
+  const parts = coef.split(",").map(s => s.trim());
+  for (const part of parts) {
+    const lower = part.toLowerCase();
+    if (lower.includes("pmax") || lower.includes("pmáx")) {
+      result.coef_temp_pmax = part.replace(/pmax|pmáx/i, "").trim().replace(/\s+/g, "");
+    } else if (lower.includes("voc")) {
+      result.coef_temp_voc = part.replace(/voc/i, "").trim().replace(/\s+/g, "");
+    } else if (lower.includes("isc")) {
+      result.coef_temp_isc = part.replace(/isc/i, "").trim().replace(/\s+/g, "");
+    }
+  }
+  return result;
+}
+
 export function resolveSistemaSolar(
   snapshot: AnyObj | null | undefined,
   ext?: ResolverExternalContext,
@@ -78,23 +118,66 @@ export function resolveSistemaSolar(
     out["vc_total_modulo"] = String(numModulos);
   }
 
-  // ── Módulos from itens ──
+  // ── Classify items ──
   const modulos = itens.filter(i => isModulo(i) && !isInversor(i));
   const inversores = itens.filter(i => isInversor(i));
+  const baterias = itens.filter(i => isBateria(i));
 
+  // ══════════════════════════════════════════════════════════
+  // ── MÓDULOS — enriched catalog fields ──
+  // ══════════════════════════════════════════════════════════
   if (modulos[0]) {
-    set("modulo_fabricante", modulos[0].fabricante);
-    set("modulo_modelo", modulos[0].modelo);
-    if (modulos[0].potencia_w) {
-      const pw = String(modulos[0].potencia_w);
+    const m0 = modulos[0];
+    set("modulo_fabricante", m0.fabricante);
+    set("modulo_modelo", m0.modelo);
+    if (m0.potencia_w) {
+      const pw = String(m0.potencia_w);
       out["modulo_potencia"] = pw.includes("Wp") ? pw : `${pw} Wp`;
     }
-    set("vc_modulo_potencia", modulos[0].potencia_w);
+    set("vc_modulo_potencia", m0.potencia_w);
     const totalMod = modulos.reduce((s, m) => s + Number(m.quantidade ?? 0), 0);
     if (totalMod > 0 && !out["modulo_quantidade"]) {
       out["modulo_quantidade"] = String(totalMod);
       out["vc_total_modulo"] = String(totalMod);
     }
+
+    // ── Catalog-enriched module specs ──
+    set("modulo_tipo_celula", m0.tipo_celula);
+    set("modulo_celulas", m0.numero_celulas);
+    set("modulo_eficiencia", m0.eficiencia_percent);
+    set("modulo_tensao_maxima", m0.tensao_sistema_v);
+    set("modulo_vmp", m0.vmp);
+    set("modulo_voc", m0.voc);
+    set("modulo_imp", m0.imp);
+    set("modulo_isc", m0.isc);
+    set("modulo_codigo", m0.codigo);
+
+    // Dimensions — from pre-parsed fields or from dimensoes_mm string
+    const dims = (m0.comprimento_mm != null) ? m0 : parseDimensoes(m0.dimensoes_mm);
+    if (num(dims.comprimento_mm) != null) out["modulo_comprimento"] = `${dims.comprimento_mm} mm`;
+    if (num(dims.largura_mm) != null) out["modulo_largura"] = `${dims.largura_mm} mm`;
+    if (num(dims.profundidade_mm) != null) out["modulo_profundidade"] = `${dims.profundidade_mm} mm`;
+
+    // Derived: modulo_area (m²)
+    const compMm = num(dims.comprimento_mm);
+    const largMm = num(dims.largura_mm);
+    if (compMm != null && largMm != null) {
+      const areaM2 = (compMm * largMm) / 1_000_000;
+      out["modulo_area"] = `${fmtNum(areaM2, 2)} m²`;
+    }
+
+    // Temperature coefficients
+    const coefs = parseCoefTemp(m0.coef_temp);
+    if (coefs.coef_temp_pmax) set("modulo_coef_temp_pmax", coefs.coef_temp_pmax);
+    if (coefs.coef_temp_voc) set("modulo_coef_temp_voc", coefs.coef_temp_voc);
+    if (coefs.coef_temp_isc) set("modulo_coef_temp_isc", coefs.coef_temp_isc);
+    // Also set concatenated coef_temp
+    set("modulo_coef_temp_voc", snap.modulo_coef_temp_voc);
+    set("modulo_coef_temp_isc", snap.modulo_coef_temp_isc);
+    set("modulo_coef_temp_pmax", snap.modulo_coef_temp_pmax);
+
+    // Garantia
+    set("modulo_garantia", m0.garantia ?? m0.garantia_anos);
   }
 
   // Fallback from snapshot direct keys
@@ -105,7 +188,25 @@ export function resolveSistemaSolar(
     out["modulo_potencia"] = mp.includes("Wp") ? mp : `${mp} Wp`;
   }
 
-  // ── Inversores from itens ──
+  // Module snapshot fallbacks for catalog fields
+  set("modulo_tipo_celula", snap.modulo_tipo_celula);
+  set("modulo_celulas", snap.modulo_celulas);
+  set("modulo_eficiencia", snap.modulo_eficiencia);
+  set("modulo_tensao_maxima", snap.modulo_tensao_maxima);
+  set("modulo_vmp", snap.modulo_vmp);
+  set("modulo_voc", snap.modulo_voc);
+  set("modulo_imp", snap.modulo_imp);
+  set("modulo_isc", snap.modulo_isc);
+  set("modulo_codigo", snap.modulo_codigo);
+  set("modulo_comprimento", snap.modulo_comprimento);
+  set("modulo_largura", snap.modulo_largura);
+  set("modulo_profundidade", snap.modulo_profundidade);
+  set("modulo_area", snap.modulo_area);
+  set("modulo_garantia", snap.modulo_garantia);
+
+  // ══════════════════════════════════════════════════════════
+  // ── INVERSORES — enriched catalog fields ──
+  // ══════════════════════════════════════════════════════════
   if (inversores[0]) {
     set("inversor_fabricante", inversores[0].fabricante);
     set("inversor_fabricante_1", inversores[0].fabricante);
@@ -122,6 +223,26 @@ export function resolveSistemaSolar(
     
     const invQty = inversores.reduce((s, inv) => s + Number(inv.quantidade ?? 1), 0);
     if (invQty > 0) set("inversor_quantidade", String(invQty));
+
+    // ── Catalog-enriched inverter specs (aggregated from first inverter) ──
+    set("inversor_tensao", inversores[0].tensao_max_v ?? inversores[0].tensao_linha_v);
+    set("inversor_tipo", inversores[0].tipo_sistema);
+    // NOTE: inversor_corrente_saida is AC output current — only set from actual AC output field
+    // corrente_max_mppt_a is DC input current, NOT AC output — do NOT use here
+    set("inversor_corrente_saida", inversores[0].corrente_saida_ac ?? inversores[0].corrente_nominal_saida);
+    set("inversor_mppts_utilizados", inversores[0].mppts);
+    set("inversor_codigo", inversores[0].codigo);
+    set("inversor_garantia", inversores[0].garantia ?? inversores[0].garantia_anos);
+
+    // Derived: inversores_potencia_maxima_total
+    const totalPotMax = inversores.reduce((s, inv) => {
+      const potMax = Number(inv.potencia_maxima_w ?? inv.potencia_w ?? 0);
+      const qty = Number(inv.quantidade ?? 1);
+      return s + (potMax * qty);
+    }, 0);
+    if (totalPotMax > 0) {
+      out["inversores_potencia_maxima_total"] = `${fmtNum(totalPotMax, 0)} W`;
+    }
   }
 
   // Fallback from snapshot/projeto
@@ -134,7 +255,16 @@ export function resolveSistemaSolar(
   }
   set("inversores_utilizados", snap.inversores_utilizados ?? (projeto.modelo_inversor ? `1x ${projeto.modelo_inversor}` : undefined));
 
-  // ── Indexed inversores ──
+  // Inverter snapshot fallbacks
+  set("inversor_tensao", snap.inversor_tensao);
+  set("inversor_tipo", snap.inversor_tipo);
+  set("inversor_corrente_saida", snap.inversor_corrente_saida);
+  set("inversor_mppts_utilizados", snap.inversor_mppts_utilizados);
+  set("inversor_codigo", snap.inversor_codigo);
+  set("inversor_garantia", snap.inversor_garantia);
+  set("inversores_potencia_maxima_total", snap.inversores_potencia_maxima_total);
+
+  // ── Indexed inversores (with catalog enrichment) ──
   inversores.forEach((inv, idx) => {
     const i = idx + 1;
     set(`inversor_fabricante_${i}`, inv.fabricante);
@@ -146,12 +276,28 @@ export function resolveSistemaSolar(
       }
     }
     set(`inversor_quantidade_${i}`, inv.quantidade);
+    // Enriched catalog fields per inverter
+    set(`inversor_potencia_${i}`, inv.potencia_maxima_w ?? inv.potencia_w);
+    set(`inversor_tensao_${i}`, inv.tensao_max_v ?? inv.tensao_linha_v);
+    set(`inversor_tipo_${i}`, inv.tipo_sistema);
+    // AC output current only from actual AC field
+    set(`inversor_corrente_saida_${i}`, inv.corrente_saida_ac ?? inv.corrente_nominal_saida);
+    set(`inversor_mppts_utilizados_${i}`, inv.mppts);
+    set(`inversor_codigo_${i}`, inv.codigo);
+    set(`inversor_garantia_${i}`, inv.garantia ?? inv.garantia_anos);
+    // Hybrid/off-grid fields
+    set(`inversor_sistema_${i}`, inv.tipo_sistema);
+    set(`inversor_corrente_max_entrada_mppt1_${i}`, inv.corrente_max_mppt_a);
+    set(`inversor_corrente_max_entrada_${i}`, inv.corrente_max_mppt_a);
   });
 
   // ── Extended inverter/battery/optimizer fields from snapshot ──
   const inversorFields = ["inversor_fabricante", "inversor_modelo", "inversor_quantidade", "inversor_potencia",
     "inversor_potencia_nominal", "inversor_tensao", "inversor_tipo", "inversor_corrente_saida",
-    "inversor_mppts_utilizados", "inversor_strings_utilizadas", "inversor_codigo", "inversor_garantia"];
+    "inversor_mppts_utilizados", "inversor_strings_utilizadas", "inversor_codigo", "inversor_garantia",
+    "inversor_sistema", "inversor_corrente_max_entrada_mppt1", "inversor_corrente_max_entrada",
+    "inversor_corrente_max_carga_cc", "inversor_corrente_max_descarga_cc",
+    "inversor_tipo_bateria", "inversor_tensao_bateria_min", "inversor_tensao_bateria_max"];
   for (const k of inversorFields) {
     set(k, snap[k]);
     for (let i = 1; i <= 5; i++) set(`${k}_${i}`, snap[`${k}_${i}`]);
@@ -163,19 +309,82 @@ export function resolveSistemaSolar(
   set("transformador_nome", snap.transformador_nome);
   set("transformador_potencia", snap.transformador_potencia);
 
+  // ══════════════════════════════════════════════════════════
+  // ── BATERIAS — enriched catalog fields ──
+  // ══════════════════════════════════════════════════════════
+  if (baterias[0]) {
+    const b0 = baterias[0];
+    set("bateria_fabricante", b0.fabricante);
+    set("bateria_modelo", b0.modelo);
+    set("bateria_tipo", b0.tipo_bateria);
+    set("bateria_energia", b0.energia_kwh);
+    const batQty = baterias.reduce((s, b) => s + Number(b.quantidade ?? 1), 0);
+    if (batQty > 0) set("bateria_quantidade", String(batQty));
+    set("bateria_tensao_operacao", b0.tensao_operacao_v);
+    set("bateria_tensao_nominal", b0.tensao_nominal_v);
+    set("bateria_tensao_carga", b0.tensao_carga_v);
+    set("bateria_potencia_maxima_saida", b0.potencia_max_saida_kw);
+    set("bateria_corrente_maxima_descarga", b0.corrente_max_descarga_a);
+    set("bateria_corrente_maxima_carga", b0.corrente_max_carga_a);
+    set("bateria_corrente_recomendada", b0.correntes_recomendadas_a);
+    set("bateria_capacidade", b0.capacidade ?? b0.energia_kwh);
+
+    // Dimensions from pre-parsed or dimensoes_mm
+    const bDims = (b0.comprimento_mm != null) ? b0 : parseDimensoes(b0.dimensoes_mm);
+    if (num(bDims.comprimento_mm) != null) out["bateria_comprimento"] = `${bDims.comprimento_mm} mm`;
+    if (num(bDims.largura_mm) != null) out["bateria_largura"] = `${bDims.largura_mm} mm`;
+    if (num(bDims.profundidade_mm) != null) out["bateria_profundidade"] = `${bDims.profundidade_mm} mm`;
+  }
+
+  // ── Indexed baterias (with catalog enrichment) ──
+  baterias.forEach((bat, idx) => {
+    const i = idx + 1;
+    set(`bateria_fabricante_${i}`, bat.fabricante);
+    set(`bateria_modelo_${i}`, bat.modelo);
+    set(`bateria_tipo_${i}`, bat.tipo_bateria);
+    set(`bateria_energia_${i}`, bat.energia_kwh);
+    set(`bateria_quantidade_${i}`, bat.quantidade);
+    set(`bateria_tensao_operacao_${i}`, bat.tensao_operacao_v);
+    set(`bateria_tensao_nominal_${i}`, bat.tensao_nominal_v);
+    set(`bateria_tensao_carga_${i}`, bat.tensao_carga_v);
+    set(`bateria_potencia_maxima_saida_${i}`, bat.potencia_max_saida_kw);
+    set(`bateria_corrente_maxima_descarga_${i}`, bat.corrente_max_descarga_a);
+    set(`bateria_corrente_maxima_carga_${i}`, bat.corrente_max_carga_a);
+    set(`bateria_corrente_recomendada_${i}`, bat.correntes_recomendadas_a);
+    set(`bateria_capacidade_${i}`, bat.capacidade ?? bat.energia_kwh);
+
+    const bDims = (bat.comprimento_mm != null) ? bat : parseDimensoes(bat.dimensoes_mm);
+    if (num(bDims.comprimento_mm) != null && !out[`bateria_comprimento_${i}`]) out[`bateria_comprimento_${i}`] = `${bDims.comprimento_mm} mm`;
+    if (num(bDims.largura_mm) != null && !out[`bateria_largura_${i}`]) out[`bateria_largura_${i}`] = `${bDims.largura_mm} mm`;
+    if (num(bDims.profundidade_mm) != null && !out[`bateria_profundidade_${i}`]) out[`bateria_profundidade_${i}`] = `${bDims.profundidade_mm} mm`;
+  });
+
   const bateriaFields = ["bateria_fabricante", "bateria_modelo", "bateria_tipo", "bateria_energia",
     "bateria_quantidade", "bateria_comprimento", "bateria_largura", "bateria_profundidade",
     "bateria_tensao_operacao", "bateria_tensao_carga", "bateria_tensao_nominal",
     "bateria_potencia_maxima_saida", "bateria_corrente_maxima_descarga", "bateria_corrente_maxima_carga",
-    "bateria_corrente_recomendada", "bateria_capacidade"];
+    "bateria_corrente_recomendada", "bateria_capacidade",
+    "bateria_temperatura_descarga_min", "bateria_temperatura_descarga_max",
+    "bateria_temperatura_carga_min", "bateria_temperatura_carga_max",
+    "bateria_temperatura_armazenamento_min", "bateria_temperatura_armazenamento_max"];
   for (const k of bateriaFields) {
     set(k, snap[k]);
     for (let i = 1; i <= 3; i++) set(`${k}_${i}`, snap[`${k}_${i}`]);
   }
 
+  // ── Storage / armazenamento ──
   for (const k of ["autonomia", "energia_diaria_armazenamento", "armazenamento_necessario",
     "armazenamento_util_adicionado", "p_armazenamento_necessario"]) {
     set(k, snap[k]);
+  }
+
+  // Derived: p_armazenamento_necessario
+  if (!out["p_armazenamento_necessario"]) {
+    const armUtil = num(snap.armazenamento_util_adicionado);
+    const armNec = num(snap.armazenamento_necessario);
+    if (armUtil != null && armNec != null && armNec > 0) {
+      out["p_armazenamento_necessario"] = `${fmtNum((armUtil / armNec) * 100, 1)}%`;
+    }
   }
 
   // Layout
