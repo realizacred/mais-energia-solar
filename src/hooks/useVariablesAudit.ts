@@ -49,6 +49,21 @@ export interface DescriptionIssue {
   issue: "missing" | "too_short";
 }
 
+export type VariableSource = "snapshot" | "db_lead" | "db_cliente" | "db_consultor" | "db_projeto" | "db_proposta" | "db_versao" | "computed" | "custom_vc" | "unknown";
+
+export const SOURCE_LABELS: Record<VariableSource, { label: string; icon: string; color: string }> = {
+  snapshot: { label: "Snapshot", icon: "📸", color: "text-info" },
+  db_lead: { label: "BD: Lead", icon: "🎯", color: "text-primary" },
+  db_cliente: { label: "BD: Cliente", icon: "👤", color: "text-primary" },
+  db_consultor: { label: "BD: Consultor", icon: "👔", color: "text-primary" },
+  db_projeto: { label: "BD: Projeto", icon: "📁", color: "text-primary" },
+  db_proposta: { label: "BD: Proposta", icon: "📄", color: "text-primary" },
+  db_versao: { label: "BD: Versão", icon: "📋", color: "text-primary" },
+  computed: { label: "Calculada", icon: "🧮", color: "text-warning" },
+  custom_vc: { label: "Customizada", icon: "🧩", color: "text-success" },
+  unknown: { label: "Desconhecida", icon: "❓", color: "text-destructive" },
+};
+
 export interface CategoryAuditEntry {
   category: VariableCategory;
   label: string;
@@ -63,6 +78,8 @@ export interface CategoryAuditEntry {
     example: string;
     hasSchemaMapping: boolean;
     notImplemented?: boolean;
+    source: VariableSource;
+    resolver: string;
   }>;
 }
 
@@ -476,6 +493,148 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
       }
     }
 
+    // ── Source resolution map ──
+    // Based on analysis of 5 domain resolvers in supabase/functions/_shared/resolvers/
+    const RESOLVER_MAP: Record<string, { source: VariableSource; resolver: string }> = {};
+    const addToMap = (keys: string[], source: VariableSource, resolver: string) => {
+      for (const k of keys) RESOLVER_MAP[k] = { source, resolver };
+    };
+
+    // resolveEntrada.ts — snapshot.ucs[], snapshot top-level, ext.lead, ext.cliente
+    addToMap([
+      "tipo", "tipo_uc1", "consumo_mensal", "consumo_mensal_uc1",
+      "consumo_mensal_p", "consumo_mensal_p_uc1", "consumo_mensal_fp", "consumo_mensal_fp_uc1",
+      "dis_energia", "concessionaria_id", "subgrupo", "subgrupo_uc1", "grupo_tarifario",
+      "tarifa_distribuidora", "tarifa_distribuidora_uc1",
+      "tarifa_te_p", "tarifa_te_p_uc1", "tarifa_tusd_p", "tarifa_tusd_p_uc1",
+      "tarifa_te_fp", "tarifa_te_fp_uc1", "tarifa_tusd_fp", "tarifa_tusd_fp_uc1",
+      "demanda_preco", "demanda_preco_uc1", "demanda_contratada", "demanda_contratada_uc1", "demanda_adicional",
+      "outros_encargos_atual", "outros_encargos_atual_uc1", "outros_encargos_novo", "outros_encargos_novo_uc1",
+      "estado", "cidade", "distancia", "taxa_desempenho", "desvio_azimutal", "inclinacao", "fator_geracao",
+      "tipo_telhado", "cape_telhado", "estrutura", "fase", "fase_uc1", "tensao_rede", "tensao",
+      "custo_disponibilidade_kwh", "custo_disponibilidade_kwh_uc1",
+      "topologia", "fator_simultaneidade", "tipo_sistema",
+      "rateio_sugerido_creditos", "rateio_sugerido_creditos_uc1", "rateio_creditos", "rateio_creditos_uc1",
+      "imposto_energia", "imposto_energia_uc1", "nome_uc1",
+      "demanda_g_uc1", "demanda_g_preco_uc1",
+      "t_e_comp_fp_1_uc1", "t_e_comp_fp_2_uc1", "t_e_comp_p_1_uc1", "t_e_comp_p_2_uc1",
+      "t_e_comp_bt_1_uc1", "t_e_comp_bt_2_uc1", "regra_comp_uc1", "dod", "cidade_estado", "qtd_ucs",
+      "area_util",
+    ], "snapshot", "resolveEntrada");
+    // Monthly consumption keys
+    for (const m of ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"]) {
+      addToMap([`consumo_${m}`, `consumo_${m}_uc1`, `consumo_mensal_p_${m}`, `consumo_mensal_p_${m}_uc1`,
+        `consumo_mensal_fp_${m}`, `consumo_mensal_fp_${m}_uc1`, `fator_geracao_${m}`], "snapshot", "resolveEntrada");
+    }
+
+    // resolveSistemaSolar.ts — snapshot.itens[], snapshot.tecnico, ext.projeto, ext.cliente
+    addToMap([
+      "potencia_sistema", "potencia_kwp", "potencia_ideal_total",
+      "geracao_mensal", "geracao_anual",
+      "numero_modulos", "modulo_quantidade", "vc_total_modulo",
+      "modulo_fabricante", "modulo_modelo", "modulo_potencia", "vc_modulo_potencia",
+      "inversor_fabricante", "inversor_modelo", "inversor_potencia_nominal", "inversores_utilizados", "inversor_quantidade",
+      "otimizador_fabricante", "otimizador_modelo", "otimizador_potencia", "otimizador_quantidade",
+      "transformador_nome", "transformador_potencia",
+      "bateria_fabricante", "bateria_modelo", "bateria_tipo", "bateria_energia", "bateria_quantidade",
+      "bateria_capacidade", "bateria_tensao_operacao", "bateria_tensao_nominal", "bateria_potencia_maxima_saida",
+      "autonomia", "energia_diaria_armazenamento", "armazenamento_necessario",
+      "layout_arranjo_linhas", "layout_arranjos_total", "layout_orientacao",
+      "creditos_gerados", "kit_fechado_quantidade", "segmentos_utilizados",
+      "area_necessaria", "peso_total", "estrutura_tipo", "kit_codigo",
+    ], "snapshot", "resolveSistemaSolar");
+    for (const m of ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"]) {
+      addToMap([`geracao_${m}`], "snapshot", "resolveSistemaSolar");
+    }
+    for (let i = 0; i <= 25; i++) addToMap([`geracao_anual_${i}`], "snapshot", "resolveSistemaSolar");
+    for (let i = 1; i <= 5; i++) {
+      addToMap([`inversor_fabricante_${i}`, `inversor_modelo_${i}`, `inversor_potencia_nominal_${i}`, `inversor_quantidade_${i}`], "snapshot", "resolveSistemaSolar");
+      addToMap([`bateria_fabricante_${i}`, `bateria_modelo_${i}`], "snapshot", "resolveSistemaSolar");
+    }
+
+    // resolveFinanceiro.ts — snapshot.financeiro, versaoData, ext.projeto
+    addToMap([
+      "valor_total", "preco_final", "preco_total", "preco", "capo_i", "vc_a_vista",
+      "preco_kwp", "preco_watt",
+      "economia_mensal", "economia_anual", "roi_25_anos", "economia_25_anos",
+      "payback", "payback_meses", "payback_anos",
+      "kit_fechado_preco_total", "vpl", "tir", "roi_anual",
+      "margem_lucro", "margem_percentual", "desconto_percentual", "desconto_valor",
+      "custo_modulos", "custo_inversores", "custo_estrutura", "custo_instalacao", "custo_kit",
+      "comissao_percentual", "comissao_valor", "comissao_res", "comissao_rep",
+      "distribuidor_categoria", "preco_por_extenso",
+      "modulo_custo_un", "modulo_preco_un", "modulo_custo_total", "modulo_preco_total",
+      "inversor_custo_un", "inversor_preco_un", "inversor_custo_total", "inversor_preco_total",
+      "inversores_custo_total", "inversores_preco_total",
+      "otimizador_custo_un", "otimizador_preco_un", "otimizador_custo_total", "otimizador_preco_total",
+      "instalacao_custo_total", "instalacao_preco_total",
+      "estrutura_custo_total", "estrutura_preco_total",
+      "equipamentos_custo_total", "kits_custo_total", "componentes_custo_total",
+      "baterias_custo_total", "baterias_preco_total",
+      "transformadores_custo_total", "transformadores_preco_total",
+      "solar_25", "renda_25", "poupanca_25",
+    ], "snapshot", "resolveFinanceiro");
+    for (let i = 1; i <= 5; i++) {
+      addToMap([`f_nome_${i}`, `f_entrada_${i}`, `f_valor_${i}`, `f_prazo_${i}`, `f_taxa_${i}`, `f_parcela_${i}`], "snapshot", "resolveFinanceiro");
+      addToMap([`inversor_custo_un_${i}`, `inversor_preco_un_${i}`, `inversor_preco_total_${i}`], "snapshot", "resolveFinanceiro");
+      addToMap([`item_a_nome_${i}`, `item_a_custo_${i}`, `item_a_preco_${i}`], "snapshot", "resolveFinanceiro");
+    }
+    for (let i = 0; i <= 25; i++) {
+      addToMap([`investimento_anual_${i}`, `economia_anual_valor_${i}`, `fluxo_caixa_acumulado_anual_${i}`], "snapshot", "resolveFinanceiro");
+    }
+    addToMap(["f_ativo_nome","f_ativo_entrada","f_ativo_valor","f_ativo_prazo","f_ativo_taxa","f_ativo_parcela",
+      "f_banco","f_taxa_juros","f_parcelas","f_valor_parcela","f_entrada","f_valor_financiado","f_cet"], "snapshot", "resolveFinanceiro");
+
+    // resolveClienteComercial.ts — ext.cliente, ext.lead, ext.consultor, ext.tenantNome
+    addToMap([
+      "cliente_nome", "vc_nome", "cliente_celular", "cliente_email", "cliente_cnpj_cpf",
+      "cliente_empresa", "cliente_cep", "cliente_endereco", "cliente_numero", "cliente_complemento",
+      "cliente_bairro", "cliente_cidade", "cliente_estado",
+    ], "db_cliente", "resolveClienteComercial");
+    addToMap([
+      "proposta_data", "proposta_titulo", "proposta_identificador", "proposta_validade", "proposta_versao",
+    ], "db_proposta", "resolveClienteComercial");
+    addToMap([
+      "responsavel_nome", "consultor_nome", "consultor_telefone", "consultor_email",
+    ], "db_consultor", "resolveClienteComercial");
+    addToMap(["empresa_nome"], "db_proposta", "resolveClienteComercial");
+    // Conta de energia fields
+    addToMap([
+      "gasto_atual_mensal", "gasto_com_solar_mensal", "economia_percentual",
+      "creditos_mensal", "tarifa_atual", "imposto_percentual", "bandeira_tarifaria",
+      "custo_disponibilidade_valor", "gasto_energia_mensal_atual", "gasto_energia_mensal_novo",
+      "gasto_energia_mensal_bt_atual", "gasto_energia_mensal_bt_novo",
+      "gasto_energia_mensal_p_atual", "gasto_energia_mensal_p_novo",
+      "gasto_energia_mensal_fp_atual", "gasto_energia_mensal_fp_novo",
+      "gasto_demanda_mensal_atual", "gasto_demanda_mensal_novo",
+      "economia_energia_mensal", "economia_energia_mensal_p",
+      "economia_demanda_mensal", "economia_demanda_mensal_p",
+      "gasto_total_mensal_atual", "gasto_total_mensal_novo",
+      "creditos_alocados", "consumo_abatido",
+      "valor_imposto_energia", "tarifacao_energia_compensada_bt",
+    ], "snapshot", "resolveClienteComercial");
+    addToMap(["co2_evitado_ano"], "computed", "resolveClienteComercial");
+    // Premissas
+    addToMap([
+      "inflacao_energetica", "inflacao_ipca", "imposto", "vpl_taxa_desconto",
+      "perda_eficiencia_anual", "troca_inversor", "troca_inversor_custo",
+      "sobredimensionamento", "vida_util_sistema",
+    ], "snapshot", "resolveClienteComercial");
+    addToMap(["vc_observacao"], "db_lead", "resolveClienteComercial");
+    for (const m of ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"]) {
+      addToMap([`creditos_${m}`, `creditos_alocados_${m}`], "snapshot", "resolveClienteComercial");
+    }
+
+    // resolvePagamento.ts — snapshot.pagamento_opcoes
+    addToMap([
+      "vc_cartao_credito_parcela_1", "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
+      "vc_parcela_1", "vc_parcela_2", "vc_parcela_3",
+      "vc_taxa_1", "vc_taxa_2", "vc_taxa_3",
+      "vc_entrada_1", "vc_entrada_2", "vc_entrada_3",
+      "vc_prazo_1", "vc_prazo_2", "vc_prazo_3",
+      "vc_financeira_nome",
+    ], "snapshot", "resolvePagamento");
+
     const entries: CategoryAuditEntry[] = CATEGORY_ORDER.map((cat) => {
       const catVars = VARIABLES_CATALOG.filter((v) => v.category === cat);
       return {
@@ -485,6 +644,13 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
         total: catVars.length,
         variables: catVars.map((v) => {
           const key = v.legacyKey.replace(/^\[|\]$/g, "");
+          const mapping = RESOLVER_MAP[key];
+          let source: VariableSource = mapping?.source ?? "unknown";
+          let resolver = mapping?.resolver ?? "";
+          // Custom variables
+          if (key.startsWith("vc_") && !mapping) { source = "custom_vc"; resolver = "proposal-generate (evaluateExpression)"; }
+          // Not implemented → unknown
+          if (v.notImplemented) { source = "unknown"; resolver = ""; }
           return {
             key,
             canonicalKey: v.canonicalKey,
@@ -494,6 +660,8 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
             example: v.example,
             hasSchemaMapping: allExpectedKeys.has(key),
             notImplemented: v.notImplemented,
+            source,
+            resolver,
           };
         }),
       };

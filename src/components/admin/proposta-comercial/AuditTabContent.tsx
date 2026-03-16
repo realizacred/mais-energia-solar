@@ -12,10 +12,12 @@ import {
   useVariablesAudit,
   SORTED_TABLES,
   FLOW_GROUPS,
+  SOURCE_LABELS,
   type DbCustomVar,
   type AuditItem,
   type AuditStatus,
   type CategoryAuditEntry,
+  type VariableSource,
 } from "@/hooks/useVariablesAudit";
 
 // ── Status config ──────────────────────────────────────────
@@ -633,64 +635,95 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
               <span className="text-sm">{entry.icon}</span>
               <span className="text-xs font-semibold text-foreground">{entry.label}</span>
               <Badge variant="outline" className="text-[8px] bg-primary/10 text-primary border-primary/20">{entry.total} variáveis</Badge>
+              {(() => {
+                const implemented = entry.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
+                const unknown = entry.variables.filter(v => v.source === "unknown").length;
+                return (
+                  <>
+                    <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20">✅ {implemented}</Badge>
+                    {unknown > 0 && <Badge variant="outline" className="text-[8px] bg-destructive/10 text-destructive border-destructive/20">❓ {unknown}</Badge>}
+                  </>
+                );
+              })()}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-muted/30 border-b border-border">
-                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[30px]">🔗</th>
-                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Label</th>
-                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave Legacy</th>
-                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Canônica</th>
-                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Unidade</th>
-                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Exemplo</th>
-                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Descrição</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[30px]">🔗</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Label</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Origem</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Resolver</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Descrição</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {entry.variables.map((v, idx) => (
+                  {entry.variables.map((v, idx) => {
+                    const srcInfo = SOURCE_LABELS[v.source];
+                    return (
                     <tr key={v.key} className={cn(
                       "border-b border-border/40 transition-colors hover:bg-accent/5",
                       idx % 2 === 0 ? "bg-card" : "bg-muted/10"
                     )}>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-1.5">
                         {v.notImplemented ? (
                           <Tooltip>
                             <TooltipTrigger><AlertTriangle className="h-3 w-3 text-warning" /></TooltipTrigger>
-                            <TooltipContent side="top" className="text-[10px]">Não implementada</TooltipContent>
+                            <TooltipContent side="top" className="text-[10px]">Não implementada — precisa criar</TooltipContent>
                           </Tooltip>
-                        ) : v.hasSchemaMapping ? (
+                        ) : v.source === "unknown" ? (
                           <Tooltip>
-                            <TooltipTrigger><CheckCircle2 className="h-3 w-3 text-success" /></TooltipTrigger>
-                            <TooltipContent side="top" className="text-[10px]">Mapeada no schema</TooltipContent>
+                            <TooltipTrigger><XCircle className="h-3 w-3 text-destructive" /></TooltipTrigger>
+                            <TooltipContent side="top" className="text-[10px]">Fantasma — sem resolver mapeado</TooltipContent>
                           </Tooltip>
                         ) : (
                           <Tooltip>
-                            <TooltipTrigger><span className="text-[10px]">📄</span></TooltipTrigger>
-                            <TooltipContent side="top" className="text-[10px]">Sem mapeamento direto (calculada ou resolvida)</TooltipContent>
+                            <TooltipTrigger><CheckCircle2 className="h-3 w-3 text-success" /></TooltipTrigger>
+                            <TooltipContent side="top" className="text-[10px]">✅ Implementada via {v.resolver}</TooltipContent>
                           </Tooltip>
                         )}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-1.5">
                         <span className="text-[11px] font-medium text-foreground">{v.label}</span>
                       </td>
-                      <td className="px-3 py-2">
-                        <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">[{v.key}]</code>
+                      <td className="px-2 py-1.5">
+                        <code className="font-mono text-primary bg-primary/5 px-1 py-0.5 rounded text-[10px]">[{v.key}]</code>
                       </td>
-                      <td className="px-3 py-2">
-                        <code className="font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded text-[10px]">{v.canonicalKey}</code>
+                      <td className="px-2 py-1.5">
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="outline" className={cn("text-[8px] gap-0.5", srcInfo.color)}>
+                              <span>{srcInfo.icon}</span> {srcInfo.label}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-[10px] max-w-[250px]">
+                            {v.source === "snapshot" && "Resolvida do snapshot imutável da proposta (dados calculados no momento da geração)"}
+                            {v.source === "db_cliente" && "Busca direta na tabela clientes do banco de dados"}
+                            {v.source === "db_lead" && "Busca direta na tabela leads do banco de dados"}
+                            {v.source === "db_consultor" && "Busca direta na tabela consultores do banco de dados"}
+                            {v.source === "db_projeto" && "Busca direta na tabela projetos do banco de dados"}
+                            {v.source === "db_proposta" && "Busca direta nas tabelas propostas_nativas / proposta_versoes"}
+                            {v.source === "db_versao" && "Busca direta na tabela proposta_versoes"}
+                            {v.source === "computed" && "Calculada em tempo de resolução (não vem do banco nem do snapshot)"}
+                            {v.source === "custom_vc" && "Variável customizada — expressão avaliada pelo motor de cálculo"}
+                            {v.source === "unknown" && "⚠️ Sem resolver mapeado — pode ser fantasma ou não implementada"}
+                          </TooltipContent>
+                        </Tooltip>
                       </td>
-                      <td className="px-3 py-2">
-                        <span className="text-[10px] text-muted-foreground">{v.unit}</span>
+                      <td className="px-2 py-1.5">
+                        {v.resolver ? (
+                          <code className="font-mono text-muted-foreground bg-muted/30 px-1 py-0.5 rounded text-[9px]">{v.resolver}</code>
+                        ) : (
+                          <span className="text-[9px] text-destructive">—</span>
+                        )}
                       </td>
-                      <td className="px-3 py-2">
-                        <span className="text-[10px] text-muted-foreground font-mono">{v.example}</span>
-                      </td>
-                      <td className="px-3 py-2 max-w-[200px]">
+                      <td className="px-2 py-1.5 max-w-[180px]">
                         <span className="text-[10px] text-muted-foreground truncate block">{v.description}</span>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
