@@ -115,9 +115,10 @@ interface PaymentItemCardProps {
   onUpdate: (patch: Partial<PaymentItemInput>) => void;
   onRemove: () => void;
   readOnly: boolean;
+  configMap: Map<FormaPagamento, PaymentInterestConfig>;
 }
 
-function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, readOnly }: PaymentItemCardProps) {
+function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, readOnly, configMap }: PaymentItemCardProps) {
   const computed = useMemo(() => computeItem(item), [item]);
   const isParcelavel = FORMAS_PARCELAVEIS.includes(item.forma_pagamento);
   const hasJuros = FORMAS_COM_JUROS.includes(item.forma_pagamento);
