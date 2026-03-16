@@ -217,7 +217,7 @@ export const SCHEMA_TABLES: {
   {
     name: "simulacoes", label: "Simulações", icon: "🧮", flowOrder: 6,
     columns: [
-      { column: "tipo_conta", label: "Tipo de Conta" },
+      { column: "tipo_conta", label: "Tipo de Conta", colType: "string" },
       { column: "valor_conta", label: "Valor da Conta", expectedKey: "gasto_atual_mensal" },
       { column: "consumo_kwh", label: "Consumo kWh", expectedKey: "consumo_mensal" },
       { column: "cidade", label: "Cidade", expectedKey: "cidade" },
@@ -230,7 +230,7 @@ export const SCHEMA_TABLES: {
       { column: "economia_anual", label: "Economia Anual", expectedKey: "economia_anual" },
       { column: "investimento_estimado", label: "Investimento Estimado", expectedKey: "preco_total" },
       { column: "payback_meses", label: "Payback (meses)", expectedKey: "payback_meses" },
-      { column: "co2_evitado_kg", label: "CO₂ Evitado (kg)" },
+      { column: "co2_evitado_kg", label: "CO₂ Evitado (kg)", colType: "number" },
       { column: "tarifa_kwh_usada", label: "Tarifa kWh Usada", expectedKey: "tarifa_atual" },
       { column: "irradiacao_usada", label: "Irradiação Usada", expectedKey: "fator_geracao" },
     ],
