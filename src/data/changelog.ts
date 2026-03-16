@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.60.3",
+    date: "2026-03-16",
+    title: "Placeholders ausentes preservados como [variavel] no DOCX",
+    type: "bugfix",
+    description: "Variáveis não resolvidas no template agora permanecem exatamente como [variavel] em vez de serem convertidas para <variavel>, preservando layout e facilitando identificação.",
+    details: [
+      "Step 3 do processDocxTemplate não substitui mais placeholders ausentes",
+      "Placeholders ausentes são apenas registrados para auditoria (missing_vars)",
+      "Variáveis com valor vazio continuam sendo substituídas por — (em-dash)",
+      "Log de missing_placeholders agora lista todas as variáveis não resolvidas",
+    ],
+  },
+  {
     version: "2.60.2",
     date: "2026-03-15",
     title: "Hardening do DOCX em parágrafos com elementos gráficos",
