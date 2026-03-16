@@ -459,12 +459,56 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
 
   const totalCustomDivergences = customAudit.missingCatalog.length + customAudit.missingDb.length;
 
+  // ── Category audit ─────────────────────────────────────
+  const categoryAudit = useMemo(() => {
+    const CATEGORY_ICONS: Record<VariableCategory, string> = {
+      entrada: "📥", sistema_solar: "☀️", financeiro: "💰", conta_energia: "⚡",
+      comercial: "🏢", cliente: "👤", tabelas: "📊", series: "📈",
+      premissas: "⚙️", tarifa: "🏷️", aneel: "🔄", gd: "🌞",
+      calculo: "🧮", cdd: "🔗", customizada: "🧩",
+    };
+
+    // Build set of all expectedKeys for cross-reference
+    const allExpectedKeys = new Set<string>();
+    for (const table of SORTED_TABLES) {
+      for (const col of table.columns) {
+        if (col.expectedKey) allExpectedKeys.add(col.expectedKey);
+      }
+    }
+
+    const entries: CategoryAuditEntry[] = CATEGORY_ORDER.map((cat) => {
+      const catVars = VARIABLES_CATALOG.filter((v) => v.category === cat);
+      return {
+        category: cat,
+        label: CATEGORY_LABELS[cat],
+        icon: CATEGORY_ICONS[cat],
+        total: catVars.length,
+        variables: catVars.map((v) => {
+          const key = v.legacyKey.replace(/^\[|\]$/g, "");
+          return {
+            key,
+            canonicalKey: v.canonicalKey,
+            label: v.label,
+            description: v.description,
+            unit: v.unit,
+            example: v.example,
+            hasSchemaMapping: allExpectedKeys.has(key),
+            notImplemented: v.notImplemented,
+          };
+        }),
+      };
+    });
+
+    return entries;
+  }, []);
+
   return {
     customAudit,
     schemaAudit,
     descriptionAudit,
     ghostVariables,
     totalCustomDivergences,
+    categoryAudit,
     SORTED_TABLES,
     FLOW_GROUPS,
   };
