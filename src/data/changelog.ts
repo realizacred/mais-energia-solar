@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.70.0",
+    date: "2026-03-16",
+    title: "Auditoria completa: 76 campos sem variável → 0",
+    type: "improvement",
+    description: "Mapeamento completo de todas as colunas do SCHEMA_TABLES para variáveis do catálogo. Removidas ~35 colunas internas/operacionais que não pertencem a templates. Adicionadas ~40 novas variáveis ao catálogo.",
+    details: [
+      "Removidas colunas internas (status, datas de aceite/recusa, paths de arquivo, coordenadas) do SCHEMA_TABLES",
+      "Adicionados expectedKey para todas as colunas restantes — zero campos sem variável",
+      "Criadas 40+ novas variáveis no catálogo: cliente (6), deal (1), projeto (19), proposta (3), consultor (3), concessionária (8), simulação (1)",
+      "Mapeados inflacao_energetica, perda_eficiencia_anual e sobredimensionamento para variáveis existentes de premissas",
+      "Deals: removidas colunas internas (status, etiqueta, notas, expected_close_date)",
+    ],
+  },
+  {
     version: "2.69.0",
     date: "2026-03-16",
     title: "Auditoria fina: eliminação de variáveis fantasma reais",

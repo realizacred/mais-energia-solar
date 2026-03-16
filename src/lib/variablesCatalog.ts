@@ -715,6 +715,55 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.empresa_email", "empresa_email", "E-mail do integrador", "Email da empresa", "-", "contato@solartech.com"),
   v("comercial", "comercial.empresa_logo_url", "empresa_logo_url", "Logo da empresa", "URL do logotipo da empresa", "-", "https://..."),
 
+  // ── Deal / Negócio ──
+  v("comercial", "comercial.deal_titulo", "deal_titulo", "Título do Negócio", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial"),
+
+  // ── Proposta (complementares) ──
+  v("comercial", "comercial.proposta_numero", "proposta_numero", "Número da Proposta", "Número sequencial da proposta", "-", "42"),
+  v("comercial", "comercial.proposta_valido_ate", "proposta_valido_ate", "Proposta Válida Até", "Data limite de validade da proposta", "data", "30/04/2026"),
+  v("comercial", "comercial.proposta_link_pdf", "proposta_link_pdf", "Link do PDF da Proposta", "URL para download do PDF da proposta", "-", "https://..."),
+
+  // ── Projeto (detalhes) ──
+  v("comercial", "comercial.projeto_tipo_instalacao", "projeto_tipo_instalacao", "Tipo de Instalação", "Tipo de instalação do projeto (Residencial, Comercial, etc.)", "-", "Residencial"),
+  v("comercial", "comercial.projeto_valor_equipamentos", "projeto_valor_equipamentos", "Valor Equipamentos", "Valor total dos equipamentos do projeto", "R$", "30000.00"),
+  v("comercial", "comercial.projeto_valor_mao_obra", "projeto_valor_mao_obra", "Valor Mão de Obra", "Valor da mão de obra do projeto", "R$", "8000.00"),
+  v("comercial", "comercial.projeto_data_venda", "projeto_data_venda", "Data da Venda", "Data de fechamento da venda", "data", "01/03/2026"),
+  v("comercial", "comercial.projeto_data_previsao", "projeto_data_previsao", "Previsão de Instalação", "Data prevista para instalação do projeto", "data", "15/04/2026"),
+  v("comercial", "comercial.projeto_data_instalacao", "projeto_data_instalacao", "Data de Instalação", "Data efetiva da instalação do projeto", "data", "20/04/2026"),
+  v("comercial", "comercial.projeto_forma_pagamento", "projeto_forma_pagamento", "Forma de Pagamento", "Forma de pagamento do projeto", "-", "Financiamento"),
+  v("comercial", "comercial.projeto_valor_entrada", "projeto_valor_entrada", "Valor de Entrada", "Valor de entrada do projeto", "R$", "10000.00"),
+  v("comercial", "comercial.projeto_valor_financiado", "projeto_valor_financiado", "Valor Financiado", "Valor financiado do projeto", "R$", "35000.00"),
+  v("comercial", "comercial.projeto_numero_parcelas", "projeto_numero_parcelas", "Nº de Parcelas", "Número de parcelas do financiamento do projeto", "UN", "60"),
+  v("comercial", "comercial.projeto_valor_parcela", "projeto_valor_parcela", "Valor da Parcela", "Valor mensal da parcela do projeto", "R$", "850.00"),
+  v("comercial", "comercial.projeto_prazo_estimado", "projeto_prazo_estimado", "Prazo Estimado (dias)", "Prazo estimado em dias para conclusão do projeto", "dias", "30"),
+
+  // ── Projeto (endereço de instalação) ──
+  v("comercial", "comercial.projeto_rua_instalacao", "projeto_rua_instalacao", "Rua Instalação", "Rua do local de instalação", "-", "Rua Solar"),
+  v("comercial", "comercial.projeto_numero_instalacao", "projeto_numero_instalacao", "Número Instalação", "Número do local de instalação", "-", "100"),
+  v("comercial", "comercial.projeto_complemento_instalacao", "projeto_complemento_instalacao", "Complemento Instalação", "Complemento do endereço de instalação", "-", "Galpão 2"),
+  v("comercial", "comercial.projeto_bairro_instalacao", "projeto_bairro_instalacao", "Bairro Instalação", "Bairro do local de instalação", "-", "Industrial"),
+  v("comercial", "comercial.projeto_cidade_instalacao", "projeto_cidade_instalacao", "Cidade Instalação", "Cidade do local de instalação", "-", "Belo Horizonte"),
+  v("comercial", "comercial.projeto_uf_instalacao", "projeto_uf_instalacao", "UF Instalação", "Estado/UF do local de instalação", "-", "MG"),
+  v("comercial", "comercial.projeto_cep_instalacao", "projeto_cep_instalacao", "CEP Instalação", "CEP do local de instalação", "-", "30130-000"),
+
+  // ── Consultor (complementares) ──
+  v("comercial", "comercial.consultor_telefone", "consultor_telefone", "Telefone do Consultor", "Telefone de contato do consultor", "-", "(31) 99999-0000"),
+  v("comercial", "comercial.consultor_email", "consultor_email", "Email do Consultor", "Email de contato do consultor", "-", "consultor@empresa.com"),
+  v("comercial", "comercial.consultor_codigo", "consultor_codigo", "Código do Consultor", "Código identificador do consultor", "-", "CONS-001"),
+
+  // ── Concessionária (detalhes) ──
+  v("comercial", "comercial.concessionaria_sigla", "concessionaria_sigla", "Sigla da Concessionária", "Sigla/abreviação da concessionária", "-", "CEMIG"),
+  v("comercial", "comercial.concessionaria_estado", "concessionaria_estado", "Estado da Concessionária", "Estado de atuação da concessionária", "-", "MG"),
+  v("comercial", "comercial.concessionaria_tarifa_fio_b", "concessionaria_tarifa_fio_b", "Tarifa Fio B da Concessionária", "Valor da tarifa Fio B da concessionária", "R$/kWh", "0.21"),
+  v("comercial", "comercial.concessionaria_custo_disp_mono", "concessionaria_custo_disp_mono", "Custo Disp. Monofásico", "Custo de disponibilidade monofásico da concessionária", "kWh", "30"),
+  v("comercial", "comercial.concessionaria_custo_disp_bi", "concessionaria_custo_disp_bi", "Custo Disp. Bifásico", "Custo de disponibilidade bifásico da concessionária", "kWh", "50"),
+  v("comercial", "comercial.concessionaria_custo_disp_tri", "concessionaria_custo_disp_tri", "Custo Disp. Trifásico", "Custo de disponibilidade trifásico da concessionária", "kWh", "100"),
+  v("comercial", "comercial.concessionaria_aliquota_icms", "concessionaria_aliquota_icms", "Alíquota ICMS", "Alíquota de ICMS da concessionária", "%", "18"),
+  v("comercial", "comercial.concessionaria_percentual_isencao", "concessionaria_percentual_isencao", "% Isenção SCEE", "Percentual de isenção SCEE da concessionária", "%", "100"),
+
+  // ── Simulação (complementares) ──
+  v("comercial", "comercial.co2_evitado_kg", "co2_evitado_kg", "CO₂ Evitado (kg)", "Quantidade de CO₂ evitada pela geração solar", "kg", "5400"),
+
   // ──────────────────────────────────────────────────────────────
   // CLIENTE
   // ──────────────────────────────────────────────────────────────
@@ -730,6 +779,12 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.bairro", "cliente_bairro", "Bairro", "Bairro do cliente", "", "Centro"),
   v("cliente", "cliente.cidade", "cliente_cidade", "Cidade", "Cidade do cliente", "", "Belo Horizonte"),
   v("cliente", "cliente.estado", "cliente_estado", "Estado", "Estado/UF do cliente", "", "MG"),
+  v("cliente", "cliente.data_nascimento", "cliente_data_nascimento", "Data de Nascimento", "Data de nascimento do cliente", "data", "15/05/1985"),
+  v("cliente", "cliente.potencia_kwp", "cliente_potencia_kwp", "Potência Instalada (kWp)", "Potência do sistema instalado no cliente", "kWp", "8.2"),
+  v("cliente", "cliente.valor_projeto", "cliente_valor_projeto", "Valor do Projeto", "Valor total do projeto do cliente", "R$", "45000.00"),
+  v("cliente", "cliente.data_instalacao", "cliente_data_instalacao", "Data de Instalação", "Data de instalação do sistema do cliente", "data", "20/03/2026"),
+  v("cliente", "cliente.numero_placas", "cliente_numero_placas", "Número de Placas", "Quantidade de módulos instalados no cliente", "UN", "20"),
+  v("cliente", "cliente.modelo_inversor", "cliente_modelo_inversor", "Modelo do Inversor", "Modelo do inversor instalado no cliente", "-", "SG36KTL-M"),
 
   // ──────────────────────────────────────────────────────────────
   // TABELAS (dados tabulares para loops)
