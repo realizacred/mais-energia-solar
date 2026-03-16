@@ -12,6 +12,7 @@ const TABS = [
   { value: "costs", label: "Componentes de Custo", icon: Layers },
   { value: "margins", label: "Margens & Comissões", icon: Percent },
   { value: "method", label: "Método de Precificação", icon: DollarSign },
+  { value: "interest", label: "Taxas de Juros", icon: CreditCard },
 ] as const;
 
 export function PricingPolicyPage() {
