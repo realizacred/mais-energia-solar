@@ -132,6 +132,128 @@ interface GenerateRequestV2 {
   aceite_estimativa?: boolean;
 }
 
+// ─── Catalog Enrichment ─────────────────────────────────────
+
+function parseDimensoesMm(dim: string | null | undefined): { comprimento_mm?: number; largura_mm?: number; profundidade_mm?: number } {
+  if (!dim) return {};
+  // Supports formats: "2279 x 1134 x 35", "2279x1134x35", "2279 × 1134 × 35"
+  const parts = dim.split(/\s*[x×X]\s*/).map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+  if (parts.length >= 3) return { comprimento_mm: parts[0], largura_mm: parts[1], profundidade_mm: parts[2] };
+  if (parts.length === 2) return { comprimento_mm: parts[0], largura_mm: parts[1] };
+  return {};
+}
+
+async function enrichItensWithCatalog(
+  adminClient: any,
+  tenantId: string,
+  itens: KitItemPayload[],
+): Promise<Array<KitItemPayload & Record<string, unknown>>> {
+  // Collect unique fabricante+modelo pairs per category
+  const moduloKeys: string[] = [];
+  const inversorKeys: string[] = [];
+  const bateriaKeys: string[] = [];
+
+  for (const it of itens) {
+    const cat = (it.categoria ?? "").toLowerCase();
+    const key = `${it.fabricante}||${it.modelo}`;
+    if (cat.includes("modulo") || cat.includes("módulo") || cat === "module") {
+      if (!moduloKeys.includes(key)) moduloKeys.push(key);
+    } else if (cat.includes("inversor") || cat === "inverter") {
+      if (!inversorKeys.includes(key)) inversorKeys.push(key);
+    } else if (cat.includes("bateria") || cat === "battery") {
+      if (!bateriaKeys.includes(key)) bateriaKeys.push(key);
+    }
+  }
+
+  // Parallel catalog lookups
+  const [modCatalog, invCatalog, batCatalog] = await Promise.all([
+    moduloKeys.length > 0
+      ? adminClient.from("modulos_fotovoltaicos")
+          .select("fabricante, modelo, tipo_celula, numero_celulas, dimensoes_mm, tensao_sistema_v, vmp, imp, voc, isc, coef_temp, eficiencia_percent")
+          .eq("tenant_id", tenantId)
+          .then((r: any) => r.data ?? [])
+      : Promise.resolve([]),
+    inversorKeys.length > 0
+      ? adminClient.from("inversores")
+          .select("fabricante, modelo, potencia_maxima_w, mppts, tensao_max_v, tensao_min_mppt_v, tensao_max_mppt_v, corrente_max_mppt_a, tensao_linha_v, eficiencia_percent, tipo_sistema")
+          .eq("tenant_id", tenantId)
+          .then((r: any) => r.data ?? [])
+      : Promise.resolve([]),
+    bateriaKeys.length > 0
+      ? adminClient.from("baterias")
+          .select("fabricante, modelo, tipo_bateria, energia_kwh, dimensoes_mm, tensao_operacao_v, tensao_carga_v, tensao_nominal_v, potencia_max_saida_kw, corrente_max_descarga_a, corrente_max_carga_a, correntes_recomendadas_a")
+          .eq("tenant_id", tenantId)
+          .then((r: any) => r.data ?? [])
+      : Promise.resolve([]),
+  ]);
+
+  // Index catalogs by fabricante+modelo
+  const modIndex = new Map<string, any>();
+  for (const m of modCatalog) modIndex.set(`${m.fabricante}||${m.modelo}`, m);
+  const invIndex = new Map<string, any>();
+  for (const i of invCatalog) invIndex.set(`${i.fabricante}||${i.modelo}`, i);
+  const batIndex = new Map<string, any>();
+  for (const b of batCatalog) batIndex.set(`${b.fabricante}||${b.modelo}`, b);
+
+  // Enrich each item
+  return itens.map(it => {
+    const cat = (it.categoria ?? "").toLowerCase();
+    const key = `${it.fabricante}||${it.modelo}`;
+    const enriched: Record<string, unknown> = { ...it };
+
+    if (cat.includes("modulo") || cat.includes("módulo") || cat === "module") {
+      const spec = modIndex.get(key);
+      if (spec) {
+        enriched.tipo_celula = spec.tipo_celula;
+        enriched.numero_celulas = spec.numero_celulas;
+        enriched.tensao_sistema_v = spec.tensao_sistema_v;
+        enriched.vmp = spec.vmp;
+        enriched.imp = spec.imp;
+        enriched.voc = spec.voc;
+        enriched.isc = spec.isc;
+        enriched.coef_temp = spec.coef_temp;
+        enriched.eficiencia_percent = spec.eficiencia_percent;
+        const dims = parseDimensoesMm(spec.dimensoes_mm);
+        if (dims.comprimento_mm) enriched.comprimento_mm = dims.comprimento_mm;
+        if (dims.largura_mm) enriched.largura_mm = dims.largura_mm;
+        if (dims.profundidade_mm) enriched.profundidade_mm = dims.profundidade_mm;
+      }
+    } else if (cat.includes("inversor") || cat === "inverter") {
+      const spec = invIndex.get(key);
+      if (spec) {
+        enriched.potencia_maxima_w = spec.potencia_maxima_w;
+        enriched.mppts = spec.mppts;
+        enriched.tensao_max_v = spec.tensao_max_v;
+        enriched.tensao_min_mppt_v = spec.tensao_min_mppt_v;
+        enriched.tensao_max_mppt_v = spec.tensao_max_mppt_v;
+        enriched.corrente_max_mppt_a = spec.corrente_max_mppt_a;
+        enriched.tensao_linha_v = spec.tensao_linha_v;
+        enriched.eficiencia_percent = spec.eficiencia_percent;
+        enriched.tipo_sistema = spec.tipo_sistema;
+      }
+    } else if (cat.includes("bateria") || cat === "battery") {
+      const spec = batIndex.get(key);
+      if (spec) {
+        enriched.tipo_bateria = spec.tipo_bateria;
+        enriched.energia_kwh = spec.energia_kwh;
+        enriched.tensao_operacao_v = spec.tensao_operacao_v;
+        enriched.tensao_carga_v = spec.tensao_carga_v;
+        enriched.tensao_nominal_v = spec.tensao_nominal_v;
+        enriched.potencia_max_saida_kw = spec.potencia_max_saida_kw;
+        enriched.corrente_max_descarga_a = spec.corrente_max_descarga_a;
+        enriched.corrente_max_carga_a = spec.corrente_max_carga_a;
+        enriched.correntes_recomendadas_a = spec.correntes_recomendadas_a;
+        const dims = parseDimensoesMm(spec.dimensoes_mm);
+        if (dims.comprimento_mm) enriched.comprimento_mm = dims.comprimento_mm;
+        if (dims.largura_mm) enriched.largura_mm = dims.largura_mm;
+        if (dims.profundidade_mm) enriched.profundidade_mm = dims.profundidade_mm;
+      }
+    }
+
+    return enriched as KitItemPayload & Record<string, unknown>;
+  });
+}
+
 // ─── Main Handler ───────────────────────────────────────────
 
 Deno.serve(async (req) => {
