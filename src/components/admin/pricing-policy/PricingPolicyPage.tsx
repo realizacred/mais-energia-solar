@@ -16,7 +16,7 @@ const TABS = [
 ] as const;
 
 export function PricingPolicyPage() {
-  const [tab, setTab] = useState("costs");
+  const [tab, setTab] = useState("interest");
   const policy = usePricingPolicy();
 
   return (
