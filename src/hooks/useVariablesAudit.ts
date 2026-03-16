@@ -625,6 +625,30 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
       addToMap([`creditos_${m}`, `creditos_alocados_${m}`], "snapshot", "resolveClienteComercial");
     }
 
+    // ── Tarifa / Distribuidora (frontend: resolveProposalVariables → tariff engine) ──
+    addToMap([
+      "tarifa_te_kwh", "tarifa_tusd_total_kwh", "tarifa_fio_b_real_kwh", "tarifa_fio_b_usado_kwh",
+      "tarifa_precisao", "tarifa_precisao_motivo", "tarifa_origem",
+      "tarifa_vigencia_inicio", "tarifa_vigencia_fim",
+    ], "computed", "resolveProposalVariables (tariff engine)");
+
+    // ── ANEEL Sync (frontend: resolveProposalVariables → ANEEL sync data) ──
+    addToMap([
+      "aneel_last_sync_at", "aneel_run_id", "aneel_snapshot_hash_curto",
+    ], "computed", "resolveProposalVariables (ANEEL sync)");
+
+    // ── GD (frontend: resolveProposalVariables → GD rules) ──
+    addToMap([
+      "gd_regra", "gd_ano_aplicado", "gd_fio_b_percent_cobrado", "gd_fio_b_percent_compensado",
+    ], "computed", "resolveProposalVariables (GD rules)");
+
+    // ── Cálculo (frontend: resolveProposalVariables → GD calculation engine) ──
+    addToMap([
+      "calc_consumo_mensal_kwh", "calc_custo_disponibilidade_kwh", "calc_consumo_compensavel_kwh",
+      "calc_geracao_mensal_kwh", "calc_energia_compensada_kwh", "calc_valor_credito_kwh",
+      "calc_economia_mensal_rs", "alerta_estimado_texto_pdf",
+    ], "computed", "resolveProposalVariables (GD calc)");
+
     // resolvePagamento.ts — snapshot.pagamento_opcoes
     addToMap([
       "vc_cartao_credito_parcela_1", "vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_4",
