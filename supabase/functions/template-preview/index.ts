@@ -1150,7 +1150,7 @@ Deno.serve(async (req) => {
       const substituted = totalVars - missingCount - emptyCount;
       console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing, ${emptyCount} empty out of ${totalVars} total vars`);
       if (result.missingVars.length > 0) {
-        console.warn(`[template-preview] Missing variables (→ <key>):`, result.missingVars.slice(0, 30));
+        console.warn(`[template-preview] missing_placeholders (kept as-is in output):`, result.missingVars);
       }
       if (result.emptyVars.length > 0) {
         console.warn(`[template-preview] Empty variables (→ —):`, result.emptyVars.slice(0, 30));
