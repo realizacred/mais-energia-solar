@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import {
   ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Loader2,
-  ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost
+  ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   useVariablesAudit,
@@ -14,6 +15,7 @@ import {
   type DbCustomVar,
   type AuditItem,
   type AuditStatus,
+  type CategoryAuditEntry,
 } from "@/hooks/useVariablesAudit";
 
 // ── Status config ──────────────────────────────────────────
