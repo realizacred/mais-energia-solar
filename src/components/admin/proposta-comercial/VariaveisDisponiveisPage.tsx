@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,15 +24,17 @@ function CopyButton({ text }: { text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all shrink-0"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
           onClick={() => {
             navigator.clipboard.writeText(text);
             toast.success(`Copiado: ${text}`);
           }}
         >
           <Copy className="h-3 w-3" />
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side="top" className="text-[10px]">Copiar</TooltipContent>
     </Tooltip>
@@ -234,39 +237,41 @@ export function VariaveisDisponiveisPage() {
                 ? dbCustomVars.length
                 : VARIABLES_CATALOG.filter((v) => v.category === cat).length;
               return (
-                <button
+                <Button
                   key={cat}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setActiveCategory(cat)}
-                  className={`
-                    flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all
-                    ${isActive
-                      ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                  className={cn(
+                    "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20 hover:bg-primary/90"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-                    }
-                  `}
+                  )}
                 >
                   <span className="text-xs">{CATEGORY_ICONS[cat]}</span>
                   <span>{CATEGORY_LABELS[cat]}</span>
-                  <span className={`text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center ${isActive ? "text-primary-foreground/70" : "text-muted-foreground/40"}`}>
+                  <span className={cn("text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center", isActive ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
                     {count}
                   </span>
-                </button>
+                </Button>
               );
             })}
             {/* Audit tab */}
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setActiveCategory("auditoria")}
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all
-                ${activeCategory === "auditoria"
-                  ? "bg-warning text-warning-foreground shadow-sm ring-1 ring-warning/20"
+              className={cn(
+                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                activeCategory === "auditoria"
+                  ? "bg-warning text-warning-foreground shadow-sm ring-1 ring-warning/20 hover:bg-warning/90"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-                }
-              `}
+              )}
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Auditoria</span>
-            </button>
+            </Button>
           </div>
         </div>
 
