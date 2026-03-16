@@ -93,6 +93,9 @@ export function VariaveisDisponiveisPage() {
   const [sortCol, setSortCol] = useState<string>("label");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+  // Pre-load custom vars on mount (avoids delay when switching tabs)
+  useEffect(() => { loadCustomVars(); }, []);
+  
   const toggleSort = useCallback((col: string) => {
     if (sortCol === col) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
