@@ -63,6 +63,8 @@ export const FRONTEND_RESOLVER_KEYS = new Set<string>([
 ]);
 
 // ── Backend resolvers: keys set via domain resolvers ──
+// Updated 2026-03-16 after catalog enrichment audit.
+// Columns verified against actual DB schema.
 export const BACKEND_FLATTEN_KEYS = new Set<string>([
   // Entrada
   "tipo", "tipo_uc1", "consumo_mensal", "consumo_mensal_uc1",
@@ -87,12 +89,32 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "nome_uc1", "demanda_g_uc1", "demanda_g_preco_uc1",
   "t_e_comp_fp_1_uc1", "t_e_comp_fp_2_uc1", "t_e_comp_p_1_uc1",
   "dod", "qtd_ucs",
-  // Sistema Solar
+  // Sistema Solar — base
   "potencia_sistema", "potencia_kwp", "geracao_mensal", "geracao_anual",
   "numero_modulos", "modulo_quantidade", "vc_total_modulo",
   "modulo_fabricante", "modulo_modelo", "modulo_potencia", "vc_modulo_potencia",
   "inversor_fabricante", "inversor_fabricante_1", "inversor_modelo",
   "inversor_potencia_nominal", "inversores_utilizados", "inversor_quantidade",
+  // Sistema Solar — catalog-enriched (verified columns exist in DB)
+  "modulo_tipo_celula", "modulo_celulas", "modulo_eficiencia",
+  "modulo_tensao_maxima", "modulo_vmp", "modulo_voc", "modulo_imp", "modulo_isc",
+  "modulo_comprimento", "modulo_largura", "modulo_profundidade",
+  "modulo_coef_temp_pmax", "modulo_coef_temp_voc", "modulo_coef_temp_isc",
+  "modulo_area", // derived: comprimento × largura
+  "inversor_tensao", // from tensao_linha_v (AC-side)
+  "inversor_tipo", // from tipo_sistema (on-grid/hybrid/off-grid)
+  "inversor_mppts_utilizados", // from mppts
+  "inversor_sistema", // alias for tipo_sistema
+  "inversor_corrente_max_entrada_mppt1", "inversor_corrente_max_entrada", // from corrente_max_mppt_a (DC input)
+  "inversores_potencia_maxima_total", // derived: Σ(potencia_maxima_w × qty)
+  "inversor_potencia", // from potencia_maxima_w
+  // Baterias — catalog-enriched (verified columns exist in DB)
+  "bateria_fabricante", "bateria_modelo", "bateria_tipo", "bateria_energia",
+  "bateria_quantidade", "bateria_tensao_operacao", "bateria_tensao_nominal",
+  "bateria_tensao_carga", "bateria_potencia_maxima_saida",
+  "bateria_corrente_maxima_descarga", "bateria_corrente_maxima_carga",
+  "bateria_corrente_recomendada", "bateria_capacidade",
+  "bateria_comprimento", "bateria_largura", "bateria_profundidade",
   // Financeiro
   "valor_total", "preco_final", "preco_total", "preco", "capo_i",
   "economia_mensal", "economia_anual", "economia_25_anos",
