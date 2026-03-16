@@ -198,11 +198,22 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
                     <Select
                       value={item.forma_pagamento}
                       onValueChange={(v) => {
-                        const patch: Partial<PaymentItemInput> = { forma_pagamento: v as FormaPagamento };
-                        if (!FORMAS_PARCELAVEIS.includes(v as FormaPagamento)) {
+                        const forma = v as FormaPagamento;
+                        const patch: Partial<PaymentItemInput> = { forma_pagamento: forma };
+                        if (!FORMAS_PARCELAVEIS.includes(forma)) {
                           patch.parcelas = 1;
                         }
-                        if (!FORMAS_COM_JUROS.includes(v as FormaPagamento)) {
+                        // Auto-fill from interest config
+                        const cfg = configMap.get(forma);
+                        if (cfg && cfg.ativo) {
+                          patch.juros_tipo = cfg.juros_tipo;
+                          patch.juros_valor = cfg.juros_valor;
+                          patch.juros_responsavel = cfg.juros_responsavel;
+                          if (FORMAS_PARCELAVEIS.includes(forma)) {
+                            patch.parcelas = cfg.parcelas_padrao;
+                            patch.intervalo_dias = cfg.intervalo_dias_padrao;
+                          }
+                        } else if (!FORMAS_COM_JUROS.includes(forma)) {
                           patch.juros_tipo = "sem_juros";
                           patch.juros_valor = 0;
                           patch.juros_responsavel = "nao_aplica";
