@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.64.0",
+    date: "2026-03-16",
+    title: "Módulo profissional de gráficos para propostas",
+    type: "feature",
+    description: "Catálogo de gráficos com 5 charts padrão, preview com dados de exemplo, botões de ação e tutorial integrado.",
+    details: [
+      "Adicionado gráfico 'Consumo Mensal' (grafico_consumo_mensal) ao catálogo padrão",
+      "Botões de Preview, Download PNG, Copiar Placeholder e Download Template na tabela do catálogo",
+      "Tutorial 'Como Usar' com passo a passo, exemplos corretos/incorretos e limitações",
+      "Preview com dados mock realistas por tipo de gráfico (consumo, geração, economia, comparação, fluxo de caixa)",
+      "Template exemplo com todos os 5 placeholders disponível para download",
+    ],
+  },
+  {
     version: "2.63.0",
     date: "2026-03-16",
     title: "Endurecimento do pipeline de gráficos rendered_image",
