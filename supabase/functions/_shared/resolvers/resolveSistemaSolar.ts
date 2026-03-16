@@ -150,7 +150,7 @@ export function resolveSistemaSolar(
     set("modulo_voc", m0.voc);
     set("modulo_imp", m0.imp);
     set("modulo_isc", m0.isc);
-    set("modulo_codigo", m0.codigo);
+    // NOTE: modulo_codigo — no 'codigo' column in modulos_fotovoltaicos yet. Passthrough only.
 
     // Dimensions — from pre-parsed fields or from dimensoes_mm string
     const dims = (m0.comprimento_mm != null) ? m0 : parseDimensoes(m0.dimensoes_mm);
