@@ -237,8 +237,8 @@ export const SCHEMA_TABLES: {
     name: "consultores", label: "Consultores", icon: "👔", flowOrder: 7,
     columns: [
       { column: "nome", label: "Nome", expectedKey: "responsavel_nome" },
-      { column: "telefone", label: "Telefone", expectedKey: "responsavel_celular" },
-      { column: "email", label: "Email", expectedKey: "responsavel_email" },
+      { column: "telefone", label: "Telefone", expectedKey: "consultor_telefone" },
+      { column: "email", label: "Email", expectedKey: "consultor_email" },
       { column: "codigo", label: "Código" },
       { column: "percentual_comissao", label: "% Comissão", expectedKey: "comissao_percentual" },
     ],
