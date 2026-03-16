@@ -579,3 +579,121 @@ function AuditSection({
     </div>
   );
 }
+
+// ── Category Audit Section ───────────────────────────────────
+function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+
+  const totalVars = entries.reduce((sum, e) => sum + e.total, 0);
+
+  return (
+    <div className="px-4 py-3 space-y-3">
+      <div className="flex items-center gap-2">
+        <Layers className="h-4 w-4 text-primary" />
+        <span className="text-xs font-semibold text-foreground">Auditoria por Categoria</span>
+        <span className="text-[10px] text-muted-foreground">— {totalVars} variáveis em {entries.length} categorias</span>
+      </div>
+
+      {/* Category grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {entries.map((entry) => {
+          const isActive = expandedCat === entry.category;
+          return (
+            <Button
+              key={entry.category}
+              variant="ghost"
+              onClick={() => setExpandedCat(isActive ? null : entry.category)}
+              className={cn(
+                "rounded-lg border p-2.5 text-left h-auto flex flex-col items-start transition-all",
+                isActive
+                  ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
+                  : "border-border bg-card hover:bg-muted/20"
+              )}
+            >
+              <div className="flex items-center gap-1.5 w-full">
+                <span className="text-sm">{entry.icon}</span>
+                <span className="text-[10px] font-medium text-foreground truncate flex-1">{entry.label}</span>
+              </div>
+              <p className="text-lg font-bold text-foreground tabular-nums mt-0.5">{entry.total}</p>
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Expanded category detail */}
+      {expandedCat && (() => {
+        const entry = entries.find((e) => e.category === expandedCat);
+        if (!entry) return null;
+        return (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 border-b border-border">
+              <span className="text-sm">{entry.icon}</span>
+              <span className="text-xs font-semibold text-foreground">{entry.label}</span>
+              <Badge variant="outline" className="text-[8px] bg-primary/10 text-primary border-primary/20">{entry.total} variáveis</Badge>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/30 border-b border-border">
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[30px]">🔗</th>
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Label</th>
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave Legacy</th>
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Canônica</th>
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Unidade</th>
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Exemplo</th>
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Descrição</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entry.variables.map((v, idx) => (
+                    <tr key={v.key} className={cn(
+                      "border-b border-border/40 transition-colors hover:bg-accent/5",
+                      idx % 2 === 0 ? "bg-card" : "bg-muted/10"
+                    )}>
+                      <td className="px-3 py-2">
+                        {v.notImplemented ? (
+                          <Tooltip>
+                            <TooltipTrigger><AlertTriangle className="h-3 w-3 text-warning" /></TooltipTrigger>
+                            <TooltipContent side="top" className="text-[10px]">Não implementada</TooltipContent>
+                          </Tooltip>
+                        ) : v.hasSchemaMapping ? (
+                          <Tooltip>
+                            <TooltipTrigger><CheckCircle2 className="h-3 w-3 text-success" /></TooltipTrigger>
+                            <TooltipContent side="top" className="text-[10px]">Mapeada no schema</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger><span className="text-[10px]">📄</span></TooltipTrigger>
+                            <TooltipContent side="top" className="text-[10px]">Sem mapeamento direto (calculada ou resolvida)</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="text-[11px] font-medium text-foreground">{v.label}</span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">[{v.key}]</code>
+                      </td>
+                      <td className="px-3 py-2">
+                        <code className="font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded text-[10px]">{v.canonicalKey}</code>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="text-[10px] text-muted-foreground">{v.unit}</span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="text-[10px] text-muted-foreground font-mono">{v.example}</span>
+                      </td>
+                      <td className="px-3 py-2 max-w-[200px]">
+                        <span className="text-[10px] text-muted-foreground truncate block">{v.description}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
