@@ -93,7 +93,7 @@ async function hashBytes(data: Uint8Array): Promise<string> {
  * Robust DOCX template processor.
  * Step 1: Normalize split placeholders by merging <w:r> runs within each <w:p>.
  * Step 2: Simple [key] → value substitution on the normalized XML.
- * Step 3: Final sweep — layout-safe: missing→<key>, empty→— (NEVER blank).
+ * Step 3: Final sweep — missing placeholders stay as-is ([key] or {{key}}), empty→— (NEVER blank).
  *
  * "Empty" means: null, undefined, or whitespace-only string in vars map.
  * 0, "0", 0.00, false are NOT empty — they are valid values.
