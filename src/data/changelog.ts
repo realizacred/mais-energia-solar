@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.65.0",
+    date: "2026-03-16",
+    title: "Auditoria de integridade do catálogo de variáveis",
+    type: "improvement",
+    description: "Lógica de auditoria extraída para hook centralizado (useVariablesAudit) com validação de descrições e correção de buttons nativos.",
+    details: [
+      "Criado hook useVariablesAudit com schema coverage, custom vars sync e description quality audit",
+      "Seção 'Qualidade das Descrições' identifica variáveis sem descrição ou com texto curto",
+      "Substituídos todos os <button> nativos por Button shadcn (§22 compliance)",
+      "Dados de auditoria centralizados em hook reutilizável (§16 compliance)",
+    ],
+  },
+  {
     version: "2.64.0",
     date: "2026-03-16",
     title: "Módulo profissional de gráficos para propostas",
