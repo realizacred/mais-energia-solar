@@ -280,15 +280,14 @@ export function resolveSistemaSolar(
     set(`inversor_quantidade_${i}`, inv.quantidade);
     // Enriched catalog fields per inverter
     set(`inversor_potencia_${i}`, inv.potencia_maxima_w ?? inv.potencia_w);
-    set(`inversor_tensao_${i}`, inv.tensao_max_v ?? inv.tensao_linha_v);
+    // Use AC-side voltage for indexed inverters too
+    set(`inversor_tensao_${i}`, inv.tensao_linha_v);
     set(`inversor_tipo_${i}`, inv.tipo_sistema);
-    // AC output current only from actual AC field
-    set(`inversor_corrente_saida_${i}`, inv.corrente_saida_ac ?? inv.corrente_nominal_saida);
+    // inversor_corrente_saida: no AC output column in DB yet — skip (fallback via snapshot passthrough)
     set(`inversor_mppts_utilizados_${i}`, inv.mppts);
-    set(`inversor_codigo_${i}`, inv.codigo);
-    set(`inversor_garantia_${i}`, inv.garantia ?? inv.garantia_anos);
     // Hybrid/off-grid fields
     set(`inversor_sistema_${i}`, inv.tipo_sistema);
+    // corrente_max_mppt_a is DC input current per MPPT — correct for these fields
     set(`inversor_corrente_max_entrada_mppt1_${i}`, inv.corrente_max_mppt_a);
     set(`inversor_corrente_max_entrada_${i}`, inv.corrente_max_mppt_a);
   });
