@@ -29,6 +29,7 @@ import {
   computeSummary,
   validateComposition,
 } from "@/services/paymentComposition/calculator";
+import { usePaymentInterestConfigMap, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
 
 interface PaymentComposerProps {
   valorVenda: number;
