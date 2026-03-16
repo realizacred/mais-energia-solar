@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.67.0",
+    date: "2026-03-16",
+    title: "Alinhamento SCHEMA_TABLES com schema real do Supabase",
+    type: "improvement",
+    description: "Sincronização completa das tabelas de auditoria com as colunas reais do banco de dados, eliminando falsos positivos de variáveis fantasma.",
+    details: [
+      "proposta_versoes: +19 colunas adicionadas (consumo_mensal, geracao_mensal, tir, vpl, link_pdf, public_slug, etc.)",
+      "propostas_nativas: +5 colunas adicionadas (titulo com expectedKey, regra_gd, origem_tarifa, precisao_calculo, versao_atual)",
+      "projetos: +9 colunas de endereço de instalação e coordenadas geográficas",
+      "Correção de expectedKeys em consultores (consultor_telefone, consultor_email)",
+      "Mapeamento de proposta_data → gerado_em e proposta_validade → validade_dias",
+    ],
+  },
+  {
     version: "2.66.0",
     date: "2026-03-16",
     title: "Detecção de variáveis fantasma e KPIs de auditoria",
