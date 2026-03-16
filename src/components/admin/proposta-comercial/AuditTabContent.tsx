@@ -33,7 +33,7 @@ export function AuditTabContent({
   dbCustomVars: DbCustomVar[];
   loadingCustom: boolean;
   onRefresh: () => void;
-  onRequestCreateVariable?: (suggested: { nome: string; label: string; table: string; column: string }) => void;
+  onRequestCreateVariable?: (suggested: { nome: string; label: string; table: string; column: string; colType?: string }) => void;
 }) {
   const [showSynced, setShowSynced] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "missing" | "mapped">("all");
