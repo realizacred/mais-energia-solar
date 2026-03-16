@@ -124,7 +124,7 @@ export const SCHEMA_TABLES: {
     name: "projetos", label: "Projetos", icon: "📁", flowOrder: 3,
     columns: [
       { column: "codigo", label: "Código do Projeto", expectedKey: "proposta_identificador" },
-      { column: "projeto_num", label: "Nº Sequencial do Projeto" },
+      { column: "projeto_num", label: "Nº Sequencial do Projeto", expectedKey: "projeto_id_externo" },
       { column: "potencia_kwp", label: "Potência kWp", expectedKey: "potencia_sistema" },
       { column: "numero_modulos", label: "Nº Módulos", expectedKey: "modulo_quantidade" },
       { column: "modelo_modulos", label: "Modelo Módulos", expectedKey: "modulo_modelo" },
