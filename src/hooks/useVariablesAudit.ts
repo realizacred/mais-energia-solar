@@ -35,6 +35,13 @@ export interface SchemaField {
   variableKey?: string;
 }
 
+export interface GhostVariable {
+  key: string;
+  label: string;
+  category: VariableCategory;
+  reason: string;
+}
+
 export interface DescriptionIssue {
   key: string;
   label: string;
