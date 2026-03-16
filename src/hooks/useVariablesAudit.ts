@@ -624,6 +624,126 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
     for (const m of ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"]) {
       addToMap([`creditos_${m}`, `creditos_alocados_${m}`], "snapshot", "resolveClienteComercial");
     }
+    // UC-specific conta_energia fields
+    for (let i = 1; i <= 10; i++) {
+      addToMap([
+        `gasto_atual_mensal_uc${i}`, `gasto_com_solar_mensal_uc${i}`, `economia_percentual_uc${i}`,
+        `gasto_energia_mensal_atual_uc${i}`, `gasto_energia_mensal_novo_uc${i}`,
+        `gasto_energia_mensal_bt_atual_uc${i}`, `gasto_energia_mensal_bt_novo_uc${i}`,
+        `gasto_energia_mensal_p_atual_uc${i}`, `gasto_energia_mensal_p_novo_uc${i}`,
+        `gasto_energia_mensal_fp_atual_uc${i}`, `gasto_energia_mensal_fp_novo_uc${i}`,
+        `gasto_demanda_mensal_atual_uc${i}`, `gasto_demanda_mensal_novo_uc${i}`,
+        `economia_energia_mensal_uc${i}`, `economia_demanda_mensal_uc${i}`,
+        `gasto_total_mensal_atual_uc${i}`, `gasto_total_mensal_novo_uc${i}`,
+      ], "snapshot", "resolveClienteComercial");
+    }
+
+    // ── Cliente (complementares — db_cliente via resolveClienteComercial) ──
+    addToMap([
+      "cliente_data_nascimento", "cliente_potencia_kwp", "cliente_valor_projeto",
+      "cliente_data_instalacao", "cliente_numero_placas", "cliente_modelo_inversor",
+      "cliente_observacoes",
+    ], "db_cliente", "resolveClienteComercial");
+
+    // ── Comercial: Empresa/Tenant ──
+    addToMap([
+      "empresa_cnpj_cpf", "empresa_cidade", "empresa_estado", "empresa_endereco",
+      "empresa_telefone", "empresa_email", "empresa_logo_url",
+    ], "db_proposta", "resolveClienteComercial");
+
+    // ── Comercial: Consultor/Responsável/Representante ──
+    addToMap(["consultor_codigo"], "db_consultor", "resolveClienteComercial");
+    addToMap([
+      "responsavel_email", "responsavel_celular",
+      "representante_nome", "representante_email", "representante_celular",
+    ], "db_consultor", "resolveClienteComercial");
+
+    // ── Comercial: Deal ──
+    addToMap([
+      "deal_title", "deal_status", "deal_etiqueta", "deal_notas", "deal_expected_close_date",
+    ], "db_projeto", "resolveClienteComercial");
+
+    // ── Comercial: Proposta (detalhes — db_proposta/db_versao) ──
+    addToMap([
+      "proposta_num", "proposta_status", "proposta_valido_ate", "proposta_link_pdf",
+      "proposta_aceita_at", "proposta_enviada_at", "proposta_recusa_motivo", "proposta_recusada_at",
+      "proposta_regra_gd", "proposta_origem_tarifa", "proposta_precisao_calculo",
+      "proposta_precisao_motivo", "proposta_versao_atual",
+    ], "db_proposta", "resolveClienteComercial");
+    addToMap([
+      "proposta_inflacao_energetica", "proposta_perda_eficiencia_anual", "proposta_sobredimensionamento",
+      "proposta_enviado_em", "proposta_aceito_em", "proposta_rejeitado_em",
+      "proposta_motivo_rejeicao", "proposta_output_docx_path", "proposta_output_pdf_path",
+      "proposta_viewed_at", "proposta_observacoes", "proposta_versao_status",
+      "proposta_link",
+    ], "db_versao", "resolveClienteComercial");
+
+    // ── Comercial: Projeto (detalhes) ──
+    addToMap([
+      "projeto_id_externo", "projeto_tipo_instalacao", "projeto_valor_equipamentos",
+      "projeto_valor_mao_obra", "projeto_data_venda", "projeto_data_previsao_instalacao",
+      "projeto_data_instalacao", "projeto_data_comissionamento", "projeto_status",
+      "projeto_forma_pagamento", "projeto_valor_entrada", "projeto_valor_financiado",
+      "projeto_numero_parcelas", "projeto_valor_parcela",
+      "projeto_prazo_estimado_dias", "projeto_prazo_vistoria_dias",
+      "projeto_rua_instalacao", "projeto_numero_instalacao", "projeto_complemento_instalacao",
+      "projeto_bairro_instalacao", "projeto_cidade_instalacao", "projeto_uf_instalacao",
+      "projeto_cep_instalacao", "projeto_lat_instalacao", "projeto_lon_instalacao",
+      "projeto_observacoes",
+    ], "db_projeto", "resolveClienteComercial");
+
+    // ── Comercial: Concessionária (detalhes) ──
+    addToMap([
+      "concessionaria_sigla", "concessionaria_estado", "concessionaria_tarifa_fio_b",
+      "concessionaria_custo_disponibilidade_monofasico", "concessionaria_custo_disponibilidade_bifasico",
+      "concessionaria_custo_disponibilidade_trifasico", "concessionaria_aliquota_icms",
+      "concessionaria_percentual_isencao", "concessionaria_possui_isencao_scee",
+    ], "snapshot", "resolveEntrada");
+
+    // ── Comercial: Simulação ──
+    addToMap([
+      "simulacao_tipo_conta", "simulacao_co2_evitado_kg",
+    ], "snapshot", "resolveClienteComercial");
+
+    // ── Comercial: Comissão ──
+    addToMap(["comissao_percentual"], "db_consultor", "resolveClienteComercial");
+
+    // ── Tabelas (séries tabulares — snapshot/computed) ──
+    addToMap([
+      "tabela_consumo_mensal", "tabela_geracao_mensal", "tabela_economia_mensal",
+      "tabela_equipamentos", "tabela_parcelas",
+    ], "snapshot", "resolveSistemaSolar");
+
+    // ── Séries (projeções anuais — snapshot/computed) ──
+    addToMap([
+      "s_economia_anual", "s_geracao_anual", "s_geracao_mensal",
+      "s_investimento_anual", "s_fluxo_caixa_acumulado_anual",
+      "s_tarifa_distribuidora_anual", "s_consumo_mensal", "s_creditos_mensal",
+      "s_creditos_gerados", "s_creditos_alocados",
+    ], "computed", "resolveFinanceiro");
+    // UC-specific series
+    addToMap([
+      "s_creditos_alocados_uc1", "s_consumo_mensal_uc1", "s_creditos_mensal_uc1",
+      "s_economia_anual_uc1", "s_fluxo_caixa_acumulado_anual_uc1",
+      "s_geracao_anual_uc1", "s_investimento_anual_uc1", "s_tarifa_distribuidora_anual_uc1",
+    ], "computed", "resolveFinanceiro");
+
+    // ── Customizadas explícitas (não caem no prefixo vc_ genérico) ──
+    addToMap([
+      "vc_consumo", "vc_aumento", "vc_media_sonsumo_mensal", "vc_consumo_anual", "vc_economia_acumulada",
+      "vc_s_consumo_mensal_media", "vc_s_consumo_mt_p", "vc_s_consumo_mt_fp",
+      "vc_s_consumo_mt_p_e_fp", "vc_s_geracao_mensal_media",
+      "vc_valor_entrada", "vc_valor_parcelas_4", "vc_valor_parcela_troca_medidor",
+      "vc_saldo_solar_25_anos", "vc_saldo_renda_fixa_25_anos", "vc_saldo_poupanca_25_anos",
+      "vc_roi_primeiro_mes", "vc_tarifa_solar", "vc_preco_watt",
+      "vc_investimento_solar_rendimento", "vc_economia_conta_total_rs", "vc_economia_conta_total_pc",
+      "vc_total_modulo", "vc_p_total_cc", "vc_string_box_cc",
+      "vc_potencia_sistema", "vc_modulo_potencia", "vc_inversor_potencia_nominal", "vc_estrutura",
+      "vc_garantiaservico", "vc_grafico_de_comparacao", "vc_valor_gerac_prevista",
+      "vc_cartao_credito_taxa_1", "vc_cartao_credito_taxa_2", "vc_cartao_credito_taxa_3", "vc_cartao_credito_taxa_4",
+      "vc_cal_icms_enel", "vc_valor_icms_enel", "vc_valor_icms_enel_fator_simultaneidade",
+      "vc_incluir_seguro", "vc_calculo_seguro",
+    ], "custom_vc", "proposal-generate (evaluateExpression)");
 
     // ── Tarifa / Distribuidora (frontend: resolveProposalVariables → tariff engine) ──
     addToMap([
