@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.66.0",
+    date: "2026-03-16",
+    title: "Detecção de variáveis fantasma e KPIs de auditoria",
+    type: "improvement",
+    description: "Auditoria de variáveis agora detecta variáveis que referenciam colunas inexistentes no banco e exibe resumo consolidado no topo.",
+    details: [
+      "Detecção de 'variáveis fantasma' — variáveis do catálogo cuja coluna de origem não existe mais no schema",
+      "KPIs de resumo no topo: Campos no Banco, Mapeados, Sem Variável, Fantasma",
+      "Loading state com Skeleton ao analisar variáveis (§12)",
+      "Botão Criar pré-preenche expressão com referência ao snapshot e categoria baseada na tabela",
+    ],
+  },
+  {
     version: "2.65.0",
     date: "2026-03-16",
     title: "Auditoria de integridade do catálogo de variáveis",
