@@ -70,8 +70,18 @@ const SYSTEM_COLUMNS = new Set([
   "calc_hash", "idempotency_key", "snapshot", "snapshot_locked",
   "irradiance_source_point",
   "gerado_por", "engine_version", "grupo",
-  "template_id", "versao_atual", "versao_numero",
+  "template_id", "versao_numero",
   "pipeline_id", "stage_id", "customer_id", "owner_id", "doc_checklist",
+  "deal_id", "deal_num", "legacy_key",
+  "aceite_estimativa", "aceite_motivo", "data_aceite_estimativa",
+  "aneel_run_id", "ano_gd", "fio_b_percent_aplicado",
+  "metadata", "missing_variables", "snapshot_hash", "tariff_version_id",
+  "vigencia_tarifa", "template_id_used",
+  "final_snapshot", "finalized_at", "generated_at", "generation_error", "generation_status",
+  "irradiance_source_point",
+  "cofins_percentual", "pis_percentual", "nome_aneel_oficial",
+  "tarifa_fio_b_gd", "ultima_sync_tarifas",
+  "assinatura_url",
 ]);
 
 // ── Schema tables ──────────────────────────────────────────
