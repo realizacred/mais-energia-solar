@@ -125,6 +125,11 @@ export function AuditTabContent({
       </div>
 
       {/* ════════════════════════════════════════════════════════ */}
+      {/* SECTION: Category Breakdown (right after KPIs) */}
+      {/* ════════════════════════════════════════════════════════ */}
+      <CategoryAuditSection entries={categoryAudit} />
+
+      {/* ════════════════════════════════════════════════════════ */}
       {/* GHOST VARIABLES */}
       {/* ════════════════════════════════════════════════════════ */}
       {ghostVariables.length > 0 && (
@@ -441,10 +446,8 @@ export function AuditTabContent({
         )}
       </div>
 
-      {/* ════════════════════════════════════════════════════════ */}
-      {/* SECTION 1.5: Category Breakdown */}
-      {/* ════════════════════════════════════════════════════════ */}
-      <CategoryAuditSection entries={categoryAudit} />
+
+
 
       {/* ════════════════════════════════════════════════════════ */}
       {/* SECTION 2: Custom Variables Sync */}
