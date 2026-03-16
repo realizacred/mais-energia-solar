@@ -301,10 +301,22 @@ export function VariaveisDisponiveisPage() {
             onRefresh={loadCustomVars}
             onRequestCreateVariable={(suggested) => {
               setEditingVar(null);
+              // Map table to a meaningful categoria for the custom variable
+              const tableCategoria: Record<string, string> = {
+                clientes: "cliente",
+                deals: "comercial",
+                projetos: "comercial",
+                propostas_nativas: "comercial",
+                proposta_versoes: "financeiro",
+                simulacoes: "calculo",
+                consultores: "comercial",
+                concessionarias: "tarifa",
+              };
+              const categoria = tableCategoria[suggested.table] || "geral";
               setForm({
                 nome: `vc_${suggested.nome}`,
                 label: suggested.label,
-                expressao: `// Origem: ${suggested.table}.${suggested.column}`,
+                expressao: `// Origem: ${suggested.table}.${suggested.column}\nreturn snapshot?.${suggested.table}?.${suggested.column} ?? "-";`,
                 precisao: 2,
               });
               setModalOpen(true);
