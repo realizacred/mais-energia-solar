@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Layers, Percent, DollarSign } from "lucide-react";
+import { Shield, Layers, Percent, DollarSign, CreditCard } from "lucide-react";
 import { CostComponentsTab } from "./tabs/CostComponentsTab";
+import { InterestRatesTab } from "./tabs/InterestRatesTab";
 import { MarginCommissionTab } from "./tabs/MarginCommissionTab";
 import { PricingMethodTab } from "./tabs/PricingMethodTab";
 import { PolicyVersionSelector } from "./PolicyVersionSelector";
