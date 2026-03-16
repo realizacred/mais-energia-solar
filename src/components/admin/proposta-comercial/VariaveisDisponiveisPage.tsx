@@ -234,23 +234,24 @@ export function VariaveisDisponiveisPage() {
                 ? dbCustomVars.length
                 : VARIABLES_CATALOG.filter((v) => v.category === cat).length;
               return (
-                <button
+                <Button
                   key={cat}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setActiveCategory(cat)}
-                  className={`
-                    flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all
-                    ${isActive
-                      ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                  className={cn(
+                    "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20 hover:bg-primary/90"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-                    }
-                  `}
+                  )}
                 >
                   <span className="text-xs">{CATEGORY_ICONS[cat]}</span>
                   <span>{CATEGORY_LABELS[cat]}</span>
-                  <span className={`text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center ${isActive ? "text-primary-foreground/70" : "text-muted-foreground/40"}`}>
+                  <span className={cn("text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center", isActive ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
                     {count}
                   </span>
-                </button>
+                </Button>
               );
             })}
             {/* Audit tab */}
