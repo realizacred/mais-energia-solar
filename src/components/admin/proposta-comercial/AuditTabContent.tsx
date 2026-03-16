@@ -647,128 +647,97 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
         })}
       </div>
 
-      {/* Expanded category detail — with STATUS, ORIGEM, RESOLVER columns */}
+      {/* Expanded category detail — card-based layout, no horizontal scroll */}
       {expandedCat && (() => {
         const entry = entries.find((e) => e.category === expandedCat);
         if (!entry) return null;
         const okCount = entry.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
-        const ghostCount = entry.variables.filter(v => v.source === "unknown").length;
+        const ghostCount = entry.variables.filter(v => v.source === "unknown" && !v.notImplemented).length;
+        const pendingCount = entry.variables.filter(v => v.notImplemented).length;
         return (
           <div className="rounded-lg border border-border overflow-hidden">
             {/* Header */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 border-b border-border">
-              <span className="text-sm">{entry.icon}</span>
-              <span className="text-xs font-semibold text-foreground">{entry.label}</span>
-              <Badge variant="outline" className="text-[8px] bg-primary/10 text-primary border-primary/20">{entry.total} variáveis</Badge>
-              <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20">✅ {okCount} OK</Badge>
-              {ghostCount > 0 && <Badge variant="outline" className="text-[8px] bg-destructive/10 text-destructive border-destructive/20">❓ {ghostCount} fantasma</Badge>}
+            <div className="flex items-center gap-2 px-3 py-2.5 bg-muted/20 border-b border-border flex-wrap">
+              <span className="text-base">{entry.icon}</span>
+              <span className="text-sm font-semibold text-foreground">{entry.label}</span>
+              <Badge variant="outline" className="text-[9px] bg-primary/10 text-primary border-primary/20">{entry.total} variáveis</Badge>
+              <Badge variant="outline" className="text-[9px] bg-success/10 text-success border-success/20">✅ {okCount} OK</Badge>
+              {ghostCount > 0 && <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">❓ {ghostCount} fantasma</Badge>}
+              {pendingCount > 0 && <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20">⚠️ {pendingCount} pendente</Badge>}
             </div>
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-muted/30 border-b border-border">
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[35px]">Status</th>
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Label</th>
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[120px]">Origem</th>
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[160px]">Resolver</th>
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Descrição</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entry.variables.map((v, idx) => {
-                    const srcInfo = SOURCE_LABELS[v.source];
-                    const isOk = !v.notImplemented && v.source !== "unknown";
-                    const isGhost = v.source === "unknown" && !v.notImplemented;
-                    const isPending = !!v.notImplemented;
-                    return (
-                      <tr key={v.key} className={cn(
-                        "border-b border-border/40 transition-colors hover:bg-accent/5",
-                        idx % 2 === 0 ? "bg-card" : "bg-muted/10",
-                        isGhost && "bg-destructive/[0.03]",
-                        isPending && "bg-warning/[0.03] opacity-60"
+
+            {/* Variable list — stacked cards */}
+            <div className="divide-y divide-border/40 max-h-[500px] overflow-y-auto">
+              {entry.variables.map((v, idx) => {
+                const srcInfo = SOURCE_LABELS[v.source];
+                const isOk = !v.notImplemented && v.source !== "unknown";
+                const isGhost = v.source === "unknown" && !v.notImplemented;
+                const isPending = !!v.notImplemented;
+
+                return (
+                  <div
+                    key={v.key}
+                    className={cn(
+                      "px-3 py-2 flex flex-col gap-1 transition-colors hover:bg-accent/5",
+                      idx % 2 === 0 ? "bg-card" : "bg-muted/10",
+                      isGhost && "bg-destructive/[0.04] border-l-2 border-l-destructive/40",
+                      isPending && "bg-warning/[0.04] border-l-2 border-l-warning/40 opacity-70",
+                      isOk && "border-l-2 border-l-success/40"
+                    )}
+                  >
+                    {/* Row 1: Status icon + Label + Key */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Status icon */}
+                      {isPending ? (
+                        <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+                      ) : isGhost ? (
+                        <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                      )}
+
+                      {/* Label */}
+                      <span className="text-xs font-medium text-foreground">{v.label}</span>
+
+                      {/* Key */}
+                      <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px] shrink-0">[{v.key}]</code>
+                    </div>
+
+                    {/* Row 2: Origem + Resolver + Status text */}
+                    <div className="flex items-center gap-2 ml-5 flex-wrap">
+                      {/* Origem badge */}
+                      <Badge variant="outline" className={cn(
+                        "text-[9px] gap-0.5 h-5",
+                        v.source === "snapshot" && "bg-info/10 text-info border-info/20",
+                        (v.source === "db_cliente" || v.source === "db_lead" || v.source === "db_consultor" || v.source === "db_projeto" || v.source === "db_proposta" || v.source === "db_versao") && "bg-primary/10 text-primary border-primary/20",
+                        v.source === "computed" && "bg-warning/10 text-warning border-warning/20",
+                        v.source === "custom_vc" && "bg-success/10 text-success border-success/20",
+                        v.source === "unknown" && "bg-destructive/10 text-destructive border-destructive/20",
                       )}>
-                        {/* STATUS */}
-                        <td className="px-2 py-1.5 text-center">
-                          {isPending ? (
-                            <Tooltip>
-                              <TooltipTrigger><AlertTriangle className="h-3.5 w-3.5 text-warning" /></TooltipTrigger>
-                              <TooltipContent side="top" className="text-[10px]">⚠️ Não implementada — precisa criar no resolver</TooltipContent>
-                            </Tooltip>
-                          ) : isGhost ? (
-                            <Tooltip>
-                              <TooltipTrigger><XCircle className="h-3.5 w-3.5 text-destructive" /></TooltipTrigger>
-                              <TooltipContent side="top" className="text-[10px]">❌ Fantasma — nenhum resolver resolve esta variável</TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <Tooltip>
-                              <TooltipTrigger><CheckCircle2 className="h-3.5 w-3.5 text-success" /></TooltipTrigger>
-                              <TooltipContent side="top" className="text-[10px]">✅ OK — resolvida via {v.resolver}</TooltipContent>
-                            </Tooltip>
-                          )}
-                        </td>
-                        {/* LABEL */}
-                        <td className="px-2 py-1.5">
-                          <span className="text-[11px] font-medium text-foreground">{v.label}</span>
-                        </td>
-                        {/* CHAVE */}
-                        <td className="px-2 py-1.5">
-                          <code className="font-mono text-primary bg-primary/5 px-1 py-0.5 rounded text-[10px]">[{v.key}]</code>
-                        </td>
-                        {/* ORIGEM — badge colorido claro */}
-                        <td className="px-2 py-1.5">
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Badge variant="outline" className={cn(
-                                "text-[8px] gap-0.5 whitespace-nowrap",
-                                v.source === "snapshot" && "bg-info/10 text-info border-info/20",
-                                v.source === "db_cliente" && "bg-primary/10 text-primary border-primary/20",
-                                v.source === "db_lead" && "bg-primary/10 text-primary border-primary/20",
-                                v.source === "db_consultor" && "bg-primary/10 text-primary border-primary/20",
-                                v.source === "db_projeto" && "bg-primary/10 text-primary border-primary/20",
-                                v.source === "db_proposta" && "bg-primary/10 text-primary border-primary/20",
-                                v.source === "db_versao" && "bg-primary/10 text-primary border-primary/20",
-                                v.source === "computed" && "bg-warning/10 text-warning border-warning/20",
-                                v.source === "custom_vc" && "bg-success/10 text-success border-success/20",
-                                v.source === "unknown" && "bg-destructive/10 text-destructive border-destructive/20",
-                              )}>
-                                <span>{srcInfo.icon}</span> {srcInfo.label}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="text-[10px] max-w-[280px]">
-                              {v.source === "snapshot" && "📸 Vem do snapshot imutável da proposta — dados gravados no momento da geração do PDF"}
-                              {v.source === "db_cliente" && "👤 Busca direta na tabela 'clientes' do banco de dados"}
-                              {v.source === "db_lead" && "🎯 Busca direta na tabela 'leads' do banco de dados"}
-                              {v.source === "db_consultor" && "👔 Busca direta na tabela 'consultores' do banco de dados"}
-                              {v.source === "db_projeto" && "📁 Busca direta na tabela 'projetos' do banco de dados"}
-                              {v.source === "db_proposta" && "📄 Busca direta nas tabelas 'propostas_nativas' / 'proposta_versoes'"}
-                              {v.source === "db_versao" && "📋 Busca direta na tabela 'proposta_versoes'"}
-                              {v.source === "computed" && "🧮 Calculada em tempo real pelo resolver — não vem do banco"}
-                              {v.source === "custom_vc" && "🧩 Variável customizada — expressão avaliada pelo motor de cálculo"}
-                              {v.source === "unknown" && "❓ FANTASMA — Nenhum resolver mapeia esta variável. Pode aparecer em branco no PDF!"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </td>
-                        {/* RESOLVER */}
-                        <td className="px-2 py-1.5">
-                          {v.resolver ? (
-                            <code className="font-mono text-muted-foreground bg-muted/30 px-1 py-0.5 rounded text-[9px]">{v.resolver}</code>
-                          ) : (
-                            <span className="text-[9px] text-destructive font-medium">❌ Sem resolver</span>
-                          )}
-                        </td>
-                        {/* DESCRIÇÃO */}
-                        <td className="px-2 py-1.5 max-w-[200px]">
-                          <span className="text-[10px] text-muted-foreground truncate block" title={v.description}>
-                            {v.description || <span className="text-destructive italic">Sem descrição</span>}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        {srcInfo.icon} {srcInfo.label}
+                      </Badge>
+
+                      {/* Resolver */}
+                      {v.resolver ? (
+                        <span className="text-[10px] text-muted-foreground">
+                          via <code className="font-mono bg-muted/40 px-1 py-0.5 rounded text-[9px]">{v.resolver}</code>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-destructive font-medium">❌ Sem resolver</span>
+                      )}
+
+                      {/* Status text */}
+                      {isPending && <span className="text-[10px] text-warning font-medium">— ⚠️ Não implementada</span>}
+                      {isGhost && <span className="text-[10px] text-destructive font-medium">— ❌ Variável fantasma (pode sair em branco no PDF!)</span>}
+
+                      {/* Description */}
+                      {v.description && (
+                        <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">— {v.description}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
