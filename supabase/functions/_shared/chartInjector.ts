@@ -3,6 +3,10 @@
  * renders PNGs via proposal-chart-render, and injects images into the DOCX.
  *
  * Usage: import { injectChartsIntoDocx } from "../_shared/chartInjector.ts";
+ *
+ * v2 — Hardened: context detection (isolated/inline/table/header-footer),
+ *       improved logging with skip reasons, header/footer blocking,
+ *       dimension clamping, and structured chart report.
  */
 
 import JSZip from "npm:jszip@3.10.1";
@@ -38,12 +42,15 @@ interface RenderedChart {
   heightPx: number;
 }
 
+type PlaceholderContext = "isolated" | "inline" | "table" | "header" | "footer";
+
 interface ChartInjectionResult {
   output: Uint8Array;
   chartsDetected: string[];
   chartsRendered: string[];
   chartsFailed: string[];
   chartsSkipped: string[];
+  reasons: Record<string, string>;
 }
 
 type SupabaseClient = {
@@ -55,29 +62,28 @@ type SupabaseClient = {
 
 export function normalizeChartPlaceholder(input: string): string {
   if (!input) return "";
-  return input.trim().replace(/^\[|\]$/g, "").replace(/\s+/g, "_");
+  return input.trim().replace(/^\[|\]$/g, "").replace(/\s+/g, "_").toLowerCase();
 }
 
 // ── Placeholder Detection ───────────────────────────────────
 
 /**
- * Known chart placeholder prefixes. We detect any [xxx] placeholder
- * and then match against the proposal_charts catalog.
+ * Detect [xxx] style placeholders in XML content.
+ * Returns normalized placeholder names (without brackets).
  */
 export function detectChartPlaceholders(xmlContent: string): string[] {
   const placeholders = new Set<string>();
-  // Match [word_chars] patterns — we'll filter against DB later
   const regex = /\[([a-zA-Z_][a-zA-Z0-9_.\-]{2,120})\]/g;
   let match;
   while ((match = regex.exec(xmlContent)) !== null) {
-    placeholders.add(match[1]); // without brackets
+    placeholders.add(normalizeChartPlaceholder(match[1]));
   }
   return Array.from(placeholders);
 }
 
 // ── Data Resolution ─────────────────────────────────────────
 
-function resolveDataFromSnapshot(
+export function resolveDataFromSnapshot(
   snapshot: Record<string, unknown>,
   dataSourcePath: string,
 ): Record<string, unknown>[] | null {
@@ -98,7 +104,7 @@ function resolveDataFromSnapshot(
   return null;
 }
 
-function buildChartDataset(
+export function buildChartDataset(
   chart: ChartConfig,
   rawData: Record<string, unknown>[],
 ): { labels: string[]; datasets: any[] } {
@@ -135,10 +141,49 @@ function buildChartDataset(
   };
 }
 
+// ── Context Detection ───────────────────────────────────────
+
+/**
+ * Determine the context of a placeholder within a paragraph XML.
+ * Returns whether the placeholder is the sole content of the paragraph ("isolated")
+ * or mixed with other text ("inline").
+ */
+function detectParagraphContext(
+  paraXml: string,
+  bracketPlaceholder: string,
+  normalizedPlaceholder: string,
+): PlaceholderContext {
+  // Extract visible text from all runs
+  const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+  let tMatch;
+  const texts: string[] = [];
+  while ((tMatch = tPattern.exec(paraXml)) !== null) {
+    texts.push(tMatch[1]);
+  }
+  const fullText = texts.join("").trim();
+
+  if (fullText === bracketPlaceholder || fullText === normalizedPlaceholder) {
+    return "isolated";
+  }
+  return "inline";
+}
+
+/**
+ * Determine if an XML file is a header or footer.
+ */
+function getFileContext(fileName: string): "header" | "footer" | "body" {
+  const lower = fileName.toLowerCase();
+  if (lower.includes("header")) return "header";
+  if (lower.includes("footer")) return "footer";
+  return "body";
+}
+
 // ── DOCX Image Injection ────────────────────────────────────
 
 // EMU constants: 1 inch = 914400 EMU, 1 cm = 360000 EMU
 const MAX_WIDTH_EMU = 5_400_000; // ~15cm — fits A4 with margins
+const MAX_HEIGHT_EMU = 7_200_000; // ~20cm — reasonable max height
+const TABLE_MAX_WIDTH_EMU = 4_800_000; // ~13.3cm — leave margin in table cells
 
 function buildInlineDrawingXml(
   rId: string,
@@ -183,16 +228,12 @@ function addRelationship(relsXml: string, rId: string, target: string): string {
     `<Relationship Id="${rId}" ` +
     `Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" ` +
     `Target="${target}"/>`;
-
-  // Insert before closing </Relationships>
   return relsXml.replace("</Relationships>", `${relTag}</Relationships>`);
 }
 
 function addContentType(contentTypesXml: string): string {
-  // Only add if not already present
   if (contentTypesXml.includes('Extension="png"')) return contentTypesXml;
   const pngType = `<Default Extension="png" ContentType="image/png"/>`;
-  // Insert after the opening <Types ...> tag
   return contentTypesXml.replace(/<Types[^>]*>/, (match) => `${match}${pngType}`);
 }
 
@@ -205,6 +246,40 @@ function getNextRid(relsXml: string): number {
     if (n > max) max = n;
   }
   return max + 1;
+}
+
+/**
+ * Calculate EMU dimensions preserving aspect ratio and respecting max bounds.
+ */
+function calculateEmuDimensions(
+  widthPx: number,
+  heightPx: number,
+  isTable: boolean,
+): { widthEmu: number; heightEmu: number } {
+  const maxW = isTable ? TABLE_MAX_WIDTH_EMU : MAX_WIDTH_EMU;
+  const aspectRatio = heightPx / widthPx;
+  let widthEmu = maxW;
+  let heightEmu = Math.round(widthEmu * aspectRatio);
+
+  // Clamp height
+  if (heightEmu > MAX_HEIGHT_EMU) {
+    heightEmu = MAX_HEIGHT_EMU;
+    widthEmu = Math.round(heightEmu / aspectRatio);
+  }
+
+  return { widthEmu, heightEmu };
+}
+
+/**
+ * Check if a paragraph is inside a table cell (<w:tc>).
+ * We do a rough check by looking at the broader XML context.
+ */
+function isParagraphInTable(xmlContent: string, paraStartIndex: number): boolean {
+  // Look backwards from the paragraph start for the nearest <w:tc> or </w:tc>
+  const before = xmlContent.substring(Math.max(0, paraStartIndex - 500), paraStartIndex);
+  const lastTcOpen = before.lastIndexOf("<w:tc");
+  const lastTcClose = before.lastIndexOf("</w:tc>");
+  return lastTcOpen > lastTcClose;
 }
 
 // ── Main Entry Point ────────────────────────────────────────
@@ -224,16 +299,19 @@ export async function injectChartsIntoDocx(opts: {
   const chartsRendered: string[] = [];
   const chartsFailed: string[] = [];
   const chartsSkipped: string[] = [];
+  const reasons: Record<string, string> = {};
+
+  const logCtx = proposalId ? `proposal=${proposalId} tenant=${tenantId}` : `tenant=${tenantId}`;
 
   if (!snapshot) {
-    console.log(`${LOG_PREFIX} No snapshot — skipping chart injection`);
-    return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped };
+    console.log(`${LOG_PREFIX} [${logCtx}] No snapshot — skipping chart injection`);
+    return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped, reasons };
   }
 
   // ── 1. Load DOCX ZIP ──────────────────────────────────────
   const zip = await JSZip.loadAsync(docxBytes);
 
-  // ── 2. Read document.xml + headers/footers to detect placeholders
+  // ── 2. Read XML files to detect placeholders ──────────────
   const xmlFiles: string[] = [];
   zip.forEach((path) => {
     if (
@@ -266,8 +344,8 @@ export async function injectChartsIntoDocx(opts: {
   }
 
   if (allPlaceholders.size === 0) {
-    console.log(`${LOG_PREFIX} No placeholders found — skipping`);
-    return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped };
+    console.log(`${LOG_PREFIX} [${logCtx}] No bracket placeholders found — skipping`);
+    return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped, reasons };
   }
 
   // ── 3. Fetch active charts for this tenant ────────────────
@@ -278,8 +356,8 @@ export async function injectChartsIntoDocx(opts: {
     .eq("active", true);
 
   if (chartsErr || !activeCharts || activeCharts.length === 0) {
-    console.log(`${LOG_PREFIX} No active charts in catalog — skipping`);
-    return { output: docxBytes, chartsDetected: Array.from(allPlaceholders), chartsRendered, chartsFailed, chartsSkipped: Array.from(allPlaceholders) };
+    console.log(`${LOG_PREFIX} [${logCtx}] No active charts in catalog — skipping`);
+    return { output: docxBytes, chartsDetected: Array.from(allPlaceholders), chartsRendered, chartsFailed, chartsSkipped: Array.from(allPlaceholders), reasons };
   }
 
   // Build lookup: normalized placeholder → chart config
@@ -289,28 +367,33 @@ export async function injectChartsIntoDocx(opts: {
     chartLookup.set(normalizedPh, chart as ChartConfig);
   }
 
-  // ── 4. Match placeholders to chart configs ────────────────
+  // ── 4. Filter placeholders to only chart-matching ones ────
+  // Only placeholders that exist in the catalog are treated as chart placeholders.
+  // All others are regular variables — do NOT log them as skipped.
   const matchedCharts: Array<{ placeholder: string; chart: ChartConfig }> = [];
 
   for (const ph of allPlaceholders) {
     const normalized = normalizeChartPlaceholder(ph);
     const chart = chartLookup.get(normalized);
-    if (chart) {
-      if (chart.engine !== "rendered_image") {
-        console.log(`${LOG_PREFIX} Placeholder [${ph}] → chart "${chart.id}" uses engine "${chart.engine}" — skipping (only rendered_image supported)`);
-        chartsSkipped.push(ph);
-        continue;
-      }
-      chartsDetected.push(ph);
-      matchedCharts.push({ placeholder: ph, chart });
-      console.log(`${LOG_PREFIX} Matched [${ph}] → chart "${chart.title}" (${chart.chart_type}, source: ${chart.data_source})`);
+    if (!chart) continue; // Not a chart placeholder — ignore silently
+
+    chartsDetected.push(ph);
+
+    if (chart.engine !== "rendered_image") {
+      const reason = `engine "${chart.engine}" not supported in this phase (only rendered_image)`;
+      console.log(`${LOG_PREFIX} [${logCtx}] [${ph}] → chart "${chart.id}" — ${reason}`);
+      chartsSkipped.push(ph);
+      reasons[ph] = reason;
+      continue;
     }
-    // Not a chart placeholder — could be a regular variable. Don't log as skipped.
+
+    matchedCharts.push({ placeholder: ph, chart });
+    console.log(`${LOG_PREFIX} [${logCtx}] Matched [${ph}] → "${chart.title}" (${chart.chart_type}, source: ${chart.data_source})`);
   }
 
   if (matchedCharts.length === 0) {
-    console.log(`${LOG_PREFIX} No chart placeholders matched catalog — skipping injection`);
-    return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped };
+    console.log(`${LOG_PREFIX} [${logCtx}] No chart placeholders matched catalog — skipping`);
+    return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped, reasons };
   }
 
   // ── 5. Resolve datasets + render PNGs ─────────────────────
@@ -321,13 +404,15 @@ export async function injectChartsIntoDocx(opts: {
       // Resolve data from snapshot
       const rawData = resolveDataFromSnapshot(snapshot, chart.data_source);
       if (!rawData || rawData.length === 0) {
-        console.warn(`${LOG_PREFIX} [${placeholder}] data_source "${chart.data_source}" → empty/null in snapshot — skipping`);
+        const reason = `data_source "${chart.data_source}" empty or missing in snapshot`;
+        console.warn(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
         chartsSkipped.push(placeholder);
+        reasons[placeholder] = reason;
         continue;
       }
 
       const dataset = buildChartDataset(chart, rawData);
-      console.log(`${LOG_PREFIX} [${placeholder}] dataset: ${dataset.labels.length} points`);
+      console.log(`${LOG_PREFIX} [${logCtx}] [${placeholder}] dataset: ${dataset.labels.length} points, chart_id=${chart.id}`);
 
       // Call proposal-chart-render edge function
       const renderPayload = {
@@ -357,15 +442,19 @@ export async function injectChartsIntoDocx(opts: {
 
       if (!renderResp.ok) {
         const errText = await renderResp.text();
-        console.error(`${LOG_PREFIX} [${placeholder}] render failed (${renderResp.status}): ${errText}`);
+        const reason = `render HTTP ${renderResp.status}: ${errText.substring(0, 200)}`;
+        console.error(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
         chartsFailed.push(placeholder);
+        reasons[placeholder] = reason;
         continue;
       }
 
       const renderResult = await renderResp.json();
       if (!renderResult.success || !renderResult.image_base64) {
-        console.error(`${LOG_PREFIX} [${placeholder}] render returned error: ${renderResult.error}`);
+        const reason = `render error: ${renderResult.error || "no image_base64"}`;
+        console.error(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
         chartsFailed.push(placeholder);
+        reasons[placeholder] = reason;
         continue;
       }
 
@@ -385,16 +474,18 @@ export async function injectChartsIntoDocx(opts: {
       });
 
       chartsRendered.push(placeholder);
-      console.log(`${LOG_PREFIX} [${placeholder}] rendered OK — ${(imageBytes.length / 1024).toFixed(1)} KB`);
+      console.log(`${LOG_PREFIX} [${logCtx}] [${placeholder}] rendered OK — ${(imageBytes.length / 1024).toFixed(1)} KB`);
     } catch (err: any) {
-      console.error(`${LOG_PREFIX} [${placeholder}] error: ${err.message}`);
+      const reason = `exception: ${err.message}`;
+      console.error(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
       chartsFailed.push(placeholder);
+      reasons[placeholder] = reason;
     }
   }
 
   if (renderedCharts.length === 0) {
-    console.log(`${LOG_PREFIX} No charts rendered — returning original DOCX`);
-    return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped };
+    console.log(`${LOG_PREFIX} [${logCtx}] No charts rendered — returning original DOCX`);
+    return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped, reasons };
   }
 
   // ── 6. Inject images into DOCX ────────────────────────────
@@ -404,8 +495,8 @@ export async function injectChartsIntoDocx(opts: {
   const relsFile = zip.file(relsPath);
   let relsXml = relsFile ? await relsFile.async("string") : "";
   if (!relsXml) {
-    console.error(`${LOG_PREFIX} Cannot find ${relsPath} — cannot inject images`);
-    return { output: docxBytes, chartsDetected, chartsRendered: [], chartsFailed: chartsRendered, chartsSkipped };
+    console.error(`${LOG_PREFIX} [${logCtx}] Cannot find ${relsPath} — cannot inject images`);
+    return { output: docxBytes, chartsDetected, chartsRendered: [], chartsFailed: [...chartsRendered], chartsSkipped, reasons };
   }
 
   // Update [Content_Types].xml
@@ -417,11 +508,15 @@ export async function injectChartsIntoDocx(opts: {
   }
 
   let nextRid = getNextRid(relsXml);
-  let imageIdCounter = 100; // Start high to avoid conflicts
+  let imageIdCounter = 100;
+
+  // Track which charts were actually injected vs skipped at injection phase
+  const injectedPlaceholders = new Set<string>();
 
   for (const chart of renderedCharts) {
     const rId = `rId${nextRid++}`;
-    const mediaFileName = `chart_${normalizeChartPlaceholder(chart.placeholder)}.png`;
+    const normalizedPh = normalizeChartPlaceholder(chart.placeholder);
+    const mediaFileName = `chart_${normalizedPh}.png`;
     const mediaPath = `media/${mediaFileName}`;
     const fullMediaPath = `word/${mediaPath}`;
 
@@ -431,69 +526,106 @@ export async function injectChartsIntoDocx(opts: {
     // Add relationship
     relsXml = addRelationship(relsXml, rId, mediaPath);
 
-    // Calculate EMU dimensions (fit to page width)
-    const aspectRatio = chart.heightPx / chart.widthPx;
-    const widthEmu = MAX_WIDTH_EMU;
-    const heightEmu = Math.round(widthEmu * aspectRatio);
+    // Track injection success for this chart
+    let chartInjected = false;
 
-    const imageId = imageIdCounter++;
-    const drawingXml = buildInlineDrawingXml(rId, widthEmu, heightEmu, imageId, `chart_${chart.placeholder}`);
-
-    // Replace placeholder in all XML files
+    // Reconstruct bracket form for searching
     const bracketPlaceholder = `[${chart.placeholder}]`;
+    // Also check for the normalized lowercase form with brackets
+    const bracketNormalized = `[${normalizedPh}]`;
 
     for (const [fileName, content] of xmlContents) {
-      if (!content.includes(bracketPlaceholder)) continue;
+      // Check if file contains the placeholder (case-insensitive check)
+      const contentLower = content.toLowerCase();
+      const hasBracket = content.includes(bracketPlaceholder) || contentLower.includes(bracketNormalized);
+      if (!hasBracket) continue;
 
-      // Strategy: find the <w:p> containing the placeholder and replace the
-      // entire paragraph's text runs with the drawing.
-      // We look for paragraphs where the visible text matches the placeholder.
+      const fileCtx = getFileContext(fileName);
+
+      // ── Header/Footer blocking ──
+      if (fileCtx === "header" || fileCtx === "footer") {
+        const reason = `placeholder in ${fileCtx} — not supported in this phase (risk of layout corruption)`;
+        console.warn(`${LOG_PREFIX} [${logCtx}] [${chart.placeholder}] in ${fileName}: ${reason}`);
+        if (!reasons[chart.placeholder]) {
+          reasons[chart.placeholder] = reason;
+        }
+        // Don't inject into headers/footers in this phase
+        continue;
+      }
+
+      // Calculate EMU dimensions once per chart per file
+      // (table detection is per-paragraph)
+      const imageId = imageIdCounter++;
+
       let newContent = content;
       const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
-      newContent = newContent.replace(paraPattern, (paraXml) => {
-        // Extract visible text from all runs
-        const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
-        let tMatch;
-        const texts: string[] = [];
-        while ((tMatch = tPattern.exec(paraXml)) !== null) {
-          texts.push(tMatch[1]);
-        }
-        const fullText = texts.join("").trim();
+      let paraMatch;
+      const replacements: Array<{ original: string; replacement: string }> = [];
 
-        // Check if this paragraph contains ONLY the chart placeholder
-        // (possibly with surrounding whitespace)
-        if (fullText === bracketPlaceholder || fullText === chart.placeholder) {
-          // Extract paragraph properties (pPr) to preserve formatting/alignment
+      while ((paraMatch = paraPattern.exec(content)) !== null) {
+        const paraXml = paraMatch[0];
+        const paraIndex = paraMatch.index;
+
+        // Check if this paragraph contains the placeholder
+        if (!paraXml.includes(bracketPlaceholder) && !paraXml.toLowerCase().includes(bracketNormalized)) {
+          continue;
+        }
+
+        const context = detectParagraphContext(paraXml, bracketPlaceholder, chart.placeholder);
+        const inTable = isParagraphInTable(content, paraIndex);
+        const { widthEmu, heightEmu } = calculateEmuDimensions(chart.widthPx, chart.heightPx, inTable);
+        const drawingXml = buildInlineDrawingXml(rId, widthEmu, heightEmu, imageId, `chart_${normalizedPh}`);
+
+        if (context === "isolated") {
+          // ✅ CANONICAL PATH: placeholder alone in paragraph → replace entire paragraph
           const pPrMatch = paraXml.match(/<w:pPr>[^]*?<\/w:pPr>/);
           const pPr = pPrMatch ? pPrMatch[0] : "";
-
-          // Replace entire paragraph with one containing the image
           const newPara = `<w:p>${pPr}${drawingXml}</w:p>`;
-          console.log(`${LOG_PREFIX} Injected chart image for [${chart.placeholder}] in ${fileName}`);
-          return newPara;
-        }
 
-        // If the placeholder is part of a larger text, replace just the text
-        // (less ideal but still works — image will be inline with text)
-        if (fullText.includes(bracketPlaceholder)) {
-          // Replace text runs containing the placeholder
-          const replaced = paraXml.replace(
-            new RegExp(escapeRegex(bracketPlaceholder), "g"),
-            "",
-          );
-          // Insert drawing run before closing </w:p>
-          const withDrawing = replaced.replace("</w:p>", `${drawingXml}</w:p>`);
-          console.log(`${LOG_PREFIX} Injected chart image (inline) for [${chart.placeholder}] in ${fileName}`);
-          return withDrawing;
-        }
+          replacements.push({ original: paraXml, replacement: newPara });
+          chartInjected = true;
 
-        return paraXml;
-      });
+          const locationLabel = inTable ? "table cell" : "body";
+          console.log(`${LOG_PREFIX} [${logCtx}] ✅ Injected [${chart.placeholder}] in ${fileName} (${locationLabel}, isolated paragraph)`);
+        } else {
+          // ⚠️ INLINE: placeholder mixed with text — skip injection for safety
+          const reason = `placeholder mixed with text in paragraph — skipped for safety (place placeholder alone in its own paragraph)`;
+          console.warn(`${LOG_PREFIX} [${logCtx}] ⚠️ [${chart.placeholder}] in ${fileName}: ${reason}`);
+          if (!reasons[chart.placeholder]) {
+            reasons[chart.placeholder] = reason;
+          }
+          // Do NOT inject inline — risk of XML corruption
+        }
+      }
+
+      // Apply all replacements for this file
+      for (const { original, replacement } of replacements) {
+        newContent = newContent.replace(original, replacement);
+      }
 
       if (newContent !== content) {
         xmlContents.set(fileName, newContent);
         zip.file(fileName, newContent);
       }
+    }
+
+    if (chartInjected) {
+      injectedPlaceholders.add(chart.placeholder);
+    } else if (!reasons[chart.placeholder]) {
+      // Rendered but not injected (placeholder not found in safe context)
+      reasons[chart.placeholder] = "rendered but placeholder not found in an injectable context";
+    }
+  }
+
+  // Reconcile: charts that were "rendered" but not actually injected should move to "failed"
+  const finalRendered: string[] = [];
+  const finalFailed = [...chartsFailed];
+  for (const ph of chartsRendered) {
+    if (injectedPlaceholders.has(ph)) {
+      finalRendered.push(ph);
+    } else {
+      finalFailed.push(ph);
+      if (!reasons[ph]) reasons[ph] = "rendered but injection failed";
     }
   }
 
@@ -507,9 +639,19 @@ export async function injectChartsIntoDocx(opts: {
     compressionOptions: { level: 6 },
   });
 
-  console.log(`${LOG_PREFIX} Injection complete: ${chartsRendered.length} rendered, ${chartsFailed.length} failed, ${chartsSkipped.length} skipped`);
+  console.log(`${LOG_PREFIX} [${logCtx}] Injection complete: ${finalRendered.length} rendered, ${finalFailed.length} failed, ${chartsSkipped.length} skipped`);
+  if (Object.keys(reasons).length > 0) {
+    console.log(`${LOG_PREFIX} [${logCtx}] Reasons:`, JSON.stringify(reasons));
+  }
 
-  return { output, chartsDetected, chartsRendered, chartsFailed, chartsSkipped };
+  return {
+    output,
+    chartsDetected,
+    chartsRendered: finalRendered,
+    chartsFailed: finalFailed,
+    chartsSkipped,
+    reasons,
+  };
 }
 
 function escapeRegex(str: string): string {

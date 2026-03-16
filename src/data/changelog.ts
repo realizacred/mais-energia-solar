@@ -19,6 +19,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.63.0",
+    date: "2026-03-16",
+    title: "Endurecimento do pipeline de gráficos rendered_image",
+    type: "improvement",
+    description: "Hardening completo do injector de gráficos DOCX com detecção de contexto, bloqueio de header/footer, logging estruturado e documentação de boas práticas.",
+    details: [
+      "Detecção de contexto: isolado, inline, tabela, header/footer — com comportamento específico para cada caso",
+      "Placeholders inline (misturados com texto) são ignorados com warning para evitar corrupção do DOCX",
+      "Placeholders em headers/footers bloqueados nesta fase — registra warning e continua",
+      "Dimensões clamped com MAX_HEIGHT_EMU e largura reduzida em células de tabela",
+      "Relatório de reasons por placeholder no response da API (detected/rendered/failed/skipped + motivo)",
+      "Testes automatizados para normalizer, detector, dataset builder e cenários de injeção",
+      "Documentação interna: docs/chart-template-best-practices.md",
+    ],
+  },
+  {
     version: "2.62.0",
     date: "2026-03-16",
     title: "Gráficos integrados no pipeline de geração de propostas",

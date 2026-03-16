@@ -1455,6 +1455,7 @@ Deno.serve(async (req) => {
         rendered: chartInjectionResult.chartsRendered,
         failed: chartInjectionResult.chartsFailed,
         skipped: chartInjectionResult.chartsSkipped,
+        reasons: chartInjectionResult.reasons || {},
       } : null,
     };
 
