@@ -49,6 +49,23 @@ export interface DescriptionIssue {
   issue: "missing" | "too_short";
 }
 
+export interface CategoryAuditEntry {
+  category: VariableCategory;
+  label: string;
+  icon: string;
+  total: number;
+  variables: Array<{
+    key: string;
+    canonicalKey: string;
+    label: string;
+    description: string;
+    unit: string;
+    example: string;
+    hasSchemaMapping: boolean;
+    notImplemented?: boolean;
+  }>;
+}
+
 // ── System columns to ignore ──────────────────────────────
 const SYSTEM_COLUMNS = new Set([
   "id", "tenant_id", "created_at", "updated_at", "created_by",
