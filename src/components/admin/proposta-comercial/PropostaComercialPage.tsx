@@ -1,9 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Variable, FileText, Mail, Settings } from "lucide-react";
+import { Variable, FileText, Mail, Settings, BarChart3 } from "lucide-react";
 import { VariaveisDisponiveisPage } from "./VariaveisDisponiveisPage";
 import { TemplatesManager } from "@/components/admin/propostas-nativas/TemplatesManager";
 import { EmailTemplatesPage } from "./EmailTemplatesPage";
 import { PropostaConfigPage } from "./PropostaConfigPage";
+import { ProposalChartsManager } from "./ProposalChartsManager";
 
 export function PropostaComercialPage() {
   return (
