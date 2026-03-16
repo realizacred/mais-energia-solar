@@ -255,19 +255,20 @@ export function VariaveisDisponiveisPage() {
               );
             })}
             {/* Audit tab */}
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setActiveCategory("auditoria")}
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all
-                ${activeCategory === "auditoria"
-                  ? "bg-warning text-warning-foreground shadow-sm ring-1 ring-warning/20"
+              className={cn(
+                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                activeCategory === "auditoria"
+                  ? "bg-warning text-warning-foreground shadow-sm ring-1 ring-warning/20 hover:bg-warning/90"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-                }
-              `}
+              )}
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Auditoria</span>
-            </button>
+            </Button>
           </div>
         </div>
 
