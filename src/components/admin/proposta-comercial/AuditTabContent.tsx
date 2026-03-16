@@ -33,7 +33,7 @@ export function AuditTabContent({
   dbCustomVars: DbCustomVar[];
   loadingCustom: boolean;
   onRefresh: () => void;
-  onRequestCreateVariable?: (suggested: { nome: string; label: string; table: string; column: string }) => void;
+  onRequestCreateVariable?: (suggested: { nome: string; label: string; table: string; column: string; colType?: string }) => void;
 }) {
   const [showSynced, setShowSynced] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "missing" | "mapped">("all");
@@ -408,12 +408,17 @@ export function AuditTabContent({
                             variant="outline"
                             size="sm"
                             className="h-6 px-2 text-[10px] gap-1 text-primary hover:text-primary hover:bg-primary/10 border-primary/30"
-                            onClick={() => onRequestCreateVariable({
-                              nome: suggestedKey,
-                              label: field.label,
-                              table: field.table,
-                              column: field.column,
-                            })}
+                            onClick={() => {
+                              const tableMeta2 = SORTED_TABLES.find((t) => t.name === field.table);
+                              const colMeta = tableMeta2?.columns.find((c) => c.column === field.column);
+                              onRequestCreateVariable({
+                                nome: suggestedKey,
+                                label: field.label,
+                                table: field.table,
+                                column: field.column,
+                                colType: colMeta?.colType,
+                              });
+                            }}
                           >
                             <PlusCircle className="h-3 w-3" />
                             Criar
