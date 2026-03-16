@@ -125,6 +125,11 @@ export function AuditTabContent({
       </div>
 
       {/* ════════════════════════════════════════════════════════ */}
+      {/* SECTION: Category Breakdown (right after KPIs) */}
+      {/* ════════════════════════════════════════════════════════ */}
+      <CategoryAuditSection entries={categoryAudit} />
+
+      {/* ════════════════════════════════════════════════════════ */}
       {/* GHOST VARIABLES */}
       {/* ════════════════════════════════════════════════════════ */}
       {ghostVariables.length > 0 && (
