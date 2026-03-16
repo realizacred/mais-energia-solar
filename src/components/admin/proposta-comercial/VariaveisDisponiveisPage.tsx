@@ -301,7 +301,6 @@ export function VariaveisDisponiveisPage() {
             onRefresh={loadCustomVars}
             onRequestCreateVariable={(suggested) => {
               setEditingVar(null);
-              // Map table to a meaningful categoria for the custom variable
               const tableCategoria: Record<string, string> = {
                 clientes: "cliente",
                 deals: "comercial",
@@ -313,11 +312,21 @@ export function VariaveisDisponiveisPage() {
                 concessionarias: "tarifa",
               };
               const categoria = tableCategoria[suggested.table] || "geral";
+              // Auto-detect expression based on column type
+              const colType = suggested.colType || "string";
+              let expressao = `return snapshot?.${suggested.table}?.${suggested.column} ?? "-";`;
+              if (colType === "number") {
+                expressao = `// Tipo: number\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nreturn typeof val === "number" ? val : 0;`;
+              } else if (colType === "date") {
+                expressao = `// Tipo: date — formato DD/MM/YYYY\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn d.toLocaleDateString("pt-BR");`;
+              } else if (colType === "boolean") {
+                expressao = `// Tipo: boolean\nreturn snapshot?.${suggested.table}?.${suggested.column} ? "Sim" : "Não";`;
+              }
               setForm({
                 nome: `vc_${suggested.nome}`,
                 label: suggested.label,
-                expressao: `// Origem: ${suggested.table}.${suggested.column}\nreturn snapshot?.${suggested.table}?.${suggested.column} ?? "-";`,
-                precisao: 2,
+                expressao,
+                precisao: colType === "number" ? 2 : 0,
               });
               setModalOpen(true);
             }}
