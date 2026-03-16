@@ -40,7 +40,7 @@ export function AuditTabContent({
   const [activeTable, setActiveTable] = useState<string | null>(null);
   const [showDescIssues, setShowDescIssues] = useState(false);
 
-  const { customAudit, schemaAudit, descriptionAudit, totalCustomDivergences } = useVariablesAudit(dbCustomVars);
+  const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences } = useVariablesAudit(dbCustomVars);
 
   // ── Filtered schema fields ──────────────────────────────────
   const filteredFields = useMemo(() => {
@@ -53,9 +53,23 @@ export function AuditTabContent({
 
   if (loadingCustom) {
     return (
-      <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="text-xs">Analisando variáveis...</span>
+      <div className="divide-y divide-border">
+        <div className="flex items-center justify-between px-4 py-3 bg-muted/10">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-7 w-24" />
+        </div>
+        <div className="px-4 py-3 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 rounded-lg" />
+            ))}
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full rounded-lg" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
