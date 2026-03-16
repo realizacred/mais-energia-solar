@@ -599,17 +599,34 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
         <span className="text-[10px] text-muted-foreground">— {totalVars} variáveis em {entries.length} categorias</span>
       </div>
 
-      {/* Category grid */}
+      {/* Legenda de status */}
+      <div className="flex flex-wrap items-center gap-3 text-[10px] bg-muted/20 rounded-lg px-3 py-2 border border-border/40">
+        <span className="font-semibold text-foreground">Legenda:</span>
+        <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-success" /> OK — Resolver mapeado</span>
+        <span className="flex items-center gap-1"><XCircle className="h-3 w-3 text-destructive" /> Fantasma — Sem resolver</span>
+        <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-warning" /> Pendente — Não implementada</span>
+        <span className="text-muted-foreground">|</span>
+        <span className="flex items-center gap-1">📸 Snapshot</span>
+        <span className="flex items-center gap-1">👤 BD: Cliente</span>
+        <span className="flex items-center gap-1">👔 BD: Consultor</span>
+        <span className="flex items-center gap-1">🧮 Calculada</span>
+        <span className="flex items-center gap-1">❓ Desconhecida</span>
+      </div>
+
+      {/* Category grid with summary badges */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {entries.map((entry) => {
           const isActive = expandedCat === entry.category;
+          const okCount = entry.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
+          const ghostCount = entry.variables.filter(v => v.source === "unknown").length;
+          const pendingCount = entry.variables.filter(v => v.notImplemented).length;
           return (
             <Button
               key={entry.category}
               variant="ghost"
               onClick={() => setExpandedCat(isActive ? null : entry.category)}
               className={cn(
-                "rounded-lg border p-2.5 text-left h-auto flex flex-col items-start transition-all",
+                "rounded-lg border p-2.5 text-left h-auto flex flex-col items-start transition-all gap-1",
                 isActive
                   ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                   : "border-border bg-card hover:bg-muted/20"
@@ -619,109 +636,135 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
                 <span className="text-sm">{entry.icon}</span>
                 <span className="text-[10px] font-medium text-foreground truncate flex-1">{entry.label}</span>
               </div>
-              <p className="text-lg font-bold text-foreground tabular-nums mt-0.5">{entry.total}</p>
+              <p className="text-lg font-bold text-foreground tabular-nums">{entry.total}</p>
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-[8px] px-1 py-0 rounded bg-success/10 text-success font-semibold">✅ {okCount}</span>
+                {ghostCount > 0 && <span className="text-[8px] px-1 py-0 rounded bg-destructive/10 text-destructive font-semibold">❓ {ghostCount}</span>}
+                {pendingCount > 0 && <span className="text-[8px] px-1 py-0 rounded bg-warning/10 text-warning font-semibold">⚠️ {pendingCount}</span>}
+              </div>
             </Button>
           );
         })}
       </div>
 
-      {/* Expanded category detail */}
+      {/* Expanded category detail — with STATUS, ORIGEM, RESOLVER columns */}
       {expandedCat && (() => {
         const entry = entries.find((e) => e.category === expandedCat);
         if (!entry) return null;
+        const okCount = entry.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
+        const ghostCount = entry.variables.filter(v => v.source === "unknown").length;
         return (
           <div className="rounded-lg border border-border overflow-hidden">
+            {/* Header */}
             <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 border-b border-border">
               <span className="text-sm">{entry.icon}</span>
               <span className="text-xs font-semibold text-foreground">{entry.label}</span>
               <Badge variant="outline" className="text-[8px] bg-primary/10 text-primary border-primary/20">{entry.total} variáveis</Badge>
-              {(() => {
-                const implemented = entry.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
-                const unknown = entry.variables.filter(v => v.source === "unknown").length;
-                return (
-                  <>
-                    <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20">✅ {implemented}</Badge>
-                    {unknown > 0 && <Badge variant="outline" className="text-[8px] bg-destructive/10 text-destructive border-destructive/20">❓ {unknown}</Badge>}
-                  </>
-                );
-              })()}
+              <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20">✅ {okCount} OK</Badge>
+              {ghostCount > 0 && <Badge variant="outline" className="text-[8px] bg-destructive/10 text-destructive border-destructive/20">❓ {ghostCount} fantasma</Badge>}
             </div>
+            {/* Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-muted/30 border-b border-border">
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[30px]">🔗</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[35px]">Status</th>
                     <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Label</th>
                     <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Origem</th>
-                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Resolver</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[120px]">Origem</th>
+                    <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[160px]">Resolver</th>
                     <th className="text-left px-2 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Descrição</th>
                   </tr>
                 </thead>
                 <tbody>
                   {entry.variables.map((v, idx) => {
                     const srcInfo = SOURCE_LABELS[v.source];
+                    const isOk = !v.notImplemented && v.source !== "unknown";
+                    const isGhost = v.source === "unknown" && !v.notImplemented;
+                    const isPending = !!v.notImplemented;
                     return (
-                    <tr key={v.key} className={cn(
-                      "border-b border-border/40 transition-colors hover:bg-accent/5",
-                      idx % 2 === 0 ? "bg-card" : "bg-muted/10"
-                    )}>
-                      <td className="px-2 py-1.5">
-                        {v.notImplemented ? (
+                      <tr key={v.key} className={cn(
+                        "border-b border-border/40 transition-colors hover:bg-accent/5",
+                        idx % 2 === 0 ? "bg-card" : "bg-muted/10",
+                        isGhost && "bg-destructive/[0.03]",
+                        isPending && "bg-warning/[0.03] opacity-60"
+                      )}>
+                        {/* STATUS */}
+                        <td className="px-2 py-1.5 text-center">
+                          {isPending ? (
+                            <Tooltip>
+                              <TooltipTrigger><AlertTriangle className="h-3.5 w-3.5 text-warning" /></TooltipTrigger>
+                              <TooltipContent side="top" className="text-[10px]">⚠️ Não implementada — precisa criar no resolver</TooltipContent>
+                            </Tooltip>
+                          ) : isGhost ? (
+                            <Tooltip>
+                              <TooltipTrigger><XCircle className="h-3.5 w-3.5 text-destructive" /></TooltipTrigger>
+                              <TooltipContent side="top" className="text-[10px]">❌ Fantasma — nenhum resolver resolve esta variável</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger><CheckCircle2 className="h-3.5 w-3.5 text-success" /></TooltipTrigger>
+                              <TooltipContent side="top" className="text-[10px]">✅ OK — resolvida via {v.resolver}</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </td>
+                        {/* LABEL */}
+                        <td className="px-2 py-1.5">
+                          <span className="text-[11px] font-medium text-foreground">{v.label}</span>
+                        </td>
+                        {/* CHAVE */}
+                        <td className="px-2 py-1.5">
+                          <code className="font-mono text-primary bg-primary/5 px-1 py-0.5 rounded text-[10px]">[{v.key}]</code>
+                        </td>
+                        {/* ORIGEM — badge colorido claro */}
+                        <td className="px-2 py-1.5">
                           <Tooltip>
-                            <TooltipTrigger><AlertTriangle className="h-3 w-3 text-warning" /></TooltipTrigger>
-                            <TooltipContent side="top" className="text-[10px]">Não implementada — precisa criar</TooltipContent>
+                            <TooltipTrigger>
+                              <Badge variant="outline" className={cn(
+                                "text-[8px] gap-0.5 whitespace-nowrap",
+                                v.source === "snapshot" && "bg-info/10 text-info border-info/20",
+                                v.source === "db_cliente" && "bg-primary/10 text-primary border-primary/20",
+                                v.source === "db_lead" && "bg-primary/10 text-primary border-primary/20",
+                                v.source === "db_consultor" && "bg-primary/10 text-primary border-primary/20",
+                                v.source === "db_projeto" && "bg-primary/10 text-primary border-primary/20",
+                                v.source === "db_proposta" && "bg-primary/10 text-primary border-primary/20",
+                                v.source === "db_versao" && "bg-primary/10 text-primary border-primary/20",
+                                v.source === "computed" && "bg-warning/10 text-warning border-warning/20",
+                                v.source === "custom_vc" && "bg-success/10 text-success border-success/20",
+                                v.source === "unknown" && "bg-destructive/10 text-destructive border-destructive/20",
+                              )}>
+                                <span>{srcInfo.icon}</span> {srcInfo.label}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-[10px] max-w-[280px]">
+                              {v.source === "snapshot" && "📸 Vem do snapshot imutável da proposta — dados gravados no momento da geração do PDF"}
+                              {v.source === "db_cliente" && "👤 Busca direta na tabela 'clientes' do banco de dados"}
+                              {v.source === "db_lead" && "🎯 Busca direta na tabela 'leads' do banco de dados"}
+                              {v.source === "db_consultor" && "👔 Busca direta na tabela 'consultores' do banco de dados"}
+                              {v.source === "db_projeto" && "📁 Busca direta na tabela 'projetos' do banco de dados"}
+                              {v.source === "db_proposta" && "📄 Busca direta nas tabelas 'propostas_nativas' / 'proposta_versoes'"}
+                              {v.source === "db_versao" && "📋 Busca direta na tabela 'proposta_versoes'"}
+                              {v.source === "computed" && "🧮 Calculada em tempo real pelo resolver — não vem do banco"}
+                              {v.source === "custom_vc" && "🧩 Variável customizada — expressão avaliada pelo motor de cálculo"}
+                              {v.source === "unknown" && "❓ FANTASMA — Nenhum resolver mapeia esta variável. Pode aparecer em branco no PDF!"}
+                            </TooltipContent>
                           </Tooltip>
-                        ) : v.source === "unknown" ? (
-                          <Tooltip>
-                            <TooltipTrigger><XCircle className="h-3 w-3 text-destructive" /></TooltipTrigger>
-                            <TooltipContent side="top" className="text-[10px]">Fantasma — sem resolver mapeado</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger><CheckCircle2 className="h-3 w-3 text-success" /></TooltipTrigger>
-                            <TooltipContent side="top" className="text-[10px]">✅ Implementada via {v.resolver}</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </td>
-                      <td className="px-2 py-1.5">
-                        <span className="text-[11px] font-medium text-foreground">{v.label}</span>
-                      </td>
-                      <td className="px-2 py-1.5">
-                        <code className="font-mono text-primary bg-primary/5 px-1 py-0.5 rounded text-[10px]">[{v.key}]</code>
-                      </td>
-                      <td className="px-2 py-1.5">
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Badge variant="outline" className={cn("text-[8px] gap-0.5", srcInfo.color)}>
-                              <span>{srcInfo.icon}</span> {srcInfo.label}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-[10px] max-w-[250px]">
-                            {v.source === "snapshot" && "Resolvida do snapshot imutável da proposta (dados calculados no momento da geração)"}
-                            {v.source === "db_cliente" && "Busca direta na tabela clientes do banco de dados"}
-                            {v.source === "db_lead" && "Busca direta na tabela leads do banco de dados"}
-                            {v.source === "db_consultor" && "Busca direta na tabela consultores do banco de dados"}
-                            {v.source === "db_projeto" && "Busca direta na tabela projetos do banco de dados"}
-                            {v.source === "db_proposta" && "Busca direta nas tabelas propostas_nativas / proposta_versoes"}
-                            {v.source === "db_versao" && "Busca direta na tabela proposta_versoes"}
-                            {v.source === "computed" && "Calculada em tempo de resolução (não vem do banco nem do snapshot)"}
-                            {v.source === "custom_vc" && "Variável customizada — expressão avaliada pelo motor de cálculo"}
-                            {v.source === "unknown" && "⚠️ Sem resolver mapeado — pode ser fantasma ou não implementada"}
-                          </TooltipContent>
-                        </Tooltip>
-                      </td>
-                      <td className="px-2 py-1.5">
-                        {v.resolver ? (
-                          <code className="font-mono text-muted-foreground bg-muted/30 px-1 py-0.5 rounded text-[9px]">{v.resolver}</code>
-                        ) : (
-                          <span className="text-[9px] text-destructive">—</span>
-                        )}
-                      </td>
-                      <td className="px-2 py-1.5 max-w-[180px]">
-                        <span className="text-[10px] text-muted-foreground truncate block">{v.description}</span>
-                      </td>
-                    </tr>
+                        </td>
+                        {/* RESOLVER */}
+                        <td className="px-2 py-1.5">
+                          {v.resolver ? (
+                            <code className="font-mono text-muted-foreground bg-muted/30 px-1 py-0.5 rounded text-[9px]">{v.resolver}</code>
+                          ) : (
+                            <span className="text-[9px] text-destructive font-medium">❌ Sem resolver</span>
+                          )}
+                        </td>
+                        {/* DESCRIÇÃO */}
+                        <td className="px-2 py-1.5 max-w-[200px]">
+                          <span className="text-[10px] text-muted-foreground truncate block" title={v.description}>
+                            {v.description || <span className="text-destructive italic">Sem descrição</span>}
+                          </span>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
