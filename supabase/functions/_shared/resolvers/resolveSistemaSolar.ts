@@ -171,10 +171,10 @@ export function resolveSistemaSolar(
     if (coefs.coef_temp_pmax) set("modulo_coef_temp_pmax", coefs.coef_temp_pmax);
     if (coefs.coef_temp_voc) set("modulo_coef_temp_voc", coefs.coef_temp_voc);
     if (coefs.coef_temp_isc) set("modulo_coef_temp_isc", coefs.coef_temp_isc);
-    // Also set concatenated coef_temp
+    // Snapshot fallbacks for coef_temp (if parseCoefTemp didn't find them)
+    set("modulo_coef_temp_pmax", snap.modulo_coef_temp_pmax);
     set("modulo_coef_temp_voc", snap.modulo_coef_temp_voc);
     set("modulo_coef_temp_isc", snap.modulo_coef_temp_isc);
-    set("modulo_coef_temp_pmax", snap.modulo_coef_temp_pmax);
 
     // Garantia
     set("modulo_garantia", m0.garantia ?? m0.garantia_anos);
@@ -225,14 +225,16 @@ export function resolveSistemaSolar(
     if (invQty > 0) set("inversor_quantidade", String(invQty));
 
     // ── Catalog-enriched inverter specs (aggregated from first inverter) ──
-    set("inversor_tensao", inversores[0].tensao_max_v ?? inversores[0].tensao_linha_v);
+    // NOTE: tensao_max_v is DC-side (max PV string voltage), tensao_linha_v is AC-side.
+    // inversor_tensao is ambiguous — we use tensao_linha_v (AC) as it's more commonly expected in proposals.
+    set("inversor_tensao", inversores[0].tensao_linha_v);
     set("inversor_tipo", inversores[0].tipo_sistema);
-    // NOTE: inversor_corrente_saida is AC output current — only set from actual AC output field
-    // corrente_max_mppt_a is DC input current, NOT AC output — do NOT use here
-    set("inversor_corrente_saida", inversores[0].corrente_saida_ac ?? inversores[0].corrente_nominal_saida);
+    // NOTE: inversor_corrente_saida is AC output current — REQUIRES a dedicated DB column.
+    // corrente_max_mppt_a is DC input current — NEVER use here.
+    // No AC output current column exists yet → will remain empty (fallback in PDF).
     set("inversor_mppts_utilizados", inversores[0].mppts);
-    set("inversor_codigo", inversores[0].codigo);
-    set("inversor_garantia", inversores[0].garantia ?? inversores[0].garantia_anos);
+    // NOTE: codigo and garantia columns do not exist in inversores table yet.
+    // These will only resolve from snapshot passthrough if previously set.
 
     // Derived: inversores_potencia_maxima_total
     const totalPotMax = inversores.reduce((s, inv) => {
@@ -278,15 +280,14 @@ export function resolveSistemaSolar(
     set(`inversor_quantidade_${i}`, inv.quantidade);
     // Enriched catalog fields per inverter
     set(`inversor_potencia_${i}`, inv.potencia_maxima_w ?? inv.potencia_w);
-    set(`inversor_tensao_${i}`, inv.tensao_max_v ?? inv.tensao_linha_v);
+    // Use AC-side voltage for indexed inverters too
+    set(`inversor_tensao_${i}`, inv.tensao_linha_v);
     set(`inversor_tipo_${i}`, inv.tipo_sistema);
-    // AC output current only from actual AC field
-    set(`inversor_corrente_saida_${i}`, inv.corrente_saida_ac ?? inv.corrente_nominal_saida);
+    // inversor_corrente_saida: no AC output column in DB yet — skip (fallback via snapshot passthrough)
     set(`inversor_mppts_utilizados_${i}`, inv.mppts);
-    set(`inversor_codigo_${i}`, inv.codigo);
-    set(`inversor_garantia_${i}`, inv.garantia ?? inv.garantia_anos);
     // Hybrid/off-grid fields
     set(`inversor_sistema_${i}`, inv.tipo_sistema);
+    // corrente_max_mppt_a is DC input current per MPPT — correct for these fields
     set(`inversor_corrente_max_entrada_mppt1_${i}`, inv.corrente_max_mppt_a);
     set(`inversor_corrente_max_entrada_${i}`, inv.corrente_max_mppt_a);
   });
