@@ -442,6 +442,11 @@ export function AuditTabContent({
       </div>
 
       {/* ════════════════════════════════════════════════════════ */}
+      {/* SECTION 1.5: Category Breakdown */}
+      {/* ════════════════════════════════════════════════════════ */}
+      <CategoryAuditSection entries={categoryAudit} />
+
+      {/* ════════════════════════════════════════════════════════ */}
       {/* SECTION 2: Custom Variables Sync */}
       {/* ════════════════════════════════════════════════════════ */}
       <div className="px-4 py-3 space-y-3">
