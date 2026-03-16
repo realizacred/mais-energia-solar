@@ -75,12 +75,14 @@ const SYSTEM_COLUMNS = new Set([
 ]);
 
 // ── Schema tables ──────────────────────────────────────────
+export type SchemaColType = "string" | "number" | "date" | "boolean";
+
 export const SCHEMA_TABLES: {
   name: string;
   label: string;
   icon: string;
   flowOrder: number;
-  columns: { column: string; label: string; expectedKey?: string }[];
+  columns: { column: string; label: string; expectedKey?: string; colType?: SchemaColType }[];
 }[] = [
   {
     name: "clientes", label: "Clientes", icon: "👤", flowOrder: 1,
