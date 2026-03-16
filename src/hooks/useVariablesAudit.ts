@@ -49,6 +49,21 @@ export interface DescriptionIssue {
   issue: "missing" | "too_short";
 }
 
+export type VariableSource = "snapshot" | "db_lead" | "db_cliente" | "db_consultor" | "db_projeto" | "db_proposta" | "db_versao" | "computed" | "custom_vc" | "unknown";
+
+export const SOURCE_LABELS: Record<VariableSource, { label: string; icon: string; color: string }> = {
+  snapshot: { label: "Snapshot", icon: "📸", color: "text-info" },
+  db_lead: { label: "BD: Lead", icon: "🎯", color: "text-primary" },
+  db_cliente: { label: "BD: Cliente", icon: "👤", color: "text-primary" },
+  db_consultor: { label: "BD: Consultor", icon: "👔", color: "text-primary" },
+  db_projeto: { label: "BD: Projeto", icon: "📁", color: "text-primary" },
+  db_proposta: { label: "BD: Proposta", icon: "📄", color: "text-primary" },
+  db_versao: { label: "BD: Versão", icon: "📋", color: "text-primary" },
+  computed: { label: "Calculada", icon: "🧮", color: "text-warning" },
+  custom_vc: { label: "Customizada", icon: "🧩", color: "text-success" },
+  unknown: { label: "Desconhecida", icon: "❓", color: "text-destructive" },
+};
+
 export interface CategoryAuditEntry {
   category: VariableCategory;
   label: string;
@@ -63,6 +78,8 @@ export interface CategoryAuditEntry {
     example: string;
     hasSchemaMapping: boolean;
     notImplemented?: boolean;
+    source: VariableSource;
+    resolver: string;
   }>;
 }
 
