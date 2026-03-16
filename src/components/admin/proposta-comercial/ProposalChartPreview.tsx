@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Download } from "lucide-react";
+import { Eye, Download, Copy } from "lucide-react";
 import { useRenderChart } from "@/hooks/useProposalCharts";
 import { buildChartDataset } from "@/lib/proposal-charts/charts-datasets";
 import type { ProposalChart, ChartDataset } from "@/lib/proposal-charts/charts-types";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -33,9 +34,26 @@ function getSampleData(chart: ProposalChart): Record<string, unknown>[] {
     }));
   }
 
-  return months.map((mes) => ({
+  if (chart.placeholder.includes("comparacao")) {
+    return [
+      { [chart.label_field]: "Conta Atual", [chart.value_field]: 850 },
+      { [chart.label_field]: "Com Solar", [chart.value_field]: 120 },
+      { [chart.label_field]: "Economia", [chart.value_field]: 730 },
+    ];
+  }
+
+  // Default: monthly data (consumo, geração, economia)
+  const baseValues: Record<string, number[]> = {
+    grafico_consumo_mensal: [1200, 1100, 1350, 1400, 1500, 1600, 1550, 1450, 1300, 1250, 1180, 1220],
+    grafico_geracao_mensal: [1050, 980, 1200, 1250, 1350, 1400, 1380, 1300, 1150, 1100, 1020, 1060],
+    grafico_economia_mensal: [380, 350, 420, 440, 470, 500, 485, 460, 410, 390, 360, 375],
+  };
+
+  const values = baseValues[chart.placeholder] ?? months.map(() => Math.round(800 + Math.random() * 400));
+
+  return months.map((mes, i) => ({
     [chart.label_field]: mes,
-    [chart.value_field]: Math.round(800 + Math.random() * 400),
+    [chart.value_field]: values[i],
   }));
 }
 
@@ -76,6 +94,11 @@ export function ProposalChartPreview({ open, onOpenChange, chart }: Props) {
     link.href = `data:image/png;base64,${imageBase64}`;
     link.download = `${chart.placeholder}.png`;
     link.click();
+  };
+
+  const handleCopyPlaceholder = () => {
+    navigator.clipboard.writeText(`[${chart.placeholder}]`);
+    toast.success(`Placeholder [${chart.placeholder}] copiado!`);
   };
 
   return (
@@ -122,12 +145,15 @@ export function ProposalChartPreview({ open, onOpenChange, chart }: Props) {
                 alt={chart.title}
                 className="w-full rounded-lg border border-border shadow-sm"
               />
-              <div className="flex justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleRender}>
                   <Eye className="w-4 h-4 mr-1" /> Regerar
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleDownload}>
                   <Download className="w-4 h-4 mr-1" /> Download PNG
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCopyPlaceholder}>
+                  <Copy className="w-4 h-4 mr-1" /> Copiar Placeholder
                 </Button>
               </div>
             </div>

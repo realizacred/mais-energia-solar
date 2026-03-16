@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { BarChart3, Plus, MoreHorizontal, Pencil, Trash2, Eye, Image, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BarChart3, Plus, Pencil, Trash2, Eye, Image, FileText, Download, Copy, BookOpen } from "lucide-react";
 import { useProposalCharts, useDeleteProposalChart } from "@/hooks/useProposalCharts";
 import { ProposalChartFormDialog } from "./ProposalChartFormDialog";
 import { ProposalChartPreview } from "./ProposalChartPreview";
+import { ProposalChartsTutorial } from "./ProposalChartsTutorial";
 import type { ProposalChart } from "@/lib/proposal-charts/charts-types";
+import { toast } from "sonner";
 
 const ENGINE_LABELS: Record<string, { label: string; icon: typeof Image }> = {
   rendered_image: { label: "PNG (Sistema)", icon: Image },
@@ -31,6 +33,7 @@ export function ProposalChartsManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingChart, setEditingChart] = useState<ProposalChart | null>(null);
   const [previewChart, setPreviewChart] = useState<ProposalChart | null>(null);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   const handleEdit = (chart: ProposalChart) => {
     setEditingChart(chart);
@@ -48,9 +51,53 @@ export function ProposalChartsManager() {
     }
   };
 
+  const handleCopyPlaceholder = (placeholder: string) => {
+    navigator.clipboard.writeText(`[${placeholder}]`);
+    toast.success(`Placeholder [${placeholder}] copiado!`);
+  };
+
+  const handleDownloadTemplateSample = () => {
+    // Generate a minimal DOCX-like content as a text file with placeholders
+    const content = `PROPOSTA DE SISTEMA FOTOVOLTAICO
+========================================
+
+ANÁLISE DE CONSUMO
+
+[grafico_consumo_mensal]
+
+GERAÇÃO DO SISTEMA
+
+[grafico_geracao_mensal]
+
+ECONOMIA MENSAL
+
+[grafico_economia_mensal]
+
+COMPARAÇÃO DE CUSTOS
+
+[vc_grafico_de_comparacao]
+
+RETORNO DO INVESTIMENTO
+
+[s_fluxo_caixa_acumulado_anual]
+
+========================================
+Modelo de template com placeholders de gráfico.
+Copie os placeholders acima para o seu template DOCX real.
+Cada placeholder deve ficar sozinho na linha, sem texto ao redor.
+`;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "template_graficos_exemplo.txt";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast.success("Modelo de template baixado!");
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
             <BarChart3 className="w-5 h-5" />
@@ -60,9 +107,17 @@ export function ProposalChartsManager() {
             <p className="text-sm text-muted-foreground">Gráficos disponíveis para inserção em propostas</p>
           </div>
         </div>
-        <Button size="sm" onClick={handleNew}>
-          <Plus className="w-4 h-4 mr-1" /> Novo Gráfico
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setTutorialOpen(true)}>
+            <BookOpen className="w-4 h-4 mr-1" /> Como Usar
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleDownloadTemplateSample}>
+            <Download className="w-4 h-4 mr-1" /> Template Exemplo
+          </Button>
+          <Button size="sm" onClick={handleNew}>
+            <Plus className="w-4 h-4 mr-1" /> Novo Gráfico
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -91,15 +146,22 @@ export function ProposalChartsManager() {
                 <TableHead className="font-semibold text-foreground">Tipo</TableHead>
                 <TableHead className="font-semibold text-foreground">Motor</TableHead>
                 <TableHead className="font-semibold text-foreground">Status</TableHead>
-                <TableHead className="w-[60px]" />
+                <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {charts.map((chart) => {
                 const engineInfo = ENGINE_LABELS[chart.engine] ?? { label: chart.engine, icon: Image };
                 return (
-                  <TableRow key={chart.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-medium text-foreground">{chart.name}</TableCell>
+                  <TableRow key={chart.id} className="hover:bg-muted/30 transition-colors align-middle">
+                    <TableCell className="font-medium text-foreground">
+                      <div>
+                        <p className="text-sm font-medium">{chart.name}</p>
+                        {chart.subtitle && (
+                          <p className="text-xs text-muted-foreground">{chart.subtitle}</p>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">
                         [{chart.placeholder}]
@@ -128,27 +190,65 @@ export function ProposalChartsManager() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setPreviewChart(chart)}>
-                            <Eye className="w-4 h-4 mr-2" /> Preview
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(chart)}>
-                            <Pencil className="w-4 h-4 mr-2" /> Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(chart)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <TooltipProvider delayDuration={300}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setPreviewChart(chart)}
+                              >
+                                <Eye className="w-4 h-4 text-primary" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Preview</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => handleCopyPlaceholder(chart.placeholder)}
+                              >
+                                <Copy className="w-4 h-4 text-info" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copiar Placeholder</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => handleEdit(chart)}
+                              >
+                                <Pencil className="w-4 h-4 text-warning" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Editar</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => handleDelete(chart)}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Excluir</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                 );
@@ -171,6 +271,11 @@ export function ProposalChartsManager() {
           chart={previewChart}
         />
       )}
+
+      <ProposalChartsTutorial
+        open={tutorialOpen}
+        onOpenChange={setTutorialOpen}
+      />
     </div>
   );
 }
