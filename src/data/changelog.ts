@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.62.0",
+    date: "2026-03-16",
+    title: "Gráficos integrados no pipeline de geração de propostas",
+    type: "feature",
+    description: "Gráficos configurados no catálogo são automaticamente renderizados e injetados no DOCX durante a geração da proposta.",
+    details: [
+      "Detecção automática de placeholders de gráfico no template DOCX ([grafico_geracao_mensal], etc.)",
+      "Resolução de datasets reais a partir do snapshot da proposta via data_source configurado",
+      "Renderização PNG via edge function proposal-chart-render (QuickChart.io)",
+      "Injeção da imagem no DOCX com dimensionamento proporcional e preservação de layout",
+      "Fallback seguro — falha na renderização de gráfico não bloqueia geração da proposta",
+      "Response inclui relatório de charts (detected, rendered, failed, skipped)",
+    ],
+  },
+  {
     version: "2.61.0",
     date: "2026-03-16",
     title: "Módulo de Gráficos para Propostas",
