@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.69.0",
+    date: "2026-03-16",
+    title: "Auditoria fina: eliminação de variáveis fantasma reais",
+    type: "bugfix",
+    description: "Auditoria coluna-por-coluna do SCHEMA_TABLES contra o schema real do banco (types.ts). Mapeadas variáveis que faltavam expectedKey: proposta_link → public_slug, projeto_id_externo → projeto_num, proposta_link_pdf → link_pdf.",
+    details: [
+      "Verificadas todas 103 colunas de 8 tabelas contra o schema real — zero colunas fantasma",
+      "proposta_link agora mapeia para proposta_versoes.public_slug (antes era ghost)",
+      "projeto_id_externo agora mapeia para projetos.projeto_num como fallback",
+      "link_pdf recebeu expectedKey 'proposta_link_pdf' para rastreabilidade",
+    ],
+  },
+  {
     version: "2.68.0",
     date: "2026-03-16",
     title: "Correção de detecção de Variáveis Fantasma e tipagem no botão Criar",
