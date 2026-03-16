@@ -360,10 +360,29 @@ export function TemplatesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Excluir este template?")) return;
-    await supabase.from("proposta_templates").delete().eq("id", id);
-    toast({ title: "Template excluído" });
-    loadTemplates();
+    if (!confirm("Excluir este template? Esta ação não pode ser desfeita.")) return;
+    try {
+      // First try to delete related records that reference this template
+      const { error: versionsError } = await supabase
+        .from("proposta_versoes" as any)
+        .update({ template_id_used: null } as any)
+        .eq("template_id_used", id);
+      if (versionsError) console.warn("[TemplatesManager] Erro ao desvincular versões:", versionsError.message);
+
+      const { error } = await supabase.from("proposta_templates").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "Template excluído com sucesso" });
+      loadTemplates();
+    } catch (e: any) {
+      console.error("[TemplatesManager] Erro ao excluir template:", e);
+      toast({
+        title: "Erro ao excluir template",
+        description: e.message?.includes("foreign key")
+          ? "Este template está vinculado a propostas existentes. Desative-o em vez de excluir."
+          : e.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBuilderSave = useCallback(async (jsonData: string) => {
