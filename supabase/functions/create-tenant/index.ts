@@ -118,6 +118,17 @@ Deno.serve(async (req) => {
     // 7. Create default calculadora_config
     await adminClient.from("calculadora_config").insert({ tenant_id: tenant.id });
 
+    // 8. Seed default proposal_charts
+    const defaultCharts = [
+      { name: "Geração Mensal", placeholder: "grafico_geracao_mensal", chart_type: "bar", engine: "rendered_image", data_source: "tabelas.geracao_mensal", label_field: "mes", value_field: "valor", title: "Geração Mensal Estimada", subtitle: "kWh por mês", colors: ["#3b82f6"], chart_options: {}, width: 1600, height: 900, show_legend: false, show_grid: true, show_labels: true, active: true },
+      { name: "Economia Mensal", placeholder: "grafico_economia_mensal", chart_type: "bar", engine: "rendered_image", data_source: "tabelas.economia_mensal", label_field: "mes", value_field: "valor", title: "Economia Mensal Estimada", subtitle: "R$ por mês", colors: ["#10b981"], chart_options: {}, width: 1600, height: 900, show_legend: false, show_grid: true, show_labels: true, active: true },
+      { name: "Comparação do Investimento", placeholder: "vc_grafico_de_comparacao", chart_type: "bar", engine: "rendered_image", data_source: "tabelas.comparacao_investimento", label_field: "item", value_field: "valor", title: "Comparação de Custos", subtitle: null, colors: ["#ef4444","#3b82f6","#f59e0b","#8b5cf6","#06b6d4"], chart_options: {}, width: 1600, height: 900, show_legend: true, show_grid: true, show_labels: true, active: true },
+      { name: "Fluxo de Caixa Acumulado", placeholder: "s_fluxo_caixa_acumulado_anual", chart_type: "bar", engine: "rendered_image", data_source: "tabelas.fluxo_caixa", label_field: "ano", value_field: "valor", title: "Fluxo de Caixa Acumulado", subtitle: "Retorno do investimento", colors: ["#f59e0b","#3b82f6"], chart_options: { negativeColor: "#f59e0b", positiveColor: "#3b82f6" }, width: 1600, height: 900, show_legend: true, show_grid: true, show_labels: true, active: true },
+    ];
+    await adminClient.from("proposal_charts").insert(
+      defaultCharts.map((c) => ({ ...c, tenant_id: tenant.id }))
+    );
+
     return new Response(
       JSON.stringify({
         success: true,
