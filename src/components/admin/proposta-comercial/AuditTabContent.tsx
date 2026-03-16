@@ -12,10 +12,12 @@ import {
   useVariablesAudit,
   SORTED_TABLES,
   FLOW_GROUPS,
+  SOURCE_LABELS,
   type DbCustomVar,
   type AuditItem,
   type AuditStatus,
   type CategoryAuditEntry,
+  type VariableSource,
 } from "@/hooks/useVariablesAudit";
 
 // ── Status config ──────────────────────────────────────────
