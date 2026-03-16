@@ -85,6 +85,7 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
             onUpdate={(patch) => updateItem(item.id, patch)}
             onRemove={() => removeItem(item.id)}
             readOnly={readOnly}
+            configMap={configMap}
           />
         ))}
       </AnimatePresence>
