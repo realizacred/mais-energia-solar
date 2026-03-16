@@ -229,8 +229,9 @@ async function processDocxTemplate(
     }
 
     // ── STEP 3: Final sweep — remaining placeholders are MISSING (not in vars) ──
-    // Replace with <key> (angle brackets, XML-escaped) to preserve layout and enable auditing.
-    // NEVER blank them out — that collapses layout in DOCX→PDF conversion.
+    // KEEP them exactly as-is ([varName] or {{varName}}) to preserve layout,
+    // enable easy identification, and avoid introducing different characters
+    // that change text width. Only collect them for logging/auditing.
     const localMissing: string[] = [];
 
     const remainingBracket = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
@@ -246,19 +247,8 @@ async function processDocxTemplate(
       if (!localMissing.includes(varName)) localMissing.push(varName);
     }
 
+    // Do NOT replace — just register for audit
     for (const varName of localMissing) {
-      // Replace with XML-safe angle bracket marker by escaping literal <varName> text.
-      const safeMarker = escapeXml(`<${varName}>`);
-      const bracketPattern = `[${varName}]`;
-      const mustachePattern = `{{${varName}}}`;
-      if (content.includes(bracketPattern)) {
-        content = content.replaceAll(bracketPattern, safeMarker);
-        modified = true;
-      }
-      if (content.includes(mustachePattern)) {
-        content = content.replaceAll(mustachePattern, safeMarker);
-        modified = true;
-      }
       if (!missingVars.includes(varName)) {
         missingVars.push(varName);
       }
