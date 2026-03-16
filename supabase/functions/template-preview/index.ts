@@ -1161,6 +1161,36 @@ Deno.serve(async (req) => {
       return jsonError(`Erro ao processar template DOCX: ${processErr?.message || "unknown"}`, 500);
     }
 
+    // ── 8b. CHART INJECTION ───────────────────────────────
+    // After variable substitution, inject rendered chart images
+    // into the DOCX before uploading and converting to PDF.
+    let chartInjectionResult: Awaited<ReturnType<typeof injectChartsIntoDocx>> | null = null;
+    try {
+      chartInjectionResult = await injectChartsIntoDocx({
+        docxBytes: report,
+        snapshot: snapshot as Record<string, unknown> | null,
+        tenantId,
+        adminClient,
+        authHeader: authHeader!,
+        supabaseUrl,
+        proposalId: proposta_id || undefined,
+      });
+
+      if (chartInjectionResult.chartsRendered.length > 0) {
+        report = chartInjectionResult.output;
+        console.log(`[template-preview] Charts injected: ${chartInjectionResult.chartsRendered.join(", ")}`);
+      }
+      if (chartInjectionResult.chartsFailed.length > 0) {
+        console.warn(`[template-preview] Charts failed: ${chartInjectionResult.chartsFailed.join(", ")}`);
+      }
+      if (chartInjectionResult.chartsSkipped.length > 0) {
+        console.log(`[template-preview] Charts skipped: ${chartInjectionResult.chartsSkipped.join(", ")}`);
+      }
+    } catch (chartErr: any) {
+      console.error(`[template-preview] Chart injection error (non-blocking): ${chartErr?.message}`);
+      // Non-blocking — proposal continues without charts
+    }
+
     // ── 9. BUILD FILE NAME + PERSIST TO STORAGE ──────────
     const clienteNome = cliente?.nome || lead?.nome || "preview";
     const proposalNumber = propostaData?.codigo || null;
