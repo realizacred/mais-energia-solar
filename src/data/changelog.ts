@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.68.0",
+    date: "2026-03-16",
+    title: "Correção de detecção de Variáveis Fantasma e tipagem no botão Criar",
+    type: "bugfix",
+    description: "Corrigido bug no mapeamento de prefixos de tabela (simulacoes→simulacao, consultores→consultor) que causava falsos positivos na detecção de variáveis fantasma. Botão 'Criar' agora detecta tipo da coluna (date/number/boolean) e gera expressão apropriada.",
+    details: [
+      "Prefixos de tabela agora usam mapa explícito em vez de regex (evita 'simulacoe', 'consultore')",
+      "Botão 'Criar' gera expressão com formatação de data (toLocaleDateString) para colunas date",
+      "Botão 'Criar' gera expressão numérica com fallback 0 para colunas number",
+      "Adicionado colType (string/number/date/boolean) a todas as colunas do SCHEMA_TABLES",
+    ],
+  },
+  {
     version: "2.67.0",
     date: "2026-03-16",
     title: "Alinhamento SCHEMA_TABLES com schema real do Supabase",
