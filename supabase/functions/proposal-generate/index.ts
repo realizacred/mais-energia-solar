@@ -487,7 +487,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 6. SNAPSHOT IMUTÁVEL ────────────────────────────────
+    // ── 6. ENRICH ITEMS WITH CATALOG DATA ──────────────────
+    const enrichedItens = await enrichItensWithCatalog(adminClient, tenantId, body.itens);
+
+    // ── 7. SNAPSHOT IMUTÁVEL ────────────────────────────────
     const snapshot = {
       versao_schema: 3,
       engine_version: ENGINE_VERSION,
@@ -518,7 +521,7 @@ Deno.serve(async (req) => {
       },
       premissas,
       ucs: body.ucs.map((uc, i) => ({ uc_index: i + 1, ...uc })),
-      itens: body.itens.map(it => ({ ...it, subtotal: round2(it.quantidade * it.preco_unitario) })),
+      itens: enrichedItens.map(it => ({ ...it, subtotal: round2(it.quantidade * it.preco_unitario) })),
       servicos: body.servicos,
       venda: { ...venda, custo_kit: round2(custoKit), custo_servicos: round2(custoServicosInclusos) },
       financeiro: {
