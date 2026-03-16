@@ -40,6 +40,7 @@ interface PaymentComposerProps {
 
 export function PaymentComposer({ valorVenda, items, onChange, readOnly = false }: PaymentComposerProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const { configMap } = usePaymentInterestConfigMap();
 
   const summary = useMemo(() => computeSummary(items, valorVenda), [items, valorVenda]);
   const errors = useMemo(() => validateComposition(items, valorVenda), [items, valorVenda]);
