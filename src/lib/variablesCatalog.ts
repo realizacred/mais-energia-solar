@@ -730,6 +730,12 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.bairro", "cliente_bairro", "Bairro", "Bairro do cliente", "", "Centro"),
   v("cliente", "cliente.cidade", "cliente_cidade", "Cidade", "Cidade do cliente", "", "Belo Horizonte"),
   v("cliente", "cliente.estado", "cliente_estado", "Estado", "Estado/UF do cliente", "", "MG"),
+  v("cliente", "cliente.data_nascimento", "cliente_data_nascimento", "Data de Nascimento", "Data de nascimento do cliente", "data", "15/05/1985"),
+  v("cliente", "cliente.potencia_kwp", "cliente_potencia_kwp", "Potência Instalada (kWp)", "Potência do sistema instalado no cliente", "kWp", "8.2"),
+  v("cliente", "cliente.valor_projeto", "cliente_valor_projeto", "Valor do Projeto", "Valor total do projeto do cliente", "R$", "45000.00"),
+  v("cliente", "cliente.data_instalacao", "cliente_data_instalacao", "Data de Instalação", "Data de instalação do sistema do cliente", "data", "20/03/2026"),
+  v("cliente", "cliente.numero_placas", "cliente_numero_placas", "Número de Placas", "Quantidade de módulos instalados no cliente", "UN", "20"),
+  v("cliente", "cliente.modelo_inversor", "cliente_modelo_inversor", "Modelo do Inversor", "Modelo do inversor instalado no cliente", "-", "SG36KTL-M"),
 
   // ──────────────────────────────────────────────────────────────
   // TABELAS (dados tabulares para loops)
