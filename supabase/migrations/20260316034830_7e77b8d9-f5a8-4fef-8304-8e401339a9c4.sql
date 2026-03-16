@@ -1,0 +1,1 @@
+ALTER TABLE public.proposta_variaveis_custom ALTER COLUMN tenant_id SET DEFAULT (public.current_tenant_id());
