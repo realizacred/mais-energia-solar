@@ -382,12 +382,19 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
     // Check if any catalog variable references a key that was removed from schema mapping
     // A "ghost" is a variable that existed with an expectedKey but the mapping was removed
     // We detect by looking at variables that mention a table prefix but don't appear in any schema table
-    const tableNames = new Set(SORTED_TABLES.map((t) => t.name));
-    const tablePrefixes = new Map<string, string>();
-    for (const t of SORTED_TABLES) {
-      const singularPrefix = t.name.replace(/s$/, "").replace("proposta_versoe", "proposta");
-      tablePrefixes.set(singularPrefix, t.name);
-    }
+    // Explicit prefix map: variable key prefix → table name
+    // Using explicit mapping avoids regex bugs (e.g., "simulacoes" → "simulacoe" instead of "simulacao")
+    const EXPLICIT_PREFIXES: Record<string, string> = {
+      cliente: "clientes",
+      deal: "deals",
+      projeto: "projetos",
+      proposta: "propostas_nativas",
+      proposta_versao: "proposta_versoes",
+      simulacao: "simulacoes",
+      consultor: "consultores",
+      concessionaria: "concessionarias",
+    };
+    const tablePrefixes = new Map<string, string>(Object.entries(EXPLICIT_PREFIXES));
 
     for (const v of VARIABLES_CATALOG) {
       if (v.category === "customizada") continue; // custom vars are tracked separately
