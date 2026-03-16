@@ -35,6 +35,13 @@ export interface SchemaField {
   variableKey?: string;
 }
 
+export interface GhostVariable {
+  key: string;
+  label: string;
+  category: VariableCategory;
+  reason: string;
+}
+
 export interface DescriptionIssue {
   key: string;
   label: string;
@@ -326,12 +333,67 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
     };
   }, []);
 
+  // ── Ghost variable detection ─────────────────────────────
+  // Catalog variables that have an expectedKey in SCHEMA_TABLES but no matching column exists,
+  // OR variables that reference no known schema table at all
+  const ghostVariables = useMemo(() => {
+    const allExpectedKeys = new Set<string>();
+    for (const table of SORTED_TABLES) {
+      for (const col of table.columns) {
+        if (col.expectedKey) allExpectedKeys.add(col.expectedKey);
+      }
+    }
+
+    const ghosts: GhostVariable[] = [];
+    // Check if any catalog variable references a key that was removed from schema mapping
+    // A "ghost" is a variable that existed with an expectedKey but the mapping was removed
+    // We detect by looking at variables that mention a table prefix but don't appear in any schema table
+    const tableNames = new Set(SORTED_TABLES.map((t) => t.name));
+    const tablePrefixes = new Map<string, string>();
+    for (const t of SORTED_TABLES) {
+      const singularPrefix = t.name.replace(/s$/, "").replace("proposta_versoe", "proposta");
+      tablePrefixes.set(singularPrefix, t.name);
+    }
+
+    for (const v of VARIABLES_CATALOG) {
+      if (v.category === "customizada") continue; // custom vars are tracked separately
+      if (v.notImplemented) continue;
+
+      const key = v.legacyKey.replace(/^\[|\]$/g, "");
+      // Check if this key appears in any schema table's expectedKey
+      if (allExpectedKeys.has(key)) continue; // It's mapped, all good
+
+      // Check if key looks like it should be in a schema table (e.g. "cliente_nome" → "clientes")
+      for (const [prefix, tableName] of tablePrefixes) {
+        if (key.startsWith(prefix + "_")) {
+          const colName = key.substring(prefix.length + 1);
+          const table = SORTED_TABLES.find((t) => t.name === tableName);
+          if (table) {
+            const colExists = table.columns.some((c) => c.column === colName);
+            if (!colExists) {
+              ghosts.push({
+                key,
+                label: v.label,
+                category: v.category,
+                reason: `Coluna "${colName}" não encontrada em "${tableName}"`,
+              });
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    return ghosts;
+  }, []);
+
   const totalCustomDivergences = customAudit.missingCatalog.length + customAudit.missingDb.length;
 
   return {
     customAudit,
     schemaAudit,
     descriptionAudit,
+    ghostVariables,
     totalCustomDivergences,
     SORTED_TABLES,
     FLOW_GROUPS,
