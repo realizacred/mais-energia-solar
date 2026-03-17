@@ -46,6 +46,7 @@ interface NormalizedPagamento {
   entrada: number | null;
   num_parcelas: number | null;
   taxa_mensal: number | null;
+  carencia: number | null;
 }
 
 function normalizePagOpcoes(rawArr: AnyObj[]): NormalizedPagamento[] {
