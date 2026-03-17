@@ -117,7 +117,7 @@ export function StepConsumption({
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
           autoComplete="off"
-          value={values.consumo_previsto || ""}
+          value={consumo_previsto || ""}
           onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined)}
           error={touchedFields.has("consumo_previsto") ? errors.consumo_previsto?.message : undefined}
           success={isFieldValid("consumo_previsto")}
