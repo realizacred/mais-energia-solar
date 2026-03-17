@@ -523,7 +523,7 @@ export default function LeadsPipeline() {
               </p>
             </div>
           </DialogHeader>
-          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+          <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Motivo</label>
            <Select value={lossReasonId} onValueChange={setLossReasonId}>
