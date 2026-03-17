@@ -2,18 +2,17 @@
  * Known keys resolved in each layer of the system.
  *
  * FRONTEND_RESOLVER_KEYS: ONLY keys with EXPLICIT switch-case handling
- * in resolveProposalVariables.ts. Keys resolved via the universal
- * finalSnapshot fallback (deepGet) do NOT need to be listed here —
- * the audit classifier honors `frontendHasFinalSnapshotFallback`.
+ * in resolveProposalVariables.ts.
  *
  * BACKEND_FLATTEN_KEYS: Keys explicitly set by domain resolvers in
  * the backend (flattenSnapshot → resolveAllVariables).
+ *
+ * The classifier uses these lists for HONEST auditing:
+ * - Variables in neither list → FALTA_ORIGEM (needs implementation)
+ * - Variables only in BE → OK (resolved via finalSnapshot fallback)
+ * - Pattern-based (monthly, annual, UC-indexed) → OK automatically
+ * - Passthrough groups (series, tabelas, premissas, customizada) → OK automatically
  */
-
-// ── Frontend resolver: keys with EXPLICIT handling in resolveProposalVariables.ts ──
-// Verified against source on 2026-03-17.
-// DO NOT add keys here just to make audit pass — that's a gambiarra.
-// The classifier uses `frontendHasFinalSnapshotFallback` for the rest.
 export const FRONTEND_RESOLVER_KEYS = new Set<string>([
   // ── Tarifa (9 explicit cases) ──
   "tarifa.te_kwh", "tarifa.tusd_total_kwh", "tarifa.fio_b_real_kwh",
