@@ -1791,42 +1791,68 @@ export function ProposalWizard() {
   // ─── Render
   return (
     <div className="proposal-wizard-root flex flex-col h-[calc(100dvh-3.5rem)] overflow-hidden">
-      {/* ── Sticky Header */}
-      <div className="flex items-center justify-between px-4 lg:px-6 py-2.5 border-b border-border/60 bg-card shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1 h-7 text-xs text-muted-foreground hover:text-foreground shrink-0">
-            <ChevronLeft className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Voltar</span>
+      {/* ── Sticky Header — breadcrumb + client + metrics */}
+      <div className="shrink-0 border-b border-border/60 bg-card px-4 lg:px-6 py-2.5 space-y-1">
+        {/* Breadcrumb row */}
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Button variant="link" size="sm" className="p-0 h-auto text-[11px] text-muted-foreground hover:text-foreground" onClick={() => navigate("/admin/propostas-nativas")}>
+            Propostas
           </Button>
-          <div className="h-4 w-px bg-border shrink-0" />
-          <h1 className="text-sm font-bold truncate">{savedPropostaId ? "Editar Proposta" : "Nova Proposta"}</h1>
-          {selectedLead && (
-            <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary shrink-0 hidden sm:inline-flex">
-              {selectedLead.nome}
-            </Badge>
+          <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+          {savedProjetoId && (
+            <>
+              <Button variant="link" size="sm" className="p-0 h-auto text-[11px] text-muted-foreground hover:text-foreground" onClick={() => navigate(`/admin/projetos/${savedProjetoId}`)}>
+                Projeto
+              </Button>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+            </>
           )}
-        </div>
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          {potenciaKwp > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Zap className="h-3.5 w-3.5 text-primary" />
-              <span className="font-bold text-foreground">{potenciaKwp.toFixed(2)} kWp</span>
-            </div>
-          )}
-          {consumoTotal > 0 && (
-            <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
-              <BarChart3 className="h-3.5 w-3.5 text-secondary" />
-              <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
-            </div>
-          )}
-          {precoFinal > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
-              <DollarSign className="h-3.5 w-3.5 text-success" />
-              <span className="font-bold text-foreground">{formatBRL(precoFinal)}</span>
-            </div>
-          )}
-          <span className="text-[10px] font-mono text-secondary font-bold bg-secondary/10 px-2 py-0.5 rounded-full shrink-0">
-            {step + 1}/{activeSteps.length}
+          <span className="font-medium text-foreground">
+            {savedPropostaId ? "Proposta" : "Nova Proposta"}
           </span>
+        </div>
+
+        {/* Client name + metrics row */}
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-lg font-bold text-foreground truncate">
+            {cliente.nome || selectedLead?.nome || (savedPropostaId ? "Editar Proposta" : "Nova Proposta")}
+          </h1>
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+            {potenciaKwp > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
+                <Zap className="h-3.5 w-3.5 text-primary" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Potência Total</p>
+                  <p className="text-xs font-bold text-foreground">{potenciaKwp.toFixed(2)} kWp</p>
+                </div>
+              </div>
+            )}
+            {consumoTotal > 0 && (
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
+                <BarChart3 className="h-3.5 w-3.5 text-secondary" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Consumo</p>
+                  <p className="text-xs font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</p>
+                </div>
+              </div>
+            )}
+            {precoFinal > 0 && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
+                <DollarSign className="h-3.5 w-3.5 text-success" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Preço do Projeto</p>
+                  <p className="text-xs font-bold text-foreground">
+                    {formatBRL(precoFinal)}{" "}
+                    {potenciaKwp > 0 && (
+                      <span className="text-[9px] font-normal text-muted-foreground">
+                        R$ {(precoFinal / potenciaKwp / 1000).toFixed(2)}/Wp
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
