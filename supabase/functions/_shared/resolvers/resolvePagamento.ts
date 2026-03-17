@@ -72,6 +72,7 @@ function normalizePagOpcoes(rawArr: AnyObj[]): NormalizedPagamento[] {
       entrada: parseLocaleNumber(p.entrada ?? p.valor_entrada ?? p.entrada_valor),
       num_parcelas: (() => { const n = parseLocaleNumber(p.num_parcelas ?? p.numParcelas ?? p.prazo ?? p.parcelas); return n != null ? Math.round(n) : null; })(),
       taxa_mensal: parseLocaleNumber(p.taxa_mensal ?? p.taxaMensal ?? p.taxa ?? p.juros_mensal),
+      carencia: (() => { const n = parseLocaleNumber(p.carencia ?? p.carencia_meses ?? p.meses_carencia); return n != null ? Math.round(n) : null; })(),
     };
   }).filter((p) =>
     p.tipo === "a_vista" || p.valor_financiado != null || p.valor_parcela != null || p.num_parcelas != null || p.taxa_mensal != null || p.entrada != null
