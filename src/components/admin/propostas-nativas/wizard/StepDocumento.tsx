@@ -226,8 +226,6 @@ export function StepDocumento({
     }
   };
 
-  const wpPerKwp = potenciaKwp > 0 ? (precoFinal / potenciaKwp / 1000).toFixed(2) : "0.00";
-
   // MetricsHeader removed — metrics are now shown in the wizard sticky header (ProposalWizard.tsx)
 
   // ─── TAB: TEMPLATE ──────────────────────────────────────
