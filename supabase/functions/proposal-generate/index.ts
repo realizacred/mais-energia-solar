@@ -679,6 +679,9 @@ Deno.serve(async (req) => {
         cliente_id: body.cliente_id ?? null, template_id: body.template_id ?? null,
         consultor_id: consultorId, user_id: userId,
       },
+      // Flattened financial keys by category (baterias, transformadores, kit_fechado)
+      // Spread at root level so resolveFinanceiro can read them via snap[key]
+      ...flatItensFinanceiros,
     };
 
     // ── 8. CRIAR OU REUTILIZAR propostas_nativas ────────────
