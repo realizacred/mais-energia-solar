@@ -109,7 +109,9 @@ export default function MonitorReports() {
 
   const totalKwh = readings.reduce((s, r) => s + r.energy_kwh, 0);
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    const { default: jsPDF } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf");
+    const { default: autoTable } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf-autotable");
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text("Relatório de Monitoramento Solar", 14, 20);
