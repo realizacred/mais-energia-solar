@@ -652,6 +652,7 @@ export default function Admin() {
                 <Route path="menus" element={<MenuConfigPage />} />
                 {/* migracao-sm removed — migration now integrated in SolarMarket page */}
                 <Route path="dev" element={<DevToolsPage />} />
+                <Route path="system-health" element={<SystemHealthPage />} />
                 <Route path="dev/seed" element={<DevToolsPage />} />
                 <Route path="dev/reset-seed" element={<DevToolsPage />} />
                 <Route path="dev/rls-test" element={<RlsTestPage />} />
