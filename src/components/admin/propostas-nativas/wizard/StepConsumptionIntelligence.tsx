@@ -486,7 +486,7 @@ export function StepConsumptionIntelligence({
       <div className="flex items-center justify-end gap-4 text-xs flex-wrap">
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <BarChart3 className="h-3.5 w-3.5" />
-          <span>Consumo Mensal Total</span>
+          <span>Consumo Médio Total</span>
           <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
         </div>
         <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
