@@ -163,7 +163,7 @@ export function PropostasManager() {
         />
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard icon={FileText} label="Total" value={stats.total} color="primary" />
           <StatCard icon={SunMedium} label="Enviadas" value={stats.enviadas} color="info" />
           <StatCard icon={Zap} label="Aceitas" value={stats.aceitas} color="success" />
