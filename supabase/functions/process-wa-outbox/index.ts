@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeError } from "../_shared/error-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,13 +15,10 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Global EVOLUTION_API_KEY is now optional — per-instance api_key takes priority
   const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
   if (!EVOLUTION_API_KEY) {
-    console.error("[process-wa-outbox] EVOLUTION_API_KEY not configured");
-    return new Response(JSON.stringify({ error: "EVOLUTION_API_KEY not configured" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.warn("[process-wa-outbox] EVOLUTION_API_KEY not configured globally — will use per-instance api_key");
   }
 
   const supabase = createClient(
