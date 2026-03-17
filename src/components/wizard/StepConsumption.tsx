@@ -125,15 +125,15 @@ export function StepConsumption({
         </div>
       </motion.div>
 
-      {values.media_consumo && values.consumo_previsto && (
+      {media_consumo && consumo_previsto && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
         >
           <ConsumptionChart
-            mediaConsumo={values.media_consumo}
-            consumoPrevisto={values.consumo_previsto}
+            mediaConsumo={media_consumo}
+            consumoPrevisto={consumo_previsto}
           />
         </motion.div>
       )}
