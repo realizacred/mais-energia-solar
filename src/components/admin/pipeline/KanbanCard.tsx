@@ -78,8 +78,6 @@ export function KanbanCard({
   onWin,
   onLose,
 }: KanbanCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
   const kwp = lead.potencia_kwp || estimateKwp(lead.media_consumo);
   const valor = lead.valor_projeto || estimateValue(kwp);
 
@@ -98,8 +96,6 @@ export function KanbanCard({
     <motion.div
       draggable
       onDragStart={(e) => onDragStart(e as unknown as React.DragEvent, lead)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
       transition={{ duration: 0.15 }}
