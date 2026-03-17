@@ -215,7 +215,7 @@ export function LeadsView() {
             size="sm"
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="gap-1.5"
+            className="gap-1.5 min-h-[44px] md:min-h-0"
           >
             <ChevronLeft className="h-4 w-4" />
             Anterior
@@ -228,7 +228,7 @@ export function LeadsView() {
             size="sm"
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="gap-1.5"
+            className="gap-1.5 min-h-[44px] md:min-h-0"
           >
             Próxima
             <ChevronRight className="h-4 w-4" />
