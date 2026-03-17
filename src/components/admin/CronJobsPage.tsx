@@ -40,13 +40,14 @@ export default function CronJobsPage() {
   const { data: jobs, isLoading } = useCronJobs();
   const queryClient = useQueryClient();
 
+  const defaultCounts: Record<CronStatus, number> = { success: 0, running: 0, failed: 0, overdue: 0, unknown: 0 };
   const counts = jobs?.reduce(
     (acc, j) => {
       acc[j.computedStatus] = (acc[j.computedStatus] || 0) + 1;
       return acc;
     },
-    {} as Record<CronStatus, number>
-  ) || {};
+    { ...defaultCounts }
+  ) || defaultCounts;
 
   const kpis = [
     { label: "Funcionando", value: counts.success || 0, icon: CheckCircle2, color: "text-success", border: "border-l-success" },
