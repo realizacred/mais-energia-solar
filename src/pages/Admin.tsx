@@ -520,6 +520,9 @@ export default function Admin() {
                 <Route path="aprovacao" element={<AprovacaoUsuarios />} />
                 <Route path="lead-status" element={<LeadStatusManager />} />
                 <Route path="inteligencia" element={<IntelligenceDashboard />} />
+                <Route path="inteligencia-config" element={<IntelligenceConfigPage />} />
+                <Route path="inteligencia-metricas" element={<IntelligenceMetricsPage />} />
+                <Route path="inteligencia-alertas" element={<IntelligenceAlertsPage />} />
                 <Route path="distribuicao" element={<DistributionConfig />} />
                 <Route path="sla-breaches" element={<SlaBreachDashboard />} />
                 <Route path="motivos-perda" element={<MotivoPerdaManager />} />
