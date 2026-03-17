@@ -11,6 +11,7 @@ import { resolveFinanceiro } from "./resolveFinanceiro.ts";
 import { resolveSistemaSolar } from "./resolveSistemaSolar.ts";
 import { resolvePagamento } from "./resolvePagamento.ts";
 import { resolveClienteComercial } from "./resolveClienteComercial.ts";
+import { resolveMultiUC } from "./resolveMultiUC.ts";
 
 export { type ResolverExternalContext } from "./types.ts";
 
@@ -118,9 +119,10 @@ export function resolveAllVariables(
   const sistema = resolveSistemaSolar(snapshot, ext);
   const pagamento = resolvePagamento(snapshot, ext);
   const clienteComercial = resolveClienteComercial(snapshot, ext);
+  const multiUC = resolveMultiUC(snapshot, ext);
 
   // Merge with setIfMissing semantics
-  for (const resolverOut of [entrada, financeiro, sistema, pagamento, clienteComercial]) {
+  for (const resolverOut of [entrada, financeiro, sistema, pagamento, clienteComercial, multiUC]) {
     for (const [k, v] of Object.entries(resolverOut)) {
       if (!vars[k]) vars[k] = v;
     }
