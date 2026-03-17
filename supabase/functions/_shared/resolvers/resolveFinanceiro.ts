@@ -70,10 +70,16 @@ export function resolveFinanceiro(
     if (paybackStr) out["payback"] = paybackStr;
   }
 
-  // ── Kit Fechado ──
-  const kitFechadoPreco = num(snap.kit_fechado_preco_total) ?? num(fin.kit_fechado_preco_total);
+  // ── Kit Fechado (commercial mode — derived from financial aggregates) ──
+  // kit_fechado_preco_total = sell price of kit = financeiro.valor_total or snap value
+  const kitFechadoPreco = num(snap.kit_fechado_preco_total) ?? num(fin.kit_fechado_preco_total) ?? num(fin.valor_total);
   if (kitFechadoPreco != null && kitFechadoPreco > 0) {
     setCur("kit_fechado_preco_total", kitFechadoPreco);
+  }
+  // kit_fechado_custo_total = cost of kit = financeiro.custo_kit or snap value
+  const kitFechadoCusto = num(snap.kit_fechado_custo_total) ?? num(fin.custo_kit);
+  if (kitFechadoCusto != null && kitFechadoCusto > 0) {
+    setCur("kit_fechado_custo_total", kitFechadoCusto);
   }
 
   // ── VPL / TIR / ROI ──
