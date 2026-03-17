@@ -1,5 +1,5 @@
 /**
- * ClientesManager — smoke test: renders without crash
+ * ClientesManager — smoke test
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import "@/test/mocks/framerMotionMock";
@@ -13,11 +13,12 @@ vi.mock("@/hooks/useAuth", () => ({
 vi.mock("@/hooks/useUserPermissions", () => ({
   useUserPermissions: () => ({
     permissions: { can_manage_clientes: true },
+    hasPermission: () => true,
     isLoading: false,
   }),
 }));
 
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { TestProviders } from "@/test/mocks/queryClientWrapper";
 
 let ClientesManager: any;
@@ -35,15 +36,5 @@ describe("ClientesManager", () => {
       </TestProviders>
     );
     expect(container).toBeTruthy();
-  });
-
-  it("renderiza título ou conteúdo da página", () => {
-    render(
-      <TestProviders>
-        <ClientesManager />
-      </TestProviders>
-    );
-    const title = screen.queryByText(/cliente/i);
-    expect(title || document.body).toBeTruthy();
   });
 });
