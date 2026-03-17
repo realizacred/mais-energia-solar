@@ -37,7 +37,12 @@ export function StepConsumption({
   consultorCode,
 }: StepConsumptionProps) {
   const { watch, setValue, trigger, formState: { errors } } = form;
-  const values = watch();
+  const area = watch("area");
+  const tipo_telhado = watch("tipo_telhado");
+  const rede_atendimento = watch("rede_atendimento");
+  const media_consumo = watch("media_consumo");
+  const consumo_previsto = watch("consumo_previsto");
+  const observacoes = watch("observacoes");
   const { tiposTelhado: TIPOS_TELHADO } = useTiposTelhado(consultorCode);
 
   return (

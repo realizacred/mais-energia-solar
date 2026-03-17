@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+// XLSX loaded via dynamic import to reduce initial bundle
 
 export interface ParsedTarifa {
   sigAgente: string;

@@ -80,7 +80,7 @@ export async function generateEstoqueMovimentosPDF(movimentos: EstoqueMovimento[
   doc.save(`estoque_movimentos_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-export function generateEstoqueBaixoPDF(saldos: EstoqueSaldo[]) {
+export async function generateEstoqueBaixoPDF(saldos: EstoqueSaldo[]) {
   const lowStock = saldos.filter((s) => s.estoque_atual <= s.estoque_minimo && s.estoque_minimo > 0);
-  generateEstoqueItemsPDF(lowStock, "Relatório de Itens com Estoque Baixo");
+  await generateEstoqueItemsPDF(lowStock, "Relatório de Itens com Estoque Baixo");
 }

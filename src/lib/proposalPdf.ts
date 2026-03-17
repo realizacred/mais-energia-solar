@@ -1,5 +1,4 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+// jsPDF + autoTable loaded via dynamic import to reduce initial bundle
 
 interface ProposalData {
   // Cliente

@@ -157,7 +157,8 @@ export default function MonitorReports() {
     toast.success("PDF exportado com sucesso!");
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const XLSX = await import(/* webpackChunkName: "xlsx-lib" */ "xlsx");
     const wsData = [
       ["Relatório de Monitoramento Solar"],
       [`Período: ${range.label}`],
