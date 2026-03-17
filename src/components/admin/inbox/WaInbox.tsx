@@ -175,19 +175,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   } = useWaSlaAlerts();
 
   // Follow-up queue: pending follow-ups for badge indicators
-  const { data: pendingFollowups = [] } = useQuery({
-    queryKey: ["wa-followup-pending-inbox"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_followup_queue")
-        .select("id, conversation_id, assigned_to, rule_id")
-        .eq("status", "pendente");
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
-  });
+  const { data: pendingFollowups = [] } = useWaFollowupPending();
 
   const followupConvIds = useMemo(
     () => new Set(pendingFollowups.map((f) => f.conversation_id)),
