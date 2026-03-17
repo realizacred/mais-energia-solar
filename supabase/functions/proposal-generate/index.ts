@@ -273,10 +273,9 @@ function flattenItensFinanceirosPorCategoria(
   const out: Record<string, number | string> = {};
   const margemFator = 1 + (margemPercentual / 100);
 
-  // Category matchers
+  // Category matchers — only real item categories emitted by frontend
   const isBateria = (cat: string) => cat.includes("bateria") || cat === "battery";
   const isTransformador = (cat: string) => cat.includes("transformador") || cat.includes("transformer");
-  const isKitFechado = (cat: string) => cat === "kit_fechado" || cat === "kit fechado";
 
   // ── Helper: process a category ──
   function processCategory(
