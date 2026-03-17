@@ -138,6 +138,16 @@ export function resolveFinanceiro(
   if (out["renda_25"]) set("renda_fixa_25_anos", out["renda_25"]);
   if (out["poupanca_25"]) set("poupanca_25_anos", out["poupanca_25"]);
 
+  // ── Battery singular→plural fallback aliases ──
+  // Catalog defines singular as "concatenated" and plural as "summed aggregate".
+  // When snapshot lacks concatenated values (Phase 2B), fallback to aggregate total.
+  if (out["baterias_custo_total"] && !out["bateria_custo_total"]) {
+    out["bateria_custo_total"] = out["baterias_custo_total"];
+  }
+  if (out["baterias_preco_total"] && !out["bateria_preco_total"]) {
+    out["bateria_preco_total"] = out["baterias_preco_total"];
+  }
+
   // ── Comissão percentual (derivado de comissao_res/rep + valor_total) ──
   if (valorTotal && valorTotal > 0) {
     const comRes = num(snap.comissao_res) ?? num(fin.comissao_res);
