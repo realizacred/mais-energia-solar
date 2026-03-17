@@ -146,6 +146,7 @@ export function resolvePagamento(
   });
 
   // ── f_* indexed (all payment options) ──
+  const valorTotalNum = parseLocaleNumber(snap.preco_total) ?? parseLocaleNumber(snap.preco) ?? parseLocaleNumber(snap.valor_total);
   const fOpcoes = [...financiamentos, ...cartoes].slice(0, 12);
   fOpcoes.forEach((p, idx) => {
     const i = idx + 1;
@@ -158,6 +159,13 @@ export function resolvePagamento(
     if (p.num_parcelas != null) set(`f_prazo_${i}`, String(p.num_parcelas));
     if (p.taxa_mensal != null) set(`f_taxa_${i}`, `${fmtNum(p.taxa_mensal, 2)}%`);
     if (parcela != null) setCur(`f_parcela_${i}`, parcela);
+    if (p.carencia != null) set(`f_carencia_${i}`, String(p.carencia));
+
+    // Derivados percentuais
+    if (valorTotalNum && valorTotalNum > 0) {
+      if (p.entrada != null) set(`f_entrada_p_${i}`, `${fmtNum((p.entrada / valorTotalNum) * 100, 1)}%`);
+      if (valorFinanciado != null) set(`f_valor_p_${i}`, `${fmtNum((valorFinanciado / valorTotalNum) * 100, 1)}%`);
+    }
   });
 
   // ── f_ativo_* (first financiamento) ──
@@ -169,7 +177,14 @@ export function resolvePagamento(
     if (finAtiva.num_parcelas != null) set("f_ativo_prazo", String(finAtiva.num_parcelas));
     if (finAtiva.entrada != null) setCur("f_ativo_entrada", finAtiva.entrada);
     if (finAtiva.valor_financiado != null) setCur("f_ativo_valor", finAtiva.valor_financiado);
+    if (finAtiva.carencia != null) set("f_ativo_carencia", String(finAtiva.carencia));
     set("vc_financeira_nome", finAtiva.nome);
+
+    // Derivados percentuais do financiamento ativo
+    if (valorTotalNum && valorTotalNum > 0) {
+      if (finAtiva.entrada != null) set("f_ativo_entrada_p", `${fmtNum((finAtiva.entrada / valorTotalNum) * 100, 1)}%`);
+      if (finAtiva.valor_financiado != null) set("f_ativo_valor_p", `${fmtNum((finAtiva.valor_financiado / valorTotalNum) * 100, 1)}%`);
+    }
   }
 
   // ── vc_nome = client name (resolved in clienteComercial, but set here as fallback) ──
