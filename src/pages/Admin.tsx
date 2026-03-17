@@ -129,6 +129,7 @@ const RolePermissionsManager = lazy(() => import("@/components/admin/RolePermiss
 const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
+const SystemHealthPage = lazy(() => import("@/components/admin/SystemHealthPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const PostSaleDashboardPage = lazy(() => import("@/components/admin/post-sale/PostSaleDashboard"));
 const PostSaleVisitsPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitsList"));
@@ -651,6 +652,7 @@ export default function Admin() {
                 <Route path="menus" element={<MenuConfigPage />} />
                 {/* migracao-sm removed — migration now integrated in SolarMarket page */}
                 <Route path="dev" element={<DevToolsPage />} />
+                <Route path="system-health" element={<SystemHealthPage />} />
                 <Route path="dev/seed" element={<DevToolsPage />} />
                 <Route path="dev/reset-seed" element={<DevToolsPage />} />
                 <Route path="dev/rls-test" element={<RlsTestPage />} />
