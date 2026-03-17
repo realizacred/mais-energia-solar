@@ -115,15 +115,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   // Determine the effective user for vendor mode
   const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
 
-  // Fetch vendedores (moved up so vendorInstanceIds can reference it)
-  const { data: vendedores = [] } = useQuery({
-    queryKey: ["vendedores-wa-inbox"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  // Fetch vendedores
+  const { data: vendedores = [] } = useConsultoresAtivos();
 
   const effectiveAssigned = vendorMode ? "all" : filterAssigned;
 
