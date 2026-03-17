@@ -1,7 +1,9 @@
-import { useState, useEffect, lazy, Suspense } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaInstances } from "@/hooks/useWaInstances";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
+import { useWaInstanceConsultores, useWaAutoReplyConfig, useWaAutomationConfig } from "@/hooks/useWaSettingsData";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -138,28 +140,10 @@ function OperatorsTab() {
   const { toast } = useToast();
 
   // Fetch all consultores
-  const { data: consultores = [], isLoading: loadingConsultores } = useQuery({
-    queryKey: ["wa-settings-consultores"],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("consultores")
-        .select("id, nome, user_id, ativo")
-        .eq("ativo", true)
-        .order("nome");
-      return data || [];
-    },
-  });
+  const { data: consultores = [], isLoading: loadingConsultores } = useConsultoresAtivos();
 
   // Fetch current instance-consultor assignments
-  const { data: assignments = [], isLoading: loadingAssignments } = useQuery({
-    queryKey: ["wa-instance-consultores"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("wa_instance_consultores")
-        .select("id, instance_id, consultor_id, tenant_id");
-      return data || [];
-    },
-  });
+  const { data: assignments = [], isLoading: loadingAssignments } = useWaInstanceConsultores();
 
   const toggleMutation = useMutation({
     mutationFn: async ({ consultorId, add }: { consultorId: string; add: boolean }) => {
@@ -254,28 +238,10 @@ function AutomationTab() {
   const queryClient = useQueryClient();
 
   // Fetch wa_auto_reply_config (tenant-scoped, 1:1)
-  const { data: autoReply, isLoading } = useQuery({
-    queryKey: ["wa-auto-reply-config"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("wa_auto_reply_config")
-        .select("id, ativo, mensagem_fora_horario, mensagem_feriado, cooldown_minutos, silenciar_alertas, silenciar_sla")
-        .maybeSingle();
-      return data;
-    },
-  });
+  const { data: autoReply, isLoading } = useWaAutoReplyConfig();
 
   // Fetch whatsapp_automation_config for greeting message
-  const { data: automationConfig } = useQuery({
-    queryKey: ["whatsapp-automation-config"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("whatsapp_automation_config")
-        .select("id, mensagem_boas_vindas, auto_reply_enabled, auto_reply_message")
-        .maybeSingle();
-      return data;
-    },
-  });
+  const { data: automationConfig } = useWaAutomationConfig();
 
   const [greeting, setGreeting] = useState("");
   const [absence, setAbsence] = useState("");

@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useWaComposerData, type QuickReplyDb } from "@/hooks/useWaComposerData";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Common Emojis ──
@@ -46,17 +46,7 @@ const EMOJI_CATEGORIES: Record<string, string[]> = {
   "📦 Objetos": ["📱","💻","📧","📞","📊","📈","💰","💵","🏠","🔧","⚡","🔋","☎️","📋","📎","🗂️","📅","🕐","⏰","🚀"],
 };
 
-interface QuickReplyDb {
-  id: string;
-  titulo: string;
-  conteudo: string;
-  emoji: string | null;
-  categoria: string | null;
-  media_url: string | null;
-  media_type: string | null;
-  media_filename: string | null;
-  ativo: boolean;
-}
+// QuickReplyDb type imported from hook
 
 const MEDIA_ICONS: Record<string, typeof ImageIcon> = {
   image: ImageIcon,
@@ -111,20 +101,9 @@ export function WaChatComposer({
   const [slashIndex, setSlashIndex] = useState(0);
   const prefillAppliedRef = useRef(false);
 
-  // ── Writing Assistant ──
-  const { data: writingAssistantEnabled } = useQuery({
-    queryKey: ["writing-assistant-enabled"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("wa_ai_settings")
-        .select("templates")
-        .maybeSingle();
-      const templates = data?.templates as Record<string, any> | null;
-      return templates?.writing_assistant?.enabled !== false;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  const isWritingAssistantOn = writingAssistantEnabled !== false;
+  // ── Data from hooks ──
+  const { writingAssistantEnabled, quickReplies, dbCategories } = useWaComposerData();
+  const isWritingAssistantOn = writingAssistantEnabled;
   const writingAssistant = useWritingAssistant();
   const [activeWritingAction, setActiveWritingAction] = useState<import("@/hooks/useWritingAssistant").WritingAction | null>(null);
 
@@ -133,7 +112,6 @@ export function WaChatComposer({
     if (prefillMessage && !prefillAppliedRef.current) {
       setInputValue(prefillMessage);
       prefillAppliedRef.current = true;
-      // Focus the textarea
       setTimeout(() => textareaRef.current?.focus(), 100);
     }
   }, [prefillMessage]);
@@ -175,37 +153,6 @@ export function WaChatComposer({
       console.warn("[presence] Failed to send presence:", e);
     }
   }, [instanceId, remoteJid, isNoteMode]);
-
-  // Fetch quick replies from DB
-  const { data: quickReplies = [] } = useQuery({
-    queryKey: ["wa-quick-replies-active"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_quick_replies")
-        .select("id, titulo, conteudo, categoria, emoji, media_url, media_type, media_filename, ordem, ativo")
-        .eq("ativo", true)
-        .order("ordem", { ascending: true })
-        .order("titulo", { ascending: true });
-      if (error) throw error;
-      return data as QuickReplyDb[];
-    },
-    staleTime: 60 * 1000,
-  });
-
-  // Fetch categories from DB
-  const { data: dbCategories = [] } = useQuery({
-    queryKey: ["wa-qr-categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_quick_reply_categories")
-        .select("id, nome, slug, cor, emoji, ordem, ativo")
-        .eq("ativo", true)
-        .order("ordem", { ascending: true });
-      if (error) throw error;
-      return data as Array<{ id: string; nome: string; slug: string; cor: string; emoji: string | null }>;
-    },
-    staleTime: 60 * 1000,
-  });
 
   // Build category meta from DB
   const CATEGORY_META = useMemo(() => {

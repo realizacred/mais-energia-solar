@@ -2,8 +2,8 @@
  * MetersListPage — Main list page for Medidores.
  */
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { meterService, type MeterDevice } from "@/services/meterService";
+import { type MeterDevice } from "@/services/meterService";
+import { useMetersListData } from "@/hooks/useMetersListData";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
@@ -15,7 +15,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { Search, Gauge, Wifi, WifiOff, ArrowLeftRight, Eye, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { MeterLinkDialog } from "./MeterLinkDialog";
 
 export default function MetersListPage() {
@@ -24,42 +23,10 @@ export default function MetersListPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [linkDialogMeter, setLinkDialogMeter] = useState<MeterDevice | null>(null);
 
-  const { data: meters = [], isLoading, error } = useQuery({
-    queryKey: ["meter_devices", statusFilter, search],
-    queryFn: () => meterService.list({
-      online_status: statusFilter !== "all" ? statusFilter : undefined,
-      search: search || undefined,
-    }),
+  const { meters, isLoading, error, getLinkedUC } = useMetersListData({
+    online_status: statusFilter,
+    search,
   });
-
-  // Get active links to show which UC each meter is connected to
-  const { data: activeLinks = [] } = useQuery({
-    queryKey: ["unit_meter_links_active"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("unit_meter_links")
-        .select("meter_device_id, unit_id")
-        .eq("is_active", true);
-      return data || [];
-    },
-  });
-
-  const { data: ucs = [] } = useQuery({
-    queryKey: ["ucs_for_meters"],
-    queryFn: async () => {
-      const { data } = await supabase.from("units_consumidoras").select("id, nome, codigo_uc").eq("is_archived", false);
-      return data || [];
-    },
-  });
-
-  const linkMap = new Map(activeLinks.map(l => [l.meter_device_id, l.unit_id]));
-  const ucMap = new Map(ucs.map(u => [u.id, u]));
-
-  function getLinkedUC(meterId: string) {
-    const unitId = linkMap.get(meterId);
-    if (!unitId) return null;
-    return ucMap.get(unitId) || null;
-  }
 
   return (
     <div className="p-4 md:p-6 space-y-4">

@@ -13,8 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTasks } from "@/hooks/useTasks";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { priorityConfig } from "./taskConstants";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 
@@ -25,14 +24,7 @@ export function TasksManager() {
   const [filterPriority, setFilterPriority] = useState<string>("all");
 
   // Fetch vendedores for assignment
-  const { data: vendedores } = useQuery({
-    queryKey: ["vendedores-list"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: vendedores } = useConsultoresAtivos();
 
   const filtered = tasks.filter((t) => {
     if (filterStatus === "active" && (t.status === "done" || t.status === "cancelled")) return false;

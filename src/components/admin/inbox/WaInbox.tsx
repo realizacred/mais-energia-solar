@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { MessageCircle } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
+import { useWaFollowupPending } from "@/hooks/useWaFollowupPending";
 import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
 import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferences";
@@ -113,15 +115,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   // Determine the effective user for vendor mode
   const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
 
-  // Fetch vendedores (moved up so vendorInstanceIds can reference it)
-  const { data: vendedores = [] } = useQuery({
-    queryKey: ["vendedores-wa-inbox"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  // Fetch vendedores
+  const { data: vendedores = [] } = useConsultoresAtivos();
 
   const effectiveAssigned = vendorMode ? "all" : filterAssigned;
 
@@ -180,19 +175,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   } = useWaSlaAlerts();
 
   // Follow-up queue: pending follow-ups for badge indicators
-  const { data: pendingFollowups = [] } = useQuery({
-    queryKey: ["wa-followup-pending-inbox"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_followup_queue")
-        .select("id, conversation_id, assigned_to, rule_id")
-        .eq("status", "pendente");
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
-  });
+  const { data: pendingFollowups = [] } = useWaFollowupPending();
 
   const followupConvIds = useMemo(
     () => new Set(pendingFollowups.map((f) => f.conversation_id)),

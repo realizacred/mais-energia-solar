@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { formatPhone } from "@/lib/validations";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import type React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSignatureSettings, useSigners } from "@/hooks/useSignatureData";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,14 +62,7 @@ function SignatureConfig() {
   const [hasExistingToken, setHasExistingToken] = useState(false);
   const [hasExistingWebhook, setHasExistingWebhook] = useState(false);
 
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["signature_settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("signature_settings").select("tenant_id, enabled, provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted, updated_by").maybeSingle();
-      if (error) throw error;
-      return data as unknown as SignatureSettings | null;
-    },
-  });
+  const { data: settings, isLoading } = useSignatureSettings();
 
   useEffect(() => {
     if (settings) {
@@ -193,14 +187,7 @@ function SignersList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Signer | null>(null);
 
-  const { data: signers, isLoading } = useQuery({
-    queryKey: ["signers"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("signers").select("id, tenant_id, full_name, email, auth_method, cpf, birth_date, phone, options").order("full_name");
-      if (error) throw error;
-      return (data ?? []) as unknown as Signer[];
-    },
-  });
+  const { data: signers, isLoading } = useSigners();
 
   const deleteSigner = useMutation({
     mutationFn: async (id: string) => {

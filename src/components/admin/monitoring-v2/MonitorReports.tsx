@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { MonitorNav } from "./MonitorNav";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
@@ -8,13 +7,12 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, BarChart3, Calendar, Sun } from "lucide-react";
-import { listPlantsWithHealth, listAllReadings } from "@/services/monitoring/monitorService";
 import { getTodayBrasilia, getDaysAgoBrasilia, formatDateBrasilia } from "@/services/monitoring/plantStatusEngine";
-import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorPRChart } from "./charts/MonitorPRChart";
 import { formatBRL, formatEnergyAutoScale, formatCO2, formatDate } from "@/lib/formatters/index";
 import { toast } from "sonner";
+import { useMonitorReportsData } from "@/hooks/useMonitorReportsData";
 // jsPDF, autoTable and XLSX loaded via dynamic import to reduce initial bundle (~600KB)
 
 type PeriodType = "current_month" | "last_month" | "last_3_months" | "last_year";
@@ -58,37 +56,7 @@ export default function MonitorReports() {
   const [period, setPeriod] = useState<PeriodType>("current_month");
   const range = getDateRange(period);
 
-  const { data: plants = [], isLoading: loadingPlants } = useQuery({
-    queryKey: ["monitor-plants-health"],
-    queryFn: listPlantsWithHealth,
-    staleTime: 2 * 60 * 1000,
-  });
-
-  const { data: readings = [], isLoading: loadingReadings } = useQuery({
-    queryKey: ["monitor-readings-report", range.start, range.end],
-    queryFn: () => listAllReadings(range.start, range.end),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: financials } = useQuery({
-    queryKey: ["monitor-financials-report", readings.length],
-    queryFn: () => {
-      const totalKwh = readings.reduce((s, r) => s + r.energy_kwh, 0);
-      return getFinancials(0, totalKwh);
-    },
-    enabled: readings.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: prData = [] } = useQuery({
-    queryKey: ["monitor-pr-report", plants.length, readings.length],
-    queryFn: () => getPerformanceRatios(
-      plants.map((p) => ({ id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp, latitude: p.lat ?? null, longitude: p.lng ?? null })),
-      readings
-    ),
-    enabled: plants.length > 0 && readings.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { plants, readings, financials, prData, isLoading: dataLoading } = useMonitorReportsData(range);
 
   // Aggregate per-plant data
   const plantSummary = useMemo(() => {
@@ -182,7 +150,7 @@ export default function MonitorReports() {
     toast.success("Excel exportado com sucesso!");
   };
 
-  const isLoading = loadingPlants || loadingReadings;
+  const isLoading = dataLoading;
 
   if (isLoading) return <LoadingState message="Carregando relatórios..." />;
 
