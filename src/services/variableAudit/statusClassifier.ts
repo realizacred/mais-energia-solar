@@ -13,6 +13,8 @@ export interface ClassificationInput {
   inTemplatePreview: boolean;
   /** Whether template-preview has dynamic snapshot passthrough (accepts any snapshot key) */
   templatePreviewHasDynamicPassthrough: boolean;
+  /** Whether the frontend resolver uses finalSnapshot as universal fallback (deepGet) */
+  frontendHasFinalSnapshotFallback: boolean;
 }
 
 /**
