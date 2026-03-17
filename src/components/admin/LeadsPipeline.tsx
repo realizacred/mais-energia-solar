@@ -380,7 +380,7 @@ export default function LeadsPipeline() {
           <ScrollArea className="w-full">
             <div className="flex gap-4 pb-4" style={{ minWidth: "max-content" }}>
               {/* Sem status */}
-              <div className="w-72 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, "")}>
+              <div className="w-64 md:w-72 lg:w-80 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, "")}>
                 <ColumnHeader name="Sem status" count={getLeadsByStatus(null).length} value={getColumnValue(null)} />
                 <div className="rounded-b-lg p-2 min-h-[500px] space-y-2.5 border border-t-0 border-border/40 bg-muted/10">
                   {getLeadsByStatus(null).map(lead => (
@@ -392,7 +392,7 @@ export default function LeadsPipeline() {
               {statuses.map(status => {
                 const columnLeads = getLeadsByStatus(status.id);
                 return (
-                  <div key={status.id} className="w-72 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, status.id)}>
+                  <div key={status.id} className="w-64 md:w-72 lg:w-80 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, status.id)}>
                     <ColumnHeader name={status.nome} count={columnLeads.length} value={getColumnValue(status.id)} color={status.cor} />
                     <div className="rounded-b-lg p-2 min-h-[500px] space-y-2.5 border border-t-0 border-border/40 bg-muted/10">
                       {columnLeads.map(lead => (
