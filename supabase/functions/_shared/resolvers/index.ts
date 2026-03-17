@@ -11,6 +11,7 @@ import { resolveFinanceiro } from "./resolveFinanceiro.ts";
 import { resolveSistemaSolar } from "./resolveSistemaSolar.ts";
 import { resolvePagamento } from "./resolvePagamento.ts";
 import { resolveClienteComercial } from "./resolveClienteComercial.ts";
+import { resolveMultiUC } from "./resolveMultiUC.ts";
 
 export { type ResolverExternalContext } from "./types.ts";
 
