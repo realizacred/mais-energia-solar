@@ -159,7 +159,7 @@ export function StepConsumption({
           placeholder="Informações adicionais..."
           autoComplete="off"
           className="min-h-[80px] rounded-xl border-2 border-muted-foreground/25 focus:border-primary transition-colors"
-          value={values.observacoes}
+          value={observacoes}
           onChange={(e) => setValue("observacoes", e.target.value)}
         />
       </motion.div>
