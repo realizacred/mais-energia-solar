@@ -109,6 +109,7 @@ export function runVariableAudit(
       inBackendFlatten: inBackend,
       inTemplatePreview: inPreview,
       templatePreviewHasDynamicPassthrough: tpAnalysis.hasDynamicSnapshotPassthrough,
+      frontendHasFinalSnapshotFallback: feAnalysis.hasFinalSnapshotFallback,
     });
 
     const isLegacy = isLegacyVariable(v);

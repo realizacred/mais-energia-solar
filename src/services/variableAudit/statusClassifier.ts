@@ -13,6 +13,8 @@ export interface ClassificationInput {
   inTemplatePreview: boolean;
   /** Whether template-preview has dynamic snapshot passthrough (accepts any snapshot key) */
   templatePreviewHasDynamicPassthrough: boolean;
+  /** Whether the frontend resolver uses finalSnapshot as universal fallback (deepGet) */
+  frontendHasFinalSnapshotFallback: boolean;
 }
 
 /**
@@ -39,7 +41,7 @@ export function classifyVariable(input: ClassificationInput): {
   action: AuditAction;
   evidence: string;
 } {
-  const { variable: v, inFrontendResolver, inBackendFlatten, inTemplatePreview, templatePreviewHasDynamicPassthrough } = input;
+  const { variable: v, inFrontendResolver, inBackendFlatten, inTemplatePreview, templatePreviewHasDynamicPassthrough, frontendHasFinalSnapshotFallback } = input;
 
   // Not implemented
   if (v.notImplemented) {
@@ -58,10 +60,15 @@ export function classifyVariable(input: ClassificationInput): {
   // Dynamic passthrough means template-preview will pass through any snapshot key
   const effectiveBackend = inBackendFlatten || inTemplatePreview || templatePreviewHasDynamicPassthrough;
 
+  // Frontend coverage: explicit in resolver manifest OR via finalSnapshot fallback (deepGet)
+  // When finalSnapshot fallback exists, the frontend resolves ANY key present in the snapshot
+  const effectiveFrontend = inFrontendResolver || frontendHasFinalSnapshotFallback;
+
   // All layers covered
-  if (inFrontendResolver && effectiveBackend) {
+  if (effectiveFrontend && effectiveBackend) {
     if (isLegacy) return { status: "LEGADA", action: "NENHUMA", evidence: "Legada com cobertura em FE+BE" };
-    return { status: "OK", action: "NENHUMA", evidence: "Coberta em frontend resolver e backend flatten/preview" };
+    if (inFrontendResolver) return { status: "OK", action: "NENHUMA", evidence: "Coberta em frontend resolver e backend flatten/preview" };
+    return { status: "OK", action: "NENHUMA", evidence: "Coberta via finalSnapshot fallback (FE) + backend flatten/preview" };
   }
 
   // Frontend only
