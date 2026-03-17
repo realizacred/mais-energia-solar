@@ -1069,7 +1069,8 @@ export function ProposalWizard() {
           const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
           if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
 
-          const consumo = lead.consumo_previsto || lead.media_consumo || 0;
+          // consumo_previsto = geração estimada pelo vendedor, NÃO é consumo
+          const consumo = lead.media_consumo || 0;
           const faseData = redeAtendimentoToFaseTensao(lead.rede_atendimento);
 
           setUcs(prev => {
