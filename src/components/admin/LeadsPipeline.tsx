@@ -360,13 +360,13 @@ export default function LeadsPipeline() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <TabsList>
-            <TabsTrigger value="kanban" className="gap-2">
+            <TabsTrigger value="kanban" className="gap-2 min-h-[44px] md:min-h-0">
               <LayoutGrid className="h-4 w-4" /> Kanban
             </TabsTrigger>
-            <TabsTrigger value="funnel" className="gap-2">
+            <TabsTrigger value="funnel" className="gap-2 min-h-[44px] md:min-h-0">
               <BarChart3 className="h-4 w-4" /> Funil
             </TabsTrigger>
-            <TabsTrigger value="automations" className="gap-2">
+            <TabsTrigger value="automations" className="gap-2 min-h-[44px] md:min-h-0">
               <Settings2 className="h-4 w-4" /> Automações
             </TabsTrigger>
           </TabsList>
