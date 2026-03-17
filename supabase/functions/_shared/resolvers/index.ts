@@ -119,6 +119,7 @@ export function resolveAllVariables(
   const sistema = resolveSistemaSolar(snapshot, ext);
   const pagamento = resolvePagamento(snapshot, ext);
   const clienteComercial = resolveClienteComercial(snapshot, ext);
+  const multiUC = resolveMultiUC(snapshot, ext);
 
   // Merge with setIfMissing semantics
   for (const resolverOut of [entrada, financeiro, sistema, pagamento, clienteComercial]) {
