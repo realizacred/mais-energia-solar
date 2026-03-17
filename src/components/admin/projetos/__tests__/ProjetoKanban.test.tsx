@@ -19,7 +19,7 @@ const mockProjeto: ProjetoItem = {
   valor_total: 25000,
   potencia_kwp: 5.0,
   consultor: { nome: "Carlos" },
-  cliente: { nome: "Maria Oliveira" },
+  cliente: { nome: "Maria Oliveira", telefone: "(11) 99999-0000" },
   created_at: new Date().toISOString(),
 };
 

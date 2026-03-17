@@ -37,7 +37,7 @@ describe("WaChatComposer", () => {
   it("renderiza sem crash quando importado", async () => {
     try {
       const mod = await import("@/components/admin/inbox/WaChatComposer");
-      WaChatComposer = mod.default || mod.WaChatComposer;
+      WaChatComposer = (mod as any).default || (mod as any).WaChatComposer;
       if (WaChatComposer) {
         const { container } = render(
           <TestProviders>
