@@ -2,6 +2,9 @@
  * Multi-UC financial resolver.
  * Derives per-UC variables (_uc1, _uc2, …) via proportional allocation (rateio_creditos).
  *
+ * PRIORITY: If a _ucN variable already exists in the snapshot, it is used as-is.
+ * Proportional derivation is a FALLBACK only — not an independent per-UC calculation.
+ *
  * Generated variables per UC N:
  *   investimento_ucN, economia_ucN, economia_mensal_ucN, economia_anual_ucN,
  *   economia_anual_valor_X_ucN (X = 0..25),
@@ -36,57 +39,93 @@ export function resolveMultiUC(
   const tirGlobal = num(fin.tir) ?? num(snap.tir);
   const paybackMeses = num(fin.payback_meses) ?? num(snap.payback_meses);
 
-  // ── Per-UC derivation ──
+  // ── Helper: set only if key not already in snapshot ──
+  function setIfMissing(key: string, val: string) {
+    // Check snapshot first (real data takes priority over derivation)
+    const existing = snap[key];
+    if (existing !== null && existing !== undefined && existing !== "") {
+      out[key] = String(existing);
+    } else {
+      out[key] = val;
+    }
+  }
+
+  function setCurIfMissing(key: string, val: number) {
+    setIfMissing(key, fmtCur(val));
+  }
+
+  // ── Per-UC derivation (proportional fallback) ──
   weights.forEach((w, idx) => {
     const suffix = `_uc${idx + 1}`;
 
-    // Investment & economy
+    // Investment & economy — proportional fallback
     const investUC = valorTotal * w;
     const econMensalUC = economiaMensal * w;
     const econAnualUC = economiaAnual * w;
 
-    setCur(`investimento${suffix}`, investUC);
-    setCur(`economia${suffix}`, econMensalUC);
-    setCur(`economia_mensal${suffix}`, econMensalUC);
-    setCur(`economia_anual${suffix}`, econAnualUC);
+    setCurIfMissing(`investimento${suffix}`, investUC);
+    setCurIfMissing(`economia${suffix}`, econMensalUC);
+    setCurIfMissing(`economia_mensal${suffix}`, econMensalUC);
+    setCurIfMissing(`economia_anual${suffix}`, econAnualUC);
 
     // Annual series (0..25) — proportional split of global series
     for (let yr = 0; yr <= 25; yr++) {
-      // economia_anual_valor_X
+      // economia_anual_valor_X_ucN — proportional fallback
+      const econYrKey = `economia_anual_valor_${yr}${suffix}`;
       const econYrGlobal = num(snap[`economia_anual_valor_${yr}`]);
       if (econYrGlobal != null) {
-        setCur(`economia_anual_valor_${yr}${suffix}`, econYrGlobal * w);
+        setCurIfMissing(econYrKey, econYrGlobal * w);
       }
 
-      // fluxo_caixa_acumulado_anual_X — recalc from investment + cumulative economy
+      // fluxo_caixa_acumulado_anual_X_ucN — proportional fallback
+      const fluxoKey = `fluxo_caixa_acumulado_anual_${yr}${suffix}`;
       const fluxoGlobal = num(snap[`fluxo_caixa_acumulado_anual_${yr}`]);
       if (fluxoGlobal != null) {
-        setCur(`fluxo_caixa_acumulado_anual_${yr}${suffix}`, fluxoGlobal * w);
+        setCurIfMissing(fluxoKey, fluxoGlobal * w);
       }
     }
 
-    // Payback — proportional (same ratio since economy and investment scale together)
+    // payback_ucN — proportional derivation fallback.
+    // NOTE: This is NOT an independent per-UC IRR calculation.
+    // It approximates payback as investimento_ucN / economia_anual_ucN * 12.
     if (paybackMeses != null && paybackMeses > 0) {
-      // With proportional rateio the payback per-UC is approximately the same as global
-      // when both investment and economy scale by the same weight.
-      // However if rateio only affects credits (economy), payback changes.
-      // Safe derivation: payback_ucN = investimento_ucN / economia_anual_ucN * 12
-      const paybackUC = econAnualUC > 0 ? (investUC / econAnualUC) * 12 : paybackMeses;
-      const anos = Math.floor(paybackUC / 12);
-      const meses = Math.round(paybackUC % 12);
-      out[`payback${suffix}`] = `${anos} anos e ${meses} meses`;
-      out[`payback_meses${suffix}`] = String(Math.round(paybackUC));
-      out[`payback_anos${suffix}`] = fmtNum(paybackUC / 12, 1);
+      const paybackKey = `payback${suffix}`;
+      const paybackMesesKey = `payback_meses${suffix}`;
+      const paybackAnosKey = `payback_anos${suffix}`;
+
+      if (snap[paybackKey] != null && snap[paybackKey] !== "") {
+        out[paybackKey] = String(snap[paybackKey]);
+      } else {
+        const paybackUC = econAnualUC > 0 ? (investUC / econAnualUC) * 12 : paybackMeses;
+        const anos = Math.floor(paybackUC / 12);
+        const meses = Math.round(paybackUC % 12);
+        out[paybackKey] = `${anos} anos e ${meses} meses`;
+      }
+
+      if (snap[paybackMesesKey] != null && snap[paybackMesesKey] !== "") {
+        out[paybackMesesKey] = String(snap[paybackMesesKey]);
+      } else {
+        const paybackUC = econAnualUC > 0 ? (investUC / econAnualUC) * 12 : paybackMeses;
+        out[paybackMesesKey] = String(Math.round(paybackUC));
+      }
+
+      if (snap[paybackAnosKey] != null && snap[paybackAnosKey] !== "") {
+        out[paybackAnosKey] = String(snap[paybackAnosKey]);
+      } else {
+        const paybackUC = econAnualUC > 0 ? (investUC / econAnualUC) * 12 : paybackMeses;
+        out[paybackAnosKey] = fmtNum(paybackUC / 12, 1);
+      }
     }
 
-    // VPL — proportional
+    // vpl_ucN — proportional fallback (not independent NPV calculation)
     if (vplGlobal != null) {
-      setCur(`vpl${suffix}`, vplGlobal * w);
+      setCurIfMissing(`vpl${suffix}`, vplGlobal * w);
     }
 
-    // TIR — same as global (ratio-invariant when investment & cash flows scale linearly)
+    // tir_ucN — uses global TIR as fallback (ratio-invariant when cash flows scale linearly).
+    // NOTE: This is NOT an independent per-UC IRR calculation.
     if (tirGlobal != null) {
-      out[`tir${suffix}`] = String(tirGlobal);
+      setIfMissing(`tir${suffix}`, String(tirGlobal));
     }
   });
 
@@ -94,11 +133,6 @@ export function resolveMultiUC(
   out["num_ucs"] = String(ucs.length);
 
   return out;
-
-  // ── helpers ──
-  function setCur(key: string, val: number) {
-    out[key] = fmtCur(val);
-  }
 }
 
 /**
@@ -113,7 +147,6 @@ function computeWeights(ucs: AnyObj[]): number[] {
     return raw.map(v => v / total);
   }
 
-  // Equal distribution fallback
   const equalWeight = 1 / ucs.length;
   return ucs.map(() => equalWeight);
 }
