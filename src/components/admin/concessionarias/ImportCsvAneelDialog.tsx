@@ -158,7 +158,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       
       if (isXlsx) {
         const buffer = await f.arrayBuffer();
-        const result = parseXlsxFile(buffer);
+        const result = await parseXlsxFile(buffer);
         hdrs = result.headers;
         rows = result.rows;
       } else {
