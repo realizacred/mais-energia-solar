@@ -189,6 +189,8 @@ Deno.serve(async (req) => {
 
         if (!fbLeadId) {
           console.warn("[FB-WEBHOOK][WARN] Missing leadgen_id");
+          // Persist validation failure for audit
+          await persistValidationFailure(supabase, "missing_leadgen_id", { pageId, change: change.value });
           errorCount++;
           continue;
         }
@@ -196,6 +198,7 @@ Deno.serve(async (req) => {
         const tenantId = await resolveTenantFromPageId(supabase, pageId);
         if (!tenantId) {
           console.error(`[FB-WEBHOOK][ERROR] No tenant for page_id=${pageId}`);
+          await persistValidationFailure(supabase, "no_tenant_for_page", { pageId, fbLeadId });
           errorCount++;
           continue;
         }
