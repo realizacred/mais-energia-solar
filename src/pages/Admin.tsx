@@ -130,6 +130,7 @@ const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const SystemHealthPage = lazy(() => import("@/components/admin/SystemHealthPage"));
+const CronJobsPage = lazy(() => import("@/components/admin/CronJobsPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const PostSaleDashboardPage = lazy(() => import("@/components/admin/post-sale/PostSaleDashboard"));
 const PostSaleVisitsPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitsList"));
@@ -320,6 +321,7 @@ const TAB_TITLES: Record<string, string> = {
   "custom-fields": "Campos customizados",
   menus: "Personalizar menu",
   dev: "Ferramentas dev",
+  "cron-jobs": "Tarefas Agendadas",
   "dicionario-aneel": "Dicionário ANEEL",
   "tarifa-versoes": "Versões de tarifa",
   "saude-tarifaria": "Saúde tarifária",
@@ -653,6 +655,7 @@ export default function Admin() {
                 {/* migracao-sm removed — migration now integrated in SolarMarket page */}
                 <Route path="dev" element={<DevToolsPage />} />
                 <Route path="system-health" element={<SystemHealthPage />} />
+                <Route path="cron-jobs" element={<CronJobsPage />} />
                 <Route path="dev/seed" element={<DevToolsPage />} />
                 <Route path="dev/reset-seed" element={<DevToolsPage />} />
                 <Route path="dev/rls-test" element={<RlsTestPage />} />

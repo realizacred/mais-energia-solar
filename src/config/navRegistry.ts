@@ -186,6 +186,9 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "meta-config", label_default: "Configuração", group_default: "_hidden", order_default: 2, icon: "Settings", description: "Credenciais Meta", keywords: ["meta", "config"], criticality: "normal", permission: "admin_only" },
   { nav_key: "depositos", label_default: "Depósitos", group_default: "_hidden", order_default: 5, icon: "Warehouse", description: "Locais de armazenamento", keywords: ["depósito", "almoxarifado"], criticality: "normal", permission: "admin_only" },
   { nav_key: "categorias-estoque", label_default: "Categorias", group_default: "_hidden", order_default: 6, icon: "Tag", description: "Categorias de estoque", keywords: ["categoria", "subcategoria"], criticality: "normal", permission: "admin_only" },
+
+  // ── 15. Administração (cont.) ──
+  { nav_key: "cron-jobs", label_default: "Tarefas Agendadas", group_default: "Administração", order_default: 55, icon: "Timer", description: "Status das tarefas cron do sistema", keywords: ["cron", "agendamento", "tarefa", "job", "scheduler"], criticality: "normal", permission: "admin_only" },
 ];
 
 // ─── SECTION DEFAULTS ────────────────────────────────────────
