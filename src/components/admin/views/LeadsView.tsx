@@ -155,7 +155,7 @@ export function LeadsView() {
       />
 
       {/* Notification Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PendingDocumentationWidget onLeadClick={handleLeadFromWidget} onConvertClick={handleLeadFromWidget} refreshKey={widgetRefreshKey} />
         <FollowUpNotifications onLeadClick={handleLeadFromWidget} diasAlerta={3} refreshKey={widgetRefreshKey} />
       </div>
