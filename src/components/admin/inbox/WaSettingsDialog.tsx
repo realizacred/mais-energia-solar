@@ -1,7 +1,9 @@
-import { useState, useEffect, lazy, Suspense } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaInstances } from "@/hooks/useWaInstances";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
+import { useWaInstanceConsultores, useWaAutoReplyConfig, useWaAutomationConfig } from "@/hooks/useWaSettingsData";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
