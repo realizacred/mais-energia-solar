@@ -237,13 +237,14 @@ export function StepConsumptionIntelligence({
       meses = uc.consumo_meses || {};
       consumoMedio = uc.consumo_mensal || 0;
     }
-    // Se não há valores mensais preenchidos mas há consumo médio, pré-preencher uniformemente
+    // Se não há valores mensais preenchidos mas há consumo médio,
+    // distribuir proporcionalmente à irradiação solar (ou uniforme como fallback)
     const hasValues = Object.values(meses).some(v => v > 0);
     if (!hasValues && consumoMedio > 0) {
-      return Object.fromEntries(MESES.map(m => [m, consumoMedio]));
+      return distribuirConsumoPorIrradiacao(consumoMedio, ghiSeries);
     }
     return meses;
-  }, [ucs, mesAMes]);
+  }, [ucs, mesAMes, ghiSeries]);
 
   const handleMesAMesSave = (values: Record<string, number>) => {
     const uc = { ...ucs[mesAMes.ucIndex] };
