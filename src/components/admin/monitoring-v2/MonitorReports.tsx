@@ -150,7 +150,7 @@ export default function MonitorReports() {
     toast.success("Excel exportado com sucesso!");
   };
 
-  const isLoading = loadingPlants || loadingReadings;
+  const isLoading = dataLoading;
 
   if (isLoading) return <LoadingState message="Carregando relatórios..." />;
 
