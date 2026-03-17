@@ -612,6 +612,9 @@ Deno.serve(async (req) => {
     // ── 6. ENRICH ITEMS WITH CATALOG DATA ──────────────────
     const enrichedItens = await enrichItensWithCatalog(adminClient, tenantId, body.itens);
 
+    // ── 6b. FLATTEN ITEM FINANCIALS BY CATEGORY ─────────────
+    const flatItensFinanceiros = flattenItensFinanceirosPorCategoria(enrichedItens, venda.margem_percentual);
+
     // ── 7. SNAPSHOT IMUTÁVEL ────────────────────────────────
     const snapshot = {
       versao_schema: 3,
