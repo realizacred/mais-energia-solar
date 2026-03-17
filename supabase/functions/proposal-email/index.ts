@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withRetry, sanitizeError } from "../_shared/error-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,36 +94,112 @@ Deno.serve(async (req) => {
       publicUrl: public_url || "",
     });
 
-    // Send via SMTP using Deno's built-in fetch to a simple SMTP relay
-    // Since Deno Edge Functions don't have native SMTP, we use the SMTPClient approach
+    // Send via SMTP with retry (3 attempts, exponential backoff) and 30s connection timeout
     const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
 
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtp.host,
-        port: smtp.port,
-        tls: smtp.use_tls,
-        auth: {
-          username: smtp.username,
-          password: smtp.password_encrypted,
+    let smtpSent = false;
+    try {
+      await withRetry(
+        async () => {
+          const client = new SMTPClient({
+            connection: {
+              hostname: smtp.host,
+              port: smtp.port,
+              tls: smtp.use_tls,
+              auth: {
+                username: smtp.username,
+                password: smtp.password_encrypted,
+              },
+            },
+          });
+
+          // Wrap send in a timeout promise (30s)
+          const sendPromise = client.send({
+            from: smtp.from_name ? `${smtp.from_name} <${smtp.from_email}>` : smtp.from_email,
+            to: to_email,
+            subject,
+            content: "Veja sua proposta solar no link abaixo.",
+            html: htmlBody,
+          });
+
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("SMTP timeout: 30s excedido")), 30000)
+          );
+
+          await Promise.race([sendPromise, timeoutPromise]);
+          await client.close();
         },
-      },
-    });
+        {
+          maxRetries: 2, // 3 total attempts
+          baseDelayMs: 2000,
+          onRetry: (attempt, err) => {
+            console.warn(`[proposal-email] SMTP retry ${attempt}/2: ${sanitizeError(err)}`);
+          },
+        },
+      );
+      smtpSent = true;
+    } catch (smtpErr) {
+      console.error(`[proposal-email] SMTP failed after retries: ${sanitizeError(smtpErr)}`);
 
-    await client.send({
-      from: smtp.from_name ? `${smtp.from_name} <${smtp.from_email}>` : smtp.from_email,
-      to: to_email,
-      subject,
-      content: "Veja sua proposta solar no link abaixo.",
-      html: htmlBody,
-    });
+      // Fallback: enqueue WhatsApp notification via wa_outbox
+      // Only if we have enough context
+      console.log(`[proposal-email] Attempting wa_outbox fallback for ${to_email}`);
+      try {
+        // Look up a phone number for the lead/client connected to this proposal
+        const { data: propostaFull } = await adminClient
+          .from("propostas_nativas")
+          .select("lead_id")
+          .eq("id", proposta_id)
+          .eq("tenant_id", tenantId)
+          .single();
 
-    await client.close();
+        if (propostaFull?.lead_id) {
+          const { data: lead } = await adminClient
+            .from("leads")
+            .select("telefone")
+            .eq("id", propostaFull.lead_id)
+            .single();
+
+          if (lead?.telefone) {
+            const waText = `📄 Sua proposta "${proposta.titulo || proposta.codigo}" está pronta!${public_url ? `\n🔗 ${public_url}` : ""}\n\n(E-mail não entregue — enviando por WhatsApp)`;
+
+            // Find a connected instance for this tenant
+            const { data: instance } = await adminClient
+              .from("wa_instances")
+              .select("id")
+              .eq("tenant_id", tenantId)
+              .eq("status", "connected")
+              .limit(1)
+              .maybeSingle();
+
+            if (instance) {
+              const phone = lead.telefone.replace(/\D/g, "");
+              await adminClient.from("wa_outbox").insert({
+                tenant_id: tenantId,
+                instance_id: instance.id,
+                remote_jid: `${phone}@s.whatsapp.net`,
+                message_type: "text",
+                content: waText,
+                status: "pending",
+                scheduled_at: new Date().toISOString(),
+              });
+              console.log(`[proposal-email] Fallback: WhatsApp queued for ${phone}`);
+            }
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn(`[proposal-email] WhatsApp fallback also failed: ${sanitizeError(fallbackErr)}`);
+      }
+
+      if (!smtpSent) {
+        return jsonError(`Falha ao enviar email após 3 tentativas. ${sanitizeError(smtpErr)}`, 502);
+      }
+    }
 
     return jsonOk({ success: true, sent_to: to_email });
   } catch (err: any) {
     console.error("[proposal-email] Error:", err);
-    return jsonError(err.message ?? "Erro interno", 500);
+    return jsonError(sanitizeError(err), 500);
   }
 });
 

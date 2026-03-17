@@ -1,10 +1,7 @@
 /**
  * Edge Function: proposal-chart-render
- *
  * Renders chart configurations as PNG images using QuickChart.io API.
- * Accepts Chart.js-compatible config and returns base64 PNG.
- *
- * No native canvas dependency — uses external API for rendering.
+ * With timeout (10s) and retry (2 attempts).
  */
 
 const corsHeaders = {
@@ -14,6 +11,11 @@ const corsHeaders = {
 };
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withRetry, fetchWithTimeout, sanitizeError } from "../_shared/error-utils.ts";
+
+// 1x1 transparent PNG placeholder (base64)
+const PLACEHOLDER_PNG_B64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -131,7 +133,7 @@ Deno.serve(async (req) => {
       },
     };
 
-    // ── 4. CALL QUICKCHART ──────────────────────────────────
+    // ── 4. CALL QUICKCHART with timeout + retry ─────────────
     const width = chart_config.width ?? 1600;
     const height = chart_config.height ?? 900;
 
@@ -147,23 +149,51 @@ Deno.serve(async (req) => {
 
     console.log(`[proposal-chart-render] Rendering ${chart_config.chart_type} chart (${width}x${height})`);
 
-    const chartResponse = await fetch(quickChartUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(quickChartPayload),
-    });
-
-    if (!chartResponse.ok) {
-      const errText = await chartResponse.text();
-      console.error("[proposal-chart-render] QuickChart error:", errText);
-      return jsonResponse({ success: false, error: `Erro ao gerar gráfico: ${chartResponse.status}` }, 502);
+    let chartResponse: Response;
+    try {
+      chartResponse = await withRetry(
+        async () => {
+          const res = await fetchWithTimeout(
+            quickChartUrl,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(quickChartPayload),
+            },
+            10000, // 10s timeout
+          );
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`QuickChart ${res.status}: ${errText}`);
+          }
+          return res;
+        },
+        {
+          maxRetries: 1, // 2 total attempts
+          baseDelayMs: 1000,
+          onRetry: (attempt, err) => {
+            console.warn(`[proposal-chart-render] Retry ${attempt}: ${sanitizeError(err)}`);
+          },
+        },
+      );
+    } catch (chartErr) {
+      console.error(`[proposal-chart-render] QuickChart failed after retries: ${sanitizeError(chartErr)}`);
+      // Fallback: return placeholder image
+      console.log("[proposal-chart-render] Returning placeholder image");
+      return jsonResponse({
+        success: true,
+        image_base64: PLACEHOLDER_PNG_B64,
+        content_type: "image/png",
+        size_bytes: 68,
+        fallback: true,
+        fallback_reason: sanitizeError(chartErr),
+      });
     }
 
     // ── 5. RETURN BASE64 PNG ────────────────────────────────
     const arrayBuffer = await chartResponse.arrayBuffer();
     const uint8 = new Uint8Array(arrayBuffer);
 
-    // Convert to base64
     let binary = "";
     for (let i = 0; i < uint8.length; i++) {
       binary += String.fromCharCode(uint8[i]);
@@ -180,14 +210,14 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     console.error("[proposal-chart-render] Error:", err);
-    return jsonResponse({ success: false, error: err.message ?? "Erro interno" }, 500);
+    return jsonResponse({ success: false, error: sanitizeError(err) }, 500);
   }
 });
 
 function mapChartType(type: string): string {
   switch (type) {
     case "area":
-      return "line"; // area is line with fill
+      return "line";
     case "stacked_bar":
       return "bar";
     default:

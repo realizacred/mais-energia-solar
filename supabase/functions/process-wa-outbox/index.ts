@@ -109,8 +109,12 @@ Deno.serve(async (req) => {
             ? item.remote_jid
             : (item.remote_jid_canonical || item.remote_jid);
 
-          if (!inst.api_key) {
-            const errMsg = `Instance ${inst.id} has no api_key configured — skipping to prevent cross-tenant credential leak`;
+          // Per-instance api_key takes priority; fallback to global EVOLUTION_API_KEY
+          const effectiveApiKey = inst.api_key || EVOLUTION_API_KEY;
+          const keySource = inst.api_key ? "instance" : "global";
+
+          if (!effectiveApiKey) {
+            const errMsg = `Instance ${inst.id} has no api_key and no global EVOLUTION_API_KEY — skipping`;
             console.error(`[process-wa-outbox] ${errMsg}`);
             logOps(inst.tenant_id, inst.id, "outbox_missing_api_key", { outbox_id: item.id, error: errMsg });
 
@@ -130,7 +134,8 @@ Deno.serve(async (req) => {
             totalFailed++;
             continue;
           }
-          const effectiveApiKey = inst.api_key;
+
+          console.log(`[process-wa-outbox] Using ${keySource} api_key for instance ${inst.evolution_instance_key}`);
           const sendResult = await sendEvolutionMessage(
             inst.evolution_api_url,
             inst.evolution_instance_key,
