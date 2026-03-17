@@ -212,7 +212,7 @@ export function ResumoGrupoB({
           {/* Cálculo passo a passo */}
           <div>
             <CalcRow
-              label="Consumo mensal"
+              label="Consumo médio mensal"
               value={fmtKwh(result.consumo_kwh)}
             />
             <CalcRow
