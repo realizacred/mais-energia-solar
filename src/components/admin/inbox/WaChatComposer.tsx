@@ -46,17 +46,7 @@ const EMOJI_CATEGORIES: Record<string, string[]> = {
   "📦 Objetos": ["📱","💻","📧","📞","📊","📈","💰","💵","🏠","🔧","⚡","🔋","☎️","📋","📎","🗂️","📅","🕐","⏰","🚀"],
 };
 
-interface QuickReplyDb {
-  id: string;
-  titulo: string;
-  conteudo: string;
-  emoji: string | null;
-  categoria: string | null;
-  media_url: string | null;
-  media_type: string | null;
-  media_filename: string | null;
-  ativo: boolean;
-}
+// QuickReplyDb type imported from hook
 
 const MEDIA_ICONS: Record<string, typeof ImageIcon> = {
   image: ImageIcon,

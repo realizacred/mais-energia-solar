@@ -2,8 +2,8 @@
  * MetersListPage — Main list page for Medidores.
  */
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { meterService, type MeterDevice } from "@/services/meterService";
+import { type MeterDevice } from "@/services/meterService";
+import { useMetersListData } from "@/hooks/useMetersListData";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
