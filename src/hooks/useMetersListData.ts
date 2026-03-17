@@ -7,6 +7,12 @@ interface MeterListFilters {
   search?: string;
 }
 
+interface UCBasic {
+  id: string;
+  nome: string;
+  codigo_uc: string | null;
+}
+
 export function useMetersListData(filters: MeterListFilters) {
   const { data: meters = [], isLoading, error } = useQuery({
     queryKey: ["meter_devices", filters.online_status, filters.search],
