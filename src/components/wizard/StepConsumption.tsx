@@ -87,7 +87,7 @@ export function StepConsumption({
         <FloatingSelect
           label="Rede de Atendimento *"
           icon={<Zap className="w-4 h-4" />}
-          value={values.rede_atendimento}
+          value={rede_atendimento}
           onValueChange={(value) => {
             setValue("rede_atendimento", value);
           }}
