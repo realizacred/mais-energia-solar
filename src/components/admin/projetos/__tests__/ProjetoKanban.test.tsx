@@ -7,8 +7,8 @@ import { ProjetoKanban } from "@/components/admin/projetos/ProjetoKanban";
 import type { ProjetoEtapa, ProjetoItem } from "@/hooks/useProjetoPipeline";
 
 const mockEtapas: ProjetoEtapa[] = [
-  { id: "etapa-1", nome: "Proposta", ordem: 1, cor: "#3b82f6", funil_id: "f1" },
-  { id: "etapa-2", nome: "Instalação", ordem: 2, cor: "#22c55e", funil_id: "f1" },
+  { id: "etapa-1", nome: "Proposta", ordem: 1, cor: "#3b82f6", funil_id: "f1", categoria: "aberto", tenant_id: "t1" },
+  { id: "etapa-2", nome: "Instalação", ordem: 2, cor: "#22c55e", funil_id: "f1", categoria: "aberto", tenant_id: "t1" },
 ];
 
 const mockProjeto: ProjetoItem = {
