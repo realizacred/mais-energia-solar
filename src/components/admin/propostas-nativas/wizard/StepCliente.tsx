@@ -300,7 +300,7 @@ function StepClienteForm({
     try {
       let query = supabase
         .from("leads")
-        .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, rede_atendimento")
+        .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, valor_estimado")
         .order("created_at", { ascending: false })
         .limit(20);
       if (q.length >= 2) {
@@ -388,9 +388,12 @@ function StepClienteForm({
       ...cliente,
       nome: lead.nome || cliente.nome,
       celular: lead.telefone || cliente.celular,
-      email: cliente.email,
+      email: lead.email || cliente.email,
       estado: lead.estado || cliente.estado,
       cidade: lead.cidade || cliente.cidade,
+      bairro: lead.bairro || cliente.bairro,
+      cep: lead.cep || cliente.cep,
+      endereco: lead.endereco || cliente.endereco,
     });
     setSearch("");
   };
