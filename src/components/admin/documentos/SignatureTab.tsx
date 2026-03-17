@@ -62,14 +62,7 @@ function SignatureConfig() {
   const [hasExistingToken, setHasExistingToken] = useState(false);
   const [hasExistingWebhook, setHasExistingWebhook] = useState(false);
 
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["signature_settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("signature_settings").select("tenant_id, enabled, provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted, updated_by").maybeSingle();
-      if (error) throw error;
-      return data as unknown as SignatureSettings | null;
-    },
-  });
+  const { data: settings, isLoading } = useSignatureSettings();
 
   useEffect(() => {
     if (settings) {
