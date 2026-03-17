@@ -1045,7 +1045,7 @@ export function ProposalWizard() {
       try {
         const { data: lead } = await supabase
           .from("leads")
-          .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento")
+          .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, numero, complemento, valor_estimado, observacoes, area")
           .eq("id", leadIdFromUrl)
           .single();
         if (cancelled || !lead) return;
@@ -1054,7 +1054,12 @@ export function ProposalWizard() {
           id: lead.id, nome: lead.nome, telefone: lead.telefone,
           lead_code: lead.lead_code || "", estado: lead.estado,
           cidade: lead.cidade, media_consumo: lead.media_consumo,
+          consumo_kwh: lead.consumo_previsto || lead.media_consumo || undefined,
           tipo_telhado: lead.tipo_telhado,
+          rede_atendimento: lead.rede_atendimento,
+          bairro: lead.bairro || undefined,
+          cep: lead.cep || undefined,
+          endereco: lead.rua || undefined,
         });
 
         // When ORC is present, skip location pre-fill — ORC data has priority
