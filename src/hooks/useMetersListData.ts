@@ -43,7 +43,7 @@ export function useMetersListData(filters: MeterListFilters) {
         .from("units_consumidoras")
         .select("id, nome, codigo_uc")
         .eq("is_archived", false);
-      return data || [];
+      return (data || []) as UCBasic[];
     },
     staleTime: 5 * 60 * 1000,
   });
