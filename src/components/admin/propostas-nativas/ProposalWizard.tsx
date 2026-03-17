@@ -1575,7 +1575,11 @@ export function ProposalWizard() {
           title={stepMeta.title}
           description={stepMeta.description}
           icon={currentStepDef?.icon}
-          headerRight={headerRight}
+          headerRight={headerRight ?? (
+            <span className="text-xs font-mono text-primary font-bold">
+              Etapa {step + 1}/{activeSteps.length}
+            </span>
+          )}
         >
           {children}
         </WizardStepCard>
