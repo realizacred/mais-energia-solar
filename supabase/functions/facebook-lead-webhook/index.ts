@@ -221,6 +221,9 @@ Deno.serve(async (req) => {
 
         if (insertError) {
           console.error(`[FB-WEBHOOK][ERROR] Insert failed: ${insertError.message}`);
+          await persistValidationFailure(supabase, "insert_failed", {
+            fbLeadId, tenantId, error: insertError.message,
+          });
           errorCount++;
         } else {
           processedCount++;

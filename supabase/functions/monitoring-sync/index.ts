@@ -27,8 +27,11 @@ const SYNC_IMPLEMENTED = new Set([
 // ═══════════════════════════════════════════════════════════
 // Shared types & crypto
 // ═══════════════════════════════════════════════════════════
+// NOTE: NormalizedPlant and DailyMetrics are already defined in _shared/provider-core/index.ts
+// but we keep local copies here for backward compat with legacy providers that don't use the adapter framework.
+// TODO: Migrate all legacy providers to use canonical types from _shared/provider-core.
 
-interface NormalizedPlant {
+interface LocalNormalizedPlant {
   external_id: string; name: string; capacity_kw: number | null;
   address: string | null; latitude: number | null; longitude: number | null;
   status: string; metadata: Record<string, unknown>;
