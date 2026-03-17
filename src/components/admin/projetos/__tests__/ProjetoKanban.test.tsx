@@ -100,14 +100,28 @@ describe("ProjetoKanban", () => {
         onMoveProjeto={onMove}
       />
     );
-    // Find the card and second column
     const card = screen.getByText("Maria Oliveira").closest("[draggable]");
     const columns = container.querySelectorAll(".rounded-xl");
     
     if (card && columns[1]) {
-      fireEvent.dragStart(card);
-      fireEvent.dragOver(columns[1]);
-      fireEvent.drop(columns[1]);
+      // jsdom doesn't support dataTransfer — use createEvent with mock
+      const dragStartEvent = new Event("dragstart", { bubbles: true });
+      Object.defineProperty(dragStartEvent, "dataTransfer", {
+        value: { effectAllowed: "move" },
+      });
+      card.dispatchEvent(dragStartEvent);
+
+      const dragOverEvent = new Event("dragover", { bubbles: true });
+      Object.defineProperty(dragOverEvent, "dataTransfer", {
+        value: { dropEffect: "move" },
+      });
+      dragOverEvent.preventDefault = vi.fn();
+      columns[1].dispatchEvent(dragOverEvent);
+
+      const dropEvent = new Event("drop", { bubbles: true });
+      dropEvent.preventDefault = vi.fn();
+      columns[1].dispatchEvent(dropEvent);
+      
       expect(onMove).toHaveBeenCalledWith("proj-1", "etapa-2");
     }
   });
