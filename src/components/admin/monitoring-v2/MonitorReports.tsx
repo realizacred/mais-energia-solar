@@ -15,9 +15,7 @@ import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorPRChart } from "./charts/MonitorPRChart";
 import { formatBRL, formatEnergyAutoScale, formatCO2, formatDate } from "@/lib/formatters/index";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+// jsPDF, autoTable and XLSX loaded via dynamic import to reduce initial bundle (~600KB)
 
 type PeriodType = "current_month" | "last_month" | "last_3_months" | "last_year";
 
