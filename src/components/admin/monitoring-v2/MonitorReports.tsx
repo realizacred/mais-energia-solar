@@ -61,11 +61,13 @@ export default function MonitorReports() {
   const { data: plants = [], isLoading: loadingPlants } = useQuery({
     queryKey: ["monitor-plants-health"],
     queryFn: listPlantsWithHealth,
+    staleTime: 2 * 60 * 1000,
   });
 
   const { data: readings = [], isLoading: loadingReadings } = useQuery({
     queryKey: ["monitor-readings-report", range.start, range.end],
     queryFn: () => listAllReadings(range.start, range.end),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: financials } = useQuery({
@@ -75,6 +77,7 @@ export default function MonitorReports() {
       return getFinancials(0, totalKwh);
     },
     enabled: readings.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: prData = [] } = useQuery({
@@ -84,6 +87,7 @@ export default function MonitorReports() {
       readings
     ),
     enabled: plants.length > 0 && readings.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Aggregate per-plant data
