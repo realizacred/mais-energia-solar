@@ -638,7 +638,7 @@ export function ComissoesManager() {
                             <TableCell className="font-medium">{comissao.consultores?.nome}</TableCell>
                             <TableCell>
                               <div>
-                                <p className="truncate max-w-48">{comissao.descricao}</p>
+                                <p className="truncate max-w-48" title={comissao.descricao}>{comissao.descricao}</p>
                                 {comissao.projetos?.codigo && (
                                   <p className="text-xs text-muted-foreground">{comissao.projetos.codigo}</p>
                                 )}
