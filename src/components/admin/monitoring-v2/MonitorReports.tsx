@@ -15,9 +15,7 @@ import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorPRChart } from "./charts/MonitorPRChart";
 import { formatBRL, formatEnergyAutoScale, formatCO2, formatDate } from "@/lib/formatters/index";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+// jsPDF, autoTable and XLSX loaded via dynamic import to reduce initial bundle (~600KB)
 
 type PeriodType = "current_month" | "last_month" | "last_3_months" | "last_year";
 
@@ -63,11 +61,13 @@ export default function MonitorReports() {
   const { data: plants = [], isLoading: loadingPlants } = useQuery({
     queryKey: ["monitor-plants-health"],
     queryFn: listPlantsWithHealth,
+    staleTime: 2 * 60 * 1000,
   });
 
   const { data: readings = [], isLoading: loadingReadings } = useQuery({
     queryKey: ["monitor-readings-report", range.start, range.end],
     queryFn: () => listAllReadings(range.start, range.end),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: financials } = useQuery({
@@ -77,6 +77,7 @@ export default function MonitorReports() {
       return getFinancials(0, totalKwh);
     },
     enabled: readings.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: prData = [] } = useQuery({
@@ -86,6 +87,7 @@ export default function MonitorReports() {
       readings
     ),
     enabled: plants.length > 0 && readings.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Aggregate per-plant data
@@ -107,7 +109,9 @@ export default function MonitorReports() {
 
   const totalKwh = readings.reduce((s, r) => s + r.energy_kwh, 0);
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    const { default: jsPDF } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf");
+    const { default: autoTable } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf-autotable");
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text("Relatório de Monitoramento Solar", 14, 20);
@@ -153,7 +157,8 @@ export default function MonitorReports() {
     toast.success("PDF exportado com sucesso!");
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const XLSX = await import(/* webpackChunkName: "xlsx-lib" */ "xlsx");
     const wsData = [
       ["Relatório de Monitoramento Solar"],
       [`Período: ${range.label}`],

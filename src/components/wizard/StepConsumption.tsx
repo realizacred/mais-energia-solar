@@ -37,7 +37,12 @@ export function StepConsumption({
   consultorCode,
 }: StepConsumptionProps) {
   const { watch, setValue, trigger, formState: { errors } } = form;
-  const values = watch();
+  const area = watch("area");
+  const tipo_telhado = watch("tipo_telhado");
+  const rede_atendimento = watch("rede_atendimento");
+  const media_consumo = watch("media_consumo");
+  const consumo_previsto = watch("consumo_previsto");
+  const observacoes = watch("observacoes");
   const { tiposTelhado: TIPOS_TELHADO } = useTiposTelhado(consultorCode);
 
   return (
@@ -47,7 +52,7 @@ export function StepConsumption({
         <FloatingSelect
           label="Área *"
           icon={<Home className="w-4 h-4" />}
-          value={values.area}
+          value={area}
           onValueChange={(value) => {
             setValue("area", value as "Urbana" | "Rural");
           }}
@@ -66,7 +71,7 @@ export function StepConsumption({
         <FloatingSelect
           label="Tipo de Telhado *"
           icon={<Home className="w-4 h-4" />}
-          value={values.tipo_telhado}
+          value={tipo_telhado}
           onValueChange={(value) => {
             setValue("tipo_telhado", value);
           }}
@@ -82,7 +87,7 @@ export function StepConsumption({
         <FloatingSelect
           label="Rede de Atendimento *"
           icon={<Zap className="w-4 h-4" />}
-          value={values.rede_atendimento}
+          value={rede_atendimento}
           onValueChange={(value) => {
             setValue("rede_atendimento", value);
           }}
@@ -100,7 +105,7 @@ export function StepConsumption({
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
           autoComplete="off"
-          value={values.media_consumo || ""}
+          value={media_consumo || ""}
           onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined)}
           error={touchedFields.has("media_consumo") ? errors.media_consumo?.message : undefined}
           success={isFieldValid("media_consumo")}
@@ -112,7 +117,7 @@ export function StepConsumption({
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
           autoComplete="off"
-          value={values.consumo_previsto || ""}
+          value={consumo_previsto || ""}
           onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined)}
           error={touchedFields.has("consumo_previsto") ? errors.consumo_previsto?.message : undefined}
           success={isFieldValid("consumo_previsto")}
@@ -120,15 +125,15 @@ export function StepConsumption({
         </div>
       </motion.div>
 
-      {values.media_consumo && values.consumo_previsto && (
+      {media_consumo && consumo_previsto && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
         >
           <ConsumptionChart
-            mediaConsumo={values.media_consumo}
-            consumoPrevisto={values.consumo_previsto}
+            mediaConsumo={media_consumo}
+            consumoPrevisto={consumo_previsto}
           />
         </motion.div>
       )}
@@ -154,7 +159,7 @@ export function StepConsumption({
           placeholder="Informações adicionais..."
           autoComplete="off"
           className="min-h-[80px] rounded-xl border-2 border-muted-foreground/25 focus:border-primary transition-colors"
-          value={values.observacoes}
+          value={observacoes}
           onChange={(e) => setValue("observacoes", e.target.value)}
         />
       </motion.div>

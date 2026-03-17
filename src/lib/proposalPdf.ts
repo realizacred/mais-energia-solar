@@ -1,5 +1,4 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+// jsPDF + autoTable loaded via dynamic import to reduce initial bundle
 
 interface ProposalData {
   // Cliente
@@ -93,6 +92,8 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
 }
 
 export async function generateProposalPdf(data: ProposalData): Promise<Blob> {
+  const { jsPDF } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf");
+  const { default: autoTable } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf-autotable");
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",

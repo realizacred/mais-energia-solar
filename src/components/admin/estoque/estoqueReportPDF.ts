@@ -1,5 +1,4 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// jsPDF + autoTable loaded via dynamic import to reduce initial bundle
 import type { EstoqueSaldo, EstoqueMovimento } from "@/hooks/useEstoque";
 
 function formatCurrency(value: number) {
@@ -10,7 +9,9 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-export function generateEstoqueItemsPDF(saldos: EstoqueSaldo[], title = "Relatório de Estoque — Itens") {
+export async function generateEstoqueItemsPDF(saldos: EstoqueSaldo[], title = "Relatório de Estoque — Itens") {
+  const { default: jsPDF } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf");
+  const { default: autoTable } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf-autotable");
   const doc = new jsPDF({ orientation: "landscape" });
   doc.setFontSize(16);
   doc.text(title, 14, 16);
@@ -47,7 +48,9 @@ export function generateEstoqueItemsPDF(saldos: EstoqueSaldo[], title = "Relató
   doc.save(`estoque_itens_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-export function generateEstoqueMovimentosPDF(movimentos: EstoqueMovimento[], title = "Relatório de Movimentações") {
+export async function generateEstoqueMovimentosPDF(movimentos: EstoqueMovimento[], title = "Relatório de Movimentações") {
+  const { default: jsPDF } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf");
+  const { default: autoTable } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf-autotable");
   const doc = new jsPDF({ orientation: "landscape" });
   doc.setFontSize(16);
   doc.text(title, 14, 16);
@@ -76,7 +79,7 @@ export function generateEstoqueMovimentosPDF(movimentos: EstoqueMovimento[], tit
   doc.save(`estoque_movimentos_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-export function generateEstoqueBaixoPDF(saldos: EstoqueSaldo[]) {
+export async function generateEstoqueBaixoPDF(saldos: EstoqueSaldo[]) {
   const lowStock = saldos.filter((s) => s.estoque_atual <= s.estoque_minimo && s.estoque_minimo > 0);
-  generateEstoqueItemsPDF(lowStock, "Relatório de Itens com Estoque Baixo");
+  await generateEstoqueItemsPDF(lowStock, "Relatório de Itens com Estoque Baixo");
 }

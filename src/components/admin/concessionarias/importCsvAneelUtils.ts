@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+// XLSX loaded via dynamic import to reduce initial bundle
 
 export interface ParsedTarifa {
   sigAgente: string;
@@ -601,7 +601,8 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
  * Parse an XLSX file (ArrayBuffer) and return headers + pre-parsed rows.
  * Uses sheet_to_json to avoid CSV intermediary issues (commas in values).
  */
-export function parseXlsxFile(buffer: ArrayBuffer): { headers: string[]; rows: string[][] } {
+export async function parseXlsxFile(buffer: ArrayBuffer): Promise<{ headers: string[]; rows: string[][] }> {
+  const XLSX = await import(/* webpackChunkName: "xlsx-lib" */ "xlsx");
   const workbook = XLSX.read(buffer, { type: "array" });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
