@@ -105,7 +105,7 @@ export function StepConsumption({
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
           autoComplete="off"
-          value={values.media_consumo || ""}
+          value={media_consumo || ""}
           onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined)}
           error={touchedFields.has("media_consumo") ? errors.media_consumo?.message : undefined}
           success={isFieldValid("media_consumo")}
