@@ -11,17 +11,16 @@ const mockEtapas: ProjetoEtapa[] = [
   { id: "etapa-2", nome: "Instalação", ordem: 2, cor: "#22c55e", funil_id: "f1", categoria: "aberto", tenant_id: "t1" },
 ];
 
-const mockProjeto: ProjetoItem = {
+const mockProjeto = {
   id: "proj-1",
   codigo: "PJ-001",
   etapa_id: "etapa-1",
-  categoria: "aberto",
   valor_total: 25000,
   potencia_kwp: 5.0,
   consultor: { nome: "Carlos" },
   cliente: { nome: "Maria Oliveira", telefone: "(11) 99999-0000" },
   created_at: new Date().toISOString(),
-};
+} as ProjetoItem;
 
 function buildMap(projetos: ProjetoItem[]): Map<string | null, ProjetoItem[]> {
   const map = new Map<string | null, ProjetoItem[]>();
