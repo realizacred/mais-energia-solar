@@ -273,10 +273,9 @@ function flattenItensFinanceirosPorCategoria(
   const out: Record<string, number | string> = {};
   const margemFator = 1 + (margemPercentual / 100);
 
-  // Category matchers
+  // Category matchers — only real item categories emitted by frontend
   const isBateria = (cat: string) => cat.includes("bateria") || cat === "battery";
   const isTransformador = (cat: string) => cat.includes("transformador") || cat.includes("transformer");
-  const isKitFechado = (cat: string) => cat === "kit_fechado" || cat === "kit fechado";
 
   // ── Helper: process a category ──
   function processCategory(
@@ -343,19 +342,10 @@ function flattenItensFinanceirosPorCategoria(
     indexed: true, concatenated: false, totals: true,
   });
 
-  // ── Kit Fechado: only totals ──
-  const kitFechadoItems = itens.filter(it => isKitFechado((it.categoria ?? "").toLowerCase()));
-  if (kitFechadoItems.length > 0) {
-    let custoSum = 0;
-    let precoSum = 0;
-    for (const item of kitFechadoItems) {
-      custoSum += item.quantidade * item.preco_unitario;
-      precoSum += item.quantidade * item.preco_unitario * margemFator;
-    }
-    out["kit_fechado_custo_total"] = round2(custoSum);
-    // kit_fechado_preco_total may already be set by other logic; still safe to set here
-    out["kit_fechado_preco_total"] = round2(precoSum);
-  }
+  // NOTE: kit_fechado is NOT an item category — it's a commercial mode.
+  // kit_fechado_custo_total and kit_fechado_preco_total are derived from
+  // financeiro.custo_kit and financeiro.valor_total respectively,
+  // handled by resolveFinanceiro. No item-category flatten needed here.
 
   return out;
 }
