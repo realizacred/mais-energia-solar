@@ -892,7 +892,6 @@ export function StepDocumento({
 
   return (
     <div className="space-y-0">
-      <MetricsHeader />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-transparent border-b border-border/40 rounded-none h-auto p-0 gap-4 w-full justify-start">
