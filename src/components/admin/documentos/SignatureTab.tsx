@@ -187,14 +187,7 @@ function SignersList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Signer | null>(null);
 
-  const { data: signers, isLoading } = useQuery({
-    queryKey: ["signers"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("signers").select("id, tenant_id, full_name, email, auth_method, cpf, birth_date, phone, options").order("full_name");
-      if (error) throw error;
-      return (data ?? []) as unknown as Signer[];
-    },
-  });
+  const { data: signers, isLoading } = useSigners();
 
   const deleteSigner = useMutation({
     mutationFn: async (id: string) => {
