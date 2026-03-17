@@ -122,7 +122,7 @@ export function resolveAllVariables(
   const multiUC = resolveMultiUC(snapshot, ext);
 
   // Merge with setIfMissing semantics
-  for (const resolverOut of [entrada, financeiro, sistema, pagamento, clienteComercial]) {
+  for (const resolverOut of [entrada, financeiro, sistema, pagamento, clienteComercial, multiUC]) {
     for (const [k, v] of Object.entries(resolverOut)) {
       if (!vars[k]) vars[k] = v;
     }
