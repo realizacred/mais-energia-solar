@@ -3,3 +3,8 @@ export { RevenueForecast } from "./RevenueForecast";
 export { ScoringConfigPanel } from "./ScoringConfigPanel";
 export { ScoreDistributionChart } from "./ScoreDistributionChart";
 export { IntelligenceDashboard } from "./IntelligenceDashboard";
+export { IntelligenceConfigPage } from "./IntelligenceConfigPage";
+export { IntelligenceMetricsPage } from "./IntelligenceMetricsPage";
+export { IntelligenceAlertsPage } from "./IntelligenceAlertsPage";
+export { IntelligenceAlertCard } from "./IntelligenceAlertCard";
+export { LeadIntelligenceBadge } from "./LeadIntelligenceBadge";

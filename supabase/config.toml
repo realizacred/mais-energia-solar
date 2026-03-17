@@ -290,3 +290,6 @@ wall_clock_limit = 300
 
 [functions.ai-generate]
 verify_jwt = false
+
+[functions.analyze-lead-intelligence]
+verify_jwt = false

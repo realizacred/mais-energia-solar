@@ -74,6 +74,9 @@ const SiteSettingsUnified = lazy(() => import("@/components/admin/SiteSettingsUn
 const SiteServicosManager = lazy(() => import("@/components/admin/SiteServicosManager").then(m => ({ default: m.SiteServicosManager })));
 const LeadStatusManager = lazy(() => import("@/components/admin/LeadStatusManager").then(m => ({ default: m.LeadStatusManager })));
 const IntelligenceDashboard = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceDashboard })));
+const IntelligenceConfigPage = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceConfigPage })));
+const IntelligenceMetricsPage = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceMetricsPage })));
+const IntelligenceAlertsPage = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceAlertsPage })));
 const EngenhariaFinanceiraConfig = lazy(() => import("@/components/admin/EngenhariaFinanceiraConfig").then(m => ({ default: m.EngenhariaFinanceiraConfig })));
 const CommercialDirectorDashboard = lazy(() => import("@/components/admin/director").then(m => ({ default: m.CommercialDirectorDashboard })));
 
@@ -517,6 +520,9 @@ export default function Admin() {
                 <Route path="aprovacao" element={<AprovacaoUsuarios />} />
                 <Route path="lead-status" element={<LeadStatusManager />} />
                 <Route path="inteligencia" element={<IntelligenceDashboard />} />
+                <Route path="inteligencia-config" element={<IntelligenceConfigPage />} />
+                <Route path="inteligencia-metricas" element={<IntelligenceMetricsPage />} />
+                <Route path="inteligencia-alertas" element={<IntelligenceAlertsPage />} />
                 <Route path="distribuicao" element={<DistributionConfig />} />
                 <Route path="sla-breaches" element={<SlaBreachDashboard />} />
                 <Route path="motivos-perda" element={<MotivoPerdaManager />} />

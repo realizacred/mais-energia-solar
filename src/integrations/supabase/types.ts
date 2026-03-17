@@ -5822,6 +5822,174 @@ export type Database = {
           },
         ]
       }
+      intelligence_alerts: {
+        Row: {
+          acao_tomada: string | null
+          consultor_id: string | null
+          contexto_json: Json | null
+          created_at: string
+          desconto_autorizado: number | null
+          direcionado_para: string | null
+          gerente_id: string | null
+          id: string
+          lead_id: string | null
+          lead_intelligence_id: string | null
+          margem_disponivel: number | null
+          resolvido_at: string | null
+          resultado: string | null
+          severidade: string
+          tenant_id: string
+          tipo_alerta: string
+        }
+        Insert: {
+          acao_tomada?: string | null
+          consultor_id?: string | null
+          contexto_json?: Json | null
+          created_at?: string
+          desconto_autorizado?: number | null
+          direcionado_para?: string | null
+          gerente_id?: string | null
+          id?: string
+          lead_id?: string | null
+          lead_intelligence_id?: string | null
+          margem_disponivel?: number | null
+          resolvido_at?: string | null
+          resultado?: string | null
+          severidade: string
+          tenant_id: string
+          tipo_alerta: string
+        }
+        Update: {
+          acao_tomada?: string | null
+          consultor_id?: string | null
+          contexto_json?: Json | null
+          created_at?: string
+          desconto_autorizado?: number | null
+          direcionado_para?: string | null
+          gerente_id?: string | null
+          id?: string
+          lead_id?: string | null
+          lead_intelligence_id?: string | null
+          margem_disponivel?: number | null
+          resolvido_at?: string | null
+          resultado?: string | null
+          severidade?: string
+          tenant_id?: string
+          tipo_alerta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_alerts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_alerts_lead_intelligence_id_fkey"
+            columns: ["lead_intelligence_id"]
+            isOneToOne: false
+            referencedRelation: "lead_intelligence_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_config: {
+        Row: {
+          alerta_concorrencia_habilitado: boolean | null
+          alerta_concorrencia_palavras: string[] | null
+          alerta_preco_habilitado: boolean | null
+          alerta_preco_min_confidence: number | null
+          alerta_preco_palavras: string[] | null
+          alerta_tempo_habilitado: boolean | null
+          alerta_tempo_palavras: string[] | null
+          alertas_habilitados: boolean | null
+          consultor_autoriza_ate: number | null
+          gerente_autoriza_ate: number | null
+          ia_analise_habilitada: boolean | null
+          ia_modelo: string | null
+          ia_temperatura: number | null
+          reaquecimento_automatico: boolean | null
+          reaquecimento_canais: string[] | null
+          reaquecimento_dias_inativo: number | null
+          reaquecimento_max_mensagens: number | null
+          sempre_alertar_gerente_se_valor_acima: number | null
+          tenant_id: string
+          threshold_frio: number | null
+          threshold_morno: number | null
+          threshold_quente: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          alerta_concorrencia_habilitado?: boolean | null
+          alerta_concorrencia_palavras?: string[] | null
+          alerta_preco_habilitado?: boolean | null
+          alerta_preco_min_confidence?: number | null
+          alerta_preco_palavras?: string[] | null
+          alerta_tempo_habilitado?: boolean | null
+          alerta_tempo_palavras?: string[] | null
+          alertas_habilitados?: boolean | null
+          consultor_autoriza_ate?: number | null
+          gerente_autoriza_ate?: number | null
+          ia_analise_habilitada?: boolean | null
+          ia_modelo?: string | null
+          ia_temperatura?: number | null
+          reaquecimento_automatico?: boolean | null
+          reaquecimento_canais?: string[] | null
+          reaquecimento_dias_inativo?: number | null
+          reaquecimento_max_mensagens?: number | null
+          sempre_alertar_gerente_se_valor_acima?: number | null
+          tenant_id: string
+          threshold_frio?: number | null
+          threshold_morno?: number | null
+          threshold_quente?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          alerta_concorrencia_habilitado?: boolean | null
+          alerta_concorrencia_palavras?: string[] | null
+          alerta_preco_habilitado?: boolean | null
+          alerta_preco_min_confidence?: number | null
+          alerta_preco_palavras?: string[] | null
+          alerta_tempo_habilitado?: boolean | null
+          alerta_tempo_palavras?: string[] | null
+          alertas_habilitados?: boolean | null
+          consultor_autoriza_ate?: number | null
+          gerente_autoriza_ate?: number | null
+          ia_analise_habilitada?: boolean | null
+          ia_modelo?: string | null
+          ia_temperatura?: number | null
+          reaquecimento_automatico?: boolean | null
+          reaquecimento_canais?: string[] | null
+          reaquecimento_dias_inativo?: number | null
+          reaquecimento_max_mensagens?: number | null
+          sempre_alertar_gerente_se_valor_acima?: number | null
+          tenant_id?: string
+          threshold_frio?: number | null
+          threshold_morno?: number | null
+          threshold_quente?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_chat_members: {
         Row: {
           chat_id: string
@@ -6819,6 +6987,84 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "lead_distribution_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_intelligence_profiles: {
+        Row: {
+          analisado_por: string | null
+          cliques_proposta: number | null
+          created_at: string
+          dias_inativo: number | null
+          dor_principal: string | null
+          id: string
+          lead_id: string
+          mensagens_troca: number | null
+          objecao_detectada: string | null
+          primeiro_contato: string | null
+          status_acao: string | null
+          tarifa_atual_vs_historico: number | null
+          temperamento: string | null
+          tenant_id: string
+          ultimo_contato: string | null
+          updated_at: string
+          urgencia_score: number | null
+          valor_perdido_acumulado: number | null
+        }
+        Insert: {
+          analisado_por?: string | null
+          cliques_proposta?: number | null
+          created_at?: string
+          dias_inativo?: number | null
+          dor_principal?: string | null
+          id?: string
+          lead_id: string
+          mensagens_troca?: number | null
+          objecao_detectada?: string | null
+          primeiro_contato?: string | null
+          status_acao?: string | null
+          tarifa_atual_vs_historico?: number | null
+          temperamento?: string | null
+          tenant_id: string
+          ultimo_contato?: string | null
+          updated_at?: string
+          urgencia_score?: number | null
+          valor_perdido_acumulado?: number | null
+        }
+        Update: {
+          analisado_por?: string | null
+          cliques_proposta?: number | null
+          created_at?: string
+          dias_inativo?: number | null
+          dor_principal?: string | null
+          id?: string
+          lead_id?: string
+          mensagens_troca?: number | null
+          objecao_detectada?: string | null
+          primeiro_contato?: string | null
+          status_acao?: string | null
+          tarifa_atual_vs_historico?: number | null
+          temperamento?: string | null
+          tenant_id?: string
+          ultimo_contato?: string | null
+          updated_at?: string
+          urgencia_score?: number | null
+          valor_perdido_acumulado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_intelligence_profiles_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_intelligence_profiles_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
