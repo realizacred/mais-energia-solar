@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { MonitorNav } from "./MonitorNav";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
@@ -8,13 +7,12 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, BarChart3, Calendar, Sun } from "lucide-react";
-import { listPlantsWithHealth, listAllReadings } from "@/services/monitoring/monitorService";
 import { getTodayBrasilia, getDaysAgoBrasilia, formatDateBrasilia } from "@/services/monitoring/plantStatusEngine";
-import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
 import { MonitorPRChart } from "./charts/MonitorPRChart";
 import { formatBRL, formatEnergyAutoScale, formatCO2, formatDate } from "@/lib/formatters/index";
 import { toast } from "sonner";
+import { useMonitorReportsData } from "@/hooks/useMonitorReportsData";
 // jsPDF, autoTable and XLSX loaded via dynamic import to reduce initial bundle (~600KB)
 
 type PeriodType = "current_month" | "last_month" | "last_3_months" | "last_year";
