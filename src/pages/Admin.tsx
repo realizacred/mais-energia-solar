@@ -321,6 +321,7 @@ const TAB_TITLES: Record<string, string> = {
   "custom-fields": "Campos customizados",
   menus: "Personalizar menu",
   dev: "Ferramentas dev",
+  "cron-jobs": "Tarefas Agendadas",
   "dicionario-aneel": "Dicionário ANEEL",
   "tarifa-versoes": "Versões de tarifa",
   "saude-tarifaria": "Saúde tarifária",
