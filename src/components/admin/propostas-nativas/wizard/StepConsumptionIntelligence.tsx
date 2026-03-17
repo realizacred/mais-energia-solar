@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { transposeToTiltedPlane } from "@/services/solar-transposition";
 import type { IrradianceSeries } from "@/services/irradiance-provider";
+import { distribuirConsumoPorIrradiacao, hasConsumoMesesPreenchido } from "@/lib/distribuirConsumoPorIrradiacao";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -192,8 +193,32 @@ export function StepConsumptionIntelligence({
 
   // ─── UC handlers
   const updateUC = (index: number, uc: UCData) => {
+    const prev = ucs[index];
+    const enriched = { ...uc };
+
+    // Auto-distribuir consumo mensal por irradiação quando:
+    // 1. consumo_mensal mudou (e tem valor > 0)
+    // 2. consumo_meses ainda está zerado (usuário não preencheu mês-a-mês)
+    if (prev && uc.consumo_mensal !== prev.consumo_mensal && uc.consumo_mensal > 0) {
+      if (!hasConsumoMesesPreenchido(uc.consumo_meses)) {
+        enriched.consumo_meses = distribuirConsumoPorIrradiacao(uc.consumo_mensal, ghiSeries);
+      }
+    }
+    // Idem para ponta (MT)
+    if (prev && uc.consumo_mensal_p !== prev.consumo_mensal_p && uc.consumo_mensal_p > 0) {
+      if (!hasConsumoMesesPreenchido(uc.consumo_meses_p)) {
+        enriched.consumo_meses_p = distribuirConsumoPorIrradiacao(uc.consumo_mensal_p, ghiSeries);
+      }
+    }
+    // Idem para fora-ponta (MT)
+    if (prev && uc.consumo_mensal_fp !== prev.consumo_mensal_fp && uc.consumo_mensal_fp > 0) {
+      if (!hasConsumoMesesPreenchido(uc.consumo_meses_fp)) {
+        enriched.consumo_meses_fp = distribuirConsumoPorIrradiacao(uc.consumo_mensal_fp, ghiSeries);
+      }
+    }
+
     const updated = [...ucs];
-    updated[index] = uc;
+    updated[index] = enriched;
     onUcsChange(updated);
   };
 
@@ -236,13 +261,14 @@ export function StepConsumptionIntelligence({
       meses = uc.consumo_meses || {};
       consumoMedio = uc.consumo_mensal || 0;
     }
-    // Se não há valores mensais preenchidos mas há consumo médio, pré-preencher uniformemente
+    // Se não há valores mensais preenchidos mas há consumo médio,
+    // distribuir proporcionalmente à irradiação solar (ou uniforme como fallback)
     const hasValues = Object.values(meses).some(v => v > 0);
     if (!hasValues && consumoMedio > 0) {
-      return Object.fromEntries(MESES.map(m => [m, consumoMedio]));
+      return distribuirConsumoPorIrradiacao(consumoMedio, ghiSeries);
     }
     return meses;
-  }, [ucs, mesAMes]);
+  }, [ucs, mesAMes, ghiSeries]);
 
   const handleMesAMesSave = (values: Record<string, number>) => {
     const uc = { ...ucs[mesAMes.ucIndex] };
