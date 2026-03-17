@@ -1054,7 +1054,7 @@ export function ProposalWizard() {
           id: lead.id, nome: lead.nome, telefone: lead.telefone,
           lead_code: lead.lead_code || "", estado: lead.estado,
           cidade: lead.cidade, media_consumo: lead.media_consumo,
-          consumo_kwh: lead.consumo_previsto || lead.media_consumo || undefined,
+          geracao_estimada_kwh: lead.consumo_previsto || undefined,
           tipo_telhado: lead.tipo_telhado,
           rede_atendimento: lead.rede_atendimento,
           bairro: lead.bairro || undefined,
