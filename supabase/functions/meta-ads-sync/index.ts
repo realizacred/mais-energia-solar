@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { fetchWithTimeout, sanitizeError, updateHealthCache } from "../_shared/error-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,11 +13,6 @@ function getSupabaseAdmin() {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 }
-
-/**
- * Fetch Meta Ads Insights from the Marketing API.
- * Pulls campaign-level AND ad-level metrics including reach and effective_status.
- */
 
 interface MetaInsightRow {
   campaign_id: string;
@@ -60,10 +56,18 @@ async function fetchAllPages(url: string): Promise<any[]> {
   let pageCount = 0;
 
   while (nextUrl && pageCount < 50) {
-    const res = await fetch(nextUrl);
+    const res = await fetchWithTimeout(nextUrl, {}, 30000);
     if (!res.ok) {
       const errBody = await res.text();
       console.error(`[meta-ads-sync] API error ${res.status}: ${errBody}`);
+
+      // Detect token expiration (401/403)
+      if (res.status === 401 || res.status === 403) {
+        const error = new Error(`Meta API token error ${res.status}: ${errBody}`);
+        (error as any).isTokenExpired = true;
+        throw error;
+      }
+
       throw new Error(`Meta API ${res.status}: ${errBody}`);
     }
     const json = await res.json();
@@ -133,13 +137,12 @@ Deno.serve(async (req) => {
     if (!adAccountId) {
       console.log("[meta-ads-sync] No ad_account_id in metadata, discovering from API...");
       const discoverUrl = `https://graph.facebook.com/v21.0/me/adaccounts?fields=account_id,name,account_status&access_token=${accessToken}`;
-      const discoverRes = await fetch(discoverUrl);
+      const discoverRes = await fetchWithTimeout(discoverUrl, {}, 15000);
       const discoverJson = await discoverRes.json();
 
       if (discoverJson.data?.length > 0) {
-        // Use the first active ad account
         const activeAccount = discoverJson.data.find((a: any) => a.account_status === 1) || discoverJson.data[0];
-        adAccountId = activeAccount.id; // Format: act_XXXXX
+        adAccountId = activeAccount.id;
         console.log(`[meta-ads-sync] Discovered ad account: ${adAccountId} (${activeAccount.name})`);
       } else {
         console.error("[meta-ads-sync] No ad accounts found for this token");
@@ -150,7 +153,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Ensure format act_XXXXX
     if (!adAccountId.startsWith("act_")) {
       adAccountId = `act_${adAccountId}`;
     }
@@ -221,6 +223,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Update health cache on success
+    await updateHealthCache(supabase, "meta_ads", "up", {
+      metadata: { campaigns: campaignsData.length, insights: insightsData.length, upserted },
+    });
+
     console.log(`[meta-ads-sync] Done: ${upserted} upserted, ${errors} errors`);
 
     return new Response(
@@ -233,10 +240,24 @@ Deno.serve(async (req) => {
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error("[meta-ads-sync] Fatal error:", err);
+
+    // Detect token expiration and update health cache
+    if (err.isTokenExpired) {
+      console.error("[meta-ads-sync] Token expired — updating health cache");
+      await updateHealthCache(supabase, "meta_ads", "down", {
+        error_message: "Token expirado. Reconecte a integração Meta Ads.",
+        metadata: { reason: "token_expired" },
+      });
+    } else {
+      await updateHealthCache(supabase, "meta_ads", "degraded", {
+        error_message: sanitizeError(err),
+      });
+    }
+
     return new Response(
-      JSON.stringify({ error: (err as Error).message || "Unknown error" }),
+      JSON.stringify({ error: sanitizeError(err) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

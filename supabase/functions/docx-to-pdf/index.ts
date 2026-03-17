@@ -1,21 +1,20 @@
 /**
  * Edge Function: docx-to-pdf
  * Converts a DOCX file to PDF using Gotenberg (LibreOffice-based).
- * Preserves floating text boxes, drawing anchors, and complex Word layouts.
- *
- * Input (JSON):
- *   - docxBase64: string (base64-encoded DOCX file)
- *   - filename?: string (optional filename, default "proposta.docx")
- *   - tenant_id?: string (optional, to resolve config from DB)
- *
- * Output (JSON):
- *   - pdf: string (base64-encoded PDF)
- *
- * Environment:
- *   - GOTENBERG_URL: Gotenberg service URL (fallback if DB config not found)
+ * With retry (exponential backoff) and circuit breaker.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
+import {
+  withRetry,
+  fetchWithTimeout,
+  isCircuitOpen,
+  recordFailure,
+  resetCircuit,
+  sanitizeError,
+  updateHealthCache,
+  type CircuitBreakerState,
+} from "../_shared/error-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,10 +22,15 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-client-timeout, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// In-memory circuit breaker state (resets per cold start; persisted via health cache)
+let circuitState: CircuitBreakerState = { failures: 0, last_failure_at: null, open_until: null };
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
   try {
     const { docxBase64, filename, tenant_id } = await req.json();
@@ -34,7 +38,20 @@ Deno.serve(async (req) => {
     if (!docxBase64 || typeof docxBase64 !== "string") {
       return new Response(
         JSON.stringify({ error: "docxBase64 é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 400, headers: jsonHeaders },
+      );
+    }
+
+    // Check circuit breaker
+    if (isCircuitOpen(circuitState)) {
+      console.warn("[docx-to-pdf] Circuit breaker OPEN — Gotenberg marked as down");
+      return new Response(
+        JSON.stringify({
+          error: "Serviço de conversão temporariamente indisponível. Tente novamente em 5 minutos.",
+          circuit_open: true,
+          retry_after_seconds: 300,
+        }),
+        { status: 503, headers: jsonHeaders },
       );
     }
 
@@ -48,10 +65,7 @@ Deno.serve(async (req) => {
     }
     console.log(`[docx-to-pdf] DOCX size: ${docxBytes.length} bytes`);
 
-    // Build multipart form for Gotenberg — ONLY LibreOffice-relevant params
-    // Do NOT send Chromium-only params (skipNetworkIdleEvent, pdfua, etc.)
-    // Do NOT use nativePdfFormat PDF/A — it forces color space conversion
-    // which alters image X/Y coordinates and breaks anchored layout
+    // Build multipart form for Gotenberg
     const formData = new FormData();
     const blob = new Blob([docxBytes], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -65,14 +79,13 @@ Deno.serve(async (req) => {
     formData.append("exportFormFields", "false");
     formData.append("skipEmptyPages", "true");
 
-    // Resolve Gotenberg URL: DB config → env → demo fallback
+    // Resolve Gotenberg URL
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     let resolvedTenantId = tenant_id;
     if (!resolvedTenantId) {
-      // Try to get tenant from auth header
       const authHeader = req.headers.get("Authorization");
       if (authHeader) {
         const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || supabaseKey;
@@ -95,22 +108,45 @@ Deno.serve(async (req) => {
     const conversionUrl = `${GOTENBERG_URL}/forms/libreoffice/convert`;
     console.log(`[docx-to-pdf] Sending to Gotenberg: ${conversionUrl}`);
 
-    const response = await fetch(
-      conversionUrl,
-      {
-        method: "POST",
-        body: formData,
-        signal: AbortSignal.timeout(90000), // 90s timeout
+    // Retry with exponential backoff: 1s, 2s, 4s
+    const response = await withRetry(
+      async () => {
+        const res = await fetchWithTimeout(
+          conversionUrl,
+          { method: "POST", body: formData },
+          90000, // 90s timeout per attempt
+        );
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Gotenberg ${res.status}: ${errorText}`);
+        }
+        return res;
       },
-    );
+      {
+        maxRetries: 2, // 3 total attempts
+        baseDelayMs: 1000,
+        onRetry: (attempt, err) => {
+          console.warn(`[docx-to-pdf] Retry ${attempt}/2: ${sanitizeError(err)}`);
+        },
+      },
+    ).catch((err) => {
+      // All retries failed — record circuit breaker failure
+      circuitState = recordFailure(circuitState);
+      console.error(`[docx-to-pdf] All retries failed. Circuit state: failures=${circuitState.failures}, open_until=${circuitState.open_until}`);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[docx-to-pdf] Gotenberg error ${response.status}: ${errorText}`);
-      return new Response(
-        JSON.stringify({ error: `Gotenberg retornou erro ${response.status}: ${errorText}` }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      // Update health cache
+      updateHealthCache(supabase, "gotenberg", "down", {
+        error_message: sanitizeError(err),
+        metadata: { circuit_state: circuitState },
+      });
+
+      throw err;
+    });
+
+    // Success — reset circuit breaker
+    if (circuitState.failures > 0) {
+      circuitState = resetCircuit();
+      updateHealthCache(supabase, "gotenberg", "up", {});
     }
 
     const pdfBuffer = await response.arrayBuffer();
@@ -128,12 +164,12 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ pdf: pdfBase64 }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { headers: jsonHeaders },
     );
   } catch (err: any) {
     console.error("[docx-to-pdf] Error:", err?.message, err?.stack);
     return new Response(
-      JSON.stringify({ error: err?.message || "Erro interno na conversão" }),
+      JSON.stringify({ error: sanitizeError(err) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

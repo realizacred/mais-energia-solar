@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeError } from "../_shared/error-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -100,6 +101,23 @@ async function resolveTenantFromPageId(
   return configs?.[0]?.tenant_id || null;
 }
 
+// ── Persist validation failures for audit ───────────────────
+async function persistValidationFailure(
+  supabase: ReturnType<typeof createClient>,
+  reason: string,
+  context: Record<string, unknown>,
+) {
+  try {
+    await supabase.from("audit_logs").insert({
+      tabela: "facebook_leads",
+      acao: "webhook_validation_failure",
+      dados_novos: { reason, ...context, timestamp: new Date().toISOString() },
+    });
+  } catch (e) {
+    console.warn(`[FB-WEBHOOK] Failed to persist validation failure: ${sanitizeError(e)}`);
+  }
+}
+
 // ── Main handler ────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -188,6 +206,8 @@ Deno.serve(async (req) => {
 
         if (!fbLeadId) {
           console.warn("[FB-WEBHOOK][WARN] Missing leadgen_id");
+          // Persist validation failure for audit
+          await persistValidationFailure(supabase, "missing_leadgen_id", { pageId, change: change.value });
           errorCount++;
           continue;
         }
@@ -195,6 +215,7 @@ Deno.serve(async (req) => {
         const tenantId = await resolveTenantFromPageId(supabase, pageId);
         if (!tenantId) {
           console.error(`[FB-WEBHOOK][ERROR] No tenant for page_id=${pageId}`);
+          await persistValidationFailure(supabase, "no_tenant_for_page", { pageId, fbLeadId });
           errorCount++;
           continue;
         }
@@ -217,6 +238,9 @@ Deno.serve(async (req) => {
 
         if (insertError) {
           console.error(`[FB-WEBHOOK][ERROR] Insert failed: ${insertError.message}`);
+          await persistValidationFailure(supabase, "insert_failed", {
+            fbLeadId, tenantId, error: insertError.message,
+          });
           errorCount++;
         } else {
           processedCount++;

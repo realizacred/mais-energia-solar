@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { sanitizeError } from "../_shared/error-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -144,8 +145,8 @@ serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
-    console.error("[pipeline-automations] Fatal error:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error("[pipeline-automations] Fatal error:", err.message, err.stack);
+    return new Response(JSON.stringify({ error: sanitizeError(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
