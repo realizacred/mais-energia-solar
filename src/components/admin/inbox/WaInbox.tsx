@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { MessageCircle } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
+import { useWaFollowupPending } from "@/hooks/useWaFollowupPending";
 import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
 import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferences";
