@@ -155,7 +155,7 @@ export function LeadsView() {
       />
 
       {/* Notification Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PendingDocumentationWidget onLeadClick={handleLeadFromWidget} onConvertClick={handleLeadFromWidget} refreshKey={widgetRefreshKey} />
         <FollowUpNotifications onLeadClick={handleLeadFromWidget} diasAlerta={3} refreshKey={widgetRefreshKey} />
       </div>
@@ -215,7 +215,7 @@ export function LeadsView() {
             size="sm"
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="gap-1.5"
+            className="gap-1.5 min-h-[44px] md:min-h-0"
           >
             <ChevronLeft className="h-4 w-4" />
             Anterior
@@ -228,7 +228,7 @@ export function LeadsView() {
             size="sm"
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="gap-1.5"
+            className="gap-1.5 min-h-[44px] md:min-h-0"
           >
             Próxima
             <ChevronRight className="h-4 w-4" />

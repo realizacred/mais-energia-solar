@@ -389,7 +389,7 @@ export function ComissoesManager() {
     <div className="space-y-6">
       <PageHeader icon={DollarSign} title="Comissões" description="Gerencie comissões dos consultores" />
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="lg:col-span-3">
           <ComissoesStats
             totalComissoes={totalComissoes}
@@ -437,7 +437,7 @@ export function ComissoesManager() {
                   Nova Comissão
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="w-[90vw] max-w-xl">
                 <DialogHeader>
                   <DialogTitle>Registrar Comissão</DialogTitle>
                 </DialogHeader>
@@ -638,7 +638,7 @@ export function ComissoesManager() {
                             <TableCell className="font-medium">{comissao.consultores?.nome}</TableCell>
                             <TableCell>
                               <div>
-                                <p className="truncate max-w-48">{comissao.descricao}</p>
+                                <p className="truncate max-w-48" title={comissao.descricao}>{comissao.descricao}</p>
                                 {comissao.projetos?.codigo && (
                                   <p className="text-xs text-muted-foreground">{comissao.projetos.codigo}</p>
                                 )}
@@ -657,6 +657,7 @@ export function ComissoesManager() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
                                   onClick={() => {
                                     setSelectedComissao(comissao);
                                     setPagamentosDialogOpen(true);
@@ -664,7 +665,7 @@ export function ComissoesManager() {
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => handleDelete(comissao.id)}>
+                                <Button size="sm" variant="ghost" className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0" onClick={() => handleDelete(comissao.id)}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </div>

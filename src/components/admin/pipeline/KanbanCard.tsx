@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,8 +77,6 @@ export function KanbanCard({
   onWin,
   onLose,
 }: KanbanCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
   const kwp = lead.potencia_kwp || estimateKwp(lead.media_consumo);
   const valor = lead.valor_projeto || estimateValue(kwp);
 
@@ -98,14 +95,13 @@ export function KanbanCard({
     <motion.div
       draggable
       onDragStart={(e) => onDragStart(e as unknown as React.DragEvent, lead)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
       transition={{ duration: 0.15 }}
       className={cn(
         "group relative bg-card rounded-lg border border-border p-3 shadow-sm cursor-grab active:cursor-grabbing",
         "hover:shadow-md hover:border-primary/30 transition-all duration-200",
+        "touch-manipulation",
         isDragging && "opacity-50 rotate-1 shadow-lg"
       )}
     >
@@ -127,13 +123,13 @@ export function KanbanCard({
             )}
             <div className={cn(
               "flex items-center gap-0.5 shrink-0 transition-opacity duration-150",
-              isHovered ? "opacity-100" : "opacity-0"
+              "opacity-100 md:opacity-0 md:group-hover:opacity-100"
             )}>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onViewDetails?.(lead); }}>
-                      <Eye className="h-3 w-3" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-6 md:w-6 md:min-h-0 md:min-w-0" onClick={(e) => { e.stopPropagation(); onViewDetails?.(lead); }}>
+                      <Eye className="h-4 w-4 md:h-3 md:w-3" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Ver detalhes</TooltipContent>
@@ -146,7 +142,7 @@ export function KanbanCard({
         </div>
 
         {/* Line 2: Name */}
-        <p className="text-sm font-semibold text-foreground truncate">{lead.nome}</p>
+        <p className="text-sm font-semibold text-foreground truncate" title={lead.nome}>{lead.nome}</p>
 
         {/* Line 3: Compact infos — city + kWh */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -193,7 +189,7 @@ function KanbanCardMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6">
+        <Button variant="ghost" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-6 md:w-6 md:min-h-0 md:min-w-0">
           <MoreHorizontal className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>

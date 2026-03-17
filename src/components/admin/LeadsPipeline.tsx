@@ -360,13 +360,13 @@ export default function LeadsPipeline() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <TabsList>
-            <TabsTrigger value="kanban" className="gap-2">
+            <TabsTrigger value="kanban" className="gap-2 min-h-[44px] md:min-h-0">
               <LayoutGrid className="h-4 w-4" /> Kanban
             </TabsTrigger>
-            <TabsTrigger value="funnel" className="gap-2">
+            <TabsTrigger value="funnel" className="gap-2 min-h-[44px] md:min-h-0">
               <BarChart3 className="h-4 w-4" /> Funil
             </TabsTrigger>
-            <TabsTrigger value="automations" className="gap-2">
+            <TabsTrigger value="automations" className="gap-2 min-h-[44px] md:min-h-0">
               <Settings2 className="h-4 w-4" /> Automações
             </TabsTrigger>
           </TabsList>
@@ -380,7 +380,7 @@ export default function LeadsPipeline() {
           <ScrollArea className="w-full">
             <div className="flex gap-4 pb-4" style={{ minWidth: "max-content" }}>
               {/* Sem status */}
-              <div className="w-72 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, "")}>
+              <div className="w-64 md:w-72 lg:w-80 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, "")}>
                 <ColumnHeader name="Sem status" count={getLeadsByStatus(null).length} value={getColumnValue(null)} />
                 <div className="rounded-b-lg p-2 min-h-[500px] space-y-2.5 border border-t-0 border-border/40 bg-muted/10">
                   {getLeadsByStatus(null).map(lead => (
@@ -392,7 +392,7 @@ export default function LeadsPipeline() {
               {statuses.map(status => {
                 const columnLeads = getLeadsByStatus(status.id);
                 return (
-                  <div key={status.id} className="w-72 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, status.id)}>
+                  <div key={status.id} className="w-64 md:w-72 lg:w-80 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, status.id)}>
                     <ColumnHeader name={status.nome} count={columnLeads.length} value={getColumnValue(status.id)} color={status.cor} />
                     <div className="rounded-b-lg p-2 min-h-[500px] space-y-2.5 border border-t-0 border-border/40 bg-muted/10">
                       {columnLeads.map(lead => (
@@ -479,6 +479,7 @@ export default function LeadsPipeline() {
                         <div key={lead.id} className="flex items-center justify-between p-2.5 rounded-md border border-border/60 bg-muted/30 gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate" title={lead.nome}>{lead.nome}</p>
+
                             <p className="text-xs text-muted-foreground">{formatPhoneBR(lead.telefone)}{lead.cidade && ` · ${lead.cidade}`}</p>
                           </div>
                           <Badge variant="destructive" className="text-[10px] shrink-0">
@@ -511,7 +512,7 @@ export default function LeadsPipeline() {
 
       {/* Loss Dialog */}
       <Dialog open={lossDialogOpen} onOpenChange={setLossDialogOpen}>
-        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <XCircle className="w-5 h-5 text-primary" />
@@ -523,7 +524,7 @@ export default function LeadsPipeline() {
               </p>
             </div>
           </DialogHeader>
-          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+          <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Motivo</label>
            <Select value={lossReasonId} onValueChange={setLossReasonId}>
