@@ -52,7 +52,7 @@ export function StepConsumption({
         <FloatingSelect
           label="Área *"
           icon={<Home className="w-4 h-4" />}
-          value={values.area}
+          value={area}
           onValueChange={(value) => {
             setValue("area", value as "Urbana" | "Rural");
           }}
