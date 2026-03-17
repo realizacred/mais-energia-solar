@@ -37,7 +37,7 @@ export function useIntelligenceConfig() {
   const configQuery = useQuery({
     queryKey: ["intelligence-config"],
     queryFn: async () => {
-      const tenantId = await getCurrentTenantId();
+      const { tenantId } = await getCurrentTenantId();
       if (!tenantId) return null;
 
       const { data, error } = await supabase
@@ -54,7 +54,7 @@ export function useIntelligenceConfig() {
 
   const updateConfig = useMutation({
     mutationFn: async (updates: Partial<IntelligenceConfig>) => {
-      const tenantId = await getCurrentTenantId();
+      const { tenantId } = await getCurrentTenantId();
       if (!tenantId) throw new Error("Tenant não encontrado");
 
       const payload = {
@@ -64,11 +64,25 @@ export function useIntelligenceConfig() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      // Use upsert as single object
+      const { data: existing } = await supabase
         .from("intelligence_config")
-        .upsert(payload, { onConflict: "tenant_id" });
+        .select("tenant_id")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existing) {
+        const { error } = await supabase
+          .from("intelligence_config")
+          .update(payload)
+          .eq("tenant_id", tenantId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("intelligence_config")
+          .insert(payload as any);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["intelligence-config"] });
