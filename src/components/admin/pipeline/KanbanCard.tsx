@@ -106,6 +106,7 @@ export function KanbanCard({
       className={cn(
         "group relative bg-card rounded-lg border border-border p-3 shadow-sm cursor-grab active:cursor-grabbing",
         "hover:shadow-md hover:border-primary/30 transition-all duration-200",
+        "touch-manipulation",
         isDragging && "opacity-50 rotate-1 shadow-lg"
       )}
     >
