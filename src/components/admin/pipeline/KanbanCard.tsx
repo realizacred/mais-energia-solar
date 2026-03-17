@@ -128,13 +128,13 @@ export function KanbanCard({
             )}
             <div className={cn(
               "flex items-center gap-0.5 shrink-0 transition-opacity duration-150",
-              isHovered ? "opacity-100" : "opacity-0"
+              "opacity-100 md:opacity-0 md:group-hover:opacity-100"
             )}>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onViewDetails?.(lead); }}>
-                      <Eye className="h-3 w-3" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-6 md:w-6 md:min-h-0 md:min-w-0" onClick={(e) => { e.stopPropagation(); onViewDetails?.(lead); }}>
+                      <Eye className="h-4 w-4 md:h-3 md:w-3" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Ver detalhes</TooltipContent>
