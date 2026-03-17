@@ -140,28 +140,10 @@ function OperatorsTab() {
   const { toast } = useToast();
 
   // Fetch all consultores
-  const { data: consultores = [], isLoading: loadingConsultores } = useQuery({
-    queryKey: ["wa-settings-consultores"],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("consultores")
-        .select("id, nome, user_id, ativo")
-        .eq("ativo", true)
-        .order("nome");
-      return data || [];
-    },
-  });
+  const { data: consultores = [], isLoading: loadingConsultores } = useConsultoresAtivos();
 
   // Fetch current instance-consultor assignments
-  const { data: assignments = [], isLoading: loadingAssignments } = useQuery({
-    queryKey: ["wa-instance-consultores"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("wa_instance_consultores")
-        .select("id, instance_id, consultor_id, tenant_id");
-      return data || [];
-    },
-  });
+  const { data: assignments = [], isLoading: loadingAssignments } = useWaInstanceConsultores();
 
   const toggleMutation = useMutation({
     mutationFn: async ({ consultorId, add }: { consultorId: string; add: boolean }) => {
