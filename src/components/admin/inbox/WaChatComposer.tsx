@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useWaComposerData, type QuickReplyDb } from "@/hooks/useWaComposerData";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Common Emojis ──
