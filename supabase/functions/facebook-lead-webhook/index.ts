@@ -101,6 +101,23 @@ async function resolveTenantFromPageId(
   return configs?.[0]?.tenant_id || null;
 }
 
+// ── Persist validation failures for audit ───────────────────
+async function persistValidationFailure(
+  supabase: ReturnType<typeof createClient>,
+  reason: string,
+  context: Record<string, unknown>,
+) {
+  try {
+    await supabase.from("audit_logs").insert({
+      tabela: "facebook_leads",
+      acao: "webhook_validation_failure",
+      dados_novos: { reason, ...context, timestamp: new Date().toISOString() },
+    });
+  } catch (e) {
+    console.warn(`[FB-WEBHOOK] Failed to persist validation failure: ${sanitizeError(e)}`);
+  }
+}
+
 // ── Main handler ────────────────────────────────────────────
 
 Deno.serve(async (req) => {
