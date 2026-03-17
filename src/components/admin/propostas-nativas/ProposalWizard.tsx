@@ -1176,7 +1176,7 @@ export function ProposalWizard() {
     if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
 
     const faseData = redeAtendimentoToFaseTensao(lead.rede_atendimento);
-    const consumo = lead.consumo_kwh || lead.media_consumo || 0;
+    const consumo = lead.media_consumo || 0;
 
     setUcs(prev => {
       const updated = [...prev];

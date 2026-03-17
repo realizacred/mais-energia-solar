@@ -108,7 +108,7 @@ export function StepConsumption({
         </div>
         <div data-field-error={!!errors.consumo_previsto && touchedFields.has("consumo_previsto")}>
         <FloatingInput
-          label="Consumo Previsto (kWh) *"
+          label="Geração Estimada (kWh) *"
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
           autoComplete="off"
