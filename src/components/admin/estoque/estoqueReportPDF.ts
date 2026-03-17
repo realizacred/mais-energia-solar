@@ -10,7 +10,9 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-export function generateEstoqueItemsPDF(saldos: EstoqueSaldo[], title = "Relatório de Estoque — Itens") {
+export async function generateEstoqueItemsPDF(saldos: EstoqueSaldo[], title = "Relatório de Estoque — Itens") {
+  const { default: jsPDF } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf");
+  const { default: autoTable } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf-autotable");
   const doc = new jsPDF({ orientation: "landscape" });
   doc.setFontSize(16);
   doc.text(title, 14, 16);
