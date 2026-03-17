@@ -388,9 +388,12 @@ function StepClienteForm({
       ...cliente,
       nome: lead.nome || cliente.nome,
       celular: lead.telefone || cliente.celular,
-      email: cliente.email,
+      email: lead.email || cliente.email,
       estado: lead.estado || cliente.estado,
       cidade: lead.cidade || cliente.cidade,
+      bairro: lead.bairro || cliente.bairro,
+      cep: lead.cep || cliente.cep,
+      endereco: lead.endereco || cliente.endereco,
     });
     setSearch("");
   };
