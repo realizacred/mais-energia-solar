@@ -389,7 +389,7 @@ export function ComissoesManager() {
     <div className="space-y-6">
       <PageHeader icon={DollarSign} title="Comissões" description="Gerencie comissões dos consultores" />
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="lg:col-span-3">
           <ComissoesStats
             totalComissoes={totalComissoes}
