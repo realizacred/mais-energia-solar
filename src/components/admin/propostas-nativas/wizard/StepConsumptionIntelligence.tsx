@@ -193,8 +193,32 @@ export function StepConsumptionIntelligence({
 
   // ─── UC handlers
   const updateUC = (index: number, uc: UCData) => {
+    const prev = ucs[index];
+    const enriched = { ...uc };
+
+    // Auto-distribuir consumo mensal por irradiação quando:
+    // 1. consumo_mensal mudou (e tem valor > 0)
+    // 2. consumo_meses ainda está zerado (usuário não preencheu mês-a-mês)
+    if (prev && uc.consumo_mensal !== prev.consumo_mensal && uc.consumo_mensal > 0) {
+      if (!hasConsumoMesesPreenchido(uc.consumo_meses)) {
+        enriched.consumo_meses = distribuirConsumoPorIrradiacao(uc.consumo_mensal, ghiSeries);
+      }
+    }
+    // Idem para ponta (MT)
+    if (prev && uc.consumo_mensal_p !== prev.consumo_mensal_p && uc.consumo_mensal_p > 0) {
+      if (!hasConsumoMesesPreenchido(uc.consumo_meses_p)) {
+        enriched.consumo_meses_p = distribuirConsumoPorIrradiacao(uc.consumo_mensal_p, ghiSeries);
+      }
+    }
+    // Idem para fora-ponta (MT)
+    if (prev && uc.consumo_mensal_fp !== prev.consumo_mensal_fp && uc.consumo_mensal_fp > 0) {
+      if (!hasConsumoMesesPreenchido(uc.consumo_meses_fp)) {
+        enriched.consumo_meses_fp = distribuirConsumoPorIrradiacao(uc.consumo_mensal_fp, ghiSeries);
+      }
+    }
+
     const updated = [...ucs];
-    updated[index] = uc;
+    updated[index] = enriched;
     onUcsChange(updated);
   };
 
