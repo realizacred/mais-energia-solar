@@ -147,7 +147,7 @@ export function KanbanCard({
         </div>
 
         {/* Line 2: Name */}
-        <p className="text-sm font-semibold text-foreground truncate">{lead.nome}</p>
+        <p className="text-sm font-semibold text-foreground truncate" title={lead.nome}>{lead.nome}</p>
 
         {/* Line 3: Compact infos — city + kWh */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
