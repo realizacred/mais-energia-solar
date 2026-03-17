@@ -49,7 +49,9 @@ export async function generateEstoqueItemsPDF(saldos: EstoqueSaldo[], title = "R
   doc.save(`estoque_itens_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-export function generateEstoqueMovimentosPDF(movimentos: EstoqueMovimento[], title = "Relatório de Movimentações") {
+export async function generateEstoqueMovimentosPDF(movimentos: EstoqueMovimento[], title = "Relatório de Movimentações") {
+  const { default: jsPDF } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf");
+  const { default: autoTable } = await import(/* webpackChunkName: "pdf-libs" */ "jspdf-autotable");
   const doc = new jsPDF({ orientation: "landscape" });
   doc.setFontSize(16);
   doc.text(title, 14, 16);
