@@ -71,7 +71,7 @@ export function StepConsumption({
         <FloatingSelect
           label="Tipo de Telhado *"
           icon={<Home className="w-4 h-4" />}
-          value={values.tipo_telhado}
+          value={tipo_telhado}
           onValueChange={(value) => {
             setValue("tipo_telhado", value);
           }}
