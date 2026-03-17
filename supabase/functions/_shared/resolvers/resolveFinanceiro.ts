@@ -70,13 +70,20 @@ export function resolveFinanceiro(
     if (paybackStr) out["payback"] = paybackStr;
   }
 
-  // ── Kit Fechado (commercial mode — derived from financial aggregates) ──
-  // kit_fechado_preco_total = sell price of kit = financeiro.valor_total or snap value
-  const kitFechadoPreco = num(snap.kit_fechado_preco_total) ?? num(fin.kit_fechado_preco_total) ?? num(fin.valor_total);
+  // ── Kit Fechado (commercial mode — equipment price only, NOT valor_total) ──
+  // kit_fechado_preco_total = sell price of kit equipment = custo_kit * (1 + margem/100)
+  const kitFechadoPreco = num(snap.kit_fechado_preco_total) ?? num(fin.kit_fechado_preco_total);
   if (kitFechadoPreco != null && kitFechadoPreco > 0) {
     setCur("kit_fechado_preco_total", kitFechadoPreco);
+  } else {
+    // Derive from custo_kit + margem if available (equipment sell price only)
+    const custoKit = num(fin.custo_kit);
+    const margem = num(fin.margem_percentual) ?? 0;
+    if (custoKit != null && custoKit > 0) {
+      setCur("kit_fechado_preco_total", custoKit * (1 + margem / 100));
+    }
   }
-  // kit_fechado_custo_total = cost of kit = financeiro.custo_kit or snap value
+  // kit_fechado_custo_total = cost of kit equipment = financeiro.custo_kit
   const kitFechadoCusto = num(snap.kit_fechado_custo_total) ?? num(fin.custo_kit);
   if (kitFechadoCusto != null && kitFechadoCusto > 0) {
     setCur("kit_fechado_custo_total", kitFechadoCusto);
