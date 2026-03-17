@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { transposeToTiltedPlane } from "@/services/solar-transposition";
 import type { IrradianceSeries } from "@/services/irradiance-provider";
+import { distribuirConsumoPorIrradiacao, hasConsumoMesesPreenchido } from "@/lib/distribuirConsumoPorIrradiacao";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
