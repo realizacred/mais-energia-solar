@@ -8,7 +8,13 @@ export interface LeadSelection {
   lead_code: string;
   estado?: string;
   cidade?: string;
-  consumo_kwh?: number;
+  /**
+   * Geração estimada informada pelo vendedor no cadastro do lead (kWh/mês).
+   * Campo DB: leads.consumo_previsto — NÃO é consumo nem potência.
+   * Não converter diretamente em potência (kWp). Se usado em pré-dimensionamento,
+   * aplicar: kWp ≈ geracao / (irradiação × 30 × taxa_desempenho).
+   */
+  geracao_estimada_kwh?: number;
   media_consumo?: number;
   tipo_telhado?: string;
   email?: string;
