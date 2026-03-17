@@ -12,6 +12,8 @@ import { type KitItemRow, formatBRL } from "./types";
 const CATEGORIAS = [
   { value: "modulo", label: "Módulo" },
   { value: "inversor", label: "Inversor" },
+  { value: "bateria", label: "Bateria" },
+  { value: "transformador", label: "Transformador" },
   { value: "estrutura", label: "Estrutura" },
   { value: "string_box", label: "String Box" },
   { value: "cabos", label: "Cabos" },
