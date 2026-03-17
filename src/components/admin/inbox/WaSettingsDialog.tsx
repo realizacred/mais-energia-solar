@@ -238,28 +238,10 @@ function AutomationTab() {
   const queryClient = useQueryClient();
 
   // Fetch wa_auto_reply_config (tenant-scoped, 1:1)
-  const { data: autoReply, isLoading } = useQuery({
-    queryKey: ["wa-auto-reply-config"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("wa_auto_reply_config")
-        .select("id, ativo, mensagem_fora_horario, mensagem_feriado, cooldown_minutos, silenciar_alertas, silenciar_sla")
-        .maybeSingle();
-      return data;
-    },
-  });
+  const { data: autoReply, isLoading } = useWaAutoReplyConfig();
 
   // Fetch whatsapp_automation_config for greeting message
-  const { data: automationConfig } = useQuery({
-    queryKey: ["whatsapp-automation-config"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("whatsapp_automation_config")
-        .select("id, mensagem_boas_vindas, auto_reply_enabled, auto_reply_message")
-        .maybeSingle();
-      return data;
-    },
-  });
+  const { data: automationConfig } = useWaAutomationConfig();
 
   const [greeting, setGreeting] = useState("");
   const [absence, setAbsence] = useState("");
