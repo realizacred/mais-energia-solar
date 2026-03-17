@@ -226,47 +226,7 @@ export function StepDocumento({
     }
   };
 
-  const wpPerKwp = potenciaKwp > 0 ? (precoFinal / potenciaKwp / 1000).toFixed(2) : "0.00";
-
-  // ─── METRICS HEADER ─────────────────────────────────────
-
-  const MetricsHeader = () => (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-      <div className="flex items-center gap-2">
-        <FileText className="h-5 w-5 text-primary" />
-        <h3 className="text-base font-bold text-foreground">Proposta</h3>
-      </div>
-
-      <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <Zap className="h-3.5 w-3.5 text-primary" />
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground leading-none">Potência</p>
-            <p className="text-sm font-bold">{potenciaKwp.toFixed(2)} kWp</p>
-          </div>
-        </div>
-        {areaUtilM2 > 0 && (
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground leading-none">Área Útil</p>
-            <p className="text-sm font-bold">{areaUtilM2} m²</p>
-          </div>
-        )}
-        {geracaoMensalKwh > 0 && (
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground leading-none">Geração</p>
-            <p className="text-sm font-bold">{geracaoMensalKwh} kWh</p>
-          </div>
-        )}
-        <div className="text-right">
-          <p className="text-[10px] text-muted-foreground leading-none">Preço</p>
-          <p className="text-sm font-bold">
-            {formatBRL(precoFinal)}{" "}
-            <span className="text-[10px] font-normal text-muted-foreground">R$ {wpPerKwp}/Wp</span>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  // MetricsHeader removed — metrics are now shown in the wizard sticky header (ProposalWizard.tsx)
 
   // ─── TAB: TEMPLATE ──────────────────────────────────────
 
@@ -930,7 +890,6 @@ export function StepDocumento({
 
   return (
     <div className="space-y-0">
-      <MetricsHeader />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-transparent border-b border-border/40 rounded-none h-auto p-0 gap-4 w-full justify-start">
