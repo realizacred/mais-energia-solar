@@ -259,7 +259,7 @@ function renderProposalHtml(p: RenderParams): string {
     <div style="margin-bottom:12px;padding:12px;background:#f8f9fa;border-radius:8px">
       <div style="font-weight:600;margin-bottom:6px">${safe(uc.nome)} — ${safe(uc.tipo_dimensionamento)} (${safe(uc.subgrupo)})</div>
       <div class="grid">
-        <div><span class="label">Consumo</span><div class="value">${uc.tipo_dimensionamento === "MT" ? `P: ${safe(uc.consumo_mensal_p)} / FP: ${safe(uc.consumo_mensal_fp)}` : `${safe(uc.consumo_mensal)} kWh/mês`}</div></div>
+        <div><span class="label">Consumo Médio</span><div class="value">${uc.tipo_dimensionamento === "MT" ? `P: ${safe(uc.consumo_mensal_p)} / FP: ${safe(uc.consumo_mensal_fp)}` : `${safe(uc.consumo_mensal)} kWh/mês`}</div></div>
         <div><span class="label">Fase</span><div class="value">${safe(uc.fase)}</div></div>
         <div><span class="label">Local</span><div class="value">${safe(uc.cidade)}/${safe(uc.estado)}</div></div>
         <div><span class="label">Telhado</span><div class="value">${safe(uc.tipo_telhado)}</div></div>
