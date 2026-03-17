@@ -254,6 +254,117 @@ async function enrichItensWithCatalog(
   });
 }
 
+// ─── Flatten Item Financials by Category ────────────────────
+// Generates flat snapshot keys for baterias, transformadores, kit_fechado
+// from the enriched itens[] array. Only creates keys that don't already exist.
+// Item.preco_unitario = custo (cost). Sell price (preço) = custo * (1 + margem/100).
+
+interface FlatItem {
+  categoria: string;
+  quantidade: number;
+  preco_unitario: number; // this is the COST per unit
+  [key: string]: unknown;
+}
+
+function flattenItensFinanceirosPorCategoria(
+  itens: FlatItem[],
+  margemPercentual: number,
+): Record<string, number | string> {
+  const out: Record<string, number | string> = {};
+  const margemFator = 1 + (margemPercentual / 100);
+
+  // Category matchers
+  const isBateria = (cat: string) => cat.includes("bateria") || cat === "battery";
+  const isTransformador = (cat: string) => cat.includes("transformador") || cat.includes("transformer");
+  const isKitFechado = (cat: string) => cat === "kit_fechado" || cat === "kit fechado";
+
+  // ── Helper: process a category ──
+  function processCategory(
+    prefix: string,          // e.g. "bateria"
+    prefixPlural: string,    // e.g. "baterias"
+    matcher: (cat: string) => boolean,
+    opts: { indexed: boolean; concatenated: boolean; totals: boolean },
+  ) {
+    const filtered = itens.filter(it => matcher((it.categoria ?? "").toLowerCase()));
+    if (filtered.length === 0) return;
+
+    let custoTotalSum = 0;
+    let precoTotalSum = 0;
+    const custoUnList: number[] = [];
+    const precoUnList: number[] = [];
+    const custoTotalList: number[] = [];
+    const precoTotalList: number[] = [];
+
+    filtered.forEach((item, idx) => {
+      const custoUn = round2(item.preco_unitario);
+      const precoUn = round2(item.preco_unitario * margemFator);
+      const custoTotal = round2(item.quantidade * item.preco_unitario);
+      const precoTotal = round2(item.quantidade * item.preco_unitario * margemFator);
+
+      custoTotalSum += custoTotal;
+      precoTotalSum += precoTotal;
+      custoUnList.push(custoUn);
+      precoUnList.push(precoUn);
+      custoTotalList.push(custoTotal);
+      precoTotalList.push(precoTotal);
+
+      // Indexed keys: prefix_custo_un_1, prefix_preco_un_1, etc.
+      if (opts.indexed) {
+        const n = idx + 1;
+        out[`${prefix}_custo_un_${n}`] = custoUn;
+        out[`${prefix}_preco_un_${n}`] = precoUn;
+        out[`${prefix}_preco_total_${n}`] = precoTotal;
+      }
+    });
+
+    // Concatenated keys: "1.000,00 / 1.500,00"
+    if (opts.concatenated && filtered.length > 0) {
+      const fmtList = (arr: number[]) => arr.map(v => fmtBRL(v)).join(" / ");
+      out[`${prefix}_custo_un`] = fmtList(custoUnList);
+      out[`${prefix}_preco_un`] = fmtList(precoUnList);
+      out[`${prefix}_custo_total`] = fmtList(custoTotalList);
+      out[`${prefix}_preco_total`] = fmtList(precoTotalList);
+    }
+
+    // Aggregate totals
+    if (opts.totals) {
+      out[`${prefixPlural}_custo_total`] = round2(custoTotalSum);
+      out[`${prefixPlural}_preco_total`] = round2(precoTotalSum);
+    }
+  }
+
+  // ── Baterias: indexed + concatenated + totals ──
+  processCategory("bateria", "baterias", isBateria, {
+    indexed: true, concatenated: true, totals: true,
+  });
+
+  // ── Transformadores: indexed + totals (no concatenated — less common) ──
+  processCategory("transformador", "transformadores", isTransformador, {
+    indexed: true, concatenated: false, totals: true,
+  });
+
+  // ── Kit Fechado: only totals ──
+  const kitFechadoItems = itens.filter(it => isKitFechado((it.categoria ?? "").toLowerCase()));
+  if (kitFechadoItems.length > 0) {
+    let custoSum = 0;
+    let precoSum = 0;
+    for (const item of kitFechadoItems) {
+      custoSum += item.quantidade * item.preco_unitario;
+      precoSum += item.quantidade * item.preco_unitario * margemFator;
+    }
+    out["kit_fechado_custo_total"] = round2(custoSum);
+    // kit_fechado_preco_total may already be set by other logic; still safe to set here
+    out["kit_fechado_preco_total"] = round2(precoSum);
+  }
+
+  return out;
+}
+
+// Simple BRL formatter for concatenated values (no Intl dependency in Deno edge)
+function fmtBRL(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 // ─── Main Handler ───────────────────────────────────────────
 
 Deno.serve(async (req) => {
