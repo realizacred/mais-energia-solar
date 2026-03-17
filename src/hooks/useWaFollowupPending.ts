@@ -10,7 +10,7 @@ export function useWaFollowupPending() {
         .select("id, conversation_id, assigned_to, rule_id")
         .eq("status", "pendente");
       if (error) throw error;
-      return data || [];
+      return (data || []) as FollowupPending[];
     },
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
