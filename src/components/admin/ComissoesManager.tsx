@@ -437,7 +437,7 @@ export function ComissoesManager() {
                   Nova Comissão
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="w-[90vw] max-w-xl">
                 <DialogHeader>
                   <DialogTitle>Registrar Comissão</DialogTitle>
                 </DialogHeader>
