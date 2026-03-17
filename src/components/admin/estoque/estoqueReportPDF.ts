@@ -1,5 +1,5 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// jsPDF + autoTable loaded via dynamic import to reduce initial bundle
+import type { EstoqueSaldo, EstoqueMovimento } from "@/hooks/useEstoque";
 import type { EstoqueSaldo, EstoqueMovimento } from "@/hooks/useEstoque";
 
 function formatCurrency(value: number) {
