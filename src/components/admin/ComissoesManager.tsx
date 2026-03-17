@@ -657,6 +657,7 @@ export function ComissoesManager() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
                                   onClick={() => {
                                     setSelectedComissao(comissao);
                                     setPagamentosDialogOpen(true);
@@ -664,7 +665,7 @@ export function ComissoesManager() {
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => handleDelete(comissao.id)}>
+                                <Button size="sm" variant="ghost" className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0" onClick={() => handleDelete(comissao.id)}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </div>

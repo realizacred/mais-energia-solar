@@ -57,7 +57,7 @@ export default function MonitorDashboard() {
   const isEmpty = !stats || stats.total_plants === 0;
 
   return (
-    <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-8 space-y-8">
+    <div className="w-full space-y-8">
       {/* ─── Header (§26) ─── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <PageHeader

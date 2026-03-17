@@ -194,7 +194,7 @@ function KanbanCardMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6">
+        <Button variant="ghost" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-6 md:w-6 md:min-h-0 md:min-w-0">
           <MoreHorizontal className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>

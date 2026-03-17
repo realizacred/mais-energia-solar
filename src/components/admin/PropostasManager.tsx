@@ -202,7 +202,7 @@ export function PropostasManager() {
             action={propostas.length === 0 ? { label: "Nova Proposta", onClick: () => setCreateOpen(true), icon: Plus } : undefined}
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((p) => (
               <PropostaCard
                 key={p.id}
