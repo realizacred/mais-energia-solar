@@ -2459,6 +2459,45 @@ export type Database = {
           },
         ]
       }
+      cron_execution_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          job_name: string
+          metadata: Json | null
+          started_at: string
+          status: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          job_name: string
+          metadata?: Json | null
+          started_at?: string
+          status?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          job_name?: string
+          metadata?: Json | null
+          started_at?: string
+          status?: string
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
       custo_faixas_kwp: {
         Row: {
           created_at: string
@@ -21216,6 +21255,7 @@ export type Database = {
         }
       }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
+      cleanup_old_cron_logs: { Args: never; Returns: undefined }
       cleanup_security_events: { Args: never; Returns: undefined }
       cleanup_stuck_irradiance_versions: { Args: never; Returns: number }
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
