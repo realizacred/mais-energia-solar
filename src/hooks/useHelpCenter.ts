@@ -2,6 +2,10 @@
  * Central de Ajuda — hooks de dados
  * §16: Queries só em hooks
  * §23: staleTime obrigatório
+ *
+ * NOTE: Tables help_center_tutorials / help_center_progresso are not yet
+ * in the auto-generated Supabase types. We cast `.from()` via `as any`
+ * until the types are regenerated.
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -42,7 +46,7 @@ export function useTutoriais(categoria?: string | null) {
   return useQuery({
     queryKey: ["help-tutorials", categoria ?? "all"],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from("help_center_tutorials")
         .select("*")
         .order("ordem", { ascending: true });
@@ -61,7 +65,7 @@ export function useTutoriais(categoria?: string | null) {
 
 /**
  * Busca tutoriais por texto (título, descrição).
- * Mínimo 3 caracteres para evitar buscas inúteis.
+ * Mínimo 3 caracteres.
  */
 export function useBuscarTutoriais(queryStr: string) {
   const trimmed = queryStr.trim().toLowerCase();
@@ -71,8 +75,7 @@ export function useBuscarTutoriais(queryStr: string) {
     queryFn: async () => {
       if (trimmed.length < 3) return [];
 
-      // Busca por título e descrição via ilike; tags checadas client-side
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("help_center_tutorials")
         .select("*")
         .or(`titulo.ilike.%${trimmed}%,descricao_curta.ilike.%${trimmed}%`)
@@ -80,11 +83,7 @@ export function useBuscarTutoriais(queryStr: string) {
         .limit(20);
 
       if (error) throw error;
-
-      // Complementar: incluir itens que matcham por tags (client-side)
-      // já que .cs com busca parcial não funciona como esperado
-      const results = (data ?? []) as Tutorial[];
-      return results;
+      return (data ?? []) as Tutorial[];
     },
     staleTime: STALE_SEARCH,
     enabled: trimmed.length >= 3,
@@ -98,7 +97,7 @@ export function useProgressoUsuario() {
   return useQuery({
     queryKey: ["help-progress"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("help_center_progresso")
         .select("*");
 
@@ -111,7 +110,6 @@ export function useProgressoUsuario() {
 
 /**
  * Marca tutorial como concluído (upsert).
- * user_id é preenchido automaticamente pelo RLS (auth.uid()).
  */
 export function useMarcarTutorialConcluido() {
   const qc = useQueryClient();
@@ -123,7 +121,7 @@ export function useMarcarTutorialConcluido() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("help_center_progresso")
         .upsert(
           {
