@@ -1359,6 +1359,11 @@ export function ProposalWizard() {
 
       setRendering(true);
       setGenerationStatus("generating_docx");
+
+      // Simulate progress steps during template-preview (single long call covers docx+pdf+upload)
+      const progressTimer = setTimeout(() => setGenerationStatus("converting_pdf"), 4000);
+      const progressTimer2 = setTimeout(() => setGenerationStatus("saving"), 12000);
+
       try {
         if (isDocxTemplate && genResult.proposta_id) {
           // DOCX template: call template-preview with JSON response to get persisted paths
@@ -1380,6 +1385,8 @@ export function ProposalWizard() {
               response_format: "json",
             }),
           });
+          clearTimeout(progressTimer);
+          clearTimeout(progressTimer2);
           if (!rawResp.ok) {
             const errBody = await rawResp.text();
             let errorMsg = "Erro ao gerar DOCX";
