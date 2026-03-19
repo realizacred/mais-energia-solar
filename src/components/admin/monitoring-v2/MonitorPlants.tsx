@@ -47,6 +47,7 @@ export default function MonitorPlants() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PlantUiStatus | "all">(initialFilter);
   const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [clientFilter, setClientFilter] = useState<"all" | "with" | "without">("all");
   const [viewMode, setViewMode] = useState<"split" | "list" | "map">("split");
   const [sortBy, setSortBy] = useState<SortKey>("alert");
   const [monitoringMode, setMonitoringMode] = useState(false);
