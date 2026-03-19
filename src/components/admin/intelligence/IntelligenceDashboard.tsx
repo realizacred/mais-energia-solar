@@ -9,6 +9,7 @@ import { LeadsToAttack } from "./LeadsToAttack";
 import { RevenueForecast } from "./RevenueForecast";
 import { ScoringConfigPanel } from "./ScoringConfigPanel";
 import { ScoreDistributionChart } from "./ScoreDistributionChart";
+import { ReaquecimentoOpportunitiesList } from "./ReaquecimentoOpportunitiesList";
 
 export function IntelligenceDashboard() {
   const { leads, statuses, loading: leadsLoading } = useLeads({ pageSize: 500 });
@@ -94,6 +95,9 @@ export function IntelligenceDashboard() {
 
       {/* Previsão de faturamento */}
       <RevenueForecast forecast={forecast} ticketMedio={config?.ticket_medio || 25000} />
+
+      {/* Oportunidades de reaquecimento */}
+      <ReaquecimentoOpportunitiesList />
 
       {/* Gráficos de distribuição */}
       <ScoreDistributionChart scores={scores} />
