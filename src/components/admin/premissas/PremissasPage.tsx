@@ -53,17 +53,11 @@ export function PremissasPage() {
       transition={{ duration: 0.3 }}
     >
       {/* §26 Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
-          <Sliders className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Premissas</h1>
-          <p className="text-sm text-muted-foreground">
-            Parâmetros financeiros, técnicos, tributários e valores padrões para dimensionamento e propostas.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Sliders}
+        title="Premissas"
+        description="Parâmetros financeiros, técnicos, tributários e valores padrões para dimensionamento e propostas."
+      />
 
       {/* §29 Tabs after header */}
       <Tabs value={tab} onValueChange={setTab}>
