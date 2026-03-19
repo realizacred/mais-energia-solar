@@ -18,6 +18,7 @@ import ReactSignatureCanvas from "react-signature-canvas";
 
 type TokenData = {
   id: string;
+  token: string;
   proposta_id: string;
   versao_id: string;
   expires_at: string;
