@@ -9,6 +9,7 @@ import { connectProvider } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField } from "@/services/integrations/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, CheckCircle2, AlertTriangle, Eye, EyeOff, Plug } from "lucide-react";
+import { ProviderSetupGuide } from "./ProviderSetupGuide";
 import { supabase } from "@/integrations/supabase/client";
 import { LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
 
@@ -186,6 +187,9 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
           </AccordionItem>
         </Accordion>
       )}
+
+      {/* Provider setup guide */}
+      <ProviderSetupGuide providerId={provider.id} />
 
       {/* Dynamic credential fields */}
       {hasFields && (

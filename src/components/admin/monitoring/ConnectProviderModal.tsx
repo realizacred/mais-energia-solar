@@ -9,6 +9,7 @@ import { getTutorial } from "@/services/monitoring/providerTutorials";
 import type { ProviderDefinition } from "@/services/monitoring/providerRegistry";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, Eye, EyeOff, Plug } from "lucide-react";
+import { ProviderSetupGuide } from "@/components/admin/integrations-v2/ProviderSetupGuide";
 
 interface Props {
   open: boolean;
@@ -113,6 +114,9 @@ export function ConnectProviderModal({ open, onOpenChange, provider, onSuccess }
           </AccordionItem>
         </Accordion>
       )}
+
+      {/* Provider setup guide */}
+      <ProviderSetupGuide providerId={provider.id} />
 
       {/* Dynamic credential fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
