@@ -50,37 +50,36 @@ export function useProposalTracking(propostaId: string | null, versaoId?: string
     queryFn: async () => {
       if (!propostaId) return { views: [], totalViews: 0, tokens: [], envios: [] };
 
-      const queries: Promise<any>[] = [
-        supabase
-          .from("proposta_views" as any)
-          .select("id, ip_address, user_agent, referrer, created_at", { count: "exact" })
-          .eq("proposta_id", propostaId)
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("proposta_aceite_tokens" as any)
-          .select("id, token, decisao, aceite_nome, aceite_documento, aceite_observacoes, assinatura_url, recusa_motivo, recusa_at, view_count, first_viewed_at, last_viewed_at, used_at, created_at, expires_at, cenario_aceito_id")
-          .eq("proposta_id", propostaId)
-          .order("created_at", { ascending: false }),
-      ];
+      const viewsPromise = (supabase as any)
+        .from("proposta_views")
+        .select("id, ip_address, user_agent, referrer, created_at", { count: "exact" })
+        .eq("proposta_id", propostaId)
+        .order("created_at", { ascending: false })
+        .limit(20);
 
-      if (versaoId) {
-        queries.push(
-          supabase
-            .from("proposta_envios" as any)
+      const tokensPromise = (supabase as any)
+        .from("proposta_aceite_tokens")
+        .select("id, token, decisao, aceite_nome, aceite_documento, aceite_observacoes, assinatura_url, recusa_motivo, recusa_at, view_count, first_viewed_at, last_viewed_at, used_at, created_at, expires_at, cenario_aceito_id")
+        .eq("proposta_id", propostaId)
+        .order("created_at", { ascending: false });
+
+      const enviosPromise = versaoId
+        ? (supabase as any)
+            .from("proposta_envios")
             .select("id, canal, status, enviado_em, destinatario")
             .eq("versao_id", versaoId)
             .order("enviado_em", { ascending: false })
-        );
-      }
+        : Promise.resolve({ data: [] });
 
-      const results = await Promise.all(queries);
+      const [viewsRes, tokensRes, enviosRes] = await Promise.all([
+        viewsPromise, tokensPromise, enviosPromise,
+      ]);
 
       return {
-        views: (results[0].data || []) as ViewData[],
-        totalViews: (results[0].count || 0) as number,
-        tokens: (results[1].data || []) as TokenData[],
-        envios: (results[2]?.data || []) as EnvioData[],
+        views: (viewsRes.data || []) as ViewData[],
+        totalViews: (viewsRes.count || 0) as number,
+        tokens: (tokensRes.data || []) as TokenData[],
+        envios: (enviosRes.data || []) as EnvioData[],
       };
     },
     staleTime: STALE_TIME,
