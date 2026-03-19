@@ -60,14 +60,14 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
 
         {/* Key specs */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="gap-1 font-mono text-xs">
+          <Badge variant="outline" className="gap-1 font-mono text-xs bg-primary/10 text-primary border-primary/20">
             <Zap className="w-3 h-3" />{m.potencia_wp}W
           </Badge>
           {m.num_celulas && (
-            <Badge variant="secondary" className="text-xs">{m.num_celulas} cél.</Badge>
+            <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{m.num_celulas} cél.</Badge>
           )}
           {m.eficiencia_percent && (
-            <Badge variant="secondary" className="text-xs">{m.eficiencia_percent}%</Badge>
+            <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">{m.eficiencia_percent}%</Badge>
           )}
         </div>
 
