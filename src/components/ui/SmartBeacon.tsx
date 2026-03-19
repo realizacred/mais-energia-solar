@@ -76,7 +76,7 @@ export function SmartBeacon({ beacon, onDismiss }: SmartBeaconProps) {
       {showTooltip && (
         <div
           ref={tooltipRef}
-          className="fixed z-[10000] w-64 rounded-xl bg-card border border-border/50 shadow-xl p-3.5 animate-in fade-in-0 zoom-in-95 duration-200"
+          className="fixed z-[60] w-64 rounded-xl bg-card border border-border/50 shadow-xl p-3.5 animate-in fade-in-0 zoom-in-95 duration-200"
           style={{
             top: pos.top + 20,
             left: Math.min(pos.left - 100, window.innerWidth - 280),
