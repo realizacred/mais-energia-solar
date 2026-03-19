@@ -463,6 +463,13 @@ export function WaChatPanel({
                       {assignedConsultor ? " · " : ""}{conversation.lead_nome || "Lead"}
                     </button>
                   )}
+                  {currentNotification && (
+                    <IntelligenceBadge
+                      temperamento={(currentNotification.temperamento_novo as any) || "frio"}
+                      urgenciaScore={currentNotification.urgencia_score}
+                      className="ml-1"
+                    />
+                  )}
                 </div>
               </div>
             </div>
