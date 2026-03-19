@@ -279,7 +279,7 @@ export function AuthForm() {
     });
   };
 
-
+  const handleSignIn = async (data: LoginData) => {
     setIsLoading(true);
     try {
       let loginEmail = data.email;
