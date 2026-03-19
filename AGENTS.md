@@ -1,1679 +1,1243 @@
-# AGENTS.md — Mais Energia Solar CRM
-
-Padrões obrigatórios para toda tela nova ou editada.
-
----
-
-## 📑 ÍNDICE
-
-- [Bloco 0 — TL;DR Checklist](#bloco-0--tldr-checklist)
-- [Bloco 1 — Regras Bloqueantes](#bloco-1--regras-bloqueantes)
-- [Bloco 2 — Boas Práticas](#bloco-2--boas-práticas)
-- [Bloco 3 — Referência de Padrões (§1–§43)](#bloco-3--referência-de-padrões)
-- [Bloco 4 — Conflitos e Exceções Oficiais](#bloco-4--conflitos-e-exceções-oficiais)
-- [Bloco 5 — Validação Antes de Finalizar](#bloco-5--validação-antes-de-finalizar)
-- [Bloco 6 — Convenções de Nomenclatura](#bloco-6--convenções-de-nomenclatura)
-- [Bloco 7 — Escopo por Área](#bloco-7--escopo-por-área)
-- [Bloco 8 — WhatsApp / Mobile / Modais / Avatar](#bloco-8--whatsapp--mobile--modais--avatar)
-
----
-
-# Bloco 0 — TL;DR CHECKLIST
-
-Antes de finalizar **qualquer** tarefa, verifique os 24 itens:
-
-- [ ] Cores: `bg-primary`, `text-primary` (nunca hex, nunca `orange-*`, `blue-*`)
-- [ ] Button shadcn (`@/components/ui/button`) — nunca `<button>` nativo
-- [ ] `staleTime` em toda `useQuery` (ver §23)
-- [ ] Queries só em hooks (`src/hooks/`) — nunca em componente (ver §16)
-- [ ] `Skeleton` no loading — nunca spinner solto (ver §12)
-- [ ] Responsive: `grid-cols-1 sm:grid-cols-2` (ver §32)
-- [ ] Modal: `w-[90vw] max-w-[tamanho]` (ver §25)
-- [ ] Header de página **antes** de `TabsList` (ver §29)
-- [ ] Changelog atualizado se mudança funcional (ver §31)
-- [ ] Não modificar `src/components/ui/` (exceto `switch.tsx` e `slider.tsx`)
-- [ ] NUNCA hardcode cor laranja/azul/hex em UI
-- [ ] Sanitizar snapshot antes de salvar proposta (ver §33)
-- [ ] Whitelist explícita de campos UC (ver §33)
-- [ ] `x-client-timeout: "120"` nas edge functions de proposta (ver §33)
-- [ ] INTEGRAÇÕES = conexão externa, não funcionalidade (ver §30)
-- [ ] Telefone: `PhoneInput` de `@/components/ui-kit/inputs/PhoneInput` — nunca input nativo
-- [ ] CPF/CNPJ: `CpfCnpjInput` de `@/components/shared/CpfCnpjInput` — nunca criar do zero
-- [ ] Endereço: `AddressFields` de `@/components/shared/AddressFields` — nunca recriar
-- [ ] Modal: `DialogHeader` + `DialogTitle` + botões shadcn — nunca `<button>` nativo
-- [ ] Formulário: `bg-card` + `text-foreground` — nunca `bg-white`/`gray-*`
-- [ ] Verificar `src/components/shared/`, `ui-kit/`, `ui/` antes de criar componente novo
-- [ ] Scroll interno: `min-h-0` em todo flex-col com overflow (ver §36)
-- [ ] WhatsApp Inbox: scroll por coluna independente — NUNCA scroll global na página (ver §39)
-- [ ] Storage paths: resolver com signed URL antes de exibir (ver §37)
-- [ ] Conversão lead→venda: fallback de dados técnicos obrigatório (ver §38)
-
----
-
----
-
-# Bloco 1 — REGRAS BLOQUEANTES
-
-Se descumprido = bug, inconsistência visual ou erro em produção.
-
-### 🚫 BLOQUEANTE — Cores semânticas obrigatórias
-NUNCA use: `orange-*`, `blue-*`, `#FF6600`, `#3b82f6`, `text-orange-500`, `bg-blue-600` ou qualquer cor fixa.
-SEMPRE use variáveis semânticas: `bg-primary`, `text-primary`, `bg-card`, `text-foreground`, `bg-success`, etc.
-→ Ver §1, §2
-
-### 🚫 BLOQUEANTE — Dark mode em toda tela nova
-NUNCA: `bg-white`, `text-black`, `text-gray-500`, `border-gray-200`.
-SEMPRE: `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`.
-→ Ver §2
-
-### 🚫 BLOQUEANTE — Button shadcn obrigatório
-NUNCA usar `<button>` HTML nativo. SEMPRE `Button` de `@/components/ui/button`.
-→ Ver §22
-
-### 🚫 BLOQUEANTE — staleTime em toda useQuery
-Sem staleTime = queries desnecessárias e UX degradada.
-→ Ver §23
-
-### 🚫 BLOQUEANTE — Queries só em hooks
-NUNCA query Supabase em componente React. Sempre em `src/hooks/`.
-→ Ver §16
-
-### 🚫 BLOQUEANTE — Skeleton no loading
-NUNCA deixar tela em branco durante loading. Sempre `Skeleton`.
-→ Ver §12
-
-### 🚫 BLOQUEANTE — Responsividade obrigatória
-Todo componente funciona em 320px–1920px. NUNCA largura fixa em px.
-→ Ver §32
-
-### 🚫 BLOQUEANTE — Modal com w-[90vw]
-NUNCA usar `max-w-*` sozinho sem `w-[90vw]` em modais com 2+ colunas.
-→ Ver §25
-
-### 🚫 BLOQUEANTE — Header antes de TabsList
-A ordem é: header → abas → conteúdo. NUNCA inverter.
-→ Ver §29
-
-### 🚫 BLOQUEANTE — Aproveitamento de tela (admin)
-NUNCA `max-w-*`, `container mx-auto` em páginas admin.
-→ Ver §21
-
-### 🚫 BLOQUEANTE — Não modificar src/components/ui/
-Exceto `switch.tsx` e `slider.tsx` para tokens semânticos.
-→ Ver [Bloco 4](#bloco-4--conflitos-e-exceções-oficiais)
-
-### 🚫 BLOQUEANTE — Proposta: sanitizar + whitelist + timeout
-→ Ver §33
-
-### 🚫 BLOQUEANTE — Multi-tenant: nunca assumir cor fixa
-Cada tenant configura sua identidade em `/admin/site-config`.
-→ Ver §1
-
-### 🚫 BLOQUEANTE — Telefone: NUNCA input nativo
-NUNCA usar `<Input>` ou `<input>` para telefone. SEMPRE usar `PhoneInput` de `@/components/ui-kit/inputs/PhoneInput` que já formata `(XX) XXXXX-XXXX` automaticamente.
-→ Ver §13
-
-### 🚫 BLOQUEANTE — CPF/CNPJ: NUNCA criar input do zero
-SEMPRE usar `CpfCnpjInput` de `@/components/shared/CpfCnpjInput`. Nunca criar máscara manual.
-→ Ver §13
-
-### 🚫 BLOQUEANTE — Endereço: NUNCA criar campos do zero
-SEMPRE usar `AddressFields` de `@/components/shared/AddressFields` com `useCepLookup`. Nunca recriar CEP/estado/cidade manualmente.
-→ Ver §13
-
-### 🚫 BLOQUEANTE — Modal: NUNCA criar sem seguir §25
-Todo modal de formulário DEVE ter: `w-[90vw] max-w-[tamanho]`, `DialogHeader` + `DialogTitle` shadcn, botões `variant="outline"` + `variant="default"` (nunca `<button>` nativo), grid `grid-cols-1 sm:grid-cols-2`.
-→ Ver §25
-
-### 🚫 BLOQUEANTE — Formulário: NUNCA bg-white
-NUNCA usar `bg-white`, `text-black`, `gray-*` em modais ou formulários. SEMPRE `bg-card`, `text-foreground`, `border-border`.
-→ Ver §2
-
-### 🚫 BLOQUEANTE — Componentes: verificar antes de criar
-Antes de criar QUALQUER componente novo, verificar se já existe em: `src/components/shared/`, `src/components/ui-kit/`, `src/components/ui/`. Nunca duplicar funcionalidade existente.
-
-### 🚫 BLOQUEANTE — Scroll interno: min-h-0 obrigatório
-Containers `flex-col` com `flex-1` e scroll interno DEVEM ter `min-h-0`. Sem isso, `overflow-y-auto` não funciona.
-→ Ver §36
-
-### 🚫 BLOQUEANTE — WhatsApp Inbox: NUNCA scroll global
-A página do inbox NUNCA deve ter scroll global. A coluna de lista de conversas e o painel de chat são containers independentes, cada um com seu próprio scroll (`flex-col h-full overflow-hidden` + `flex-1 min-h-0 overflow-y-auto`).
-→ Ver §36, §39
-
-### 🚫 BLOQUEANTE — Storage paths: signed URL obrigatória
-NUNCA usar path raw do Supabase Storage como `src` de imagem. SEMPRE resolver com `createSignedUrl`.
-→ Ver §37
-
-### 🚫 BLOQUEANTE — Conversão lead→venda: fallback obrigatório
-NUNCA criar cliente com `potencia_kwp = null` se existir simulação ou proposta. SEMPRE usar cadeia de fallback.
-→ Ver §38
-
-# Bloco 2 — BOAS PRÁTICAS
-
-Recomendado mas não bloqueia PR.
-
-### 💡 RECOMENDADO — Framer Motion em entradas
-Animar cards e listas com stagger.
-→ Ver §7
-
-### 💡 RECOMENDADO — Tooltip em texto truncado mobile
-→ Ver §32
-
-### 💡 RECOMENDADO — Formatadores centralizados
-Usar `formatBRL`, `formatKwh`, `formatPercent`, `formatDateBR`, `formatBRLCompact` de `src/lib/formatters`.
-→ Ver §19
-
-### 💡 RECOMENDADO — Lógica em services, não em componentes
-→ Ver §17
-
-### 💡 RECOMENDADO — Princípios de engenharia
-SRP, DRY, SSOT, KISS, YAGNI. Patches incrementais.
-→ Ver §20
-
-### 💡 RECOMENDADO — Inputs especializados além dos obrigatórios
-Usar também: `CurrencyInput`, `DateInput`, `UnitInput` quando aplicável.
-→ Ver §13
-
-### 💡 RECOMENDADO — Safe query patterns
-Respeitar tenant isolation, evitar selects desnecessários, não quebrar RLS.
-→ Ver §18
-
----
-
-# Bloco 3 — REFERÊNCIA DE PADRÕES
-
-Todas as seções originais §1–§38, reorganizadas sem duplicações.
-
----
-
-## §1. IDENTIDADE VISUAL — nunca quebre isso
-
-### ⚠️ SISTEMA SAAS MULTI-TENANT
-Cada empresa cliente configura sua própria identidade visual em `/admin/site-config`.
-Cor primária, logo e nome variam por tenant. Nunca assuma uma cor específica como "a cor do sistema".
-
-### REGRA ABSOLUTA — NUNCA hardcode cores
-NUNCA use: `orange-*`, `blue-*`, `#FF6600`, `#3b82f6`, `text-orange-500`, `bg-blue-600` ou qualquer cor fixa como identidade visual.
-
-SEMPRE use variáveis semânticas:
-- `bg-primary` / `text-primary` / `border-primary` — ação principal, CTAs
-- `bg-primary/10` — fundo suave para ícones e badges
-- `bg-secondary` / `text-secondary` — elementos secundários
-- `bg-card`, `bg-background`, `border-border` — superfícies
-- `text-foreground`, `text-muted-foreground` — textos
-- `bg-success`, `bg-warning`, `bg-destructive`, `bg-info` — estados semânticos
-
-### Stack
-- React 18 + TypeScript
-- Tailwind CSS + shadcn/ui
-- Framer Motion, Recharts, Supabase
-
-### Fontes
-- Interface: `Inter` (corpo) + `Plus Jakarta Sans` (títulos/display)
-- Código: `JetBrains Mono`
-
-### Design
-Moderno, denso, sem espaço desperdiçado, dark-mode first quando possível.
-
----
-
-## §2. DARK MODE
-
-O projeto tem dark mode configurado. Toda tela nova deve suportar os dois modos.
-
-```
-// SEMPRE use variáveis semânticas, nunca cores hardcoded
-bg-background        text-foreground
-bg-card              text-card-foreground
-bg-muted             text-muted-foreground
-border-border
-
-// Para elementos com hover
-hover:bg-accent      hover:text-accent-foreground
-
-// NUNCA use
-bg-white             → use bg-card ou bg-background
-text-black           → use text-foreground
-text-gray-500        → use text-muted-foreground
-border-gray-200      → use border-border
-```
-
-### Slider
-- Trilha ativa: SEMPRE `bg-primary`
-- NUNCA usar `blue-*`, `#3b82f6` ou qualquer cor hardcoded em sliders
-- Verificar override no componente Slider do shadcn (`src/components/ui/slider.tsx`)
-
-### Seções dentro de modais
-- NUNCA usar fundo colorido hardcoded para separar seções dentro de modais
-- SEMPRE usar: `bg-muted/30 border border-border rounded-lg`
-- Exemplos proibidos: `bg-orange-50`, `bg-blue-50`, `bg-amber-*`, `bg-green-50`
-
----
-
-## §3. CARDS — padrão obrigatório
-
-### KPI Card
-→ **Ver §27** (fonte única de verdade para KPI cards)
-
-### Card de seção com header
-```tsx
-<Card className="bg-card border-border shadow-sm">
-  <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
-    <div>
-      <CardTitle className="text-base font-semibold text-foreground">Título</CardTitle>
-      <p className="text-sm text-muted-foreground mt-0.5">Subtítulo ou descrição</p>
-    </div>
-    <Button variant="outline" size="sm">Ação</Button>
-  </CardHeader>
-  <CardContent className="pt-4">
-    {/* conteúdo */}
-  </CardContent>
-</Card>
-```
-
-### Card de status / item de lista
-```tsx
-<div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
-  <div className="flex items-center gap-3">
-    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-      <Icon className="w-4 h-4 text-primary" />
-    </div>
-    <div>
-      <p className="text-sm font-medium text-foreground">Nome</p>
-      <p className="text-xs text-muted-foreground">Detalhe</p>
-    </div>
-  </div>
-  <Badge variant="outline">Status</Badge>
-</div>
-```
-
-### Badge de preço/métrica (ex: R$ X,XX / Wp)
-```tsx
-<Badge variant="outline" className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-  R$ 2,80 / Wp
-</Badge>
-```
-NUNCA usar cor hardcoded em badges de preço/métrica.
-
-### Badge de seção/categoria (ex: KITS SELECIONADOS)
-```tsx
-<Badge variant="outline" className="border-primary text-primary gap-2">
-  <Icon className="w-3.5 h-3.5" /> KITS SELECIONADOS
-</Badge>
-```
-SEMPRE usar `variant="outline"` com `border-primary text-primary`.
-
----
-
-## §4. TABELAS — padrão obrigatório
-
-Sempre usar o componente Table do shadcn. Nunca criar tabela com div ou HTML nativo.
-
-```tsx
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-
-<div className="rounded-lg border border-border overflow-hidden">
-  <Table>
-    <TableHeader>
-      <TableRow className="bg-muted/50 hover:bg-muted/50">
-        <TableHead className="font-semibold text-foreground w-[200px]">Cliente</TableHead>
-        <TableHead className="font-semibold text-foreground">Status</TableHead>
-        <TableHead className="font-semibold text-foreground text-right">Valor</TableHead>
-        <TableHead className="w-[60px]" />
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {items.map((item) => (
-        <TableRow
-          key={item.id}
-          className="hover:bg-muted/30 cursor-pointer transition-colors"
-          onClick={() => handleOpen(item)}
-        >
-          <TableCell className="font-medium text-foreground">{item.nome}</TableCell>
-          <TableCell>
-            <Badge variant="outline" className="text-xs">
-              {item.status}
-            </Badge>
-          </TableCell>
-          <TableCell className="text-right font-mono text-sm">
-            {formatBRLCompact(item.valor)}
-          </TableCell>
-          <TableCell>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-</div>
-```
-
-### Estado vazio de tabela
-```tsx
-{items.length === 0 && (
-  <div className="flex flex-col items-center justify-center py-12 text-center">
-    <Icon className="w-10 h-10 text-muted-foreground/40 mb-3" />
-    <p className="text-sm font-medium text-muted-foreground">Nenhum item encontrado</p>
-    <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou adicione um novo</p>
-  </div>
-)}
-```
-
----
-
-## §5. GRÁFICOS — padrão Recharts
-
-Sempre usar as variáveis CSS da paleta. Nunca cores hardcoded.
-
-```tsx
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-
-const CHART_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--secondary))",
-  "hsl(var(--success))",
-  "hsl(var(--warning))",
-  "hsl(var(--info))",
-  "hsl(var(--destructive))",
-]
-
-// Tooltip customizado — sempre usar este padrão
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
-      <p className="font-medium text-foreground mb-1">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} className="text-muted-foreground">
-          {p.name}: <span className="font-semibold text-foreground">{p.value}</span>
-        </p>
-      ))}
-    </div>
-  )
+# AGENTS.md v2.0 — Mais Energia Solar CRM
+# Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
+# Última atualização: 2026-03-19
+
+# =============================================================================
+# ⚠️ INSTRUÇÃO PRIMÁRIA PARA AI — LEIA PRIMEIRO
+# =============================================================================
+
+# SEMPRE siga estas regras na ordem de prioridade:
+# 1. REGRAS BLOQUEANTES (Bloco 1) — NUNCA quebrar, build falha se descumprir
+# 2. SNIPPETS OBRIGATÓRIOS (Bloco 3) — Copie e cole EXATAMENTE, não improvise
+# 3. ANTI-PADRÕES (Bloco 4) — NUNCA faça isso, já foi proibido
+# 4. DECISÕES (Bloco 5) — Entenda o "por que" antes de criar algo novo
+# 5. BOAS PRÁTICAS (Bloco 2) — Siga quando não conflitar com 1-4
+
+# DICA: Use o Índice Rápido (Bloco 0) para encontrar regras em 10 segundos
+
+# =============================================================================
+# BLOCO 0 — ÍNDICE RÁPIDO POR TIPO DE TAREFA
+# =============================================================================
+
+Estou criando... | Regras principais | Snippet obrigatório | Anti-padrões
+---|---|---|---
+**Novo componente React** | §1 (cores) → §22 (botões) → §32 (responsive) | §25-S1 (modal) | AP-02, AP-05, AP-07
+**Nova query Supabase** | §16 (hooks) → §23 (staleTime) → §18 (RLS) | §16-S1 (hook) | AP-01
+**Novo modal/drawer** | §25 (tamanhos) → §36 (scroll) → §39 (chat) | §25-S1 (modal) | AP-03, AP-04
+**Novo input formulário** | §13 (inputs) → §2 (dark mode) → §33 (proposta) | §13 (lista) | AP-05
+**Nova feature WhatsApp** | §39 (scroll chat) → §41 (avatar) → §43 (cron) | §39-S1 (chat) | AP-04
+**Novo hook customizado** | §16 (estrutura) → §23 (staleTime) → §20 (SRP) | §16-S1 (hook) | AP-01
+**Correção de bug visual** | §1 (cores) → Bloco 5 (validação) | — | AP-02, AP-03, AP-04
+**Nova tela admin** | §6 (aproveitamento) → §26 (header) → §29 (abas) | §25-S1 (modal) | AP-06
+**Nova tabela/lista** | §4 (tabela) → §12 (skeleton) → §34 (responsive) | §4-S1 (tabela) | AP-06
+**Novo gráfico** | §5 (recharts) → §27 (KPI) | §5-S1 (gráfico) | —
+
+# =============================================================================
+# BLOCO 1 — REGRAS BLOQUEANTES (RB-XX)
+# NUNCA quebrar. Build falha, PR é rejeitado, código é revertido.
+# =============================================================================
+
+RB-01 CORES SEMÂNTICAS OBRIGATÓRIAS
+    NUNCA use: orange-*, blue-*, green-*, red-*, #FF6600, #3b82f6, text-orange-500, bg-blue-600
+    SEMPRE use variáveis CSS:
+      - Ação principal: bg-primary, text-primary, border-primary, bg-primary/10
+      - Superfícies: bg-card, bg-background, bg-muted
+      - Textos: text-foreground, text-muted-foreground, text-card-foreground
+      - Bordas: border-border, border-input
+      - Estados: bg-success, bg-warning, bg-destructive, bg-info
+    → Ver §1 para exemplos visuais
+
+RB-02 DARK MODE EM TODA TELA NOVA
+    NUNCA use: bg-white, text-black, text-gray-500, border-gray-200
+    SEMPRE use: bg-card, text-foreground, text-muted-foreground, border-border
+    Teste: alterne entre light/dark no Storybook ou dev tools
+
+RB-03 BOTÃO SHADCN OBRIGATÓRIO
+    NUNCA use: &lt;button&gt; HTML nativo
+    SEMPRE use: &lt;Button&gt; de @/components/ui/button
+    Variantes por hierarquia:
+      - Ação principal: variant="default" (sólido primário)
+      - Ação secundária: variant="outline"
+      - Destrutiva (remover): variant="outline" className="border-destructive text-destructive"
+      - Cancelar/fechar: variant="ghost"
+    → Ver §22 para tabela completa de variantes
+
+RB-04 QUERIES SÓ EM HOOKS
+    NUNCA faça: supabase.from() dentro de componente React
+    SEMPRE use: hook em src/hooks/ com useQuery
+    Estrutura obrigatória: useDados() → useBuscarDado() → useAtualizarDado()
+    → Ver §16-S1 para template exato
+
+RB-05 STALETIME OBRIGATÓRIO EM TODA QUERY
+    NUNCA use: useQuery({ queryKey, queryFn }) sem staleTime
+    Padrões:
+      - Listas, formulários: staleTime: 1000 * 60 * 5 (5 min)
+      - Dados em tempo real: staleTime: 1000 * 30 (30 seg)
+      - Configurações estáticas: staleTime: 1000 * 60 * 15 (15 min)
+    → Ver §23 para quando usar cada um
+
+RB-06 SKELETON NO LOADING OBRIGATÓRIO
+    NUNCA deixe: tela em branco, "Carregando..." texto solto, spinner sem estrutura
+    SEMPRE use: Skeleton de @/components/ui/skeleton com estrutura similar ao conteúdo
+    → Ver §12-S1 para templates de skeleton
+
+RB-07 MODAL COM w-[90vw] OBRIGATÓRIO
+    NUNCA use: max-w-* sozinho (ex: max-w-md, max-w-2xl)
+    SEMPRE use: w-[90vw] max-w-[tamanho] (ex: w-[90vw] max-w-2xl)
+    Motivo: aproveita tela em notebooks, evita margens desperdiçadas
+
+RB-08 SCROLL INTERNO COM min-h-0 OBRIGATÓTIO
+    NUNCA use: flex-1 overflow-y-auto sem min-h-0
+    SEMPRE use: flex-1 min-h-0 overflow-y-auto
+    Motivo: sem min-h-0, scroll não funciona em containers flex
+
+RB-09 COMPONENTES EXISTENTES ANTES DE CRIAR NOVO
+    NUNCA crie: input de telefone, CPF, endereço, moeda, data do zero
+    SEMPRE verifique antes: src/components/{shared,ui-kit,ui}/
+    Lista de componentes obrigatórios:
+      - Telefone: PhoneInput de @/components/ui-kit/inputs/PhoneInput
+      - CPF/CNPJ: CpfCnpjInput de @/components/shared/CpfCnpjInput
+      - Endereço: AddressFields de @/components/shared/AddressFields
+      - Moeda: CurrencyInput de @/components/ui-kit/inputs/CurrencyInput
+      - Data: DateInput de @/components/ui-kit/inputs/DateInput
+
+RB-10 RESPONSIVIDADE OBRIGATÓRIA
+    NUNCA use: largura fixa em px (w-[400px], w-[500px])
+    NUNCA use: max-w-* em páginas admin (exceto modais)
+    SEMPRE use: 
+      - Grids: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+      - Flex: flex-wrap, flex-1, min-w-0
+      - Teste: 320px (mobile) e 1920px (desktop)
+
+RB-11 HEADER DE PÁGINA ANTES DE ABAS
+    NUNCA coloque: TabsList antes do título da página
+    SEMPRE ordem: Header (ícone + título + subtítulo) → TabsList → Conteúdo
+    → Ver §26-S1 para template de header
+
+RB-12 NÃO MODIFICAR src/components/ui/
+    NUNCA edite: arquivos em src/components/ui/ (exceto switch.tsx e slider.tsx)
+    Motivo: shadcn/ui base, atualizações sobrescrevem mudanças
+    Exceções permitidas: switch.tsx, slider.tsx (tokens semânticos)
+
+# =============================================================================
+# BLOCO 2 — BOAS PRÁTICAS (RECOMENDADO, NÃO BLOQUEANTE)
+# =============================================================================
+
+BP-01 FRAMER MOTION EM ENTRADAS
+    Animate cards e listas com stagger para UX premium
+    → Ver §7 para variants padrão
+
+BP-02 TOOLTIP EM TEXTO TRUNCADO MOBILE
+    Use Tooltip quando texto é cortado em telas pequenas
+
+BP-03 FORMATADORES CENTRALIZADOS
+    NUNCA formate manualmente: use formatBRL, formatKwh, formatDateBR de src/lib/formatters
+
+BP-04 LÓGICA EM SERVICES, NÃO COMPONENTES
+    Regras de negócio em src/services/, não em componentes visuais
+
+BP-05 PRINCÍPIOS DE ENGENHARIA
+    SRP, DRY, SSOT, KISS, YAGNI. Patches incrementais, não rewrites.
+
+BP-06 SAFE QUERY PATTERNS
+    Respeite tenant isolation, evite selects desnecessários, não quebre RLS
+
+# =============================================================================
+# BLOCO 3 — SNIPPETS OBRIGATÓRIOS (COPIE E COLE — NÃO IMPROVISE)
+# =============================================================================
+
+# Use estes templates EXATOS. Não remova comentários, não mude estrutura.
+# Cada snippet tem: [CÓDIGO] + [EXPLICAÇÃO] + [VARIAÇÕES PERMITIDAS]
+
+# ------------------------------------------------------------------------------
+# §16-S1 — HOOK COM SUPABASE (Template Obrigatório)
+# ------------------------------------------------------------------------------
+
+// src/hooks/useNOME.ts
+// §16: Queries só em hooks — NUNCA em componentes
+// §23: staleTime obrigatório — ajuste conforme tipo de dado
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+// Interfaces exportadas para reuso
+export interface NomeInterface {
+  id: string;
+  tenant_id: string;
+  // ... outros campos
+  created_at: string;
+  updated_at: string;
 }
 
-// Area chart (uso principal — tendências e receita)
-<ResponsiveContainer width="100%" height={220}>
-  <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-    <defs>
-      <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
-        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-      </linearGradient>
-    </defs>
-    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-    <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-    <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-    <Tooltip content={<CustomTooltip />} />
-    <Area type="monotone" dataKey="valor" stroke="hsl(var(--primary))" fill="url(#grad)" strokeWidth={2} dot={false} />
-  </AreaChart>
-</ResponsiveContainer>
+// Constantes de configuração
+const STALE_TIME = 1000 * 60 * 5; // 5 minutos — ajuste se necessário
+const QUERY_KEY = "nome" as const;
 
-// Bar chart
-<ResponsiveContainer width="100%" height={200}>
-  <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-    <XAxis dataKey="nome" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-    <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-    <Tooltip content={<CustomTooltip />} />
-    <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={40} />
-  </BarChart>
-</ResponsiveContainer>
-```
+/**
+ * Hook para listar dados do tenant
+ * §18: Respeita tenant isolation automaticamente via RLS
+ */
+export function useNOME(tenantId: string) {
+  return useQuery({
+    queryKey: [QUERY_KEY, tenantId],
+    queryFn: async () =&gt; {
+      const { data, error } = await supabase
+        .from("tabela")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data as NomeInterface[];
+    },
+    staleTime: STALE_TIME, // §23: NUNCA remover
+    enabled: !!tenantId, // Só executa se tenantId existe
+  });
+}
 
----
+/**
+ * Hook para buscar item específico
+ */
+export function useNOMEById(id: string | null) {
+  return useQuery({
+    queryKey: [QUERY_KEY, "detail", id],
+    queryFn: async () =&gt; {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("tabela")
+        .select("*")
+        .eq("id", id)
+        .single();
+      
+      if (error) throw error;
+      return data as NomeInterface;
+    },
+    staleTime: STALE_TIME,
+    enabled: !!id,
+  });
+}
 
-## §6. APROVEITAMENTO DE TELA — regras de layout
+/**
+ * Mutation para criar/atualizar
+ */
+export function useSalvarNOME() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (payload: Omit&lt;NomeInterface, "id" | "created_at" | "updated_at"&gt; & { id?: string }) =&gt; {
+      const { id, ...rest } = payload;
+      
+      if (id) {
+        // Update
+        const { data, error } = await supabase
+          .from("tabela")
+          .update({ ...rest, updated_at: new Date().toISOString() })
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        // Insert
+        const { data, error } = await supabase
+          .from("tabela")
+          .insert({ ...rest, created_at: new Date().toISOString() })
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: (data, variables) =&gt; {
+      // Invalida queries afetadas
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      if (variables.id) {
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, "detail", variables.id] });
+      }
+    },
+  });
+}
 
-```
-// Painéis de conteúdo — padding padrão
-p-4 md:p-6          (nunca p-8 ou mais em telas de lista)
+/**
+ * Mutation para deletar
+ */
+export function useDeletarNOME() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) =&gt; {
+      const { error } = await supabase.from("tabela").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () =&gt; {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+    },
+  });
+}
 
-// Grids de cards KPI
-grid-cols-2 md:grid-cols-4 gap-4
+// VARIAÇÕES PERMITIDAS:
+// - STALE_TIME: 30s para realtime, 15min para configs
+// - Adicionar filtros no .eq() ou .in()
+// - Adicionar .limit() para paginação
+// - NUNCA remover staleTime ou enabled
 
-// Grids de seções
-grid-cols-1 lg:grid-cols-3 gap-4
+# ------------------------------------------------------------------------------
+# §25-S1 — MODAL/DIALOG (Template Obrigatório)
+# ------------------------------------------------------------------------------
 
-// Grids de formulários
-grid-cols-1 sm:grid-cols-2 gap-4
+// §25: Modal padrão — copie e adapte o conteúdo interno
+// RB-07: w-[90vw] obrigatório
+// §36: flex-1 min-h-0 obrigatório para scroll interno
 
-// Nunca limitar largura do painel
-max-w-4xl, max-w-3xl   → PROIBIDO fora de modais/dialogs
-container mx-auto      → PROIBIDO em páginas admin
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { NomeIcon } from "lucide-react"; // Substitua pelo ícone correto
 
-// Header de página padrão → Ver §26
-```
+interface NomeModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) =&gt; void;
+  // ... outras props específicas
+}
 
----
+export function NomeModal({ open, onOpenChange }: NomeModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSalvar = async () =&gt; {
+    setIsLoading(true);
+    try {
+      // ... lógica de salvar
+      onOpenChange(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    &lt;Dialog open={open} onOpenChange={onOpenChange}&gt;
+      {/* RB-07: w-[90vw] obrigatório */}
+      &lt;DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]"&gt;
+        
+        {/* HEADER — §25: ícone + título + subtítulo obrigatórios */}
+        &lt;DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0"&gt;
+          &lt;div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"&gt;
+            &lt;NomeIcon className="w-5 h-5 text-primary" /&gt;
+          &lt;/div&gt;
+          &lt;div className="flex-1"&gt;
+            &lt;DialogTitle className="text-base font-semibold text-foreground"&gt;
+              Título do Modal
+            &lt;/DialogTitle&gt;
+            &lt;p className="text-xs text-muted-foreground mt-0.5"&gt;
+              Descrição curta explicando o que fazer neste modal
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/DialogHeader&gt;
+
+        {/* CORPO — §36: ScrollArea com flex-1 min-h-0 obrigatório */}
+        &lt;ScrollArea className="flex-1 min-h-0"&gt;
+          &lt;div className="p-5 space-y-5"&gt;
+            {/* 
+              Conteúdo do modal aqui
+              Use grid-cols-1 sm:grid-cols-2 para formulários
+              Use space-y-4 para seções verticais
+            */}
+          &lt;/div&gt;
+        &lt;/ScrollArea&gt;
+
+        {/* FOOTER — §22: Botões shadcn, alinhados à direita */}
+        &lt;DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0"&gt;
+          &lt;Button 
+            variant="outline" 
+            onClick={() =&gt; onOpenChange(false)}
+            disabled={isLoading}
+          &gt;
+            Cancelar
+          &lt;/Button&gt;
+          &lt;Button 
+            onClick={handleSalvar}
+            disabled={isLoading}
+          &gt;
+            {isLoading ? "Salvando..." : "Salvar"}
+          &lt;/Button&gt;
+        &lt;/DialogFooter&gt;
+      &lt;/DialogContent&gt;
+    &lt;/Dialog&gt;
+  );
+}
+
+// VARIAÇÕES PERMITIDAS:
+// - max-w-md (simples), max-w-2xl (padrão), max-w-3xl (complexo), max-w-[1100px] (wizard)
+// - Remover ScrollArea se conteúdo for pequeno (mas mantenha flex-1 min-h-0 no div)
+// - Adicionar seções com border-t border-border entre elas
+// - NUNCA remover w-[90vw] ou shrink-0
+
+# ------------------------------------------------------------------------------
+# §36-S1 — SCROLL INTERNO (Template Obrigatório)
+# ------------------------------------------------------------------------------
+
+// §36: Layout flex com scroll interno — use para listas, chats, painéis
+// RB-08: min-h-0 obrigatório em flex-1
+
+&lt;div className="flex flex-col h-full min-h-0 overflow-hidden"&gt;
+  {/* Header fixo — nunca encolhe */}
+  &lt;div className="shrink-0 p-4 border-b border-border"&gt;
+    {/* Título, botões, filtros */}
+  &lt;/div&gt;
+  
+  {/* Conteúdo rolável — RB-08: flex-1 + min-h-0 OBRIGATÓRIO */}
+  &lt;div className="flex-1 min-h-0 overflow-y-auto"&gt;
+    {/* Lista, tabela, chat, formulário longo */}
+  &lt;/div&gt;
+  
+  {/* Footer fixo (opcional) — nunca encolhe */}
+  &lt;div className="shrink-0 p-4 border-t border-border"&gt;
+    {/* Input, botões de ação, paginação */}
+  &lt;/div&gt;
+&lt;/div&gt;
+
+// VARIAÇÕES:
+// - Use ScrollArea do shadcn em vez de div se quiser estilização customizada
+// - Altura fixa: h-[calc(100vh-3.5rem)] em vez de h-full
+// - Sem footer: remova último shrink-0
+
+# ------------------------------------------------------------------------------
+# §39-S1 — WHATSAPP INBOX LAYOUT (Template Obrigatório)
+# ------------------------------------------------------------------------------
+
+// §39: NUNCA scroll global na página do inbox
+// Cada coluna é container independente com scroll próprio
+
+&lt;div className="flex h-[calc(100vh-3.5rem)] overflow-hidden"&gt;
+  {/* Coluna 1: Lista de conversas — 320px fixo */}
+  &lt;div className="w-80 flex flex-col h-full overflow-hidden border-r border-border shrink-0"&gt;
+    &lt;div className="shrink-0 p-4 border-b border-border"&gt;
+      {/* Header: título, busca, filtros */}
+    &lt;/div&gt;
+    &lt;div className="flex-1 min-h-0 overflow-y-auto"&gt;
+      {/* Lista de conversas (Virtuoso ou div) */}
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  {/* Coluna 2: Chat — flex-1 ocupa restante */}
+  &lt;div className="flex-1 flex flex-col h-full overflow-hidden"&gt;
+    &lt;div className="shrink-0 p-4 border-b border-border flex items-center justify-between"&gt;
+      {/* Header: avatar, nome, temperamento badge, ações */}
+      &lt;div className="flex items-center gap-3"&gt;
+        &lt;Avatar /&gt;
+        &lt;div&gt;
+          &lt;p className="font-medium text-foreground"&gt;Nome do Lead&lt;/p&gt;
+          &lt;IntelligenceBadge temperamento="morno" urgenciaScore={65} /&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"&gt;
+      {/* Mensagens do chat */}
+    &lt;/div&gt;
+    
+    &lt;div className="shrink-0 p-4 border-t border-border"&gt;
+      {/* Input de mensagem + botões */}
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+// VARIAÇÕES:
+// - Mobile: esconder coluna 1 quando coluna 2 ativa (drawer ou slide)
+// - Detalhes: adicionar coluna 3 (300px) com info do lead
+
+# ------------------------------------------------------------------------------
+# §4-S1 — TABELA PADRÃO (Template Obrigatório)
+# ------------------------------------------------------------------------------
+
+// §4: Sempre use componente Table do shadcn, nunca div ou HTML nativo
+// §34: align-middle obrigatório em TableRow e TableCell
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+
+&lt;div className="rounded-lg border border-border overflow-hidden"&gt;
+  &lt;Table&gt;
+    &lt;TableHeader&gt;
+      &lt;TableRow className="bg-muted/50 hover:bg-muted/50"&gt;
+        &lt;TableHead className="font-semibold text-foreground w-[200px]"&gt;Cliente&lt;/TableHead&gt;
+        &lt;TableHead className="font-semibold text-foreground"&gt;Status&lt;/TableHead&gt;
+        &lt;TableHead className="font-semibold text-foreground text-right"&gt;Valor&lt;/TableHead&gt;
+        &lt;TableHead className="w-[60px]" /&gt; {/* Coluna ações */}
+      &lt;/TableRow&gt;
+    &lt;/TableHeader&gt;
+    &lt;TableBody&gt;
+      {items.map((item) =&gt; (
+        &lt;TableRow
+          key={item.id}
+          className="hover:bg-muted/30 cursor-pointer transition-colors"
+          onClick={() =&gt; handleOpen(item)}
+        &gt;
+          &lt;TableCell className="font-medium text-foreground"&gt;{item.nome}&lt;/TableCell&gt;
+          &lt;TableCell&gt;
+            &lt;Badge variant="outline" className="text-xs"&gt;
+              {item.status}
+            &lt;/Badge&gt;
+          &lt;/TableCell&gt;
+          &lt;TableCell className="text-right font-mono text-sm"&gt;
+            {formatBRLCompact(item.valor)}
+          &lt;/TableCell&gt;
+          &lt;TableCell&gt;
+            {/* §34: Desktop = botões inline, Mobile = dropdown */}
+            &lt;div className="hidden lg:flex items-center gap-1"&gt;
+              &lt;Button variant="ghost" size="icon" className="h-7 w-7"&gt;
+                &lt;Eye className="w-4 h-4 text-primary" /&gt;
+              &lt;/Button&gt;
+              &lt;Button variant="ghost" size="icon" className="h-7 w-7"&gt;
+                &lt;Pencil className="w-4 h-4 text-warning" /&gt;
+              &lt;/Button&gt;
+            &lt;/div&gt;
+            &lt;div className="flex lg:hidden"&gt;
+              &lt;DropdownMenu&gt;
+                &lt;DropdownMenuTrigger asChild&gt;
+                  &lt;Button variant="ghost" size="icon" className="h-7 w-7"&gt;
+                    &lt;MoreHorizontal className="w-4 h-4" /&gt;
+                  &lt;/Button&gt;
+                &lt;/DropdownMenuTrigger&gt;
+                &lt;DropdownMenuContent align="end"&gt;
+                  &lt;DropdownMenuItem&gt;Ver detalhes&lt;/DropdownMenuItem&gt;
+                  &lt;DropdownMenuItem&gt;Editar&lt;/DropdownMenuItem&gt;
+                  &lt;DropdownMenuItem className="text-destructive"&gt;Excluir&lt;/DropdownMenuItem&gt;
+                &lt;/DropdownMenuContent&gt;
+              &lt;/DropdownMenu&gt;
+            &lt;/div&gt;
+          &lt;/TableCell&gt;
+        &lt;/TableRow&gt;
+      ))}
+    &lt;/TableBody&gt;
+  &lt;/Table&gt;
+&lt;/div&gt;
+
+# ------------------------------------------------------------------------------
+# §12-S1 — SKELETON STATES (Templates Obrigatórios)
+# ------------------------------------------------------------------------------
+
+// §12: NUNCA tela em branco durante loading
+
+// Skeleton de card KPI (4 cards)
+&lt;div className="grid grid-cols-2 md:grid-cols-4 gap-4"&gt;
+  {Array.from({ length: 4 }).map((_, i) =&gt; (
+    &lt;Card key={i} className="p-5"&gt;
+      &lt;Skeleton className="h-8 w-24 mb-2" /&gt;
+      &lt;Skeleton className="h-4 w-32" /&gt;
+    &lt;/Card&gt;
+  ))}
+&lt;/div&gt;
+
+// Skeleton de tabela (6 linhas)
+&lt;div className="space-y-2"&gt;
+  {Array.from({ length: 6 }).map((_, i) =&gt; (
+    &lt;Skeleton key={i} className="h-12 w-full rounded-lg" /&gt;
+  ))}
+&lt;/div&gt;
+
+// Skeleton de lista/chat
+&lt;div className="space-y-4"&gt;
+  {Array.from({ length: 5 }).map((_, i) =&gt; (
+    &lt;div key={i} className="flex items-center gap-3"&gt;
+      &lt;Skeleton className="h-10 w-10 rounded-full" /&gt;
+      &lt;div className="flex-1"&gt;
+        &lt;Skeleton className="h-4 w-3/4 mb-2" /&gt;
+        &lt;Skeleton className="h-3 w-1/2" /&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  ))}
+&lt;/div&gt;
+
+// Skeleton de formulário
+&lt;div className="space-y-4"&gt;
+  &lt;div className="grid grid-cols-1 sm:grid-cols-2 gap-4"&gt;
+    &lt;Skeleton className="h-10 w-full" /&gt;
+    &lt;Skeleton className="h-10 w-full" /&gt;
+  &lt;/div&gt;
+  &lt;Skeleton className="h-10 w-full" /&gt;
+  &lt;Skeleton className="h-32 w-full" /&gt;
+&lt;/div&gt;
+
+# ------------------------------------------------------------------------------
+# §26-S1 — HEADER DE PÁGINA (Template Obrigatório)
+# ------------------------------------------------------------------------------
+
+// §26: Header padronizado para todas as páginas admin
+// RB-11: Sempre antes de TabsList
+
+&lt;div className="flex items-center justify-between mb-6"&gt;
+  &lt;div className="flex items-center gap-3"&gt;
+    &lt;div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary"&gt;
+      &lt;NomeIcon className="w-5 h-5" /&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
+      &lt;h1 className="text-xl font-bold text-foreground"&gt;Título da Página&lt;/h1&gt;
+      &lt;p className="text-sm text-muted-foreground"&gt;Subtítulo descritivo&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div className="flex items-center gap-2"&gt;
+    &lt;Button variant="outline" size="sm"&gt;Exportar&lt;/Button&gt;
+    &lt;Button size="sm"&gt;+ Novo&lt;/Button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+// Depois do header, se houver abas:
+&lt;Tabs defaultValue="tab1"&gt;
+  &lt;TabsList&gt;
+    &lt;TabsTrigger value="tab1"&gt;Aba 1&lt;/TabsTrigger&gt;
+    &lt;TabsTrigger value="tab2"&gt;Aba 2&lt;/TabsTrigger&gt;
+  &lt;/TabsList&gt;
+  {/* ... */}
+&lt;/Tabs&gt;
+
+# ------------------------------------------------------------------------------
+# §27-S1 — KPI CARD PADRÃO (Template Obrigatório)
+# ------------------------------------------------------------------------------
+
+// §27: ÚNICO padrão para cards de métrica/número
+
+&lt;Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow"&gt;
+  &lt;CardContent className="flex items-center gap-4 p-5"&gt;
+    &lt;div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0"&gt;
+      &lt;NomeIcon className="w-5 h-5" /&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
+      &lt;p className="text-2xl font-bold tracking-tight text-foreground leading-none"&gt;
+        R$ 0,00
+      &lt;/p&gt;
+      &lt;p className="text-sm text-muted-foreground mt-1"&gt;Label do card&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/CardContent&gt;
+&lt;/Card&gt;
+
+// Variações de cor (estados):
+// border-l-primary + bg-primary/10 (padrão)
+// border-l-destructive + bg-destructive/10 (urgente/alerta)
+// border-l-success + bg-success/10 (positivo/crescimento)
+// border-l-warning + bg-warning/10 (atenção/pendente)
+
+# ------------------------------------------------------------------------------
+# §5-S1 — GRÁFICO RECHARTS (Template Obrigatório)
+# ------------------------------------------------------------------------------
+
+// §5: Sempre use variáveis CSS, nunca cores hardcoded
+
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
+// Tooltip customizado — padrão obrigatório
+const CustomTooltip = ({ active, payload, label }: any) =&gt; {
+  if (!active || !payload?.length) return null;
+  return (
+    &lt;div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm"&gt;
+      &lt;p className="font-medium text-foreground mb-1"&gt;{label}&lt;/p&gt;
+      {payload.map((p: any) =&gt; (
+        &lt;p key={p.name} className="text-muted-foreground"&gt;
+          {p.name}: &lt;span className="font-semibold text-foreground"&gt;{p.value}&lt;/span&gt;
+        &lt;/p&gt;
+      ))}
+    &lt;/div&gt;
+  );
+};
+
+&lt;ResponsiveContainer width="100%" height={220}&gt;
+  &lt;AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}&gt;
+    &lt;defs&gt;
+      &lt;linearGradient id="gradPrimary" x1="0" y1="0" x2="0" y2="1"&gt;
+        &lt;stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} /&gt;
+        &lt;stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} /&gt;
+      &lt;/linearGradient&gt;
+    &lt;/defs&gt;
+    &lt;CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" /&gt;
+    &lt;XAxis 
+      dataKey="mes" 
+      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} 
+      axisLine={false} 
+      tickLine={false} 
+    /&gt;
+    &lt;YAxis 
+      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} 
+      axisLine={false} 
+      tickLine={false} 
+    /&gt;
+    &lt;Tooltip content={&lt;CustomTooltip /&gt;} /&gt;
+    &lt;Area 
+      type="monotone" 
+      dataKey="valor" 
+      stroke="hsl(var(--primary))" 
+      fill="url(#gradPrimary)" 
+      strokeWidth={2} 
+      dot={false} 
+    /&gt;
+  &lt;/AreaChart&gt;
+&lt;/ResponsiveContainer&gt;
+
+# =============================================================================
+# BLOCO 4 — ANTI-PADRÕES (AP-XX) — NUNCA FAÇA ISSO
+# =============================================================================
+
+# Cada item: [O que é] → [Por que quebra] → [Como detectar no build]
+
+AP-01 QUERY DIRETA NO COMPONENTE
+    ❌ Errado: useEffect + supabase.from() dentro do componente
+    ✅ Certo: useQuery em hook separado (§16-S1)
+    🔍 Detectar: grep -rn "supabase.from" src/components/ --include="*.tsx"
+    💥 Consequência: Queries não cacheadas, múltiplas requisições, código não testável
+
+AP-02 COR FIXA PARA DESTAQUE
+    ❌ Errado: &lt;Badge className="bg-red-500"&gt;Urgente&lt;/Badge&gt; ou bg-blue-600
+    ✅ Certo: &lt;Badge className="bg-destructive/10 text-destructive border-destructive/20"&gt;Urgente&lt;/Badge&gt;
+    🔍 Detectar: grep -rn "bg-\(red\|green\|blue\|orange\|yellow\)-[0-9]\|#[0-9a-fA-F]\{3,6\}" src/components/
+    💥 Consequência: Quebra dark mode, inconsistência visual entre telas
+
+AP-03 MODAL SEM w-[90vw]
+    ❌ Errado: &lt;DialogContent className="max-w-2xl"&gt;
+    ✅ Certo: &lt;DialogContent className="w-[90vw] max-w-2xl"&gt;
+    🔍 Detectar: grep -rn 'DialogContent.*max-w-' src/ | grep -v 'w-\[90vw\]'
+    💥 Consequência: Margens desperdiçadas em notebooks, layout quebrado em mobile
+
+AP-04 SCROLL SEM min-h-0
+    ❌ Errado: &lt;div className="flex-1 overflow-y-auto"&gt;
+    ✅ Certo: &lt;div className="flex-1 min-h-0 overflow-y-auto"&gt;
+    🔍 Detectar: grep -rn "flex-1.*overflow-y-auto" src/ | grep -v "min-h-0"
+    💥 Consequência: Scroll não funciona, conteúdo cortado, overflow incorreto
+
+AP-05 BOTÃO HTML NATIVO
+    ❌ Errado: &lt;button onClick={...}&gt;Clique&lt;/button&gt;
+    ✅ Certo: &lt;Button onClick={...}&gt;Clique&lt;/Button&gt; de @/components/ui/button
+    🔍 Detectar: grep -rn "&lt;button" src/components/ --include="*.tsx"
+    💥 Consequência: Estilo inconsistente, sem variantes, sem acessibilidade do shadcn
+
+AP-06 LOADING SEM SKELETON
+    ❌ Errado: {isLoading && &lt;p&gt;Carregando...&lt;/p&gt;} ou spinner solto
+    ✅ Certo: {isLoading && &lt;Skeleton className="h-12 w-full" /&gt;} (§12-S1)
+    🔍 Detectar: grep -rn "Carregando\|Loading\|Aguarde" src/components/ --include="*.tsx"
+    💥 Consequência: Tela piscando, UX degradada, layout shift
+
+AP-07 MARGIN PARA ESPAÇAR COMPONENTES
+    ❌ Errado: &lt;Card className="mb-4"&gt;...&lt;/Card&gt; ou mt-4, ml-2, etc.
+    ✅ Certo: &lt;div className="space-y-4"&gt;&lt;Card&gt;...&lt;/Card&gt;&lt;/div&gt; (gap/space no pai)
+    🔍 Detectar: grep -rn "\(mb\|mt\|ml\|mr\)-[0-9]" src/components/ | grep -v "space-"
+    💥 Consequência: Espaçamento inconsistente, difícil manter, quebra em refactors
+
+AP-08 COMPONENTE DUPLICADO
+    ❌ Errado: Criar novo PhoneInput quando já existe em ui-kit
+    ✅ Certo: Verificar src/components/{shared,ui-kit,ui}/ antes de criar
+    🔍 Detectar: Audit manual (não automatizável)
+    💥 Consequência: 5 inputs de telefone diferentes no mesmo projeto, manutenção caótica
+
+AP-09 QUERY SEM STALETIME
+    ❌ Errado: useQuery({ queryKey, queryFn }) sem staleTime
+    ✅ Certo: useQuery({ queryKey, queryFn, staleTime: 5 * 60 * 1000 })
+    🔍 Detectar: grep -rn "useQuery(" src/hooks/ --include="*.ts" | grep -v "staleTime"
+    💥 Consequência: Refetch desnecessário, tela piscando, gasto de API
+
+AP-10 TABS ANTES DO HEADER
+    ❌ Errado: &lt;TabsList&gt; antes do título da página
+    ✅ Certo: Header (§26-S1) → TabsList → Conteúdo (RB-11)
+    🔍 Detectar: grep -A5 "TabsList" src/pages/ --include="*.tsx" | grep -B5 "h1\|text-xl"
+    💥 Consequência: Hierarquia visual confusa, usuário perdido, inconsistência
+
+AP-11 IMAGEM SEM SIGNED URL
+    ❌ Errado: &lt;img src={`${supabaseUrl}/storage/v1/object/public/${path}`} /&gt;
+    ✅ Certo: &lt;img src={signedUrl} /&gt; onde signedUrl = createSignedUrl(path, 3600)
+    🔍 Detectar: grep -rn "storage/v1/object/public" src/ --include="*.tsx"
+    💥 Consequência: Imagens quebram, segurança comprometida, não funciona em produção
+
+AP-12 FORMULÁRIO SEM ZOD/REACT-HOOK-FORM
+    ❌ Errado: useState para cada campo + validação manual
+    ✅ Certo: react-hook-form + zod resolver (padrão já existente no projeto)
+    🔍 Detectar: grep -rn "useState.*set.*value\|onChange.*set" src/components/ | grep -i "form"
+    💥 Consequência: Validação inconsistente, código verboso, bugs de estado
+
+# =============================================================================
+# BLOCO 5 — DECISÕES ARQUITETURAIS (DA-XX)
+# POR QUE fizemos assim? QUANDO quebrar a regra?
+# =============================================================================
+
+DA-01 QUERIES SÓ EM HOOKS (§16)
+    Contexto: 2024 — queries espalhadas em 40+ componentes. Mudança na API = editar 40 arquivos.
+    Decisão: Centralizar em src/hooks/. Hoje mudamos 1 hook, afeta todos.
+    Quando quebrar: NUNCA. Exceção: queries locais de autocomplete com debounce (useCallback).
+
+DA-02 STALETIME OBRIGATÓRIO (§23)
+    Contexto: React Query refetcha em window focus. Usuários: "tela pisca toda hora!"
+    Decisão: 5 min padrão. Dados realtime (chat): 30 seg.
+    Quando quebrar: Dados que MUDAM constantemente (preço Bitcoin, chat ativo, notificações).
+
+DA-03 SEM max-w-* EM ADMIN (§21)
+    Contexto: Dashboards antigos deixavam 30% tela em branco em monitores 1920px.
+    Decisão: w-full obrigatório em páginas admin.
+    Quando quebrar: Páginas públicas (landing) onde legibilidade &gt; aproveitamento.
+
+DA-04 COMPONENTES REUTILIZÁVEIS (§13)
+    Contexto: 2023 — 5 inputs de telefone diferentes no mesmo projeto.
+    Decisão: SEMPRE verificar src/components/{shared,ui-kit,ui}/ antes de criar novo.
+    Quando quebrar: Quando componente existente NÃO atende 80% do caso de uso (ex: necessita comportamento muito específico).
+
+DA-05 MODAIS COM w-[90vw] (RB-07)
+    Contexto: Monitores 1920px com max-w-3xl deixavam 600px de margem vazia.
+    Decisão: w-[90vw] aproveita espaço, ainda limitado por max-w-*.
+    Quando quebrar: NUNCA. Todas as telas se beneficiam.
+
+DA-06 SRP EM HOOKS (§20)
+    Contexto: Hooks gigantes fazendo 10 coisas diferentes, difíceis de testar.
+    Decisão: useBuscarX, useCriarX, useAtualizarX, useDeletarX separados.
+    Quando quebrar: Quando operações são atômicas e sempre usadas juntas (ex: useSalvar que cria ou atualiza).
+
+DA-07 DARK MODE FIRST (§2)
+    Contexto: Implementar dark mode depois = duplicar trabalho, inconsistências.
+    Decisão: Toda tela nova já nasce com dark mode (variáveis semânticas).
+    Quando quebrar: Componentes que SÓ existem em um modo (ex: canvas de assinatura branco).
+
+DA-08 RESPONSIVIDADE MOBILE-FIRST (§32)
+    Contexto: 60% dos usuários acessam via mobile, mas devs testam em desktop.
+    Decisão: grid-cols-1 sm:grid-cols-2 (mobile primeiro, breakpoint sobe).
+    Quando quebrar: Features desktop-only (ex: dashboard analítico complexo).
+
+# =============================================================================
+# BLOCO 6 — REFERÊNCIA RÁPIDA DE PADRÕES (§1–§44)
+# =============================================================================
+
+# Use Ctrl+F para encontrar. Seção completa para consulta.
+
+## §1. IDENTIDADE VISUAL — Cores semânticas
+
+Variável | Uso | NUNCA substituir por
+---|---|---
+bg-primary | Botões primários, badges ativos, ícones | orange-500, blue-600, #FF6600
+bg-primary/10 | Fundo suave de ícones, badges outline | orange-50, blue-50
+bg-card | Cards, modais, dropdowns | bg-white, bg-gray-100
+bg-background | Fundo da página | bg-white, bg-gray-50
+bg-muted | Seções alternadas, hover states | bg-gray-100, bg-gray-200
+text-foreground | Texto principal | text-black, text-gray-900
+text-muted-foreground | Texto secundário, labels | text-gray-500, text-gray-600
+border-border | Bordas de cards, inputs | border-gray-200, border-gray-300
+bg-destructive | Erros, remover, alertas críticas | bg-red-500, bg-red-600
+bg-success | Sucesso, concluído, positivo | bg-green-500
+
+## §2. DARK MODE — Variáveis obrigatórias
+
+// SEMPRE use estas variáveis, nunca cores hardcoded
+bg-background        → Fundo da aplicação
+bg-card              → Superfícies elevadas (cards, modais)
+bg-muted             → Seções alternadas
+text-foreground      → Texto principal
+text-muted-foreground → Texto secundário
+border-border        → Todas as bordas
+
+// NUNCA use em código novo
+bg-white             ❌ → use bg-card ou bg-background
+text-black           ❌ → use text-foreground
+text-gray-500        ❌ → use text-muted-foreground
+border-gray-200      ❌ → use border-border
+
+## §4. TABELAS — Componente Table do shadcn
+
+- SEMPRE use Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+- NUNCA crie tabela com div ou HTML nativo
+- §34: SEMPRE align-middle em TableRow e TableCell
+- §34: Coluna telefone = w-[155px] min-w-[155px] + whitespace-nowrap
+- §34: Desktop = botões inline, Mobile = DropdownMenu
+
+## §5. GRÁFICOS — Recharts com tokens CSS
+
+- SEMPRE use "hsl(var(--primary))" para cores, nunca #hex ou tailwind colors
+- SEMPRE inclua CustomTooltip padronizado
+- SEMPRE use ResponsiveContainer com height fixo (200-300px)
+
+## §6. APROVEITAMENTO DE TELA
+
+- NUNCA max-w-4xl, max-w-7xl, container mx-auto em páginas admin
+- SEMPRE w-full, flex-1, min-w-0 em conteúdo principal
+- Permitido em: modais, landing pages, páginas públicas
 
 ## §7. ANIMAÇÕES — Framer Motion
 
-O projeto usa framer-motion. Sempre animar entradas de cards e listas.
-
-```tsx
-import { motion } from "framer-motion"
-
-// Entrada de cards em grid — stagger
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },
-  visible: (i: number) => ({
+  visible: (i: number) =&gt; ({
     opacity: 1, y: 0,
     transition: { delay: i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] },
   }),
-}
-
-{items.map((item, i) => (
-  <motion.div key={item.id} custom={i} initial="hidden" animate="visible" variants={cardVariants}>
-    {/* card */}
-  </motion.div>
-))}
-
-// Entrada de página
-<motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-  {/* conteúdo da página */}
-</motion.div>
-
-// Hover em item interativo
-<motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} transition={{ duration: 0.15 }}>
-```
-
----
-
-## §8. BADGES E STATUS
-
-```tsx
-// Status de projeto/lead
-const statusConfig = {
-  ativo:      { label: "Ativo",      className: "bg-success/10 text-success border-success/20" },
-  pendente:   { label: "Pendente",   className: "bg-warning/10 text-warning border-warning/20" },
-  cancelado:  { label: "Cancelado",  className: "bg-destructive/10 text-destructive border-destructive/20" },
-  concluido:  { label: "Concluído",  className: "bg-info/10 text-info border-info/20" },
-}
-
-<Badge variant="outline" className={`text-xs ${statusConfig[status].className}`}>
-  {statusConfig[status].label}
-</Badge>
-```
-
----
-
-## §9. KANBAN CARDS
-
-```tsx
-// Card do pipeline — denso, com todas as infos visíveis
-<div className={cn(
-  "group relative bg-card border border-border rounded-lg p-3 shadow-sm",
-  "hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer",
-  isDragging && "opacity-50 rotate-1 shadow-lg"
-)}>
-  {/* topo: código + badge urgência */}
-  <div className="flex items-center justify-between mb-2">
-    <span className="text-xs font-mono text-muted-foreground">{lead.lead_code}</span>
-    {isUrgente && <Badge className="text-[10px] h-4 bg-destructive/10 text-destructive border-destructive/20">Urgente</Badge>}
-  </div>
-
-  {/* nome */}
-  <p className="text-sm font-semibold text-foreground truncate mb-1">{lead.nome}</p>
-
-  {/* infos compactas */}
-  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{lead.cidade}/{lead.estado}</span>
-    <span className="flex items-center gap-1"><Zap className="w-3 h-3" />{lead.media_consumo} kWh</span>
-  </div>
-
-  {/* rodapé: valor + consultor + tempo */}
-  <div className="flex items-center justify-between">
-    <span className="text-xs font-semibold text-primary">{formatBRLCompact(lead.valor_projeto)}</span>
-    <span className="text-xs text-muted-foreground">{diasAtras}d atrás</span>
-  </div>
-</div>
-```
-
----
-
-## §10. PLANILHAS E GRIDS DENSOS (relatórios financeiros)
-
-```tsx
-// Para telas de planilha tipo Excel — usar tabela densa
-<div className="rounded-lg border border-border overflow-auto">
-  <Table>
-    <TableHeader className="sticky top-0 z-10">
-      <TableRow className="bg-muted hover:bg-muted">
-        <TableHead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground h-9 px-3">Col</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {rows.map((row) => (
-        <TableRow key={row.id} className="h-9 hover:bg-muted/40 transition-colors">
-          <TableCell className="px-3 py-1 text-sm">{row.valor}</TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-</div>
-
-// Linha de totais no rodapé
-<div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-t border-border rounded-b-lg">
-  <span className="text-sm font-semibold text-foreground">Total</span>
-  <span className="text-sm font-bold text-primary">{formatBRL(total)}</span>
-</div>
-```
-
----
-
-## §11. MODAIS E DRAWERS
-
-Para estrutura e tamanhos de modal → **Ver §25** (fonte única de verdade). Não duplicar padrões aqui.
-
----
-
-## §12. LOADING STATES
-
-Toda tela com dados async deve ter skeleton. Nunca deixar em branco.
-
-```tsx
-import { Skeleton } from "@/components/ui/skeleton"
-
-// Skeleton de card KPI
-{loading ? (
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {Array.from({ length: 4 }).map((_, i) => (
-      <Card key={i} className="p-5">
-        <Skeleton className="h-8 w-24 mb-2" />
-        <Skeleton className="h-4 w-32" />
-      </Card>
-    ))}
-  </div>
-) : (
-  // cards reais
-)}
-
-// Skeleton de tabela
-{loading ? (
-  <div className="space-y-2">
-    {Array.from({ length: 6 }).map((_, i) => (
-      <Skeleton key={i} className="h-12 w-full rounded-lg" />
-    ))}
-  </div>
-) : (
-  // tabela real
-)}
-```
-
----
-
-## §13. INPUTS — componentes obrigatórios
-
-Não criar campos do zero. Usar sempre:
-
-```
-CPF / CNPJ     → import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput"
-Endereço+CEP   → import { AddressFields } from "@/components/shared/AddressFields"
-Busca de CEP   → import { useCepLookup } from "@/hooks/useCepLookup"
-Telefone       → import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput"
-Data           → import { DateInput } from "@/components/ui-kit/inputs/DateInput"
-Valor R$       → import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput"
-Unidade        → import { UnitInput } from "@/components/ui-kit/inputs/UnitInput"
-Botões         → import { Button } from "@/components/ui/button"
-```
-
----
-
-## §14. BANCO DE DADOS — regras críticas
-
-- Nunca reescrever queries ao fazer ajuste visual
-- Nunca remover campos sem verificar se são salvos no banco
-- Sempre usar os tipos de `@/integrations/supabase/types`
-- RLS já configurado — não adicionar lógica de permissão no frontend
-- Para novas queries: sempre usar o hook existente ou criar um novo em `src/hooks/`
-- Nomes de tabelas: ver `src/integrations/supabase/types.ts` (323 tabelas mapeadas)
-
----
-
-## §15. ESTRUTURA DE PASTAS
-
-```
-src/
-  components/
-    shared/           ← componentes reutilizáveis (CEP, CPF, Endereço)
-    ui/               ← shadcn/ui — NÃO modificar (exceto switch.tsx, slider.tsx)
-    ui-kit/inputs/    ← inputs customizados — usar sempre
-    admin/            ← telas do painel admin
-    vendor/           ← portal do consultor
-  hooks/              ← verificar antes de criar novo hook
-  pages/              ← rotas principais
-  lib/                ← utilitários (cpfCnpjUtils, formatters, etc)
-  services/           ← lógica de integrações e monitoring
-```
-
----
-
-## §16. QUERIES — padrão obrigatório
-
-Nunca fazer query Supabase diretamente em componentes React.
-Queries devem ficar em `src/hooks/`.
-Componentes devem apenas consumir hooks.
-
----
-
-## §17. SERVIÇOS
-
-Lógica de negócio nunca deve ficar no componente.
-Deve ficar em `src/services/`.
-
-Responsabilidades:
-- integração com APIs
-- cálculos de negócio
-- transformação de dados
-- comunicação com providers externos
-
----
-
-## §18. SAFE QUERY PATTERNS
-
-Sempre que aplicável:
-- respeitar tenant isolation
-- evitar selects desnecessários
-- não quebrar RLS
-- não retornar dados excessivos
-
----
-
-## §19. FORMATADORES
-
-Nunca formatar valores manualmente. Usar utilitários em `src/lib/formatters`:
-
-```
-formatBRL        formatKwh
-formatPercent    formatDateBR
-formatBRLCompact formatPhoneBR
-```
-
----
-
-## §20. PRINCÍPIOS DE ENGENHARIA
-
-Seguir sempre: SRP, DRY, SSOT, KISS, YAGNI, SOLID quando aplicável.
-
-Separar UI de lógica de negócio.
-
-Antes de modificar código:
-1. auditar o estado atual
-2. entender como já funciona
-3. preservar o que está correto
-4. alterar apenas o necessário
-5. preferir patches incrementais
-
----
-
-## §21. APROVEITAMENTO DE TELA — REGRA GLOBAL
-
-O sistema deve utilizar **100% da largura disponível** do painel administrativo.
-
-É PROIBIDO em páginas admin:
-```
-max-w-3xl / max-w-4xl / max-w-5xl / max-w-6xl / max-w-7xl
-max-w-screen-lg / max-w-screen-xl
-container / container mx-auto
-```
-
-Permitido apenas em: modais, dialogs, drawers, páginas públicas, landing pages.
-
-Usar sempre no conteúdo principal:
-```
-w-full    flex-1    min-w-0    p-4 md:p-6
-```
-
----
-
-## §22. PADRÃO DE BOTÕES — Regra obrigatória
-
-- Ação principal (+ Novo, + Criar, Salvar, Confirmar): `variant="default"` — SEMPRE sólido primário (`bg-primary`)
-- Ação secundária (Filtrar, Exportar, Atualizar): `variant="outline"`
-- Ação destrutiva (Excluir, Remover, Deletar): `variant="destructive"`
-- Navegação e fechamento (Voltar, Fechar, Cancelar): `variant="ghost"`
-- Ação de sucesso (Aprovar, Concluir, Marcar como pago): `variant="success"`
-- Ação de alerta (Pausar, Pendente, Revisar): `variant="warning"`
-
-NUNCA usar `variant="outline"` em botão de ação principal.
-NUNCA usar `<button>` HTML nativo — sempre `Button` de `@/components/ui/button`.
-
-### Dois botões no mesmo modal (mesma hierarquia)
-Quando há 2 opções de escolha no mesmo nível:
-- Primeira opção: `variant="default"` (primário)
-- Segunda opção: `variant="outline" className="border-primary text-primary hover:bg-primary/10"`
-- NUNCA dois botões `variant="default"` lado a lado
-
-### Botão de remover/deletar
-NUNCA usar `bg-destructive` sólido escuro.
-SEMPRE usar:
-```tsx
-<Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
-  Remover
-</Button>
-```
-
-### Botões dentro de cards e fundos coloridos
-- Botão dentro de card com fundo primário: `variant="outline" className="bg-background"`
-- Botão de ação rápida dentro de kanban card: `variant="ghost" size="sm"`
-- Botão de adicionar item em coluna: `variant="outline" size="sm" className="w-full border-dashed"`
-- NUNCA usar `variant="default"` dentro de elemento com fundo primário
-
-### Toggle de Visualização (Grid/Lista)
-- Usar `ToggleGroup` do shadcn/ui
-- Item ativo: `bg-primary/10 text-primary border-primary`
-- Item inativo: `variant="outline"`
-- NUNCA usar `border-orange` ou cores hardcoded
-- NUNCA usar `<button>` HTML nativo — sempre componentes do shadcn
-
-### Botão sempre deve ter texto visível
-- NUNCA deixar botão sem texto ou ícone visível
-- Se condicional, usar `hidden` em vez de render vazio
-- Botões apenas com ícone DEVEM ter `aria-label`
-
----
-
-## §23. staleTime OBRIGATÓRIO em todo useQuery
-
-- Dados de monitoramento em tempo real: `staleTime: 1000 * 30`
-- Dados normais (listas, formulários): `staleTime: 1000 * 60 * 5`
-- Dados estáticos (configurações, planos, permissões): `staleTime: 1000 * 60 * 15`
-
-NUNCA criar useQuery sem staleTime.
-
----
-
-## §24. REGRA DE OVERLAYS E FUNDOS
-
-- `bg-black/XX` — permitido apenas em overlays de media player e componentes shadcn nativos
-- `bg-white` sólido — permitido apenas em canvas de assinatura (SignaturePad)
-- `bg-white/XX` com opacidade — permitido em overlays sobre gradientes e heroes institucionais
-- Para todos os outros casos usar `bg-card`, `bg-background` ou `bg-muted`
-
----
-
-## §25. TAMANHOS E PADRÃO VISUAL DE MODAIS
-
-### Tamanhos (DialogContent):
-- Simples até 4 campos: `max-w-md`
-- Médio até 8 campos: `w-[90vw] max-w-xl`
-- Com 2 colunas ou seções: `w-[90vw] max-w-2xl`
-- Completo com endereço: `w-[90vw] max-w-3xl`
-- Wizard multi-step: `w-[90vw] max-w-[1100px]`
-
-REGRA: SEMPRE usar `w-[90vw]` para aproveitar a tela em notebooks e monitores.
-
-### Estrutura obrigatória de todo modal:
-```tsx
-<Dialog>
-  <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
-
-    {/* HEADER com ícone + título + subtítulo */}
-    <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
-      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <Icon className="w-5 h-5 text-primary" />
-      </div>
-      <div className="flex-1">
-        <DialogTitle className="text-base font-semibold text-foreground">
-          Título do Modal
-        </DialogTitle>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Descrição curta do que fazer aqui
-        </p>
-      </div>
-    </DialogHeader>
-
-    {/* CORPO com seções separadas por divisor — flex-1 min-h-0 para scroll correto */}
-    <div className="p-5 space-y-5 flex-1 min-h-0 overflow-y-auto">
-
-      {/* Seção com título */}
-      <div className="space-y-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Dados pessoais
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* campos aqui */}
-        </div>
-      </div>
-
-      {/* Divisor entre seções */}
-      <div className="border-t border-border" />
-
-      {/* Segunda seção */}
-      <div className="space-y-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Endereço
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* campos aqui */}
-        </div>
-      </div>
-
-    </div>
-
-    {/* FOOTER fixo com ações */}
-    <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
-      <Button variant="outline" onClick={onClose}>
-        Cancelar
-      </Button>
-      <Button onClick={onSave}>
-        Salvar
-      </Button>
-    </div>
-
-  </DialogContent>
-</Dialog>
-```
-
-### Regras do novo padrão:
-- SEMPRE ícone `bg-primary/10 text-primary` no header
-- SEMPRE subtítulo descritivo abaixo do título
-- SEMPRE seções separadas por `border-t border-border`
-- SEMPRE título de seção em `uppercase text-xs tracking-wide`
-- SEMPRE footer com `bg-muted/30` e botões alinhados à direita
-- NUNCA scroll na página inteira — usar `flex-1 min-h-0 overflow-y-auto` no corpo (nunca `max-h-[70vh]` — causa dupla restrição, ver §39)
-- NUNCA `bg-white` em nenhuma parte do modal
-- NUNCA criar modal sem ícone no header
-
-### Layout em 2 colunas (modais com 4+ seções)
-Quando um modal tiver 4 ou mais seções de conteúdo (ex: dados do cliente,
-dados da proposta, documentos, comissão), usar layout em 2 colunas
-para aproveitar a tela e evitar scroll excessivo:
-
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
-  {/* Coluna esquerda — dados principais */}
-  <div className="p-5 space-y-5">
-    {/* seções de dados */}
-  </div>
-  {/* Coluna direita — ações e detalhes */}
-  <div className="p-5 space-y-5">
-    {/* seções de ações */}
-  </div>
-</div>
-```
-
-Regras:
-- Em mobile (< md): voltar para coluna única automaticamente
-- Largura do modal com 2 colunas: `w-[90vw] max-w-[780px]`
-- Divisor entre colunas: `divide-x divide-border` (nunca cor hardcoded)
-- Coluna esquerda: dados do cliente, dados da proposta, informações
-- Coluna direita: documentos, ações, formulários, comissão
-- NUNCA usar 2 colunas em modais simples com menos de 4 seções
-
----
-
-## §26. PADRÃO DE HEADER DE PÁGINA
-
-Toda página admin deve ter header padronizado. Referência: ComissoesManager.tsx.
-
-```tsx
-<div className="flex items-center justify-between mb-6">
-  <div className="flex items-center gap-3">
-    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
-      <Icon className="w-5 h-5" />
-    </div>
-    <div>
-      <h1 className="text-xl font-bold text-foreground">Título da Página</h1>
-      <p className="text-sm text-muted-foreground">Subtítulo descritivo</p>
-    </div>
-  </div>
-  <div className="flex items-center gap-2">
-    <Button variant="outline" size="sm">Exportar</Button>
-    <Button size="sm">+ Novo</Button>
-  </div>
-</div>
-```
-
-NUNCA usar ícone cinza no header principal.
-SEMPRE ícone com `bg-primary/10 text-primary`.
-
----
-
-## §27. PADRÃO DE CARDS KPI
-
-Fonte única de verdade para KPI cards (também referenciado por §3).
-
-Um único padrão para TODOS os cards de número/métrica no sistema:
-
-```tsx
-<Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
-  <CardContent className="flex items-center gap-4 p-5">
-    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
-      <Icon className="w-5 h-5" />
-    </div>
-    <div>
-      <p className="text-2xl font-bold tracking-tight text-foreground leading-none">R$ 0,00</p>
-      <p className="text-sm text-muted-foreground mt-1">Label do card</p>
-    </div>
-  </CardContent>
-</Card>
-```
-
-PROIBIDO:
-- Cards com fundo colorido sólido (laranja, azul, verde)
-- Cards com borda inferior colorida
-- Cards sem borda lateral esquerda
-- Cards com ícone cinza/muted
-- Misturar estilos de KPI na mesma tela
-
----
-
-## §28. SWITCHES E TOGGLES
-
-Todos os switches/toggles do sistema devem seguir:
-
-- Cor ativa: `bg-primary` — NUNCA azul ou hardcoded
-- Cor inativa: bg-muted
-- Verificar src/components/ui/switch.tsx — deve usar bg-primary quando checked
-
-Containers que envolvem switches devem:
-- Ter padding suficiente: px-3 py-2
-- NUNCA usar overflow-hidden no elemento pai direto do switch
-- Garantir que o switch não seja cortado pela borda do container
-
----
-
-## §29. PADRÃO DE ABAS INTERNAS
-
-Quando uma página tem menu de abas interno, a ordem obrigatória é:
-
-1. Header da página (ícone + título + subtítulo) — ver §26
-2. Menu de abas (TabsList horizontal)
-3. Conteúdo da aba ativa
-
-NUNCA colocar TabsList antes do header.
-NUNCA colocar o título dentro do conteúdo da aba.
-
-Exemplo correto:
-```tsx
-<div className="p-4 md:p-6">
-  {/* 1. Header sempre primeiro */}
-  <div className="flex items-center gap-3 mb-4">
-    <div className="w-10 h-10 rounded-lg bg-primary/10 
-    text-primary flex items-center justify-center">
-      <Icon className="w-5 h-5" />
-    </div>
-    <div>
-      <h1 className="text-xl font-bold text-foreground">
-        Título
-      </h1>
-      <p className="text-sm text-muted-foreground">
-        Subtítulo
-      </p>
-    </div>
-  </div>
-
-  {/* 2. Abas depois do header */}
-  <Tabs defaultValue="dashboard">
-    <TabsList>
-      <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-      <TabsTrigger value="lista">Lista</TabsTrigger>
-    </TabsList>
-
-    {/* 3. Conteúdo */}
-    <TabsContent value="dashboard">
-      ...
-    </TabsContent>
-  </Tabs>
-</div>
-```
-
-Telas que usam esse padrão: Monitoramento Solar, Recebimentos e qualquer tela com TabsList interno.
-
----
-
-## §30. ESTRUTURA DO MENU — 15 seções
-
-O menu lateral do sistema é organizado em 15 seções. O arquivo `navRegistry.ts` é a Fonte Única de Verdade (SSOT).
-
-**Regras de classificação:**
-- **INTEGRAÇÕES** = configurar conexão externa (API, OAuth, webhook, instâncias, API keys, sincronização de feeds)
-- **ATENDIMENTO** = usar funcionalidades já conectadas (inbox, filas, regras, métricas)
-- **CLIENTES** = dados do cliente (cadastro, avaliações, documentos)
-- **OPERAÇÕES** = execução e checklists operacionais (instaladores, estoque, validação, checklists de projeto, agenda de serviços)
-- **ENERGIA** = usar/monitorar dados de energia, tarifas e sincronização ANEEL (não configurar conexões)
-
-**Princípio:** "Configurar conexão externa = INTEGRAÇÕES. Usar/monitorar dados = área funcional."
-
-**Regra de API keys:** API keys de provedores externos (OpenAI, Gemini, Evolution API, etc.) SEMPRE são configuradas via frontend em `/admin/catalogo-integracoes` ou páginas dedicadas (ex: `/admin/openai-config`, `/admin/gemini-config`). NUNCA linkar para o dashboard do Supabase — o usuário não tem acesso direto ao Supabase.
-
-1. **PAINEL** — Painel Geral, Performance
-2. **COMERCIAL** — Leads, Pipeline, Projetos, Acompanhamentos, Distribuição de Leads, SLA & Breaches, Inteligência Comercial, Aprovações
-3. **ATENDIMENTO** — Central WhatsApp, Fila de Follow-ups, Regras de Follow-up, Métricas de Atendimento, Regras de Retorno, Fila de Retorno, Etiquetas WhatsApp, Respostas Rápidas
-4. **CLIENTES** — Gestão de Clientes, Avaliações NPS, Documentos & Assinaturas
-5. **PÓS-VENDA** — Dashboard, Preventivas, Planos, Checklists, Oportunidades
-6. **OPERAÇÕES** — Instaladores, Estoque, Validação de Vendas, Tarefas & SLA, Documentação, Agenda de Serviços
-7. **FINANCEIRO** — Recebimentos, Inadimplência, Comissões, Fiscal, Financiamentos, Premissas Fiscais, Política de Preços
-8. **EQUIPE** — Consultores, Gamificação
-9. **IA** — Copilot IA, Configuração de IA
-10. **ENERGIA** — Unidades Consumidoras, Monitoramento Solar, Usinas, Alertas, Relatórios, SolarMarket Importação, Saúde Tarifária, Status Sync ANEEL
-11. **INTEGRAÇÕES** — Catálogo de Integrações, Saúde das Integrações, Meta Ads Dashboard, Webhooks, Instâncias WhatsApp, Automação WhatsApp, Integrações Monitoramento, SolarMarket Config, Medidores, Google Maps, Instagram
-12. **SITE** — Conteúdo & Visual, Serviços, Portfólio
-13. **CADASTROS** — Disjuntores & Transf., Módulos Fotovoltaicos, Inversores, Baterias, Fornecedores, Concessionárias, Dicionário ANEEL, Versões de Tarifa, Premissas, Base Meteorológica
-14. **CONFIGURAÇÕES** — Calculadora Solar, Status de Leads, Motivos de Perda, Loading & Mensagens
-15. **ADMINISTRAÇÃO** — Empresa, Usuários & Permissões, Permissões por Papel, Auditoria, Notificações, Links & Captação, Release Notes, Atualizações, Personalizar Menus, Limpeza de Dados
-
----
-
-## §31. CHANGELOG OBRIGATÓRIO
-
-Toda alteração significativa (feature, melhoria, correção, segurança ou infra) **DEVE** gerar uma entrada no arquivo `src/data/changelog.ts`.
-
-Regras:
-- Arquivo `src/data/changelog.ts` é a **Fonte Única de Verdade (SSOT)** do histórico de atualizações
-- Entradas devem ser inseridas **no topo** do array `CHANGELOG` (mais recente primeiro)
-- Cada entrada deve conter: `version` (semver), `date` (YYYY-MM-DD), `title`, `description`, `type` e opcionalmente `details[]`
-- Incrementar versão seguindo SemVer: major (breaking), minor (feature/improvement), patch (bugfix)
-- O campo `details` deve listar os itens concretos alterados (máximo 5-6 bullets)
-- Agrupar múltiplas correções pequenas em uma única entrada quando feitas na mesma sessão
-
-Tipos válidos:
-- `feature` — funcionalidade nova
-- `improvement` — melhoria em funcionalidade existente
-- `bugfix` — correção de bug
-- `security` — hardening, RLS, permissões
-- `infra` — migrations, edge functions, CI/CD
-
-Exemplo:
-```ts
-{
-  version: "2.15.0",
-  date: "2026-03-15",
-  title: "Título curto e descritivo",
-  type: "feature",
-  description: "Uma frase resumindo o que mudou e por quê.",
-  details: [
-    "Detalhe concreto 1",
-    "Detalhe concreto 2",
-  ],
-}
-```
-
-NUNCA esquecer de atualizar o changelog ao finalizar uma implementação significativa.
-Para exceções, ver [Bloco 4](#bloco-4--conflitos-e-exceções-oficiais).
-
----
-
-## §32. RESPONSIVIDADE OBRIGATÓRIA
-
-Todo componente deve funcionar em mobile (320px) e desktop (1920px).
-
-Regras obrigatórias:
-- Grids: SEMPRE `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` (adaptar conforme conteúdo)
-- Texto: NUNCA truncar em mobile sem tooltip
-- Modais: SEMPRE `w-[90vw]` com `max-w` definido
-- Flex containers com itens que podem crescer: SEMPRE `flex-wrap`
-- NUNCA width fixa em px para containers de conteúdo
-- Botões em mobile: `min-h-[44px]` (touch target mínimo)
-- Tabelas em mobile: `overflow-x-auto` no container pai
-
-```tsx
-// Grid responsivo padrão
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-
-// Flex responsivo com wrap
-<div className="flex flex-wrap items-center gap-2">
-
-// Tabela responsiva
-<div className="rounded-lg border border-border overflow-x-auto">
-  <Table>...</Table>
-</div>
-
-// Botão touch-friendly em mobile
-<Button className="min-h-[44px] sm:min-h-0">Ação</Button>
-```
-
-NUNCA usar `w-[400px]`, `w-[500px]` ou qualquer largura fixa em containers de conteúdo.
-SEMPRE testar visualmente em 320px e 1920px.
-
----
-
-## §33. FLUXO PROPOSTA — Regras Críticas
-
-### Persistência (useWizardPersistence.ts)
-- SEMPRE sanitizar snapshot antes de salvar no banco
-- NUNCA incluir `mapSnapshots` (base64) no payload do banco
-- Helper obrigatório: `sanitizeSnapshot()` remove `mapSnapshots` e normaliza `grupo`
-- Coluna `grupo`: SEMPRE normalizar para `"A"` ou `"B"` — NUNCA enviar valores brutos como `"B1"`, `"B2"`
-- A RPC `create_proposta_nativa_atomic` também normaliza `grupo` internamente (migration aplicada)
-- NUNCA enviar grupo raw ao banco por nenhum caminho — tanto frontend quanto RPC devem normalizar
-
-### Edge Functions (proposalApi.ts)
-- SEMPRE incluir `headers: { "x-client-timeout": "120" }` em `proposal-generate`, `proposal-render`, `proposal-send`
-- Propostas complexas podem ultrapassar timeout padrão
-
-### Payload de UCs (ProposalWizard.tsx)
-- NUNCA usar spread `...rest` para enviar UCs ao backend
-- SEMPRE usar whitelist explícita dos campos do `GenerateProposalPayload`
-- Campos frontend-only PROIBIDOS no payload:
-  `is_geradora`, `regra`, `grupo_tarifario`, `fase_tensao`,
-  `demanda_consumo_rs`, `demanda_geracao_rs`,
-  `tarifa_fio_b`, `tarifa_fio_b_p/fp`,
-  `tarifa_tarifacao_p/fp`, `consumo_meses_p/fp`
-
-### Campos com nomes diferentes (frontend → backend)
-- `demanda_consumo_kw` → `demanda_preco`
-- `demanda_geracao_kw` → `demanda_contratada`
-- `fase_tensao` (mono/bi/tri) → `fase` (monofasico/bifasico/trifasico)
-
----
-
-## §34. TABELA DE LEADS/ORÇAMENTOS — Padrão Obrigatório
-
-### Alinhamento vertical obrigatório
-- SEMPRE adicionar `align-middle` em `<TableRow>` e `<TableCell>` do `<TableBody>`
-- NUNCA deixar células sem alinhamento vertical explícito em tabelas com conteúdo de altura variável
-- Garante que todas as células fiquem centralizadas verticalmente quando o nome ou outro campo ocupa 2+ linhas
-
-### Coluna TELEFONE
-- SEMPRE `w-[155px] min-w-[155px]` na definição da `<TableHead>`
-- SEMPRE `whitespace-nowrap` na célula `<TableCell>` do telefone
-- NUNCA deixar o número quebrar em 2 linhas
-- Ícone `Phone` + número na mesma linha com `shrink-0`
-
-### Coluna AÇÕES — Responsividade obrigatória
-- Em telas `lg+` (≥1024px): botões INLINE com `Tooltip`
-  ```tsx
-  <div className="hidden lg:flex items-center gap-1">
-    {/* Cada botão: Button variant="ghost" size="icon" com TooltipProvider */}
-  </div>
-  ```
-  Ícones padrão: `Eye` | `Pencil` | `MessageSquare` | `UserRound` | `ShoppingCart` | `Trash2`
-  
-  Cores dos ícones (cor base visível + hover mais escuro):
-  - Ver detalhes (Eye): `text-primary hover:text-primary/80`
-  - Editar (Pencil): `text-warning hover:text-warning/80`
-  - WhatsApp (MessageSquare): `text-green-600 hover:text-green-700` (cor oficial da marca — exceção aceita)
-  - Alterar consultor (UserRound): `text-info hover:text-info/80`
-  - Converter (ShoppingCart): `text-primary hover:text-primary/80`
-  - Excluir (Trash2): `text-destructive hover:text-destructive/80`
-
-- Em telas `<lg`: `DropdownMenu` com botão `MoreHorizontal`
-  ```tsx
-  <div className="flex lg:hidden">
-    <DropdownMenu>...</DropdownMenu>
-  </div>
-  ```
-
-- NUNCA mostrar apenas 3 pontos em telas grandes
-- SEMPRE manter condições de permissão por role (admin/consultor)
-
----
-
-## §35. SIDEBAR — Padrão Visual Obrigatório
-
-### Badge de notificação
-- SEMPRE `bg-primary text-primary-foreground`
-- Tamanho: `min-w-[20px] h-5 rounded-full text-xs font-bold flex items-center justify-center px-1`
-- Quando item ATIVO: `bg-background text-primary` para contrastar com o fundo primário
-- NUNCA cor hardcoded no badge
-
-### Descrições dos itens
-- NUNCA exibir descrição abaixo do nome do item como texto fixo
-- SEMPRE usar Tooltip do shadcn/ui com `delayDuration={600}`
-- `TooltipContent` com `side="right"`
-- O texto do tooltip é a descrição do item de navegação
-
-### Implementação obrigatória
-```tsx
-<TooltipProvider delayDuration={600}>
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <NavItem ... />
-    </TooltipTrigger>
-    <TooltipContent side="right">
-      <p>{item.description}</p>
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
-```
-
----
-
-## §36. FLEXBOX SCROLL — Regra obrigatória
-
-Containers flexíveis (`flex-col`) que usam `flex-1` para preencher espaço e possuem conteúdo com scroll interno **DEVEM** incluir `min-h-0`.
-
-Sem `min-h-0`, o elemento flex não encolhe abaixo do tamanho do conteúdo, impedindo `overflow-y-auto` de funcionar.
-
-### Padrão obrigatório para painéis com scroll interno
-```tsx
-{/* Container pai — trava a altura */}
-<div className="flex flex-col h-full min-h-0 overflow-hidden">
-  
-  {/* Header fixo — nunca encolhe */}
-  <div className="shrink-0">
-    {/* header/toolbar */}
-  </div>
-  
-  {/* Conteúdo com scroll — flex-1 + min-h-0 */}
-  <div className="flex-1 min-h-0 overflow-y-auto">
-    {/* lista, chat, etc */}
-  </div>
-  
-  {/* Footer fixo (opcional) — nunca encolhe */}
-  <div className="shrink-0">
-    {/* input, botões */}
-  </div>
-</div>
-```
-
-### Regras
-- SEMPRE `min-h-0` em elementos `flex-1` dentro de `flex-col` que precisam scroll
-- SEMPRE `shrink-0` em headers/footers fixos dentro de flex containers
-- SEMPRE `overflow-hidden` no container pai para evitar scroll duplo
-- Usar `gap-*` em vez de `space-y-*` no container flex (space-y interfere no cálculo de overflow)
-- Em layouts full-height (ex: inbox), usar CSS para travar altura: `height: calc(100vh - 3.5rem)`
-
-### Onde se aplica
-- WhatsApp Inbox — **CRÍTICO**: coluna de lista de conversas e painel de chat são containers separados, cada um com `flex-col h-full overflow-hidden` próprio. NUNCA um scroll global englobando os dois.
-- Sidebars com listas longas
-- Qualquer painel split-view com scroll independente
-
----
-
-## §37. STORAGE URLS — Resolução obrigatória
-
-Paths internos do Supabase Storage (ex: `tenantId/identidade/arquivo.jpg`) **NÃO** funcionam como `src` de `<img>` ou `<a href>`. Devem ser convertidos em **signed URLs** antes de exibir.
-
-### Helper obrigatório
-```tsx
-async function resolveStorageUrl(path: string, bucket = "documentos-clientes"): Promise<string | null> {
-  if (!path) return null;
-  if (path.startsWith("http") || path.startsWith("data:")) return path;
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-  return data?.signedUrl || null;
-}
-```
-
-### Regras
-- NUNCA usar path raw de storage como `src` de imagem ou link de download
-- SEMPRE resolver com `createSignedUrl` (validade: 3600s padrão)
-- URLs que já começam com `http` ou `data:` devem passar direto (já são válidas)
-- Tratar `null` graciosamente — exibir placeholder se URL não resolver
-- Aplicar em: previews de documentos, fotos de identidade, comprovantes, assinaturas
-
----
-
-## §38. CONVERSÃO LEAD → VENDA — Dados técnicos obrigatórios
-
-Ao converter lead em cliente/venda, os campos `potencia_kwp` e `valor_projeto` **DEVEM** ser preenchidos usando cadeia de fallback.
-
-### Cadeia de fallback (em ordem de prioridade)
-1. **Simulação selecionada** (`simulacoes.potencia_kwp`, `simulacoes.valor_total`)
-2. **Última proposta nativa** (`proposta_nativas` → última `proposta_versoes.potencia_kwp`, `proposta_versoes.valor_total`)
-3. **Dados do lead** (`leads.potencia_estimada`, `leads.valor_projeto`)
-4. **Zero** como último recurso (nunca `null`)
-
-### Regras
-- NUNCA criar cliente com `potencia_kwp = null` e `valor_projeto = null` se existir proposta/simulação
-- SEMPRE logar no console qual fonte de dados foi usada (`[ConvertLead] fonte: simulação | proposta | lead`)
-- Documentos anexados (identidade, comprovante) devem ter URLs resolvidas via §37 antes de exibir no modal de aprovação
-- Upload de documentos deve logar cada etapa e lançar erro explícito se todos falharem (nunca falha silenciosa)
-
----
-
-# Bloco 4 — CONFLITOS E EXCEÇÕES OFICIAIS
-
-### src/components/ui/ — exceções permitidas
-- `switch.tsx` e `slider.tsx` podem ser editados para usar tokens semânticos (`bg-primary`)
-- Todos os outros arquivos em `ui/` são intocáveis
-
-### Changelog — exceções ao obrigatório (§31)
-Changelog **NÃO** é obrigatório para:
-- Correção de typos em texto/labels
-- Lint fixes e formatação
-- Refactor interno sem mudança funcional visível
-- Reorganização de imports
-
-### Exceções visuais confirmadas
-| Componente | Exceção | Motivo |
-|---|---|---|
-| `SignaturePad` | `bg-white` sólido | Canvas de assinatura precisa de fundo branco |
-| `GoogleMapView` | estilos inline do Google Maps | API externa controla renderização |
-| Media player overlays | `bg-black/XX` | Padrão UX para players de vídeo/áudio |
-| Heroes institucionais | `bg-white/XX` com opacidade | Overlays sobre gradientes em landing pages |
-| KPI cards de estado/urgência | `border-l-destructive`, `border-l-warning`, `border-l-success` | Cards que representam estados distintos (urgente, pendente, ok) mantêm cores semânticas para clareza visual |
-| Ícone WhatsApp (MessageSquare) | `text-[#25D366] hover:text-green-700` | Cor oficial da marca WhatsApp — exceção aceita em botões de ação |
-
-### Ambiguidade: "sólido laranja" em botões (§22)
-"SEMPRE sólido laranja" = usa `variant="default"` que renderiza `bg-primary`. A cor depende do tenant — pode ser laranja, azul ou qualquer outra. NUNCA hardcode `bg-orange-*`.
-
----
-
-# Bloco 5 — VALIDAÇÃO ANTES DE FINALIZAR
-
-Comandos obrigatórios antes de considerar uma tarefa concluída:
-
-### 1. Build sem erros
-```bash
-npm run build
-# Deve passar com zero erros
-```
-
-### 2. Grep de cores hardcoded
-```bash
-grep -rn "orange-\|blue-[0-9]\|#[0-9a-fA-F]\{3,6\}" src/ --include="*.tsx" --include="*.ts" | grep -v node_modules | grep -v "\.test\." | grep -v "types\.ts"
-# Não deve retornar nada em componentes de UI interativa
-# Exceções: ver Bloco 4
-```
-
-### 3. staleTime em queries novas
-```bash
-grep -rn "useQuery" src/hooks/ --include="*.ts" --include="*.tsx" | xargs grep -L "staleTime"
-# Deve retornar vazio (toda query tem staleTime)
-```
-
-### 4. Changelog atualizado
-Se houve mudança funcional, verificar que `src/data/changelog.ts` foi atualizado.
-
----
-
-# Bloco 6 — CONVENÇÕES DE NOMENCLATURA
-
-### Idioma
-- **PT-BR** para: labels de UI, textos, nomes de variáveis de domínio (`consultor`, `lead`, `proposta`)
-- **EN** para: nomes de componentes, hooks, utilitários, tipos TypeScript
-
-### Componentes
-- `PascalCase`: `VendorDashboardView`, `LeadKanbanCard`
-
-### Hooks
-- `camelCase` com prefixo `use`: `useLeads`, `useCepLookup`, `useWizardPersistence`
-
-### Arquivos de página
-- `PascalCase` + sufixo `View` ou `Page`: `VendorWhatsAppView.tsx`, `AdminDashboardPage.tsx`
-
-### Nav keys (navRegistry.ts)
-- `kebab-case` em português: `gestao-clientes`, `monitoramento-solar`, `fila-followups`
-
-### Tabelas Supabase
-- `snake_case` em português: `consultor_metas`, `checklists_instalador`
-
-### Edge Functions
-- `kebab-case` em inglês: `proposal-generate`, `send-wa-message`
-
----
-
-# Bloco 7 — ESCOPO POR ÁREA
-
-Quais regras valem onde:
-
-### TODAS as áreas
-- Bloco 0 (checklist completo)
-- Bloco 1 (regras bloqueantes)
-- §1–§2 (cores, dark mode)
-- §12 (loading states)
-- §16 (queries em hooks)
-- §22 (botões)
-- §23 (staleTime)
-- §32 (responsividade)
-
-### Só admin (`/admin/*`)
-- §6 (aproveitamento de tela)
-- §21 (largura 100%)
-- §26 (header de página)
-- §29 (abas internas)
-- §30 (estrutura do menu — 15 seções)
-
-### Só portal consultor (`/consultor/*`)
-- Bottom nav mobile (`VendorBottomNav.tsx`)
-- Sidebar lateral (`VendorSidebar.tsx`)
-- Botão "Voltar" em views mobile
-
-### Modais e Dialogs
-- §11 (estrutura de modal/drawer)
-- §25 (tamanhos de modal — SSOT)
-
-### Fluxo Proposta
-- §33 (sanitização, whitelist, timeout)
-
-### Gráficos e Dashboards
-- §5 (Recharts com tokens semânticos)
-- §27 (KPI cards — SSOT)
-
-### Tabelas e Grids
-- §4 (tabela padrão)
-- §10 (grid denso para relatórios)
-
-### Layouts com scroll interno (Inbox, sidebars, split-view)
-- §36 (flexbox scroll obrigatório — aplica-se a QUALQUER painel com scroll independente)
-- §39 (padrão universal de scroll — mais completo, prevalece em caso de dúvida)
-- **WhatsApp Inbox**: cada coluna (lista de conversas + painel de chat) é um container de scroll independente. NUNCA scroll global na página.
-
-### Storage e Documentos
-- §37 (resolução de URLs obrigatória)
-
-### Conversão Lead → Venda
-- §38 (fallback de dados técnicos)
-
-
----
-
-# Bloco 8 — WHATSAPP / MOBILE / MODAIS / AVATAR
-
-Regras específicas para evitar reincidência de bugs validados no módulo WhatsApp e fluxos mobile.
-
----
-
-## §39. SCROLL INTERNO — Padrão universal para painéis, chats, dialogs e drawers
-
-Sempre que houver layout com **header + conteúdo + footer**, usar obrigatoriamente:
-
-```tsx
-<div className="flex flex-col h-full overflow-hidden">
-  <div className="shrink-0">{/* header */}</div>
-  <div className="flex-1 min-h-0 overflow-y-auto">{/* conteúdo */}</div>
-  <div className="shrink-0">{/* footer */}</div>
-</div>
-```
-
-### Regras
-- SEMPRE `overflow-hidden` no container pai
-- SEMPRE `shrink-0` em header e footer fixos
-- SEMPRE `flex-1 min-h-0 overflow-y-auto` no conteúdo rolável
-- Se usar `ScrollArea`: `<ScrollArea className="flex-1 min-h-0">`
-- Se usar `Virtuoso`: `className="h-full min-h-0"` com `style={{ height: "100%", overflowY: "auto" }}`
-- NUNCA `max-h-[70vh]` em body de dialog/sheet que já tem `max-h-[calc(100dvh-2rem)]` no container pai — causa dupla restrição e corta conteúdo no mobile
-- NUNCA usar `max-h-[70vh]` no corpo do modal — usar `flex-1 min-h-0 overflow-y-auto` com o DialogContent sendo `flex flex-col max-h-[calc(100dvh-2rem)]`
-
-### Onde se aplica
-- WhatsApp Inbox — **CRÍTICO**: a coluna de lista de conversas e o painel de chat são containers **SEPARADOS**, cada um com `flex-col h-full overflow-hidden` próprio. NUNCA scroll global na página do inbox. NUNCA um scroll englobando os dois painéis. Cada painel gerencia seu próprio `overflow-y-auto` de forma independente.
-- Qualquer `Dialog`, `Sheet`, `Drawer` com formulário longo
-- Sidebars com listas longas
-- Split-views com scroll independente
-
----
-
-## §40. DIALOGS ANINHADOS NO MOBILE — Transição sequencial obrigatória
-
-NUNCA renderizar um `Dialog` dentro de outro `Dialog` ativo no mobile. Causa:
-- Sobreposição de overlays
-- Scroll bloqueado
-- Conteúdo cortado ou inacessível
-
-### Padrão obrigatório
-```tsx
-// 1. Fechar o dialog pai ANTES de abrir o filho
-const handleOpenChild = () => {
-  onOpenChange(false); // fecha pai
-  setTimeout(() => setChildOpen(true), 150); // abre filho após animação
 };
 
-// 2. Renderizar o dialog filho FORA do dialog pai (no mesmo nível de fragment)
-return (
-  <>
-    <Dialog open={parentOpen} onOpenChange={onOpenChange}>
-      {/* conteúdo do pai */}
-    </Dialog>
+## §13. INPUTS — Componentes obrigatórios existentes
 
-    {/* Dialog filho — fora do pai */}
-    {childOpen && (
-      <ChildDialog open={childOpen} onOpenChange={setChildOpen} />
-    )}
-  </>
-);
-```
+CPF/CNPJ     → CpfCnpjInput de @/components/shared/CpfCnpjInput
+Endereço+CEP → AddressFields de @/components/shared/AddressFields
+Telefone     → PhoneInput de @/components/ui-kit/inputs/PhoneInput
+Data         → DateInput de @/components/ui-kit/inputs/DateInput
+Moeda        → CurrencyInput de @/components/ui-kit/inputs/CurrencyInput
+Unidade      → UnitInput de @/components/ui-kit/inputs/UnitInput
 
-### Regras
-- SEMPRE transição sequencial (fecha → delay → abre)
-- SEMPRE renderizar dialog filho fora do dialog pai via fragment `<>...</>`
-- Delay mínimo: `150ms` (tempo da animação de saída do Radix Dialog)
-- Aplicar em: "Ver Lead" → "Editar Lead", "Info" → "Formulário", qualquer fluxo dialog-em-dialog
+## §16. QUERIES — Só em hooks, nunca em componentes
 
----
+// ❌ PROIBIDO em componentes
+const [data, setData] = useState();
+useEffect(() =&gt; {
+  supabase.from('tabela').select().then(({ data }) =&gt; setData(data));
+}, []);
 
-## §41. AVATAR / FOTO DE PERFIL — Extração robusta de múltiplas chaves
+// ✅ OBRIGATÓRIO — hook separado
+const { data, isLoading } = useDados(tenantId); // staleTime incluído
 
-Webhooks de WhatsApp (Evolution API, Baileys, etc.) enviam a URL da foto de perfil em campos inconsistentes entre versões.
+## §17. SERVIÇOS — Lógica de negócio
 
-### Função obrigatória de extração
-```tsx
-function extractProfilePictureUrl(payload: Record<string, any>): string | null {
-  const INVALID = new Set(["", "none", "null", "undefined"]);
+- Regras de negócio em src/services/, nunca em componentes
+- Integrações com APIs externas em services/
+- Transformação de dados em services/
+
+## §19. FORMATADORES — Use utilitários existentes
+
+formatBRL        → R$ 1.234,56
+formatBRLCompact → R$ 1,2k (para espaços pequenos)
+formatKwh        → 1.234 kWh
+formatPercent    → 12,5%
+formatDateBR     → 15/03/2026
+formatPhoneBR    → (11) 98765-4321
+
+## §20. PRINCÍPIOS — SRP, DRY, SSOT, KISS, YAGNI
+
+- Separar UI de lógica de negócio
+- Antes de modificar: auditar, entender, preservar, alterar mínimo
+- Preferir patches incrementais a rewrites
+
+## §21. APROVEITAMENTO — Largura 100% em admin
+
+// ❌ PROIBIDO
+max-w-3xl, max-w-4xl, max-w-5xl, max-w-6xl, max-w-7xl
+max-w-screen-lg, max-w-screen-xl
+container, container mx-auto
+
+// ✅ OBRIGATÓRIO
+w-full, flex-1, min-w-0, p-4 md:p-6
+
+## §22. BOTÕES — Variantes por hierarquia
+
+Ação principal (Novo, Salvar, Confirmar):
+  variant="default" → sólido primário (bg-primary)
+
+Ação secundária (Filtrar, Exportar):
+  variant="outline"
+
+Destrutiva (Excluir, Remover):
+  variant="outline" className="border-destructive text-destructive hover:bg-destructive/10"
+
+Cancelar/Fechar:
+  variant="ghost"
+
+## §23. STALETIME — Obrigatório em toda useQuery
+
+Dados em tempo real (chat, notificações): 1000 * 30 (30s)
+Dados normais (listas, formulários):      1000 * 60 * 5 (5min)
+Dados estáticos (configurações):           1000 * 60 * 15 (15min)
+
+## §25. MODAIS — Tamanhos e estrutura
+
+Simples (4 campos):     w-[90vw] max-w-md
+Médio (8 campos):       w-[90vw] max-w-xl
+2 colunas/seções:       w-[90vw] max-w-2xl
+Endereço completo:      w-[90vw] max-w-3xl
+Wizard multi-step:      w-[90vw] max-w-[1100px]
+
+Estrutura obrigatória:
+1. DialogHeader com ícone bg-primary/10 + título + subtítulo
+2. Corpo com flex-1 min-h-0 overflow-y-auto (scroll interno)
+3. Footer com bg-muted/30 e botões alinhados à direita
+
+## §26. HEADER DE PÁGINA — Ícone + título + subtítulo
+
+&lt;div className="flex items-center justify-between mb-6"&gt;
+  &lt;div className="flex items-center gap-3"&gt;
+    &lt;div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary"&gt;
+      &lt;Icon className="w-5 h-5" /&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
+      &lt;h1 className="text-xl font-bold text-foreground"&gt;Título&lt;/h1&gt;
+      &lt;p className="text-sm text-muted-foreground"&gt;Subtítulo&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div className="flex items-center gap-2"&gt;
+    &lt;Button variant="outline" size="sm"&gt;Ação&lt;/Button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+## §27. KPI CARDS — Padrão único
+
+&lt;Card className="border-l-[3px] border-l-primary bg-card shadow-sm"&gt;
+  &lt;CardContent className="flex items-center gap-4 p-5"&gt;
+    &lt;div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0"&gt;
+      &lt;Icon className="w-5 h-5" /&gt;
+    &lt;/div&gt;
+    &lt;div&gt;
+      &lt;p className="text-2xl font-bold tracking-tight text-foreground leading-none"&gt;R$ 0,00&lt;/p&gt;
+      &lt;p className="text-sm text-muted-foreground mt-1"&gt;Label&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/CardContent&gt;
+&lt;/Card&gt;
+
+## §28. SWITCHES — bg-primary quando checked
+
+- Verificar src/components/ui/switch.tsx
+- SEMPRE bg-primary, nunca blue-600 ou outra cor hardcoded
+
+## §29. ABAS — Header antes de TabsList
+
+Ordem obrigatória:
+1. Header da página (§26)
+2. TabsList horizontal
+3. TabsContent
+
+NUNCA inverta: TabsList antes do título da página.
+
+## §30. MENU — 15 seções (SSOT em navRegistry.ts)
+
+INTEGRAÇÕES = conexão externa (API, OAuth, webhook)
+ATENDIMENTO = usar funcionalidades (inbox, filas)
+CLIENTES = dados do cliente (cadastro, docs)
+OPERAÇÕES = execução (instaladores, estoque, checklists)
+ENERGIA = usar dados de energia (monitoramento, tarifas)
+
+## §31. CHANGELOG — Obrigatório para mudanças funcionais
+
+Arquivo: src/data/changelog.ts
+Inserir no topo (mais recente primeiro)
+Tipos: feature, improvement, bugfix, security, infra
+
+## §32. RESPONSIVIDADE — Mobile-first
+
+Grids: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+Flex: flex-wrap para containers com múltiplos itens
+Texto: NUNCA truncar sem tooltip em mobile
+Botões: min-h-[44px] em mobile (touch target)
+Tabelas: overflow-x-auto no container pai
+
+## §33. PROPOSTA — Sanitização obrigatória
+
+- SEMPRE sanitizeSnapshot() antes de salvar
+- SEMPRE whitelist de campos UC, nunca spread ...rest
+- SEMPRE headers: { "x-client-timeout": "120" } em edge functions
+
+## §34. TABELA DE LEADS — Alinhamento e colunas
+
+- SEMPRE align-middle em TableRow e TableCell
+- Coluna telefone: w-[155px] min-w-[155px] + whitespace-nowrap
+- Desktop (lg+): botões inline com Tooltip
+- Mobile (&lt;lg): DropdownMenu com MoreHorizontal
+
+## §36. SCROLL INTERNO — min-h-0 obrigatório
+
+// Padrão universal
+&lt;div className="flex flex-col h-full overflow-hidden"&gt;
+  &lt;div className="shrink-0"&gt;{/* header */}&lt;/div&gt;
+  &lt;div className="flex-1 min-h-0 overflow-y-auto"&gt;{/* conteúdo */}&lt;/div&gt;
+  &lt;div className="shrink-0"&gt;{/* footer */}&lt;/div&gt;
+&lt;/div&gt;
+
+## §37. STORAGE — Signed URL obrigatória
+
+// ❌ PROIBIDO
+&lt;img src={`${supabaseUrl}/storage/v1/object/public/${path}`} /&gt;
+
+// ✅ OBRIGATÓRIO
+const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+&lt;img src={data.signedUrl} /&gt;
+
+## §38. CONVERSÃO LEAD→VENDA — Fallback de dados
+
+Cadeia de fallback (ordem):
+1. Simulação selecionada (potencia_kwp, valor_total)
+2. Última proposta nativa (proposta_versoes)
+3. Dados do lead (potencia_estimada, valor_projeto)
+4. Zero (nunca null)
+
+## §39. WHATSAPP INBOX — Scroll por coluna
+
+- NUNCA scroll global na página
+- Cada coluna (lista + chat) é container independente
+- Cada um com: flex-col h-full overflow-hidden + flex-1 min-h-0 overflow-y-auto
+
+## §40. DIALOGS ANINHADOS — Transição sequencial
+
+NUNCA: Dialog dentro de Dialog (mobile quebra)
+SEMPRE: Fechar pai → delay 150ms → abrir filho
+Renderizar filho FORA do pai (mesmo nível de fragment)
+
+## §41. AVATAR — Extração robusta de múltiplas chaves
+
+function extractProfilePictureUrl(payload: any): string | null {
   const candidates = [
     payload?.profilePictureUrl,
     payload?.imgUrl,
     payload?.profilePicUrl,
-    payload?.pictureUrl,
     payload?.data?.profilePictureUrl,
-    payload?.data?.imgUrl,
-    payload?.data?.profilePicUrl,
-    payload?.data?.pictureUrl,
+    // ... etc
   ];
-  for (const url of candidates) {
-    if (typeof url === "string" && url.trim() && !INVALID.has(url.trim().toLowerCase())) {
-      return url.trim();
+  // Filtrar vazios, "none", "null", "undefined"
+  // Retornar primeira URL válida
+}
+
+## §43. CRON JOBS — Padrão obrigatório
+
+1. Edge function dedicada
+2. Cron job pg_cron + pg_net
+3. Última sincronização registrada (last_sync_at)
+4. Status visível na UI
+5. Botão de sincronização manual
+6. Registro de erros (nunca falha silenciosa)
+
+## §44. GOVERNANÇA — SRP, separação UI/lógica
+
+- UI = apresentação, interação, composição
+- Hooks/Services = regras de negócio, transformação, integrações
+- Separar para testabilidade e manutenção
+
+# =============================================================================
+# BLOCO 7 — VALIDAÇÃO AUTOMÁTICA (SCRIPT PRE-BUILD)
+# =============================================================================
+
+# Salve como: scripts/validate-agents.js
+# Adicione ao package.json: "prebuild": "node scripts/validate-agents.js"
+
+const fs = require('fs');
+const glob = require('glob');
+
+const violations = [];
+const files = glob.sync('src/**/*.{tsx,ts}');
+
+// RB-01: Cores hardcoded
+const colorRegex = /(orange-|blue-|green-|red-|yellow-)[0-9]+|#[0-9a-fA-F]{3,6}/;
+files.forEach(file =&gt; {
+  const content = fs.readFileSync(file, 'utf8');
+  if (colorRegex.test(content) && !file.includes('node_modules')) {
+    // Ignorar comentários e strings que possam conter cores
+    const lines = content.split('\n');
+    lines.forEach((line, idx) =&gt; {
+      if (colorRegex.test(line) && !line.includes('//') && !line.includes('*')) {
+        violations.push(`[RB-01] Cor hardcoded em ${file}:${idx+1}`);
+      }
+    });
+  }
+});
+
+// RB-03: Botão nativo
+const buttonRegex = /&lt;button[&gt;\s]/;
+files.forEach(file =&gt; {
+  if (file.includes('.tsx') && !file.includes('node_modules')) {
+    const content = fs.readFileSync(file, 'utf8');
+    if (buttonRegex.test(content)) {
+      violations.push(`[RB-03] &lt;button&gt; nativo em ${file}`);
     }
   }
-  return null;
+});
+
+// RB-05: Query sem staleTime
+const queryRegex = /useQuery\(\{[^}]+queryFn:[^}]+staleTime:/s;
+files.forEach(file =&gt; {
+  if (file.includes('hooks/') && file.endsWith('.ts')) {
+    const content = fs.readFileSync(file, 'utf8');
+    const queries = content.match(/useQuery\([^)]+\)/g) || [];
+    queries.forEach(query =&gt; {
+      if (!query.includes('staleTime')) {
+        violations.push(`[RB-05] Query sem staleTime em ${file}`);
+      }
+    });
+  }
+});
+
+// RB-07: Modal sem w-[90vw]
+const modalRegex = /DialogContent[^&gt;]*max-w-/;
+files.forEach(file =&gt; {
+  if (file.includes('.tsx')) {
+    const content = fs.readFileSync(file, 'utf8');
+    const modals = content.match(/DialogContent[^&gt;]*&gt;/g) || [];
+    modals.forEach(modal =&gt; {
+      if (modal.includes('max-w-') && !modal.includes('w-[90vw]')) {
+        violations.push(`[RB-07] Modal sem w-[90vw] em ${file}`);
+      }
+    });
+  }
+});
+
+// AP-01: Query no componente
+const queryInComponent = /useEffect[^}]*supabase\.from/s;
+files.forEach(file =&gt; {
+  if (file.includes('components/') && file.endsWith('.tsx')) {
+    const content = fs.readFileSync(file, 'utf8');
+    if (queryInComponent.test(content)) {
+      violations.push(`[AP-01] Query direta no componente em ${file}`);
+    }
+  }
+});
+
+// Resultado
+if (violations.length &gt; 0) {
+  console.error('\n❌ VIOLAÇÕES DO AGENTS.md v2.0:');
+  console.error('═══════════════════════════════════════');
+  violations.forEach(v =&gt; console.error('  • ' + v));
+  console.error(`\nTotal: ${violations.length} violações`);
+  console.error('Build cancelado. Corrija antes de continuar.\n');
+  process.exit(1);
+} else {
+  console.log('✅ AGENTS.md v2.0 validado com sucesso');
+  console.log(`   ${files.length} arquivos verificados`);
+  console.log('   Nenhuma violação encontrada\n');
 }
-```
 
-### Regras
-- NUNCA assumir um único campo (`profilePicUrl`) — SEMPRE verificar todos os candidatos
-- SEMPRE filtrar valores inválidos: `""`, `"none"`, `"null"`, `"undefined"`
-- SEMPRE verificar versões aninhadas em `data.*`
-- O componente `WaProfileAvatar` já trata fallback (iniciais/ícone) — NUNCA duplicar essa lógica
-- Ao persistir no banco (`wa_conversations.profile_picture_url`), usar a função de extração
+# =============================================================================
+# BLOCO 8 — CONVENÇÕES DE NOMENCLATURA
+# =============================================================================
 
----
+Idioma        | Onde usar                     | Exemplo
+--------------|-------------------------------|--------------------------------
+PT-BR         | Labels de UI, textos, domínio | "Consultor", "Lead", "Proposta"
+EN            | Componentes React             | VendorDashboardView.tsx
+EN            | Hooks                         | useLeads.ts, useCepLookup.ts
+EN            | Utilitários                   | formatBRL.ts, cn.ts
+EN            | Tipos TypeScript              | interface Lead { ... }
+kebab-case    | Nav keys (navRegistry.ts)     | "gestao-clientes", "pipeline-kanban"
+kebab-case    | Edge Functions                | "proposal-generate", "send-wa-message"
+snake_case    | Tabelas Supabase              | consultor_metas, checklists_instalador
 
-## §42. ESCOPO DE CORREÇÃO — Regra anti-scope-creep
+# =============================================================================
+# BLOCO 9 — CHECKLIST FINAL ANTES DE COMMITAR
+# =============================================================================
 
-Ao receber um pedido de correção localizada:
+[ ] Build passa: npm run build (zero erros)
+[ ] Lint passa: npm run lint (zero warnings de regras do projeto)
+[ ] Testes passam: npm run test (se houver)
+[ ] Validação AGENTS: npm run prebuild (ou node scripts/validate-agents.js)
+[ ] Cores: Nenhum orange-*, blue-*, #hex em componentes novos
+[ ] Dark mode: Testei em modo escuro, não quebrou
+[ ] Responsive: Testei em 320px e 1920px
+[ ] Queries: Estão em hooks com staleTime
+[ ] Botões: Todos são &lt;Button&gt; do shadcn
+[ ] Modais: Têm w-[90vw] e min-h-0 no corpo
+[ ] Changelog: Atualizado se mudança funcional (§31)
 
-### Regras
-- NUNCA expandir o escopo além do pedido original
-- NUNCA refatorar componentes adjacentes "por oportunidade"
-- NUNCA alterar painéis/áreas não mencionados no pedido
-- Se encontrar um bug adjacente: **anotar** e reportar ao usuário, mas NÃO corrigir na mesma entrega
-- Cada entrega deve ter **checklist verificável** com itens OK/FALHOU
-- Arquivos alterados devem ser listados explicitamente
-
-### Formato de entrega para correções cirúrgicas
-1. Arquivos exatos alterados
-2. Causa raiz exata (1-2 linhas)
-3. Diff real por arquivo
-4. Código final dos trechos críticos
-5. Checklist final com OK/FALHOU
-
----
-
-## §43. CRON JOBS E SINCRONIZAÇÕES — Padrão obrigatório
-
-Toda integração externa que busca dados periodicamente **DEVE** ter:
-
-1. **Edge function dedicada** para sincronização (ex: `meta-ads-sync`, `solarmarket-sync`)
-2. **Cron job configurado** no Supabase (`pg_cron` + `pg_net`) — mínimo diário
-3. **Última sincronização registrada** no banco (`last_sync_at` na tabela da integração)
-4. **Status visível na UI** — conectado / erro / nunca sincronizado
-5. **Botão de sincronização manual** na tela do dashboard/catálogo
-6. **Registro de erros** — se falhar, registrar erro com timestamp (nunca falha silenciosa)
-
-### Integrações que precisam de cron
-- **Meta Ads** — `meta-ads-sync` — diário às 06:00 BRT (09:00 UTC)
-- **Evolution API profile pics** — atualização periódica de fotos de perfil
-- **SLA alerts** — `process-sla-alerts` — a cada 2 minutos
-- **SolarMarket** — `solarmarket-sync` — diário
-- **Health check** — `integration-health-check` — periódico
-
-### Padrão de cron job (pg_cron + pg_net)
-```sql
-select cron.schedule(
-  'sync-meta-ads-daily',
-  '0 9 * * *',  -- 09:00 UTC = 06:00 BRT
-  $$
-  select net.http_post(
-    url:='https://<project-ref>.supabase.co/functions/v1/meta-ads-sync',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer <anon-key>"}'::jsonb,
-    body:='{"cron": true}'::jsonb
-  ) as request_id;
-  $$
-);
-```
-
-### Regras
-- NUNCA deixar integração sem cron configurado se ela depende de dados atualizados
-- SEMPRE ter fallback manual (botão na UI) além do cron
-- SEMPRE registrar resultado da sincronização (sucesso/erro + timestamp)
-- Se o cron falhar 3+ vezes consecutivas, deve gerar alerta visível no dashboard de saúde
-
----
-
-## §44. GOVERNANÇA ARQUITETURAL DO AGENTE
-
-Estas regras complementam o §20 e valem para qualquer implementação nova, refactor ou correção.
-
-### Princípios obrigatórios
-- Seguir estritamente SRP, DRY, SSOT, KISS, YAGNI e, quando aplicável, SOLID.
-- Separar sempre UI de lógica de negócio.
-- Componentes visuais devem lidar apenas com apresentação, interação e composição.
-- Regras de negócio, transformação de dados, integrações e cálculos devem ficar em hooks, services ou utilitários apropriados.
-- Preferir composição à herança.
-- Aplicar fail-fast: validar cedo, tipar estritamente e falhar de forma explícita.
-- Aplicar o princípio do menor espanto: código previsível, consistente e intuitivo.
-
-### Organização de código
-- NUNCA duplicar lógica já existente.
-- Antes de criar novo componente, hook, utilitário ou service, verificar se já existe implementação reutilizável.
-- Toda regra crítica deve ter uma única fonte de verdade.
-- Estado compartilhado não deve ser duplicado em múltiplos pontos sem necessidade clara.
-- Evitar estados locais redundantes quando já existir fonte canônica.
-
-### Testabilidade e manutenção
-- Todo código novo deve ser escrito de forma testável.
-- Sempre que possível, usar funções puras e dependências injetáveis.
-- Evitar acoplamento forte entre UI, acesso a dados e regras de negócio.
-- Preferir patches incrementais e localizados, preservando o comportamento já validado.
-
-### Complexidade e escopo
-- NUNCA introduzir abstrações especulativas.
-- NUNCA implementar funcionalidade "porque pode ser útil depois".
-- Implementar apenas o que o escopo atual exige.
-- Em caso de dúvida, preferir a solução mais simples que preserve clareza, escalabilidade e manutenção.
-
-### Consistência visual
-- Componentes visuais DEVEM respeitar o design system do projeto.
-- NUNCA criar padrão visual paralelo.
-- Cores, tipografia, espaçamento, estados e variações devem seguir os componentes e tokens já padronizados neste AGENTS.md.
-
-### Regra de precedência
-- Em caso de conflito, este bloco complementa o projeto, mas NÃO substitui:
-  1. Regras bloqueantes do Bloco 1
-  2. Regras específicas de UI/UX, responsividade, modais, hooks, services e proposal flow
-  3. Regras anti-scope-creep e validação final
-
----
+# =============================================================================
+# FIM DO AGENTS.md v2.0
+# =============================================================================
