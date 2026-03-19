@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { WaAISidebar } from "./WaAISidebar";
 import { WaNotesPanel } from "./WaNotesPanel";
+import { AnimatePresence } from "framer-motion";
+import { useRealtimeNotifications, useMarcarNotificacaoLida, useRealtimeIntelligenceSubscription } from "@/hooks/useRealtimeIntelligence";
+import { RealtimeIntelligenceBanner } from "@/components/admin/intelligence/RealtimeIntelligenceBanner";
+import { IntelligenceBadge } from "@/components/admin/intelligence/IntelligenceBadge";
 import {
   Sparkles,
   StickyNote,
@@ -178,8 +182,25 @@ export function WaChatPanel({
   const [isDragging, setIsDragging] = useState(false);
   const [deletedMsgIds, setDeletedMsgIds] = useState<Set<string>>(new Set());
   const [forwardingMsg, setForwardingMsg] = useState<WaMessage | null>(null);
+  const [showIntelBanner, setShowIntelBanner] = useState(true);
   
   const [showParticipants, setShowParticipants] = useState(false);
+
+  // Intelligence realtime notifications
+  const { data: realtimeNotifications } = useRealtimeNotifications(
+    conversation?.tenant_id || null,
+    true
+  );
+  const marcarNotificacaoLida = useMarcarNotificacaoLida();
+  useRealtimeIntelligenceSubscription(
+    conversation?.tenant_id || null,
+    conversation?.lead_id || undefined
+  );
+
+  const currentNotification = useMemo(() => {
+    if (!showIntelBanner || !conversation?.lead_id || !realtimeNotifications) return null;
+    return realtimeNotifications.find(n => n.lead_id === conversation.lead_id) || null;
+  }, [realtimeNotifications, conversation?.lead_id, showIntelBanner]);
 
   // Fetch participant count for badge indicator
   const { data: participantCount = 0 } = useQuery({
@@ -442,6 +463,13 @@ export function WaChatPanel({
                       {assignedConsultor ? " · " : ""}{conversation.lead_nome || "Lead"}
                     </button>
                   )}
+                  {currentNotification && (
+                    <IntelligenceBadge
+                      temperamento={(currentNotification.temperamento_novo as any) || "frio"}
+                      urgenciaScore={currentNotification.urgencia_score}
+                      className="ml-1"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -653,6 +681,27 @@ export function WaChatPanel({
             </div>
           )}
         </div>
+
+        {/* Intelligence Realtime Banner */}
+        <AnimatePresence>
+          {currentNotification && (
+            <RealtimeIntelligenceBanner
+              temperamentoAnterior={currentNotification.temperamento_anterior || "frio"}
+              temperamentoNovo={currentNotification.temperamento_novo || "morno"}
+              urgenciaScore={currentNotification.urgencia_score}
+              sugestaoResposta={currentNotification.sugestao_resposta || undefined}
+              onUsarSugestao={(texto) => {
+                window.dispatchEvent(new CustomEvent("wa-ai-suggestion", { detail: texto }));
+                marcarNotificacaoLida.mutate(currentNotification.id);
+                setShowIntelBanner(false);
+              }}
+              onFechar={() => {
+                marcarNotificacaoLida.mutate(currentNotification.id);
+                setShowIntelBanner(false);
+              }}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Files Panel */}
         {showFilesPanel && (

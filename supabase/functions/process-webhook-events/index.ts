@@ -706,6 +706,20 @@ async function handleMessageUpsert(
     }
 
     timingLog("message_total", t0_msg, { evolutionMessageId, messageType, jobs_enqueued: jobsEnqueued });
+
+    // ── INTELLIGENCE: Async realtime analysis for inbound messages ──
+    if (!fromMe && conversationId && tenantId) {
+      // Fire-and-forget: enqueue intelligence analysis job
+      enqueueJob(supabase, tenantId, instanceId, "intelligence_analysis", {
+        conversation_id: conversationId,
+        remote_jid: remoteJid,
+        content,
+        message_type: messageType,
+        lead_id: null, // bg-worker will resolve from conversation
+      }, `intel:${evolutionMessageId}`).catch(e =>
+        console.warn("[process-webhook-events] Intel enqueue failed:", e)
+      );
+    }
   }
 
   timingLog("upsert_batch_total", t0_total, { msg_count: (Array.isArray(messages) ? messages : [messages]).length });
