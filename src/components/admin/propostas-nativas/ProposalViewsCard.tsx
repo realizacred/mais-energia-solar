@@ -118,6 +118,19 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
           <div className="flex items-center gap-2 mb-3">
             <Eye className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm font-medium">Engajamento</p>
+            {statusVisualizacao && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "ml-auto text-[10px]",
+                  statusVisualizacao === "aberto" && "border-success text-success",
+                  statusVisualizacao === "enviado" && "border-info text-info",
+                  statusVisualizacao === "nao_enviado" && "border-muted-foreground text-muted-foreground",
+                )}
+              >
+                {statusVisualizacao === "aberto" ? "Aberto" : statusVisualizacao === "enviado" ? "Enviado" : "Não enviado"}
+              </Badge>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
