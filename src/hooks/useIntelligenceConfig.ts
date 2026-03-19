@@ -28,6 +28,36 @@ export interface IntelligenceConfig {
   ia_temperatura: number;
   updated_at: string;
   updated_by: string | null;
+
+  // Feature control — IA Sentiment
+  ia_analise_sentimento_habilitada: boolean;
+  ia_provedor: string;
+  ia_chave_api_encrypted: string | null;
+  ia_timeout_ms: number;
+  ia_max_tokens: number;
+  ia_fallback_heuristica: boolean;
+  ia_custo_maximo_mes: number;
+
+  // Feature control — Reaquecimento
+  reaquecimento_habilitado: boolean;
+  reaquecimento_horario_cron: string;
+  reaquecimento_batch_size: number;
+  reaquecimento_criar_rascunho_only: boolean;
+  reaquecimento_template_mensagem: string;
+
+  // Feature control — WhatsApp Realtime
+  whatsapp_realtime_habilitado: boolean;
+  wa_analisar_toda_mensagem: boolean;
+  wa_notificar_mudanca_temperamento: boolean;
+  wa_notificar_nova_dor: boolean;
+  wa_auto_sugerir_resposta: boolean;
+  wa_notificar_consultor_se_urgencia_acima: number;
+  wa_notificar_gerente_se_urgencia_acima: number;
+
+  // Notifications
+  notificacao_email_alertas: boolean;
+  notificacao_push_temperamento: boolean;
+  notificacao_resumo_diario_gerente: boolean;
 }
 
 export function useIntelligenceConfig() {
@@ -64,7 +94,6 @@ export function useIntelligenceConfig() {
         updated_at: new Date().toISOString(),
       };
 
-      // Use upsert as single object
       const { data: existing } = await supabase
         .from("intelligence_config")
         .select("tenant_id")
