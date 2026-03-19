@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Table, 
   TableBody, 
@@ -48,7 +49,6 @@ import {
   Shield, 
   UserPlus, 
   Trash2, 
-  // Loader2 removed
   Users,
   ShieldCheck,
   ShieldAlert,
@@ -57,7 +57,6 @@ import {
   Pencil,
   UserCog,
 } from "lucide-react";
-import { LoadingState } from "@/components/ui-kit";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { UserEditDialog } from "./users/UserEditDialog";
 
