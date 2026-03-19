@@ -74,7 +74,8 @@ export default function MonitorPlants() {
         const plantStatus = resolveUiStatus(p);
         const matchStatus = statusFilter === "all" || plantStatus === statusFilter;
         const matchBrand = brandFilter === "all" || p.provider_name === brandFilter;
-        return matchSearch && matchStatus && matchBrand;
+        const matchClient = clientFilter === "all" || (clientFilter === "with" ? !!p.client_id : !p.client_id);
+        return matchSearch && matchStatus && matchBrand && matchClient;
       })
       .sort((a, b) => {
         switch (sortBy) {
