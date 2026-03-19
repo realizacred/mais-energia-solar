@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp, Calculator } from "lucide-react";
+import { Plus, Trash2, Pencil, Building2, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp, Calculator } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
