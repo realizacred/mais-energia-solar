@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Sun, Search, MapPin, List, Zap, Activity, Filter, AlertTriangle,
   WifiOff, Gauge, BatteryCharging, ArrowUpDown, Radio, Moon,
-  SortAsc, ChevronRight,
+  SortAsc, ChevronRight, Users,
 } from "lucide-react";
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import { getProvider } from "@/services/monitoring/providerRegistry";
