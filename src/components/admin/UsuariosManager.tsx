@@ -515,7 +515,7 @@ export function UsuariosManager() {
               action={{ label: "Novo Usuário", onClick: () => setIsCreateDialogOpen(true), icon: Plus }}
             />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
