@@ -12583,6 +12583,10 @@ export type Database = {
       }
       proposta_config: {
         Row: {
+          auto_envio_ativo: boolean
+          auto_envio_canal: string | null
+          auto_envio_delay_minutos: number | null
+          auto_envio_template_id: string | null
           created_at: string
           id: string
           proposta_exibir_expirada: boolean
@@ -12592,6 +12596,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_envio_ativo?: boolean
+          auto_envio_canal?: string | null
+          auto_envio_delay_minutos?: number | null
+          auto_envio_template_id?: string | null
           created_at?: string
           id?: string
           proposta_exibir_expirada?: boolean
@@ -12601,6 +12609,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_envio_ativo?: boolean
+          auto_envio_canal?: string | null
+          auto_envio_delay_minutos?: number | null
+          auto_envio_template_id?: string | null
           created_at?: string
           id?: string
           proposta_exibir_expirada?: boolean
@@ -12610,6 +12622,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "proposta_config_auto_envio_template_id_fkey"
+            columns: ["auto_envio_template_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_email_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proposta_config_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -12623,35 +12642,47 @@ export type Database = {
         Row: {
           assunto: string
           ativo: boolean
+          canal: string
           corpo_html: string
+          corpo_texto: string | null
           created_at: string
           id: string
+          is_default: boolean
           nome: string
           ordem: number
           tenant_id: string
           updated_at: string
+          variaveis: Json | null
         }
         Insert: {
           assunto: string
           ativo?: boolean
+          canal?: string
           corpo_html?: string
+          corpo_texto?: string | null
           created_at?: string
           id?: string
+          is_default?: boolean
           nome: string
           ordem?: number
           tenant_id: string
           updated_at?: string
+          variaveis?: Json | null
         }
         Update: {
           assunto?: string
           ativo?: boolean
+          canal?: string
           corpo_html?: string
+          corpo_texto?: string | null
           created_at?: string
           id?: string
+          is_default?: boolean
           nome?: string
           ordem?: number
           tenant_id?: string
           updated_at?: string
+          variaveis?: Json | null
         }
         Relationships: [
           {
