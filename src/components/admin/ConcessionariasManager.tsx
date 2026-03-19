@@ -701,7 +701,7 @@ export function ConcessionariasManager() {
                       <TableCell>{c.sigla || "-"}</TableCell>
                       <TableCell>
                         {c.estado ? (
-                          <Badge variant="outline" className="font-mono">{c.estado}</Badge>
+                          <Badge variant="outline" className="font-mono bg-muted text-muted-foreground border-border">{c.estado}</Badge>
                         ) : "-"}
                       </TableCell>
                       <TableCell>
