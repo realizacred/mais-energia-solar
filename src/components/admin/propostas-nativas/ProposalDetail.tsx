@@ -255,7 +255,7 @@ export function ProposalDetail() {
     }
   };
 
-  const handleSend = async (canal: "link" | "whatsapp") => {
+  const handleSend = async (canal: "link" | "whatsapp", opts?: { template_id?: string; mensagem_custom?: string }) => {
     if (!proposta?.id || !versaoId) return;
     setSending(true);
     try {
@@ -264,6 +264,8 @@ export function ProposalDetail() {
         versao_id: versaoId,
         canal,
         lead_id: proposta.lead_id,
+        template_id: opts?.template_id,
+        mensagem_custom: opts?.mensagem_custom,
       });
       setPublicUrl(result.public_url);
       setProposta((prev: any) => ({ ...prev, status: "enviada" }));
