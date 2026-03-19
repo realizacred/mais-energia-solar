@@ -300,7 +300,7 @@ export default function MeterDetailPage() {
                     {linkedPlant && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Zap className="w-3.5 h-3.5 text-primary" />
-                        <span>Usina: {linkedPlant.nome}</span>
+                        <span>Usina: {linkedPlant.name}</span>
                         <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" asChild>
                           <Link to={`/admin/monitoramento/usinas/${linkedPlant.id}`}>
                             Ver usina →
