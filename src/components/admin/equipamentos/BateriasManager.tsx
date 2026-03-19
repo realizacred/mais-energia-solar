@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -66,6 +67,7 @@ export function BateriasManager() {
       if (error) throw error;
       return data as Bateria[];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const filtered = baterias.filter((b) => {
@@ -159,166 +161,199 @@ export function BateriasManager() {
   const set = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Battery className="w-5 h-5" /> Baterias
-          </CardTitle>
-          <CardDescription className="mt-1">
-            Cadastro de baterias para sistemas híbridos e off-grid.
-          </CardDescription>
-        </div>
-        <Button onClick={() => openDialog()} className="gap-2">
-          <Plus className="w-4 h-4" /> Nova Bateria
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar fabricante, modelo..." className="pl-9"
-              value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <Select value={filterAtivo} onValueChange={setFilterAtivo}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="ativo">Ativos</SelectItem>
-              <SelectItem value="inativo">Inativos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Battery}
+        title="Baterias"
+        description="Cadastro de baterias para sistemas híbridos e off-grid."
+        actions={
+          <Button onClick={() => openDialog()} className="gap-2">
+            <Plus className="w-4 h-4" /> Nova Bateria
+          </Button>
+        }
+      />
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fabricante</TableHead>
-                <TableHead>Modelo</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Energia</TableHead>
-                <TableHead>Tensão Nom.</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">Carregando...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  Nenhuma bateria encontrada.
-                </TableCell></TableRow>
-              ) : filtered.map((b) => (
-                <TableRow key={b.id}>
-                  <TableCell className="font-medium">{b.fabricante}</TableCell>
-                  <TableCell>{b.modelo}</TableCell>
-                  <TableCell><Badge variant="outline">{b.tipo_bateria || "—"}</Badge></TableCell>
-                  <TableCell>{b.energia_kwh ? `${b.energia_kwh} kWh` : "—"}</TableCell>
-                  <TableCell>{b.tensao_nominal_v ? `${b.tensao_nominal_v}V` : "—"}</TableCell>
-                  <TableCell>
-                    <Switch checked={b.ativo} onCheckedChange={(v) => toggleMutation.mutate({ id: b.id, ativo: v })} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(b)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleting(b)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Buscar fabricante, modelo..." className="pl-9"
+            value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={filterAtivo} onValueChange={setFilterAtivo}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="ativo">Ativos</SelectItem>
+            <SelectItem value="inativo">Inativos</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="rounded-lg border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead>Fabricante</TableHead>
+              <TableHead>Modelo</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Energia</TableHead>
+              <TableHead>Tensão Nom.</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16 rounded-md" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-10 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              ))
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-16">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">
+                      <Battery className="h-7 w-7 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-base font-semibold text-foreground mb-1">Nenhuma bateria encontrada</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mb-4">Cadastre uma nova bateria para começar.</p>
+                    <Button onClick={() => openDialog()} className="gap-2">
+                      <Plus className="w-4 h-4" /> Nova Bateria
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filtered.map((b) => (
+              <TableRow key={b.id} className="hover:bg-muted/30 transition-colors">
+                <TableCell className="font-medium text-foreground">{b.fabricante}</TableCell>
+                <TableCell>{b.modelo}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs">
+                    {b.tipo_bateria || "—"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {b.energia_kwh ? (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                      {b.energia_kwh} kWh
+                    </Badge>
+                  ) : "—"}
+                </TableCell>
+                <TableCell>
+                  {b.tensao_nominal_v ? (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs">
+                      {b.tensao_nominal_v}V
+                    </Badge>
+                  ) : "—"}
+                </TableCell>
+                <TableCell>
+                  <Switch checked={b.ativo} onCheckedChange={(v) => toggleMutation.mutate({ id: b.id, ativo: v })} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(b)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleting(b)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-        {/* Dialog */}
-        <FormModalTemplate
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          title={editing ? "Editar Bateria" : "Nova Bateria"}
-          icon={Battery}
-          subtitle="Cadastre ou edite uma bateria"
-          onSubmit={handleSave}
-          submitLabel={editing ? "Salvar" : "Cadastrar"}
-          saving={saveMutation.isPending}
-          className="max-w-2xl"
-        >
-          <FormGrid>
-              <div className="space-y-1 sm:col-span-2">
-                <Label>Fabricante *</Label>
-                <Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: UNIPOWER" />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label>Modelo *</Label>
-                <Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: UPLFP48-100 3U" />
-              </div>
-              <div className="space-y-1">
-                <Label>Tipo Bateria</Label>
-                <Input value={form.tipo_bateria} onChange={(e) => set("tipo_bateria", e.target.value)} placeholder="Baterias de Íon-Lítio" />
-              </div>
-              <div className="space-y-1">
-                <Label>Energia (kWh)</Label>
-                <Input type="number" step="0.1" value={form.energia_kwh} onChange={(e) => set("energia_kwh", e.target.value)} placeholder="5" />
-              </div>
-              <div className="space-y-1">
-                <Label>Dimensões (mm)</Label>
-                <Input value={form.dimensoes_mm} onChange={(e) => set("dimensoes_mm", e.target.value)} placeholder="390x442x140mm" />
-              </div>
-              <div className="space-y-1">
-                <Label>Tensão Operação (V)</Label>
-                <Input value={form.tensao_operacao_v} onChange={(e) => set("tensao_operacao_v", e.target.value)} placeholder="42 ~ 54" />
-              </div>
-              <div className="space-y-1">
-                <Label>Tensão Carga (V)</Label>
-                <Input type="number" step="0.1" value={form.tensao_carga_v} onChange={(e) => set("tensao_carga_v", e.target.value)} placeholder="0" />
-              </div>
-              <div className="space-y-1">
-                <Label>Tensão Nominal (V)</Label>
-                <Input type="number" value={form.tensao_nominal_v} onChange={(e) => set("tensao_nominal_v", e.target.value)} placeholder="48" />
-              </div>
-              <div className="space-y-1">
-                <Label>Potência Máx. Saída (kW)</Label>
-                <Input type="number" step="0.1" value={form.potencia_max_saida_kw} onChange={(e) => set("potencia_max_saida_kw", e.target.value)} placeholder="0" />
-              </div>
-              <div className="space-y-1">
-                <Label>Corrente Máx. Descarga (A)</Label>
-                <Input type="number" value={form.corrente_max_descarga_a} onChange={(e) => set("corrente_max_descarga_a", e.target.value)} placeholder="100" />
-              </div>
-              <div className="space-y-1">
-                <Label>Corrente Máx. Carga (A)</Label>
-                <Input type="number" value={form.corrente_max_carga_a} onChange={(e) => set("corrente_max_carga_a", e.target.value)} placeholder="100" />
-              </div>
-              <div className="space-y-1">
-                <Label>Correntes Recomendadas (A)</Label>
-                <Input value={form.correntes_recomendadas_a} onChange={(e) => set("correntes_recomendadas_a", e.target.value)} placeholder="Opcional" />
-              </div>
-          </FormGrid>
-        </FormModalTemplate>
+      {/* Dialog */}
+      <FormModalTemplate
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editing ? "Editar Bateria" : "Nova Bateria"}
+        icon={Battery}
+        subtitle="Cadastre ou edite uma bateria"
+        onSubmit={handleSave}
+        submitLabel={editing ? "Salvar" : "Cadastrar"}
+        saving={saveMutation.isPending}
+        className="max-w-2xl"
+      >
+        <FormGrid>
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Fabricante *</Label>
+              <Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: UNIPOWER" />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Modelo *</Label>
+              <Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: UPLFP48-100 3U" />
+            </div>
+            <div className="space-y-1">
+              <Label>Tipo Bateria</Label>
+              <Input value={form.tipo_bateria} onChange={(e) => set("tipo_bateria", e.target.value)} placeholder="Baterias de Íon-Lítio" />
+            </div>
+            <div className="space-y-1">
+              <Label>Energia (kWh)</Label>
+              <Input type="number" step="0.1" value={form.energia_kwh} onChange={(e) => set("energia_kwh", e.target.value)} placeholder="5" />
+            </div>
+            <div className="space-y-1">
+              <Label>Dimensões (mm)</Label>
+              <Input value={form.dimensoes_mm} onChange={(e) => set("dimensoes_mm", e.target.value)} placeholder="390x442x140mm" />
+            </div>
+            <div className="space-y-1">
+              <Label>Tensão Operação (V)</Label>
+              <Input value={form.tensao_operacao_v} onChange={(e) => set("tensao_operacao_v", e.target.value)} placeholder="42 ~ 54" />
+            </div>
+            <div className="space-y-1">
+              <Label>Tensão Carga (V)</Label>
+              <Input type="number" step="0.1" value={form.tensao_carga_v} onChange={(e) => set("tensao_carga_v", e.target.value)} placeholder="0" />
+            </div>
+            <div className="space-y-1">
+              <Label>Tensão Nominal (V)</Label>
+              <Input type="number" value={form.tensao_nominal_v} onChange={(e) => set("tensao_nominal_v", e.target.value)} placeholder="48" />
+            </div>
+            <div className="space-y-1">
+              <Label>Potência Máx. Saída (kW)</Label>
+              <Input type="number" step="0.1" value={form.potencia_max_saida_kw} onChange={(e) => set("potencia_max_saida_kw", e.target.value)} placeholder="0" />
+            </div>
+            <div className="space-y-1">
+              <Label>Corrente Máx. Descarga (A)</Label>
+              <Input type="number" value={form.corrente_max_descarga_a} onChange={(e) => set("corrente_max_descarga_a", e.target.value)} placeholder="100" />
+            </div>
+            <div className="space-y-1">
+              <Label>Corrente Máx. Carga (A)</Label>
+              <Input type="number" value={form.corrente_max_carga_a} onChange={(e) => set("corrente_max_carga_a", e.target.value)} placeholder="100" />
+            </div>
+            <div className="space-y-1">
+              <Label>Correntes Recomendadas (A)</Label>
+              <Input value={form.correntes_recomendadas_a} onChange={(e) => set("correntes_recomendadas_a", e.target.value)} placeholder="Opcional" />
+            </div>
+        </FormGrid>
+      </FormModalTemplate>
 
-        <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Excluir Bateria</AlertDialogTitle>
-              <AlertDialogDescription>
-                Excluir "{deleting?.fabricante} {deleting?.modelo}"?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction className="border-destructive text-destructive hover:bg-destructive/10 border bg-transparent"
-                onClick={() => deleting && deleteMutation.mutate(deleting.id)}>
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </CardContent>
-    </Card>
+      <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Bateria</AlertDialogTitle>
+            <AlertDialogDescription>
+              Excluir "{deleting?.fabricante} {deleting?.modelo}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="border-destructive text-destructive hover:bg-destructive/10 border bg-transparent"
+              onClick={() => deleting && deleteMutation.mutate(deleting.id)}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
