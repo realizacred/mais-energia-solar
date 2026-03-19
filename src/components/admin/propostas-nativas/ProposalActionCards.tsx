@@ -109,13 +109,14 @@ export function ProposalActionCards({
           </div>
 
           {validoAte && (
-            <button
+            <Button
+              variant="ghost"
               onClick={onEditValidade}
-              className="text-[10px] text-muted-foreground pt-1 flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+              className="text-[10px] text-muted-foreground h-auto p-0 pt-1 flex items-center gap-1 hover:text-primary transition-colors"
             >
               <CalendarDays className="h-3 w-3" />
               Validade da proposta: {new Date(validoAte).toLocaleDateString("pt-BR")}
-            </button>
+            </Button>
           )}
 
           {lastGeneratedAt && (
