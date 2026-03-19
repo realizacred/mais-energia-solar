@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ClientLinkedPlants } from "./monitoring-v2/ClientLinkedPlants";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
