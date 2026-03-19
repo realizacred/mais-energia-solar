@@ -110,7 +110,7 @@ export function ProposalDetail() {
       if (v?.proposta_id) {
         const { data: p } = await supabase
           .from("propostas_nativas")
-          .select("id, titulo, codigo, status, origem, lead_id, cliente_id, projeto_id, deal_id, updated_at")
+          .select("id, titulo, codigo, status, origem, lead_id, cliente_id, projeto_id, deal_id, updated_at, status_visualizacao, primeiro_acesso_em, ultimo_acesso_em, total_aberturas")
           .eq("id", v.proposta_id)
           .single();
         setProposta(p);
@@ -693,7 +693,16 @@ export function ProposalDetail() {
 
       {/* ══════════ TRACKING PANEL ══════════ */}
       <div id="proposal-tracking">
-        {proposta?.id && <ProposalViewsCard propostaId={proposta.id} versaoId={versaoId} />}
+        {proposta?.id && (
+          <ProposalViewsCard
+            propostaId={proposta.id}
+            versaoId={versaoId}
+            statusVisualizacao={proposta.status_visualizacao}
+            primeiroAcessoEm={proposta.primeiro_acesso_em}
+            ultimoAcessoEm={proposta.ultimo_acesso_em}
+            totalAberturas={proposta.total_aberturas}
+          />
+        )}
       </div>
 
       {/* ══════════ GENERATE FILE DIALOG ══════════ */}

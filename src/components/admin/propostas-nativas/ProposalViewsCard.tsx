@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Eye, Clock, Smartphone, Monitor, Send, CheckCircle2, XCircle, UserCheck, Globe, MessageCircle, Link2, Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useProposalTracking } from "@/hooks/useProposalTracking";
@@ -11,6 +12,10 @@ import { ptBR } from "date-fns/locale";
 interface ProposalTrackingPanelProps {
   propostaId: string;
   versaoId?: string;
+  statusVisualizacao?: string | null;
+  primeiroAcessoEm?: string | null;
+  ultimoAcessoEm?: string | null;
+  totalAberturas?: number;
 }
 
 function isMobile(ua: string | null) {
@@ -24,7 +29,7 @@ const CANAL_ICON: Record<string, any> = {
   email: Mail,
 };
 
-export function ProposalViewsCard({ propostaId, versaoId }: ProposalTrackingPanelProps) {
+export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, primeiroAcessoEm, ultimoAcessoEm, totalAberturas }: ProposalTrackingPanelProps) {
   const { data, isLoading: loading } = useProposalTracking(propostaId, versaoId);
 
   const views = data?.views ?? [];
@@ -114,6 +119,19 @@ export function ProposalViewsCard({ propostaId, versaoId }: ProposalTrackingPane
           <div className="flex items-center gap-2 mb-3">
             <Eye className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm font-medium">Engajamento</p>
+            {statusVisualizacao && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "ml-auto text-[10px]",
+                  statusVisualizacao === "aberto" && "border-success text-success",
+                  statusVisualizacao === "enviado" && "border-info text-info",
+                  statusVisualizacao === "nao_enviado" && "border-muted-foreground text-muted-foreground",
+                )}
+              >
+                {statusVisualizacao === "aberto" ? "Aberto" : statusVisualizacao === "enviado" ? "Enviado" : "Não enviado"}
+              </Badge>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -144,15 +162,19 @@ export function ProposalViewsCard({ propostaId, versaoId }: ProposalTrackingPane
             </div>
           </div>
 
-          {activeToken?.first_viewed_at && (
+          {/* Aggregated tracking from propostas_nativas */}
+          {(primeiroAcessoEm || activeToken?.first_viewed_at) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
               <span>
-                Primeira view: {format(new Date(activeToken.first_viewed_at), "dd/MM HH:mm", { locale: ptBR })}
+                Primeiro acesso: {format(new Date(primeiroAcessoEm || activeToken!.first_viewed_at!), "dd/MM HH:mm", { locale: ptBR })}
               </span>
-              {activeToken.last_viewed_at && (
+              {(ultimoAcessoEm || activeToken?.last_viewed_at) && (
                 <span>
-                  Última view: {formatDistanceToNow(new Date(activeToken.last_viewed_at), { locale: ptBR, addSuffix: true })}
+                  Último acesso: {formatDistanceToNow(new Date(ultimoAcessoEm || activeToken!.last_viewed_at!), { locale: ptBR, addSuffix: true })}
                 </span>
+              )}
+              {typeof totalAberturas === "number" && totalAberturas > 0 && (
+                <span>Total: {totalAberturas} abertura{totalAberturas !== 1 ? "s" : ""}</span>
               )}
             </div>
           )}

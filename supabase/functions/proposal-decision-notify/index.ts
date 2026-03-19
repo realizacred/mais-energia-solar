@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     // Get proposta + tenant in one query
     const { data: proposta } = await supabase
       .from("propostas_nativas")
-      .select("id, tenant_id, titulo, codigo, lead_id")
+      .select("id, tenant_id, titulo, codigo, lead_id, deal_id, projeto_id")
       .eq("id", tokenData.proposta_id)
       .single();
 
@@ -188,7 +188,39 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 5. Audit log (structured log — audit_logs blocks direct INSERTs) ──
+    // ── 5. Timeline event (project_events) ──
+    const dealId = proposta.deal_id;
+    // If no deal_id on proposta, try to find via projetos
+    let resolvedDealId = dealId;
+    if (!resolvedDealId && proposta.projeto_id) {
+      const { data: proj } = await supabase
+        .from("projetos").select("deal_id").eq("id", proposta.projeto_id).single();
+      resolvedDealId = proj?.deal_id;
+    }
+    if (!resolvedDealId) {
+      const { data: proj } = await supabase
+        .from("projetos").select("deal_id").eq("proposta_id", proposta.id).limit(1).maybeSingle();
+      resolvedDealId = proj?.deal_id;
+    }
+
+    if (resolvedDealId) {
+      const eventType = decisao === "aceita" ? "proposal.accepted" : "proposal.rejected";
+      await supabase.from("project_events").insert({
+        tenant_id: tenantId,
+        deal_id: resolvedDealId,
+        event_type: eventType,
+        metadata: {
+          proposta_id: tokenData.proposta_id,
+          versao_id: tokenData.versao_id,
+          token_id,
+          cliente_nome: clienteNome,
+        },
+      }).then(({ error }) => {
+        if (error) console.warn("[proposal-decision-notify] Timeline event failed:", error.message);
+      });
+    }
+
+    // ── 6. Audit log (structured log — audit_logs blocks direct INSERTs) ──
     console.info("[proposal-decision-notify] Audit:", {
       tenant_id: tenantId, decisao, token_id,
       proposta_id: tokenData.proposta_id,
