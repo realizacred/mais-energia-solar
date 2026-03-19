@@ -2,7 +2,7 @@
  * Domain resolver: financeiro.* variables
  * Sources: snapshot.financeiro, snapshot top-level, versaoData, ext.projeto
  */
-import { type AnyObj, safeObj, str, num, fmtCur, fmtNum, type ResolverExternalContext } from "./types.ts";
+import { type AnyObj, safeObj, safeArr, str, num, fmtCur, fmtNum, type ResolverExternalContext } from "./types.ts";
 
 export function resolveFinanceiro(
   snapshot: AnyObj | null | undefined,
