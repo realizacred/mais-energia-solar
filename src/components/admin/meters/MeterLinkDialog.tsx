@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { meterService, type MeterDevice } from "@/services/meterService";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +24,7 @@ export function MeterLinkDialog({ open, onOpenChange, meter }: Props) {
   const [selectedUC, setSelectedUC] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // CORREÇÃO 1 — staleTime obrigatório (§23)
   const { data: ucs = [] } = useQuery({
     queryKey: ["ucs_for_link", search],
     queryFn: async () => {
@@ -33,7 +33,23 @@ export function MeterLinkDialog({ open, onOpenChange, meter }: Props) {
       const { data } = await q;
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
+
+  // CORREÇÃO 6 — UCs já vinculadas a medidores
+  const { data: linkedMeterIds = [] } = useQuery({
+    queryKey: ["unit_meter_links_active_for_dialog"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("unit_meter_links")
+        .select("unit_id")
+        .eq("is_active", true);
+      return (data || []).map(l => l.unit_id);
+    },
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const linkedUCSet = new Set(linkedMeterIds);
 
   async function handleLink() {
     if (!selectedUC) return;
@@ -72,19 +88,30 @@ export function MeterLinkDialog({ open, onOpenChange, meter }: Props) {
             {ucs.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">Nenhuma UC encontrada</p>
             ) : (
-              ucs.map(uc => (
-                <button
-                  key={uc.id}
-                  type="button"
-                  onClick={() => setSelectedUC(uc.id)}
-                  className={`w-full text-left px-3 py-2.5 text-sm border-b last:border-b-0 transition-colors ${
-                    selectedUC === uc.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"
-                  }`}
-                >
-                  <span className="font-medium">{uc.nome}</span>
-                  <span className="ml-2 text-xs text-muted-foreground font-mono">{uc.codigo_uc}</span>
-                </button>
-              ))
+              ucs.map(uc => {
+                const hasLinkedMeter = linkedUCSet.has(uc.id);
+                return (
+                  <button
+                    key={uc.id}
+                    type="button"
+                    onClick={() => setSelectedUC(uc.id)}
+                    className={`w-full text-left px-3 py-2.5 text-sm border-b last:border-b-0 transition-colors ${
+                      selectedUC === uc.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{uc.nome}</span>
+                      <span className="text-xs text-muted-foreground font-mono">{uc.codigo_uc}</span>
+                      {/* CORREÇÃO 6 — Badge UC já vinculada */}
+                      {hasLinkedMeter && (
+                        <span className="text-xs bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded ml-auto shrink-0">
+                          Já tem medidor
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>

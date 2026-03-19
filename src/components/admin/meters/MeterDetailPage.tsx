@@ -3,49 +3,65 @@
  * Route: /admin/medidores/:id
  */
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Gauge, ArrowLeft, Wifi, WifiOff, ArrowLeftRight, Zap, Activity,
-  Clock, ChevronDown, ChevronUp, Link2, AlertTriangle
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Gauge, ArrowLeft, ArrowLeftRight, Zap, Activity,
+  Clock, ChevronDown, ChevronUp, AlertTriangle, Unlink
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+const STALE_REALTIME = 1000 * 30;
+const STALE_NORMAL = 1000 * 60 * 5;
 
 export default function MeterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const [showRaw, setShowRaw] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
 
   const { data: meter, isLoading, error } = useQuery({
     queryKey: ["meter_device", id],
     queryFn: () => meterService.getById(id!),
     enabled: !!id,
+    staleTime: STALE_NORMAL,
   });
 
   const { data: latestStatus } = useQuery({
     queryKey: ["meter_status_latest", id],
     queryFn: () => meterService.getStatusLatest(id!),
     enabled: !!id,
+    staleTime: STALE_REALTIME,
   });
 
   const { data: readings = [] } = useQuery({
     queryKey: ["meter_readings", id],
     queryFn: () => meterService.getLatestReadings(id!, 20),
     enabled: !!id,
+    staleTime: STALE_REALTIME,
   });
 
   const { data: links = [] } = useQuery({
     queryKey: ["meter_links", id],
     queryFn: () => meterService.getLinksForMeter(id!),
     enabled: !!id,
+    staleTime: STALE_NORMAL,
   });
 
   const { data: syncLogs = [] } = useQuery({
@@ -61,11 +77,11 @@ export default function MeterDetailPage() {
       return data || [];
     },
     enabled: !!meter?.integration_config_id,
+    staleTime: STALE_NORMAL,
   });
 
   const activeLink = links.find(l => l.is_active);
 
-  // Get UC name for active link
   const { data: linkedUC } = useQuery({
     queryKey: ["uc_for_meter", activeLink?.unit_id],
     queryFn: async () => {
@@ -78,12 +94,70 @@ export default function MeterDetailPage() {
       return data;
     },
     enabled: !!activeLink,
+    staleTime: STALE_NORMAL,
   });
 
+  // CORREÇÃO 7 — Buscar usina vinculada à UC
+  const { data: linkedPlant } = useQuery({
+    queryKey: ["plant_for_uc", linkedUC?.id],
+    queryFn: async () => {
+      if (!linkedUC?.id) return null;
+      const { data: link } = await supabase
+        .from("unit_plant_links")
+        .select("plant_id")
+        .eq("unit_id", linkedUC.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (!link?.plant_id) return null;
+      const { data: plant } = await supabase
+        .from("monitor_plants")
+        .select("id, nome")
+        .eq("id", link.plant_id)
+        .maybeSingle();
+      return plant;
+    },
+    enabled: !!linkedUC?.id,
+    staleTime: STALE_NORMAL,
+  });
+
+  // CORREÇÃO 5 — Desvincular medidor
+  async function handleDesvincular() {
+    if (!activeLink) return;
+    setUnlinking(true);
+    try {
+      await meterService.unlinkFromUnit(activeLink.id);
+      toast({ title: "Medidor desvinculado com sucesso" });
+      qc.invalidateQueries({ queryKey: ["meter_links", id] });
+      qc.invalidateQueries({ queryKey: ["unit_meter_links"] });
+      qc.invalidateQueries({ queryKey: ["meter_devices"] });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.message, variant: "destructive" });
+    } finally {
+      setUnlinking(false);
+    }
+  }
+
+  // CORREÇÃO 2 — Skeleton loading
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 flex justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="p-4 md:p-6 space-y-6">
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i} className="p-5">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <div className="grid grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <div key={j}>
+                    <Skeleton className="h-3 w-20 mb-2" />
+                    <Skeleton className="h-6 w-24" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -209,15 +283,32 @@ export default function MeterDetailPage() {
                 <p className="text-xs text-muted-foreground">Serial</p>
                 <p className="font-mono text-xs">{meter.serial_number || "—"}</p>
               </div>
+              {/* CORREÇÃO 3 — Button shadcn em vez de <button> nativo */}
               <div>
                 <p className="text-xs text-muted-foreground">UC Vinculada</p>
                 {linkedUC ? (
-                  <button
-                    className="text-primary hover:underline font-medium text-sm"
-                    onClick={() => navigate(`/admin/ucs/${linkedUC.id}`)}
-                  >
-                    {linkedUC.nome}
-                  </button>
+                  <div className="space-y-1">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-sm font-medium"
+                      onClick={() => navigate(`/admin/ucs/${linkedUC.id}`)}
+                    >
+                      {linkedUC.nome}
+                    </Button>
+                    {/* CORREÇÃO 7 — Usina vinculada */}
+                    {linkedPlant && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Zap className="w-3.5 h-3.5 text-primary" />
+                        <span>Usina: {linkedPlant.nome}</span>
+                        <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" asChild>
+                          <Link to={`/admin/monitoramento/usinas/${linkedPlant.id}`}>
+                            Ver usina →
+                          </Link>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <span className="text-muted-foreground italic">Não vinculado</span>
                 )}
@@ -227,6 +318,41 @@ export default function MeterDetailPage() {
                 <p>{meter.last_seen_at ? new Date(meter.last_seen_at).toLocaleString("pt-BR") : "—"}</p>
               </div>
             </div>
+
+            {/* CORREÇÃO 5 — Botão desvincular com AlertDialog */}
+            {activeLink && linkedUC && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-destructive text-destructive hover:bg-destructive/10 mt-2"
+                    disabled={unlinking}
+                  >
+                    <Unlink className="w-4 h-4 mr-2" />
+                    {unlinking ? "Desvinculando..." : "Desvincular UC"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="w-[90vw] max-w-md">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Desvincular medidor?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem certeza que deseja desvincular o medidor "{meter.name}" da UC "{linkedUC.nome}"?
+                      Esta ação pode ser revertida vinculando novamente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDesvincular}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Desvincular
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </CardContent>
         </Card>
       </div>
