@@ -519,13 +519,13 @@ export function UsuariosManager() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">Email</TableHead>
-                    <TableHead className="font-semibold">Perfis</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Criado em</TableHead>
-                    <TableHead className="font-semibold">Último login</TableHead>
-                    <TableHead className="text-right font-semibold">Ações</TableHead>
+                    <TableHead className="font-semibold text-foreground">Nome</TableHead>
+                    <TableHead className="font-semibold text-foreground">Email</TableHead>
+                    <TableHead className="font-semibold text-foreground">Perfis</TableHead>
+                    <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="font-semibold text-foreground">Criado em</TableHead>
+                    <TableHead className="font-semibold text-foreground">Último login</TableHead>
+                    <TableHead className="text-right font-semibold text-foreground">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
