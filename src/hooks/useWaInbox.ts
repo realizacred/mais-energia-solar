@@ -156,27 +156,44 @@ export function useWaConversations(filters?: {
         });
       }
 
-      // Load tags
+      // Load tags — explicit columns only, non-blocking on error
       const convIds = filtered.map((c: any) => c.id);
       const tagsMap: Record<string, WaConversationTag[]> = {};
       if (convIds.length > 0) {
-        const { data: ctData, error: ctError } = await supabase
-          .from("wa_conversation_tags")
-          .select("*, wa_tags(*)")
-          .in("conversation_id", convIds);
-        if (ctError) {
-          console.error("[useWaConversations] tags query error:", ctError.message);
-        }
-        if (ctData) {
-          for (const ct of ctData) {
-            if (!tagsMap[ct.conversation_id]) tagsMap[ct.conversation_id] = [];
-            tagsMap[ct.conversation_id].push({
-              id: ct.id,
-              conversation_id: ct.conversation_id,
-              tag_id: ct.tag_id,
-              tag: ct.wa_tags as any,
-            });
+        try {
+          // Batch in chunks of 100 to avoid oversized IN clauses
+          const CHUNK = 100;
+          const chunks: string[][] = [];
+          for (let i = 0; i < convIds.length; i += CHUNK) {
+            chunks.push(convIds.slice(i, i + CHUNK));
           }
+          const results = await Promise.all(
+            chunks.map((ids) =>
+              supabase
+                .from("wa_conversation_tags")
+                .select("id, conversation_id, tag_id, wa_tags(id, nome, cor)")
+                .in("conversation_id", ids)
+            )
+          );
+          for (const { data: ctData, error: ctError } of results) {
+            if (ctError) {
+              console.error("[useWaConversations] tags query error:", ctError.message);
+              continue;
+            }
+            if (ctData) {
+              for (const ct of ctData) {
+                if (!tagsMap[ct.conversation_id]) tagsMap[ct.conversation_id] = [];
+                tagsMap[ct.conversation_id].push({
+                  id: ct.id,
+                  conversation_id: ct.conversation_id,
+                  tag_id: ct.tag_id,
+                  tag: ct.wa_tags as any,
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error("[useWaConversations] tags load failed:", err);
         }
       }
 
