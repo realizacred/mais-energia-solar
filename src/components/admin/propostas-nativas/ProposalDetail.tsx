@@ -666,8 +666,32 @@ export function ProposalDetail() {
         lastGeneratedAt={lastGeneratedAt}
         currentStatus={currentStatus}
         sending={sending}
-        onSendWhatsapp={() => handleSend("whatsapp")}
+        onSendWhatsapp={(opts) => handleSend("whatsapp", opts)}
         onSendEmail={handleSendEmail}
+        templateVars={(() => {
+          const s = snapshot || {};
+          const itens = s.itens || [];
+          const mods = itens.filter((i: any) => i.categoria === "modulo" || i.categoria === "modulos");
+          const invs = itens.filter((i: any) => i.categoria === "inversor" || i.categoria === "inversores");
+          const numMods = mods.reduce((sum: number, m: any) => sum + (m.quantidade || 1), 0);
+          const modeloInv = invs.length > 0 ? `${invs[0].fabricante || ""} ${invs[0].modelo || ""}`.trim() : "";
+          const ucs = s.ucs || [];
+          const consumo = ucs.reduce((sum: number, uc: any) => sum + (uc.consumo_mensal || 0), 0);
+          return {
+            cliente_nome: clienteNome || "",
+            tipo_instalacao: s.tipo_telhado || "",
+            potencia_kwp: String(potenciaKwp || 0),
+            numero_modulos: String(numMods),
+            modelo_inversor: modeloInv,
+            consumo_mensal: String(consumo),
+            geracao_mensal: String(geracaoMensal || 0),
+            valor_total: totalFinal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            economia_mensal: (versao.economia_mensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            payback_meses: String(versao.payback_meses || 0),
+            proposta_link: publicUrl || "(link será gerado no envio)",
+            empresa_nome: "",
+          };
+        })()}
         onScrollToTracking={() => {
           const el = document.getElementById("proposal-tracking");
           el?.scrollIntoView({ behavior: "smooth" });
