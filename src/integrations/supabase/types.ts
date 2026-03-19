@@ -5474,6 +5474,56 @@ export type Database = {
           },
         ]
       }
+      integration_guides: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          portal_label: string | null
+          portal_url: string | null
+          provider_id: string
+          steps: Json
+          tenant_id: string | null
+          title: string
+          updated_at: string
+          warning: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          portal_label?: string | null
+          portal_url?: string | null
+          provider_id: string
+          steps?: Json
+          tenant_id?: string | null
+          title: string
+          updated_at?: string
+          warning?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          portal_label?: string | null
+          portal_url?: string | null
+          provider_id?: string
+          steps?: Json
+          tenant_id?: string | null
+          title?: string
+          updated_at?: string
+          warning?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_guides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_health_cache: {
         Row: {
           created_at: string
