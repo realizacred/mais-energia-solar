@@ -95,12 +95,14 @@ export function DialogPosDimensionamento({
           </div>
         </DialogHeader>
 
-        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh] transition-all duration-200">
           {loading ? (
             <div className="space-y-3 py-2">
-              <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-9 w-full rounded-lg" />
-              <Skeleton className="h-20 w-full rounded-lg" />
+              {/* Match real content shape: summary block + input + textarea */}
+              <Skeleton className="h-[72px] w-full rounded-lg" />
+              <Skeleton className="h-px w-full" />
+              <Skeleton className="h-[52px] w-full rounded-lg" />
+              <Skeleton className="h-[100px] w-full rounded-lg" />
             </div>
           ) : (
             <>
