@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.79.0",
+    date: "2026-03-19",
+    title: "Melhorias no Rastreamento e Envio de Propostas",
+    type: "improvement",
+    description: "Correção de bugs no envio, link sem rastreio funcional, integração com timeline do deal e refatoração de queries para hooks.",
+    details: [
+      "Fix: proposal-send agora usa colunas corretas (destinatario + detalhes JSON) ao registrar envios",
+      "Link sem rastreio gera signed URL do PDF armazenado no storage (7 dias de validade)",
+      "Timeline: envio de proposta registra evento 'proposal.sent' em project_events quando deal_id existe",
+      "ProposalViewsCard refatorado: queries movidas para hook useProposalTracking (§16)",
+      "Fix AP-05: <button> nativo substituído por <Button> shadcn em ProposalActionCards",
+      "Fix: bg-white substituído por bg-card na assinatura digital (dark mode)",
+    ],
+  },
+  {
     version: "2.78.0",
     date: "2026-03-19",
     title: "Central de Ajuda com Tutoriais Interativos",
