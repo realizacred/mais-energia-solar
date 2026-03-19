@@ -33,7 +33,7 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
   const completude = calcCompletude(m);
 
   return (
-    <Card className="group relative hover:shadow-md transition-shadow">
+    <Card className="group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all">
       {/* Action icons top-right */}
       <div className="absolute top-3 right-3 flex gap-1 z-10">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onView} title="Visualizar">
@@ -60,23 +60,23 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
 
         {/* Key specs */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="gap-1 font-mono text-xs">
+          <Badge variant="outline" className="gap-1 font-mono text-xs bg-primary/10 text-primary border-primary/20">
             <Zap className="w-3 h-3" />{m.potencia_wp}W
           </Badge>
           {m.num_celulas && (
-            <Badge variant="secondary" className="text-xs">{m.num_celulas} cél.</Badge>
+            <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{m.num_celulas} cél.</Badge>
           )}
           {m.eficiencia_percent && (
-            <Badge variant="secondary" className="text-xs">{m.eficiencia_percent}%</Badge>
+            <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">{m.eficiencia_percent}%</Badge>
           )}
         </div>
 
         {/* Technology badges */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge variant="outline" className="text-xs">{m.tipo_celula}</Badge>
-          {m.bifacial && <Badge variant="outline" className="text-xs">Bifacial</Badge>}
+          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{m.tipo_celula}</Badge>
+          {m.bifacial && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">Bifacial</Badge>}
           {m.tensao_sistema && (
-            <Badge variant="outline" className="text-xs">{m.tensao_sistema}</Badge>
+            <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{m.tensao_sistema}</Badge>
           )}
           <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
         </div>

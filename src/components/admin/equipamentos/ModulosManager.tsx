@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -10,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import type { Modulo } from "./modulos/types";
 import { CELL_TYPES } from "./modulos/types";
 import { useModulos, useModuloMutations } from "./modulos/useModulos";
@@ -70,28 +71,24 @@ export function ModulosManager() {
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4 flex-wrap">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <SunMedium className="w-5 h-5" />
-            Módulos Fotovoltaicos
-          </CardTitle>
-          <CardDescription className="mt-1">
-            {modulos.length} módulos cadastrados ({fabricantes.length} fabricantes)
-          </CardDescription>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
-            <Upload className="w-4 h-4" /> Importar
-          </Button>
-          <Button size="sm" onClick={openCreate} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Módulo
-          </Button>
-        </div>
-      </CardHeader>
+    <div className="space-y-6">
+      <PageHeader
+        icon={SunMedium}
+        title="Módulos Fotovoltaicos"
+        description={`${modulos.length} módulos cadastrados (${fabricantes.length} fabricantes)`}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+              <Upload className="w-4 h-4" /> Importar
+            </Button>
+            <Button size="sm" onClick={openCreate} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo Módulo
+            </Button>
+          </div>
+        }
+      />
 
-      <CardContent className="space-y-4">
+      <div className="space-y-4">
         {/* Filters */}
         <div className="flex flex-col gap-3">
           <div className="flex gap-3 flex-wrap">
@@ -160,11 +157,29 @@ export function ModulosManager() {
 
         {/* Content */}
         {isLoading ? (
-          <LoadingState message="Carregando módulos..." />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-border p-4 space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-40" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <SunMedium className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p>Nenhum módulo encontrado.</p>
+          <div className="text-center py-16 text-muted-foreground">
+            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-3">
+              <SunMedium className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground">Nenhum módulo encontrado</p>
+            <p className="text-sm mt-1">Tente ajustar os filtros ou cadastre um novo módulo.</p>
+            <Button size="sm" onClick={openCreate} className="mt-4 gap-2">
+              <Plus className="w-4 h-4" /> Novo Módulo
+            </Button>
           </div>
         ) : viewMode === "cards" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -195,7 +210,7 @@ export function ModulosManager() {
             {filtered.length} de {modulos.length} módulos
           </p>
         )}
-      </CardContent>
+      </div>
 
       {/* Modals */}
       <ModuloViewModal modulo={viewModulo} open={!!viewModulo} onOpenChange={v => !v && setViewModulo(null)} />
@@ -226,6 +241,6 @@ export function ModulosManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }
