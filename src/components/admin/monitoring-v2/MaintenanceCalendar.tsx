@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-// @ts-expect-error — deriveDeviceStatus + getDeviceSsotTimestamp used for SSOT device status
+
 import { deriveDeviceStatus, getDeviceSsotTimestamp } from "@/services/monitoring/plantStatusEngine";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

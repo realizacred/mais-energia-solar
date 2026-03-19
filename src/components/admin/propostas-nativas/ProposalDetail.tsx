@@ -298,56 +298,70 @@ export function ProposalDetail() {
   };
 
   const copyLink = async (withTracking = true) => {
-    if (withTracking) {
-      if (!publicUrl) {
-        toast({ title: "Envie a proposta primeiro para gerar o link rastreável", variant: "destructive" });
-        return;
-      }
-      navigator.clipboard.writeText(publicUrl);
-      toast({ title: "Link com rastreio copiado!" });
+    if (!proposta?.id || !versaoId) {
+      toast({ title: "Proposta não carregada", variant: "destructive" });
       return;
     }
 
-    // Link sem rastreio: generate signed URL from storage
+    const tipo = withTracking ? "tracked" : "public";
+
     try {
-      const { data: render } = await supabase
-        .from("proposta_renders")
-        .select("storage_path, url")
-        .eq("versao_id", versaoId!)
-        .eq("tipo", "pdf")
+      // 1. Buscar token existente do tipo correto
+      const { data: existing } = await supabase
+        .from("proposta_aceite_tokens" as any)
+        .select("token")
+        .eq("proposta_id", proposta.id)
+        .eq("versao_id", versaoId)
+        .eq("tipo", tipo)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      if (render?.storage_path) {
-        const bucket = "proposta-templates"; // same bucket used by template-preview
-        const { data: signedData } = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(render.storage_path, 60 * 60 * 24 * 7); // 7 days
+      let token = (existing as any)?.token as string | undefined;
 
-        if (signedData?.signedUrl) {
-          navigator.clipboard.writeText(signedData.signedUrl);
-          toast({ title: "Link direto do PDF copiado (sem rastreio)!" });
+      // 2. Se não existe, criar novo
+      if (!token) {
+        const { data: created, error: createErr } = await supabase
+          .from("proposta_aceite_tokens" as any)
+          .insert({
+            proposta_id: proposta.id,
+            versao_id: versaoId,
+            tipo,
+          } as any)
+          .select("token")
+          .single();
+
+        if (createErr || !created) {
+          console.error("[copyLink] Erro ao criar token:", createErr?.message);
+          toast({ title: `Erro ao criar link: ${createErr?.message || "desconhecido"}`, variant: "destructive" });
           return;
         }
+        token = (created as any).token;
       }
 
-      // Fallback: try url field or public_url without tracking
-      if (render?.url) {
-        navigator.clipboard.writeText(render.url);
-        toast({ title: "Link do arquivo copiado (sem rastreio)!" });
-        return;
+      // 3. Montar URL e copiar
+      const url = `${window.location.origin}/proposta/${token}`;
+
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        // Fallback para contexto inseguro (HTTP)
+        window.prompt("Copie o link abaixo:", url);
       }
 
-      // Last fallback: strip tracking from public URL
-      if (publicUrl) {
-        const baseUrl = publicUrl.replace(/\/proposta\/.*$/, "");
-        navigator.clipboard.writeText(publicUrl);
-        toast({ title: "Link copiado (gere o PDF para link sem rastreio)" });
-        return;
-      }
+      toast({
+        title: withTracking
+          ? "Link rastreável copiado! 🔗"
+          : "Link sem rastreio copiado! 🔗",
+      });
 
-      toast({ title: "Gere o arquivo PDF primeiro", variant: "destructive" });
-    } catch {
-      toast({ title: "Erro ao gerar link", variant: "destructive" });
+      // Atualizar publicUrl se for tracked
+      if (withTracking && !publicUrl) {
+        setPublicUrl(url);
+      }
+    } catch (err: any) {
+      console.error("[copyLink] Erro:", err);
+      toast({ title: `Erro ao gerar link: ${err?.message || "desconhecido"}`, variant: "destructive" });
     }
   };
 
