@@ -1207,17 +1207,15 @@ Deno.serve(async (req) => {
     const pdfStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_${outputFileName}`;
     const debugStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_debug_forensic.json`;
 
-    // 9a. Upload DOCX to storage
+    // 9a. Upload DOCX to storage (in parallel with PDF conversion — OPT-5)
     console.log(`[template-preview] Uploading DOCX to storage: ${docxStoragePath}`);
-    const { error: docxUploadErr } = await adminClient.storage
+    const docxUploadPromise = adminClient.storage
       .from("proposta-documentos")
       .upload(docxStoragePath, report, {
         contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         upsert: true,
       });
-    if (docxUploadErr) {
-      console.error("[template-preview] DOCX upload error:", docxUploadErr.message);
-    }
+    // Don't await — will be awaited after Gotenberg finishes
 
     // 9b. Convert DOCX to PDF via Gotenberg
     let pdfBytes: Uint8Array | null = null;
