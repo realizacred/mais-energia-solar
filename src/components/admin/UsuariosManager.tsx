@@ -518,7 +518,7 @@ export function UsuariosManager() {
             <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold">Nome</TableHead>
                     <TableHead className="font-semibold">Email</TableHead>
                     <TableHead className="font-semibold">Perfis</TableHead>
