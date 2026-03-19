@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     // ── 3. VERIFICAR OWNERSHIP + DADOS (paralelo) ───────────
     const [propostaRes, tenantRes, versaoRes, renderRes] = await Promise.all([
       adminClient.from("propostas_nativas")
-        .select("id, lead_id, titulo, codigo").eq("id", proposta_id).eq("tenant_id", tenantId).single(),
+        .select("id, lead_id, titulo, codigo, deal_id").eq("id", proposta_id).eq("tenant_id", tenantId).single(),
       adminClient.from("tenants")
         .select("dominio_customizado, slug, nome").eq("id", tenantId).single(),
       adminClient.from("proposta_versoes")
@@ -117,14 +117,15 @@ Deno.serve(async (req) => {
 
     await Promise.all([
       // Registrar na tabela de envios (audit trail)
+      // FIX: use correct column names (destinatario + detalhes JSON)
       adminClient.from("proposta_envios").insert({
         tenant_id: tenantId,
         versao_id,
         token_id: aceiteToken.id,
         canal: canalFinal,
         enviado_por: userId,
-        destinatario_telefone: null, // preenchido abaixo se whatsapp
-        destinatario_nome: null,
+        destinatario: null, // populated below if whatsapp
+        detalhes: { token: aceiteToken.token, public_url: publicUrl },
       }),
       // Atualizar status da proposta
       adminClient.from("propostas_nativas").update({
@@ -140,7 +141,29 @@ Deno.serve(async (req) => {
       }).eq("id", versao_id).eq("tenant_id", tenantId),
     ]);
 
-    // ── 7. WHATSAPP (best-effort) ───────────────────────────
+    // ── 7. TIMELINE EVENT (project_events) ──────────────────
+    if (proposta.deal_id) {
+      adminClient.from("project_events").insert({
+        tenant_id: tenantId,
+        deal_id: proposta.deal_id,
+        event_type: "proposal.sent",
+        actor_user_id: userId,
+        from_value: null,
+        to_value: canalFinal,
+        metadata: {
+          proposta_id,
+          versao_id,
+          canal: canalFinal,
+          token: aceiteToken.token,
+          valor_total: versao.valor_total,
+          potencia_kwp: versao.potencia_kwp,
+        },
+      }).then(({ error }) => {
+        if (error) console.warn("[proposal-send] Timeline event insert failed:", error.message);
+      });
+    }
+
+    // ── 8. WHATSAPP (best-effort) ───────────────────────────
     let whatsappSent = false;
     if (canalFinal === "whatsapp") {
       const targetLeadId = lead_id || proposta.lead_id;
@@ -165,11 +188,16 @@ Deno.serve(async (req) => {
 
             whatsappSent = !waErr;
 
-            // Atualizar envio com dados do destinatário
+            // Update envio with destinatario info using correct columns
             if (whatsappSent) {
               await adminClient.from("proposta_envios").update({
-                destinatario_telefone: lead.telefone,
-                destinatario_nome: lead.nome,
+                destinatario: lead.telefone,
+                detalhes: {
+                  token: aceiteToken.token,
+                  public_url: publicUrl,
+                  destinatario_nome: lead.nome,
+                  destinatario_telefone: lead.telefone,
+                },
               }).eq("token_id", aceiteToken.id).eq("tenant_id", tenantId);
             }
           }
