@@ -227,6 +227,17 @@ export default function MonitorPlants() {
             </SelectContent>
           </Select>
         )}
+        <Select value={clientFilter} onValueChange={(v) => setClientFilter(v as "all" | "with" | "without")}>
+          <SelectTrigger className="w-auto min-w-[150px] h-9 text-xs">
+            <Users className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os clientes</SelectItem>
+            <SelectItem value="with">Com cliente</SelectItem>
+            <SelectItem value="without">Sem cliente</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
           <SelectTrigger className="w-auto min-w-[180px] h-9 text-xs">
             <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
