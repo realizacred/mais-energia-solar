@@ -6056,6 +6056,66 @@ export type Database = {
           },
         ]
       }
+      intelligence_realtime_notifications: {
+        Row: {
+          contexto_json: Json | null
+          created_at: string | null
+          id: string
+          lead_id: string
+          lida: boolean | null
+          mensagem_id: string | null
+          sugestao_resposta: string | null
+          temperamento_anterior: string | null
+          temperamento_novo: string | null
+          tenant_id: string
+          tipo_notificacao: string
+          urgencia_score: number | null
+        }
+        Insert: {
+          contexto_json?: Json | null
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          lida?: boolean | null
+          mensagem_id?: string | null
+          sugestao_resposta?: string | null
+          temperamento_anterior?: string | null
+          temperamento_novo?: string | null
+          tenant_id: string
+          tipo_notificacao: string
+          urgencia_score?: number | null
+        }
+        Update: {
+          contexto_json?: Json | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          lida?: boolean | null
+          mensagem_id?: string | null
+          sugestao_resposta?: string | null
+          temperamento_anterior?: string | null
+          temperamento_novo?: string | null
+          tenant_id?: string
+          tipo_notificacao?: string
+          urgencia_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_realtime_notifications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_realtime_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_chat_members: {
         Row: {
           chat_id: string
