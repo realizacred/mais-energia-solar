@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { WaAISidebar } from "./WaAISidebar";
 import { WaNotesPanel } from "./WaNotesPanel";
+import { AnimatePresence } from "framer-motion";
+import { useRealtimeNotifications, useMarcarNotificacaoLida, useRealtimeIntelligenceSubscription } from "@/hooks/useRealtimeIntelligence";
+import { RealtimeIntelligenceBanner } from "@/components/admin/intelligence/RealtimeIntelligenceBanner";
+import { IntelligenceBadge } from "@/components/admin/intelligence/IntelligenceBadge";
 import {
   Sparkles,
   StickyNote,
