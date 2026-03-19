@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import type { Modulo } from "./modulos/types";
 import { CELL_TYPES } from "./modulos/types";
 import { useModulos, useModuloMutations } from "./modulos/useModulos";
