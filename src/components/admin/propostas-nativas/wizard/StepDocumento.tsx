@@ -290,9 +290,10 @@ export function StepDocumento({
   const renderTemplateTab = () => {
     // ── Generation in progress
     if (generating) {
-      const statusMsg = generationStatus === "generating_docx" ? "Gerando documento DOCX..."
+      const statusMsg = generationStatus === "calculating" ? "Calculando dimensionamento..."
+        : generationStatus === "generating_docx" ? "Gerando documento..."
         : generationStatus === "converting_pdf" ? "Convertendo para PDF..."
-        : generationStatus === "saving" ? "Salvando artefatos..."
+        : generationStatus === "saving" ? "Finalizando..."
         : "Gerando proposta comercial...";
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
