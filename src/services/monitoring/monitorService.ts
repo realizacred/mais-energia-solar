@@ -277,10 +277,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
       });
     }
 
+    const cId = clientIdMap.get(sp.id) || null;
     return {
-      ...mapSolarPlantToMonitorPlant(sp),
+      ...mapSolarPlantToMonitorPlant(sp, cId),
       health,
       provider_name: sp.provider || undefined,
+      client_name: cId ? (clientNameMap.get(cId) || null) : null,
     };
   });
 }
