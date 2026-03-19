@@ -31,7 +31,7 @@ export function useRealtimeNotifications(tenantId: string | null, unreadOnly = t
     queryFn: async () => {
       let query = supabase
         .from("intelligence_realtime_notifications" as any)
-        .select(`*, lead:leads(id, nome, telefone)`)
+        .select(`*`)
         .eq("tenant_id", tenantId!)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -42,7 +42,7 @@ export function useRealtimeNotifications(tenantId: string | null, unreadOnly = t
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as RealtimeNotification[];
+      return (data || []) as unknown as RealtimeNotification[];
     },
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 30,
