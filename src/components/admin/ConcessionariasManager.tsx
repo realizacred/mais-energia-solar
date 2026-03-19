@@ -815,7 +815,7 @@ export function ConcessionariasManager() {
                       </TableCell>
                       <TableCell>
                         {c.possui_isencao_scee != null ? (
-                          <Badge variant={c.possui_isencao_scee ? "default" : "secondary"} className="text-xs">
+                          <Badge variant="outline" className={`text-xs ${c.possui_isencao_scee ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground border-border"}`}>
                             {c.possui_isencao_scee ? "Sim" : "Não"}
                           </Badge>
                         ) : (
