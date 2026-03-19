@@ -111,7 +111,7 @@ export default function MeterDetailPage() {
       if (!link?.plant_id) return null;
       const { data: plant } = await supabase
         .from("monitor_plants")
-        .select("id, nome")
+        .select("id, name")
         .eq("id", link.plant_id)
         .maybeSingle();
       return plant;
