@@ -319,15 +319,18 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 
   const openAlertCount = ((alertRows as unknown as any[]) || []).length;
 
-  // SSOT: Fetch MAX(monitor_devices.last_seen_at) for this plant
+  // SSOT: Fetch MAX(monitor_devices.last_seen_at) + client_id for this plant
   let maxDeviceSeen: string | null = null;
+  let plantClientId: string | null = null;
+  let plantClientName: string | null = null;
   {
     const { data: mpRow } = await supabase
       .from("monitor_plants" as any)
-      .select("id")
+      .select("id, client_id")
       .eq("legacy_plant_id", resolvedId)
       .maybeSingle();
     if (mpRow) {
+      plantClientId = (mpRow as any).client_id || null;
       const { data: devRows } = await supabase
         .from("monitor_devices" as any)
         .select("last_seen_at")
@@ -338,13 +341,22 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
       const topDev = (devRows as unknown as Array<{ last_seen_at: string }>) || [];
       if (topDev.length > 0) maxDeviceSeen = topDev[0].last_seen_at;
     }
+    if (plantClientId) {
+      const { data: clientRow } = await supabase
+        .from("clientes")
+        .select("nome")
+        .eq("id", plantClientId)
+        .maybeSingle();
+      plantClientName = (clientRow as any)?.nome || null;
+    }
   }
 
   const bestLastSeen = maxDeviceSeen;
 
   return {
-    ...mapSolarPlantToMonitorPlant(sp),
+    ...mapSolarPlantToMonitorPlant(sp, plantClientId),
     health: legacyStatusToHealth(sp, m, monthKwh, ym, openAlertCount, bestLastSeen),
+    client_name: plantClientName,
   };
 }
 
