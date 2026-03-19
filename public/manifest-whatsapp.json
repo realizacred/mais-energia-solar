@@ -1,0 +1,32 @@
+{
+  "id": "/w/",
+  "name": "Mais Energia — WhatsApp",
+  "short_name": "Atendimento",
+  "description": "Portal de atendimento WhatsApp",
+  "theme_color": "#25D366",
+  "background_color": "#25D366",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/w/",
+  "scope": "/",
+  "categories": ["business", "communication"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "pwa-icon-wa-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-icon-wa-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-icon-wa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
