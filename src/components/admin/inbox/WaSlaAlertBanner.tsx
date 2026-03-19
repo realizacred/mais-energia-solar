@@ -181,12 +181,12 @@ export function WaSlaAlertBanner({
                       {onPauseSla && (
                         <Button
                           size="icon"
-                          variant="warning"
-                          className="h-7 w-7"
+                          variant="ghost"
+                          className="h-7 w-7 text-warning hover:bg-warning/10"
                           onClick={() => onPauseSla(alert.conversation_id, 4)}
                           title="Pausar SLA por 4h"
                         >
-                          <PauseCircle className="h-3.5 w-3.5 text-warning" />
+                          <PauseCircle className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       <Button
