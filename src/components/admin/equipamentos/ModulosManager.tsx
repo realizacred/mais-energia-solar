@@ -71,26 +71,22 @@ export function ModulosManager() {
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4 flex-wrap">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <SunMedium className="w-5 h-5" />
-            Módulos Fotovoltaicos
-          </CardTitle>
-          <CardDescription className="mt-1">
-            {modulos.length} módulos cadastrados ({fabricantes.length} fabricantes)
-          </CardDescription>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
-            <Upload className="w-4 h-4" /> Importar
-          </Button>
-          <Button size="sm" onClick={openCreate} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Módulo
-          </Button>
-        </div>
-      </CardHeader>
+    <div className="space-y-6">
+      <PageHeader
+        icon={SunMedium}
+        title="Módulos Fotovoltaicos"
+        description={`${modulos.length} módulos cadastrados (${fabricantes.length} fabricantes)`}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+              <Upload className="w-4 h-4" /> Importar
+            </Button>
+            <Button size="sm" onClick={openCreate} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo Módulo
+            </Button>
+          </div>
+        }
+      />
 
       <CardContent className="space-y-4">
         {/* Filters */}
