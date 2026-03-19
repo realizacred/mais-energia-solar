@@ -174,6 +174,13 @@ export default function MonitorPlantDetail() {
         <DetailKpi label="Alertas Abertos" value={String(plant.health?.open_alerts_count || 0)} icon={AlertTriangle} color={plant.health?.open_alerts_count ? "destructive" : "muted"} />
       </div>
 
+      {/* Client section */}
+      <PlantClientSection
+        plantId={plant.id}
+        clientId={plant.client_id}
+        clientName={plant.client_name || null}
+      />
+
       {/* Generation chart with time range */}
       <SectionCard
         title="Geração"
