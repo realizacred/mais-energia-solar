@@ -760,7 +760,7 @@ export function WaChatComposer({
           autoCapitalize={spellCheckEnabled ? "sentences" : "off"}
           lang="pt-BR"
           placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite / para respostas rápidas..."}
-          className={`flex-1 min-h-[40px] max-h-[120px] resize-none text-sm leading-snug py-2.5 rounded-xl ${isNoteMode ? "border-warning/30 bg-warning/5" : "bg-muted/30 border-border/30 focus:bg-background"}`}
+          className={`flex-1 min-w-0 min-h-[40px] max-h-[120px] resize-none text-sm leading-snug py-2.5 rounded-xl ${isNoteMode ? "border-warning/30 bg-warning/5" : "bg-muted/30 border-border/30 focus:bg-background"}`}
           rows={1}
           disabled={busy}
         />
