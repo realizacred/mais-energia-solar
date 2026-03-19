@@ -490,7 +490,7 @@ export function ConcessionariasManager() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={Building}
+        icon={Building2}
         title="Concessionárias"
         description="Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos."
         actions={
