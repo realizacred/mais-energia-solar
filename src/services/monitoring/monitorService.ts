@@ -701,3 +701,48 @@ export async function getTodayMetrics(): Promise<SolarPlantMetricsDaily[]> {
     .eq("date", today);
   return (data as unknown as SolarPlantMetricsDaily[]) || [];
 }
+
+// ─── CLIENT LINKING ──────────────────────────────────────────
+
+/**
+ * Update the client_id on monitor_plants for a given legacy solar_plants.id.
+ * Pass null to unlink.
+ */
+export async function updatePlantClientId(plantId: string, clientId: string | null): Promise<void> {
+  // Resolve to monitor_plants row via legacy_plant_id
+  const { data: mpRow } = await supabase
+    .from("monitor_plants" as any)
+    .select("id")
+    .eq("legacy_plant_id", plantId)
+    .maybeSingle();
+
+  if (!mpRow) {
+    // Also try direct id
+    const { data: directRow } = await supabase
+      .from("monitor_plants" as any)
+      .select("id")
+      .eq("id", plantId)
+      .maybeSingle();
+    if (!directRow) throw new Error("Usina não encontrada em monitor_plants");
+    const { error } = await (supabase
+      .from("monitor_plants" as any)
+      .update({ client_id: clientId })
+      .eq("id", plantId) as any);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await (supabase
+    .from("monitor_plants" as any)
+    .update({ client_id: clientId })
+    .eq("id", (mpRow as any).id) as any);
+  if (error) throw error;
+}
+
+/**
+ * List all plants linked to a specific client
+ */
+export async function listPlantsByClientId(clientId: string): Promise<PlantWithHealth[]> {
+  const all = await listPlantsWithHealth();
+  return all.filter((p) => p.client_id === clientId);
+}
