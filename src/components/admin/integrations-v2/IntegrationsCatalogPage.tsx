@@ -68,6 +68,7 @@ const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations
 const WebhookManagerTab = lazy(() => import("@/components/admin/WebhookManager"));
 const WaInstancesManagerTab = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
 const WhatsAppAutomationConfigTab = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
+const IntegrationGuidesManagerTab = lazy(() => import("@/components/admin/integrations-v2/IntegrationGuidesManager"));
 
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
   Object.entries(LEGACY_ID_MAP).map(([legacy, canonical]) => [canonical, legacy])
