@@ -66,11 +66,11 @@ async function resolveToLegacyPlantId(plantId: string): Promise<string> {
 
 // ─── HELPERS: map legacy → v2 types ──────────────────────────
 
-function mapSolarPlantToMonitorPlant(sp: SolarPlant): MonitorPlant {
+function mapSolarPlantToMonitorPlant(sp: SolarPlant, clientId?: string | null): MonitorPlant {
   return {
     id: sp.id,
     tenant_id: sp.tenant_id,
-    client_id: null,
+    client_id: clientId ?? null,
     name: sp.name || "Usina",
     lat: sp.latitude,
     lng: sp.longitude,
