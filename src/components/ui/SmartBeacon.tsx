@@ -62,7 +62,7 @@ export function SmartBeacon({ beacon, onDismiss }: SmartBeaconProps) {
       {/* Pulsing dot */}
       <button
         onClick={() => setShowTooltip(true)}
-        className="fixed z-[9999] group"
+        className="fixed z-50 group"
         style={{ top: pos.top, left: pos.left }}
         aria-label={`Novidade: ${hint.title}`}
       >
