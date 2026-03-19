@@ -114,7 +114,8 @@ export default function MonitorPlants() {
       if (p.health?.is_yesterday_fallback) return s; // skip fallback entries
       return s + (p.health?.energy_today_kwh || 0);
     }, 0);
-    return { total: plants.length, online, standby, offline, totalPowerKwp, energyTodayKwh };
+    const withoutClient = plants.filter((p) => !p.client_id).length;
+    return { total: plants.length, online, standby, offline, totalPowerKwp, energyTodayKwh, withoutClient };
   }, [plants]);
 
   const handleSelectPlant = useCallback((id: string) => {
