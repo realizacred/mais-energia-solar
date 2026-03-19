@@ -356,6 +356,7 @@ export default function IntegrationsCatalogPage() {
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="instancias">Instâncias WA</TabsTrigger>
           <TabsTrigger value="automacao">Automação</TabsTrigger>
+          <TabsTrigger value="tutoriais">Tutoriais</TabsTrigger>
         </TabsList>
 
         <TabsContent value="catalogo" className="mt-6 space-y-6">
