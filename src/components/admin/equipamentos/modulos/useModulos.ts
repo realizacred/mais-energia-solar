@@ -31,8 +31,8 @@ export function useModulos() {
 
       return allData;
     },
+    staleTime: 1000 * 60 * 5,
   });
-}
 
 export function useModuloMutations() {
   const { toast } = useToast();

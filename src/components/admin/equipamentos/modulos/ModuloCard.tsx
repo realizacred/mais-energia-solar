@@ -73,10 +73,10 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
 
         {/* Technology badges */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge variant="outline" className="text-xs">{m.tipo_celula}</Badge>
-          {m.bifacial && <Badge variant="outline" className="text-xs">Bifacial</Badge>}
+          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{m.tipo_celula}</Badge>
+          {m.bifacial && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">Bifacial</Badge>}
           {m.tensao_sistema && (
-            <Badge variant="outline" className="text-xs">{m.tensao_sistema}</Badge>
+            <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{m.tensao_sistema}</Badge>
           )}
           <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
         </div>
