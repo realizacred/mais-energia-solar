@@ -1358,7 +1358,7 @@ export function ProposalWizard() {
       const isDocxTemplate = selectedTpl?.tipo === "docx";
 
       setRendering(true);
-      setGenerationStatus("converting_pdf");
+      setGenerationStatus("generating_docx");
       try {
         if (isDocxTemplate && genResult.proposta_id) {
           // DOCX template: call template-preview with JSON response to get persisted paths
