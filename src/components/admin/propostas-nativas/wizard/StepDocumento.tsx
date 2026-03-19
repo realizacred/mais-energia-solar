@@ -300,11 +300,11 @@ export function StepDocumento({
           <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
           <p className="text-sm font-medium text-muted-foreground animate-pulse">{statusMsg}</p>
           <div className="flex items-center gap-2">
-            {["generating_docx", "converting_pdf", "saving"].map((s, i) => (
+            {["calculating", "generating_docx", "converting_pdf", "saving"].map((s, i) => (
               <div key={s} className={cn(
                 "h-1.5 w-8 rounded-full transition-colors",
                 generationStatus === s ? "bg-primary animate-pulse" :
-                ["generating_docx", "converting_pdf", "saving"].indexOf(generationStatus) > i ? "bg-primary" : "bg-muted"
+                ["calculating", "generating_docx", "converting_pdf", "saving"].indexOf(generationStatus) > i ? "bg-primary" : "bg-muted"
               )} />
             ))}
           </div>
