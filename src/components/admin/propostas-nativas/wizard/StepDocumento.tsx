@@ -154,19 +154,76 @@ export function StepDocumento({
     }
   };
 
-  const handleCopyLink = (withTracker: boolean) => {
-    const link = withTracker
-      ? (result?.link_rastreio || result?.link_publico || "")
-      : (result?.link_publico || "");
-    navigator.clipboard.writeText(link);
-    if (withTracker) {
-      setCopiedTracker(true);
-      setTimeout(() => setCopiedTracker(false), 2000);
-    } else {
-      setCopiedDirect(true);
-      setTimeout(() => setCopiedDirect(false), 2000);
+  const handleCopyLink = async (withTracker: boolean) => {
+    const propostaId = result?.proposta_id;
+    const versaoId = result?.versao_id;
+    if (!propostaId || !versaoId) {
+      toast({ title: "Gere a proposta primeiro", variant: "destructive" });
+      return;
     }
-    toast({ title: "Link copiado!" });
+
+    const tipo = withTracker ? "tracked" : "public";
+
+    try {
+      // 1. Buscar token existente do tipo correspondente
+      const { data: existing } = await supabase
+        .from("proposta_aceite_tokens" as any)
+        .select("token")
+        .eq("proposta_id", propostaId)
+        .eq("versao_id", versaoId)
+        .eq("tipo", tipo)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let token = (existing as any)?.token as string | undefined;
+
+      // 2. Se não existe, criar novo
+      if (!token) {
+        const { data: created, error: createErr } = await supabase
+          .from("proposta_aceite_tokens" as any)
+          .insert({
+            proposta_id: propostaId,
+            versao_id: versaoId,
+            tipo,
+          } as any)
+          .select("token")
+          .single();
+
+        if (createErr || !created) {
+          console.error("[handleCopyLink] Erro ao criar token:", createErr?.message);
+          toast({ title: `Erro ao criar link: ${createErr?.message || "desconhecido"}`, variant: "destructive" });
+          return;
+        }
+        token = (created as any).token;
+      }
+
+      // 3. Montar URL e copiar
+      const url = `${window.location.origin}/proposta/${token}`;
+
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        window.prompt("Copie o link abaixo:", url);
+      }
+
+      if (withTracker) {
+        setCopiedTracker(true);
+        setTimeout(() => setCopiedTracker(false), 2000);
+      } else {
+        setCopiedDirect(true);
+        setTimeout(() => setCopiedDirect(false), 2000);
+      }
+
+      toast({
+        title: withTracker
+          ? "Link rastreável copiado! 🔗"
+          : "Link sem rastreio copiado! 🔗",
+      });
+    } catch (err: any) {
+      console.error("[handleCopyLink] Erro:", err);
+      toast({ title: `Erro ao gerar link: ${err?.message || "desconhecido"}`, variant: "destructive" });
+    }
   };
 
   const [sendingWa, setSendingWa] = useState(false);
