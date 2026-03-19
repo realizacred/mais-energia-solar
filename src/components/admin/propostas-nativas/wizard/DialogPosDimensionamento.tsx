@@ -96,73 +96,76 @@ export function DialogPosDimensionamento({
         </DialogHeader>
 
         <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
-          {/* Summary */}
-          <div className="space-y-1.5 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <User className="h-3.5 w-3.5 text-primary" />
-              <span><span className="font-medium text-foreground">Cliente:</span> {clienteNome || "—"}</span>
+          {loading ? (
+            <div className="space-y-3 py-2">
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-9 w-full rounded-lg" />
+              <Skeleton className="h-20 w-full rounded-lg" />
             </div>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-3.5 w-3.5 text-primary" />
-              <span><span className="font-medium text-foreground">Empresa:</span> {empresaNome || "—"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="h-3.5 w-3.5 text-primary" />
-              <span><span className="font-medium text-foreground">Potência:</span> {potenciaKwp.toFixed(2)} kWp</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-3.5 w-3.5 text-primary" />
-              <span><span className="font-medium text-foreground">Preço:</span> {formatBRL(precoFinal)}</span>
-            </div>
-          </div>
+          ) : (
+            <>
+              {/* Summary */}
+              <div className="space-y-1.5 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <User className="h-3.5 w-3.5 text-primary" />
+                  <span><span className="font-medium text-foreground">Cliente:</span> {clienteNome || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-3.5 w-3.5 text-primary" />
+                  <span><span className="font-medium text-foreground">Empresa:</span> {empresaNome || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-3.5 w-3.5 text-primary" />
+                  <span><span className="font-medium text-foreground">Potência:</span> {potenciaKwp.toFixed(2)} kWp</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-3.5 w-3.5 text-primary" />
+                  <span><span className="font-medium text-foreground">Preço:</span> {formatBRL(precoFinal)}</span>
+                </div>
+              </div>
 
-          <div className="border-t border-border" />
+              <div className="border-t border-border" />
 
-        {/* ── Nome da Proposta */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Nome da Proposta <span className="text-destructive">*</span></Label>
-          <Input
-            value={nomeProposta}
-            onChange={e => onNomePropostaChange(e.target.value)}
-            placeholder="Ex: Proposta Solar Residencial"
-            className="h-9 text-sm"
-          />
-        </div>
-
-        {/* ── Descrição */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Descrição (Opcional)</Label>
-          <Textarea
-            value={descricaoProposta}
-            onChange={e => onDescricaoPropostaChange(e.target.value)}
-            placeholder="Observações sobre esta proposta..."
-            className="text-sm min-h-[80px] resize-y"
-          />
-        </div>
-
-        {/* ── Custom Fields (pos_dimensionamento) */}
-        {loading ? (
-          <div className="space-y-3 py-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : fields.length > 0 ? (
-          <div className="space-y-3">
-            <h4 className="text-sm font-bold">Campos Customizados</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {fields.map(field => (
-                <PosCustomFieldInput
-                  key={field.id}
-                  field={field}
-                  value={customFieldValues[field.field_key]}
-                  onChange={(val) => updateCustom(field.field_key, val)}
+              {/* ── Nome da Proposta */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Nome da Proposta <span className="text-destructive">*</span></Label>
+                <Input
+                  value={nomeProposta}
+                  onChange={e => onNomePropostaChange(e.target.value)}
+                  placeholder="Ex: Proposta Solar Residencial"
+                  className="h-9 text-sm"
                 />
-              ))}
-            </div>
-          </div>
-        ) : null}
+              </div>
 
+              {/* ── Descrição */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Descrição (Opcional)</Label>
+                <Textarea
+                  value={descricaoProposta}
+                  onChange={e => onDescricaoPropostaChange(e.target.value)}
+                  placeholder="Observações sobre esta proposta..."
+                  className="text-sm min-h-[80px] resize-y"
+                />
+              </div>
+
+              {/* ── Custom Fields (pos_dimensionamento) */}
+              {fields.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold">Campos Customizados</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {fields.map(field => (
+                      <PosCustomFieldInput
+                        key={field.id}
+                        field={field}
+                        value={customFieldValues[field.field_key]}
+                        onChange={(val) => updateCustom(field.field_key, val)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 flex-wrap">
