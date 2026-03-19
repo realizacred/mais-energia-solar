@@ -638,23 +638,23 @@ export function ConcessionariasManager() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
              <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Sigla</TableHead>
-                <TableHead>UF</TableHead>
-                <TableHead>Subgrupos</TableHead>
-                <TableHead>Tarifa (TE+TUSD)</TableHead>
-                <TableHead>Fio B (100%)</TableHead>
-                <TableHead>Fio B Vigente</TableHead>
-                <TableHead>Integral c/ Imp.</TableHead>
-                <TableHead>ICMS</TableHead>
-                <TableHead>Isenção</TableHead>
-                <TableHead>Sync ANEEL</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground">Nome</TableHead>
+                <TableHead className="font-semibold text-foreground">Sigla</TableHead>
+                <TableHead className="font-semibold text-foreground">UF</TableHead>
+                <TableHead className="font-semibold text-foreground">Subgrupos</TableHead>
+                <TableHead className="font-semibold text-foreground">Tarifa (TE+TUSD)</TableHead>
+                <TableHead className="font-semibold text-foreground">Fio B (100%)</TableHead>
+                <TableHead className="font-semibold text-foreground">Fio B Vigente</TableHead>
+                <TableHead className="font-semibold text-foreground">Integral c/ Imp.</TableHead>
+                <TableHead className="font-semibold text-foreground">ICMS</TableHead>
+                <TableHead className="font-semibold text-foreground">Isenção</TableHead>
+                <TableHead className="font-semibold text-foreground">Sync ANEEL</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
