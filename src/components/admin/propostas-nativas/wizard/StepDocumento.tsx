@@ -557,7 +557,7 @@ export function StepDocumento({
               <div className="flex flex-wrap gap-1">
                 {missingVars.map(v => (
                   <Badge key={v} variant="outline" className="text-[10px] border-warning/30 text-warning bg-warning/10">
-                    {v.replace(/[\[\]{}]/g, "")}
+                    {v.replace(/[[\]{}]/g, "")}
                   </Badge>
                 ))}
               </div>

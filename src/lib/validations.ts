@@ -6,7 +6,7 @@ import { z } from "zod";
 // - Domain must have at least one dot with 2+ char TLD
 // - No leading/trailing dots in local or domain parts
 const EMAIL_REGEX =
-  /^[a-zA-Z0-9](?:[a-zA-Z0-9._%+\-]*[a-zA-Z0-9])?@[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  /^[a-zA-Z0-9](?:[a-zA-Z0-9._%+-]*[a-zA-Z0-9])?@[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
 
 export const EMAIL_ERROR_MESSAGE = "E-mail inválido. Verifique e tente novamente.";
 export const EMAIL_DISPOSABLE_MESSAGE = "Não aceitamos e-mails temporários para cadastro.";

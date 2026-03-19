@@ -67,7 +67,9 @@ export function useNotifications() {
             });
           }
         }
-      } catch {}
+      } catch {
+        // ignore errors fetching leads
+      }
 
       // 2. Unread WhatsApp conversations
       // Admin: all open | Consultant: assigned_to me or unassigned
@@ -97,7 +99,9 @@ export function useNotifications() {
             });
           }
         }
-      } catch {}
+      } catch {
+        // ignore errors fetching WhatsApp conversations
+      }
 
       // 3. Upcoming appointments (next 4 hours)
       // Admin: all | Consultant: assigned_to me or created_by me
@@ -130,7 +134,9 @@ export function useNotifications() {
             });
           }
         }
-      } catch {}
+      } catch {
+        // ignore errors fetching appointments
+      }
 
       // 4. SLA alerts
       // Admin: all | Consultant: only via RLS (already filtered by RLS)
@@ -153,7 +159,9 @@ export function useNotifications() {
             });
           }
         }
-      } catch {}
+      } catch {
+        // ignore errors fetching SLA alerts
+      }
 
       // Sort by timestamp desc
       items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

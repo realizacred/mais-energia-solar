@@ -237,7 +237,9 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
           .eq("conversation_id", conversationId)
           .maybeSingle();
         if (data) setCachedSummary(data as any);
-      } catch {}
+      } catch {
+        // ignore errors loading cached summary
+      }
     }
     loadCachedSummary();
   }, [conversationId]);

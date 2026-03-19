@@ -452,8 +452,8 @@ export function AvaliacoesManager() {
         const attendantIds = [...new Set(ratings.map(r => r.attendant_user_id).filter(Boolean))] as string[];
         const conversationIds = [...new Set(ratings.map(r => r.conversation_id).filter(Boolean))] as string[];
 
-        let profilesMap: Record<string, string> = {};
-        let convsMap: Record<string, { nome: string | null; telefone: string }> = {};
+        const profilesMap: Record<string, string> = {};
+        const convsMap: Record<string, { nome: string | null; telefone: string }> = {};
 
         if (attendantIds.length > 0) {
           const { data: profiles } = await supabase

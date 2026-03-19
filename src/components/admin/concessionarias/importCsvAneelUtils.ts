@@ -33,7 +33,7 @@ export function norm(s: string): string {
 
 /** Normalize for matching: also strips hyphens, slashes, dots, parentheses */
 export function normMatch(s: string): string {
-  return norm(s).replace(/[-\/\.\(\)]/g, " ").replace(/\s+/g, " ").trim();
+  return norm(s).replace(/[-/.()\s]+/g, " ").trim();
 }
 
 export function stripSuffixes(s: string): string {
@@ -550,7 +550,7 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
 
   const records: ParsedTarifa[] = [];
   const startIdx = isPreParsed ? 0 : 1;
-  let debugSkipReasons = { noSub: 0, total: 0, accepted: 0 };
+  const debugSkipReasons = { noSub: 0, total: 0, accepted: 0 };
   
   for (let i = startIdx; i < data.length; i++) {
     const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);

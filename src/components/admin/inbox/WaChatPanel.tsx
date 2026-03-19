@@ -241,7 +241,9 @@ export function WaChatPanel({
         if (data && data.length > 0) {
           setDeletedMsgIds(new Set(data.map((d: any) => d.message_id)));
         }
-      } catch {}
+      } catch {
+        // ignore errors loading hidden messages
+      }
     };
     loadHidden();
   }, [conversation?.id, currentUserId]);

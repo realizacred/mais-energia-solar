@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import React from "react";
 
 vi.mock("framer-motion", async () => {
   const actual = await vi.importActual<typeof import("framer-motion")>("framer-motion");
@@ -7,8 +8,7 @@ vi.mock("framer-motion", async () => {
     motion: new Proxy({} as Record<string, any>, {
       get: (_target, prop: string) => {
         // Return a forwardRef component that just renders the HTML element
-        const { forwardRef } = require("react");
-        return forwardRef((props: any, ref: any) => {
+        return React.forwardRef((props: any, ref: any) => {
           const {
             initial, animate, exit, variants, whileHover, whileTap,
             whileFocus, whileDrag, whileInView, transition, layout,
@@ -16,7 +16,7 @@ vi.mock("framer-motion", async () => {
             custom, ...rest
           } = props;
           const Tag = prop as keyof JSX.IntrinsicElements;
-          return require("react").createElement(Tag, { ...rest, ref });
+          return React.createElement(Tag, { ...rest, ref });
         });
       },
     }),

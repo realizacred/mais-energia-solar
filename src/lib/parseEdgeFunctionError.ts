@@ -30,7 +30,7 @@ export async function parseEdgeFunctionError(
         body = await ctx.json();
       } else if (ctx.body) {
         const text = await new Response(ctx.body).text();
-        try { body = JSON.parse(text); } catch {}
+        try { body = JSON.parse(text); } catch { /* ignore JSON parse errors */ }
       }
       if (body?.error) {
         return body.details

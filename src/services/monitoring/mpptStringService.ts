@@ -423,7 +423,9 @@ export async function bootstrapAllStrings(): Promise<{ processed: number; plants
       if (typeof error === "object" && "message" in error) {
         msg = (error as any).message || msg;
       }
-    } catch {}
+    } catch {
+      // ignore errors extracting error message
+    }
     throw new Error(msg);
   }
 
