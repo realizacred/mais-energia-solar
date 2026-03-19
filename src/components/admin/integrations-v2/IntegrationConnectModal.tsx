@@ -188,6 +188,9 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
         </Accordion>
       )}
 
+      {/* Provider setup guide */}
+      <ProviderSetupGuide providerId={provider.id} />
+
       {/* Dynamic credential fields */}
       {hasFields && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
