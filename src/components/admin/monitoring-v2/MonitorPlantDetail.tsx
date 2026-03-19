@@ -17,6 +17,7 @@ import { extractMpptData } from "./devices/DeviceMpptSummary";
 import { PlantMpptSection } from "./devices/PlantMpptSection";
 import { StringAlertBell } from "./devices/StringAlertBell";
 import { isMpptStringEnabled, getDeviceStringCards } from "@/services/monitoring/mpptStringService";
+import { PlantClientSection } from "./PlantClientSection";
 
 import { cn } from "@/lib/utils";
 import {
