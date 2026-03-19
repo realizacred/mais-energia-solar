@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.76.0",
+    date: "2026-03-19",
+    title: "Reaquecimento de leads congelados — Parte 3 Inteligência Comercial",
+    type: "feature",
+    description: "Análise automática de leads inativos com cálculo de valor perdido e geração de oportunidades de reaquecimento.",
+    details: [
+      "Edge function reaquecimento-analyzer com cron diário às 9h",
+      "Tabela reaquecimento_oportunidades com RLS multi-tenant",
+      "RPC get_tarifa_atual_concessionaria para lookup de tarifas",
+      "UI de lista de oportunidades com filtros, mensagem sugerida e ações (rascunho, enviar, descartar)",
+      "Hook useReaquecimento com análise manual e atualização de status",
+    ],
+  },
+  {
     version: "2.75.1",
     date: "2026-03-19",
     title: "Correção de áudio WhatsApp — MIME type e player",

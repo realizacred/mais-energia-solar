@@ -296,3 +296,6 @@ verify_jwt = false
 
 [functions.analyze-lead-intelligence-v2]
 verify_jwt = false
+
+[functions.reaquecimento-analyzer]
+verify_jwt = false

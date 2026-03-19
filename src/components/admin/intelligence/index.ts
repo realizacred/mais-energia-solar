@@ -8,3 +8,4 @@ export { IntelligenceMetricsPage } from "./IntelligenceMetricsPage";
 export { IntelligenceAlertsPage } from "./IntelligenceAlertsPage";
 export { IntelligenceAlertCard } from "./IntelligenceAlertCard";
 export { LeadIntelligenceBadge } from "./LeadIntelligenceBadge";
+export { ReaquecimentoOpportunitiesList } from "./ReaquecimentoOpportunitiesList";
