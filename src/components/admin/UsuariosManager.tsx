@@ -93,12 +93,12 @@ interface NewUserForm {
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  super_admin: { label: "Super Admin", color: "bg-warning/5 text-warning border-warning/30", icon: ShieldAlert },
-  admin: { label: "Administrador", color: "bg-primary/5 text-primary border-primary/30", icon: ShieldAlert },
-  gerente: { label: "Gerente", color: "bg-primary/5 text-primary border-primary/30", icon: ShieldCheck },
-  consultor: { label: "Consultor", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
-  instalador: { label: "Instalador", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
-  financeiro: { label: "Financeiro", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
+  super_admin: { label: "Super Admin", color: "bg-destructive/10 text-destructive border-destructive/20", icon: ShieldAlert },
+  admin: { label: "Administrador", color: "bg-destructive/10 text-destructive border-destructive/20", icon: ShieldAlert },
+  gerente: { label: "Gerente", color: "bg-warning/10 text-warning border-warning/20", icon: ShieldCheck },
+  consultor: { label: "Consultor", color: "bg-info/10 text-info border-info/20", icon: Users },
+  instalador: { label: "Instalador", color: "bg-success/10 text-success border-success/20", icon: Users },
+  financeiro: { label: "Financeiro", color: "bg-primary/10 text-primary border-primary/20", icon: Users },
 };
 
 export function UsuariosManager() {
