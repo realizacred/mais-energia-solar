@@ -43,7 +43,7 @@ interface StepDocumentoProps {
   pdfBlobUrl?: string | null;
   outputDocxPath?: string | null;
   outputPdfPath?: string | null;
-  generationStatus?: "idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error";
+  generationStatus?: "idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error";
   generationError?: string | null;
   missingVars?: string[];
   onGenerate: () => void;
