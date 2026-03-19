@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp, Calculator } from "lucide-react";
+import { Plus, Trash2, Pencil, Building2, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp, Calculator } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
@@ -468,13 +469,28 @@ export function ConcessionariasManager() {
   };
 
   if (loading) {
-    return <LoadingState />;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <div>
+            <Skeleton className="h-5 w-48 mb-1" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={Building}
+        icon={Building2}
         title="Concessionárias"
         description="Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos."
         actions={
@@ -515,7 +531,7 @@ export function ConcessionariasManager() {
         }
       />
 
-      <SectionCard icon={Building} title="Lista de Concessionárias" variant="blue">
+      <SectionCard icon={Building2} title="Lista de Concessionárias" variant="blue">
         {/* Sync progress bar */}
         {syncProgress && (
           <div className="mb-4 p-3 rounded-lg border border-border/60 bg-muted/30 space-y-2">
@@ -622,37 +638,56 @@ export function ConcessionariasManager() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
              <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Sigla</TableHead>
-                <TableHead>UF</TableHead>
-                <TableHead>Subgrupos</TableHead>
-                <TableHead>Tarifa (TE+TUSD)</TableHead>
-                <TableHead>Fio B (100%)</TableHead>
-                <TableHead>Fio B Vigente</TableHead>
-                <TableHead>Integral c/ Imp.</TableHead>
-                <TableHead>ICMS</TableHead>
-                <TableHead>Isenção</TableHead>
-                <TableHead>Sync ANEEL</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground">Nome</TableHead>
+                <TableHead className="font-semibold text-foreground">Sigla</TableHead>
+                <TableHead className="font-semibold text-foreground">UF</TableHead>
+                <TableHead className="font-semibold text-foreground">Subgrupos</TableHead>
+                <TableHead className="font-semibold text-foreground">Tarifa (TE+TUSD)</TableHead>
+                <TableHead className="font-semibold text-foreground">Fio B (100%)</TableHead>
+                <TableHead className="font-semibold text-foreground">Fio B Vigente</TableHead>
+                <TableHead className="font-semibold text-foreground">Integral c/ Imp.</TableHead>
+                <TableHead className="font-semibold text-foreground">ICMS</TableHead>
+                <TableHead className="font-semibold text-foreground">Isenção</TableHead>
+                <TableHead className="font-semibold text-foreground">Sync ANEEL</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredConcessionarias.length === 0 ? (
                <TableRow>
-                  <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
-                    Nenhuma concessionária encontrada
+                  <TableCell colSpan={13} className="py-16">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-3">
+                        <Building2 className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-foreground mb-1">Nenhuma concessionária encontrada</h3>
+                      <p className="text-xs text-muted-foreground mb-4 max-w-sm">
+                        {hasActiveFilters ? "Tente ajustar os filtros de busca." : "Cadastre a primeira concessionária para começar."}
+                      </p>
+                      {!hasActiveFilters && (
+                        <Button size="sm" onClick={() => openDialog()} className="gap-2">
+                          <Plus className="w-4 h-4" />
+                          Nova Concessionária
+                        </Button>
+                      )}
+                      {hasActiveFilters && (
+                        <Button variant="outline" size="sm" onClick={clearFilters}>
+                          Limpar filtros
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredConcessionarias.map((c) => (
                   <React.Fragment key={c.id}>
                     <TableRow 
-                      className={`cursor-pointer hover:bg-muted/40 transition-colors ${expandedId === c.id ? 'bg-muted/30' : ''}`} 
+                      className={`hover:bg-muted/30 cursor-pointer transition-colors ${expandedId === c.id ? 'bg-muted/30' : ''}`}
                       onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
                     >
                       <TableCell className="font-medium">
@@ -666,7 +701,7 @@ export function ConcessionariasManager() {
                       <TableCell>{c.sigla || "-"}</TableCell>
                       <TableCell>
                         {c.estado ? (
-                          <Badge variant="outline" className="font-mono">{c.estado}</Badge>
+                          <Badge variant="outline" className="font-mono bg-muted text-muted-foreground border-border">{c.estado}</Badge>
                         ) : "-"}
                       </TableCell>
                       <TableCell>
@@ -780,7 +815,7 @@ export function ConcessionariasManager() {
                       </TableCell>
                       <TableCell>
                         {c.possui_isencao_scee != null ? (
-                          <Badge variant={c.possui_isencao_scee ? "default" : "secondary"} className="text-xs">
+                          <Badge variant="outline" className={`text-xs ${c.possui_isencao_scee ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground border-border"}`}>
                             {c.possui_isencao_scee ? "Sim" : "Não"}
                           </Badge>
                         ) : (
