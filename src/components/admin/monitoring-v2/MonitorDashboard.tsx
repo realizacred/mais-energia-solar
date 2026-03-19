@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import {
   Sun, Zap, Activity, Gauge, WifiOff, AlertTriangle,
   BatteryCharging, BarChart3, CloudSun, Wrench,
-  RefreshCw, Clock, Moon,
+  RefreshCw, Clock, Moon, Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
@@ -117,7 +117,7 @@ export default function MonitorDashboard() {
           </div>
 
           {/* ═══ KPI ROW 2 ═══ */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             <EnterpriseKpi
               icon={AlertTriangle} label="Com Alerta"
               value={String(alertCount)}
@@ -138,6 +138,12 @@ export default function MonitorDashboard() {
               icon={BatteryCharging} label="Energia do Mês"
               value={totalEnergyMonthMwh >= 1 ? `${totalEnergyMonthMwh.toFixed(1)} MWh` : `${(stats.energy_month_kwh || 0).toFixed(0)} kWh`}
               accentColor="primary"
+            />
+            <EnterpriseKpi
+              icon={Users} label="Sem Cliente"
+              value={String(plants.filter((p) => !p.client_id).length)}
+              accentColor={plants.some((p) => !p.client_id) ? "warning" : "muted"}
+              onClick={() => navigate("/admin/monitoramento/usinas?status=all")}
             />
           </div>
 

@@ -66,11 +66,11 @@ async function resolveToLegacyPlantId(plantId: string): Promise<string> {
 
 // ─── HELPERS: map legacy → v2 types ──────────────────────────
 
-function mapSolarPlantToMonitorPlant(sp: SolarPlant): MonitorPlant {
+function mapSolarPlantToMonitorPlant(sp: SolarPlant, clientId?: string | null): MonitorPlant {
   return {
     id: sp.id,
     tenant_id: sp.tenant_id,
-    client_id: null,
+    client_id: clientId ?? null,
     name: sp.name || "Usina",
     lat: sp.latitude,
     lng: sp.longitude,
@@ -171,13 +171,18 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
 
   // SSOT: Fetch MAX(monitor_devices.last_seen_at) per plant via monitor_plants join
   // monitor_plants.legacy_plant_id = solar_plants.id
+  // Also fetch client_id for each plant
   const deviceSeenMap = new Map<string, string>();
+  const clientIdMap = new Map<string, string | null>();
   {
     const { data: mpRows } = await supabase
       .from("monitor_plants" as any)
-      .select("id, legacy_plant_id")
+      .select("id, legacy_plant_id, client_id")
       .in("legacy_plant_id", plantList.map((p) => p.id));
-    const monitorPlantRows = (mpRows as unknown as Array<{ id: string; legacy_plant_id: string }>) || [];
+    const monitorPlantRows = (mpRows as unknown as Array<{ id: string; legacy_plant_id: string; client_id: string | null }>) || [];
+    monitorPlantRows.forEach((r) => {
+      clientIdMap.set(r.legacy_plant_id, r.client_id);
+    });
     if (monitorPlantRows.length > 0) {
       const mpIds = monitorPlantRows.map((r) => r.id);
       const mpIdToLegacy = new Map(monitorPlantRows.map((r) => [r.id, r.legacy_plant_id]));
@@ -193,6 +198,23 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
         if (!existing || d.last_seen_at > existing) {
           deviceSeenMap.set(legacyId, d.last_seen_at);
         }
+      });
+    }
+  }
+
+  // Fetch client names for linked plants
+  const clientNameMap = new Map<string, string>();
+  {
+    const clientIds = Array.from(new Set(
+      Array.from(clientIdMap.values()).filter((id): id is string => !!id)
+    ));
+    if (clientIds.length > 0) {
+      const { data: clientRows } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .in("id", clientIds);
+      ((clientRows as unknown as Array<{ id: string; nome: string }>) || []).forEach((c) => {
+        clientNameMap.set(c.id, c.nome);
       });
     }
   }
@@ -255,10 +277,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
       });
     }
 
+    const cId = clientIdMap.get(sp.id) || null;
     return {
-      ...mapSolarPlantToMonitorPlant(sp),
+      ...mapSolarPlantToMonitorPlant(sp, cId),
       health,
       provider_name: sp.provider || undefined,
+      client_name: cId ? (clientNameMap.get(cId) || null) : null,
     };
   });
 }
@@ -295,15 +319,18 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 
   const openAlertCount = ((alertRows as unknown as any[]) || []).length;
 
-  // SSOT: Fetch MAX(monitor_devices.last_seen_at) for this plant
+  // SSOT: Fetch MAX(monitor_devices.last_seen_at) + client_id for this plant
   let maxDeviceSeen: string | null = null;
+  let plantClientId: string | null = null;
+  let plantClientName: string | null = null;
   {
     const { data: mpRow } = await supabase
       .from("monitor_plants" as any)
-      .select("id")
+      .select("id, client_id")
       .eq("legacy_plant_id", resolvedId)
       .maybeSingle();
     if (mpRow) {
+      plantClientId = (mpRow as any).client_id || null;
       const { data: devRows } = await supabase
         .from("monitor_devices" as any)
         .select("last_seen_at")
@@ -314,13 +341,22 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
       const topDev = (devRows as unknown as Array<{ last_seen_at: string }>) || [];
       if (topDev.length > 0) maxDeviceSeen = topDev[0].last_seen_at;
     }
+    if (plantClientId) {
+      const { data: clientRow } = await supabase
+        .from("clientes")
+        .select("nome")
+        .eq("id", plantClientId)
+        .maybeSingle();
+      plantClientName = (clientRow as any)?.nome || null;
+    }
   }
 
   const bestLastSeen = maxDeviceSeen;
 
   return {
-    ...mapSolarPlantToMonitorPlant(sp),
+    ...mapSolarPlantToMonitorPlant(sp, plantClientId),
     health: legacyStatusToHealth(sp, m, monthKwh, ym, openAlertCount, bestLastSeen),
+    client_name: plantClientName,
   };
 }
 
@@ -664,4 +700,49 @@ export async function getTodayMetrics(): Promise<SolarPlantMetricsDaily[]> {
     .select("*")
     .eq("date", today);
   return (data as unknown as SolarPlantMetricsDaily[]) || [];
+}
+
+// ─── CLIENT LINKING ──────────────────────────────────────────
+
+/**
+ * Update the client_id on monitor_plants for a given legacy solar_plants.id.
+ * Pass null to unlink.
+ */
+export async function updatePlantClientId(plantId: string, clientId: string | null): Promise<void> {
+  // Resolve to monitor_plants row via legacy_plant_id
+  const { data: mpRow } = await supabase
+    .from("monitor_plants" as any)
+    .select("id")
+    .eq("legacy_plant_id", plantId)
+    .maybeSingle();
+
+  if (!mpRow) {
+    // Also try direct id
+    const { data: directRow } = await supabase
+      .from("monitor_plants" as any)
+      .select("id")
+      .eq("id", plantId)
+      .maybeSingle();
+    if (!directRow) throw new Error("Usina não encontrada em monitor_plants");
+    const { error } = await (supabase
+      .from("monitor_plants" as any)
+      .update({ client_id: clientId })
+      .eq("id", plantId) as any);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await (supabase
+    .from("monitor_plants" as any)
+    .update({ client_id: clientId })
+    .eq("id", (mpRow as any).id) as any);
+  if (error) throw error;
+}
+
+/**
+ * List all plants linked to a specific client
+ */
+export async function listPlantsByClientId(clientId: string): Promise<PlantWithHealth[]> {
+  const all = await listPlantsWithHealth();
+  return all.filter((p) => p.client_id === clientId);
 }

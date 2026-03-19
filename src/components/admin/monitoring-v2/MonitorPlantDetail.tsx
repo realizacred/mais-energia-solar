@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown } from "lucide-react";
+import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown, Users } from "lucide-react";
 import { getPlantDetail, listDevices, listAlerts, listDailyReadings, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { toast } from "sonner";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
@@ -17,6 +17,7 @@ import { extractMpptData } from "./devices/DeviceMpptSummary";
 import { PlantMpptSection } from "./devices/PlantMpptSection";
 import { StringAlertBell } from "./devices/StringAlertBell";
 import { isMpptStringEnabled, getDeviceStringCards } from "@/services/monitoring/mpptStringService";
+import { PlantClientSection } from "./PlantClientSection";
 
 import { cn } from "@/lib/utils";
 import {
@@ -172,6 +173,13 @@ export default function MonitorPlantDetail() {
         <DetailKpi label="Energia Mês" value={`${(plant.health?.energy_month_kwh || 0).toFixed(0)} kWh`} icon={Activity} color="info" />
         <DetailKpi label="Alertas Abertos" value={String(plant.health?.open_alerts_count || 0)} icon={AlertTriangle} color={plant.health?.open_alerts_count ? "destructive" : "muted"} />
       </div>
+
+      {/* Client section */}
+      <PlantClientSection
+        plantId={plant.id}
+        clientId={plant.client_id}
+        clientName={plant.client_name || null}
+      />
 
       {/* Generation chart with time range */}
       <SectionCard

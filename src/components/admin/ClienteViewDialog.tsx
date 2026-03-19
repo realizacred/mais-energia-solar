@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ClientLinkedPlants } from "./monitoring-v2/ClientLinkedPlants";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -358,6 +359,11 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 {cliente.observacoes || "Sem observações"}
               </div>
             </div>
+          </div>
+
+          {/* Usinas vinculadas */}
+          <div className="px-5 pb-4">
+            <ClientLinkedPlants clientId={cliente.id} />
           </div>
         </div>
 

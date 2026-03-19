@@ -8750,6 +8750,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "monitor_plants_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "monitor_plants_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false

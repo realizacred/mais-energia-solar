@@ -87,6 +87,8 @@ export interface MonitorReadingDaily {
 export interface PlantWithHealth extends MonitorPlant {
   health?: MonitorHealthCache;
   provider_name?: string;
+  /** Resolved client name from clientes table */
+  client_name?: string | null;
 }
 
 /** Dashboard aggregated stats */

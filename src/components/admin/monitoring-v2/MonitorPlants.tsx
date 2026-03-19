@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Sun, Search, MapPin, List, Zap, Activity, Filter, AlertTriangle,
   WifiOff, Gauge, BatteryCharging, ArrowUpDown, Radio, Moon,
-  SortAsc, ChevronRight,
+  SortAsc, ChevronRight, Users,
 } from "lucide-react";
 import { listPlantsWithHealth } from "@/services/monitoring/monitorService";
 import { getProvider } from "@/services/monitoring/providerRegistry";
@@ -47,6 +47,7 @@ export default function MonitorPlants() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PlantUiStatus | "all">(initialFilter);
   const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [clientFilter, setClientFilter] = useState<"all" | "with" | "without">("all");
   const [viewMode, setViewMode] = useState<"split" | "list" | "map">("split");
   const [sortBy, setSortBy] = useState<SortKey>("alert");
   const [monitoringMode, setMonitoringMode] = useState(false);
@@ -73,7 +74,8 @@ export default function MonitorPlants() {
         const plantStatus = resolveUiStatus(p);
         const matchStatus = statusFilter === "all" || plantStatus === statusFilter;
         const matchBrand = brandFilter === "all" || p.provider_name === brandFilter;
-        return matchSearch && matchStatus && matchBrand;
+        const matchClient = clientFilter === "all" || (clientFilter === "with" ? !!p.client_id : !p.client_id);
+        return matchSearch && matchStatus && matchBrand && matchClient;
       })
       .sort((a, b) => {
         switch (sortBy) {
@@ -94,7 +96,7 @@ export default function MonitorPlants() {
             return 0;
         }
       });
-  }, [plants, search, statusFilter, brandFilter, sortBy]);
+  }, [plants, search, statusFilter, brandFilter, clientFilter, sortBy]);
 
   const plantsWithCoords = useMemo(
     () => filtered.filter((p) => p.lat != null && p.lng != null),
@@ -112,7 +114,8 @@ export default function MonitorPlants() {
       if (p.health?.is_yesterday_fallback) return s; // skip fallback entries
       return s + (p.health?.energy_today_kwh || 0);
     }, 0);
-    return { total: plants.length, online, standby, offline, totalPowerKwp, energyTodayKwh };
+    const withoutClient = plants.filter((p) => !p.client_id).length;
+    return { total: plants.length, online, standby, offline, totalPowerKwp, energyTodayKwh, withoutClient };
   }, [plants]);
 
   const handleSelectPlant = useCallback((id: string) => {
@@ -171,7 +174,7 @@ export default function MonitorPlants() {
       {/* ═══════════════════════════════════════════════
           📊 RESUMO OPERACIONAL (reacts to filters)
       ═══════════════════════════════════════════════ */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
         <MiniKpi label="Total" value={kpiData.total} icon={Sun} />
         <MiniKpi label="Online" value={kpiData.online} icon={Activity} color="success" />
         <MiniKpi label="Standby" value={kpiData.standby} icon={Moon} color="warning" />
@@ -192,6 +195,12 @@ export default function MonitorPlants() {
           }
           icon={Zap}
           color="primary"
+        />
+        <MiniKpi
+          label="Sem Cliente"
+          value={kpiData.withoutClient}
+          icon={Users}
+          color={kpiData.withoutClient > 0 ? "warning" : "muted"}
         />
       </div>
 
@@ -224,6 +233,17 @@ export default function MonitorPlants() {
             </SelectContent>
           </Select>
         )}
+        <Select value={clientFilter} onValueChange={(v) => setClientFilter(v as "all" | "with" | "without")}>
+          <SelectTrigger className="w-auto min-w-[150px] h-9 text-xs">
+            <Users className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os clientes</SelectItem>
+            <SelectItem value="with">Com cliente</SelectItem>
+            <SelectItem value="without">Sem cliente</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
           <SelectTrigger className="w-auto min-w-[180px] h-9 text-xs">
             <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
@@ -433,8 +453,19 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
           </div>
         )}
 
-        {/* Location + brand */}
+        {/* Client + Location + brand */}
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          {plant.client_name ? (
+            <span className="flex items-center gap-1 min-w-0">
+              <Users className="h-3 w-3 shrink-0 text-primary" />
+              <span className="truncate text-foreground">{plant.client_name}</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 min-w-0">
+              <Users className="h-3 w-3 shrink-0 text-warning" />
+              <span className="truncate text-warning">Sem cliente</span>
+            </span>
+          )}
           {plant.city && (
             <span className="flex items-center gap-1 min-w-0">
               <MapPin className="h-3 w-3 shrink-0" />
