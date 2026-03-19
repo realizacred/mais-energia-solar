@@ -19,6 +19,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.75.0",
+    date: "2026-03-19",
+    title: "Inteligência Comercial — Análise de Sentimento com IA Real",
+    type: "feature",
+    description: "Edge function v2 com análise real via Lovable AI Gateway (Gemini/GPT), fallback automático para heurística, controle de custo mensal e sugestões de abordagem contextuais.",
+    details: [
+      "Nova edge function analyze-lead-intelligence-v2 com prompts estruturados para classificação de temperamento, dor e urgência",
+      "Integração com Lovable AI Gateway (modelos google/gemini-2.5-flash e openai/gpt-5-mini)",
+      "Hook useAnalyzeLeadIntelligence com roteamento automático v1/v2 baseado em config do tenant",
+      "IntelligenceAlertCard expandido: justificativa da IA, confiança, sugestões de abordagem com botão 'Usar'",
+      "RPC calcular_custo_ia_mes para monitoramento e desativação automática ao exceder limite",
+      "Fallback automático para heurística (v1) em caso de erro da IA",
+    ],
+  },
+  {
     version: "2.73.0",
     date: "2026-03-16",
     title: "Enriquecimento de snapshot com catálogo técnico",
