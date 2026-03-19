@@ -33,7 +33,7 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
   const completude = calcCompletude(m);
 
   return (
-    <Card className="group relative hover:shadow-md transition-shadow">
+    <Card className="group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all">
       {/* Action icons top-right */}
       <div className="absolute top-3 right-3 flex gap-1 z-10">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onView} title="Visualizar">
