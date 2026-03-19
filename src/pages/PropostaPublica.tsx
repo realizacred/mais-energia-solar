@@ -18,6 +18,7 @@ import ReactSignatureCanvas from "react-signature-canvas";
 
 type TokenData = {
   id: string;
+  token: string;
   proposta_id: string;
   versao_id: string;
   expires_at: string;
@@ -76,32 +77,13 @@ export default function PropostaPublica() {
 
   const trackView = async (td: TokenData) => {
     try {
-      const { data: proposta } = await supabase
-        .from("propostas_nativas")
-        .select("tenant_id")
-        .eq("id", td.proposta_id)
-        .single();
-
-      if (proposta?.tenant_id) {
-        await (supabase as any).from("proposta_views").insert({
-          tenant_id: proposta.tenant_id,
-          token_id: td.id,
-          proposta_id: td.proposta_id,
-          versao_id: td.versao_id,
-          user_agent: navigator.userAgent,
-        });
-
-        await (supabase as any)
-          .from("proposta_aceite_tokens")
-          .update({
-            view_count: (td.view_count ?? 0) + 1,
-            first_viewed_at: td.first_viewed_at || new Date().toISOString(),
-            last_viewed_at: new Date().toISOString(),
-          })
-          .eq("id", td.id);
-      }
+      await supabase.rpc("registrar_view_proposta" as any, {
+        p_token: td.token ?? token,
+        p_user_agent: navigator.userAgent,
+        p_referrer: document.referrer || null,
+      });
     } catch {
-      // Silent
+      // Silent — view tracking is best-effort
     }
   };
 
@@ -110,7 +92,7 @@ export default function PropostaPublica() {
     try {
       const { data: td, error: tdErr } = await (supabase as any)
         .from("proposta_aceite_tokens")
-        .select("id, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at")
+        .select("id, token, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at")
         .eq("token", token!)
         .maybeSingle();
 

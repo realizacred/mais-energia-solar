@@ -135,9 +135,11 @@ Deno.serve(async (req) => {
         enviada_por: userId,
         public_token: aceiteToken.token,
       }).eq("id", proposta_id).eq("tenant_id", tenantId),
-      // Atualizar versão para "sent"
+      // Atualizar versão para "sent" + preencher enviado_em e public_slug
       adminClient.from("proposta_versoes").update({
         status: "sent",
+        enviado_em: new Date().toISOString(),
+        public_slug: aceiteToken.token,
       }).eq("id", versao_id).eq("tenant_id", tenantId),
     ]);
 

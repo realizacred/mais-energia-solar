@@ -12669,8 +12669,10 @@ export type Database = {
           enviado_em: string
           enviado_por: string | null
           id: string
+          mensagem_resumo: string | null
           status: string
           tenant_id: string
+          token_id: string | null
           versao_id: string
         }
         Insert: {
@@ -12681,8 +12683,10 @@ export type Database = {
           enviado_em?: string
           enviado_por?: string | null
           id?: string
+          mensagem_resumo?: string | null
           status?: string
           tenant_id: string
+          token_id?: string | null
           versao_id: string
         }
         Update: {
@@ -12693,8 +12697,10 @@ export type Database = {
           enviado_em?: string
           enviado_por?: string | null
           id?: string
+          mensagem_resumo?: string | null
           status?: string
           tenant_id?: string
+          token_id?: string | null
           versao_id?: string
         }
         Relationships: [
@@ -12703,6 +12709,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_envios_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_aceite_tokens"
             referencedColumns: ["id"]
           },
           {
@@ -14288,6 +14301,8 @@ export type Database = {
           data_aceite_estimativa: string | null
           deal_id: string | null
           enviada_at: string | null
+          enviada_por: string | null
+          enviada_via: string | null
           fio_b_percent_aplicado: number | null
           id: string
           lead_id: string | null
@@ -14299,6 +14314,7 @@ export type Database = {
           precisao_motivo: string | null
           projeto_id: string
           proposta_num: number
+          public_token: string | null
           recusa_motivo: string | null
           recusada_at: string | null
           regra_gd: string | null
@@ -14330,6 +14346,8 @@ export type Database = {
           data_aceite_estimativa?: string | null
           deal_id?: string | null
           enviada_at?: string | null
+          enviada_por?: string | null
+          enviada_via?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
           lead_id?: string | null
@@ -14341,6 +14359,7 @@ export type Database = {
           precisao_motivo?: string | null
           projeto_id: string
           proposta_num: number
+          public_token?: string | null
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
@@ -14372,6 +14391,8 @@ export type Database = {
           data_aceite_estimativa?: string | null
           deal_id?: string | null
           enviada_at?: string | null
+          enviada_por?: string | null
+          enviada_via?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
           lead_id?: string | null
@@ -14383,6 +14404,7 @@ export type Database = {
           precisao_motivo?: string | null
           projeto_id?: string
           proposta_num?: number
+          public_token?: string | null
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
@@ -22503,6 +22525,15 @@ export type Database = {
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
+      registrar_view_proposta: {
+        Args: {
+          p_ip?: string
+          p_referrer?: string
+          p_token: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
       release_followup_lock: { Args: never; Returns: undefined }
       release_outbox_lock:
         | { Args: never; Returns: undefined }
