@@ -5914,12 +5914,27 @@ export type Database = {
           consultor_autoriza_ate: number | null
           gerente_autoriza_ate: number | null
           ia_analise_habilitada: boolean | null
+          ia_analise_sentimento_habilitada: boolean | null
+          ia_chave_api_encrypted: string | null
+          ia_custo_maximo_mes: number | null
+          ia_fallback_heuristica: boolean | null
+          ia_max_tokens: number | null
           ia_modelo: string | null
+          ia_provedor: string | null
           ia_temperatura: number | null
+          ia_timeout_ms: number | null
+          notificacao_email_alertas: boolean | null
+          notificacao_push_temperamento: boolean | null
+          notificacao_resumo_diario_gerente: boolean | null
           reaquecimento_automatico: boolean | null
+          reaquecimento_batch_size: number | null
           reaquecimento_canais: string[] | null
+          reaquecimento_criar_rascunho_only: boolean | null
           reaquecimento_dias_inativo: number | null
+          reaquecimento_habilitado: boolean | null
+          reaquecimento_horario_cron: string | null
           reaquecimento_max_mensagens: number | null
+          reaquecimento_template_mensagem: string | null
           sempre_alertar_gerente_se_valor_acima: number | null
           tenant_id: string
           threshold_frio: number | null
@@ -5927,6 +5942,13 @@ export type Database = {
           threshold_quente: number | null
           updated_at: string
           updated_by: string | null
+          wa_analisar_toda_mensagem: boolean | null
+          wa_auto_sugerir_resposta: boolean | null
+          wa_notificar_consultor_se_urgencia_acima: number | null
+          wa_notificar_gerente_se_urgencia_acima: number | null
+          wa_notificar_mudanca_temperamento: boolean | null
+          wa_notificar_nova_dor: boolean | null
+          whatsapp_realtime_habilitado: boolean | null
         }
         Insert: {
           alerta_concorrencia_habilitado?: boolean | null
@@ -5940,12 +5962,27 @@ export type Database = {
           consultor_autoriza_ate?: number | null
           gerente_autoriza_ate?: number | null
           ia_analise_habilitada?: boolean | null
+          ia_analise_sentimento_habilitada?: boolean | null
+          ia_chave_api_encrypted?: string | null
+          ia_custo_maximo_mes?: number | null
+          ia_fallback_heuristica?: boolean | null
+          ia_max_tokens?: number | null
           ia_modelo?: string | null
+          ia_provedor?: string | null
           ia_temperatura?: number | null
+          ia_timeout_ms?: number | null
+          notificacao_email_alertas?: boolean | null
+          notificacao_push_temperamento?: boolean | null
+          notificacao_resumo_diario_gerente?: boolean | null
           reaquecimento_automatico?: boolean | null
+          reaquecimento_batch_size?: number | null
           reaquecimento_canais?: string[] | null
+          reaquecimento_criar_rascunho_only?: boolean | null
           reaquecimento_dias_inativo?: number | null
+          reaquecimento_habilitado?: boolean | null
+          reaquecimento_horario_cron?: string | null
           reaquecimento_max_mensagens?: number | null
+          reaquecimento_template_mensagem?: string | null
           sempre_alertar_gerente_se_valor_acima?: number | null
           tenant_id: string
           threshold_frio?: number | null
@@ -5953,6 +5990,13 @@ export type Database = {
           threshold_quente?: number | null
           updated_at?: string
           updated_by?: string | null
+          wa_analisar_toda_mensagem?: boolean | null
+          wa_auto_sugerir_resposta?: boolean | null
+          wa_notificar_consultor_se_urgencia_acima?: number | null
+          wa_notificar_gerente_se_urgencia_acima?: number | null
+          wa_notificar_mudanca_temperamento?: boolean | null
+          wa_notificar_nova_dor?: boolean | null
+          whatsapp_realtime_habilitado?: boolean | null
         }
         Update: {
           alerta_concorrencia_habilitado?: boolean | null
@@ -5966,12 +6010,27 @@ export type Database = {
           consultor_autoriza_ate?: number | null
           gerente_autoriza_ate?: number | null
           ia_analise_habilitada?: boolean | null
+          ia_analise_sentimento_habilitada?: boolean | null
+          ia_chave_api_encrypted?: string | null
+          ia_custo_maximo_mes?: number | null
+          ia_fallback_heuristica?: boolean | null
+          ia_max_tokens?: number | null
           ia_modelo?: string | null
+          ia_provedor?: string | null
           ia_temperatura?: number | null
+          ia_timeout_ms?: number | null
+          notificacao_email_alertas?: boolean | null
+          notificacao_push_temperamento?: boolean | null
+          notificacao_resumo_diario_gerente?: boolean | null
           reaquecimento_automatico?: boolean | null
+          reaquecimento_batch_size?: number | null
           reaquecimento_canais?: string[] | null
+          reaquecimento_criar_rascunho_only?: boolean | null
           reaquecimento_dias_inativo?: number | null
+          reaquecimento_habilitado?: boolean | null
+          reaquecimento_horario_cron?: string | null
           reaquecimento_max_mensagens?: number | null
+          reaquecimento_template_mensagem?: string | null
           sempre_alertar_gerente_se_valor_acima?: number | null
           tenant_id?: string
           threshold_frio?: number | null
@@ -5979,6 +6038,13 @@ export type Database = {
           threshold_quente?: number | null
           updated_at?: string
           updated_by?: string | null
+          wa_analisar_toda_mensagem?: boolean | null
+          wa_auto_sugerir_resposta?: boolean | null
+          wa_notificar_consultor_se_urgencia_acima?: number | null
+          wa_notificar_gerente_se_urgencia_acima?: number | null
+          wa_notificar_mudanca_temperamento?: boolean | null
+          wa_notificar_nova_dor?: boolean | null
+          whatsapp_realtime_habilitado?: boolean | null
         }
         Relationships: [
           {
