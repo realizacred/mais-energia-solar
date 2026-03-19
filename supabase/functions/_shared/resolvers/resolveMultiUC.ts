@@ -27,7 +27,7 @@ export function resolveMultiUC(
   const isSingleUC = ucs.length <= 1;
 
   // ── Compute rateio weights ──
-  const weights = computeWeights(ucs);
+  const weights = isSingleUC ? [1] : computeWeights(ucs);
 
   // ── Global aggregates from snapshot/financeiro ──
   const fin = (snap.financeiro && typeof snap.financeiro === "object" && !Array.isArray(snap.financeiro))
