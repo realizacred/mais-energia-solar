@@ -210,7 +210,7 @@ export function ModulosManager() {
             {filtered.length} de {modulos.length} módulos
           </p>
         )}
-      </CardContent>
+      </div>
 
       {/* Modals */}
       <ModuloViewModal modulo={viewModulo} open={!!viewModulo} onOpenChange={v => !v && setViewModulo(null)} />
