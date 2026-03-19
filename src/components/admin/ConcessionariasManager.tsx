@@ -531,7 +531,7 @@ export function ConcessionariasManager() {
         }
       />
 
-      <SectionCard icon={Building} title="Lista de Concessionárias" variant="blue">
+      <SectionCard icon={Building2} title="Lista de Concessionárias" variant="blue">
         {/* Sync progress bar */}
         {syncProgress && (
           <div className="mb-4 p-3 rounded-lg border border-border/60 bg-muted/30 space-y-2">
