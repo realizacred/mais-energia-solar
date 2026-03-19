@@ -687,7 +687,7 @@ export function ConcessionariasManager() {
                 filteredConcessionarias.map((c) => (
                   <React.Fragment key={c.id}>
                     <TableRow 
-                      className={`cursor-pointer hover:bg-muted/40 transition-colors ${expandedId === c.id ? 'bg-muted/30' : ''}`} 
+                      className={`hover:bg-muted/30 cursor-pointer transition-colors ${expandedId === c.id ? 'bg-muted/30' : ''}`}
                       onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
                     >
                       <TableCell className="font-medium">
