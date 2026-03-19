@@ -26,7 +26,8 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
 };
 
 export function ReaquecimentoOpportunitiesList() {
-  const tenantId = getCurrentTenantId();
+  const { config } = useIntelligenceConfig();
+  const tenantId = config?.tenant_id;
   const [statusFilter, setStatusFilter] = useState<string>("pendente");
   const { data: oportunidades, isLoading } = useReaquecimentoOportunidades(
     statusFilter ? { status: statusFilter } : undefined
