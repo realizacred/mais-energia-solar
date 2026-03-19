@@ -98,6 +98,9 @@ export function IntelligenceDashboard() {
       {/* Previsão de faturamento */}
       <RevenueForecast forecast={forecast} ticketMedio={config?.ticket_medio || 25000} />
 
+      {/* Oportunidades de reaquecimento */}
+      <ReaquecimentoOpportunitiesList />
+
       {/* Gráficos de distribuição */}
       <ScoreDistributionChart scores={scores} />
 
