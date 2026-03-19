@@ -182,8 +182,25 @@ export function WaChatPanel({
   const [isDragging, setIsDragging] = useState(false);
   const [deletedMsgIds, setDeletedMsgIds] = useState<Set<string>>(new Set());
   const [forwardingMsg, setForwardingMsg] = useState<WaMessage | null>(null);
+  const [showIntelBanner, setShowIntelBanner] = useState(true);
   
   const [showParticipants, setShowParticipants] = useState(false);
+
+  // Intelligence realtime notifications
+  const { data: realtimeNotifications } = useRealtimeNotifications(
+    conversation?.tenant_id || null,
+    true
+  );
+  const marcarNotificacaoLida = useMarcarNotificacaoLida();
+  useRealtimeIntelligenceSubscription(
+    conversation?.tenant_id || null,
+    conversation?.lead_id || undefined
+  );
+
+  const currentNotification = useMemo(() => {
+    if (!showIntelBanner || !conversation?.lead_id || !realtimeNotifications) return null;
+    return realtimeNotifications.find(n => n.lead_id === conversation.lead_id) || null;
+  }, [realtimeNotifications, conversation?.lead_id, showIntelBanner]);
 
   // Fetch participant count for badge indicator
   const { data: participantCount = 0 } = useQuery({
