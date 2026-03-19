@@ -171,13 +171,18 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
 
   // SSOT: Fetch MAX(monitor_devices.last_seen_at) per plant via monitor_plants join
   // monitor_plants.legacy_plant_id = solar_plants.id
+  // Also fetch client_id for each plant
   const deviceSeenMap = new Map<string, string>();
+  const clientIdMap = new Map<string, string | null>();
   {
     const { data: mpRows } = await supabase
       .from("monitor_plants" as any)
-      .select("id, legacy_plant_id")
+      .select("id, legacy_plant_id, client_id")
       .in("legacy_plant_id", plantList.map((p) => p.id));
-    const monitorPlantRows = (mpRows as unknown as Array<{ id: string; legacy_plant_id: string }>) || [];
+    const monitorPlantRows = (mpRows as unknown as Array<{ id: string; legacy_plant_id: string; client_id: string | null }>) || [];
+    monitorPlantRows.forEach((r) => {
+      clientIdMap.set(r.legacy_plant_id, r.client_id);
+    });
     if (monitorPlantRows.length > 0) {
       const mpIds = monitorPlantRows.map((r) => r.id);
       const mpIdToLegacy = new Map(monitorPlantRows.map((r) => [r.id, r.legacy_plant_id]));
@@ -193,6 +198,23 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
         if (!existing || d.last_seen_at > existing) {
           deviceSeenMap.set(legacyId, d.last_seen_at);
         }
+      });
+    }
+  }
+
+  // Fetch client names for linked plants
+  const clientNameMap = new Map<string, string>();
+  {
+    const clientIds = Array.from(new Set(
+      Array.from(clientIdMap.values()).filter((id): id is string => !!id)
+    ));
+    if (clientIds.length > 0) {
+      const { data: clientRows } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .in("id", clientIds);
+      ((clientRows as unknown as Array<{ id: string; nome: string }>) || []).forEach((c) => {
+        clientNameMap.set(c.id, c.nome);
       });
     }
   }
