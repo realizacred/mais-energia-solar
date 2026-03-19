@@ -1077,6 +1077,8 @@ Deno.serve(async (req) => {
     // ── 7. DOWNLOAD TEMPLATE DOCX ─────────────────────────
     let templateBuffer: Uint8Array;
     try {
+      let storagePath: string;
+
       if (template.file_url.startsWith("http")) {
         // Extract storage path from the public URL
         const fileUrlStr = template.file_url as string;
@@ -1086,38 +1088,49 @@ Deno.serve(async (req) => {
           return jsonError("Caminho do template inválido na URL", 400);
         }
         const rawPath = fileUrlStr.slice(markerIdx + storageMarker.length);
-        const storagePath = decodeURIComponent(rawPath).replace(/\+/g, " ");
+        storagePath = decodeURIComponent(rawPath).replace(/\+/g, " ");
+      } else {
+        storagePath = template.file_url;
+      }
 
-        console.log("[template-preview] downloading template from storage path:", storagePath);
+      console.log("[template-preview] downloading template from storage path:", storagePath);
 
-        // Download using authenticated admin client (bypasses RLS/public restriction)
-        const { data: templateBlob, error: downloadError } = await adminClient.storage
+      // Use createSignedUrl + fetch to avoid SDK encoding issues with spaces in filenames
+      const { data: signedData, error: signedError } = await adminClient.storage
+        .from("proposta-templates")
+        .createSignedUrl(storagePath, 300);
+
+      if (signedError || !signedData?.signedUrl) {
+        console.error("[template-preview] Signed URL error:", signedError?.message, "path:", storagePath);
+
+        // Fallback: try direct SDK download
+        console.log("[template-preview] Fallback: trying direct SDK download");
+        const { data: fallbackBlob, error: fallbackErr } = await adminClient.storage
           .from("proposta-templates")
           .download(storagePath);
 
-        if (downloadError || !templateBlob) {
-          console.error("[template-preview] storage download error:", downloadError?.message, "path:", storagePath);
+        if (fallbackErr || !fallbackBlob) {
+          console.error("[template-preview] Fallback download also failed:", fallbackErr?.message);
           return jsonError(
-            `Erro ao baixar template: ${downloadError?.message || "arquivo não encontrado"} — path: ${storagePath}`,
+            `Erro ao baixar template: ${signedError?.message || fallbackErr?.message || "arquivo não encontrado"} — path: ${storagePath}`,
             500,
           );
         }
 
-        const arrayBuffer = await templateBlob.arrayBuffer();
-        templateBuffer = new Uint8Array(arrayBuffer);
+        templateBuffer = new Uint8Array(await fallbackBlob.arrayBuffer());
       } else {
-        const { data: fileData, error: dlError } = await adminClient.storage
-          .from("proposta-templates")
-          .download(template.file_url);
-        if (dlError || !fileData) {
-          console.error("[template-preview] Storage download error:", dlError?.message);
-          return jsonError(`Erro ao baixar template DOCX: ${dlError?.message || "arquivo não encontrado"}`, 500);
+        // Fetch via signed URL (avoids path encoding issues)
+        const fetchResp = await fetch(signedData.signedUrl);
+        if (!fetchResp.ok) {
+          console.error("[template-preview] Signed URL fetch error: HTTP", fetchResp.status, "path:", storagePath);
+          return jsonError(`Erro ao baixar template: HTTP ${fetchResp.status} — path: ${storagePath}`, 500);
         }
-        templateBuffer = new Uint8Array(await fileData.arrayBuffer());
+        templateBuffer = new Uint8Array(await fetchResp.arrayBuffer());
       }
+
       console.log(`[template-preview] DOCX downloaded: ${templateBuffer.byteLength} bytes`);
     } catch (fetchErr: any) {
-      console.error("[template-preview] Download error:", fetchErr?.message);
+      console.error("[template-preview] Download error:", fetchErr?.message, fetchErr?.stack);
       return jsonError(`Erro ao baixar template: ${fetchErr?.message}`, 500);
     }
 
