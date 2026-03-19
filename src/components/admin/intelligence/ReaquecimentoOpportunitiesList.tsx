@@ -11,7 +11,7 @@ import {
   useUpdateReaquecimentoStatus,
   useRunReaquecimentoManual,
 } from "@/hooks/useReaquecimento";
-import { useAuth } from "@/hooks/useAuth";
+import { getCurrentTenantId } from "@/lib/storagePaths";
 import { formatBRL } from "@/lib/formatters";
 import { toast } from "sonner";
 import { Clock, Flame, Snowflake, Send, Trash2, FileText, Play, Loader2, Copy, MessageSquare } from "lucide-react";
