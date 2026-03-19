@@ -295,14 +295,58 @@ export function ProposalDetail() {
     }
   };
 
-  const copyLink = (withTracking = true) => {
-    if (!publicUrl) {
-      toast({ title: "Gere o link primeiro", variant: "destructive" });
+  const copyLink = async (withTracking = true) => {
+    if (withTracking) {
+      if (!publicUrl) {
+        toast({ title: "Envie a proposta primeiro para gerar o link rastreável", variant: "destructive" });
+        return;
+      }
+      navigator.clipboard.writeText(publicUrl);
+      toast({ title: "Link com rastreio copiado!" });
       return;
     }
-    const url = withTracking ? publicUrl : publicUrl.replace(/\?.*$/, "");
-    navigator.clipboard.writeText(url);
-    toast({ title: `Link ${withTracking ? "com" : "sem"} rastreio copiado!` });
+
+    // Link sem rastreio: generate signed URL from storage
+    try {
+      const { data: render } = await supabase
+        .from("proposta_renders")
+        .select("storage_path, url")
+        .eq("versao_id", versaoId!)
+        .eq("tipo", "pdf")
+        .maybeSingle();
+
+      if (render?.storage_path) {
+        const bucket = "proposta-templates"; // same bucket used by template-preview
+        const { data: signedData } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(render.storage_path, 60 * 60 * 24 * 7); // 7 days
+
+        if (signedData?.signedUrl) {
+          navigator.clipboard.writeText(signedData.signedUrl);
+          toast({ title: "Link direto do PDF copiado (sem rastreio)!" });
+          return;
+        }
+      }
+
+      // Fallback: try url field or public_url without tracking
+      if (render?.url) {
+        navigator.clipboard.writeText(render.url);
+        toast({ title: "Link do arquivo copiado (sem rastreio)!" });
+        return;
+      }
+
+      // Last fallback: strip tracking from public URL
+      if (publicUrl) {
+        const baseUrl = publicUrl.replace(/\/proposta\/.*$/, "");
+        navigator.clipboard.writeText(publicUrl);
+        toast({ title: "Link copiado (gere o PDF para link sem rastreio)" });
+        return;
+      }
+
+      toast({ title: "Gere o arquivo PDF primeiro", variant: "destructive" });
+    } catch {
+      toast({ title: "Erro ao gerar link", variant: "destructive" });
+    }
   };
 
   const handleDownloadPdf = async () => {
