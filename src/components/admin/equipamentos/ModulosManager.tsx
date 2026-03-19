@@ -88,7 +88,7 @@ export function ModulosManager() {
         }
       />
 
-      <CardContent className="space-y-4">
+      <div className="space-y-4">
         {/* Filters */}
         <div className="flex flex-col gap-3">
           <div className="flex gap-3 flex-wrap">
