@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -20,7 +21,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { LoadingState } from "@/components/ui-kit/LoadingState";
 
 interface Inversor {
   id: string;
@@ -76,6 +76,7 @@ export function InversoresManager() {
       if (error) throw error;
       return data as Inversor[];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const fabricantes = useMemo(() => {
@@ -190,22 +191,19 @@ export function InversoresManager() {
   const formatPotencia = (kw: number) => kw < 1 ? `${(kw * 1000).toFixed(0)} W` : `${kw} kW`;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Cpu className="w-5 h-5" /> Inversores
-          </CardTitle>
-          <CardDescription className="mt-1">
-            {inversores.length} inversores cadastrados ({fabricantes.length} fabricantes).
-            Registros globais são compartilhados — adicione customizados para sua empresa.
-          </CardDescription>
-        </div>
-        <Button onClick={() => openDialog()} className="gap-2">
-          <Plus className="w-4 h-4" /> Novo Inversor
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-6">
+      <PageHeader
+        icon={Cpu}
+        title="Inversores"
+        description={`${inversores.length} inversores cadastrados (${fabricantes.length} fabricantes)`}
+        actions={
+          <Button onClick={() => openDialog()} className="gap-2">
+            <Plus className="w-4 h-4" /> Novo Inversor
+          </Button>
+        }
+      />
+
+      <div className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -240,49 +238,78 @@ export function InversoresManager() {
           </Select>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Fabricante</TableHead>
-                <TableHead>Modelo</TableHead>
-                <TableHead>Potência</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Fases</TableHead>
-                <TableHead>MPPTs</TableHead>
-                <TableHead>Eficiência</TableHead>
-                <TableHead>Garantia</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground">Fabricante</TableHead>
+                <TableHead className="font-semibold text-foreground">Modelo</TableHead>
+                <TableHead className="font-semibold text-foreground">Potência</TableHead>
+                <TableHead className="font-semibold text-foreground">Tipo</TableHead>
+                <TableHead className="font-semibold text-foreground">Fases</TableHead>
+                <TableHead className="font-semibold text-foreground">MPPTs</TableHead>
+                <TableHead className="font-semibold text-foreground">Eficiência</TableHead>
+                <TableHead className="font-semibold text-foreground">Garantia</TableHead>
+                <TableHead className="font-semibold text-foreground">Origem</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="text-right font-semibold text-foreground">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={11} className="py-8"><LoadingState message="Carregando inversores..." /></TableCell></TableRow>
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 11 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">
-                  Nenhum inversor encontrado.
-                </TableCell></TableRow>
-              ) : filtered.map((inv) => (
-                <TableRow key={inv.id}>
-                  <TableCell className="font-medium">{inv.fabricante}</TableCell>
-                  <TableCell className="max-w-[180px] truncate">{inv.modelo}</TableCell>
-                  <TableCell><Badge variant="outline">{formatPotencia(inv.potencia_nominal_kw)}</Badge></TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="text-xs">{inv.tipo}</Badge>
+                <TableRow>
+                  <TableCell colSpan={11} className="py-16">
+                    <div className="text-center text-muted-foreground">
+                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-3">
+                        <Cpu className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                      <p className="font-medium text-foreground">Nenhum inversor encontrado</p>
+                      <p className="text-sm mt-1">Tente ajustar os filtros ou cadastre um novo inversor.</p>
+                      <Button size="sm" onClick={() => openDialog()} className="mt-4 gap-2">
+                        <Plus className="w-4 h-4" /> Novo Inversor
+                      </Button>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-xs">{inv.fases}</TableCell>
+                </TableRow>
+              ) : filtered.map((inv) => (
+                <TableRow key={inv.id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="font-medium text-foreground">{inv.fabricante}</TableCell>
+                  <TableCell className="max-w-[180px] truncate">{inv.modelo}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                      {formatPotencia(inv.potencia_nominal_kw)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{inv.tipo}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{inv.fases}</Badge>
+                  </TableCell>
                   <TableCell>{inv.mppt_count || "—"}</TableCell>
-                  <TableCell>{inv.eficiencia_max_percent ? `${inv.eficiencia_max_percent}%` : "—"}</TableCell>
+                  <TableCell>
+                    {inv.eficiencia_max_percent ? (
+                      <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
+                        {inv.eficiencia_max_percent}%
+                      </Badge>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell className="text-xs">{inv.garantia_anos ? `${inv.garantia_anos}a` : "—"}</TableCell>
                   <TableCell>
                     {isGlobal(inv) ? (
-                      <Badge variant="secondary" className="gap-1 text-xs">
+                      <Badge variant="outline" className="gap-1 text-xs bg-muted text-muted-foreground border-border">
                         <Globe className="w-3 h-3" /> Global
                       </Badge>
                     ) : (
-                      <Badge variant="default" className="gap-1 text-xs">
+                      <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
                         <Building2 className="w-3 h-3" /> Custom
                       </Badge>
                     )}
@@ -314,6 +341,12 @@ export function InversoresManager() {
             </TableBody>
           </Table>
         </div>
+
+        {!isLoading && filtered.length > 0 && (
+          <p className="text-xs text-muted-foreground text-right">
+            {filtered.length} de {inversores.length} inversores
+          </p>
+        )}
 
         {/* Dialog */}
         <FormModalTemplate
@@ -417,7 +450,7 @@ export function InversoresManager() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
