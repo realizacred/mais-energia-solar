@@ -1239,5 +1239,46 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 [ ] Changelog: Atualizado se mudança funcional (§31)
 
 # =============================================================================
+# BLOCO 10 — REGRESSÕES CONHECIDAS — NUNCA QUEBRAR
+# =============================================================================
+
+### WhatsApp / process-webhook-events
+- A lógica de `extractMessageContent` já trata ephemeralMessage, audioMessage, documentMessage, imageMessage — NÃO alterar sem rodar testes
+- O unwrap de `ephemeralMessage.message` foi adicionado intencionalmente — manter
+- Nunca remover o fallback `msg.message || {}`
+
+### AuthForm / handleSignIn
+- A função `handleSignIn` DEVE ter sua declaração `const handleSignIn = async (data: LoginData) => {` — nunca remover ou mover para fora do escopo
+
+### Edge Functions — deploy obrigatório
+- Após qualquer alteração em `supabase/functions/_shared/*.ts`, SEMPRE fazer redeploy de:
+  - `template-preview`
+  - `generate-proposal`
+  - `docx-to-pdf`
+- Nunca alterar shared sem redeployar
+
+### Snapshot camelCase — NUNCA assumir snake_case
+- O snapshot do wizard usa camelCase: `pagamentoOpcoes`, `locTipoTelhado`, `locCidade`, `locEstado`, `locIrradiacao`, `locDistribuidoraNome`, `potenciaKwp`
+- Sempre usar fallback duplo: `snapshot.pagamentoOpcoes ?? snapshot.pagamento_opcoes`
+- Nunca remover fallbacks de camelCase já implementados
+
+### Resolvers de proposta — ordem de fallback
+- Nunca simplificar chains de fallback em resolveEntrada, resolvePagamento, resolveSistemaSolar, resolveFinanceiro
+- A ordem de prioridade foi definida por auditoria de dados reais — é intencional
+
+### Build — verificação obrigatória
+- Após qualquer alteração em componentes React, verificar se não há funções sem declaração
+- Nunca fechar um bloco de função prematuramente
+- Após correção de bug, rodar `npm run build` e confirmar 0 erros antes de concluir
+
+# =============================================================================
+# BLOCO 11 — REGRAS DE ESCOPO
+# =============================================================================
+
+- Quando a tarefa diz "only touch X", NÃO tocar em nenhum outro arquivo, mesmo que pareça relacionado
+- Se encontrar outro bug durante uma tarefa cirúrgica, REPORTAR mas não corrigir — abrir como item separado
+- Nunca "aproveitar" para refatorar código adjacente
+
+# =============================================================================
 # FIM DO AGENTS.md v2.0
 # =============================================================================
