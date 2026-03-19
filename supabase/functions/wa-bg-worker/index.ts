@@ -179,10 +179,12 @@ async function jobMediaFetch(supabase: any, instanceId: string, tenantId: string
     ? p.raw_key
     : { remoteJid: p.remote_jid || "", fromMe: p.from_me ?? false, id: messageId };
 
+  // For audio, request convertToMp4 so Evolution API converts ogg/opus to mp4 (browser-compatible)
+  const requestConvert = messageType === "audio";
   const mediaRes = await fetch(mediaEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: inst.apiKey },
-    body: JSON.stringify({ message: { key: messageKey }, convertToMp4: messageType === "audio" }),
+    body: JSON.stringify({ message: { key: messageKey }, convertToMp4: requestConvert }),
   });
 
   if (!mediaRes.ok) {
@@ -192,9 +194,32 @@ async function jobMediaFetch(supabase: any, instanceId: string, tenantId: string
 
   const mediaData = await mediaRes.json();
   const base64 = mediaData.base64 || mediaData.data?.base64 || null;
-  const mediaMime = mediaData.mimetype || mediaData.data?.mimetype || mimeType || "application/octet-stream";
+  let mediaMime = mediaData.mimetype || mediaData.data?.mimetype || mimeType || "application/octet-stream";
 
   if (!base64) throw new Error("No base64 in media response");
+
+  // FIX: When we requested convertToMp4 for audio, Evolution API often returns
+  // the original MIME (audio/ogg) even though the actual data is now mp4.
+  // Detect the real format from the first bytes of the decoded data.
+  if (requestConvert && messageType === "audio") {
+    // Decode just enough bytes to detect format (first 12 bytes)
+    const probe = atob(base64.substring(0, 24)); // 24 base64 chars = 18 bytes
+    const sig = [];
+    for (let i = 0; i < Math.min(probe.length, 12); i++) sig.push(probe.charCodeAt(i));
+
+    // ftyp signature at offset 4 = MP4 container
+    const isMp4 = sig.length >= 8 && sig[4] === 0x66 && sig[5] === 0x74 && sig[6] === 0x79 && sig[7] === 0x70;
+    // OggS magic = OGG container
+    const isOgg = sig.length >= 4 && sig[0] === 0x4F && sig[1] === 0x67 && sig[2] === 0x67 && sig[3] === 0x53;
+
+    if (isMp4 && mediaMime.includes("ogg")) {
+      console.log(`[wa-bg-worker] Audio format correction: reported=${mediaMime}, actual=audio/mp4`);
+      mediaMime = "audio/mp4";
+    } else if (isOgg && mediaMime.includes("mp4")) {
+      console.log(`[wa-bg-worker] Audio format correction: reported=${mediaMime}, actual=audio/ogg; codecs=opus`);
+      mediaMime = "audio/ogg; codecs=opus";
+    }
+  }
 
   const extMap: Record<string, string> = {
     "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
@@ -206,10 +231,15 @@ async function jobMediaFetch(supabase: any, instanceId: string, tenantId: string
   const ext = extMap[mediaMime] || extMap[cleanMime] || cleanMime.split("/")[1] || "bin";
   const storagePath = `${tenantId}/media/${messageId}.${ext}`;
 
+  // Decode base64 in chunks to handle large audio files safely
   const binaryStr = atob(base64);
   const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i);
+  const CHUNK = 8192;
+  for (let i = 0; i < binaryStr.length; i += CHUNK) {
+    const end = Math.min(i + CHUNK, binaryStr.length);
+    for (let j = i; j < end; j++) {
+      bytes[j] = binaryStr.charCodeAt(j);
+    }
   }
 
   const { error: uploadError } = await supabase.storage
