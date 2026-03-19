@@ -1,8 +1,12 @@
 import React from "react";
 import { HelpCircle, AlertTriangle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useIntegrationGuideByProvider } from "@/hooks/useIntegrationGuides";
+import type { GuideStep } from "@/hooks/useIntegrationGuides";
 
-interface ProviderGuide {
+/** Static fallback guides — used when DB has no data */
+interface StaticGuide {
   title: string;
   steps: string[];
   portalUrl: string;
@@ -10,7 +14,7 @@ interface ProviderGuide {
   warning?: string;
 }
 
-const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
+const PROVIDER_GUIDES: Record<string, StaticGuide> = {
   solis_cloud: {
     title: "Como obter sua API Key da Solis Cloud",
     steps: [
@@ -141,43 +145,70 @@ interface Props {
 }
 
 export function ProviderSetupGuide({ providerId }: Props) {
-  const guide = PROVIDER_GUIDES[providerId];
-  if (!guide) return null;
+  const { data: dbGuide, isLoading } = useIntegrationGuideByProvider(providerId);
+  const staticGuide = PROVIDER_GUIDES[providerId];
+
+  // Loading state
+  if (isLoading) {
+    return staticGuide ? null : null; // Don't show skeleton for a brief check
+  }
+
+  // Resolve: DB guide takes priority, then static fallback
+  const guideTitle = dbGuide?.title || staticGuide?.title;
+  const guideSteps: GuideStep[] = dbGuide?.steps?.length
+    ? dbGuide.steps
+    : staticGuide?.steps.map((text) => ({ text })) || [];
+  const guideWarning = dbGuide?.warning ?? staticGuide?.warning;
+  const guidePortalUrl = dbGuide?.portal_url ?? staticGuide?.portalUrl;
+  const guidePortalLabel = dbGuide?.portal_label ?? staticGuide?.portalLabel;
+
+  if (!guideTitle || guideSteps.length === 0) return null;
 
   return (
     <div className="rounded-lg bg-muted/30 border border-border p-4 space-y-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
         <HelpCircle className="w-3.5 h-3.5" />
-        {guide.title}
+        {guideTitle}
       </p>
 
       <ol className="space-y-2">
-        {guide.steps.map((step, i) => (
+        {guideSteps.map((step, i) => (
           <li key={i} className="flex gap-2.5 text-sm text-muted-foreground">
             <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-medium mt-0.5">
               {i + 1}
             </span>
-            {step}
+            <div className="flex-1">
+              {step.text}
+              {step.image_url && (
+                <img
+                  src={step.image_url}
+                  alt={`Passo ${i + 1}`}
+                  className="mt-2 rounded-md max-h-40 w-full object-cover border border-border"
+                />
+              )}
+            </div>
           </li>
         ))}
       </ol>
 
-      {guide.warning && (
+      {guideWarning && (
         <div className="flex gap-2 p-2.5 rounded-md bg-warning/10 border border-warning/20 text-xs text-warning">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          {guide.warning}
+          {guideWarning}
         </div>
       )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="gap-1.5 w-full"
-        onClick={() => window.open(guide.portalUrl, "_blank")}
-      >
-        <ExternalLink className="w-3.5 h-3.5" />
-        {guide.portalLabel}
-      </Button>
+      {guidePortalUrl && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 w-full"
+          onClick={() => window.open(guidePortalUrl, "_blank")}
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          {guidePortalLabel || "Abrir Portal"}
+        </Button>
+      )}
     </div>
   );
 }
