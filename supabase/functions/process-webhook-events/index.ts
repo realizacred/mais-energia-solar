@@ -402,7 +402,11 @@ async function handleMessageUpsert(
     const fromMe = key.fromMe === true;
     const direction = fromMe ? "out" : "in";
     
-    const messageContent = msg.message || {};
+    // Unwrap ephemeral messages — Evolution API wraps disappearing messages
+    let messageContent = msg.message || {};
+    if (messageContent.ephemeralMessage?.message) {
+      messageContent = messageContent.ephemeralMessage.message;
+    }
     const { content, messageType } = extractMessageContent(messageContent, msg);
     
     const evolutionMessageId = key.id || msg.id || null;
