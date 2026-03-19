@@ -241,6 +241,6 @@ export function ModulosManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }
