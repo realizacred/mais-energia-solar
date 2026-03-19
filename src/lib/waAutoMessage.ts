@@ -66,7 +66,7 @@ export interface WaPipelineDiag {
 const DIAG_KEY = "wa_pipeline_last";
 
 export function savePipelineDiag(diag: WaPipelineDiag): void {
-  try { sessionStorage.setItem(DIAG_KEY, JSON.stringify(diag)); } catch {}
+  try { sessionStorage.setItem(DIAG_KEY, JSON.stringify(diag)); } catch { /* ignore */ }
 }
 
 export function loadPipelineDiag(): WaPipelineDiag | null {
@@ -177,7 +177,9 @@ export function setAutoMessageEnabled(userId: string, enabled: boolean): void {
   try {
     const key = `${STORAGE_KEY}_${userId}`;
     localStorage.setItem(key, enabled ? "true" : "false");
-  } catch {}
+  } catch {
+    // ignore localStorage errors
+  }
 }
 
 // ─── Cooldown-based idempotency ────────────────────────────────────
@@ -208,7 +210,9 @@ function isCooldownActive(key: string, maxMs: number): boolean {
 function setCooldown(key: string): void {
   try {
     sessionStorage.setItem(key, JSON.stringify({ ts: Date.now() }));
-  } catch {}
+  } catch {
+    // ignore sessionStorage errors
+  }
 }
 
 // ─── Message building ──────────────────────────────────────────────
@@ -330,7 +334,9 @@ export async function sendAutoWelcomeMessage(params: {
           diag.assignResult = result.conversation_id ? "ok" : "pending";
           savePipelineDiag(diag);
         }
-      } catch {}
+      } catch {
+        // ignore errors saving pipeline diagnostics
+      }
       return {
         sent: true,
         conversation_id: result.conversation_id || undefined,

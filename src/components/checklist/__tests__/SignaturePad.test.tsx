@@ -2,6 +2,7 @@
  * SignaturePad — canvas rendering, clear, isEmpty
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createRef } from "react";
 import { SignaturePad, type SignaturePadRef } from "@/components/checklist/SignaturePad";
@@ -14,7 +15,6 @@ const mockGetTrimmedCanvas = vi.fn(() => ({
 }));
 
 vi.mock("react-signature-canvas", () => {
-  const React = require("react");
   return {
     default: React.forwardRef((props: any, ref: any) => {
       React.useImperativeHandle(ref, () => ({

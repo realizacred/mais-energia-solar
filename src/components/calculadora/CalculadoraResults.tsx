@@ -114,7 +114,9 @@ export function CalculadoraResults({
       try {
         await navigator.share({ title: "Minha Simulação Solar", text });
         return;
-      } catch {}
+      } catch {
+        // ignore share errors, fall through to clipboard
+      }
     }
 
     await navigator.clipboard.writeText(text);

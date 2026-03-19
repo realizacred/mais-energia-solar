@@ -113,7 +113,7 @@ export function ProposalAuditPanel({ snapshot, propostaId, versaoId, projetoId, 
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => {
       const next = new Set(prev);
-      next.has(section) ? next.delete(section) : next.add(section);
+      if (next.has(section)) { next.delete(section); } else { next.add(section); }
       return next;
     });
   };
@@ -121,7 +121,7 @@ export function ProposalAuditPanel({ snapshot, propostaId, versaoId, projetoId, 
   const toggleField = (field: string) => {
     setExpandedFields(prev => {
       const next = new Set(prev);
-      next.has(field) ? next.delete(field) : next.add(field);
+      if (next.has(field)) { next.delete(field); } else { next.add(field); }
       return next;
     });
   };

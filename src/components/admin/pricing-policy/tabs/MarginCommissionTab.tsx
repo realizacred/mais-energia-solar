@@ -318,7 +318,7 @@ export function MarginCommissionTab() {
             {commissionForm.commission_type === "dynamic" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Parâmetros (JSON)</Label>
-                <textarea className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono min-h-[80px]" value={JSON.stringify(commissionForm.parameters, null, 2)} onChange={(e) => { try { setCommissionForm((f) => ({ ...f, parameters: JSON.parse(e.target.value) })); } catch {} }} />
+                <textarea className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono min-h-[80px]" value={JSON.stringify(commissionForm.parameters, null, 2)} onChange={(e) => { try { setCommissionForm((f) => ({ ...f, parameters: JSON.parse(e.target.value) })); } catch { /* ignore invalid JSON */ } }} />
               </div>
             )}
             <div className="flex items-center gap-2"><Switch checked={commissionForm.is_active} onCheckedChange={(v) => setCommissionForm((f) => ({ ...f, is_active: v }))} /><Label className="text-xs text-muted-foreground">Ativo</Label></div>

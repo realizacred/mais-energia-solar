@@ -202,7 +202,7 @@ export function ConcessionariasManager() {
 
           toast({
             title: data.status === "error" ? "Erro na sincronização" : "Sincronização concluída",
-            description: message.replace(/[✅⚠️❌🧪]\s?/, ""),
+            description: message.replace(/(?:✅|⚠️|❌|🧪)\s?/gu, ""),
             variant: data.status === "error" ? "destructive" : "default",
           });
 

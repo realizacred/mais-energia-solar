@@ -158,7 +158,7 @@ export function useWaConversations(filters?: {
 
       // Load tags
       const convIds = filtered.map((c: any) => c.id);
-      let tagsMap: Record<string, WaConversationTag[]> = {};
+      const tagsMap: Record<string, WaConversationTag[]> = {};
       if (convIds.length > 0) {
         const { data: ctData, error: ctError } = await supabase
           .from("wa_conversation_tags")

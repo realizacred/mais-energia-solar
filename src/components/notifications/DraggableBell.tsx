@@ -38,7 +38,9 @@ function getInitialPosition(): { x: number; y: number } {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) return JSON.parse(saved);
-  } catch {}
+  } catch {
+    // ignore parse errors
+  }
   return { x: 16, y: window.innerHeight - 60 };
 }
 
@@ -97,7 +99,7 @@ export function DraggableBell({
       y: position.y,
     });
     setPosition(snapped);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapped)); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapped)); } catch { /* ignore */ }
   }, [isDragging, position, clamp]);
 
   useEffect(() => {

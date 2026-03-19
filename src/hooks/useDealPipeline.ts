@@ -200,7 +200,7 @@ export function useDealPipeline() {
 
       // Fetch latest proposal per DEAL (not per customer — prevents cross-deal contamination)
       const customerIds = [...new Set(Array.from(customerMap.values()))];
-      let locationMap = new Map<string, { city: string | null; state: string | null }>();
+      const locationMap = new Map<string, { city: string | null; state: string | null }>();
 
       if (customerIds.length > 0 || dealIds.length > 0) {
         // Parallel: proposals by deal_id + locations by customer_id
@@ -223,7 +223,7 @@ export function useDealPipeline() {
         // Get economia from latest version
         const propostas = propostasRes.data || [];
         const propostaIds = propostas.map((p: any) => p.id);
-        let economiaMap = new Map<string, number>();
+        const economiaMap = new Map<string, number>();
         if (propostaIds.length > 0) {
           const { data: versoes } = await supabase
             .from("proposta_versoes")
@@ -688,7 +688,9 @@ export function useDealPipeline() {
     try {
       const enriched = await fetchDeals(filters);
       setDeals(enriched);
-    } catch {}
+    } catch {
+      // ignore refresh errors after deal update
+    }
 
     return data;
   }, [selectedPipelineId, pipelines, stages, filters, fetchDeals, toast]);

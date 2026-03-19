@@ -113,7 +113,7 @@ export function ProjetosManager() {
     } else if (key === "status") {
       applyFilters({ status: value });
       // Persist status filter
-      try { sessionStorage.setItem(STORED_STATUS_KEY, value); } catch {}
+      try { sessionStorage.setItem(STORED_STATUS_KEY, value); } catch { /* ignore */ }
     } else if (key === "search") {
       applyFilters({ search: value });
     }
@@ -146,7 +146,7 @@ export function ProjetosManager() {
   const clearFilters = () => {
     applyFilters({ pipelineId: null, ownerId: "todos", status: "todos", search: "" });
     setSelectedPipelineId(null);
-    try { sessionStorage.removeItem(STORED_STATUS_KEY); } catch {}
+    try { sessionStorage.removeItem(STORED_STATUS_KEY); } catch { /* ignore */ }
   };
 
   const totalValue = useMemo(() => {

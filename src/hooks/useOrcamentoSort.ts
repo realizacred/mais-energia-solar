@@ -37,7 +37,9 @@ export function useOrcamentoSort(routeKey: string) {
       if (saved && ORCAMENTO_SORT_OPTIONS.some((o) => o.value === saved)) {
         return saved as OrcamentoSortOption;
       }
-    } catch {}
+    } catch {
+      // ignore localStorage errors
+    }
     return "recent";
   });
 
@@ -46,7 +48,9 @@ export function useOrcamentoSort(routeKey: string) {
       setSortOption(option);
       try {
         localStorage.setItem(storageKey, option);
-      } catch {}
+      } catch {
+        // ignore localStorage errors
+      }
     },
     [storageKey]
   );
