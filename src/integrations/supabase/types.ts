@@ -12257,6 +12257,7 @@ export type Database = {
           recusa_at: string | null
           recusa_motivo: string | null
           tenant_id: string
+          tipo: string
           token: string
           used_at: string | null
           versao_id: string
@@ -12281,6 +12282,7 @@ export type Database = {
           recusa_at?: string | null
           recusa_motivo?: string | null
           tenant_id: string
+          tipo?: string
           token?: string
           used_at?: string | null
           versao_id: string
@@ -12305,6 +12307,7 @@ export type Database = {
           recusa_at?: string | null
           recusa_motivo?: string | null
           tenant_id?: string
+          tipo?: string
           token?: string
           used_at?: string | null
           versao_id?: string
@@ -14312,6 +14315,7 @@ export type Database = {
           origem_tarifa: string | null
           precisao_calculo: string | null
           precisao_motivo: string | null
+          primeiro_acesso_em: string | null
           projeto_id: string
           proposta_num: number
           public_token: string | null
@@ -14323,10 +14327,13 @@ export type Database = {
           sm_raw_payload: Json | null
           snapshot_hash: string | null
           status: string
+          status_visualizacao: string
           tariff_version_id: string | null
           template_id: string | null
           tenant_id: string
           titulo: string
+          total_aberturas: number
+          ultimo_acesso_em: string | null
           updated_at: string
           validade_dias: number | null
           versao_atual: number
@@ -14357,6 +14364,7 @@ export type Database = {
           origem_tarifa?: string | null
           precisao_calculo?: string | null
           precisao_motivo?: string | null
+          primeiro_acesso_em?: string | null
           projeto_id: string
           proposta_num: number
           public_token?: string | null
@@ -14368,10 +14376,13 @@ export type Database = {
           sm_raw_payload?: Json | null
           snapshot_hash?: string | null
           status?: string
+          status_visualizacao?: string
           tariff_version_id?: string | null
           template_id?: string | null
           tenant_id: string
           titulo?: string
+          total_aberturas?: number
+          ultimo_acesso_em?: string | null
           updated_at?: string
           validade_dias?: number | null
           versao_atual?: number
@@ -14402,6 +14413,7 @@ export type Database = {
           origem_tarifa?: string | null
           precisao_calculo?: string | null
           precisao_motivo?: string | null
+          primeiro_acesso_em?: string | null
           projeto_id?: string
           proposta_num?: number
           public_token?: string | null
@@ -14413,10 +14425,13 @@ export type Database = {
           sm_raw_payload?: Json | null
           snapshot_hash?: string | null
           status?: string
+          status_visualizacao?: string
           tariff_version_id?: string | null
           template_id?: string | null
           tenant_id?: string
           titulo?: string
+          total_aberturas?: number
+          ultimo_acesso_em?: string | null
           updated_at?: string
           validade_dias?: number | null
           versao_atual?: number
