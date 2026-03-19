@@ -130,7 +130,6 @@ export async function generateProposal(
   });
 
   if (error) {
-    // Extract structured error from edge function response body
     let msg = "Erro ao gerar proposta";
     let errorCode: string | undefined;
     let missing: string[] | undefined;
@@ -195,6 +194,8 @@ export interface SendProposalPayload {
   versao_id: string;
   canal: "link" | "whatsapp";
   lead_id?: string;
+  template_id?: string;
+  mensagem_custom?: string;
 }
 
 export interface SendProposalResult {

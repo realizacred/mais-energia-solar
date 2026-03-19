@@ -6,6 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-client-timeout, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/** Simple template renderer — replaces {{key}} with values */
+function renderTemplate(corpo: string, vars: Record<string, string>): string {
+  return corpo.replace(/\{\{(\w+)\}\}/g, (_match, key) => vars[key] ?? `{{${key}}}`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -38,7 +43,7 @@ Deno.serve(async (req) => {
 
     // ── 2. PARSE ────────────────────────────────────────────
     const body = await req.json();
-    const { proposta_id, versao_id, canal, lead_id } = body;
+    const { proposta_id, versao_id, canal, lead_id, template_id, mensagem_custom } = body;
 
     if (!proposta_id || !versao_id) return jsonError("proposta_id e versao_id obrigatórios", 400);
 
@@ -49,7 +54,7 @@ Deno.serve(async (req) => {
       adminClient.from("tenants")
         .select("dominio_customizado, slug, nome").eq("id", tenantId).single(),
       adminClient.from("proposta_versoes")
-        .select("id, versao_numero, valor_total, economia_mensal, payback_meses, potencia_kwp")
+        .select("id, versao_numero, valor_total, economia_mensal, payback_meses, potencia_kwp, geracao_mensal, snapshot")
         .eq("id", versao_id).eq("tenant_id", tenantId).single(),
       adminClient.from("proposta_renders")
         .select("id").eq("versao_id", versao_id).eq("tenant_id", tenantId).eq("tipo", "html").maybeSingle(),
@@ -60,7 +65,7 @@ Deno.serve(async (req) => {
 
     const proposta = propostaRes.data;
     const tenant = tenantRes.data;
-    const versao = versaoRes.data;
+    const versao = versaoRes.data as any;
 
     // Se não tem render, gerar automaticamente
     if (!renderRes.data) {
@@ -112,22 +117,89 @@ Deno.serve(async (req) => {
     const baseUrl = req.headers.get("origin") || `https://${tenant?.slug || "app"}.lovable.app`;
     const publicUrl = `${baseUrl}/proposta/${aceiteToken.token}`;
 
-    // ── 6. REGISTRAR ENVIO + ATUALIZAR PROPOSTA (paralelo) ──
+    // ── 5b. RESOLVER MENSAGEM (template ou custom) ──────────
     const canalFinal = canal || "link";
+    let mensagemFinal: string | null = null;
 
+    if (mensagem_custom) {
+      // Usuário editou a mensagem antes de enviar
+      mensagemFinal = mensagem_custom;
+    } else if (canalFinal === "whatsapp" || canalFinal === "email") {
+      // Buscar template
+      let templateData: any = null;
+      if (template_id) {
+        const { data: t } = await adminClient
+          .from("proposta_email_templates")
+          .select("corpo_texto, corpo_html, canal")
+          .eq("id", template_id).eq("tenant_id", tenantId).eq("ativo", true)
+          .single();
+        templateData = t;
+      }
+      if (!templateData) {
+        // Fallback: template padrão
+        const { data: t } = await adminClient
+          .from("proposta_email_templates")
+          .select("corpo_texto, corpo_html, canal")
+          .eq("tenant_id", tenantId).eq("is_default", true).eq("ativo", true)
+          .in("canal", [canalFinal, "ambos"])
+          .limit(1)
+          .maybeSingle();
+        templateData = t;
+      }
+
+      if (templateData) {
+        const corpoRaw = canalFinal === "whatsapp" ? (templateData.corpo_texto || "") : (templateData.corpo_html || "");
+        if (corpoRaw) {
+          // Build template vars from real data
+          const leadId = lead_id || proposta.lead_id;
+          let leadNome = "";
+          if (leadId) {
+            const { data: lead } = await adminClient
+              .from("leads").select("nome").eq("id", leadId).eq("tenant_id", tenantId).single();
+            leadNome = lead?.nome || "";
+          }
+
+          const snapshot = versao.snapshot || {};
+          const itens = (snapshot as any).itens || [];
+          const modulos = itens.filter((i: any) => i.categoria === "modulo" || i.categoria === "modulos");
+          const inversores = itens.filter((i: any) => i.categoria === "inversor" || i.categoria === "inversores");
+          const numModulos = modulos.reduce((s: number, m: any) => s + (m.quantidade || 1), 0);
+          const modeloInversor = inversores.length > 0 ? `${inversores[0].fabricante || ""} ${inversores[0].modelo || ""}`.trim() : "";
+          const ucs = (snapshot as any).ucs || [];
+          const consumoMensal = ucs.reduce((s: number, uc: any) => s + (uc.consumo_mensal || 0), 0);
+
+          const templateVars: Record<string, string> = {
+            cliente_nome: leadNome,
+            tipo_instalacao: (snapshot as any).tipo_telhado || "",
+            potencia_kwp: String(versao.potencia_kwp || 0),
+            numero_modulos: String(numModulos),
+            modelo_inversor: modeloInversor,
+            consumo_mensal: String(consumoMensal),
+            geracao_mensal: String(versao.geracao_mensal || 0),
+            valor_total: (versao.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            economia_mensal: (versao.economia_mensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            payback_meses: String(versao.payback_meses || 0),
+            proposta_link: publicUrl,
+            empresa_nome: tenant?.nome || "Empresa",
+          };
+
+          mensagemFinal = renderTemplate(corpoRaw, templateVars);
+        }
+      }
+    }
+
+    // ── 6. REGISTRAR ENVIO + ATUALIZAR PROPOSTA (paralelo) ──
     await Promise.all([
-      // Registrar na tabela de envios (audit trail)
-      // FIX: use correct column names (destinatario + detalhes JSON)
       adminClient.from("proposta_envios").insert({
         tenant_id: tenantId,
         versao_id,
         token_id: aceiteToken.id,
         canal: canalFinal,
         enviado_por: userId,
-        destinatario: null, // populated below if whatsapp
+        destinatario: null,
         detalhes: { token: aceiteToken.token, public_url: publicUrl },
+        mensagem_resumo: mensagemFinal,
       }),
-      // Atualizar status da proposta + status_visualizacao
       adminClient.from("propostas_nativas").update({
         status: "enviada",
         enviada_at: new Date().toISOString(),
@@ -136,7 +208,6 @@ Deno.serve(async (req) => {
         public_token: aceiteToken.token,
         status_visualizacao: "enviado",
       }).eq("id", proposta_id).eq("tenant_id", tenantId),
-      // Atualizar versão para "sent" + preencher enviado_em e public_slug
       adminClient.from("proposta_versoes").update({
         status: "sent",
         enviado_em: new Date().toISOString(),
@@ -177,13 +248,15 @@ Deno.serve(async (req) => {
             .eq("id", targetLeadId).eq("tenant_id", tenantId).single();
 
           if (lead?.telefone) {
-            const tenantNome = tenant?.nome || "Empresa";
-            const mensagem = `Olá ${lead.nome || ""}! 🌞\n\n` +
+            // Use rendered template message or fallback to hardcoded
+            const mensagem = mensagemFinal || (
+              `Olá ${lead.nome || ""}! 🌞\n\n` +
               `Sua proposta solar está pronta!\n\n` +
               `📄 *${proposta.titulo || proposta.codigo || "Proposta Solar"}*\n` +
               `⚡ ${versao.potencia_kwp} kWp | 💰 Economia: R$ ${versao.economia_mensal?.toFixed(2) ?? "—"}/mês\n\n` +
               `🔗 Veja e aceite aqui:\n${publicUrl}\n\n` +
-              `${tenantNome} — Energia Solar ☀️`;
+              `${tenant?.nome || "Empresa"} — Energia Solar ☀️`
+            );
 
             const { error: waErr } = await adminClient.functions.invoke("send-whatsapp-message", {
               body: { lead_id: targetLeadId, message: mensagem, tenant_id: tenantId },
@@ -191,7 +264,6 @@ Deno.serve(async (req) => {
 
             whatsappSent = !waErr;
 
-            // Update envio with destinatario info using correct columns
             if (whatsappSent) {
               await adminClient.from("proposta_envios").update({
                 destinatario: lead.telefone,

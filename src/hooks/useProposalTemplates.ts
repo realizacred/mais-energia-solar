@@ -1,5 +1,5 @@
 /**
- * Hook para carregar templates de proposta e templates de e-mail.
+ * Hook para carregar templates de proposta e templates de e-mail/whatsapp.
  * Centraliza queries que antes estavam inline em StepDocumento.tsx.
  * (§16 AGENTS.md — queries devem ficar em src/hooks/)
  */
@@ -22,7 +22,11 @@ export interface EmailTemplate {
   nome: string;
   assunto: string;
   corpo_html: string;
+  corpo_texto: string | null;
+  canal: string;
+  is_default: boolean;
   ativo: boolean;
+  variaveis: any[] | null;
 }
 
 export function useProposalTemplates() {
@@ -37,7 +41,7 @@ export function useProposalTemplates() {
       if (error) throw error;
       return (data || []) as PropostaTemplate[];
     },
-    staleTime: 1000 * 60 * 15, // estático — 15min
+    staleTime: 1000 * 60 * 15,
   });
 }
 
@@ -47,8 +51,28 @@ export function useEmailTemplates() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("proposta_email_templates" as any)
-        .select("id, nome, assunto, corpo_html, ativo")
+        .select("id, nome, assunto, corpo_html, corpo_texto, canal, is_default, ativo, variaveis")
         .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return ((data as unknown as EmailTemplate[]) || []);
+    },
+    staleTime: 1000 * 60 * 15,
+  });
+}
+
+/**
+ * Hook para carregar templates de WhatsApp ativos (canal = 'whatsapp' ou 'ambos')
+ */
+export function useWhatsAppTemplates() {
+  return useQuery({
+    queryKey: ["proposta-wa-templates-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proposta_email_templates" as any)
+        .select("id, nome, corpo_texto, canal, is_default, ativo, variaveis")
+        .eq("ativo", true)
+        .in("canal", ["whatsapp", "ambos"])
         .order("ordem", { ascending: true });
       if (error) throw error;
       return ((data as unknown as EmailTemplate[]) || []);
