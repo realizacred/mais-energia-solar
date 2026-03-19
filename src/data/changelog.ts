@@ -19,6 +19,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.75.1",
+    date: "2026-03-19",
+    title: "Correção de áudio WhatsApp — MIME type e player",
+    type: "bugfix",
+    description: "Corrige áudios recebidos de clientes que tocavam mas sem som, causado por incompatibilidade de formato.",
+    details: [
+      "Fix: detecção real do formato de áudio (mp4 vs ogg) via magic bytes no wa-bg-worker",
+      "Fix: convertToMp4 da Evolution API reportava MIME errado — agora detecta formato real",
+      "Melhoria: WaAudioPlayer com crossOrigin, loading state, retry automático e botão de retry",
+      "Melhoria: decodificação base64 em chunks para áudios grandes",
+    ],
+  },
+  {
     version: "2.75.0",
     date: "2026-03-19",
     title: "Inteligência Comercial — Análise de Sentimento com IA Real",
