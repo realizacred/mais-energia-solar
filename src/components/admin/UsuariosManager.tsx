@@ -622,7 +622,7 @@ export function UsuariosManager() {
 
       {/* Add Role Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Adicionar Perfil</DialogTitle>
             <DialogDescription>
