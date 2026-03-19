@@ -28,7 +28,7 @@ const CANAL_ICON: Record<string, any> = {
   email: Mail,
 };
 
-export function ProposalViewsCard({ propostaId, versaoId }: ProposalTrackingPanelProps) {
+export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, primeiroAcessoEm, ultimoAcessoEm, totalAberturas }: ProposalTrackingPanelProps) {
   const { data, isLoading: loading } = useProposalTracking(propostaId, versaoId);
 
   const views = data?.views ?? [];
