@@ -14954,6 +14954,84 @@ export type Database = {
           },
         ]
       }
+      reaquecimento_oportunidades: {
+        Row: {
+          contexto_json: Json | null
+          created_at: string | null
+          data_analise: string
+          dor_principal: string
+          economia_potencial_12m: number | null
+          enviado_em: string | null
+          id: string
+          lead_id: string
+          mensagem_sugerida: string
+          meses_inativos: number
+          novo_valor_projeto: number | null
+          resultado: string | null
+          status: string
+          temperamento_detectado: string
+          tenant_id: string
+          updated_at: string | null
+          urgencia_score: number
+          valor_perdido_acumulado: number
+        }
+        Insert: {
+          contexto_json?: Json | null
+          created_at?: string | null
+          data_analise?: string
+          dor_principal?: string
+          economia_potencial_12m?: number | null
+          enviado_em?: string | null
+          id?: string
+          lead_id: string
+          mensagem_sugerida?: string
+          meses_inativos?: number
+          novo_valor_projeto?: number | null
+          resultado?: string | null
+          status?: string
+          temperamento_detectado?: string
+          tenant_id: string
+          updated_at?: string | null
+          urgencia_score?: number
+          valor_perdido_acumulado?: number
+        }
+        Update: {
+          contexto_json?: Json | null
+          created_at?: string | null
+          data_analise?: string
+          dor_principal?: string
+          economia_potencial_12m?: number | null
+          enviado_em?: string | null
+          id?: string
+          lead_id?: string
+          mensagem_sugerida?: string
+          meses_inativos?: number
+          novo_valor_projeto?: number | null
+          resultado?: string | null
+          status?: string
+          temperamento_detectado?: string
+          tenant_id?: string
+          updated_at?: string | null
+          urgencia_score?: number
+          valor_perdido_acumulado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reaquecimento_oportunidades_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reaquecimento_oportunidades_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recebimentos: {
         Row: {
           cliente_id: string
@@ -22063,6 +22141,12 @@ export type Database = {
       get_super_admin_tenant_detail: {
         Args: { _tenant_id: string }
         Returns: Json
+      }
+      get_tarifa_atual_concessionaria: {
+        Args: { p_cidade?: string; p_estado?: string }
+        Returns: {
+          valor: number
+        }[]
       }
       get_tenant_status: {
         Args: { _tenant_id: string }
