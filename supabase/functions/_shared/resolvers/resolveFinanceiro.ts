@@ -2,7 +2,7 @@
  * Domain resolver: financeiro.* variables
  * Sources: snapshot.financeiro, snapshot top-level, versaoData, ext.projeto
  */
-import { type AnyObj, safeObj, str, num, fmtCur, fmtNum, type ResolverExternalContext } from "./types.ts";
+import { type AnyObj, safeObj, safeArr, str, num, fmtCur, fmtNum, type ResolverExternalContext } from "./types.ts";
 
 export function resolveFinanceiro(
   snapshot: AnyObj | null | undefined,
@@ -113,13 +113,82 @@ export function resolveFinanceiro(
   ];
   for (const k of costFields) set(k, snap[k]);
 
-  // ── Indexed inverter/battery costs ──
+  // ── Indexed inverter/battery/transformer costs ──
   for (let i = 1; i <= 5; i++) {
     for (const prefix of ["inversor_custo_un_", "inversor_preco_un_", "inversor_preco_total_",
       "transformador_custo_un_", "transformador_preco_un_",
       "bateria_custo_un_", "bateria_preco_un_", "bateria_preco_total_",
       "item_a_nome_", "item_a_custo_", "item_a_preco_"]) {
       set(`${prefix}${i}`, snap[`${prefix}${i}`]);
+    }
+  }
+
+  // ── Derive indexed costs from itens[] when snapshot lacks them ──
+  const itens = safeArr(snap.itens).length > 0 ? safeArr(snap.itens) : (() => {
+    const kits = safeArr(snap.manualKits);
+    const idx = Number(snap.selectedKitIndex ?? 0);
+    const kit = kits[idx] ? safeObj(kits[idx]) : {};
+    return safeArr(kit.itens);
+  })();
+
+  const isBateria = (item: AnyObj) => {
+    const cat = String(item.categoria ?? "").toLowerCase();
+    const tipo = String(item.tipo ?? "").toLowerCase();
+    return cat.includes("bateria") || cat === "battery" || tipo.includes("bateria");
+  };
+  const isTransformador = (item: AnyObj) => {
+    const cat = String(item.categoria ?? "").toLowerCase();
+    const tipo = String(item.tipo ?? "").toLowerCase();
+    return cat.includes("transformador") || tipo.includes("transformador");
+  };
+
+  const bateriaItens = itens.filter(isBateria);
+  const transformadorItens = itens.filter(isTransformador);
+
+  // Indexed battery costs from itens[]
+  bateriaItens.forEach((bat, idx) => {
+    const i = idx + 1;
+    const custoUn = num(bat.custo_unitario) ?? num(bat.preco_custo);
+    const precoUn = num(bat.preco_unitario) ?? num(bat.preco_venda);
+    const qty = num(bat.quantidade) ?? 1;
+    if (custoUn != null) setCurIfMissing(`bateria_custo_un_${i}`, custoUn);
+    if (precoUn != null) setCurIfMissing(`bateria_preco_un_${i}`, precoUn);
+    if (precoUn != null) setCurIfMissing(`bateria_preco_total_${i}`, precoUn * qty);
+  });
+
+  // Indexed transformer costs from itens[]
+  transformadorItens.forEach((tr, idx) => {
+    const i = idx + 1;
+    const custoUn = num(tr.custo_unitario) ?? num(tr.preco_custo);
+    const precoUn = num(tr.preco_unitario) ?? num(tr.preco_venda);
+    if (custoUn != null) setCurIfMissing(`transformador_custo_un_${i}`, custoUn);
+    if (precoUn != null) setCurIfMissing(`transformador_preco_un_${i}`, precoUn);
+  });
+
+  // Concatenated battery cost/price variables (all batteries joined)
+  if (bateriaItens.length > 0) {
+    const custoUnArr: string[] = [];
+    const precoUnArr: string[] = [];
+    const custoTotalArr: string[] = [];
+    const precoTotalArr: string[] = [];
+    let custoTotalSum = 0;
+    let precoTotalSum = 0;
+
+    bateriaItens.forEach((bat) => {
+      const custoUn = num(bat.custo_unitario) ?? num(bat.preco_custo);
+      const precoUn = num(bat.preco_unitario) ?? num(bat.preco_venda);
+      const qty = num(bat.quantidade) ?? 1;
+      if (custoUn != null) { custoUnArr.push(fmtCur(custoUn)); custoTotalArr.push(fmtCur(custoUn * qty)); custoTotalSum += custoUn * qty; }
+      if (precoUn != null) { precoUnArr.push(fmtCur(precoUn)); precoTotalArr.push(fmtCur(precoUn * qty)); precoTotalSum += precoUn * qty; }
+    });
+
+    if (custoUnArr.length > 0) {
+      setCurIfMissing("bateria_custo_un", custoUnArr.length === 1 ? num(bateriaItens[0].custo_unitario ?? bateriaItens[0].preco_custo)! : custoTotalSum);
+      setCurIfMissing("bateria_custo_total", custoTotalSum);
+    }
+    if (precoUnArr.length > 0) {
+      setCurIfMissing("bateria_preco_un", precoUnArr.length === 1 ? num(bateriaItens[0].preco_unitario ?? bateriaItens[0].preco_venda)! : precoTotalSum);
+      setCurIfMissing("bateria_preco_total", precoTotalSum);
     }
   }
   set("transformadores_custo_total", snap.transformadores_custo_total);
