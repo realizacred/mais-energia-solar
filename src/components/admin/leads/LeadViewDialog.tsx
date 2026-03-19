@@ -43,7 +43,7 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* §25 HEADER */}
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -60,7 +60,7 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
         </DialogHeader>
 
         {/* §25 BODY */}
-        <div className="p-5 space-y-5 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 space-y-5 flex-1 min-h-0 overflow-y-auto">
           {lead.lead_code && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-mono text-sm px-3 py-1">
