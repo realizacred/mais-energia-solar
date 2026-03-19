@@ -9,3 +9,6 @@ export { IntelligenceAlertsPage } from "./IntelligenceAlertsPage";
 export { IntelligenceAlertCard } from "./IntelligenceAlertCard";
 export { LeadIntelligenceBadge } from "./LeadIntelligenceBadge";
 export { ReaquecimentoOpportunitiesList } from "./ReaquecimentoOpportunitiesList";
+export { RealtimeIntelligenceBanner } from "./RealtimeIntelligenceBanner";
+export { IntelligenceBadge } from "./IntelligenceBadge";
+export { SuggestedReplyButton } from "./SuggestedReplyButton";

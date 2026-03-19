@@ -19,6 +19,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.77.0",
+    date: "2026-03-19",
+    title: "Inteligência WhatsApp em Tempo Real — Parte 4",
+    type: "feature",
+    description: "Análise automática de mudanças de temperamento em mensagens recebidas via WhatsApp, com notificações em tempo real no chat.",
+    details: [
+      "Tabela intelligence_realtime_notifications com Realtime habilitado",
+      "Banner 'Lead esquentou!' no topo do chat com sugestão de resposta",
+      "Badge de temperamento atualizado em tempo real no header da conversa",
+      "Hook useRealtimeIntelligence com subscription Supabase Realtime",
+      "Enfileiramento de análise de inteligência no process-webhook-events",
+    ],
+  },
+  {
     version: "2.76.0",
     date: "2026-03-19",
     title: "Reaquecimento de leads congelados — Parte 3 Inteligência Comercial",
