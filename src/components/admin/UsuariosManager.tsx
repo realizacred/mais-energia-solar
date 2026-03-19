@@ -673,7 +673,7 @@ export function UsuariosManager() {
         onSubmit={handleCreateUser}
         submitLabel="Criar Usuário"
         saving={saving}
-        className="max-w-md"
+        className="w-[90vw] max-w-md"
       >
             <p className="text-sm text-muted-foreground -mt-2">
               Preencha os dados para criar um novo usuário no sistema.
