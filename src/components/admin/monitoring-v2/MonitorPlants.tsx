@@ -174,7 +174,7 @@ export default function MonitorPlants() {
       {/* ═══════════════════════════════════════════════
           📊 RESUMO OPERACIONAL (reacts to filters)
       ═══════════════════════════════════════════════ */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
         <MiniKpi label="Total" value={kpiData.total} icon={Sun} />
         <MiniKpi label="Online" value={kpiData.online} icon={Activity} color="success" />
         <MiniKpi label="Standby" value={kpiData.standby} icon={Moon} color="warning" />
@@ -195,6 +195,12 @@ export default function MonitorPlants() {
           }
           icon={Zap}
           color="primary"
+        />
+        <MiniKpi
+          label="Sem Cliente"
+          value={kpiData.withoutClient}
+          icon={Users}
+          color={kpiData.withoutClient > 0 ? "warning" : "muted"}
         />
       </div>
 
