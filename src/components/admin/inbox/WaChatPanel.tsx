@@ -682,6 +682,27 @@ export function WaChatPanel({
           )}
         </div>
 
+        {/* Intelligence Realtime Banner */}
+        <AnimatePresence>
+          {currentNotification && (
+            <RealtimeIntelligenceBanner
+              temperamentoAnterior={currentNotification.temperamento_anterior || "frio"}
+              temperamentoNovo={currentNotification.temperamento_novo || "morno"}
+              urgenciaScore={currentNotification.urgencia_score}
+              sugestaoResposta={currentNotification.sugestao_resposta || undefined}
+              onUsarSugestao={(texto) => {
+                window.dispatchEvent(new CustomEvent("wa-ai-suggestion", { detail: texto }));
+                marcarNotificacaoLida.mutate(currentNotification.id);
+                setShowIntelBanner(false);
+              }}
+              onFechar={() => {
+                marcarNotificacaoLida.mutate(currentNotification.id);
+                setShowIntelBanner(false);
+              }}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Files Panel */}
         {showFilesPanel && (
           <div className="shrink-0 border-b border-border/30 bg-muted/5 animate-fade-in overflow-y-auto max-h-[40vh]">
