@@ -9,6 +9,9 @@ import { LeadsToAttack } from "./LeadsToAttack";
 import { RevenueForecast } from "./RevenueForecast";
 import { ScoringConfigPanel } from "./ScoringConfigPanel";
 import { ScoreDistributionChart } from "./ScoreDistributionChart";
+import { ReaquecimentoOpportunitiesList } from "./ReaquecimentoOpportunitiesList";
+import { ScoringConfigPanel } from "./ScoringConfigPanel";
+import { ScoreDistributionChart } from "./ScoreDistributionChart";
 
 export function IntelligenceDashboard() {
   const { leads, statuses, loading: leadsLoading } = useLeads({ pageSize: 500 });
