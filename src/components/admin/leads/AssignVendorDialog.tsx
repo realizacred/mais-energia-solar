@@ -3,6 +3,7 @@ import { UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,13 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface Vendedor {
-  id: string;
-  nome: string;
-  codigo: string | null;
-  ativo: boolean;
-}
 
 interface AssignVendorDialogProps {
   open: boolean;
@@ -50,33 +44,17 @@ export function AssignVendorDialog({
   clienteNome,
   onSuccess,
 }: AssignVendorDialogProps) {
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const { data: consultores = [], isLoading: loading } = useConsultoresAtivos();
   const [selectedVendedorId, setSelectedVendedorId] = useState<string>("");
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const displayName = currentVendedorNome || currentVendedor || null;
 
   useEffect(() => {
-    if (!open) return;
-
-    setLoading(true);
-    supabase
-      .from("consultores" as any)
-      .select("id, nome, codigo, ativo")
-      .eq("ativo", true)
-      .order("nome")
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error fetching vendedores:", error);
-        } else {
-          setVendedores((data || []) as any as Vendedor[]);
-        }
-        setLoading(false);
-      });
-
-    setSelectedVendedorId(currentVendedorId || "");
+    if (open) {
+      setSelectedVendedorId(currentVendedorId || "");
+    }
   }, [open, currentVendedorId]);
 
   const handleAssign = async () => {
@@ -91,7 +69,7 @@ export function AssignVendorDialog({
 
     setSaving(true);
     try {
-      const vendedorObj = vendedores.find(v => v.id === selectedVendedorId);
+      const vendedorObj = consultores.find(v => v.id === selectedVendedorId);
       const vendedorNome = vendedorObj?.nome || "";
 
       const { error: orcError } = await supabase
@@ -188,8 +166,8 @@ export function AssignVendorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden">
-        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <UserPlus className="w-5 h-5 text-primary" />
           </div>
@@ -203,7 +181,7 @@ export function AssignVendorDialog({
           </div>
         </DialogHeader>
 
-        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
           {displayName && (
             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
               <span className="text-sm text-muted-foreground">Consultor atual:</span>
@@ -224,15 +202,10 @@ export function AssignVendorDialog({
                 <SelectTrigger className="w-full bg-background">
                   <SelectValue placeholder="Selecione um consultor..." />
                 </SelectTrigger>
-                <SelectContent className="z-50 bg-popover border border-border shadow-lg">
-                  {vendedores.map((v) => (
+                <SelectContent>
+                  {consultores.map((v) => (
                     <SelectItem key={v.id} value={v.id}>
-                      <span className="flex items-center gap-2">
-                        {v.nome}
-                        {v.codigo && (
-                          <span className="text-xs text-muted-foreground">({v.codigo})</span>
-                        )}
-                      </span>
+                      {v.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -241,7 +214,7 @@ export function AssignVendorDialog({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2 p-4 border-t border-border bg-muted/30">
+        <div className="flex items-center justify-between gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
           {displayName ? (
             <Button
               variant="outline"

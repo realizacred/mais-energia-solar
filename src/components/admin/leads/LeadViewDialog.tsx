@@ -60,7 +60,7 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
         </DialogHeader>
 
         {/* §25 BODY */}
-        <div className="p-5 space-y-5 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 space-y-5 flex-1 min-h-0 overflow-y-auto">
           {lead.lead_code && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-mono text-sm px-3 py-1">

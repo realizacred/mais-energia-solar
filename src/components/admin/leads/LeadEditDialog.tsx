@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Send, MessageSquare, UserPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import {
   Select,
   SelectContent,
@@ -33,6 +35,7 @@ interface LeadEditInitialData {
   bairro?: string | null;
   rua?: string | null;
   numero?: string | null;
+  complemento?: string | null;
   area?: string;
   tipo_telhado?: string;
   rede_atendimento?: string;
@@ -47,13 +50,6 @@ interface LeadEditDialogProps {
   leadId: string;
   initialData: LeadEditInitialData;
   onSuccess?: () => void;
-}
-
-interface Consultor {
-  id: string;
-  nome: string;
-  codigo: string | null;
-  ativo: boolean;
 }
 
 const TIPOS_TELHADO = [
@@ -79,23 +75,26 @@ export function LeadEditDialog({
   onSuccess,
 }: LeadEditDialogProps) {
   const { toast } = useToast();
+  const { data: consultores = [], isLoading: loadingConsultores } = useConsultoresAtivos();
+
   const [nome, setNome] = useState(initialData.nome);
   const [telefone, setTelefone] = useState(initialData.telefone);
   const [consultorId, setConsultorId] = useState(initialData.consultor_id || "");
-  const [cep, setCep] = useState(initialData.cep || "");
-  const [cidade, setCidade] = useState(initialData.cidade || "");
-  const [estado, setEstado] = useState(initialData.estado || "");
-  const [bairro, setBairro] = useState(initialData.bairro || "");
-  const [rua, setRua] = useState(initialData.rua || "");
-  const [numero, setNumero] = useState(initialData.numero || "");
+  const [address, setAddress] = useState<AddressData>({
+    cep: initialData.cep || "",
+    rua: initialData.rua || "",
+    numero: initialData.numero || "",
+    complemento: initialData.complemento || "",
+    bairro: initialData.bairro || "",
+    cidade: initialData.cidade || "",
+    estado: initialData.estado || "",
+  });
   const [area, setArea] = useState(initialData.area || "");
   const [tipoTelhado, setTipoTelhado] = useState(initialData.tipo_telhado || "");
   const [redeAtendimento, setRedeAtendimento] = useState(initialData.rede_atendimento || "");
   const [mediaConsumo, setMediaConsumo] = useState(String(initialData.media_consumo ?? ""));
   const [consumoPrevisto, setConsumoPrevisto] = useState(String(initialData.consumo_previsto ?? ""));
   const [observacoes, setObservacoes] = useState(initialData.observacoes || "");
-  const [consultores, setConsultores] = useState<Consultor[]>([]);
-  const [loadingConsultores, setLoadingConsultores] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sendingWa, setSendingWa] = useState(false);
   const [phoneChanged, setPhoneChanged] = useState(false);
@@ -106,12 +105,15 @@ export function LeadEditDialog({
       setNome(initialData.nome);
       setTelefone(initialData.telefone);
       setConsultorId(initialData.consultor_id || "");
-      setCep(initialData.cep || "");
-      setCidade(initialData.cidade || "");
-      setEstado(initialData.estado || "");
-      setBairro(initialData.bairro || "");
-      setRua(initialData.rua || "");
-      setNumero(initialData.numero || "");
+      setAddress({
+        cep: initialData.cep || "",
+        rua: initialData.rua || "",
+        numero: initialData.numero || "",
+        complemento: initialData.complemento || "",
+        bairro: initialData.bairro || "",
+        cidade: initialData.cidade || "",
+        estado: initialData.estado || "",
+      });
       setArea(initialData.area || "");
       setTipoTelhado(initialData.tipo_telhado || "");
       setRedeAtendimento(initialData.rede_atendimento || "");
@@ -122,27 +124,12 @@ export function LeadEditDialog({
     }
   }, [open, initialData]);
 
-  // Load consultores
-  useEffect(() => {
-    if (!open) return;
-    setLoadingConsultores(true);
-    supabase
-      .from("consultores" as any)
-      .select("id, nome, codigo, ativo")
-      .eq("ativo", true)
-      .order("nome")
-      .then(({ data }) => {
-        setConsultores((data || []) as any as Consultor[]);
-        setLoadingConsultores(false);
-      });
-  }, [open]);
-
-  const handlePhoneChange = (value: string) => {
+  const handlePhoneChange = useCallback((value: string) => {
     setTelefone(value);
     if (value !== initialData.telefone) {
       setPhoneChanged(true);
     }
-  };
+  }, [initialData.telefone]);
 
   const handleSave = async () => {
     if (!nome.trim() || !telefone.trim()) {
@@ -154,18 +141,18 @@ export function LeadEditDialog({
     try {
       const selectedConsultor = consultores.find((c) => c.id === consultorId);
 
-      // Update lead
       const leadUpdate: Record<string, unknown> = {
         nome: nome.trim(),
         telefone: telefone.trim(),
         consultor_id: consultorId || null,
         consultor: selectedConsultor?.nome || null,
-        cep: cep.trim() || null,
-        cidade: cidade.trim(),
-        estado: estado.trim(),
-        bairro: bairro.trim() || null,
-        rua: rua.trim() || null,
-        numero: numero.trim() || null,
+        cep: address.cep.trim() || null,
+        cidade: address.cidade.trim(),
+        estado: address.estado.trim(),
+        bairro: address.bairro.trim() || null,
+        rua: address.rua.trim() || null,
+        numero: address.numero.trim() || null,
+        complemento: address.complemento.trim() || null,
         area: area.trim(),
         tipo_telhado: tipoTelhado,
         rede_atendimento: redeAtendimento,
@@ -189,12 +176,12 @@ export function LeadEditDialog({
       // Also update orcamentos for consistency
       const orcUpdate: Record<string, unknown> = {
         consultor: selectedConsultor?.nome || null,
-        cep: cep.trim() || null,
-        cidade: cidade.trim(),
-        estado: estado.trim(),
-        bairro: bairro.trim() || null,
-        rua: rua.trim() || null,
-        numero: numero.trim() || null,
+        cep: address.cep.trim() || null,
+        cidade: address.cidade.trim(),
+        estado: address.estado.trim(),
+        bairro: address.bairro.trim() || null,
+        rua: address.rua.trim() || null,
+        numero: address.numero.trim() || null,
         area: area.trim(),
         tipo_telhado: tipoTelhado,
         rede_atendimento: redeAtendimento,
@@ -250,8 +237,8 @@ export function LeadEditDialog({
 
       const mensagem = buildAutoMessage({
         nome: nome.trim(),
-        cidade: cidade.trim(),
-        estado: estado.trim(),
+        cidade: address.cidade.trim(),
+        estado: address.estado.trim(),
         consumo: mediaConsumo ? Number(mediaConsumo) : undefined,
         tipo_telhado: tipoTelhado,
         consultor_nome: selectedConsultor?.nome,
@@ -322,34 +309,13 @@ export function LeadEditDialog({
         </FormGrid>
       </FormSection>
 
-      {/* Endereço */}
+      {/* Endereço — §13/RB-09: Usa AddressFields com auto-busca CEP */}
       <FormSection title="Endereço">
-        <FormGrid>
-          <div className="space-y-2">
-            <Label htmlFor="lead-cep">CEP</Label>
-            <Input id="lead-cep" value={cep} onChange={(e) => setCep(e.target.value)} disabled={saving} placeholder="00000-000" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lead-estado">Estado</Label>
-            <Input id="lead-estado" value={estado} onChange={(e) => setEstado(e.target.value)} disabled={saving} placeholder="UF" maxLength={2} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lead-cidade">Cidade</Label>
-            <Input id="lead-cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} disabled={saving} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lead-bairro">Bairro</Label>
-            <Input id="lead-bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} disabled={saving} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lead-rua">Rua</Label>
-            <Input id="lead-rua" value={rua} onChange={(e) => setRua(e.target.value)} disabled={saving} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lead-numero">Número</Label>
-            <Input id="lead-numero" value={numero} onChange={(e) => setNumero(e.target.value)} disabled={saving} />
-          </div>
-        </FormGrid>
+        <AddressFields
+          value={address}
+          onChange={setAddress}
+          disabled={saving}
+        />
       </FormSection>
 
       {/* Dados técnicos */}
@@ -357,7 +323,15 @@ export function LeadEditDialog({
         <FormGrid>
           <div className="space-y-2">
             <Label htmlFor="lead-area">Área</Label>
-            <Input id="lead-area" value={area} onChange={(e) => setArea(e.target.value)} disabled={saving} placeholder="Rural / Urbana" />
+            <Select value={area} onValueChange={setArea} disabled={saving}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Urbana">Urbana</SelectItem>
+                <SelectItem value="Rural">Rural</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="lead-tipo-telhado">Tipo de Telhado</Label>
@@ -365,7 +339,7 @@ export function LeadEditDialog({
               <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
-              <SelectContent className="z-50 bg-popover border border-border shadow-lg">
+              <SelectContent>
                 {TIPOS_TELHADO.map((t) => (
                   <SelectItem key={t} value={t}>{t}</SelectItem>
                 ))}
@@ -378,7 +352,7 @@ export function LeadEditDialog({
               <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
-              <SelectContent className="z-50 bg-popover border border-border shadow-lg">
+              <SelectContent>
                 {REDES_ATENDIMENTO.map((r) => (
                   <SelectItem key={r} value={r}>{r}</SelectItem>
                 ))}
@@ -410,7 +384,7 @@ export function LeadEditDialog({
         </FormGrid>
       </FormSection>
 
-      {/* Consultor */}
+      {/* Consultor — §16: usa useConsultoresAtivos */}
       <FormSection title="Consultor">
         {loadingConsultores ? (
           <div className="flex items-center gap-2 py-2">
@@ -422,14 +396,11 @@ export function LeadEditDialog({
             <SelectTrigger className="w-full bg-background">
               <SelectValue placeholder="Selecione um consultor..." />
             </SelectTrigger>
-            <SelectContent className="z-50 bg-popover border border-border shadow-lg">
+            <SelectContent>
               {consultores.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   <span className="flex items-center gap-2">
                     {c.nome}
-                    {c.codigo && (
-                      <span className="text-xs text-muted-foreground">({c.codigo})</span>
-                    )}
                   </span>
                 </SelectItem>
               ))}
