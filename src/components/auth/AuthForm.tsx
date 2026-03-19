@@ -249,6 +249,12 @@ export function AuthForm() {
         );
 
         if (resolveError || !resolvedEmail) {
+          // Check if it's a connectivity issue vs actual "not found"
+          if (isSupabaseUnavailable(resolveError)) {
+            showSupabaseUnavailableToast();
+            setIsLoading(false);
+            return;
+          }
           toast({
             title: "Telefone não encontrado",
             description: "Nenhuma conta vinculada a este telefone. Use seu email.",
@@ -262,6 +268,12 @@ export function AuthForm() {
 
       const { error } = await signIn(loginEmail, data.password);
       if (error) {
+        // Detect Supabase unavailability (plan exceeded, paused, timeout)
+        if (isSupabaseUnavailable(error)) {
+          showSupabaseUnavailableToast();
+          return;
+        }
+
         let message = "Erro ao fazer login. Tente novamente.";
         if (error.message.includes("Invalid login credentials")) {
           message = "Email/telefone ou senha incorretos.";
@@ -271,6 +283,17 @@ export function AuthForm() {
         toast({
           title: "Erro no login",
           description: message,
+          variant: "destructive",
+        });
+      }
+    } catch (err: unknown) {
+      // Catch network-level failures (fetch failed, DNS, timeout)
+      if (isSupabaseUnavailable(err)) {
+        showSupabaseUnavailableToast();
+      } else {
+        toast({
+          title: "Erro inesperado",
+          description: "Não foi possível conectar ao servidor. Verifique sua internet.",
           variant: "destructive",
         });
       }
