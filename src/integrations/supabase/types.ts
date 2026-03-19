@@ -4882,6 +4882,89 @@ export type Database = {
           },
         ]
       }
+      help_center_progresso: {
+        Row: {
+          concluido: boolean | null
+          id: string
+          tutorial_id: string
+          ultimo_acesso: string | null
+          user_id: string
+        }
+        Insert: {
+          concluido?: boolean | null
+          id?: string
+          tutorial_id: string
+          ultimo_acesso?: string | null
+          user_id: string
+        }
+        Update: {
+          concluido?: boolean | null
+          id?: string
+          tutorial_id?: string
+          ultimo_acesso?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_center_progresso_tutorial_id_fkey"
+            columns: ["tutorial_id"]
+            isOneToOne: false
+            referencedRelation: "help_center_tutorials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_center_tutorials: {
+        Row: {
+          categoria: string
+          conteudo: string
+          created_at: string | null
+          descricao_curta: string | null
+          icon: string | null
+          id: string
+          imagens: string[] | null
+          is_destaque: boolean | null
+          ordem: number
+          slug: string
+          tags: string[] | null
+          titulo: string
+          updated_at: string | null
+          video_url: string | null
+        }
+        Insert: {
+          categoria: string
+          conteudo?: string
+          created_at?: string | null
+          descricao_curta?: string | null
+          icon?: string | null
+          id?: string
+          imagens?: string[] | null
+          is_destaque?: boolean | null
+          ordem?: number
+          slug: string
+          tags?: string[] | null
+          titulo: string
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          categoria?: string
+          conteudo?: string
+          created_at?: string | null
+          descricao_curta?: string | null
+          icon?: string | null
+          id?: string
+          imagens?: string[] | null
+          is_destaque?: boolean | null
+          ordem?: number
+          slug?: string
+          tags?: string[] | null
+          titulo?: string
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       instagram_config: {
         Row: {
           access_token: string | null
