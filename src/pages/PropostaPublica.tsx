@@ -92,7 +92,7 @@ export default function PropostaPublica() {
     try {
       const { data: td, error: tdErr } = await (supabase as any)
         .from("proposta_aceite_tokens")
-        .select("id, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at")
+        .select("id, token, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at")
         .eq("token", token!)
         .maybeSingle();
 
