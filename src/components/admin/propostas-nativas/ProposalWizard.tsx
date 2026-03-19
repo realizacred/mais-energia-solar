@@ -1249,7 +1249,7 @@ export function ProposalWizard() {
     }
 
     setGenerating(true);
-    setGenerationStatus("generating_docx");
+    setGenerationStatus("calculating");
     setGenerationError(null);
     setHtmlPreview(null);
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
