@@ -131,7 +131,7 @@ export function resolveMultiUC(
   });
 
   // Emit num_ucs for template use
-  out["num_ucs"] = String(ucs.length);
+  out["num_ucs"] = String(isSingleUC ? 1 : ucs.length);
 
   return out;
 }
