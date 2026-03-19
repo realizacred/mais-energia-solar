@@ -567,8 +567,8 @@ export function UsuariosManager() {
                         <Badge 
                           variant="outline"
                           className={user.ativo 
-                            ? "bg-success/10 text-success border-success/30" 
-                            : "bg-muted text-muted-foreground border-border"
+                            ? "bg-success/10 text-success border-success/20" 
+                            : "bg-warning/10 text-warning border-warning/20"
                           }
                         >
                           {user.ativo ? "Ativo" : "Inativo"}
