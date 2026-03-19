@@ -293,3 +293,6 @@ verify_jwt = false
 
 [functions.analyze-lead-intelligence]
 verify_jwt = false
+
+[functions.analyze-lead-intelligence-v2]
+verify_jwt = false

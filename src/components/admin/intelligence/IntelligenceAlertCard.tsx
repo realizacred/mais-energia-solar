@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Phone, Pencil, X, DollarSign } from "lucide-react";
+import { AlertTriangle, Phone, X, DollarSign, Bot, Sparkles } from "lucide-react";
 import { formatBRL } from "@/lib/formatters";
 
 interface AlertCardProps {
@@ -27,6 +27,7 @@ interface AlertCardProps {
   consultorMaxDesconto?: number;
   gerenteMaxDesconto?: number;
   onResolve?: (alertId: string, acao: string) => void;
+  onUseSuggestion?: (texto: string) => void;
 }
 
 const SEVERIDADE_STYLES: Record<string, string> = {
@@ -43,11 +44,12 @@ const TIPO_ICONS: Record<string, string> = {
   reaquecimento_oportunidade: "🔥",
 };
 
-export function IntelligenceAlertCard({ alert, consultorMaxDesconto = 3, gerenteMaxDesconto = 8, onResolve }: AlertCardProps) {
+export function IntelligenceAlertCard({ alert, consultorMaxDesconto = 3, gerenteMaxDesconto = 8, onResolve, onUseSuggestion }: AlertCardProps) {
   const lead = alert.leads;
   const profile = alert.lead_intelligence_profiles;
   const ctx = alert.contexto_json || {};
   const valorProjeto = lead?.valor_projeto || 0;
+  const isIA = ctx.analisado_por === "ia";
 
   const valorConsultor = valorProjeto * (1 - consultorMaxDesconto / 100);
   const valorGerente = valorProjeto * (1 - gerenteMaxDesconto / 100);
@@ -67,7 +69,12 @@ export function IntelligenceAlertCard({ alert, consultorMaxDesconto = 3, gerente
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {isIA && (
+              <Badge variant="outline" className="text-xs gap-1 border-primary/30 text-primary">
+                <Bot className="w-3 h-3" /> IA
+              </Badge>
+            )}
             <Badge variant="outline" className={`text-xs ${SEVERIDADE_STYLES[alert.severidade] || ""}`}>
               {alert.severidade}
             </Badge>
@@ -76,20 +83,37 @@ export function IntelligenceAlertCard({ alert, consultorMaxDesconto = 3, gerente
                 Urgência: {profile.urgencia_score}/100
               </Badge>
             )}
-            {ctx.confianca && (
+            {ctx.confianca != null && (
               <Badge variant="secondary" className="text-xs">
-                Confiança: {Math.round(ctx.confianca * 100)}%
+                Confiança: {Math.round((ctx.confianca ?? 0) * 100)}%
               </Badge>
             )}
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-3 space-y-3">
-        {/* Frase detectada */}
-        {ctx.frase_detectada && (
+        {/* Objeção específica detectada pela IA */}
+        {ctx.objecao_especifica && (
+          <blockquote className="border-l-2 border-primary pl-3 italic text-sm text-muted-foreground">
+            "{ctx.objecao_especifica}"
+          </blockquote>
+        )}
+
+        {/* Frase detectada (heurística) */}
+        {ctx.frase_detectada && !ctx.objecao_especifica && (
           <blockquote className="border-l-2 border-primary pl-3 italic text-sm text-muted-foreground">
             "{ctx.frase_detectada}"
           </blockquote>
+        )}
+
+        {/* Justificativa da IA */}
+        {ctx.justificativa && (
+          <div className="bg-muted/30 border border-border rounded-lg p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1">
+              <Bot className="w-3 h-3" /> Análise da IA
+            </p>
+            <p className="text-sm text-foreground">{ctx.justificativa}</p>
+          </div>
         )}
 
         {/* Contexto */}
@@ -102,17 +126,37 @@ export function IntelligenceAlertCard({ alert, consultorMaxDesconto = 3, gerente
           {profile?.dor_principal && (
             <p>Dor: <span className="font-medium text-foreground capitalize">{profile.dor_principal}</span></p>
           )}
+          {ctx.proximo_passo_sugerido && (
+            <p>Próximo passo: <span className="font-medium text-foreground capitalize">{ctx.proximo_passo_sugerido}</span></p>
+          )}
+          {ctx.modelo && (
+            <p>Modelo: <span className="font-medium text-foreground">{ctx.modelo}</span></p>
+          )}
         </div>
 
         {/* Sugestões IA */}
         {ctx.sugestao_abordagem && (
-          <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sugestões de abordagem (IA)</p>
+          <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Sugestões de abordagem {isIA ? "(IA)" : ""}
+            </p>
             {Array.isArray(ctx.sugestao_abordagem) ? (
               ctx.sugestao_abordagem.map((s: string, i: number) => (
-                <p key={i} className="text-sm text-foreground">
-                  {i + 1}. {s}
-                </p>
+                <div key={i} className="flex items-start gap-2">
+                  <p className="text-sm text-foreground flex-1">
+                    {i + 1}. {s}
+                  </p>
+                  {onUseSuggestion && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 text-xs h-6 px-2"
+                      onClick={() => onUseSuggestion(s)}
+                    >
+                      Usar
+                    </Button>
+                  )}
+                </div>
               ))
             ) : (
               <p className="text-sm text-foreground">{ctx.sugestao_abordagem}</p>
@@ -131,6 +175,13 @@ export function IntelligenceAlertCard({ alert, consultorMaxDesconto = 3, gerente
               <p>Gerente (até {gerenteMaxDesconto}%): <span className="font-semibold text-foreground">{formatBRL(valorGerente)}</span></p>
             </div>
           </div>
+        )}
+
+        {/* Custo da análise (transparência) */}
+        {ctx.tokens && (
+          <p className="text-[11px] text-muted-foreground/60">
+            Análise: {ctx.tokens} tokens • Modelo: {ctx.modelo || "N/A"}
+          </p>
         )}
 
         {/* Ações */}
@@ -154,7 +205,7 @@ export function IntelligenceAlertCard({ alert, consultorMaxDesconto = 3, gerente
         {/* Resolved state */}
         {alert.resolvido_at && (
           <Badge variant="secondary" className="text-xs">
-            ✅ Resolvido: {alert.resolvido_at ? new Date(alert.resolvido_at).toLocaleDateString("pt-BR") : ""}
+            ✅ Resolvido: {new Date(alert.resolvido_at).toLocaleDateString("pt-BR")}
           </Badge>
         )}
       </CardContent>
