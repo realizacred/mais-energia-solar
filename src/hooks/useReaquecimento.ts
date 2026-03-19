@@ -24,7 +24,6 @@ export interface ReaquecimentoOportunidade {
     id: string;
     nome: string;
     telefone: string;
-    email: string | null;
     lead_code: string;
   };
 }

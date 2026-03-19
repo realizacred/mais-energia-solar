@@ -48,7 +48,7 @@ export function ReaquecimentoOpportunitiesList() {
 
   const handleRunManual = () => {
     if (!tenantId) return;
-    runManual.mutate(profile.tenant_id, {
+    runManual.mutate(tenantId, {
       onSuccess: (data) => toast.success(`Análise concluída: ${JSON.stringify(data?.resultados?.[0]?.processados || 0)} leads processados`),
       onError: () => toast.error("Erro ao executar análise"),
     });
