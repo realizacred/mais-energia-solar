@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Table, 
   TableBody, 
@@ -48,7 +49,6 @@ import {
   Shield, 
   UserPlus, 
   Trash2, 
-  // Loader2 removed
   Users,
   ShieldCheck,
   ShieldAlert,
@@ -57,7 +57,6 @@ import {
   Pencil,
   UserCog,
 } from "lucide-react";
-import { LoadingState } from "@/components/ui-kit";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { UserEditDialog } from "./users/UserEditDialog";
 
@@ -94,12 +93,12 @@ interface NewUserForm {
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  super_admin: { label: "Super Admin", color: "bg-warning/5 text-warning border-warning/30", icon: ShieldAlert },
-  admin: { label: "Administrador", color: "bg-primary/5 text-primary border-primary/30", icon: ShieldAlert },
-  gerente: { label: "Gerente", color: "bg-primary/5 text-primary border-primary/30", icon: ShieldCheck },
-  consultor: { label: "Consultor", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
-  instalador: { label: "Instalador", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
-  financeiro: { label: "Financeiro", color: "bg-primary/5 text-primary border-primary/30", icon: Users },
+  super_admin: { label: "Super Admin", color: "bg-destructive/10 text-destructive border-destructive/20", icon: ShieldAlert },
+  admin: { label: "Administrador", color: "bg-destructive/10 text-destructive border-destructive/20", icon: ShieldAlert },
+  gerente: { label: "Gerente", color: "bg-warning/10 text-warning border-warning/20", icon: ShieldCheck },
+  consultor: { label: "Consultor", color: "bg-info/10 text-info border-info/20", icon: Users },
+  instalador: { label: "Instalador", color: "bg-success/10 text-success border-success/20", icon: Users },
+  financeiro: { label: "Financeiro", color: "bg-primary/10 text-primary border-primary/20", icon: Users },
 };
 
 export function UsuariosManager() {
@@ -461,7 +460,17 @@ export function UsuariosManager() {
   };
 
   if (loading || checkingPermission) {
-    return <LoadingState />;
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-5 w-48" />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!canManageUsers) {
@@ -506,22 +515,22 @@ export function UsuariosManager() {
               action={{ label: "Novo Usuário", onClick: () => setIsCreateDialogOpen(true), icon: Plus }}
             />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">Email</TableHead>
-                    <TableHead className="font-semibold">Perfis</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Criado em</TableHead>
-                    <TableHead className="font-semibold">Último login</TableHead>
-                    <TableHead className="text-right font-semibold">Ações</TableHead>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="font-semibold text-foreground">Nome</TableHead>
+                    <TableHead className="font-semibold text-foreground">Email</TableHead>
+                    <TableHead className="font-semibold text-foreground">Perfis</TableHead>
+                    <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="font-semibold text-foreground">Criado em</TableHead>
+                    <TableHead className="font-semibold text-foreground">Último login</TableHead>
+                    <TableHead className="text-right font-semibold text-foreground">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.user_id} className="hover:bg-muted/30">
+                    <TableRow key={user.user_id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-medium">{user.nome}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {user.email || "—"}
@@ -540,10 +549,10 @@ export function UsuariosManager() {
                                   className={`${roleInfo?.color || ""} gap-1`}
                                 >
                                   {roleInfo?.label || role}
-                                  <Button variant="outline"
+                                  <Button variant="ghost"
                                     size="icon"
                                     onClick={() => handleRemoveRole(user.user_id, role)}
-                                    className="ml-1 h-5 w-5 border-destructive text-destructive hover:bg-destructive/10"
+                                    className="ml-1 h-5 w-5 text-destructive hover:bg-destructive/10"
                                     title="Remover perfil"
                                   >
                                     <Trash2 className="w-3 h-3" />
@@ -558,8 +567,8 @@ export function UsuariosManager() {
                         <Badge 
                           variant="outline"
                           className={user.ativo 
-                            ? "bg-success/10 text-success border-success/30" 
-                            : "bg-muted text-muted-foreground border-border"
+                            ? "bg-success/10 text-success border-success/20" 
+                            : "bg-warning/10 text-warning border-warning/20"
                           }
                         >
                           {user.ativo ? "Ativo" : "Inativo"}
@@ -613,7 +622,7 @@ export function UsuariosManager() {
 
       {/* Add Role Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Adicionar Perfil</DialogTitle>
             <DialogDescription>
@@ -664,7 +673,7 @@ export function UsuariosManager() {
         onSubmit={handleCreateUser}
         submitLabel="Criar Usuário"
         saving={saving}
-        className="max-w-md"
+        className="w-[90vw] max-w-md"
       >
             <p className="text-sm text-muted-foreground -mt-2">
               Preencha os dados para criar um novo usuário no sistema.
