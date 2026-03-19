@@ -23,7 +23,8 @@ export function resolveMultiUC(
   const snap = snapshot ?? {};
 
   const ucs = safeArr(snap.ucs);
-  if (ucs.length <= 1) return out; // Single-UC → nothing to derive
+  // Single-UC → emit _uc1 variables as copies of global values (fallback)
+  const isSingleUC = ucs.length <= 1;
 
   // ── Compute rateio weights ──
   const weights = computeWeights(ucs);
