@@ -693,7 +693,16 @@ export function ProposalDetail() {
 
       {/* ══════════ TRACKING PANEL ══════════ */}
       <div id="proposal-tracking">
-        {proposta?.id && <ProposalViewsCard propostaId={proposta.id} versaoId={versaoId} />}
+        {proposta?.id && (
+          <ProposalViewsCard
+            propostaId={proposta.id}
+            versaoId={versaoId}
+            statusVisualizacao={proposta.status_visualizacao}
+            primeiroAcessoEm={proposta.primeiro_acesso_em}
+            ultimoAcessoEm={proposta.ultimo_acesso_em}
+            totalAberturas={proposta.total_aberturas}
+          />
+        )}
       </div>
 
       {/* ══════════ GENERATE FILE DIALOG ══════════ */}

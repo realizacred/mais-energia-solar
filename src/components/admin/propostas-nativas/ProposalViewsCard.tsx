@@ -162,15 +162,19 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
             </div>
           </div>
 
-          {activeToken?.first_viewed_at && (
+          {/* Aggregated tracking from propostas_nativas */}
+          {(primeiroAcessoEm || activeToken?.first_viewed_at) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
               <span>
-                Primeira view: {format(new Date(activeToken.first_viewed_at), "dd/MM HH:mm", { locale: ptBR })}
+                Primeiro acesso: {format(new Date(primeiroAcessoEm || activeToken!.first_viewed_at!), "dd/MM HH:mm", { locale: ptBR })}
               </span>
-              {activeToken.last_viewed_at && (
+              {(ultimoAcessoEm || activeToken?.last_viewed_at) && (
                 <span>
-                  Última view: {formatDistanceToNow(new Date(activeToken.last_viewed_at), { locale: ptBR, addSuffix: true })}
+                  Último acesso: {formatDistanceToNow(new Date(ultimoAcessoEm || activeToken!.last_viewed_at!), { locale: ptBR, addSuffix: true })}
                 </span>
+              )}
+              {typeof totalAberturas === "number" && totalAberturas > 0 && (
+                <span>Total: {totalAberturas} abertura{totalAberturas !== 1 ? "s" : ""}</span>
               )}
             </div>
           )}
