@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   FileText, Loader2, CheckCircle2, Clock, Download, Link2,
   MessageCircle, Mail, Pencil, Eye, Settings2, Wrench,
@@ -9,6 +12,8 @@ import {
 } from "lucide-react";
 import { ActionLink } from "./ActionLink";
 import { cn } from "@/lib/utils";
+import { useWhatsAppTemplates } from "@/hooks/useProposalTemplates";
+import { renderTemplate, SAMPLE_TEMPLATE_VARS } from "@/utils/templateRenderer";
 
 interface ProposalActionCardsProps {
   // Dimensionamento
@@ -31,11 +36,13 @@ interface ProposalActionCardsProps {
   // Envio
   currentStatus: string;
   sending: boolean;
-  onSendWhatsapp: () => void;
+  onSendWhatsapp: (opts?: { template_id?: string; mensagem_custom?: string }) => void;
   onSendEmail: () => void;
   onScrollToTracking: () => void;
   // Shared
   formattedDate: (d: string | null) => string | null;
+  // Template vars from real proposal data
+  templateVars?: Record<string, string>;
 }
 
 export function ProposalActionCards({
@@ -43,8 +50,46 @@ export function ProposalActionCards({
   html, rendering, onGenerateFile, onCopyLink, onDownloadPdf, onRender,
   publicUrl, downloadingPdf, validoAte, onEditValidade, lastGeneratedAt,
   currentStatus, sending, onSendWhatsapp, onSendEmail, onScrollToTracking,
-  formattedDate,
+  formattedDate, templateVars,
 }: ProposalActionCardsProps) {
+  const { data: waTemplates } = useWhatsAppTemplates();
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [mensagemEditada, setMensagemEditada] = useState<string>("");
+  const [mensagemOriginal, setMensagemOriginal] = useState<string>("");
+
+  // When templates load, auto-select default
+  useEffect(() => {
+    if (waTemplates && waTemplates.length > 0 && !selectedTemplateId) {
+      const defaultTpl = waTemplates.find((t) => t.is_default) || waTemplates[0];
+      if (defaultTpl) {
+        setSelectedTemplateId(defaultTpl.id);
+      }
+    }
+  }, [waTemplates, selectedTemplateId]);
+
+  // Render template when selection or vars change
+  useEffect(() => {
+    if (!selectedTemplateId || !waTemplates) return;
+    const tpl = waTemplates.find((t) => t.id === selectedTemplateId);
+    if (!tpl?.corpo_texto) {
+      setMensagemEditada("");
+      setMensagemOriginal("");
+      return;
+    }
+    const vars = templateVars || SAMPLE_TEMPLATE_VARS;
+    const rendered = renderTemplate(tpl.corpo_texto, vars);
+    setMensagemEditada(rendered);
+    setMensagemOriginal(rendered);
+  }, [selectedTemplateId, waTemplates, templateVars]);
+
+  const handleSendWhatsapp = useCallback(() => {
+    const isEdited = mensagemEditada !== mensagemOriginal;
+    onSendWhatsapp({
+      template_id: selectedTemplateId || undefined,
+      mensagem_custom: isEdited ? mensagemEditada : undefined,
+    });
+  }, [onSendWhatsapp, selectedTemplateId, mensagemEditada, mensagemOriginal]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* ─── DIMENSIONAMENTO ─── */}
@@ -137,8 +182,42 @@ export function ProposalActionCards({
             {currentStatus === "enviada" ? <CheckCircle2 className="h-5 w-5 text-success" /> : <Clock className="h-5 w-5 text-muted-foreground" />}
           </div>
 
+          {/* Template Select */}
+          {waTemplates && waTemplates.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Template de resumo</Label>
+              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Selecione um template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {waTemplates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.nome} {t.is_default ? "(padrão)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Editable Message */}
+          {mensagemEditada && (
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Mensagem (editável)</Label>
+              <Textarea
+                value={mensagemEditada}
+                onChange={(e) => setMensagemEditada(e.target.value)}
+                className="min-h-[120px] text-[11px] leading-relaxed"
+              />
+              {mensagemEditada !== mensagemOriginal && (
+                <p className="text-[10px] text-warning">Mensagem editada — será enviada como texto customizado.</p>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
-            <Button size="sm" className="gap-2 w-full justify-start bg-success hover:bg-success/90 text-success-foreground" onClick={onSendWhatsapp} disabled={sending}>
+            <Button size="sm" className="gap-2 w-full justify-start bg-success hover:bg-success/90 text-success-foreground" onClick={handleSendWhatsapp} disabled={sending}>
               <MessageCircle className="h-3.5 w-3.5" /> Enviar WhatsApp
             </Button>
             <Button size="sm" variant="outline" className="gap-2 w-full justify-start" onClick={onSendEmail} disabled={sending}>
