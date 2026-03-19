@@ -19,6 +19,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.78.0",
+    date: "2026-03-19",
+    title: "Central de Ajuda com Tutoriais Interativos",
+    type: "feature",
+    description: "Sistema de tutoriais e guias integrados ao painel admin com busca, categorias, progresso do usuário e renderização markdown.",
+    details: [
+      "Tabelas help_center_tutorials e help_center_progresso com RLS",
+      "HelpCenterDrawer responsivo (Drawer mobile / Dialog desktop)",
+      "Busca por título e descrição com mínimo 3 caracteres",
+      "Filtro por categorias: Inteligência, Comercial, WhatsApp",
+      "Progresso de tutoriais concluídos por usuário",
+      "Renderizador markdown seguro para conteúdo dos tutoriais",
+      "Botão flutuante de ajuda visível em todas as páginas admin",
+      "TutorialTooltip para onboarding contextual",
+      "6 tutoriais iniciais com seed data",
+    ],
+  },
+  {
     version: "2.77.0",
     date: "2026-03-19",
     title: "Inteligência WhatsApp em Tempo Real — Parte 4",

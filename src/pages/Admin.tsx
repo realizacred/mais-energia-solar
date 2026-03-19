@@ -673,6 +673,7 @@ export default function Admin() {
             </Suspense>
           </main>
         </SidebarInset>
+        <HelpCenterDrawer />
       </div>
       </TourProvider>
     </SidebarProvider>
