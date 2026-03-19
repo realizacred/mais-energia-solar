@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { formatPhone } from "@/lib/validations";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
-import { Plus, Trash2, Pencil, Truck, Building2, Globe, Phone, Mail, MapPin } from "lucide-react";
+import { Plus, Trash2, Pencil, Truck, Building2, Phone, Mail, MapPin } from "lucide-react";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { PageHeader, LoadingState, SearchInput } from "@/components/ui-kit";
+import { PageHeader, SearchInput } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,9 +76,7 @@ export function FornecedoresManager() {
   const [deleting, setDeleting] = useState<Fornecedor | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetchData(); }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from("fornecedores")
@@ -85,7 +84,9 @@ export function FornecedoresManager() {
       .order("nome");
     setFornecedores((data as any[]) || []);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const openCreate = () => {
     setEditing(null);
@@ -188,8 +189,6 @@ export function FornecedoresManager() {
     (f.cidade && f.cidade.toLowerCase().includes(search.toLowerCase()))
   );
 
-  if (loading) return <LoadingState message="Carregando fornecedores..." />;
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -210,10 +209,10 @@ export function FornecedoresManager() {
         </Button>
       </div>
 
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>CNPJ</TableHead>
@@ -225,38 +224,60 @@ export function FornecedoresManager() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20 rounded-md" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24 rounded-md" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-10 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-16" /></TableCell>
+                </TableRow>
+              ))
+            ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                  Nenhum fornecedor encontrado
+                <TableCell colSpan={8} className="py-16">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">
+                      <Truck className="h-7 w-7 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-base font-semibold text-foreground mb-1">Nenhum fornecedor encontrado</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mb-4">Cadastre um novo fornecedor para começar.</p>
+                    <Button onClick={openCreate} className="gap-2">
+                      <Plus className="w-4 h-4" /> Novo Fornecedor
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map(f => (
-                <TableRow key={f.id} className={!f.ativo ? "opacity-50" : ""}>
-                  <TableCell className="font-medium">{f.nome}</TableCell>
+                <TableRow key={f.id} className={`hover:bg-muted/30 transition-colors ${!f.ativo ? "opacity-50" : ""}`}>
+                  <TableCell className="font-medium text-foreground">{f.nome}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs">
                       {TIPOS.find(t => t.value === f.tipo)?.label || f.tipo}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{f.cnpj || "—"}</TableCell>
                   <TableCell>
-                    <div className="text-xs space-y-0.5">
-                      {f.email && <div className="flex items-center gap-1"><Mail className="h-3 w-3" />{f.email}</div>}
-                      {f.telefone && <div className="flex items-center gap-1"><Phone className="h-3 w-3" />{f.telefone}</div>}
+                    <div className="text-xs space-y-0.5 text-muted-foreground">
+                      {f.email && <div className="flex items-center gap-1"><Mail className="h-3 w-3 shrink-0" />{f.email}</div>}
+                      {f.telefone && <div className="flex items-center gap-1"><Phone className="h-3 w-3 shrink-0" />{f.telefone}</div>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs">
+                  <TableCell className="text-xs text-muted-foreground">
                     {f.cidade && f.estado ? `${f.cidade}/${f.estado}` : f.cidade || f.estado || "—"}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {(f.categorias || []).slice(0, 3).map(c => (
-                        <Badge key={c} variant="secondary" className="text-[9px]">{c}</Badge>
+                        <Badge key={c} variant="outline" className="bg-muted text-muted-foreground border-border text-[9px]">{c}</Badge>
                       ))}
                       {(f.categorias || []).length > 3 && (
-                        <Badge variant="secondary" className="text-[9px]">+{f.categorias.length - 3}</Badge>
+                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[9px]">+{f.categorias.length - 3}</Badge>
                       )}
                     </div>
                   </TableCell>
@@ -265,11 +286,11 @@ export function FornecedoresManager() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(f)} aria-label="Editar">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(f)} aria-label="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleting(f)} aria-label="Excluir">
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleting(f)} aria-label="Excluir">
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -282,17 +303,19 @@ export function FornecedoresManager() {
 
       {/* Dialog Create/Edit */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[90vw] max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
               {editing ? "Editar Fornecedor" : "Novo Fornecedor"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5">
             {/* Identificação */}
-            <SectionCard icon={Building2} title="Identificação" variant="blue">
+            <SectionCard icon={Building2} title="Identificação">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Nome *</Label>
@@ -323,7 +346,7 @@ export function FornecedoresManager() {
             </SectionCard>
 
             {/* Contato */}
-            <SectionCard icon={Phone} title="Contato" variant="green">
+            <SectionCard icon={Phone} title="Contato">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>E-mail</Label>
@@ -351,7 +374,7 @@ export function FornecedoresManager() {
             </SectionCard>
 
             {/* Endereço */}
-            <SectionCard icon={MapPin} title="Endereço" variant="neutral">
+            <SectionCard icon={MapPin} title="Endereço">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="col-span-1 sm:col-span-2 space-y-1.5">
                     <Label>Endereço</Label>
@@ -373,7 +396,7 @@ export function FornecedoresManager() {
             </SectionCard>
 
             {/* Categorias & Obs */}
-            <SectionCard icon={Truck} title="Categorias & Observações" variant="neutral">
+            <SectionCard icon={Truck} title="Categorias & Observações">
                 <div className="space-y-2">
                   <Label>Categorias de Produtos</Label>
                   <div className="flex flex-wrap gap-2">
@@ -416,7 +439,7 @@ export function FornecedoresManager() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction onClick={handleDelete} className="border-destructive text-destructive hover:bg-destructive/10 border bg-transparent">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
