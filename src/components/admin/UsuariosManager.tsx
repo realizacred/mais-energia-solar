@@ -460,7 +460,17 @@ export function UsuariosManager() {
   };
 
   if (loading || checkingPermission) {
-    return <LoadingState />;
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-5 w-48" />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!canManageUsers) {
