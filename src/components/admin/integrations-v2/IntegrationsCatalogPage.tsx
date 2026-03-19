@@ -554,6 +554,12 @@ export default function IntegrationsCatalogPage() {
             <WhatsAppAutomationConfigTab />
           </Suspense>
         </TabsContent>
+
+        <TabsContent value="tutoriais" className="mt-6">
+          <Suspense fallback={<LoadingState message="Carregando tutoriais…" />}>
+            <IntegrationGuidesManagerTab />
+          </Suspense>
+        </TabsContent>
       </Tabs>
 
       {/* ─── Drawer ─── */}
