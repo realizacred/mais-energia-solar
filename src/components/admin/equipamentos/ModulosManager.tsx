@@ -157,11 +157,29 @@ export function ModulosManager() {
 
         {/* Content */}
         {isLoading ? (
-          <LoadingState message="Carregando módulos..." />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-border p-4 space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-40" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <SunMedium className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p>Nenhum módulo encontrado.</p>
+          <div className="text-center py-16 text-muted-foreground">
+            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-3">
+              <SunMedium className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground">Nenhum módulo encontrado</p>
+            <p className="text-sm mt-1">Tente ajustar os filtros ou cadastre um novo módulo.</p>
+            <Button size="sm" onClick={openCreate} className="mt-4 gap-2">
+              <Plus className="w-4 h-4" /> Novo Módulo
+            </Button>
           </div>
         ) : viewMode === "cards" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
