@@ -978,7 +978,7 @@ Deno.serve(async (req) => {
     }
 
     // ── 5. BUSCAR DADOS RELACIONADOS ──────────────────────
-    const [leadRes, clienteRes, projetoRes, consultorRes] = await Promise.all([
+    const [leadRes, clienteRes, projetoRes, consultorRes, tenantRes] = await Promise.all([
       leadId
         ? adminClient
             .from("leads")
@@ -1011,22 +1011,22 @@ Deno.serve(async (req) => {
             .eq("tenant_id", tenantId)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      // OPT-4: tenant name fetched in parallel instead of sequentially
+      adminClient
+        .from("tenants")
+        .select("nome")
+        .eq("id", tenantId)
+        .maybeSingle(),
     ]);
 
     const lead = leadRes.data;
     const cliente = clienteRes.data;
     const projeto = projetoRes.data as any;
     const consultor = consultorRes.data as any;
+    const tenantInfo = tenantRes.data;
 
     // ── 6. MONTAR MAPA DE VARIÁVEIS via Domain Resolvers ──
     const snapshot = versaoData?.snapshot as Record<string, any> | null;
-
-    // Fetch tenant name for comercial variables
-    const { data: tenantInfo } = await adminClient
-      .from("tenants")
-      .select("nome")
-      .eq("id", tenantId)
-      .maybeSingle();
 
     const vars = flattenSnapshot(snapshot as Record<string, unknown>, {
       lead,
