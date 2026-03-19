@@ -396,25 +396,32 @@ export async function injectChartsIntoDocx(opts: {
     return { output: docxBytes, chartsDetected, chartsRendered, chartsFailed, chartsSkipped, reasons };
   }
 
-  // ── 5. Resolve datasets + render PNGs ─────────────────────
+  // ── 5. Resolve datasets + render PNGs (PARALLEL) ───────────
   const renderedCharts: RenderedChart[] = [];
 
+  // Pre-resolve datasets synchronously (CPU-only, fast)
+  const chartsToRender: Array<{ placeholder: string; chart: ChartConfig; dataset: ReturnType<typeof buildChartDataset> }> = [];
+
   for (const { placeholder, chart } of matchedCharts) {
-    try {
-      // Resolve data from snapshot
-      const rawData = resolveDataFromSnapshot(snapshot, chart.data_source);
-      if (!rawData || rawData.length === 0) {
-        const reason = `data_source "${chart.data_source}" empty or missing in snapshot`;
-        console.warn(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
-        chartsSkipped.push(placeholder);
-        reasons[placeholder] = reason;
-        continue;
-      }
+    const rawData = resolveDataFromSnapshot(snapshot, chart.data_source);
+    if (!rawData || rawData.length === 0) {
+      const reason = `data_source "${chart.data_source}" empty or missing in snapshot`;
+      console.warn(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
+      chartsSkipped.push(placeholder);
+      reasons[placeholder] = reason;
+      continue;
+    }
+    const dataset = buildChartDataset(chart, rawData);
+    console.log(`${LOG_PREFIX} [${logCtx}] [${placeholder}] dataset: ${dataset.labels.length} points, chart_id=${chart.id}`);
+    chartsToRender.push({ placeholder, chart, dataset });
+  }
 
-      const dataset = buildChartDataset(chart, rawData);
-      console.log(`${LOG_PREFIX} [${logCtx}] [${placeholder}] dataset: ${dataset.labels.length} points, chart_id=${chart.id}`);
+  // Render all charts in parallel via Promise.allSettled
+  const renderUrl = `${supabaseUrl}/functions/v1/proposal-chart-render`;
+  const renderStartTime = Date.now();
 
-      // Call proposal-chart-render edge function
+  const renderResults = await Promise.allSettled(
+    chartsToRender.map(async ({ placeholder, chart, dataset }) => {
       const renderPayload = {
         chart_config: {
           chart_type: chart.chart_type,
@@ -430,7 +437,6 @@ export async function injectChartsIntoDocx(opts: {
         dataset,
       };
 
-      const renderUrl = `${supabaseUrl}/functions/v1/proposal-chart-render`;
       const renderResp = await fetch(renderUrl, {
         method: "POST",
         headers: {
@@ -442,20 +448,12 @@ export async function injectChartsIntoDocx(opts: {
 
       if (!renderResp.ok) {
         const errText = await renderResp.text();
-        const reason = `render HTTP ${renderResp.status}: ${errText.substring(0, 200)}`;
-        console.error(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
-        chartsFailed.push(placeholder);
-        reasons[placeholder] = reason;
-        continue;
+        throw new Error(`render HTTP ${renderResp.status}: ${errText.substring(0, 200)}`);
       }
 
       const renderResult = await renderResp.json();
       if (!renderResult.success || !renderResult.image_base64) {
-        const reason = `render error: ${renderResult.error || "no image_base64"}`;
-        console.error(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
-        chartsFailed.push(placeholder);
-        reasons[placeholder] = reason;
-        continue;
+        throw new Error(`render error: ${renderResult.error || "no image_base64"}`);
       }
 
       // Decode base64 to bytes
@@ -465,23 +463,34 @@ export async function injectChartsIntoDocx(opts: {
         imageBytes[i] = binaryStr.charCodeAt(i);
       }
 
-      renderedCharts.push({
+      return {
         placeholder,
         chartId: chart.id,
         imageBytes,
         widthPx: chart.width || 1600,
         heightPx: chart.height || 900,
-      });
+      } as RenderedChart;
+    })
+  );
 
+  // Process results
+  for (let i = 0; i < renderResults.length; i++) {
+    const result = renderResults[i];
+    const { placeholder } = chartsToRender[i];
+    if (result.status === "fulfilled") {
+      renderedCharts.push(result.value);
       chartsRendered.push(placeholder);
-      console.log(`${LOG_PREFIX} [${logCtx}] [${placeholder}] rendered OK — ${(imageBytes.length / 1024).toFixed(1)} KB`);
-    } catch (err: any) {
-      const reason = `exception: ${err.message}`;
+      console.log(`${LOG_PREFIX} [${logCtx}] [${placeholder}] rendered OK — ${(result.value.imageBytes.length / 1024).toFixed(1)} KB`);
+    } else {
+      const reason = result.reason?.message || "unknown error";
       console.error(`${LOG_PREFIX} [${logCtx}] [${placeholder}] ${reason}`);
       chartsFailed.push(placeholder);
       reasons[placeholder] = reason;
     }
   }
+
+  console.log(`${LOG_PREFIX} [${logCtx}] All ${chartsToRender.length} charts rendered in ${Date.now() - renderStartTime}ms (parallel)`);
+
 
   if (renderedCharts.length === 0) {
     console.log(`${LOG_PREFIX} [${logCtx}] No charts rendered — returning original DOCX`);
