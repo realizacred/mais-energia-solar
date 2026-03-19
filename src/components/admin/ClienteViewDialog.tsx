@@ -360,6 +360,11 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
               </div>
             </div>
           </div>
+
+          {/* Usinas vinculadas */}
+          <div className="px-5 pb-4">
+            <ClientLinkedPlants clientId={cliente.id} />
+          </div>
         </div>
 
         {/* FOOTER */}
