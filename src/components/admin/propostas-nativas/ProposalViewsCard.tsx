@@ -11,6 +11,10 @@ import { ptBR } from "date-fns/locale";
 interface ProposalTrackingPanelProps {
   propostaId: string;
   versaoId?: string;
+  statusVisualizacao?: string | null;
+  primeiroAcessoEm?: string | null;
+  ultimoAcessoEm?: string | null;
+  totalAberturas?: number;
 }
 
 function isMobile(ua: string | null) {

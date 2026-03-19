@@ -127,13 +127,14 @@ Deno.serve(async (req) => {
         destinatario: null, // populated below if whatsapp
         detalhes: { token: aceiteToken.token, public_url: publicUrl },
       }),
-      // Atualizar status da proposta
+      // Atualizar status da proposta + status_visualizacao
       adminClient.from("propostas_nativas").update({
         status: "enviada",
         enviada_at: new Date().toISOString(),
         enviada_via: canalFinal,
         enviada_por: userId,
         public_token: aceiteToken.token,
+        status_visualizacao: "enviado",
       }).eq("id", proposta_id).eq("tenant_id", tenantId),
       // Atualizar versão para "sent" + preencher enviado_em e public_slug
       adminClient.from("proposta_versoes").update({
