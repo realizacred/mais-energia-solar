@@ -35,10 +35,10 @@ export function useReaquecimentoOportunidades(filters?: { status?: string }) {
     queryFn: async () => {
       let query = supabase
         .from("reaquecimento_oportunidades")
-        .select("*, lead:leads(id, nome, telefone, email, lead_code)")
+        .select("*, lead:leads(id, nome, telefone, lead_code)")
         .order("urgencia_score", { ascending: false });
 
-      if (filters?.status) {
+      if (filters?.status && filters.status !== "todos") {
         query = query.eq("status", filters.status);
       }
 
