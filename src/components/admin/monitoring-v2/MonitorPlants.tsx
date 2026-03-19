@@ -453,8 +453,19 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
           </div>
         )}
 
-        {/* Location + brand */}
+        {/* Client + Location + brand */}
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          {plant.client_name ? (
+            <span className="flex items-center gap-1 min-w-0">
+              <Users className="h-3 w-3 shrink-0 text-primary" />
+              <span className="truncate text-foreground">{plant.client_name}</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 min-w-0">
+              <Users className="h-3 w-3 shrink-0 text-warning" />
+              <span className="truncate text-warning">Sem cliente</span>
+            </span>
+          )}
           {plant.city && (
             <span className="flex items-center gap-1 min-w-0">
               <MapPin className="h-3 w-3 shrink-0" />
