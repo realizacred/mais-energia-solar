@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     // Get proposta + tenant in one query
     const { data: proposta } = await supabase
       .from("propostas_nativas")
-      .select("id, tenant_id, titulo, codigo, lead_id")
+      .select("id, tenant_id, titulo, codigo, lead_id, deal_id, projeto_id")
       .eq("id", tokenData.proposta_id)
       .single();
 
