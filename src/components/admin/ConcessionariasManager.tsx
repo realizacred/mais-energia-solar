@@ -660,8 +660,27 @@ export function ConcessionariasManager() {
             <TableBody>
               {filteredConcessionarias.length === 0 ? (
                <TableRow>
-                  <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
-                    Nenhuma concessionária encontrada
+                  <TableCell colSpan={13} className="py-16">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-3">
+                        <Building2 className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-foreground mb-1">Nenhuma concessionária encontrada</h3>
+                      <p className="text-xs text-muted-foreground mb-4 max-w-sm">
+                        {hasActiveFilters ? "Tente ajustar os filtros de busca." : "Cadastre a primeira concessionária para começar."}
+                      </p>
+                      {!hasActiveFilters && (
+                        <Button size="sm" onClick={() => openDialog()} className="gap-2">
+                          <Plus className="w-4 h-4" />
+                          Nova Concessionária
+                        </Button>
+                      )}
+                      {hasActiveFilters && (
+                        <Button variant="outline" size="sm" onClick={clearFilters}>
+                          Limpar filtros
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
