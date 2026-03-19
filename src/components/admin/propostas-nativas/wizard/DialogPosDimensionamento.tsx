@@ -62,7 +62,17 @@ export function DialogPosDimensionamento({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!open) {
+      setFields([]);
+      setLoading(true);
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
+
+    let isMounted = true;
+
     setLoading(true);
     supabase
       .from("deal_custom_fields")
@@ -71,9 +81,14 @@ export function DialogPosDimensionamento({
       .eq("field_context", "pos_dimensionamento")
       .order("ordem")
       .then(({ data }) => {
+        if (!isMounted) return;
         setFields((data || []) as CustomField[]);
         setLoading(false);
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, [open]);
 
   const updateCustom = (key: string, value: any) => {
@@ -84,8 +99,8 @@ export function DialogPosDimensionamento({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden">
-        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+      <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <CheckCircle className="w-5 h-5 text-primary" />
           </div>
@@ -95,18 +110,16 @@ export function DialogPosDimensionamento({
           </div>
         </DialogHeader>
 
-        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh] transition-all duration-200">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5">
           {loading ? (
-            <div className="space-y-3 py-2">
-              {/* Match real content shape: summary block + input + textarea */}
-              <Skeleton className="h-[72px] w-full rounded-lg" />
+            <div className="space-y-4">
+              <Skeleton className="h-[84px] w-full rounded-lg" />
               <Skeleton className="h-px w-full" />
-              <Skeleton className="h-[52px] w-full rounded-lg" />
-              <Skeleton className="h-[100px] w-full rounded-lg" />
+              <Skeleton className="h-[56px] w-full rounded-lg" />
+              <Skeleton className="h-[96px] w-full rounded-lg" />
             </div>
           ) : (
-            <>
-              {/* Summary */}
+            <div className="space-y-4">
               <div className="space-y-1.5 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <User className="h-3.5 w-3.5 text-primary" />
@@ -128,7 +141,6 @@ export function DialogPosDimensionamento({
 
               <div className="border-t border-border" />
 
-              {/* ── Nome da Proposta */}
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Nome da Proposta <span className="text-destructive">*</span></Label>
                 <Input
@@ -139,7 +151,6 @@ export function DialogPosDimensionamento({
                 />
               </div>
 
-              {/* ── Descrição */}
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Descrição (Opcional)</Label>
                 <Textarea
@@ -150,7 +161,6 @@ export function DialogPosDimensionamento({
                 />
               </div>
 
-              {/* ── Custom Fields (pos_dimensionamento) */}
               {fields.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-bold">Campos Customizados</h4>
@@ -166,12 +176,12 @@ export function DialogPosDimensionamento({
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 flex-wrap shrink-0">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={loading || saving}>
             Cancelar
           </Button>
           {onSaveDraft && (
@@ -187,7 +197,7 @@ export function DialogPosDimensionamento({
                   console.error("[DialogPos] saveDraft error:", err);
                 }
               }}
-              disabled={saving}
+              disabled={loading || saving}
             >
               {saving ? "Salvando..." : "Salvar"}
             </Button>
@@ -206,7 +216,7 @@ export function DialogPosDimensionamento({
                   console.error("[DialogPos] saveActive error:", err);
                 }
               }}
-              disabled={hasRequired || saving}
+              disabled={loading || hasRequired || saving}
             >
               {saving ? "Salvando..." : "⭐ Salvar como Ativa"}
             </Button>
