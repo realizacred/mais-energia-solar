@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import {
   Sun, Zap, Activity, Gauge, WifiOff, AlertTriangle,
   BatteryCharging, BarChart3, CloudSun, Wrench,
-  RefreshCw, Clock, Moon,
+  RefreshCw, Clock, Moon, Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MonitorStatusDonut } from "./charts/MonitorStatusDonut";
