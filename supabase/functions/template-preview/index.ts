@@ -1290,6 +1290,12 @@ Deno.serve(async (req) => {
       console.error("[template-preview] PDF conversion error:", pdfConversionError);
     }
 
+    // OPT-5: Await DOCX upload that ran in parallel with Gotenberg
+    const { error: docxUploadErr } = await docxUploadPromise;
+    if (docxUploadErr) {
+      console.error("[template-preview] DOCX upload error:", docxUploadErr.message);
+    }
+
     // ═══════════════════════════════════════════════════════
     // 9c. FORENSIC DEBUG: Persist debug report to storage
     // ═══════════════════════════════════════════════════════
