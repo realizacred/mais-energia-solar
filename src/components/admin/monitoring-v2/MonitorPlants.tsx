@@ -96,7 +96,7 @@ export default function MonitorPlants() {
             return 0;
         }
       });
-  }, [plants, search, statusFilter, brandFilter, sortBy]);
+  }, [plants, search, statusFilter, brandFilter, clientFilter, sortBy]);
 
   const plantsWithCoords = useMemo(
     () => filtered.filter((p) => p.lat != null && p.lng != null),
