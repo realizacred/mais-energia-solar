@@ -530,7 +530,7 @@ export function UsuariosManager() {
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.user_id} className="hover:bg-muted/30">
+                    <TableRow key={user.user_id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-medium">{user.nome}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {user.email || "—"}
