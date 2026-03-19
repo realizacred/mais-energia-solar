@@ -22,6 +22,8 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { cn } from "@/lib/utils";
 
 // ─── Types ───
@@ -84,19 +86,19 @@ function formatVal(v: number | null) {
   return v.toFixed(4);
 }
 
-function statusBadge(status: string) {
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-    rascunho: { label: "Rascunho", variant: "outline" },
-    ativa: { label: "Ativa", variant: "default" },
-    arquivada: { label: "Arquivada", variant: "secondary" },
+function StatusBadgeInline({ status }: { status: string }) {
+  const map: Record<string, { label: string; className: string }> = {
+    rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground border-border" },
+    ativa: { label: "Ativa", className: "bg-success/10 text-success border-success/20" },
+    arquivada: { label: "Arquivada", className: "bg-muted text-muted-foreground border-border" },
   };
-  const s = map[status] || { label: status, variant: "outline" };
-  return <Badge variant={s.variant} className="text-[10px]">{s.label}</Badge>;
+  const s = map[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
+  return <Badge variant="outline" className={cn("text-[10px]", s.className)}>{s.label}</Badge>;
 }
 
-function origemBadge(origem: string) {
+function OrigemBadgeInline({ origem }: { origem: string }) {
   const map: Record<string, string> = { sync: "Sync ANEEL", manual: "Manual", import: "Importação CSV" };
-  return <Badge variant="outline" className="text-[9px] font-mono">{map[origem] || origem}</Badge>;
+  return <Badge variant="outline" className="text-[9px] font-mono bg-muted text-muted-foreground border-border">{map[origem] || origem}</Badge>;
 }
 
 // ─── Component ───
@@ -199,11 +201,9 @@ export function TarifaVersoesPage() {
   // ─── Rollback ───
   const handleRollback = async () => {
     if (!rollbackDialog) return;
-    // Same logic as activate — activate the selected (older) version
     setActivateDialog(rollbackDialog);
     setRollbackDialog(null);
     await handleActivate();
-    // Re-trigger since activateDialog was set
   };
 
   // ─── Diff between two versions ───
@@ -276,40 +276,34 @@ export function TarifaVersoesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <History className="w-5 h-5 text-primary" />
-            Versões de Tarifa
-          </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Gerencie versões tarifárias com histórico completo, diff e rollback.
-          </p>
-        </div>
-      </div>
+      {/* Header — §26 */}
+      <PageHeader
+        icon={History}
+        title="Versões de Tarifa"
+        description="Gerencie versões tarifárias com histórico completo, diff e rollback."
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="border-border/50">
+        <Card className="border-border">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-muted"><FileText className="w-4 h-4 text-muted-foreground" /></div>
             <div><p className="text-lg font-bold">{stats.total}</p><p className="text-[10px] text-muted-foreground">Total</p></div>
           </CardContent>
         </Card>
-        <Card className="border-primary/20">
+        <Card className="border-border">
           <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10"><CheckCircle2 className="w-4 h-4 text-primary" /></div>
-            <div><p className="text-lg font-bold text-primary">{stats.ativa}</p><p className="text-[10px] text-muted-foreground">Ativa</p></div>
+            <div className="p-2 rounded-lg bg-success/10"><CheckCircle2 className="w-4 h-4 text-success" /></div>
+            <div><p className="text-lg font-bold text-success">{stats.ativa}</p><p className="text-[10px] text-muted-foreground">Ativa</p></div>
           </CardContent>
         </Card>
-        <Card className="border-border/50">
+        <Card className="border-border">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-warning/10"><Clock className="w-4 h-4 text-warning" /></div>
             <div><p className="text-lg font-bold">{stats.rascunho}</p><p className="text-[10px] text-muted-foreground">Rascunho</p></div>
           </CardContent>
         </Card>
-        <Card className="border-border/50">
+        <Card className="border-border">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-muted"><Archive className="w-4 h-4 text-muted-foreground" /></div>
             <div><p className="text-lg font-bold">{stats.arquivada}</p><p className="text-[10px] text-muted-foreground">Arquivadas</p></div>
@@ -327,30 +321,44 @@ export function TarifaVersoesPage() {
           <CardContent className="p-0">
             <ScrollArea className="h-[500px]">
               {loading ? (
-                <div className="p-4 text-xs text-muted-foreground animate-pulse">Carregando versões…</div>
+                <div className="p-4 space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="space-y-2 p-3">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  ))}
+                </div>
               ) : versoes.length === 0 ? (
-                <div className="p-4 text-xs text-muted-foreground text-center">
-                  <History className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                  <p>Nenhuma versão criada ainda.</p>
-                  <p className="mt-1">Importe tarifas para criar a primeira versão.</p>
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                  <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">
+                    <History className="h-7 w-7 text-muted-foreground/50" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground mb-1">Nenhuma versão criada</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Importe tarifas para criar a primeira versão.
+                  </p>
                 </div>
               ) : (
-                <div className="divide-y">
+                <div className="divide-y divide-border">
                   {versoes.map(v => (
-                    <button
+                    <div
                       key={v.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleSelectVersao(v)}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") handleSelectVersao(v); }}
                       className={cn(
-                        "w-full text-left p-3 transition-colors hover:bg-muted/50",
+                        "w-full text-left p-3 transition-colors hover:bg-muted/30 cursor-pointer",
                         selectedVersao?.id === v.id && "bg-primary/5 border-l-2 border-primary",
                       )}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium">{formatDate(v.created_at)}</span>
-                        {statusBadge(v.status)}
+                        <span className="text-xs font-medium text-foreground">{formatDate(v.created_at)}</span>
+                        <StatusBadgeInline status={v.status} />
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        {origemBadge(v.origem)}
+                        <OrigemBadgeInline origem={v.origem} />
                         <span>{v.total_registros} registros</span>
                         <span>·</span>
                         <span>{v.total_concessionarias} conc.</span>
@@ -361,7 +369,7 @@ export function TarifaVersoesPage() {
                       {v.arquivo_nome && (
                         <p className="text-[9px] text-muted-foreground/60 mt-0.5 font-mono truncate">{v.arquivo_nome}</p>
                       )}
-                    </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -376,7 +384,6 @@ export function TarifaVersoesPage() {
               <span>Detalhes da Versão</span>
               {selectedVersao && (
                 <div className="flex items-center gap-1.5">
-                  {/* Diff with active */}
                   {versaoAtiva && selectedVersao.id !== versaoAtiva.id && (
                     <Button
                       variant="outline"
@@ -388,7 +395,6 @@ export function TarifaVersoesPage() {
                       Diff vs Ativa
                     </Button>
                   )}
-                  {/* Activate */}
                   {selectedVersao.status !== "ativa" && (
                     <Button
                       size="sm"
@@ -399,7 +405,6 @@ export function TarifaVersoesPage() {
                       Ativar
                     </Button>
                   )}
-                  {/* Rollback (only for archived) */}
                   {selectedVersao.status === "arquivada" && (
                     <Button
                       variant="outline"
@@ -419,8 +424,11 @@ export function TarifaVersoesPage() {
             {!selectedVersao ? (
               <div className="h-[400px] flex items-center justify-center text-sm text-muted-foreground">
                 <div className="text-center">
-                  <Eye className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                  <p>Selecione uma versão para ver os detalhes.</p>
+                  <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4 mx-auto">
+                    <Eye className="h-7 w-7 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-base font-semibold text-foreground mb-1">Selecione uma versão</p>
+                  <p className="text-sm text-muted-foreground">Clique em uma versão à esquerda para ver seus detalhes.</p>
                 </div>
               </div>
             ) : (
@@ -430,47 +438,54 @@ export function TarifaVersoesPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div>
                       <p className="text-muted-foreground text-[10px]">Status</p>
-                      {statusBadge(selectedVersao.status)}
+                      <StatusBadgeInline status={selectedVersao.status} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-[10px]">Origem</p>
-                      {origemBadge(selectedVersao.origem)}
+                      <OrigemBadgeInline origem={selectedVersao.origem} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-[10px]">Criada em</p>
-                      <p className="font-medium">{formatDate(selectedVersao.created_at)}</p>
+                      <p className="font-medium text-foreground">{formatDate(selectedVersao.created_at)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-[10px]">Ativada em</p>
-                      <p className="font-medium">{formatDate(selectedVersao.activated_at)}</p>
+                      <p className="font-medium text-foreground">{formatDate(selectedVersao.activated_at)}</p>
                     </div>
                   </div>
 
                   {selectedVersao.notas && (
-                    <div className="p-2 bg-muted/40 rounded text-xs">{selectedVersao.notas}</div>
+                    <div className="p-2 bg-muted/40 rounded text-xs text-foreground">{selectedVersao.notas}</div>
                   )}
 
                   <Separator />
 
                   {/* Registros */}
                   <div>
-                    <p className="text-xs font-semibold mb-2">
+                    <p className="text-xs font-semibold mb-2 text-foreground">
                       Registros ({registros.length})
                     </p>
                     {loadingRegistros ? (
-                      <div className="text-xs text-muted-foreground animate-pulse py-4">Carregando registros…</div>
+                      <div className="space-y-2">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <Skeleton key={i} className="h-10 w-full rounded-lg" />
+                        ))}
+                      </div>
                     ) : registros.length === 0 ? (
-                      <div className="text-xs text-muted-foreground py-4 text-center">
-                        Nenhum registro vinculado a esta versão.
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center mb-3">
+                          <FileText className="h-5 w-5 text-muted-foreground/50" />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Nenhum registro vinculado a esta versão.</p>
                       </div>
                     ) : (
                       <div className="space-y-1.5">
                         {registros.map(r => (
-                          <div key={r.id} className="flex items-center justify-between p-2 rounded border bg-card text-[11px] hover:bg-muted/30 transition-colors">
+                          <div key={r.id} className="flex items-center justify-between p-2 rounded-lg border border-border bg-card text-[11px] hover:bg-muted/30 transition-colors">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold">{r.subgrupo}</span>
+                              <Badge variant="outline" className="font-mono font-bold text-xs bg-primary/10 text-primary border-primary/20">{r.subgrupo}</Badge>
                               {r.modalidade_tarifaria && (
-                                <Badge variant="secondary" className="text-[8px]">{r.modalidade_tarifaria}</Badge>
+                                <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">{r.modalidade_tarifaria}</Badge>
                               )}
                               <span className="text-muted-foreground">{r.concessionaria_nome}</span>
                             </div>
@@ -554,8 +569,8 @@ export function TarifaVersoesPage() {
 
       {/* ─── Diff Dialog ─── */}
       <Dialog open={!!diffDialog} onOpenChange={() => setDiffDialog(null)}>
-        <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden">
-          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+        <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <ArrowLeftRight className="w-5 h-5 text-primary" />
             </div>
@@ -573,17 +588,24 @@ export function TarifaVersoesPage() {
               </p>
             </div>
           </DialogHeader>
-          <div className="p-5 overflow-y-auto max-h-[70vh]">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5">
             {loadingDiff ? (
-              <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">Calculando diferenças…</div>
+              <div className="space-y-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full rounded-lg" />
+                ))}
+              </div>
             ) : diffEntries.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-primary/30" />
-                <p>Nenhuma diferença encontrada entre as versões.</p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">
+                  <CheckCircle2 className="h-7 w-7 text-muted-foreground/50" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground mb-1">Sem diferenças</h3>
+                <p className="text-sm text-muted-foreground">Nenhuma diferença encontrada entre as versões.</p>
               </div>
             ) : (
               <div className="space-y-1">
-                <div className="grid grid-cols-6 gap-2 text-[10px] font-semibold text-muted-foreground px-2 py-1 border-b">
+                <div className="grid grid-cols-6 gap-2 text-[10px] font-semibold text-muted-foreground px-2 py-1 border-b border-border">
                   <span>Concessionária</span>
                   <span>Subgrupo</span>
                   <span>Campo</span>
@@ -592,16 +614,16 @@ export function TarifaVersoesPage() {
                   <span className="text-right">Variação</span>
                 </div>
                 {diffEntries.map((d, i) => (
-                  <div key={i} className="grid grid-cols-6 gap-2 text-[11px] px-2 py-1.5 rounded hover:bg-muted/30">
-                    <span className="truncate">{d.concessionaria}</span>
-                    <span className="font-mono">{d.subgrupo}{d.modalidade ? ` ${d.modalidade}` : ""}</span>
-                    <span>{d.campo}</span>
-                    <span className="text-right font-mono">{formatVal(d.anterior)}</span>
-                    <span className="text-right font-mono">{formatVal(d.novo)}</span>
+                  <div key={i} className="grid grid-cols-6 gap-2 text-[11px] px-2 py-1.5 rounded hover:bg-muted/30 transition-colors">
+                    <span className="truncate text-foreground">{d.concessionaria}</span>
+                    <span className="font-mono text-foreground">{d.subgrupo}{d.modalidade ? ` ${d.modalidade}` : ""}</span>
+                    <span className="text-foreground">{d.campo}</span>
+                    <span className="text-right font-mono text-muted-foreground">{formatVal(d.anterior)}</span>
+                    <span className="text-right font-mono text-foreground">{formatVal(d.novo)}</span>
                     <span className={cn(
                       "text-right font-mono font-medium",
                       d.variacao > 0 && "text-destructive",
-                      d.variacao < 0 && "text-primary",
+                      d.variacao < 0 && "text-success",
                       d.variacao === 0 && "text-muted-foreground",
                     )}>
                       {d.variacao > 0 ? "+" : ""}{d.variacao}%

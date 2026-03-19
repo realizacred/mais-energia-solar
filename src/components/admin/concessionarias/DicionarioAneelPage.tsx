@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -21,13 +21,12 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, Link2, Link2Off, Plus, Trash2, Pencil, CheckCircle2,
-  AlertTriangle, Info, ArrowRight, Sparkles, X, Building2,
+  AlertTriangle, Info, ArrowRight, Sparkles, X, FileSearch,
 } from "lucide-react";
 import { normMatch, stripSuffixes } from "./importCsvAneelUtils";
 
@@ -227,19 +226,16 @@ export function DicionarioAneelPage() {
 
   // ─── Auto-suggest (fuzzy) ───
   const handleAutoSuggest = (c: ConcWithAliases) => {
-    // Generate suggestions based on known patterns
     const suggestions: string[] = [];
     const nome = c.nome.toLowerCase();
     const sigla = (c.sigla || "").toLowerCase();
 
-    // Common ANEEL variations
     if (sigla) {
       suggestions.push(sigla.toUpperCase());
       suggestions.push(`${sigla.toUpperCase()}-D`);
       suggestions.push(`${sigla.toUpperCase()} DIS`);
     }
 
-    // State-based name for Neoenergia/Equatorial groups
     const stateNames: Record<string, string> = {
       BA: "Bahia", PE: "Pernambuco", RN: "Rio Grande do Norte", DF: "Brasília",
       AL: "Alagoas", GO: "Goiás", MA: "Maranhão", PA: "Pará", PI: "Piauí",
@@ -260,7 +256,6 @@ export function DicionarioAneelPage() {
       }
     }
 
-    // Filter out already-used aliases
     const existing = new Set([
       ...(c.nome_aneel_oficial ? [c.nome_aneel_oficial.toLowerCase()] : []),
       ...c.aliases.map(a => a.alias_aneel.toLowerCase()),
@@ -272,7 +267,6 @@ export function DicionarioAneelPage() {
       return;
     }
 
-    // Open edit dialog with suggestions pre-filled
     setEditingConc(c);
     setEditNomeAneel(c.nome_aneel_oficial || unique[0] || "");
     setEditAliases([...c.aliases.map(a => a.alias_aneel), ...unique.slice(0, 5)]);
@@ -283,18 +277,12 @@ export function DicionarioAneelPage() {
   // ─── Render ───
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-primary" />
-            Dicionário ANEEL
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Mapeie as concessionárias do sistema com os nomes oficiais da ANEEL para garantir importações corretas.
-          </p>
-        </div>
-      </div>
+      {/* Header — §26 */}
+      <PageHeader
+        icon={FileSearch}
+        title="Dicionário ANEEL"
+        description="Mapeie as concessionárias do sistema com os nomes oficiais da ANEEL para garantir importações corretas."
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -305,7 +293,7 @@ export function DicionarioAneelPage() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
                 <p className="text-2xl font-bold tabular-nums">{stats.total}</p>
               </div>
-              <Building2 className="h-8 w-8 text-muted-foreground/30" />
+              <FileSearch className="h-8 w-8 text-muted-foreground/30" />
             </div>
           </CardContent>
         </Card>
@@ -376,123 +364,128 @@ export function DicionarioAneelPage() {
         </Select>
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <ScrollArea className="max-h-[600px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[200px]">Concessionária</TableHead>
-                  <TableHead className="w-[80px]">Sigla</TableHead>
-                  <TableHead className="w-[50px]">UF</TableHead>
-                  <TableHead>Nome ANEEL Oficial</TableHead>
-                  <TableHead>Aliases</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead className="w-[140px] text-right">Ações</TableHead>
+      {/* Table — §4 */}
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center min-h-[400px]">
+          <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">
+            <FileSearch className="h-7 w-7 text-muted-foreground/50" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">Nenhuma concessionária encontrada</h3>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            {search || filterUf !== "all" || filterStatus !== "all"
+              ? "Ajuste os filtros para ver mais resultados."
+              : "Cadastre concessionárias para começar a mapear nomes ANEEL."
+            }
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground w-[200px]">Concessionária</TableHead>
+                <TableHead className="font-semibold text-foreground w-[80px]">Sigla</TableHead>
+                <TableHead className="font-semibold text-foreground w-[50px]">UF</TableHead>
+                <TableHead className="font-semibold text-foreground">Nome ANEEL Oficial</TableHead>
+                <TableHead className="font-semibold text-foreground">Aliases</TableHead>
+                <TableHead className="font-semibold text-foreground w-[100px]">Status</TableHead>
+                <TableHead className="font-semibold text-foreground w-[140px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(c => (
+                <TableRow key={c.id} className="group hover:bg-muted/30 transition-colors">
+                  <TableCell className="font-medium text-foreground">{c.nome}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{c.sigla || "—"}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{c.estado || "—"}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {c.nome_aneel_oficial ? (
+                      <span className="text-sm text-foreground">{c.nome_aneel_oficial}</span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground italic">Não definido</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {c.aliases.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        c.aliases.slice(0, 3).map(a => (
+                          <Badge key={a.id} variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
+                            {a.alias_aneel}
+                          </Badge>
+                        ))
+                      )}
+                      {c.aliases.length > 3 && (
+                        <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
+                          +{c.aliases.length - 3}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {c.status === "mapeada" ? (
+                      <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
+                        <Link2 className="h-3 w-3 mr-1" />
+                        Mapeada
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/20">
+                        <Link2Off className="h-3 w-3 mr-1" />
+                        Pendente
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleAutoSuggest(c)}
+                            >
+                              <Sparkles className="h-4 w-4 text-primary" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Auto-sugerir aliases</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEdit(c)}
+                            >
+                              <Pencil className="h-4 w-4 text-info" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar mapeamento</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Carregando…
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Nenhuma concessionária encontrada com os filtros aplicados.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map(c => (
-                    <TableRow key={c.id} className="group">
-                      <TableCell className="font-medium">{c.nome}</TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{c.sigla || "—"}</code>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{c.estado || "—"}</TableCell>
-                      <TableCell>
-                        {c.nome_aneel_oficial ? (
-                          <span className="text-sm">{c.nome_aneel_oficial}</span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground italic">Não definido</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {c.aliases.length === 0 ? (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          ) : (
-                            c.aliases.slice(0, 3).map(a => (
-                              <Badge key={a.id} variant="secondary" className="text-xs">
-                                {a.alias_aneel}
-                              </Badge>
-                            ))
-                          )}
-                          {c.aliases.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{c.aliases.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {c.status === "mapeada" ? (
-                          <Badge className="bg-success/10 text-success border-0">
-                            <Link2 className="h-3 w-3 mr-1" />
-                            Mapeada
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-warning border-warning/30">
-                            <Link2Off className="h-3 w-3 mr-1" />
-                            Pendente
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleAutoSuggest(c)}
-                                >
-                                  <Sparkles className="h-4 w-4 text-primary" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Auto-sugerir aliases</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => openEdit(c)}
-                                >
-                                  <Pencil className="h-4 w-4 text-info" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Editar mapeamento</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Info */}
       <Card className="border-dashed">
@@ -508,79 +501,90 @@ export function DicionarioAneelPage() {
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
+      {/* Edit Dialog — §25: w-[90vw] obrigatório */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5 text-primary" />
-              Mapeamento ANEEL
-            </DialogTitle>
+        <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Link2 className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                Mapeamento ANEEL
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Configure o nome oficial e aliases para esta concessionária.
+              </p>
+            </div>
           </DialogHeader>
 
-          {editingConc && (
-            <div className="space-y-5">
-              {/* Concessionária info */}
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="font-medium">{editingConc.nome}</p>
-                <p className="text-sm text-muted-foreground">
-                  {editingConc.sigla && <span>Sigla: {editingConc.sigla}</span>}
-                  {editingConc.estado && <span> · UF: {editingConc.estado}</span>}
-                </p>
-              </div>
-
-              {/* Nome ANEEL Oficial */}
-              <div className="space-y-2">
-                <Label htmlFor="nome-aneel">Nome ANEEL Oficial</Label>
-                <Input
-                  id="nome-aneel"
-                  value={editNomeAneel}
-                  onChange={e => setEditNomeAneel(e.target.value)}
-                  placeholder="Ex: CEMIG-D, Neoenergia Pernambuco"
-                  className="text-sm"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Nome exato como aparece no arquivo XLS da ANEEL. Este é o match principal.
-                </p>
-              </div>
-
-              <Separator />
-
-              {/* Aliases */}
-              <div className="space-y-3">
-                <Label>Aliases (variações adicionais)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={newAlias}
-                    onChange={e => setNewAlias(e.target.value)}
-                    placeholder="Ex: CEMIG DIS, CEMIG Distribuição"
-                    className="text-sm"
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addAlias(); } }}
-                  />
-                  <Button size="sm" variant="outline" onClick={addAlias} disabled={!newAlias.trim()}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
+          <ScrollArea className="flex-1 min-h-0">
+            {editingConc && (
+              <div className="p-5 space-y-5">
+                {/* Concessionária info */}
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="font-medium text-foreground">{editingConc.nome}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {editingConc.sigla && <span>Sigla: {editingConc.sigla}</span>}
+                    {editingConc.estado && <span> · UF: {editingConc.estado}</span>}
+                  </p>
                 </div>
-                {editAliases.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {editAliases.map((alias, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-sm py-1 px-2 gap-1.5">
-                        {alias}
-                        <button
-                          onClick={() => removeAlias(idx)}
-                          className="hover:text-destructive transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
-          <DialogFooter>
+                {/* Nome ANEEL Oficial */}
+                <div className="space-y-2">
+                  <Label htmlFor="nome-aneel">Nome ANEEL Oficial</Label>
+                  <Input
+                    id="nome-aneel"
+                    value={editNomeAneel}
+                    onChange={e => setEditNomeAneel(e.target.value)}
+                    placeholder="Ex: CEMIG-D, Neoenergia Pernambuco"
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Nome exato como aparece no arquivo XLS da ANEEL. Este é o match principal.
+                  </p>
+                </div>
+
+                <Separator />
+
+                {/* Aliases */}
+                <div className="space-y-3">
+                  <Label>Aliases (variações adicionais)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newAlias}
+                      onChange={e => setNewAlias(e.target.value)}
+                      placeholder="Ex: CEMIG DIS, CEMIG Distribuição"
+                      className="text-sm"
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addAlias(); } }}
+                    />
+                    <Button size="sm" variant="outline" onClick={addAlias} disabled={!newAlias.trim()}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {editAliases.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {editAliases.map((alias, idx) => (
+                        <Badge key={idx} variant="outline" className="text-sm py-1 px-2 gap-1.5 bg-muted text-muted-foreground border-border">
+                          {alias}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 p-0 hover:text-destructive"
+                            onClick={() => removeAlias(idx)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+
+          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
             <Button variant="ghost" onClick={() => setEditDialogOpen(false)}>
               Cancelar
             </Button>
