@@ -74,8 +74,12 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <CardContent className="py-6 space-y-3">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-12 w-full rounded-lg" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="h-20 w-full rounded-lg" />
         </CardContent>
       </Card>
     );
