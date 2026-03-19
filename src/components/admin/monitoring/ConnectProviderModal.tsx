@@ -9,6 +9,7 @@ import { getTutorial } from "@/services/monitoring/providerTutorials";
 import type { ProviderDefinition } from "@/services/monitoring/providerRegistry";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, Eye, EyeOff, Plug } from "lucide-react";
+import { ProviderSetupGuide } from "@/components/admin/integrations-v2/ProviderSetupGuide";
 
 interface Props {
   open: boolean;
