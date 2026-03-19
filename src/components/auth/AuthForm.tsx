@@ -235,7 +235,51 @@ export function AuthForm() {
     }
   };
 
-  const handleSignIn = async (data: LoginData) => {
+  /**
+   * Detects if a Supabase error indicates the backend is unavailable
+   * (plan exceeded/paused, timeout, network failure, 5xx, etc.)
+   */
+  const isSupabaseUnavailable = (error: unknown): boolean => {
+    if (!error) return false;
+    const msg = typeof error === "string" ? error : (error as any)?.message ?? "";
+    const status = (error as any)?.status ?? (error as any)?.statusCode ?? 0;
+    const lowerMsg = msg.toLowerCase();
+
+    // HTTP 5xx, 429, 503 (paused project)
+    if (status >= 500 || status === 429 || status === 503) return true;
+
+    // Network-level failures
+    if (lowerMsg.includes("failed to fetch")) return true;
+    if (lowerMsg.includes("networkerror")) return true;
+    if (lowerMsg.includes("load failed")) return true;
+    if (lowerMsg.includes("timeout")) return true;
+    if (lowerMsg.includes("err_connection")) return true;
+    if (lowerMsg.includes("aborted")) return true;
+
+    // Supabase-specific: project paused, plan exceeded
+    if (lowerMsg.includes("project is paused")) return true;
+    if (lowerMsg.includes("resource not available")) return true;
+    if (lowerMsg.includes("too many requests")) return true;
+    if (lowerMsg.includes("rate limit")) return true;
+    if (lowerMsg.includes("service_unavailable")) return true;
+    if (lowerMsg.includes("over_request_limit")) return true;
+    if (lowerMsg.includes("quota")) return true;
+
+    return false;
+  };
+
+  const showSupabaseUnavailableToast = () => {
+    toast({
+      title: "⚠️ Servidor indisponível",
+      description:
+        "O banco de dados está temporariamente fora do ar — pode ser manutenção, limite do plano excedido ou instabilidade. " +
+        "Aguarde alguns minutos e tente novamente. Se o problema persistir, entre em contato com o administrador.",
+      variant: "destructive",
+      duration: 12000,
+    });
+  };
+
+
     setIsLoading(true);
     try {
       let loginEmail = data.email;
