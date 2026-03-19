@@ -16,6 +16,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { TrialBanner } from "@/components/plan";
 import { TourProvider } from "@/components/tour";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
+import { HelpCenterDrawer } from "@/components/help/HelpCenterDrawer";
 import { HeaderSearch } from "@/components/admin/HeaderSearch";
 import { NotificationsDropdown } from "@/components/admin/NotificationsDropdown";
 import { AgendaSheet } from "@/components/admin/AgendaSheet";
