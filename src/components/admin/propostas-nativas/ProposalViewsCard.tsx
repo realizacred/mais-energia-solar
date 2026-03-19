@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Eye, Clock, Smartphone, Monitor, Send, CheckCircle2, XCircle, UserCheck, Globe, MessageCircle, Link2, Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { useProposalTracking } from "@/hooks/useProposalTracking";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -12,41 +12,6 @@ interface ProposalTrackingPanelProps {
   propostaId: string;
   versaoId?: string;
 }
-
-type TokenData = {
-  id: string;
-  token: string;
-  decisao: string | null;
-  aceite_nome: string | null;
-  aceite_documento: string | null;
-  aceite_observacoes: string | null;
-  assinatura_url: string | null;
-  recusa_motivo: string | null;
-  recusa_at: string | null;
-  view_count: number;
-  first_viewed_at: string | null;
-  last_viewed_at: string | null;
-  used_at: string | null;
-  created_at: string;
-  expires_at: string;
-  cenario_aceito_id: string | null;
-};
-
-type ViewData = {
-  id: string;
-  user_agent: string | null;
-  ip_address: string | null;
-  referrer: string | null;
-  created_at: string;
-};
-
-type EnvioData = {
-  id: string;
-  canal: string;
-  status: string;
-  enviado_em: string;
-  destinatario: string | null;
-};
 
 function isMobile(ua: string | null) {
   if (!ua) return false;
@@ -60,50 +25,12 @@ const CANAL_ICON: Record<string, any> = {
 };
 
 export function ProposalViewsCard({ propostaId, versaoId }: ProposalTrackingPanelProps) {
-  const [loading, setLoading] = useState(true);
-  const [views, setViews] = useState<ViewData[]>([]);
-  const [totalViews, setTotalViews] = useState(0);
-  const [tokens, setTokens] = useState<TokenData[]>([]);
-  const [envios, setEnvios] = useState<EnvioData[]>([]);
+  const { data, isLoading: loading } = useProposalTracking(propostaId, versaoId);
 
-  useEffect(() => {
-    loadAll();
-  }, [propostaId, versaoId]);
-
-  const loadAll = async () => {
-    setLoading(true);
-    const queries = [
-      (supabase as any)
-        .from("proposta_views")
-        .select("id, ip_address, user_agent, referrer, created_at", { count: "exact" })
-        .eq("proposta_id", propostaId)
-        .order("created_at", { ascending: false })
-        .limit(20),
-      (supabase as any)
-        .from("proposta_aceite_tokens")
-        .select("id, token, decisao, aceite_nome, aceite_documento, aceite_observacoes, assinatura_url, recusa_motivo, recusa_at, view_count, first_viewed_at, last_viewed_at, used_at, created_at, expires_at, cenario_aceito_id")
-        .eq("proposta_id", propostaId)
-        .order("created_at", { ascending: false }),
-    ];
-
-    if (versaoId) {
-      queries.push(
-        (supabase as any)
-          .from("proposta_envios")
-          .select("id, canal, status, enviado_em, destinatario")
-          .eq("versao_id", versaoId)
-          .order("enviado_em", { ascending: false })
-      );
-    }
-
-    const results = await Promise.all(queries);
-
-    setViews(results[0].data || []);
-    setTotalViews(results[0].count || 0);
-    setTokens(results[1].data || []);
-    if (results[2]) setEnvios(results[2].data || []);
-    setLoading(false);
-  };
+  const views = data?.views ?? [];
+  const totalViews = data?.totalViews ?? 0;
+  const tokens = data?.tokens ?? [];
+  const envios = data?.envios ?? [];
 
   const deviceBreakdown = useMemo(() => {
     let mobile = 0, desktop = 0;
@@ -171,7 +98,7 @@ export function ProposalViewsCard({ propostaId, versaoId }: ProposalTrackingPane
                     <img
                       src={activeToken.assinatura_url}
                       alt="Assinatura"
-                      className="h-12 rounded border border-border/60 bg-white p-1"
+                      className="h-12 rounded border border-border/60 bg-card p-1"
                     />
                   </div>
                 )}
@@ -270,7 +197,7 @@ export function ProposalViewsCard({ propostaId, versaoId }: ProposalTrackingPane
                     {v.referrer && (
                       <span className="text-[10px] truncate max-w-[120px]">
                         <Globe className="h-2.5 w-2.5 inline mr-0.5" />
-                        {new URL(v.referrer).hostname}
+                        {(() => { try { return new URL(v.referrer).hostname; } catch { return v.referrer; } })()}
                       </span>
                     )}
                   </div>
