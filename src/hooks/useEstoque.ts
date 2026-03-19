@@ -152,8 +152,7 @@ export function useEstoqueItens() {
     queryKey: ["estoque-itens"],
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("estoque_itens").select("*").order("nome");
+      const { data, error } = await supabase.from("estoque_itens" as any).select("*").order("nome");
       if (error) throw error;
       return data || [];
     },
@@ -165,8 +164,7 @@ export function useEstoqueSaldos() {
     queryKey: ["estoque-saldos"],
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("estoque_saldos").select("*").order("nome");
+      const { data, error } = await supabase.from("estoque_saldos" as any).select("*").order("nome");
       if (error) throw error;
       return data || [];
     },
@@ -178,8 +176,7 @@ export function useEstoqueSaldosLocal() {
     queryKey: ["estoque-saldos-local"],
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("estoque_saldos_local").select("*").order("item_nome");
+      const { data, error } = await supabase.from("estoque_saldos_local" as any).select("*").order("item_nome");
       if (error) throw error;
       return data || [];
     },
@@ -191,8 +188,7 @@ export function useEstoqueLocais() {
     queryKey: ["estoque-locais"],
     staleTime: 1000 * 60 * 15,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("estoque_locais").select("*").eq("ativo", true).order("nome");
+      const { data, error } = await supabase.from("estoque_locais" as any).select("*").eq("ativo", true).order("nome");
       if (error) throw error;
       return data || [];
     },
@@ -204,8 +200,7 @@ export function useEstoqueMovimentos(filters?: { item_id?: string; tipo?: string
     queryKey: ["estoque-movimentos", filters],
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("estoque_movimentos")
+      let query = supabase.from("estoque_movimentos" as any)
         .select("*, estoque_itens(nome), estoque_locais(nome)")
         .order("created_at", { ascending: false })
         .limit(500);
@@ -213,7 +208,7 @@ export function useEstoqueMovimentos(filters?: { item_id?: string; tipo?: string
       if (filters?.tipo) query = query.eq("tipo", filters.tipo);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((m: any) => ({
+      return (data || []).map((m) => ({
         ...m,
         item_nome: m.estoque_itens?.nome || "—",
         local_nome: m.estoque_locais?.nome || "—",
@@ -229,15 +224,14 @@ export function useEstoqueReservas(statusFilter?: string) {
     queryKey: ["estoque-reservas", statusFilter],
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      let query = (supabase as any)
-        .from("estoque_reservas")
+      let query = supabase.from("estoque_reservas" as any)
         .select("*, estoque_itens(nome)")
         .order("created_at", { ascending: false })
         .limit(200);
       if (statusFilter && statusFilter !== "all") query = query.eq("status", statusFilter);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((r: any) => ({
+      return (data || []).map((r) => ({
         ...r,
         item_nome: r.estoque_itens?.nome || "—",
         estoque_itens: undefined,
@@ -252,13 +246,12 @@ export function useProjetoMateriais(projetoId: string | undefined) {
     enabled: !!projetoId,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("projeto_materiais")
+      const { data, error } = await supabase.from("projeto_materiais" as any)
         .select("*, estoque_itens(nome), estoque_locais(nome)")
         .eq("projeto_id", projetoId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data || []).map((m: any) => ({
+      return (data || []).map((m) => ({
         ...m,
         item_nome: m.estoque_itens?.nome || "—",
         local_nome: m.estoque_locais?.nome || "—",
@@ -286,8 +279,7 @@ export function useCreateEstoqueItem() {
   return useMutation({
     mutationFn: async (item: Omit<EstoqueItem, "id" | "tenant_id" | "created_at" | "custo_medio">) => {
       const tenantId = await resolveTenantId(user!.id);
-      const { data, error } = await (supabase as any)
-        .from("estoque_itens")
+      const { data, error } = await supabase.from("estoque_itens" as any)
         .insert({ ...item, tenant_id: tenantId })
         .select().single();
       if (error) throw error;
@@ -304,7 +296,7 @@ export function useUpdateEstoqueItem() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<EstoqueItem> & { id: string }) => {
-      const { error } = await (supabase as any).from("estoque_itens").update(updates).eq("id", id);
+      const { error } = await supabase.from("estoque_itens" as any).update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { invalidate(); toast({ title: "Item atualizado" }); },
@@ -333,7 +325,7 @@ export function useCreateMovimento() {
       ajuste_sinal?: number;
     }) => {
       const tenantId = await resolveTenantId(user!.id);
-      const { data, error } = await (supabase as any).rpc("estoque_criar_movimento", {
+      const { data, error } = await supabase.rpc("estoque_criar_movimento" as any, {
         p_tenant_id: tenantId,
         p_item_id: mov.item_id,
         p_local_id: mov.local_id || null,
@@ -374,7 +366,7 @@ export function useCreateReserva() {
       const tenantId = await resolveTenantId(user!.id);
       // Use the same RPC as project reservation but without projeto_id binding
       // We create via estoque_criar_movimento-style validation by inserting through RPC
-      const { data, error } = await (supabase as any).rpc("estoque_reservar_material_avulso", {
+      const { data, error } = await supabase.rpc("estoque_reservar_material_avulso" as any, {
         p_tenant_id: tenantId,
         p_item_id: reserva.item_id,
         p_local_id: reserva.local_id || null,
@@ -399,7 +391,7 @@ export function useConsumeReserva() {
 
   return useMutation({
     mutationFn: async ({ reservaId, observacao }: { reservaId: string; observacao?: string }) => {
-      const { error } = await (supabase as any).rpc("estoque_consumir_reserva", {
+      const { error } = await supabase.rpc("estoque_consumir_reserva" as any, {
         p_reserva_id: reservaId,
         p_user_id: user!.id,
         p_observacao: observacao || null,
@@ -418,7 +410,7 @@ export function useCancelReserva() {
 
   return useMutation({
     mutationFn: async (reservaId: string) => {
-      const { error } = await (supabase as any).rpc("estoque_cancelar_reserva", {
+      const { error } = await supabase.rpc("estoque_cancelar_reserva" as any, {
         p_reserva_id: reservaId,
         p_user_id: user?.id || null,
       });
@@ -443,7 +435,7 @@ export function useTransferirEstoque() {
       observacao?: string;
     }) => {
       const tenantId = await resolveTenantId(user!.id);
-      const { error } = await (supabase as any).rpc("estoque_transferir", {
+      const { error } = await supabase.rpc("estoque_transferir" as any, {
         p_tenant_id: tenantId,
         p_item_id: params.item_id,
         p_local_origem: params.local_origem,
@@ -467,8 +459,7 @@ export function useCreateEstoqueLocal() {
   return useMutation({
     mutationFn: async (local: { nome: string; tipo?: string }) => {
       const tenantId = await resolveTenantId(user!.id);
-      const { data, error } = await (supabase as any)
-        .from("estoque_locais")
+      const { data, error } = await supabase.from("estoque_locais" as any)
         .insert({ ...local, tenant_id: tenantId })
         .select().single();
       if (error) throw error;
@@ -485,8 +476,7 @@ export function useUpdateEstoqueLocal() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; nome?: string; tipo?: string; ativo?: boolean }) => {
-      const { data, error } = await (supabase as any)
-        .from("estoque_locais")
+      const { data, error } = await supabase.from("estoque_locais" as any)
         .update(updates)
         .eq("id", id)
         .select().single();
@@ -505,8 +495,7 @@ export function useDeleteEstoqueLocal() {
   return useMutation({
     mutationFn: async (id: string) => {
       // Soft-delete: set ativo = false
-      const { error } = await (supabase as any)
-        .from("estoque_locais")
+      const { error } = await supabase.from("estoque_locais" as any)
         .update({ ativo: false })
         .eq("id", id);
       if (error) throw error;
@@ -520,8 +509,7 @@ export function useAllEstoqueLocais() {
   return useQuery<EstoqueLocal[]>({
     queryKey: ["estoque-locais-all"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("estoque_locais").select("*").order("nome");
+      const { data, error } = await supabase.from("estoque_locais" as any).select("*").order("nome");
       if (error) throw error;
       return data || [];
     },
@@ -542,7 +530,7 @@ export function useReservarMaterialProjeto() {
       quantidade: number;
     }) => {
       const tenantId = await resolveTenantId(user!.id);
-      const { data, error } = await (supabase as any).rpc("estoque_reservar_material_projeto", {
+      const { data, error } = await supabase.rpc("estoque_reservar_material_projeto" as any, {
         p_tenant_id: tenantId,
         p_projeto_id: params.projeto_id,
         p_item_id: params.item_id,
@@ -566,7 +554,7 @@ export function useConsumirProjeto() {
 
   return useMutation({
     mutationFn: async (projetoId: string) => {
-      const { data, error } = await (supabase as any).rpc("estoque_consumir_projeto", {
+      const { data, error } = await supabase.rpc("estoque_consumir_projeto" as any, {
         p_projeto_id: projetoId,
         p_user_id: user!.id,
       });
@@ -586,7 +574,7 @@ export function useCancelarReservasProjeto() {
 
   return useMutation({
     mutationFn: async (projetoId: string) => {
-      const { data, error } = await (supabase as any).rpc("estoque_cancelar_reservas_projeto", {
+      const { data, error } = await supabase.rpc("estoque_cancelar_reservas_projeto" as any, {
         p_projeto_id: projetoId,
         p_user_id: user!.id,
       });

@@ -59,7 +59,7 @@ async function resolveToLegacyPlantId(plantId: string): Promise<string> {
     .select("legacy_plant_id")
     .eq("id", plantId)
     .maybeSingle();
-  const legacyId = (monitorPlant as any)?.legacy_plant_id || plantId;
+  const legacyId = (monitorPlant as { legacy_plant_id: string | null } | null)?.legacy_plant_id ?? plantId;
   _legacyIdCache.set(tenantKey, { value: legacyId, expiresAt: Date.now() + LEGACY_CACHE_TTL_MS });
   return legacyId;
 }
@@ -293,7 +293,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
     ((monthMetrics as unknown as Array<{ energy_kwh: number | null; power_kw: number | null }>) || [])
   );
 
-  const openAlertCount = ((alertRows as unknown as any[]) || []).length;
+  const openAlertCount = (alertRows || []).length;
 
   // SSOT: Fetch MAX(monitor_devices.last_seen_at) for this plant
   let maxDeviceSeen: string | null = null;
@@ -307,7 +307,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
       const { data: devRows } = await supabase
         .from("monitor_devices" as any)
         .select("last_seen_at")
-        .eq("plant_id", (mpRow as any).id)
+        .eq("plant_id", mpRow.id)
         .not("last_seen_at", "is", null)
         .order("last_seen_at", { ascending: false })
         .limit(1);
@@ -404,25 +404,21 @@ export async function syncPlantDevices(plantId: string): Promise<SyncResult> {
 
   if (!monitorPlant) throw new Error("Usina não encontrada no monitoramento");
 
-  const mp = monitorPlant as any;
-
   // Find integration for this provider
   const { data: integration } = await supabase
     .from("monitoring_integrations" as any)
     .select("id, provider")
-    .eq("provider", mp.provider_id)
+    .eq("provider", monitorPlant.provider_id)
     .maybeSingle();
 
   if (!integration) throw new Error("Integração não encontrada para este provedor");
 
-  const int = integration as any;
-
   const { data, error } = await supabase.functions.invoke("monitoring-sync", {
     body: {
-      integrationId: int.id,
-      provider: int.provider,
+      integrationId: integration.id,
+      provider: integration.provider,
       mode: "full",
-      selected_plant_ids: [mp.id],
+      selected_plant_ids: [monitorPlant.id],
     },
   });
 
@@ -616,16 +612,16 @@ export async function discoverPlants(provider: string): Promise<{ success: boole
 /** Delete a monitoring integration */
 export async function disconnectProvider(integrationId: string): Promise<void> {
   // First delete related solar_plants
-  await (supabase
+  await supabase
     .from("solar_plants" as any)
     .delete()
-    .eq("integration_id", integrationId) as any);
+    .eq("integration_id", integrationId);
 
   // Then delete the integration itself
-  await (supabase
+  await supabase
     .from("monitoring_integrations" as any)
     .delete()
-    .eq("id", integrationId) as any);
+    .eq("id", integrationId);
 }
 
 /** Fetch integration for current tenant by provider key */

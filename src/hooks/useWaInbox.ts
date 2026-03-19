@@ -55,7 +55,7 @@ export interface WaMessage {
   status: string | null;
   error_message: string | null;
   error_code: string | null;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   participant_jid: string | null;
   participant_name: string | null;
   created_at: string;
@@ -174,7 +174,7 @@ export function useWaConversations(filters?: {
               id: ct.id,
               conversation_id: ct.conversation_id,
               tag_id: ct.tag_id,
-              tag: ct.wa_tags as any,
+              tag: ct.wa_tags as WaTag | undefined,
             });
           }
         }
@@ -254,7 +254,7 @@ export function useWaConversations(filters?: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -289,7 +289,7 @@ export function useWaConversations(filters?: {
         toast({ title: "Conversa atribuída" });
       }
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -322,7 +322,7 @@ export function useWaConversations(filters?: {
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
       toast({ title: "Conversa transferida", description: "Resumo de contexto gerado para o novo consultor." });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Erro na transferência", description: err.message, variant: "destructive" });
     },
   });
@@ -339,7 +339,7 @@ export function useWaConversations(filters?: {
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
       toast({ title: "Conversa resolvida" });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -482,13 +482,13 @@ export function useWaMessages(conversationId?: string) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
-          const newMsg = payload.new as any;
+          const newMsg = payload.new as WaMessage;
           const [withName] = await resolveNames([newMsg]);
           setAllMessages(prev => {
             // Deterministic dedup: check by id, correlation_id, or evolution_message_id
             const isDuplicate = prev.some(m => 
               m.id === withName.id ||
-              (withName.correlation_id && (m as any).correlation_id === withName.correlation_id) ||
+              (withName.correlation_id && m.correlation_id === withName.correlation_id) ||
               (withName.evolution_message_id && m.evolution_message_id === withName.evolution_message_id)
             );
             if (isDuplicate) return prev;
@@ -509,12 +509,12 @@ export function useWaMessages(conversationId?: string) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const updated = payload.new as any;
+          const updated = payload.new as WaMessage;
           setAllMessages(prev =>
             prev.map(m => {
               // Match by id or correlation_id for optimistic update reconciliation
               if (m.id === updated.id) return { ...m, ...updated };
-              if (updated.correlation_id && (m as any).correlation_id === updated.correlation_id) {
+              if (updated.correlation_id && m.correlation_id === updated.correlation_id) {
                 return { ...m, ...updated };
               }
               return m;
@@ -609,7 +609,7 @@ export function useWaMessages(conversationId?: string) {
             : content;
 
         const idempKey = `inbox_send:${conv.tenant_id}:${msg.id}`;
-        const { error: outboxError } = await (supabase.rpc as any)("enqueue_wa_outbox_item", {
+        const { error: outboxError } = await supabase.rpc("enqueue_wa_outbox_item" as any, {
           p_tenant_id: conv.tenant_id,
           p_instance_id: conv.instance_id,
           p_remote_jid: conv.remote_jid,
@@ -634,7 +634,7 @@ export function useWaMessages(conversationId?: string) {
         }
 
         // Trigger outbox processing (fire-and-forget)
-        supabase.functions.invoke("process-wa-outbox").catch((e: any) => {
+        supabase.functions.invoke("process-wa-outbox").catch((e: unknown) => {
           console.warn("Failed to trigger outbox processing:", e);
         });
       }
@@ -660,7 +660,7 @@ export function useWaMessages(conversationId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
     },
   });
@@ -719,7 +719,7 @@ export function useWaMessages(conversationId?: string) {
           ? `*${senderName}:*\n${failedMsg.content || ""}`
           : failedMsg.content || "";
 
-      await (supabase.rpc as any)("enqueue_wa_outbox_item", {
+      await supabase.rpc("enqueue_wa_outbox_item" as any, {
         p_tenant_id: conv.tenant_id,
         p_instance_id: conv.instance_id,
         p_remote_jid: conv.remote_jid,
@@ -740,7 +740,7 @@ export function useWaMessages(conversationId?: string) {
     onSuccess: () => {
       toast({ title: "Reenviando mensagem..." });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Erro ao reenviar", description: err.message, variant: "destructive" });
     },
   });
@@ -876,7 +876,7 @@ export function useWaTags() {
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
       toast({ title: "Tag atualizada" });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.error("[toggleConversationTag] ERROR:", err);
       toast({ title: "Erro ao aplicar tag", description: err.message, variant: "destructive" });
     },

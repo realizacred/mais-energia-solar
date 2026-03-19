@@ -245,7 +245,7 @@ function resolveFromContext(
   if (key === "sistema_solar.numero_modulos") return ctx.numeroPlacas ? String(ctx.numeroPlacas) : null;
 
   // Equipment from kit items
-  const kitItens = (ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined;
+  const kitItens = ctx.kit?.itens as Array<Record<string, unknown>> | undefined;
   if (kitItens && Array.isArray(kitItens)) {
     const findItem = (cat: string) => kitItens.find((i) => String(i.categoria || i.tipo || "").toLowerCase().includes(cat));
     const modulo = findItem("modulo") || findItem("painel") || findItem("placa");
@@ -268,7 +268,7 @@ function resolveFromContext(
     if (ctx.precoTotal != null && !isNaN(ctx.precoTotal)) return fmtCurrency(ctx.precoTotal);
     // Fallback: try to sum kit items if available
     if (ctx.kit && typeof ctx.kit === "object") {
-      const kitTotal = (ctx as unknown as { itensTotal?: number }).itensTotal;
+      const kitTotal = (ctx as { itensTotal?: number }).itensTotal;
       if (kitTotal != null && kitTotal > 0) return fmtCurrency(kitTotal);
     }
     // Fallback: try gdResult economia_anual * payback
@@ -308,51 +308,50 @@ function resolveFromContext(
   if (ctx.pagamentoOpcoes && ctx.pagamentoOpcoes.length > 0) {
     const pOps = ctx.pagamentoOpcoes;
     // Financeira ativa (first financiamento)
-    const finAtiva = pOps.find((p) => (p as any).tipo?.toLowerCase?.()?.includes("financ"));
-    if (key === "customizada.vc_financeira_nome") return s((finAtiva as any)?.nome ?? (finAtiva as any)?.banco);
+    const finAtiva = pOps.find((p) => p.tipo?.toLowerCase()?.includes("financ"));
+    if (key === "customizada.vc_financeira_nome") return s(finAtiva?.nome);
 
     // vc_nome = client name (not financing)
     if (key === "customizada.vc_nome") return s(ctx.cliente?.nome);
 
     // Indexed financing variables
     const fins = pOps.filter((p) =>
-      (p as any).tipo?.toLowerCase?.()?.includes("financ") ||
-      (p as any).tipo?.toLowerCase?.()?.includes("parcel")
+      p.tipo?.toLowerCase()?.includes("financ") ||
+      p.tipo?.toLowerCase()?.includes("parcel")
     );
     for (let i = 0; i < Math.min(fins.length, 3); i++) {
-      const f = fins[i] as any;
-      if (key === `customizada.vc_parcela_${i + 1}`) return f.valor_parcela ? fmtCurrency(Number(f.valor_parcela)) : null;
-      if (key === `customizada.vc_taxa_${i + 1}`) return f.taxa_mensal ? `${fmtNumber(Number(f.taxa_mensal), 2)}%` : null;
+      const f = fins[i];
+      if (key === `customizada.vc_parcela_${i + 1}`) return f.valor_parcela ? fmtCurrency(f.valor_parcela) : null;
+      if (key === `customizada.vc_taxa_${i + 1}`) return f.taxa_mensal ? `${fmtNumber(f.taxa_mensal, 2)}%` : null;
       if (key === `customizada.vc_prazo_${i + 1}`) return f.num_parcelas ? String(f.num_parcelas) : null;
-      if (key === `customizada.vc_entrada_${i + 1}`) return f.entrada ? fmtCurrency(Number(f.entrada)) : null;
+      if (key === `customizada.vc_entrada_${i + 1}`) return f.entrada ? fmtCurrency(f.entrada) : null;
     }
 
     // f_* indexed
-    const allOps = [...pOps] as any[];
+    const allOps = [...pOps];
     for (let i = 0; i < Math.min(allOps.length, 5); i++) {
       const p = allOps[i];
-      if (key === `financeiro.f_nome_${i + 1}`) return s(p.nome ?? p.banco);
-      if (key === `financeiro.f_parcela_${i + 1}`) return p.valor_parcela ? fmtCurrency(Number(p.valor_parcela)) : null;
-      if (key === `financeiro.f_taxa_${i + 1}`) return p.taxa_mensal ? `${fmtNumber(Number(p.taxa_mensal), 2)}%` : null;
+      if (key === `financeiro.f_nome_${i + 1}`) return s(p.nome);
+      if (key === `financeiro.f_parcela_${i + 1}`) return p.valor_parcela ? fmtCurrency(p.valor_parcela) : null;
+      if (key === `financeiro.f_taxa_${i + 1}`) return p.taxa_mensal ? `${fmtNumber(p.taxa_mensal, 2)}%` : null;
       if (key === `financeiro.f_prazo_${i + 1}`) return p.num_parcelas ? String(p.num_parcelas) : null;
-      if (key === `financeiro.f_entrada_${i + 1}`) return p.entrada ? fmtCurrency(Number(p.entrada)) : null;
-      if (key === `financeiro.f_valor_${i + 1}`) return p.valor_financiado ? fmtCurrency(Number(p.valor_financiado)) : null;
+      if (key === `financeiro.f_entrada_${i + 1}`) return p.entrada ? fmtCurrency(p.entrada) : null;
+      if (key === `financeiro.f_valor_${i + 1}`) return p.valor_financiado ? fmtCurrency(p.valor_financiado) : null;
     }
 
     // f_ativo_* (first active financing)
     if (finAtiva) {
-      const fa = finAtiva as any;
-      if (key === "financeiro.f_ativo_nome") return s(fa.nome ?? fa.banco);
-      if (key === "financeiro.f_ativo_parcela") return fa.valor_parcela ? fmtCurrency(Number(fa.valor_parcela)) : null;
-      if (key === "financeiro.f_ativo_taxa") return fa.taxa_mensal ? `${fmtNumber(Number(fa.taxa_mensal), 2)}%` : null;
-      if (key === "financeiro.f_ativo_prazo") return fa.num_parcelas ? String(fa.num_parcelas) : null;
-      if (key === "financeiro.f_ativo_entrada") return fa.entrada ? fmtCurrency(Number(fa.entrada)) : null;
-      if (key === "financeiro.f_ativo_valor") return fa.valor_financiado ? fmtCurrency(Number(fa.valor_financiado)) : null;
+      if (key === "financeiro.f_ativo_nome") return s(finAtiva.nome);
+      if (key === "financeiro.f_ativo_parcela") return finAtiva.valor_parcela ? fmtCurrency(finAtiva.valor_parcela) : null;
+      if (key === "financeiro.f_ativo_taxa") return finAtiva.taxa_mensal ? `${fmtNumber(finAtiva.taxa_mensal, 2)}%` : null;
+      if (key === "financeiro.f_ativo_prazo") return finAtiva.num_parcelas ? String(finAtiva.num_parcelas) : null;
+      if (key === "financeiro.f_ativo_entrada") return finAtiva.entrada ? fmtCurrency(finAtiva.entrada) : null;
+      if (key === "financeiro.f_ativo_valor") return finAtiva.valor_financiado ? fmtCurrency(finAtiva.valor_financiado) : null;
     }
 
     // à vista
-    const aVista = pOps.find((p) => (p as any).tipo?.toLowerCase?.()?.includes("vista"));
-    if (key === "customizada.vc_a_vista") return aVista ? fmtCurrency(Number((aVista as any).valor ?? ctx.precoTotal)) : (ctx.precoTotal ? fmtCurrency(ctx.precoTotal) : null);
+    const aVista = pOps.find((p) => p.tipo?.toLowerCase()?.includes("vista"));
+    if (key === "customizada.vc_a_vista") return aVista ? fmtCurrency(aVista.valor_financiado || ctx.precoTotal || 0) : (ctx.precoTotal ? fmtCurrency(ctx.precoTotal) : null);
   } else {
     // vc_nome fallback when no pagamento opcoes
     if (key === "customizada.vc_nome") return s(ctx.cliente?.nome);
@@ -364,11 +363,11 @@ function resolveFromContext(
   // Try to resolve conta_energia fields from gdResult
   if (key === "conta_energia.gasto_atual_mensal" && ctx.gdResult) {
     const consumo = ctx.gdResult.consumo_kwh;
-    const tarifa = (ctx.gdResult.valor_credito_breakdown as any)?.tarifa_energia ?? ctx.gdResult.valor_credito_breakdown?.te;
+    const tarifa = ctx.gdResult.valor_credito_breakdown.te;
     if (consumo && tarifa) return fmtCurrency(consumo * tarifa);
   }
   if (key === "conta_energia.economia_percentual" && ctx.economiaMensal && ctx.gdResult) {
-    const tarifa = (ctx.gdResult.valor_credito_breakdown as any)?.tarifa_energia ?? ctx.gdResult.valor_credito_breakdown?.te ?? 0;
+    const tarifa = ctx.gdResult.valor_credito_breakdown.te ?? 0;
     const gastoAtual = ctx.gdResult.consumo_kwh * tarifa;
     if (gastoAtual > 0) return `${fmtNumber((ctx.economiaMensal / gastoAtual) * 100, 0)}%`;
   }
