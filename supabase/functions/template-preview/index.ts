@@ -978,7 +978,7 @@ Deno.serve(async (req) => {
     }
 
     // ── 5. BUSCAR DADOS RELACIONADOS ──────────────────────
-    const [leadRes, clienteRes, projetoRes, consultorRes] = await Promise.all([
+    const [leadRes, clienteRes, projetoRes, consultorRes, tenantRes] = await Promise.all([
       leadId
         ? adminClient
             .from("leads")
@@ -1011,22 +1011,22 @@ Deno.serve(async (req) => {
             .eq("tenant_id", tenantId)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      // OPT-4: tenant name fetched in parallel instead of sequentially
+      adminClient
+        .from("tenants")
+        .select("nome")
+        .eq("id", tenantId)
+        .maybeSingle(),
     ]);
 
     const lead = leadRes.data;
     const cliente = clienteRes.data;
     const projeto = projetoRes.data as any;
     const consultor = consultorRes.data as any;
+    const tenantInfo = tenantRes.data;
 
     // ── 6. MONTAR MAPA DE VARIÁVEIS via Domain Resolvers ──
     const snapshot = versaoData?.snapshot as Record<string, any> | null;
-
-    // Fetch tenant name for comercial variables
-    const { data: tenantInfo } = await adminClient
-      .from("tenants")
-      .select("nome")
-      .eq("id", tenantId)
-      .maybeSingle();
 
     const vars = flattenSnapshot(snapshot as Record<string, unknown>, {
       lead,
@@ -1207,17 +1207,15 @@ Deno.serve(async (req) => {
     const pdfStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_${outputFileName}`;
     const debugStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_debug_forensic.json`;
 
-    // 9a. Upload DOCX to storage
+    // 9a. Upload DOCX to storage (in parallel with PDF conversion — OPT-5)
     console.log(`[template-preview] Uploading DOCX to storage: ${docxStoragePath}`);
-    const { error: docxUploadErr } = await adminClient.storage
+    const docxUploadPromise = adminClient.storage
       .from("proposta-documentos")
       .upload(docxStoragePath, report, {
         contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         upsert: true,
       });
-    if (docxUploadErr) {
-      console.error("[template-preview] DOCX upload error:", docxUploadErr.message);
-    }
+    // Don't await — will be awaited after Gotenberg finishes
 
     // 9b. Convert DOCX to PDF via Gotenberg
     let pdfBytes: Uint8Array | null = null;
@@ -1290,6 +1288,12 @@ Deno.serve(async (req) => {
     } catch (pdfErr: any) {
       pdfConversionError = pdfErr?.message || "Unknown PDF conversion error";
       console.error("[template-preview] PDF conversion error:", pdfConversionError);
+    }
+
+    // OPT-5: Await DOCX upload that ran in parallel with Gotenberg
+    const { error: docxUploadErr } = await docxUploadPromise;
+    if (docxUploadErr) {
+      console.error("[template-preview] DOCX upload error:", docxUploadErr.message);
     }
 
     // ═══════════════════════════════════════════════════════

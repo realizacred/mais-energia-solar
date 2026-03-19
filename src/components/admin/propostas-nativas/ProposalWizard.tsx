@@ -222,7 +222,7 @@ export function ProposalWizard() {
   // Persisted artifact paths (from storage)
   const [outputDocxPath, setOutputDocxPath] = useState<string | null>(null);
   const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
-  const [generationStatus, setGenerationStatus] = useState<"idle" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error">("idle");
+  const [generationStatus, setGenerationStatus] = useState<"idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error">("idle");
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [missingVars, setMissingVars] = useState<string[]>([]);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
@@ -1249,7 +1249,7 @@ export function ProposalWizard() {
     }
 
     setGenerating(true);
-    setGenerationStatus("generating_docx");
+    setGenerationStatus("calculating");
     setGenerationError(null);
     setHtmlPreview(null);
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
@@ -1358,7 +1358,12 @@ export function ProposalWizard() {
       const isDocxTemplate = selectedTpl?.tipo === "docx";
 
       setRendering(true);
-      setGenerationStatus("converting_pdf");
+      setGenerationStatus("generating_docx");
+
+      // Simulate progress steps during template-preview (single long call covers docx+pdf+upload)
+      const progressTimer = setTimeout(() => setGenerationStatus("converting_pdf"), 4000);
+      const progressTimer2 = setTimeout(() => setGenerationStatus("saving"), 12000);
+
       try {
         if (isDocxTemplate && genResult.proposta_id) {
           // DOCX template: call template-preview with JSON response to get persisted paths
@@ -1380,6 +1385,8 @@ export function ProposalWizard() {
               response_format: "json",
             }),
           });
+          clearTimeout(progressTimer);
+          clearTimeout(progressTimer2);
           if (!rawResp.ok) {
             const errBody = await rawResp.text();
             let errorMsg = "Erro ao gerar DOCX";
