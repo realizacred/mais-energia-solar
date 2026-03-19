@@ -147,7 +147,7 @@ function normalizeGrupo(g: string | null | undefined): string | null {
 
 function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
   if (!snapshot) return snapshot;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const { mapSnapshots, ...rest } = snapshot;
   return { ...rest, grupo: normalizeGrupo(rest.grupo) };
 }

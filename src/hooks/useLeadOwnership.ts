@@ -109,7 +109,7 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
 
         // Resolve names
         const consultorIdsArr = Array.from(consultorIds).filter(Boolean);
-        let nameMap: Record<string, string> = {};
+        const nameMap: Record<string, string> = {};
         if (consultorIdsArr.length > 0) {
           const { data: consultores } = await (supabase as any)
             .from("consultores")

@@ -13,7 +13,7 @@ interface Props {
 }
 
 function markdownToHtml(md: string): string {
-  let html = md
+  const html = md
     // Headers
     .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-foreground mt-4 mb-2">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="text-base font-bold text-foreground mt-5 mb-2">$1</h2>')

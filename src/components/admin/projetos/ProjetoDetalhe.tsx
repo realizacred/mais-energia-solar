@@ -1428,7 +1428,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
 
           // Fetch UCs for geracao_mensal
           const versaoIds = (versoes || []).map((v: any) => v.id);
-          let geracaoMap = new Map<string, number>();
+          const geracaoMap = new Map<string, number>();
           if (versaoIds.length > 0) {
             const { data: ucs } = await supabase
               .from("proposta_versao_ucs")
@@ -1536,7 +1536,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
 
           if (orcs && orcs.length > 0) {
             const statusIds = [...new Set(orcs.map((o: any) => o.status_id).filter(Boolean))] as string[];
-            let statusMap = new Map<string, string>();
+            const statusMap = new Map<string, string>();
             if (statusIds.length > 0) {
               const { data: statuses } = await supabase
                 .from("lead_status")

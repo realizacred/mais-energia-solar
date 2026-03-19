@@ -174,7 +174,7 @@ async function tryLocalGrid(
     // Format B (from get_irradiance_for_simulation RPC): { ghi: { m01, m02, ... }, dhi: {...}, ... }
     let series: IrradianceSeries;
     let dhiSeries: DhiSeries | null = null;
-    let hasGhiWrapper = raw && typeof raw === "object" && raw.ghi && typeof raw.ghi === "object";
+    const hasGhiWrapper = raw && typeof raw === "object" && raw.ghi && typeof raw.ghi === "object";
 
     if (hasGhiWrapper) {
       series = buildSeriesFromData(raw.ghi);

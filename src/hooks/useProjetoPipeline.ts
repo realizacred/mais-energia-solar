@@ -137,7 +137,7 @@ export function useProjetoPipeline() {
 
     // Fetch etiqueta relations
     const projetoIds = (data || []).map((p: any) => p.id);
-    let relMap = new Map<string, string[]>();
+    const relMap = new Map<string, string[]>();
     if (projetoIds.length > 0) {
       const { data: rels } = await supabase
         .from("projeto_etiqueta_rel")
