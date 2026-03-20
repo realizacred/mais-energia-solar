@@ -12,9 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
-import { Link2, Plus, Trash2, Sun, Zap } from "lucide-react";
+import { Link2, Plus, Trash2, Sun, ArrowRight, Zap, Activity } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 
 interface Props {
   unitId: string;
@@ -40,6 +41,7 @@ const RELATION_LABELS: Record<string, string> = {
 
 export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ plant_id: "", relation_type: "beneficiaria", allocation_percent: "" });
@@ -61,14 +63,43 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   const { data: plants = [] } = useQuery({
     queryKey: ["plants_for_uc_link"],
     queryFn: async () => {
-      // Try monitor_plants first, fallback to empty
       const { data } = await (supabase as any)
         .from("monitor_plants")
-        .select("id, name")
+        .select("id, name, installed_power_kwp, status, last_communication_at, lat, lng")
         .order("name")
         .limit(100);
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Fetch today's generation for linked plants
+  const activePlantIds = links.filter(l => l.is_active).map(l => l.plant_id);
+  const { data: todayMetrics = [] } = useQuery({
+    queryKey: ["plant_today_metrics_uc", activePlantIds],
+    queryFn: async () => {
+      if (activePlantIds.length === 0) return [];
+      // Get legacy_plant_id mapping
+      const { data: plantRows } = await (supabase as any)
+        .from("monitor_plants")
+        .select("id, legacy_plant_id")
+        .in("id", activePlantIds);
+      const legacyIds = (plantRows || []).map((p: any) => p.legacy_plant_id).filter(Boolean);
+      if (legacyIds.length === 0) return [];
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("solar_plant_metrics_daily")
+        .select("plant_id, energy_kwh, date")
+        .in("plant_id", legacyIds)
+        .eq("date", today);
+      // Map back to monitor_plants.id
+      return (data || []).map((m: any) => {
+        const mp = (plantRows || []).find((p: any) => p.legacy_plant_id === m.plant_id);
+        return { ...m, monitor_plant_id: mp?.id };
+      });
+    },
+    enabled: activePlantIds.length > 0,
+    staleTime: 1000 * 60 * 2,
   });
 
   const createMut = useMutation({
@@ -134,30 +165,72 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
           action={{ label: "Vincular Usina", onClick: () => { setForm({ plant_id: "", relation_type: defaultRelation, allocation_percent: "" }); setDialogOpen(true); }, icon: Link2 }}
         />
       ) : (
-        <div className="space-y-2">
-          {activeLinks.map(link => (
-            <Card key={link.id}>
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Sun className="h-4 w-4 text-primary" />
+        <div className="space-y-3">
+          {activeLinks.map(link => {
+            const plant = plants.find((p: any) => p.id === link.plant_id);
+            const todayGen = todayMetrics.find((m: any) => m.monitor_plant_id === link.plant_id);
+            const isOnline = plant?.status === "online";
+            return (
+              <Card key={link.id} className="border-l-[3px] border-l-warning">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                        <Sun className="h-5 w-5 text-warning" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{plant?.name || link.plant_id.slice(0, 8) + "..."}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="outline" className="text-xs">{RELATION_LABELS[link.relation_type] || link.relation_type}</Badge>
+                          <Badge variant="outline" className={`text-xs ${isOnline ? "border-success text-success" : "border-destructive text-destructive"}`}>
+                            {isOnline ? "Online" : "Offline"}
+                          </Badge>
+                          {link.allocation_percent != null && (
+                            <span className="text-xs text-muted-foreground">Rateio: {link.allocation_percent}%</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeMut.mutate(link.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{plants.find((p: any) => p.id === link.plant_id)?.name || link.plant_id.slice(0, 8) + "..."}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Badge variant="outline" className="text-xs">{RELATION_LABELS[link.relation_type] || link.relation_type}</Badge>
-                      {link.allocation_percent != null && (
-                        <span className="text-xs text-muted-foreground">{link.allocation_percent}%</span>
-                      )}
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Capacidade</p>
+                      <p className="font-medium">{plant?.installed_power_kwp ? `${plant.installed_power_kwp} kWp` : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Geração hoje</p>
+                      <p className="font-medium text-warning">
+                        {todayGen ? `${Number(todayGen.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} kWh` : "0,0 kWh"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Última comunicação</p>
+                      <p className="font-mono text-xs">
+                        {plant?.last_communication_at ? format(new Date(plant.last_communication_at), "dd/MM HH:mm") : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Vinculada em</p>
+                      <p className="font-mono text-xs">{format(new Date(link.started_at), "dd/MM/yyyy")}</p>
                     </div>
                   </div>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeMut.mutate(link.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs gap-1"
+                    onClick={() => navigate(`/admin/monitoramento/usinas/${link.plant_id}`)}
+                  >
+                    Ver detalhes da usina <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -178,7 +251,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader><DialogTitle>Vincular Usina</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
