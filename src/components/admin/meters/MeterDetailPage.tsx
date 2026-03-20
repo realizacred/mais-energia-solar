@@ -197,12 +197,16 @@ export default function MeterDetailPage() {
       await tuyaIntegrationService.sendCommand(meter.integration_config_id, meter.external_device_id, [
         { code: "switch", value: newValue },
       ]);
+      // Optimistic update immediately
+      setOptimisticSwitch(newValue);
       toast({ title: newValue ? "Medidor ligado" : "Medidor desligado" });
-      // Refresh status
+      // Refresh status after Tuya processes
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ["meter_status_latest", id] });
-      }, 2000);
+      }, 3000);
     } catch (err: any) {
+      // Revert optimistic on error
+      setOptimisticSwitch(null);
       toast({ title: "Erro ao enviar comando", description: err?.message, variant: "destructive" });
     } finally {
       setToggling(false);
