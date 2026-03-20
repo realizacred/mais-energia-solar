@@ -164,7 +164,15 @@ export default function MeterDetailPage() {
     };
   }, [latestStatus]);
 
-  const switchState = extraDPs.switchState;
+  const switchState = optimisticSwitch !== null ? optimisticSwitch : extraDPs.switchState;
+
+  // Reset optimistic state when latestStatus updates
+  useEffect(() => {
+    if (optimisticSwitch !== null) {
+      setOptimisticSwitch(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestStatus]);
 
   async function handleSync() {
     if (!meter?.integration_config_id) return;
