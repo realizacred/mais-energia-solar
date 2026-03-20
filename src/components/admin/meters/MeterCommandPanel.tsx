@@ -228,7 +228,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                         )}
 
                         {result && (
-                          <Badge variant={result.success ? "default" : "destructive"} className="text-[10px] shrink-0">
+                          <Badge variant={result.success ? "default" : "destructive"} className="text-xs shrink-0">
                             {result.success ? "✓" : "✗"}
                           </Badge>
                         )}
