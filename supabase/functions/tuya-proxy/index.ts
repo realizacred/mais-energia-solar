@@ -164,6 +164,151 @@ async function tuyaRequest(
   return result;
 }
 
+/** Cron-triggered sync: iterate ALL active Tuya configs and sync readings */
+async function handleCronSync(supabase: any): Promise<Response> {
+  console.log("[tuya-proxy] CRON sync_readings for all configs");
+  const { data: configs, error } = await supabase
+    .from("integrations_api_configs")
+    .select("*")
+    .eq("provider", "tuya")
+    .eq("is_active", true);
+
+  if (error || !configs?.length) {
+    console.log("[tuya-proxy] CRON: no active tuya configs found");
+    return new Response(JSON.stringify({ success: true, configs_processed: 0 }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const results: any[] = [];
+  for (const config of configs) {
+    try {
+      const creds = config.credentials as Record<string, string>;
+      const clientId = (creds.client_id || "").trim();
+      const clientSecret = (creds.client_secret || "").trim();
+      const baseUrl = (config.base_url || "https://openapi.tuyaeu.com").trim();
+      if (!clientId || !clientSecret) { results.push({ config_id: config.id, error: "missing_credentials" }); continue; }
+
+      const existingToken = (config.settings as any)?.token_info || null;
+      const token = await getAccessToken(baseUrl, clientId, clientSecret, existingToken);
+      if (token.access_token !== existingToken?.access_token) {
+        await supabase.from("integrations_api_configs").update({
+          settings: { ...(config.settings as any || {}), token_info: token },
+          updated_at: new Date().toISOString(),
+        }).eq("id", config.id);
+      }
+
+      // Sync readings for all meters in this config
+      const { data: meters } = await supabase
+        .from("meter_devices")
+        .select("id, external_device_id, integration_config_id")
+        .eq("integration_config_id", config.id)
+        .eq("is_active", true)
+        .eq("provider", "tuya");
+
+      let processed = 0, failed = 0;
+      for (const meter of (meters || [])) {
+        try {
+          const statusResp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", `/v1.0/devices/${meter.external_device_id}/status`);
+          const infoResp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", `/v1.0/devices/${meter.external_device_id}`);
+          if (!statusResp.success) { failed++; continue; }
+          const dps = statusResp.result || [];
+          const deviceInfo = infoResp.result || {};
+          const now = new Date().toISOString();
+          const online = deviceInfo.online ? "online" : "offline";
+          const reading = buildReading(dps);
+
+          await supabase.from("meter_status_latest").upsert({
+            meter_device_id: meter.id, measured_at: now, online_status: online,
+            ...reading, raw_payload: { dps, device_info: deviceInfo }, updated_at: now,
+          } as any, { onConflict: "meter_device_id" });
+
+          await supabase.from("meter_readings").insert({
+            meter_device_id: meter.id, measured_at: now,
+            voltage_v: reading.voltage_v, current_a: reading.current_a,
+            power_w: reading.power_w, energy_import_kwh: reading.energy_import_kwh,
+            energy_export_kwh: reading.energy_export_kwh,
+            raw_payload: { dps, device_info: deviceInfo },
+          } as any);
+
+          await supabase.from("meter_devices").update({
+            online_status: online,
+            last_seen_at: deviceInfo.online ? now : undefined,
+            last_reading_at: now, updated_at: now,
+          } as any).eq("id", meter.id);
+
+          processed++;
+        } catch (e) { failed++; console.error(`[tuya-proxy] CRON device error:`, (e as Error).message); }
+      }
+      results.push({ config_id: config.id, processed, failed });
+    } catch (e) { results.push({ config_id: config.id, error: (e as Error).message }); }
+  }
+
+  console.log("[tuya-proxy] CRON results:", JSON.stringify(results));
+  return new Response(JSON.stringify({ success: true, configs_processed: configs.length, results }), {
+    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/** Extract reading from DPS array — shared by cron and manual sync */
+function buildReading(dps: any[]): Record<string, any> {
+  const reading: Record<string, any> = {
+    voltage_v: null, current_a: null, power_w: null,
+    energy_import_kwh: null, energy_export_kwh: null,
+    energy_total_kwh: null, energy_balance_kwh: null,
+    reactive_power_kvar: null, power_factor: null,
+    leakage_current_ma: null, neutral_current_a: null,
+    temperature_c: null,
+    status_a: null, status_b: null, status_c: null,
+    fault_bitmap: null,
+    over_current_count: null, lost_current_count: null, leak_count: null,
+  };
+
+  const DPS_MAP: Record<string, string> = {
+    cur_voltage: "voltage_v", phase_a_voltage: "voltage_v",
+    cur_current: "current_a", phase_a_current: "current_a",
+    cur_power: "power_w", phase_a_power: "power_w",
+    total_forward_energy: "energy_import_kwh", add_ele: "energy_import_kwh",
+    reverse_energy_total: "energy_export_kwh", total_reverse_energy: "energy_export_kwh",
+    energy_total: "energy_total_kwh", balance_energy: "energy_balance_kwh",
+    power_total: "power_w", total_power: "power_w",
+    power_reactive: "reactive_power_kvar", power_factor: "power_factor",
+    leakage_current: "leakage_current_ma", n_current: "neutral_current_a",
+    temp_current: "temperature_c",
+    status: "status_a", status_b: "status_b", status_c: "status_c",
+    fault: "fault_bitmap",
+    over_current_cnt: "over_current_count", lost_current_cnt: "lost_current_count",
+    leak_cnt: "leak_count",
+  };
+
+  const SCALE: Record<string, number> = {
+    voltage_v: 0.1, current_a: 0.001, power_w: 1,
+    energy_import_kwh: 0.01, energy_export_kwh: 0.01,
+    energy_total_kwh: 0.001, energy_balance_kwh: 0.01,
+    reactive_power_kvar: 0.1, power_factor: 0.001,
+    leakage_current_ma: 1, neutral_current_a: 0.01,
+    temperature_c: 1,
+    fault_bitmap: 1, status_a: 1, status_b: 1, status_c: 1,
+    over_current_count: 1, lost_current_count: 1, leak_count: 1,
+  };
+
+  for (const dp of dps) {
+    const field = DPS_MAP[dp.code];
+    if (!field) continue;
+    if (typeof dp.value === "number") {
+      if (reading[field] === null) {
+        reading[field] = dp.value * (SCALE[field] ?? 1);
+      }
+    } else if (typeof dp.value === "boolean") {
+      // skip booleans
+    } else {
+      if (reading[field] === null) reading[field] = String(dp.value);
+    }
+  }
+  return reading;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -174,7 +319,19 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Validate caller via JWT
+    // ── CRON path: x-cron-secret header ──
+    const cronSecret = req.headers.get("x-cron-secret");
+    const expectedSecret = Deno.env.get("CRON_SECRET") || "cronkey2026maisenergia9X4kL7";
+    if (cronSecret) {
+      if (cronSecret !== expectedSecret) {
+        return new Response(JSON.stringify({ error: "Invalid cron secret" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return await handleCronSync(supabase);
+    }
+
+    // ── Normal path: JWT auth ──
     const authHeader = req.headers.get("authorization") || "";
     const jwt = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
