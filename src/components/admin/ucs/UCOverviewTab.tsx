@@ -58,6 +58,23 @@ export function UCOverviewTab({
   const navigate = useNavigate();
   const [chartPeriod, setChartPeriod] = useState<"7d" | "30d" | "3m">("30d");
 
+  // --- Resolve solar_plant_id from monitor_plants.legacy_plant_id ---
+  // unit_plant_links.plant_id → monitor_plants.id → legacy_plant_id → solar_plants.id
+  const { data: solarPlantId } = useQuery({
+    queryKey: ["uc_overview_solar_plant_id", plantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("monitor_plants")
+        .select("legacy_plant_id")
+        .eq("id", plantId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.legacy_plant_id as string) || null;
+    },
+    enabled: !!plantId,
+    staleTime: STALE_5M,
+  });
+
   // --- Meter status latest ---
   const { data: meterStatus, isLoading: loadingMeter } = useQuery({
     queryKey: ["uc_overview_meter_status", meterId],
@@ -67,21 +84,23 @@ export function UCOverviewTab({
   });
 
   // --- Plant metrics daily (for chart + KPI) ---
+  // Uses solarPlantId (resolved from monitor_plants.legacy_plant_id)
   const chartDays = chartPeriod === "7d" ? 7 : chartPeriod === "30d" ? 30 : 90;
+  const effectivePlantId = solarPlantId || plantId;
   const { data: plantMetrics = [], isLoading: loadingPlantMetrics } = useQuery({
-    queryKey: ["uc_overview_plant_metrics", plantId, chartDays],
+    queryKey: ["uc_overview_plant_metrics", effectivePlantId, chartDays],
     queryFn: async () => {
       const since = subDays(new Date(), chartDays).toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("solar_plant_metrics_daily")
         .select("date, energy_kwh, power_kw")
-        .eq("plant_id", plantId!)
+        .eq("plant_id", effectivePlantId!)
         .gte("date", since)
         .order("date", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!plantId,
+    enabled: !!effectivePlantId,
     staleTime: STALE_5M,
   });
 
