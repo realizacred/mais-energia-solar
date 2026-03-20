@@ -104,16 +104,29 @@ const DP_CATEGORIES: DPCategory[] = [
   },
 ];
 
-/** Extract current DP values from raw_payload.dps array */
+/** Extract current DP values from raw_payload — tries multiple known structures */
 function extractCurrentValues(rawPayload: any): Record<string, any> {
   const map: Record<string, any> = {};
-  const dps = rawPayload?.dps;
-  if (!Array.isArray(dps)) return map;
-  for (const dp of dps) {
-    if (dp?.code && dp.value !== undefined) {
-      map[dp.code] = dp.value;
+  if (!rawPayload || typeof rawPayload !== "object") return map;
+
+  // Try multiple locations where DPs may live
+  const candidates: any[] = [
+    rawPayload?.dps,
+    rawPayload?.device_info?.status,
+    rawPayload?.status,
+  ];
+
+  for (const arr of candidates) {
+    if (!Array.isArray(arr)) continue;
+    for (const dp of arr) {
+      if (dp?.code && dp.value !== undefined && !(dp.code in map)) {
+        map[dp.code] = dp.value;
+      }
     }
   }
+
+  console.log("[MeterCommandPanel] extractCurrentValues found", Object.keys(map).length, "DPs, sample:", 
+    Object.fromEntries(Object.entries(map).slice(0, 5)));
   return map;
 }
 
