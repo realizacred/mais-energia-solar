@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -7,8 +7,10 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown, Users } from "lucide-react";
+import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown, Users, BarChart3 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getPlantDetail, listDevices, listAlerts, listDailyReadings, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { toast } from "sonner";
 import { MonitorGenerationChart } from "./charts/MonitorGenerationChart";
@@ -18,6 +20,7 @@ import { PlantMpptSection } from "./devices/PlantMpptSection";
 import { StringAlertBell } from "./devices/StringAlertBell";
 import { isMpptStringEnabled, getDeviceStringCards } from "@/services/monitoring/mpptStringService";
 import { PlantClientSection } from "./PlantClientSection";
+const PlantGenerationReport = lazy(() => import("./reports/PlantGenerationReport").then(m => ({ default: m.PlantGenerationReport })));
 
 import { cn } from "@/lib/utils";
 import {
@@ -166,73 +169,88 @@ export default function MonitorPlantDetail() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <DetailKpi label="Potência Instalada" value={`${plant.installed_power_kwp || 0} kWp`} icon={Zap} color="warning" />
-        <DetailKpi label={plant.health?.is_yesterday_fallback ? "Energia Ontem" : "Energia Hoje"} value={`${(plant.health?.energy_today_kwh || 0).toFixed(0)} kWh`} icon={Activity} color="success" />
-        <DetailKpi label="Energia Mês" value={`${(plant.health?.energy_month_kwh || 0).toFixed(0)} kWh`} icon={Activity} color="info" />
-        <DetailKpi label="Alertas Abertos" value={String(plant.health?.open_alerts_count || 0)} icon={AlertTriangle} color={plant.health?.open_alerts_count ? "destructive" : "muted"} />
-      </div>
+      <Tabs defaultValue="visao-geral" className="space-y-4">
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="visao-geral" className="gap-1"><Sun className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
+          <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>
+        </TabsList>
 
-      {/* Client section */}
-      <PlantClientSection
-        plantId={plant.id}
-        clientId={plant.client_id}
-        clientName={plant.client_name || null}
-      />
-
-      {/* Generation chart with time range */}
-      <SectionCard
-        title="Geração"
-        icon={Activity}
-        variant="blue"
-        actions={
-          <div className="flex gap-0.5 p-0.5 rounded-lg bg-muted/50 border border-border/50">
-            {(["7d", "30d", "90d", "365d"] as TimeRange[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setRange(r)}
-                className={cn(
-                  "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                  range === r
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {r === "7d" ? "7d" : r === "30d" ? "30d" : r === "90d" ? "90d" : "1a"}
-              </button>
-            ))}
+        <TabsContent value="visao-geral" className="space-y-6">
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <DetailKpi label="Potência Instalada" value={`${plant.installed_power_kwp || 0} kWp`} icon={Zap} color="warning" />
+            <DetailKpi label={plant.health?.is_yesterday_fallback ? "Energia Ontem" : "Energia Hoje"} value={`${(plant.health?.energy_today_kwh || 0).toFixed(0)} kWh`} icon={Activity} color="success" />
+            <DetailKpi label="Energia Mês" value={`${(plant.health?.energy_month_kwh || 0).toFixed(0)} kWh`} icon={Activity} color="info" />
+            <DetailKpi label="Alertas Abertos" value={String(plant.health?.open_alerts_count || 0)} icon={AlertTriangle} color={plant.health?.open_alerts_count ? "destructive" : "muted"} />
           </div>
-        }
-      >
-        <MonitorGenerationChart readings={readings} />
-      </SectionCard>
 
-      {/* Devices with inline technical details */}
-      <SectionCard title={`Dispositivos (${devices.length})`} icon={Cpu}>
-        {devices.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum dispositivo registrado</p>
-        ) : (
-          <div className="space-y-3">
-            {devices.map((d) => (
-              <DeviceCardWithDetails key={d.id} device={d} plantStatus={status} />
-            ))}
-          </div>
-        )}
-      </SectionCard>
+          {/* Client section */}
+          <PlantClientSection
+            plantId={plant.id}
+            clientId={plant.client_id}
+            clientName={plant.client_name || null}
+          />
 
-      {/* MPPT & Strings */}
-      {plantId && devices.length > 0 && (
-        <PlantMpptSection plantId={plantId} devices={devices} isOffline={status === "offline"} />
-      )}
+          {/* Generation chart with time range */}
+          <SectionCard
+            title="Geração"
+            icon={Activity}
+            variant="blue"
+            actions={
+              <div className="flex gap-0.5 p-0.5 rounded-lg bg-muted/50 border border-border/50">
+                {(["7d", "30d", "90d", "365d"] as TimeRange[]).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRange(r)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                      range === r
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {r === "7d" ? "7d" : r === "30d" ? "30d" : r === "90d" ? "90d" : "1a"}
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            <MonitorGenerationChart readings={readings} />
+          </SectionCard>
 
-      {/* Alerts timeline */}
-      <SectionCard title={`Eventos (${alerts.length})`} icon={AlertTriangle} variant="warning">
-        <MonitorAttentionList
-          alerts={alerts.slice(0, 15)}
-          onViewPlant={() => {}}
-        />
-      </SectionCard>
+          {/* Devices with inline technical details */}
+          <SectionCard title={`Dispositivos (${devices.length})`} icon={Cpu}>
+            {devices.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Nenhum dispositivo registrado</p>
+            ) : (
+              <div className="space-y-3">
+                {devices.map((d) => (
+                  <DeviceCardWithDetails key={d.id} device={d} plantStatus={status} />
+                ))}
+              </div>
+            )}
+          </SectionCard>
+
+          {/* MPPT & Strings */}
+          {plantId && devices.length > 0 && (
+            <PlantMpptSection plantId={plantId} devices={devices} isOffline={status === "offline"} />
+          )}
+
+          {/* Alerts timeline */}
+          <SectionCard title={`Eventos (${alerts.length})`} icon={AlertTriangle} variant="warning">
+            <MonitorAttentionList
+              alerts={alerts.slice(0, 15)}
+              onViewPlant={() => {}}
+            />
+          </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="relatorios">
+          <Suspense fallback={<div className="space-y-3"><Skeleton className="h-20 w-full" /><Skeleton className="h-[280px] w-full" /></div>}>
+            <PlantGenerationReport plantId={plant.id} />
+          </Suspense>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

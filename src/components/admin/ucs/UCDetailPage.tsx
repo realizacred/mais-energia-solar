@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ArrowLeft, MapPin, Zap, FileText, Settings, Gauge, Link2, History, Edit, Trash2, Mail, Lock, Sun, Plus, Calendar, MoreHorizontal } from "lucide-react";
+import { Building2, ArrowLeft, MapPin, Zap, FileText, Settings, Gauge, Link2, History, Edit, Trash2, Mail, Lock, Sun, Plus, Calendar, MoreHorizontal, BarChart3 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,7 @@ import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
+import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Consumo",
@@ -47,6 +48,22 @@ export default function UCDetailPage() {
 
   const { data: credits = [] } = useUnitCredits(id ?? null);
   const deleteCredit = useDeleteUnitCredit();
+
+  // Fetch linked plant for generation report
+  const { data: linkedPlantId } = useQuery({
+    queryKey: ["uc_linked_plant", id],
+    queryFn: async () => {
+      const { data } = await (await import("@/integrations/supabase/client")).supabase
+        .from("unit_plant_links")
+        .select("plant_id")
+        .eq("unit_id", id!)
+        .eq("is_active", true)
+        .limit(1);
+      return data?.[0]?.plant_id ?? null;
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+  });
 
   const totalCreditoAdicionado = credits.reduce((sum, c) => sum + Number(c.quantidade_kwh), 0);
 
@@ -134,6 +151,7 @@ export default function UCDetailPage() {
             <TabsTrigger value="medidor" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Medidor</TabsTrigger>
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
             <TabsTrigger value="usinas" className="gap-1"><Link2 className="w-3.5 h-3.5" /> Usinas</TabsTrigger>
+            {linkedPlantId && <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>}
             <TabsTrigger value="historico" className="gap-1"><History className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
           </TabsList>
 
