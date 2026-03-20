@@ -18564,14 +18564,20 @@ export type Database = {
       unit_billing_email_settings: {
         Row: {
           billing_capture_email: string | null
+          canal_notificacao:
+            | Database["public"]["Enums"]["billing_notification_channel"]
+            | null
           created_at: string
           created_by: string | null
+          dia_leitura: number | null
+          dias_antecedencia_alerta: number | null
           email_billing_enabled: boolean
           email_da_uc: string | null
           forward_to_email: string | null
           id: string
           notes: string | null
           pdf_password: string | null
+          servico_fatura_ativo: boolean | null
           setup_status: Database["public"]["Enums"]["billing_setup_status"]
           tenant_id: string
           unit_id: string
@@ -18580,14 +18586,20 @@ export type Database = {
         }
         Insert: {
           billing_capture_email?: string | null
+          canal_notificacao?:
+            | Database["public"]["Enums"]["billing_notification_channel"]
+            | null
           created_at?: string
           created_by?: string | null
+          dia_leitura?: number | null
+          dias_antecedencia_alerta?: number | null
           email_billing_enabled?: boolean
           email_da_uc?: string | null
           forward_to_email?: string | null
           id?: string
           notes?: string | null
           pdf_password?: string | null
+          servico_fatura_ativo?: boolean | null
           setup_status?: Database["public"]["Enums"]["billing_setup_status"]
           tenant_id: string
           unit_id: string
@@ -18596,14 +18608,20 @@ export type Database = {
         }
         Update: {
           billing_capture_email?: string | null
+          canal_notificacao?:
+            | Database["public"]["Enums"]["billing_notification_channel"]
+            | null
           created_at?: string
           created_by?: string | null
+          dia_leitura?: number | null
+          dias_antecedencia_alerta?: number | null
           email_billing_enabled?: boolean
           email_da_uc?: string | null
           forward_to_email?: string | null
           id?: string
           notes?: string | null
           pdf_password?: string | null
+          servico_fatura_ativo?: boolean | null
           setup_status?: Database["public"]["Enums"]["billing_setup_status"]
           tenant_id?: string
           unit_id?: string
@@ -23163,6 +23181,7 @@ export type Database = {
         | "negociacao"
         | "anotacao"
         | "status_change"
+      billing_notification_channel: "whatsapp" | "email" | "ambos"
       billing_setup_status: "pending" | "active" | "error" | "disabled"
       chart_engine: "rendered_image" | "docx_native"
       chart_type: "bar" | "line" | "pie" | "doughnut" | "area" | "stacked_bar"
@@ -23444,6 +23463,7 @@ export const Constants = {
         "anotacao",
         "status_change",
       ],
+      billing_notification_channel: ["whatsapp", "email", "ambos"],
       billing_setup_status: ["pending", "active", "error", "disabled"],
       chart_engine: ["rendered_image", "docx_native"],
       chart_type: ["bar", "line", "pie", "doughnut", "area", "stacked_bar"],
