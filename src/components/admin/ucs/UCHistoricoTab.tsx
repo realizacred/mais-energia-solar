@@ -22,7 +22,8 @@ interface Props {
 
 const STALE_5M = 1000 * 60 * 5;
 
-export function UCHistoricoTab({ ucId, meterId, plantId }: Props) {
+export function UCHistoricoTab({ ucId, meterId, plantId, solarPlantId }: Props) {
+  const effectivePlantId = solarPlantId || plantId;
   return (
     <Tabs defaultValue="leituras" className="space-y-4">
       <TabsList className="flex-wrap h-auto gap-1">
@@ -42,7 +43,7 @@ export function UCHistoricoTab({ ucId, meterId, plantId }: Props) {
       </TabsContent>
 
       <TabsContent value="geracao">
-        <SolarGenerationTable plantId={plantId} />
+        <SolarGenerationTable plantId={effectivePlantId} />
       </TabsContent>
 
       <TabsContent value="faturas">
