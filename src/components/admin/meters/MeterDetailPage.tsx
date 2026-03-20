@@ -204,7 +204,21 @@ export default function MeterDetailPage() {
     }
   }
 
-  if (isLoading) {
+  async function handleRename() {
+    if (!meter?.integration_config_id || !editName.trim()) return;
+    setRenaming(true);
+    try {
+      await tuyaIntegrationService.renameDevice(meter.integration_config_id, meter.external_device_id, meter.id, editName.trim());
+      toast({ title: "Nome atualizado com sucesso" });
+      qc.invalidateQueries({ queryKey: ["meter_device", id] });
+      setEditing(false);
+    } catch (err: any) {
+      toast({ title: "Erro ao renomear", description: err?.message, variant: "destructive" });
+    } finally {
+      setRenaming(false);
+    }
+  }
+
     return (
       <div className="p-4 md:p-6 space-y-6">
         <Skeleton className="h-9 w-24" />
