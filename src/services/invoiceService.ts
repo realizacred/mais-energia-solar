@@ -21,6 +21,8 @@ export interface UnitInvoice {
   created_at: string;
 }
 
+export type BillingNotificationChannel = "whatsapp" | "email" | "ambos";
+
 export interface BillingEmailSettings {
   id: string;
   unit_id: string;
@@ -31,11 +33,15 @@ export interface BillingEmailSettings {
   email_billing_enabled: boolean;
   setup_status: string;
   notes: string | null;
+  dia_leitura: number | null;
+  dias_antecedencia_alerta: number;
+  canal_notificacao: BillingNotificationChannel;
+  servico_fatura_ativo: boolean;
 }
 
 const INVOICE_COLS = `id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at`;
 // Use safe view that hides pdf_password — only exposes has_pdf_password boolean
-const BILLING_COLS = `id, unit_id, billing_capture_email, forward_to_email, email_billing_enabled, setup_status, notes`;
+const BILLING_COLS = `id, unit_id, billing_capture_email, forward_to_email, email_billing_enabled, setup_status, notes, dia_leitura, dias_antecedencia_alerta, canal_notificacao, servico_fatura_ativo`;
 const BILLING_TABLE = "unit_billing_email_settings";
 
 export const invoiceService = {
