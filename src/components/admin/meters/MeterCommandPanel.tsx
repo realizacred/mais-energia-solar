@@ -2,16 +2,18 @@
  * MeterCommandPanel — Send DP commands to a Tuya device.
  * SRP: UI for selecting a DP code, entering a value, and sending the command.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { tuyaIntegrationService } from "@/services/tuyaIntegrationService";
-import { useQueryClient } from "@tanstack/react-query";
+import { meterService } from "@/services/meterService";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Loader2, Terminal, AlertTriangle, Info, Power, Shield, Zap, Clock, Gauge, Settings, ThermometerSun } from "lucide-react";
+import { Send, Loader2, Terminal, AlertTriangle, Info, Power, Shield, Zap, Clock, Gauge, Settings, ThermometerSun, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
@@ -102,6 +104,19 @@ const DP_CATEGORIES: DPCategory[] = [
   },
 ];
 
+/** Extract current DP values from raw_payload.dps array */
+function extractCurrentValues(rawPayload: any): Record<string, any> {
+  const map: Record<string, any> = {};
+  const dps = rawPayload?.dps;
+  if (!Array.isArray(dps)) return map;
+  for (const dp of dps) {
+    if (dp?.code && dp.value !== undefined) {
+      map[dp.code] = dp.value;
+    }
+  }
+  return map;
+}
+
 export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -109,6 +124,41 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
   const [values, setValues] = useState<Record<string, string>>({});
   const [boolValues, setBoolValues] = useState<Record<string, boolean>>({});
   const [lastResults, setLastResults] = useState<Record<string, { success: boolean; msg?: string }>>({});
+  const [initialized, setInitialized] = useState(false);
+
+  // Fetch current device status to pre-fill values
+  const { data: statusLatest, isLoading: loadingStatus } = useQuery({
+    queryKey: ["meter_status_latest", meterId],
+    queryFn: () => meterService.getStatusLatest(meterId),
+    staleTime: 1000 * 30,
+    enabled: !!meterId,
+  });
+
+  // Pre-fill form values from raw_payload when data arrives
+  useEffect(() => {
+    if (initialized || !statusLatest?.raw_payload) return;
+    const current = extractCurrentValues(statusLatest.raw_payload);
+    if (Object.keys(current).length === 0) return;
+
+    const nums: Record<string, string> = {};
+    const bools: Record<string, boolean> = {};
+
+    for (const cat of DP_CATEGORIES) {
+      for (const dp of cat.dps) {
+        const val = current[dp.code];
+        if (val === undefined) continue;
+        if (dp.type === "boolean") {
+          bools[dp.code] = !!val;
+        } else {
+          nums[dp.code] = String(val);
+        }
+      }
+    }
+
+    setValues(prev => ({ ...prev, ...nums }));
+    setBoolValues(prev => ({ ...prev, ...bools }));
+    setInitialized(true);
+  }, [statusLatest, initialized]);
 
   function setNumberValue(code: string, val: string) {
     setValues(prev => ({ ...prev, [code]: val }));
