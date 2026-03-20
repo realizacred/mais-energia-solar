@@ -169,7 +169,7 @@ export function UCEconomyReportTab({ unitId }: Props) {
   if (invoices.length === 0) {
     return (
       <EmptyState
-        icon={<BarChart3 className="w-12 h-12 text-muted-foreground" />}
+        icon={BarChart3}
         title="Sem dados de economia"
         description="Registre faturas na aba Faturas para visualizar o relatório de economia desta UC."
       />
