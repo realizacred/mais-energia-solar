@@ -451,7 +451,7 @@ export default function MeterDetailPage() {
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip content={<CustomTooltip />} />
+                    <RechartsTooltip content={<CustomTooltip />} />
                     <Area type="monotone" dataKey="Potência" stroke="hsl(var(--primary))" fill="url(#gradPower)" strokeWidth={2} dot={false} />
                     <Area type="monotone" dataKey="Tensão" stroke="hsl(var(--info))" fill="url(#gradVoltage)" strokeWidth={2} dot={false} />
                     <Area type="monotone" dataKey="Corrente" stroke="hsl(var(--warning))" fill="url(#gradCurrent)" strokeWidth={2} dot={false} />
