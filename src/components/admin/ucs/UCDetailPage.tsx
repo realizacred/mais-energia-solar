@@ -45,6 +45,20 @@ export default function UCDetailPage() {
     enabled: !!id,
   });
 
+  const { data: credits = [] } = useUnitCredits(id ?? null);
+  const deleteCredit = useDeleteUnitCredit();
+
+  const totalCreditoAdicionado = credits.reduce((sum, c) => sum + Number(c.quantidade_kwh), 0);
+
+  const handleDeleteCredit = async (creditId: string) => {
+    try {
+      await deleteCredit.mutateAsync({ id: creditId, unitId: id! });
+      toast({ title: "Crédito removido" });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 flex justify-center py-20">
