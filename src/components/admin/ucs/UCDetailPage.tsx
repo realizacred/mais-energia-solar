@@ -375,6 +375,7 @@ export default function UCDetailPage() {
             <UCEconomyReportTab unitId={uc.id} />
           </TabsContent>
 
+          {plantId && (
             <TabsContent value="relatorios">
               <PlantGenerationReport plantId={plantId} />
             </TabsContent>
