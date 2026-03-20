@@ -60,70 +60,70 @@ export function UCMeterTab({ unitId }: Props) {
   return (
     <div className="space-y-4">
       {activeMeter ? (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2"><Gauge className="w-4 h-4" /> Medidor Vinculado</CardTitle>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setLinkDialogOpen(true)}>
-                  <ArrowLeftRight className="w-3 h-3 mr-1" /> Trocar
-                </Button>
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => activeLink && unlinkMut.mutate(activeLink.id)}>
-                  <Link2Off className="w-3 h-3 mr-1" /> Desvincular
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Nome</p>
-                <p className="text-sm font-medium">{activeMeter.name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Modelo</p>
-                <p className="text-sm">{activeMeter.model || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Provider</p>
-                <Badge variant="outline" className="text-xs capitalize">{activeMeter.provider}</Badge>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Status</p>
-                <StatusBadge variant={activeMeter.online_status === "online" ? "success" : "destructive"} dot>
-                  {activeMeter.online_status === "online" ? "Online" : "Offline"}
-                </StatusBadge>
-              </div>
-              {activeMeter.bidirectional_supported && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Tipo</p>
-                  <Badge variant="outline" className="text-xs"><ArrowLeftRight className="w-3 h-3 mr-0.5" /> Bidirecional</Badge>
+        <>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2"><Gauge className="w-4 h-4" /> Medidor Vinculado</CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setLinkDialogOpen(true)}>
+                    <ArrowLeftRight className="w-3 h-3 mr-1" /> Trocar
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => activeLink && unlinkMut.mutate(activeLink.id)}>
+                    <Link2Off className="w-3 h-3 mr-1" /> Desvincular
+                  </Button>
                 </div>
-              )}
-              {latestStatus && (
-                <>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Nome</p>
+                  <p className="text-sm font-medium">{activeMeter.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Modelo</p>
+                  <p className="text-sm">{activeMeter.model || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Provider</p>
+                  <Badge variant="outline" className="text-xs capitalize">{activeMeter.provider}</Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <StatusBadge variant={activeMeter.online_status === "online" ? "success" : "destructive"} dot>
+                    {activeMeter.online_status === "online" ? "Online" : "Offline"}
+                  </StatusBadge>
+                </div>
+                {activeMeter.bidirectional_supported && (
                   <div>
-                    <p className="text-xs text-muted-foreground">Potência</p>
-                    <p className="text-sm font-medium">{latestStatus.power_w != null ? `${latestStatus.power_w} W` : "—"}</p>
+                    <p className="text-xs text-muted-foreground">Tipo</p>
+                    <Badge variant="outline" className="text-xs"><ArrowLeftRight className="w-3 h-3 mr-0.5" /> Bidirecional</Badge>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Energia Importada</p>
-                    <p className="text-sm">{latestStatus.energy_import_kwh != null ? `${latestStatus.energy_import_kwh} kWh` : "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Energia Exportada</p>
-                    <p className="text-sm">{latestStatus.energy_export_kwh != null ? `${latestStatus.energy_export_kwh} kWh` : "—"}</p>
-                  </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+                {latestStatus && (
+                  <>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Potência</p>
+                      <p className="text-sm font-medium">{latestStatus.power_w != null ? `${latestStatus.power_w} W` : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Energia Importada</p>
+                      <p className="text-sm">{latestStatus.energy_import_kwh != null ? `${latestStatus.energy_import_kwh} kWh` : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Energia Exportada</p>
+                      <p className="text-sm">{latestStatus.energy_export_kwh != null ? `${latestStatus.energy_export_kwh} kWh` : "—"}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Leitura Inicial do Relógio Físico */}
-        {activeMeter && (
+          {/* Leitura Inicial do Relógio Físico */}
           <LeituraInicialCard meterId={activeMeter.id} meter={activeMeter} />
-        )}
+        </>
       ) : (
         <EmptyState
           icon={Gauge}
