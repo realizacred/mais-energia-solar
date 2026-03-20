@@ -273,6 +273,7 @@ export const tuyaIntegrationService = {
             .from("meter_status_latest")
             .upsert({
               meter_device_id: meter.id,
+              tenant_id: meter.tenant_id,
               measured_at: now,
               online_status: normalized.online_status,
               voltage_v: normalized.voltage_v,
@@ -289,6 +290,7 @@ export const tuyaIntegrationService = {
             .from("meter_readings")
             .insert({
               meter_device_id: meter.id,
+              tenant_id: meter.tenant_id,
               measured_at: now,
               voltage_v: normalized.voltage_v,
               current_a: normalized.current_a,
