@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
 import { tuyaIntegrationService } from "@/services/tuyaIntegrationService";
 import { MeterAlertConfig } from "./MeterAlertConfig";
+import { MeterCommandPanel } from "./MeterCommandPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
