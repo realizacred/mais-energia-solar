@@ -10833,6 +10833,68 @@ export type Database = {
           },
         ]
       }
+      plant_estimated_reports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          credito_kwh: number
+          desempenho_pct: number | null
+          geracao_periodo_kwh: number | null
+          id: string
+          is_estimated: boolean
+          period_end: string
+          period_start: string
+          plant_id: string
+          retorno_estimado: number | null
+          retorno_pct: number | null
+          tarifa_kwh: number
+          tenant_id: string
+          total_investido: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          credito_kwh?: number
+          desempenho_pct?: number | null
+          geracao_periodo_kwh?: number | null
+          id?: string
+          is_estimated?: boolean
+          period_end: string
+          period_start: string
+          plant_id: string
+          retorno_estimado?: number | null
+          retorno_pct?: number | null
+          tarifa_kwh: number
+          tenant_id: string
+          total_investido?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          credito_kwh?: number
+          desempenho_pct?: number | null
+          geracao_periodo_kwh?: number | null
+          id?: string
+          is_estimated?: boolean
+          period_end?: string
+          period_start?: string
+          plant_id?: string
+          retorno_estimado?: number | null
+          retorno_pct?: number | null
+          tarifa_kwh?: number
+          tenant_id?: string
+          total_investido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plant_estimated_reports_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plant_resizing_history: {
         Row: {
           comentario: string | null
