@@ -13,6 +13,7 @@ export function useMonitorDashboardData() {
     queryKey: ["monitor-dashboard-stats"],
     queryFn: getDashboardStats,
     staleTime: STALE,
+    refetchInterval: REFRESH,
   });
 
   const { data: plants = [] } = useQuery({
