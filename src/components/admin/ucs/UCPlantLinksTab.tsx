@@ -165,30 +165,72 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
           action={{ label: "Vincular Usina", onClick: () => { setForm({ plant_id: "", relation_type: defaultRelation, allocation_percent: "" }); setDialogOpen(true); }, icon: Link2 }}
         />
       ) : (
-        <div className="space-y-2">
-          {activeLinks.map(link => (
-            <Card key={link.id}>
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Sun className="h-4 w-4 text-primary" />
+        <div className="space-y-3">
+          {activeLinks.map(link => {
+            const plant = plants.find((p: any) => p.id === link.plant_id);
+            const todayGen = todayMetrics.find((m: any) => m.monitor_plant_id === link.plant_id);
+            const isOnline = plant?.status === "online";
+            return (
+              <Card key={link.id} className="border-l-[3px] border-l-warning">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                        <Sun className="h-5 w-5 text-warning" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{plant?.name || link.plant_id.slice(0, 8) + "..."}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="outline" className="text-xs">{RELATION_LABELS[link.relation_type] || link.relation_type}</Badge>
+                          <Badge variant="outline" className={`text-xs ${isOnline ? "border-success text-success" : "border-destructive text-destructive"}`}>
+                            {isOnline ? "Online" : "Offline"}
+                          </Badge>
+                          {link.allocation_percent != null && (
+                            <span className="text-xs text-muted-foreground">Rateio: {link.allocation_percent}%</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeMut.mutate(link.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{plants.find((p: any) => p.id === link.plant_id)?.name || link.plant_id.slice(0, 8) + "..."}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Badge variant="outline" className="text-xs">{RELATION_LABELS[link.relation_type] || link.relation_type}</Badge>
-                      {link.allocation_percent != null && (
-                        <span className="text-xs text-muted-foreground">{link.allocation_percent}%</span>
-                      )}
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Capacidade</p>
+                      <p className="font-medium">{plant?.installed_power_kwp ? `${plant.installed_power_kwp} kWp` : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Geração hoje</p>
+                      <p className="font-medium text-warning">
+                        {todayGen ? `${Number(todayGen.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} kWh` : "0,0 kWh"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Última comunicação</p>
+                      <p className="font-mono text-xs">
+                        {plant?.last_communication_at ? format(new Date(plant.last_communication_at), "dd/MM HH:mm") : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Vinculada em</p>
+                      <p className="font-mono text-xs">{format(new Date(link.started_at), "dd/MM/yyyy")}</p>
                     </div>
                   </div>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeMut.mutate(link.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs gap-1"
+                    onClick={() => navigate(`/admin/monitoramento/usinas/${link.plant_id}`)}
+                  >
+                    Ver detalhes da usina <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
