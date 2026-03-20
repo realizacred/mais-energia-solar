@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceService, type BillingEmailSettings, type BillingNotificationChannel } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
+import { usePlanGuard } from "@/components/plan";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ interface Props {
 export function UCBillingSettingsTab({ unitId }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { guardLimit, LimitDialog } = usePlanGuard();
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     billing_capture_email: "",
@@ -111,7 +113,14 @@ export function UCBillingSettingsTab({ unitId }: Props) {
             </CardTitle>
             <Switch
               checked={form.servico_fatura_ativo}
-              onCheckedChange={(v) => setForm(f => ({ ...f, servico_fatura_ativo: v }))}
+              onCheckedChange={async (v) => {
+                if (v && !form.servico_fatura_ativo) {
+                  // Check plan limit before enabling
+                  const ok = await guardLimit("max_ucs_monitored");
+                  if (!ok) return;
+                }
+                setForm(f => ({ ...f, servico_fatura_ativo: v }));
+              }}
             />
           </div>
           <CardDescription>Ative para habilitar registro mensal, alertas e relatórios para esta UC</CardDescription>
@@ -249,6 +258,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
           </Button>
         </CardContent>
       </Card>
+      {LimitDialog}
     </div>
   );
 }
