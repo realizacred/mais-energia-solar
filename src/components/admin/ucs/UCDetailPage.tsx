@@ -35,8 +35,10 @@ export default function UCDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { toast } = useToast();
+  const { tenant } = useTenantSettings();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-
+  const [addCreditOpen, setAddCreditOpen] = useState(false);
   const { data: uc, isLoading, error } = useQuery({
     queryKey: ["uc_detail", id],
     queryFn: () => unitService.getById(id!),
