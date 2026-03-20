@@ -18941,6 +18941,63 @@ export type Database = {
           },
         ]
       }
+      unit_reading_alerts: {
+        Row: {
+          alert_type: string
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          reference_month: number
+          reference_year: number
+          sent_at: string
+          status: string
+          tenant_id: string
+          unit_id: string
+        }
+        Insert: {
+          alert_type?: string
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          reference_month: number
+          reference_year: number
+          sent_at?: string
+          status?: string
+          tenant_id: string
+          unit_id: string
+        }
+        Update: {
+          alert_type?: string
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          reference_month?: number
+          reference_year?: number
+          sent_at?: string
+          status?: string
+          tenant_id?: string
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_reading_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_reading_alerts_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       units_consumidoras: {
         Row: {
           classificacao_grupo: string | null

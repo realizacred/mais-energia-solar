@@ -308,3 +308,6 @@ verify_jwt = false
 
 [functions.gmail-oauth]
 verify_jwt = false
+
+[functions.billing-reading-alerts]
+verify_jwt = false

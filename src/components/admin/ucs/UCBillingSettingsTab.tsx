@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceService, type BillingEmailSettings, type BillingNotificationChannel } from "@/services/invoiceService";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2 } from "lucide-react";
+import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send } from "lucide-react";
 
 interface Props {
   unitId: string;
@@ -172,6 +173,9 @@ export function UCBillingSettingsTab({ unitId }: Props) {
                 </Select>
               </div>
             </div>
+
+            {/* Last alert info + manual trigger */}
+            <LastAlertInfo unitId={unitId} />
           </CardContent>
         )}
       </Card>
@@ -245,6 +249,69 @@ export function UCBillingSettingsTab({ unitId }: Props) {
           </Button>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/** Sub-component: shows last reading alert and allows manual trigger */
+function LastAlertInfo({ unitId }: { unitId: string }) {
+  const { toast } = useToast();
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const { data: lastAlert } = useQuery({
+    queryKey: ["unit_reading_alert", unitId, currentMonth, currentYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("unit_reading_alerts" as any)
+        .select("*")
+        .eq("unit_id", unitId)
+        .eq("alert_type", "leitura")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const sendManual = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke("billing-reading-alerts");
+      if (error) throw error;
+    },
+    onSuccess: () => toast({ title: "Alertas de leitura processados" }),
+    onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
+  });
+
+  return (
+    <div className="flex items-center justify-between pt-2 border-t border-border">
+      <div className="text-xs text-muted-foreground">
+        {lastAlert ? (
+          <>
+            Último alerta: <span className="font-medium text-foreground">
+              {new Date(lastAlert.sent_at).toLocaleDateString("pt-BR")}
+            </span>
+            {" — "}
+            <StatusBadge variant={lastAlert.status === "sent" ? "success" : lastAlert.status === "failed" ? "destructive" : "warning"} className="text-xs">
+              {lastAlert.status === "sent" ? "Enviado" : lastAlert.status === "failed" ? "Falha" : "Pulado"}
+            </StatusBadge>
+          </>
+        ) : (
+          "Nenhum alerta enviado ainda"
+        )}
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => sendManual.mutate()}
+        disabled={sendManual.isPending}
+      >
+        <Send className="w-3 h-3 mr-1" />
+        {sendManual.isPending ? "Enviando..." : "Testar alerta"}
+      </Button>
     </div>
   );
 }
