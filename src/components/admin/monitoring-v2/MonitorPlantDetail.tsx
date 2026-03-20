@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown, Users, BarChart3 } from "lucide-react";
+import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown, Users, BarChart3, Settings } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPlantDetail, listDevices, listAlerts, listDailyReadings, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { StringAlertBell } from "./devices/StringAlertBell";
 import { isMpptStringEnabled, getDeviceStringCards } from "@/services/monitoring/mpptStringService";
 import { PlantClientSection } from "./PlantClientSection";
 const PlantGenerationReport = lazy(() => import("./reports/PlantGenerationReport").then(m => ({ default: m.PlantGenerationReport })));
+import { PlantResizingSection } from "./PlantResizingSection";
 
 import { cn } from "@/lib/utils";
 import {
@@ -173,6 +174,7 @@ export default function MonitorPlantDetail() {
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="visao-geral" className="gap-1"><Sun className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
           <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>
+          <TabsTrigger value="configuracoes" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="visao-geral" className="space-y-6">
@@ -249,6 +251,10 @@ export default function MonitorPlantDetail() {
           <Suspense fallback={<div className="space-y-3"><Skeleton className="h-20 w-full" /><Skeleton className="h-[280px] w-full" /></div>}>
             <PlantGenerationReport plantId={plant.id} />
           </Suspense>
+        </TabsContent>
+
+        <TabsContent value="configuracoes" className="space-y-6">
+          <PlantResizingSection plantId={plant.id} tenantId={plant.tenant_id} />
         </TabsContent>
       </Tabs>
     </div>
