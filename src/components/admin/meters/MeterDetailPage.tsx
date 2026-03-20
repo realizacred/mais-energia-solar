@@ -135,14 +135,24 @@ export default function MeterDetailPage() {
     }));
   }, [readings]);
 
-  // Current switch state from DPS
-  const switchState = useMemo(() => {
-    if (!latestStatus) return null;
+  // Current switch state and extra DPs from raw_payload
+  const extraDPs = useMemo(() => {
     const raw = (latestStatus as any)?.raw_payload;
-    if (!raw?.dps) return null;
-    const sw = raw.dps.find((dp: any) => dp.code === "switch");
-    return sw ? !!sw.value : null;
+    if (!raw?.dps) return { switchState: null as boolean | null, temperature: null as number | null, leakageCurrent: null as number | null, balanceEnergy: null as number | null };
+    const dps: any[] = raw.dps;
+    const sw = dps.find((dp: any) => dp.code === "switch");
+    const temp = dps.find((dp: any) => dp.code === "temp_current");
+    const leakage = dps.find((dp: any) => dp.code === "leakage_current");
+    const balance = dps.find((dp: any) => dp.code === "balance_energy");
+    return {
+      switchState: sw ? !!sw.value : null,
+      temperature: temp && typeof temp.value === "number" ? temp.value : null,
+      leakageCurrent: leakage && typeof leakage.value === "number" ? leakage.value : null,
+      balanceEnergy: balance && typeof balance.value === "number" ? (balance.value * 0.01) : null,
+    };
   }, [latestStatus]);
+
+  const switchState = extraDPs.switchState;
 
   async function handleSync() {
     if (!meter?.integration_config_id) return;
