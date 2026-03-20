@@ -211,7 +211,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                               checked={boolValues[dp.code] ?? false}
                               onCheckedChange={(v) => setBoolValue(dp.code, v)}
                             />
-                            <span className="text-[11px] text-muted-foreground w-16">
+                            <span className="text-xs text-muted-foreground w-16">
                               {boolValues[dp.code] ? "Ligado" : "Desligado"}
                             </span>
                           </div>
