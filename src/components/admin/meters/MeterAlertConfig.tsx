@@ -43,10 +43,10 @@ export function MeterAlertConfig({ meterId, metadata }: Props) {
   async function handleSave() {
     setSaving(true);
     try {
-      const newMetadata = { ...(metadata || {}), alert_config: config };
+      const newMetadata = { ...(metadata || {}), alert_config: config } as any;
       const { error } = await supabase
         .from("meter_devices")
-        .update({ metadata: newMetadata, updated_at: new Date().toISOString() })
+        .update({ metadata: newMetadata, updated_at: new Date().toISOString() } as any)
         .eq("id", meterId);
       if (error) throw error;
       toast({ title: "Configurações de alerta salvas" });
