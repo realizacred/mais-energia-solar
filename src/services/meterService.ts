@@ -59,7 +59,7 @@ export interface UnitMeterLink {
   notes: string | null;
 }
 
-const METER_COLS = `id, tenant_id, provider, integration_config_id, external_device_id, product_id, model, manufacturer, serial_number, name, description, category, firmware_version, online_status, health_status, bidirectional_supported, supports_import_energy, supports_export_energy, supports_power, installed_at, last_seen_at, last_reading_at, metadata, is_active, created_at, updated_at`;
+const METER_COLS = `id, tenant_id, provider, integration_config_id, external_device_id, product_id, model, manufacturer, serial_number, name, description, category, firmware_version, online_status, health_status, bidirectional_supported, supports_import_energy, supports_export_energy, supports_power, installed_at, last_seen_at, last_reading_at, metadata, is_active, created_at, updated_at, leitura_inicial_03, leitura_inicial_103, leitura_inicial_data, leitura_inicial_observacao`;
 
 export const meterService = {
   async list(filters?: { provider?: string; online_status?: string; search?: string }) {
