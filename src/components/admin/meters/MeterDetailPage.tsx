@@ -391,12 +391,25 @@ export default function MeterDetailPage() {
           value={currentVal != null ? `${currentVal.toFixed(2)} A` : "—"}
           color="warning"
         />
-        <StatCard
-          icon={BarChart3}
-          label="Energia Total"
-          value={energyVal != null ? `${energyVal.toFixed(2)} kWh` : "—"}
-          color="success"
-        />
+        <TooltipProvider>
+          <ShadTooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <StatCard
+                  icon={BarChart3}
+                  label={energiaRelogio != null ? "Energia Total (relógio)" : "Energia Total"}
+                  value={energiaRelogio != null ? `${energiaRelogio.toFixed(2)} kWh` : energyVal != null ? `${energyVal.toFixed(2)} kWh` : "—"}
+                  color="success"
+                />
+              </div>
+            </TooltipTrigger>
+            {energiaRelogio != null && (
+              <TooltipContent>
+                <p className="text-xs">Leitura Tuya ({energyVal?.toFixed(2)} kWh) + leitura inicial do relógio ({leituraInicial03} kWh)</p>
+              </TooltipContent>
+            )}
+          </ShadTooltip>
+        </TooltipProvider>
       </div>
       {/* Extra DPs row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
