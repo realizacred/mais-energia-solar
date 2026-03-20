@@ -642,7 +642,7 @@ Deno.serve(async (req) => {
         // Manual trigger: sync readings for ALL tuya meters in this config
         const { data: meters } = await supabase
           .from("meter_devices")
-          .select("id, external_device_id, integration_config_id")
+          .select("id, external_device_id, integration_config_id, tenant_id")
           .eq("integration_config_id", config_id)
           .eq("is_active", true)
           .eq("provider", "tuya");
