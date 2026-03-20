@@ -151,11 +151,21 @@ export function UCOverviewTab({
     const allDays = new Set([...Object.keys(consumptionByDay), ...Object.keys(generationByDay)]);
     return Array.from(allDays)
       .sort()
-      .map((day) => ({
-        date: format(parseISO(day), "dd/MM", { locale: ptBR }),
-        Geração: generationByDay[day] || 0,
-        Consumo: consumptionByDay[day] || 0,
-      }));
+      .map((day) => {
+        const gen = generationByDay[day] || 0;
+        const cons = consumptionByDay[day] || 0;
+        return {
+          date: format(parseISO(day), "dd/MM", { locale: ptBR }),
+          Geração: gen,
+          Consumo: cons,
+          // Keep real values for tooltip
+          _realGeração: gen,
+          _realConsumo: cons,
+          // Show a tiny bar for zero values so both series are always visible
+          _displayGeração: gen === 0 ? 0.3 : gen,
+          _displayConsumo: cons === 0 ? 0.3 : cons,
+        };
+      });
   }, [meterReadings, plantMetrics]);
 
   // --- KPI values ---
