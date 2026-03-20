@@ -128,6 +128,14 @@ export const tuyaIntegrationService = {
     });
 
     try {
+      // Get tenant_id from the config so we can insert with correct tenant
+      const { data: configData } = await supabase
+        .from("integrations_api_configs")
+        .select("tenant_id")
+        .eq("id", configId)
+        .single();
+      const tenantId = configData?.tenant_id;
+
       // Pass known device IDs as fallback so the proxy can try direct fetch
       const resp = await this.callProxy("get_devices", configId, {
         known_device_ids: ["ebbe88c2fd12dac6feajsg"],
