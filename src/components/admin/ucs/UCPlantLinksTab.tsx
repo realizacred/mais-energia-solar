@@ -65,7 +65,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("monitor_plants")
-        .select("id, name, installed_power_kwp, status, last_communication_at, lat, lng")
+        .select("id, name, installed_power_kwp, state, last_seen_at, lat, lng")
         .order("name")
         .limit(100);
       return data || [];
@@ -169,7 +169,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
           {activeLinks.map(link => {
             const plant = plants.find((p: any) => p.id === link.plant_id);
             const todayGen = todayMetrics.find((m: any) => m.monitor_plant_id === link.plant_id);
-            const isOnline = plant?.status === "online";
+            const isOnline = plant?.state === "online";
             return (
               <Card key={link.id} className="border-l-[3px] border-l-warning">
                 <CardContent className="p-4 space-y-3">
@@ -210,7 +210,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
                     <div>
                       <p className="text-xs text-muted-foreground">Última comunicação</p>
                       <p className="font-mono text-xs">
-                        {plant?.last_communication_at ? format(new Date(plant.last_communication_at), "dd/MM HH:mm") : "—"}
+                        {plant?.last_seen_at ? format(new Date(plant.last_seen_at), "dd/MM HH:mm") : "—"}
                       </p>
                     </div>
                     <div>
