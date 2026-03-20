@@ -41,6 +41,7 @@ const RELATION_LABELS: Record<string, string> = {
 
 export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ plant_id: "", relation_type: "beneficiaria", allocation_percent: "" });
