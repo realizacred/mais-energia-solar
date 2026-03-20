@@ -183,16 +183,18 @@ export const tuyaIntegrationService = {
               .eq("id", existing.id);
             updated++;
           } else {
-            await supabase
+            const { error: insertErr } = await supabase
               .from("meter_devices")
               .insert({
                 ...normalized,
                 provider: "tuya",
                 integration_config_id: configId,
+                tenant_id: tenantId,
                 raw_device: raw,
                 metadata: {},
                 is_active: true,
               } as any);
+            if (insertErr) throw insertErr;
             created++;
           }
         } catch (e: any) {
