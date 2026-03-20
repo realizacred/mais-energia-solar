@@ -125,10 +125,14 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
     <div className="space-y-4 mt-4">
       {/* Current Device Status */}
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-1.5">
             <Settings className="w-4 h-4" /> Configuração Atual do Dispositivo
           </CardTitle>
+          <Button variant="outline" size="sm" onClick={handleResync} disabled={syncing || !configId}>
+            {syncing ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+            Resincronizar
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
