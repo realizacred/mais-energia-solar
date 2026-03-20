@@ -617,6 +617,7 @@ export default function MeterDetailPage() {
                         <TableHead className="text-xs font-semibold text-foreground">Potência (W)</TableHead>
                         <TableHead className="text-xs font-semibold text-foreground">Tensão (V)</TableHead>
                         <TableHead className="text-xs font-semibold text-foreground">Corrente (A)</TableHead>
+                        <TableHead className="text-xs font-semibold text-foreground">FP</TableHead>
                         <TableHead className="text-xs font-semibold text-foreground">Reg 03 — Consumo (kWh)</TableHead>
                         <TableHead className="text-xs font-semibold text-foreground">Reg 103 — Injeção (kWh)</TableHead>
                       </TableRow>
@@ -628,6 +629,7 @@ export default function MeterDetailPage() {
                           <TableCell className="text-xs font-mono">{r.power_w?.toFixed(1) ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{r.voltage_v?.toFixed(1) ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{r.current_a?.toFixed(3) ?? "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{r.power_factor?.toFixed(3) ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{r.energy_import_kwh?.toFixed(2) ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{r.energy_export_kwh?.toFixed(2) ?? "—"}</TableCell>
                         </TableRow>
