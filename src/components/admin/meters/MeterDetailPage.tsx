@@ -163,7 +163,7 @@ export default function MeterDetailPage() {
   // Chart data
   const chartData = useMemo(() => {
     return [...readings].reverse().map(r => ({
-      time: new Date(r.measured_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      time: new Date(r.measured_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }),
       Potência: r.power_w,
       Tensão: r.voltage_v,
       Corrente: r.current_a,
