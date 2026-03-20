@@ -3,6 +3,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 
+export type BandeiraTarifaria = "verde" | "amarela" | "vermelha_1" | "vermelha_2";
+
 export interface UnitInvoice {
   id: string;
   unit_id: string;
@@ -19,6 +21,11 @@ export interface UnitInvoice {
   source: string | null;
   status: string;
   created_at: string;
+  demanda_contratada_kw: number | null;
+  demanda_medida_kw: number | null;
+  ultrapassagem_kw: number | null;
+  multa_ultrapassagem: number | null;
+  bandeira_tarifaria: BandeiraTarifaria | null;
 }
 
 export type BillingNotificationChannel = "whatsapp" | "email" | "ambos";
