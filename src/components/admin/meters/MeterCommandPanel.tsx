@@ -176,7 +176,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                 {cat.icon}
               </div>
               <h3 className="text-sm font-semibold text-foreground">{cat.title}</h3>
-              <Badge variant="outline" className="text-[10px] ml-auto">{cat.dps.length}</Badge>
+              <Badge variant="outline" className="text-xs ml-auto">{cat.dps.length}</Badge>
             </div>
 
             <div className="space-y-2">
@@ -191,13 +191,13 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                     >
                       {/* Label + tooltip */}
                       <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] font-mono shrink-0">{dp.code}</Badge>
+                        <Badge variant="outline" className="text-xs font-mono shrink-0 px-2 py-0.5">{dp.code}</Badge>
                         <span className="text-sm font-medium text-foreground truncate">{dp.label}</span>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0 cursor-help" />
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[320px] text-xs leading-relaxed">
+                          <TooltipContent side="top" className="max-w-[360px] text-sm leading-relaxed p-3">
                             {dp.description}
                           </TooltipContent>
                         </Tooltip>
@@ -211,7 +211,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                               checked={boolValues[dp.code] ?? false}
                               onCheckedChange={(v) => setBoolValue(dp.code, v)}
                             />
-                            <span className="text-[11px] text-muted-foreground w-16">
+                            <span className="text-xs text-muted-foreground w-16">
                               {boolValues[dp.code] ? "Ligado" : "Desligado"}
                             </span>
                           </div>
@@ -223,12 +223,12 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                             onChange={(e) => setNumberValue(dp.code, e.target.value)}
                             min={dp.min}
                             max={dp.max}
-                            className="w-24 h-8 text-xs"
+                            className="w-28 h-9 text-sm"
                           />
                         )}
 
                         {result && (
-                          <Badge variant={result.success ? "default" : "destructive"} className="text-[10px] shrink-0">
+                          <Badge variant={result.success ? "default" : "destructive"} className="text-xs shrink-0">
                             {result.success ? "✓" : "✗"}
                           </Badge>
                         )}
@@ -251,7 +251,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
 
         <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border">
           <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-          <div className="text-xs text-muted-foreground space-y-1">
+          <div className="text-sm text-muted-foreground space-y-1.5">
             <p className="font-medium text-foreground">DPs somente leitura (exibidos no painel de status):</p>
             <p>
               <span className="font-mono">total_forward_energy</span> <span className="text-foreground font-medium">(Reg 03 — consumo)</span>, <span className="font-mono">reverse_energy_total</span> <span className="text-foreground font-medium">(Reg 103 — injeção)</span>, <span className="font-mono">phase_a/b/c</span>, <span className="font-mono">fault</span>, <span className="font-mono">balance_energy</span>, <span className="font-mono">leakage_current</span>, <span className="font-mono">temp_current</span>, <span className="font-mono">power_total</span>, <span className="font-mono">power_reactive</span>, <span className="font-mono">pa/pb/pc_instant</span>, <span className="font-mono">energy_total</span>, <span className="font-mono">energy_all</span>, <span className="font-mono">power_factor</span>, <span className="font-mono">status/status_b/status_c</span>, <span className="font-mono">n_current</span>, <span className="font-mono">over_current_cnt</span>, <span className="font-mono">lost_current_cnt</span>, <span className="font-mono">leak_cnt</span>
