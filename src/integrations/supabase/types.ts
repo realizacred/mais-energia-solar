@@ -18711,13 +18711,19 @@ export type Database = {
       }
       unit_invoices: {
         Row: {
+          bandeira_tarifaria:
+            | Database["public"]["Enums"]["bandeira_tarifaria"]
+            | null
           compensated_kwh: number | null
           created_at: string
           current_balance_kwh: number | null
+          demanda_contratada_kw: number | null
+          demanda_medida_kw: number | null
           due_date: string | null
           energy_consumed_kwh: number | null
           energy_injected_kwh: number | null
           id: string
+          multa_ultrapassagem: number | null
           pdf_file_url: string | null
           previous_balance_kwh: number | null
           raw_extraction: Json
@@ -18728,17 +18734,24 @@ export type Database = {
           status: string
           tenant_id: string
           total_amount: number | null
+          ultrapassagem_kw: number | null
           unit_id: string
           updated_at: string
         }
         Insert: {
+          bandeira_tarifaria?:
+            | Database["public"]["Enums"]["bandeira_tarifaria"]
+            | null
           compensated_kwh?: number | null
           created_at?: string
           current_balance_kwh?: number | null
+          demanda_contratada_kw?: number | null
+          demanda_medida_kw?: number | null
           due_date?: string | null
           energy_consumed_kwh?: number | null
           energy_injected_kwh?: number | null
           id?: string
+          multa_ultrapassagem?: number | null
           pdf_file_url?: string | null
           previous_balance_kwh?: number | null
           raw_extraction?: Json
@@ -18749,17 +18762,24 @@ export type Database = {
           status?: string
           tenant_id: string
           total_amount?: number | null
+          ultrapassagem_kw?: number | null
           unit_id: string
           updated_at?: string
         }
         Update: {
+          bandeira_tarifaria?:
+            | Database["public"]["Enums"]["bandeira_tarifaria"]
+            | null
           compensated_kwh?: number | null
           created_at?: string
           current_balance_kwh?: number | null
+          demanda_contratada_kw?: number | null
+          demanda_medida_kw?: number | null
           due_date?: string | null
           energy_consumed_kwh?: number | null
           energy_injected_kwh?: number | null
           id?: string
+          multa_ultrapassagem?: number | null
           pdf_file_url?: string | null
           previous_balance_kwh?: number | null
           raw_extraction?: Json
@@ -18770,6 +18790,7 @@ export type Database = {
           status?: string
           tenant_id?: string
           total_amount?: number | null
+          ultrapassagem_kw?: number | null
           unit_id?: string
           updated_at?: string
         }
@@ -23181,6 +23202,7 @@ export type Database = {
         | "negociacao"
         | "anotacao"
         | "status_change"
+      bandeira_tarifaria: "verde" | "amarela" | "vermelha_1" | "vermelha_2"
       billing_notification_channel: "whatsapp" | "email" | "ambos"
       billing_setup_status: "pending" | "active" | "error" | "disabled"
       chart_engine: "rendered_image" | "docx_native"
@@ -23463,6 +23485,7 @@ export const Constants = {
         "anotacao",
         "status_change",
       ],
+      bandeira_tarifaria: ["verde", "amarela", "vermelha_1", "vermelha_2"],
       billing_notification_channel: ["whatsapp", "email", "ambos"],
       billing_setup_status: ["pending", "active", "error", "disabled"],
       chart_engine: ["rendered_image", "docx_native"],
