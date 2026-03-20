@@ -27,6 +27,8 @@ interface Props {
   ucId: string;
   meterId?: string | null;
   plantId?: string | null;
+  /** Resolved solar_plants.id (from monitor_plants.legacy_plant_id) for metrics queries */
+  solarPlantId?: string | null;
   meterName?: string | null;
   meterOnline?: string | null;
   plantName?: string | null;
@@ -53,7 +55,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 };
 
 export function UCOverviewTab({
-  ucId, meterId, plantId, meterName, meterOnline, plantName, plantCapacityKwp, proximaLeituraData,
+  ucId, meterId, plantId, solarPlantId, meterName, meterOnline, plantName, plantCapacityKwp, proximaLeituraData,
 }: Props) {
   const navigate = useNavigate();
   const [chartPeriod, setChartPeriod] = useState<"7d" | "30d" | "3m">("30d");
@@ -67,21 +69,23 @@ export function UCOverviewTab({
   });
 
   // --- Plant metrics daily (for chart + KPI) ---
+  // solarPlantId = solar_plants.id (resolved from monitor_plants.legacy_plant_id in parent)
   const chartDays = chartPeriod === "7d" ? 7 : chartPeriod === "30d" ? 30 : 90;
+  const effectivePlantId = solarPlantId || plantId;
   const { data: plantMetrics = [], isLoading: loadingPlantMetrics } = useQuery({
-    queryKey: ["uc_overview_plant_metrics", plantId, chartDays],
+    queryKey: ["uc_overview_plant_metrics", effectivePlantId, chartDays],
     queryFn: async () => {
       const since = subDays(new Date(), chartDays).toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("solar_plant_metrics_daily")
         .select("date, energy_kwh, power_kw")
-        .eq("plant_id", plantId!)
+        .eq("plant_id", effectivePlantId!)
         .gte("date", since)
         .order("date", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!plantId,
+    enabled: !!effectivePlantId,
     staleTime: STALE_5M,
   });
 
