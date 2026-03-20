@@ -10779,6 +10779,59 @@ export type Database = {
         }
         Relationships: []
       }
+      plant_resizing_history: {
+        Row: {
+          comentario: string | null
+          created_at: string
+          created_by: string | null
+          data_ampliacao: string
+          geracao_anual_acordada_kwh: number | null
+          geracao_anual_prevista_kwh: number | null
+          id: string
+          plant_id: string
+          potencia_kwp: number
+          tenant_id: string
+          updated_at: string
+          valor_investido_total: number | null
+        }
+        Insert: {
+          comentario?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_ampliacao: string
+          geracao_anual_acordada_kwh?: number | null
+          geracao_anual_prevista_kwh?: number | null
+          id?: string
+          plant_id: string
+          potencia_kwp: number
+          tenant_id: string
+          updated_at?: string
+          valor_investido_total?: number | null
+        }
+        Update: {
+          comentario?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_ampliacao?: string
+          geracao_anual_acordada_kwh?: number | null
+          geracao_anual_prevista_kwh?: number | null
+          id?: string
+          plant_id?: string
+          potencia_kwp?: number
+          tenant_id?: string
+          updated_at?: string
+          valor_investido_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plant_resizing_history_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_sale_attachments: {
         Row: {
           created_at: string
