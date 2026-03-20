@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, Save, Loader2, Settings, Zap, Thermometer, ShieldAlert, Activity, Gauge } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, Save, Loader2, Settings, Zap, Thermometer, ShieldAlert, Activity, Gauge, RefreshCw } from "lucide-react";
 
 interface Props {
   meterId: string;
