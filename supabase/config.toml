@@ -305,3 +305,6 @@ verify_jwt = false
 
 [functions.check-billing-emails]
 verify_jwt = false
+
+[functions.gmail-oauth]
+verify_jwt = false
