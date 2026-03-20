@@ -190,9 +190,9 @@ export function AddCreditDialog({ open, onOpenChange, unitId, tenantId }: Props)
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Nenhuma</SelectItem>
-                  {linkedPlants?.map((lp) => (
-                    <SelectItem key={lp.plant_id} value={lp.plant_id}>
-                      {lp.monitor_plants?.name || lp.plant_id}
+                  {linkedPlants?.map((plant) => (
+                    <SelectItem key={plant.id} value={plant.id}>
+                      {plant.name || plant.id}
                     </SelectItem>
                   ))}
                 </SelectContent>
