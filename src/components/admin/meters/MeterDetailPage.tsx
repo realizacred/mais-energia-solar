@@ -163,7 +163,7 @@ export default function MeterDetailPage() {
   // Chart data
   const chartData = useMemo(() => {
     return [...readings].reverse().map(r => ({
-      time: new Date(r.measured_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      time: new Date(r.measured_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }),
       Potência: r.power_w,
       Tensão: r.voltage_v,
       Corrente: r.current_a,
@@ -397,7 +397,7 @@ export default function MeterDetailPage() {
             </div>
             <p className="text-sm text-muted-foreground">
               {latestStatus?.measured_at
-                ? `Última leitura: ${new Date(latestStatus.measured_at).toLocaleString("pt-BR")}`
+                ? `Última leitura: ${new Date(latestStatus.measured_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`
                 : "Sem leituras ainda"}
               {linkedUC && <> · UC: {linkedUC.nome}</>}
             </p>
@@ -625,7 +625,7 @@ export default function MeterDetailPage() {
                     <TableBody>
                       {recentReadings.map((r: any) => (
                         <TableRow key={r.id} className="hover:bg-muted/30">
-                          <TableCell className="text-xs">{new Date(r.measured_at).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="text-xs">{new Date(r.measured_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</TableCell>
                           <TableCell className="text-xs font-mono">{r.power_w?.toFixed(1) ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{r.voltage_v?.toFixed(1) ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{r.current_a?.toFixed(3) ?? "—"}</TableCell>
@@ -713,7 +713,7 @@ export default function MeterDetailPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Última Comunicação</p>
-                    <p>{meter.last_seen_at ? new Date(meter.last_seen_at).toLocaleString("pt-BR") : "—"}</p>
+                    <p>{meter.last_seen_at ? new Date(meter.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}</p>
                   </div>
                 </div>
               </CardContent>
