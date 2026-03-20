@@ -1,13 +1,15 @@
 /**
- * MeterDetailPage — Detail view for a single meter device.
+ * MeterDetailPage — Reformulated detail view for a single meter device.
  * Route: /admin/medidores/:id
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
+import { tuyaIntegrationService } from "@/services/tuyaIntegrationService";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { StatCard } from "@/components/ui-kit/StatCard";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,26 +17,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Gauge, ArrowLeft, ArrowLeftRight, Zap, Activity,
-  Clock, ChevronDown, ChevronUp, AlertTriangle, Unlink
+  Gauge, ArrowLeft, Zap, Activity, BarChart3,
+  Clock, AlertTriangle, Unlink, Power, PowerOff,
+  RefreshCw, Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Area, AreaChart
+} from "recharts";
 
 const STALE_REALTIME = 1000 * 30;
 const STALE_NORMAL = 1000 * 60 * 5;
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} className="text-muted-foreground">
+          {p.name}: <span className="font-semibold text-foreground">{p.value?.toFixed(2) ?? "—"}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
 
 export default function MeterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [showRaw, setShowRaw] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState<"24h" | "7d" | "30d">("24h");
 
   const { data: meter, isLoading, error } = useQuery({
     queryKey: ["meter_device", id],
@@ -50,9 +74,17 @@ export default function MeterDetailPage() {
     staleTime: STALE_REALTIME,
   });
 
+  const readingsLimit = chartPeriod === "24h" ? 24 : chartPeriod === "7d" ? 168 : 720;
   const { data: readings = [] } = useQuery({
-    queryKey: ["meter_readings", id],
-    queryFn: () => meterService.getLatestReadings(id!, 20),
+    queryKey: ["meter_readings", id, readingsLimit],
+    queryFn: () => meterService.getLatestReadings(id!, readingsLimit),
+    enabled: !!id,
+    staleTime: STALE_REALTIME,
+  });
+
+  const { data: recentReadings = [] } = useQuery({
+    queryKey: ["meter_readings_table", id],
+    queryFn: () => meterService.getLatestReadings(id!, 50),
     enabled: !!id,
     staleTime: STALE_REALTIME,
   });
@@ -64,20 +96,11 @@ export default function MeterDetailPage() {
     staleTime: STALE_NORMAL,
   });
 
-  const { data: syncLogs = [] } = useQuery({
-    queryKey: ["meter_sync_logs", meter?.integration_config_id],
-    queryFn: async () => {
-      if (!meter?.integration_config_id) return [];
-      const { data } = await supabase
-        .from("integration_sync_runs")
-        .select("*")
-        .eq("integration_config_id", meter.integration_config_id)
-        .order("started_at", { ascending: false })
-        .limit(5);
-      return data || [];
-    },
-    enabled: !!meter?.integration_config_id,
-    staleTime: STALE_NORMAL,
+  const { data: alerts = [] } = useQuery({
+    queryKey: ["meter_alerts", id],
+    queryFn: () => tuyaIntegrationService.getAlerts(id!, false),
+    enabled: !!id,
+    staleTime: STALE_REALTIME,
   });
 
   const activeLink = links.find(l => l.is_active);
@@ -97,30 +120,60 @@ export default function MeterDetailPage() {
     staleTime: STALE_NORMAL,
   });
 
-  // CORREÇÃO 7 — Buscar usina vinculada à UC
-  const { data: linkedPlant } = useQuery({
-    queryKey: ["plant_for_uc", linkedUC?.id],
-    queryFn: async () => {
-      if (!linkedUC?.id) return null;
-      const { data: link } = await supabase
-        .from("unit_plant_links")
-        .select("plant_id")
-        .eq("unit_id", linkedUC.id)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (!link?.plant_id) return null;
-      const { data: plant } = await supabase
-        .from("monitor_plants")
-        .select("id, name")
-        .eq("id", link.plant_id)
-        .maybeSingle();
-      return plant;
-    },
-    enabled: !!linkedUC?.id,
-    staleTime: STALE_NORMAL,
-  });
+  // Chart data
+  const chartData = useMemo(() => {
+    return [...readings].reverse().map(r => ({
+      time: new Date(r.measured_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      Potência: r.power_w,
+      Tensão: r.voltage_v,
+      Corrente: r.current_a,
+    }));
+  }, [readings]);
 
-  // CORREÇÃO 5 — Desvincular medidor
+  // Current switch state from DPS
+  const switchState = useMemo(() => {
+    if (!latestStatus) return null;
+    const raw = (latestStatus as any)?.raw_payload;
+    if (!raw?.dps) return null;
+    const sw = raw.dps.find((dp: any) => dp.code === "switch");
+    return sw ? !!sw.value : null;
+  }, [latestStatus]);
+
+  async function handleSync() {
+    if (!meter?.integration_config_id) return;
+    setSyncing(true);
+    try {
+      await tuyaIntegrationService.syncDeviceStatus(meter.integration_config_id, id);
+      toast({ title: "Leitura sincronizada com sucesso" });
+      qc.invalidateQueries({ queryKey: ["meter_status_latest", id] });
+      qc.invalidateQueries({ queryKey: ["meter_readings", id] });
+    } catch (err: any) {
+      toast({ title: "Erro ao sincronizar", description: err?.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleToggle() {
+    if (!meter?.integration_config_id) return;
+    const newValue = !switchState;
+    setToggling(true);
+    try {
+      await tuyaIntegrationService.sendCommand(meter.integration_config_id, meter.external_device_id, [
+        { code: "switch", value: newValue },
+      ]);
+      toast({ title: newValue ? "Medidor ligado" : "Medidor desligado" });
+      // Refresh status
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["meter_status_latest", id] });
+      }, 2000);
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar comando", description: err?.message, variant: "destructive" });
+    } finally {
+      setToggling(false);
+    }
+  }
+
   async function handleDesvincular() {
     if (!activeLink) return;
     setUnlinking(true);
@@ -129,7 +182,6 @@ export default function MeterDetailPage() {
       toast({ title: "Medidor desvinculado com sucesso" });
       qc.invalidateQueries({ queryKey: ["meter_links", id] });
       qc.invalidateQueries({ queryKey: ["unit_meter_links"] });
-      qc.invalidateQueries({ queryKey: ["meter_devices"] });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
     } finally {
@@ -137,27 +189,17 @@ export default function MeterDetailPage() {
     }
   }
 
-  // CORREÇÃO 2 — Skeleton loading
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 space-y-6">
         <Skeleton className="h-9 w-24" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <Card key={i} className="p-5">
-              <Skeleton className="h-5 w-32 mb-4" />
-              <div className="grid grid-cols-2 gap-4">
-                {Array.from({ length: 4 }).map((_, j) => (
-                  <div key={j}>
-                    <Skeleton className="h-3 w-20 mb-2" />
-                    <Skeleton className="h-6 w-24" />
-                  </div>
-                ))}
-              </div>
-            </Card>
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
           ))}
         </div>
+        <Skeleton className="h-[300px] w-full rounded-xl" />
       </div>
     );
   }
@@ -173,245 +215,306 @@ export default function MeterDetailPage() {
     );
   }
 
+  const powerVal = latestStatus?.power_w;
+  const voltageVal = latestStatus?.voltage_v;
+  const currentVal = latestStatus?.current_a;
+  const energyVal = latestStatus?.energy_import_kwh;
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <Button variant="ghost" size="sm" onClick={() => navigate("/admin/medidores")}>
         <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
       </Button>
 
-      {/* Header */}
-      <div className="rounded-xl bg-gradient-to-r from-card to-muted/30 border shadow-sm p-5">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-            <Gauge className="h-6 w-6 text-primary" />
+      {/* Header §26 */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+            <Gauge className="w-5 h-5" />
           </div>
-          <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Nome</p>
-              <p className="text-sm font-bold truncate">{meter.name}</p>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground">{meter.name}</h1>
+              <StatusBadge variant={meter.online_status === "online" ? "success" : "destructive"} dot>
+                {meter.online_status === "online" ? "Online" : "Offline"}
+              </StatusBadge>
+              {alerts.length > 0 && (
+                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
+                  <AlertTriangle className="w-3 h-3 mr-1" /> {alerts.length} alerta(s)
+                </Badge>
+              )}
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Modelo</p>
-              <p className="text-sm font-bold">{meter.model || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Provider</p>
-              <Badge variant="outline" className="text-xs capitalize">{meter.provider}</Badge>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Device ID</p>
-              <p className="text-xs font-mono truncate">{meter.external_device_id}</p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {latestStatus?.measured_at
+                ? `Última leitura: ${new Date(latestStatus.measured_at).toLocaleString("pt-BR")}`
+                : "Sem leituras ainda"}
+              {linkedUC && <> · UC: {linkedUC.nome}</>}
+            </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {meter.bidirectional_supported && (
-              <Badge variant="outline" className="text-xs">
-                <ArrowLeftRight className="w-3 h-3 mr-0.5" /> Bidirecional
-              </Badge>
-            )}
-            <StatusBadge variant={meter.online_status === "online" ? "success" : "destructive"} dot>
-              {meter.online_status === "online" ? "Online" : "Offline"}
-            </StatusBadge>
-          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing || !meter.integration_config_id}>
+            {syncing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+            Sincronizar
+          </Button>
+          {switchState !== null && (
+            <Button
+              size="sm"
+              variant={switchState ? "default" : "outline"}
+              className={switchState ? "bg-success hover:bg-success/90 text-success-foreground" : "border-destructive text-destructive hover:bg-destructive/10"}
+              onClick={handleToggle}
+              disabled={toggling}
+            >
+              {toggling ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : switchState ? (
+                <Power className="w-4 h-4 mr-1" />
+              ) : (
+                <PowerOff className="w-4 h-4 mr-1" />
+              )}
+              {switchState ? "Ligado" : "Desligado"}
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Current readings */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Activity className="w-4 h-4" /> Leitura Atual
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {latestStatus ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Potência</p>
-                  <p className="text-lg font-bold">{latestStatus.power_w != null ? `${latestStatus.power_w} W` : "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Tensão</p>
-                  <p className="text-lg font-bold">{latestStatus.voltage_v != null ? `${latestStatus.voltage_v} V` : "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Corrente</p>
-                  <p className="text-lg font-bold">{latestStatus.current_a != null ? `${latestStatus.current_a} A` : "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Energia Importada</p>
-                  <p className="text-lg font-bold">{latestStatus.energy_import_kwh != null ? `${latestStatus.energy_import_kwh} kWh` : "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Energia Exportada</p>
-                  <p className="text-lg font-bold">{latestStatus.energy_export_kwh != null ? `${latestStatus.energy_export_kwh} kWh` : "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Última Atualização</p>
-                  <p className="text-sm">{new Date(latestStatus.measured_at).toLocaleString("pt-BR")}</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma leitura disponível. Sincronize as leituras na página de APIs.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Info */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Gauge className="w-4 h-4" /> Informações
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Fabricante</p>
-                <p>{meter.manufacturer || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Firmware</p>
-                <p>{meter.firmware_version || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Categoria</p>
-                <p>{meter.category || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Serial</p>
-                <p className="font-mono text-xs">{meter.serial_number || "—"}</p>
-              </div>
-              {/* CORREÇÃO 3 — Button shadcn em vez de <button> nativo */}
-              <div>
-                <p className="text-xs text-muted-foreground">UC Vinculada</p>
-                {linkedUC ? (
-                  <div className="space-y-1">
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-sm font-medium"
-                      onClick={() => navigate(`/admin/ucs/${linkedUC.id}`)}
-                    >
-                      {linkedUC.nome}
-                    </Button>
-                    {/* CORREÇÃO 7 — Usina vinculada */}
-                    {linkedPlant && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Zap className="w-3.5 h-3.5 text-primary" />
-                        <span>Usina: {linkedPlant.name}</span>
-                        <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" asChild>
-                          <Link to={`/admin/monitoramento/usinas/${linkedPlant.id}`}>
-                            Ver usina →
-                          </Link>
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground italic">Não vinculado</span>
-                )}
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Última Comunicação</p>
-                <p>{meter.last_seen_at ? new Date(meter.last_seen_at).toLocaleString("pt-BR") : "—"}</p>
-              </div>
-            </div>
-
-            {/* CORREÇÃO 5 — Botão desvincular com AlertDialog */}
-            {activeLink && linkedUC && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-destructive text-destructive hover:bg-destructive/10 mt-2"
-                    disabled={unlinking}
-                  >
-                    <Unlink className="w-4 h-4 mr-2" />
-                    {unlinking ? "Desvinculando..." : "Desvincular UC"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="w-[90vw] max-w-md">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Desvincular medidor?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Tem certeza que deseja desvincular o medidor "{meter.name}" da UC "{linkedUC.nome}"?
-                      Esta ação pode ser revertida vinculando novamente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDesvincular}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Desvincular
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </CardContent>
-        </Card>
+      {/* KPI Cards §27 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={Zap}
+          label="Potência Atual"
+          value={powerVal != null ? (powerVal >= 1000 ? `${(powerVal / 1000).toFixed(2)} kW` : `${powerVal} W`) : "—"}
+          color="primary"
+        />
+        <StatCard
+          icon={Activity}
+          label="Tensão"
+          value={voltageVal != null ? `${voltageVal.toFixed(1)} V` : "—"}
+          color="info"
+        />
+        <StatCard
+          icon={Gauge}
+          label="Corrente"
+          value={currentVal != null ? `${currentVal.toFixed(2)} A` : "—"}
+          color="warning"
+        />
+        <StatCard
+          icon={BarChart3}
+          label="Energia Total"
+          value={energyVal != null ? `${energyVal.toFixed(2)} kWh` : "—"}
+          color="success"
+        />
       </div>
 
-      {/* Recent readings */}
-      {readings.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Clock className="w-4 h-4" /> Histórico Recente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Data/Hora</TableHead>
-                    <TableHead className="text-xs">Potência (W)</TableHead>
-                    <TableHead className="text-xs">Tensão (V)</TableHead>
-                    <TableHead className="text-xs">Corrente (A)</TableHead>
-                    <TableHead className="text-xs">Energia Imp. (kWh)</TableHead>
-                    <TableHead className="text-xs">Energia Exp. (kWh)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {readings.map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="text-xs">{new Date(r.measured_at).toLocaleString("pt-BR")}</TableCell>
-                      <TableCell className="text-xs font-mono">{r.power_w ?? "—"}</TableCell>
-                      <TableCell className="text-xs font-mono">{r.voltage_v ?? "—"}</TableCell>
-                      <TableCell className="text-xs font-mono">{r.current_a ?? "—"}</TableCell>
-                      <TableCell className="text-xs font-mono">{r.energy_import_kwh ?? "—"}</TableCell>
-                      <TableCell className="text-xs font-mono">{r.energy_export_kwh ?? "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Tabs defaultValue="chart" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="chart">Gráfico</TabsTrigger>
+          <TabsTrigger value="readings">Leituras</TabsTrigger>
+          <TabsTrigger value="info">Informações</TabsTrigger>
+        </TabsList>
 
-      {/* Raw payload */}
-      <Card>
-        <CardHeader className="pb-2 cursor-pointer" onClick={() => setShowRaw(!showRaw)}>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xs text-muted-foreground">Payload Técnico (Raw Device)</CardTitle>
-            {showRaw ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        {/* Chart Tab */}
+        <TabsContent value="chart">
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Activity className="w-4 h-4" /> Histórico de Leituras
+                </CardTitle>
+                <div className="flex gap-1">
+                  {(["24h", "7d", "30d"] as const).map(p => (
+                    <Button
+                      key={p}
+                      variant={chartPeriod === p ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setChartPeriod(p)}
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gradPower" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gradVoltage" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--info))" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="hsl(var(--info))" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gradCurrent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="time"
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area type="monotone" dataKey="Potência" stroke="hsl(var(--primary))" fill="url(#gradPower)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="Tensão" stroke="hsl(var(--info))" fill="url(#gradVoltage)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="Corrente" stroke="hsl(var(--warning))" fill="url(#gradCurrent)" strokeWidth={2} dot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground text-sm">
+                  Nenhuma leitura disponível para o período selecionado
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Readings Table Tab */}
+        <TabsContent value="readings">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Clock className="w-4 h-4" /> Últimas 50 Leituras
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recentReadings.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead className="text-xs font-semibold text-foreground">Data/Hora</TableHead>
+                        <TableHead className="text-xs font-semibold text-foreground">Potência (W)</TableHead>
+                        <TableHead className="text-xs font-semibold text-foreground">Tensão (V)</TableHead>
+                        <TableHead className="text-xs font-semibold text-foreground">Corrente (A)</TableHead>
+                        <TableHead className="text-xs font-semibold text-foreground">Energia Imp. (kWh)</TableHead>
+                        <TableHead className="text-xs font-semibold text-foreground">Energia Exp. (kWh)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentReadings.map((r: any) => (
+                        <TableRow key={r.id} className="hover:bg-muted/30">
+                          <TableCell className="text-xs">{new Date(r.measured_at).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="text-xs font-mono">{r.power_w?.toFixed(1) ?? "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{r.voltage_v?.toFixed(1) ?? "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{r.current_a?.toFixed(3) ?? "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{r.energy_import_kwh?.toFixed(2) ?? "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{r.energy_export_kwh?.toFixed(2) ?? "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhuma leitura registrada.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Info Tab */}
+        <TabsContent value="info">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Gauge className="w-4 h-4" /> Informações do Dispositivo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Modelo</p>
+                    <p>{meter.model || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Fabricante</p>
+                    <p>{meter.manufacturer || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Firmware</p>
+                    <p>{meter.firmware_version || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Categoria</p>
+                    <p>{meter.category || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Serial</p>
+                    <p className="font-mono text-xs">{meter.serial_number || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Device ID</p>
+                    <p className="font-mono text-xs truncate">{meter.external_device_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Provider</p>
+                    <Badge variant="outline" className="text-xs capitalize">{meter.provider}</Badge>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Última Comunicação</p>
+                    <p>{meter.last_seen_at ? new Date(meter.last_seen_at).toLocaleString("pt-BR") : "—"}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Vinculações</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {linkedUC ? (
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">UC Vinculada</p>
+                      <Button variant="link" size="sm" className="h-auto p-0 text-sm font-medium" onClick={() => navigate(`/admin/ucs/${linkedUC.id}`)}>
+                        {linkedUC.nome}
+                      </Button>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10" disabled={unlinking}>
+                          <Unlink className="w-4 h-4 mr-2" />
+                          {unlinking ? "Desvinculando..." : "Desvincular UC"}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="w-[90vw] max-w-md">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Desvincular medidor?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja desvincular o medidor "{meter.name}" da UC "{linkedUC.nome}"?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDesvincular} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Desvincular
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">Nenhuma UC vinculada</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </CardHeader>
-        {showRaw && (
-          <CardContent>
-            <pre className="text-xs bg-muted/50 rounded-lg p-3 overflow-x-auto max-h-[300px]">
-              {JSON.stringify(meter.metadata, null, 2)}
-            </pre>
-          </CardContent>
-        )}
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
