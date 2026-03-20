@@ -9,6 +9,8 @@ import { meterService } from "@/services/meterService";
 import { tuyaIntegrationService } from "@/services/tuyaIntegrationService";
 import { MeterAlertConfig } from "./MeterAlertConfig";
 import { MeterCommandPanel } from "./MeterCommandPanel";
+import { MeterAlarmPanel } from "./MeterAlarmPanel";
+import { MeterPhaseStatus } from "./MeterPhaseStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
@@ -150,17 +152,19 @@ export default function MeterDetailPage() {
   // Current switch state and extra DPs from raw_payload
   const extraDPs = useMemo(() => {
     const raw = (latestStatus as any)?.raw_payload;
-    if (!raw?.dps) return { switchState: null as boolean | null, temperature: null as number | null, leakageCurrent: null as number | null, balanceEnergy: null as number | null };
-    const dps: any[] = raw.dps;
+    const dps: any[] = raw?.dps || [];
     const sw = dps.find((dp: any) => dp.code === "switch");
-    const temp = dps.find((dp: any) => dp.code === "temp_current");
-    const leakage = dps.find((dp: any) => dp.code === "leakage_current");
-    const balance = dps.find((dp: any) => dp.code === "balance_energy");
     return {
       switchState: sw ? !!sw.value : null,
-      temperature: temp && typeof temp.value === "number" ? temp.value : null,
-      leakageCurrent: leakage && typeof leakage.value === "number" ? leakage.value : null,
-      balanceEnergy: balance && typeof balance.value === "number" ? (balance.value * 0.01) : null,
+      temperature: (latestStatus as any)?.temperature_c ?? null,
+      leakageCurrent: (latestStatus as any)?.leakage_current_ma ?? null,
+      balanceEnergy: (latestStatus as any)?.energy_balance_kwh ?? null,
+      powerFactor: (latestStatus as any)?.power_factor ?? null,
+      reactivePower: (latestStatus as any)?.reactive_power_kvar ?? null,
+      statusA: (latestStatus as any)?.status_a ?? null,
+      statusB: (latestStatus as any)?.status_b ?? null,
+      statusC: (latestStatus as any)?.status_c ?? null,
+      faultBitmap: (latestStatus as any)?.fault_bitmap ?? null,
     };
   }, [latestStatus]);
 
@@ -441,31 +445,31 @@ export default function MeterDetailPage() {
           </ShadTooltip>
         </TooltipProvider>
       </div>
-      {/* Extra DPs row */}
+      {/* Extra DPs row — expanded KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={Activity}
+          label="Fator de Potência"
+          value={extraDPs.powerFactor != null ? `${extraDPs.powerFactor.toFixed(3)} pf` : "—"}
+          color="info"
+        />
         <StatCard
           icon={Thermometer}
           label="Temperatura"
           value={extraDPs.temperature != null ? `${extraDPs.temperature} °C` : "—"}
-          color="warning"
+          color={extraDPs.temperature != null && extraDPs.temperature > 80 ? "destructive" : extraDPs.temperature != null && extraDPs.temperature > 60 ? "warning" : "warning"}
         />
         <StatCard
-          icon={ShieldAlert}
-          label="Corrente Fuga"
+          icon={Zap}
+          label="Corrente de Fuga"
           value={extraDPs.leakageCurrent != null ? `${extraDPs.leakageCurrent} mA` : "—"}
-          color="destructive"
+          color={extraDPs.leakageCurrent != null && extraDPs.leakageCurrent >= 30 ? "destructive" : "success"}
         />
         <StatCard
           icon={BarChart3}
-          label="Saldo Energia"
-          value={extraDPs.balanceEnergy != null ? `${extraDPs.balanceEnergy.toFixed(2)} kWh` : "—"}
-          color="info"
-        />
-        <StatCard
-          icon={Activity}
-          label="Frequência"
-          value="60 Hz"
-          color="success"
+          label="Potência Reativa"
+          value={extraDPs.reactivePower != null ? `${extraDPs.reactivePower.toFixed(1)} kVar` : "—"}
+          color="primary"
         />
       </div>
 
@@ -607,6 +611,12 @@ export default function MeterDetailPage() {
 
         {/* Info Tab */}
         <TabsContent value="info">
+          {/* Alarms & Phase Status */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MeterAlarmPanel faultBitmap={extraDPs.faultBitmap} />
+            <MeterPhaseStatus statusA={extraDPs.statusA} statusB={extraDPs.statusB} statusC={extraDPs.statusC} />
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader className="pb-3">

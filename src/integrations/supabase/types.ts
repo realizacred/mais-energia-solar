@@ -8107,39 +8107,69 @@ export type Database = {
       meter_status_latest: {
         Row: {
           current_a: number | null
+          energy_balance_kwh: number | null
           energy_export_kwh: number | null
           energy_import_kwh: number | null
+          fault_bitmap: string | null
+          leakage_current_ma: number | null
           measured_at: string
           meter_device_id: string
+          neutral_current_a: number | null
           online_status: string | null
+          power_factor: number | null
           power_w: number | null
           raw_payload: Json
+          reactive_power_kvar: number | null
+          status_a: string | null
+          status_b: string | null
+          status_c: string | null
+          temperature_c: number | null
           tenant_id: string
           updated_at: string
           voltage_v: number | null
         }
         Insert: {
           current_a?: number | null
+          energy_balance_kwh?: number | null
           energy_export_kwh?: number | null
           energy_import_kwh?: number | null
+          fault_bitmap?: string | null
+          leakage_current_ma?: number | null
           measured_at: string
           meter_device_id: string
+          neutral_current_a?: number | null
           online_status?: string | null
+          power_factor?: number | null
           power_w?: number | null
           raw_payload?: Json
+          reactive_power_kvar?: number | null
+          status_a?: string | null
+          status_b?: string | null
+          status_c?: string | null
+          temperature_c?: number | null
           tenant_id: string
           updated_at?: string
           voltage_v?: number | null
         }
         Update: {
           current_a?: number | null
+          energy_balance_kwh?: number | null
           energy_export_kwh?: number | null
           energy_import_kwh?: number | null
+          fault_bitmap?: string | null
+          leakage_current_ma?: number | null
           measured_at?: string
           meter_device_id?: string
+          neutral_current_a?: number | null
           online_status?: string | null
+          power_factor?: number | null
           power_w?: number | null
           raw_payload?: Json
+          reactive_power_kvar?: number | null
+          status_a?: string | null
+          status_b?: string | null
+          status_c?: string | null
+          temperature_c?: number | null
           tenant_id?: string
           updated_at?: string
           voltage_v?: number | null
