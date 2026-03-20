@@ -448,7 +448,7 @@ export function UCOverviewTab({
                   variant="outline"
                   size="sm"
                   className="w-full mt-2 text-xs gap-1"
-                  onClick={() => navigate(`/admin/monitoramento/${plantId}`)}
+                  onClick={() => navigate(`/admin/monitoramento/usinas/${plantId}`)}
                 >
                   Ver detalhes <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
