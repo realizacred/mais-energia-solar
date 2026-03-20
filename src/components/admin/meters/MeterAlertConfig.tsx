@@ -59,10 +59,36 @@ const DEFAULTS: AlertConfig = {
   energy_alerts_enabled: false,
 };
 
-export function MeterAlertConfig({ meterId, metadata, latestStatus }: Props) {
+export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, externalDeviceId }: Props) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [config, setConfig] = useState<AlertConfig>(DEFAULTS);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleResync() {
+    if (!configId || !externalDeviceId) {
+      toast({ title: "Sem configuração Tuya vinculada", variant: "destructive" });
+      return;
+    }
+    setSyncing(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+
+      const resp = await supabase.functions.invoke("tuya-proxy", {
+        body: { action: "sync_readings", config_id: configId, device_id: externalDeviceId },
+      });
+      if (resp.error) throw resp.error;
+      qc.invalidateQueries({ queryKey: ["meter_status_latest", meterId] });
+      toast({ title: "Dados resincronizados com sucesso" });
+    } catch (err: any) {
+      toast({ title: "Erro ao resincronizar", description: err?.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   useEffect(() => {
     const ac = metadata?.alert_config;
