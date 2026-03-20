@@ -346,27 +346,6 @@ Deno.serve(async (req) => {
         // All methods exhausted
         result = { success: true, result: [], total: 0 };
         break;
-
-        let lastRowKey = "";
-        const allDevices: any[] = [];
-        let hasMore = true;
-
-        while (hasMore) {
-          const path = `/v2.0/cloud/thing?page_size=${pageSize}${lastRowKey ? `&last_row_key=${encodeURIComponent(lastRowKey)}` : ""}`;
-          const resp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", path);
-
-          if (!resp.success) {
-            throw new Error(`Tuya get_devices error: ${resp.code} - ${resp.msg}`);
-          }
-
-          const items = resp.result?.list || [];
-          allDevices.push(...items);
-          lastRowKey = resp.result?.last_row_key || "";
-          hasMore = !!lastRowKey && items.length === pageSize;
-        }
-
-        result = { success: true, result: allDevices, total: allDevices.length };
-        break;
       }
 
       case "get_device_status": {
