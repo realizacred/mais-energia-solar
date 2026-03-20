@@ -127,7 +127,7 @@ export const meterService = {
   async getStatusLatest(meterId: string) {
     const { data, error } = await supabase
       .from("meter_status_latest")
-      .select("meter_device_id, measured_at, online_status, voltage_v, current_a, power_w, energy_import_kwh, energy_export_kwh, updated_at")
+      .select("meter_device_id, measured_at, online_status, voltage_v, current_a, power_w, energy_import_kwh, energy_export_kwh, raw_payload, updated_at")
       .eq("meter_device_id", meterId)
       .maybeSingle();
     if (error) throw error;
