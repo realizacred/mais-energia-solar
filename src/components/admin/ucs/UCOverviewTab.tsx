@@ -319,9 +319,9 @@ export function UCOverviewTab({
           {/* Series toggles */}
           <div className="flex flex-wrap gap-3 mt-2">
             {([
-              { key: "geracao" as const, label: "Geração", color: "bg-warning" },
-              { key: "consumo" as const, label: "Consumo", color: "bg-primary" },
-              { key: "injecao" as const, label: "Injeção", color: "bg-success" },
+              { key: "geracao" as const, label: "Geração", color: "bg-success" },
+              { key: "consumo" as const, label: "Consumo", color: "bg-destructive" },
+              { key: "injecao" as const, label: "Injeção", color: "bg-warning" },
             ]).map(({ key, label, color }) => (
               <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground select-none">
                 <button
