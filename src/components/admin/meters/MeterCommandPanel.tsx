@@ -184,68 +184,66 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                 const isSending = sendingCode === dp.code;
                 const result = lastResults[dp.code];
 
-                return (
-                  <div
-                    key={dp.code}
-                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                  return (
+                    <div
+                      key={dp.code}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
+                    >
+                      {/* Label + tooltip */}
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
                         <Badge variant="outline" className="text-[10px] font-mono shrink-0">{dp.code}</Badge>
                         <span className="text-sm font-medium text-foreground truncate">{dp.label}</span>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0 cursor-help" />
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[300px] text-xs">
+                          <TooltipContent side="top" className="max-w-[320px] text-xs leading-relaxed">
                             {dp.description}
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{dp.description}</p>
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      {dp.type === "boolean" ? (
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={boolValues[dp.code] ?? false}
-                            onCheckedChange={(v) => setBoolValue(dp.code, v)}
+                      {/* Controls */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {dp.type === "boolean" ? (
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={boolValues[dp.code] ?? false}
+                              onCheckedChange={(v) => setBoolValue(dp.code, v)}
+                            />
+                            <span className="text-[11px] text-muted-foreground w-16">
+                              {boolValues[dp.code] ? "Ligado" : "Desligado"}
+                            </span>
+                          </div>
+                        ) : (
+                          <Input
+                            type="number"
+                            placeholder={`${dp.min ?? 0}–${dp.max ?? 99999}`}
+                            value={values[dp.code] ?? ""}
+                            onChange={(e) => setNumberValue(dp.code, e.target.value)}
+                            min={dp.min}
+                            max={dp.max}
+                            className="w-24 h-8 text-xs"
                           />
-                          <span className="text-xs text-muted-foreground w-16">
-                            {boolValues[dp.code] ? "Ligado" : "Desligado"}
-                          </span>
-                        </div>
-                      ) : (
-                        <Input
-                          type="number"
-                          placeholder={`${dp.min ?? 0}–${dp.max ?? 99999}`}
-                          value={values[dp.code] ?? ""}
-                          onChange={(e) => setNumberValue(dp.code, e.target.value)}
-                          min={dp.min}
-                          max={dp.max}
-                          className="w-28 h-8 text-xs"
-                        />
-                      )}
+                        )}
 
-                      {result && (
-                        <Badge variant={result.success ? "default" : "destructive"} className="text-[10px] shrink-0">
-                          {result.success ? "✓" : "✗"}
-                        </Badge>
-                      )}
+                        {result && (
+                          <Badge variant={result.success ? "default" : "destructive"} className="text-[10px] shrink-0">
+                            {result.success ? "✓" : "✗"}
+                          </Badge>
+                        )}
 
-                      <Button
-                        size="sm"
-                        className="h-8 px-3"
-                        onClick={() => handleSend(dp)}
-                        disabled={isSending}
-                      >
-                        {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                        <span className="hidden sm:inline ml-1 text-xs">Enviar</span>
-                      </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 px-3"
+                          onClick={() => handleSend(dp)}
+                          disabled={isSending}
+                        >
+                          {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                );
+                  );
               })}
             </div>
           </div>
