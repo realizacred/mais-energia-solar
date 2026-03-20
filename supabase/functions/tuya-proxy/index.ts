@@ -296,13 +296,18 @@ Deno.serve(async (req) => {
         const allDevices: any[] = [];
         let hasMore = true;
 
+        // Use stored user_uid (SmartLife account UID) with fallback to token.uid (Cloud project UID)
+        const userUid = (config.settings as any)?.user_uid || token.uid;
+        console.log(`[tuya-proxy] Device listing: userUid=${userUid}, tokenUid=${token.uid}`);
+
         while (hasMore) {
           const path = `/v2.0/cloud/thing?page_size=${pageSize}${lastRowKey ? `&last_row_key=${encodeURIComponent(lastRowKey)}` : ""}`;
           const resp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", path);
 
           if (!resp.success) {
-            // Fallback to v1.0 device list using the uid
-            const uidPath = `/v1.0/users/${token.uid}/devices`;
+            // Fallback to v1.0 device list using the SmartLife user UID
+            const uidPath = `/v1.0/users/${userUid}/devices`;
+            console.log(`[tuya-proxy] v2.0 failed, fallback to ${uidPath}`);
             const fallback = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", uidPath);
             if (fallback.success && fallback.result) {
               allDevices.push(...fallback.result);
