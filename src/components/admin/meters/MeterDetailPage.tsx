@@ -30,7 +30,7 @@ import {
   Gauge, ArrowLeft, Zap, Activity, BarChart3,
   Clock, AlertTriangle, Unlink, Power, PowerOff,
   RefreshCw, Loader2, Thermometer, ShieldAlert, Pencil, Check, X, Terminal,
-  Save, CalendarDays, BookOpen,
+  Save, CalendarDays, BookOpen, Info,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip as ShadTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
