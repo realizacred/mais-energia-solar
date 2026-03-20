@@ -264,7 +264,30 @@ export default function MeterDetailPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground">{meter.name}</h1>
+              {editing ? (
+                <>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="h-8 w-48 text-base font-bold"
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setEditing(false); }}
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleRename} disabled={renaming}>
+                    {renaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-success" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(false)} disabled={renaming}>
+                    <X className="w-4 h-4 text-destructive" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-xl font-bold text-foreground">{meter.name}</h1>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditName(meter.name); setEditing(true); }}>
+                    <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                  </Button>
+                </>
+              )}
               <StatusBadge variant={meter.online_status === "online" ? "success" : "destructive"} dot>
                 {meter.online_status === "online" ? "Online" : "Offline"}
               </StatusBadge>
