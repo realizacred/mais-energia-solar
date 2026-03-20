@@ -65,7 +65,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("monitor_plants")
-        .select("id, name, installed_power_kwp, status, last_communication_at, lat, lng")
+        .select("id, name, installed_power_kwp, state, last_seen_at, lat, lng")
         .order("name")
         .limit(100);
       return data || [];
