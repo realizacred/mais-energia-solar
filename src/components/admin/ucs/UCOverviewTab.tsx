@@ -64,6 +64,7 @@ export function UCOverviewTab({
 }: Props) {
   const navigate = useNavigate();
   const [chartPeriod, setChartPeriod] = useState<"7d" | "30d" | "3m">("30d");
+  const [chartSeries, setChartSeries] = useState({ geracao: true, consumo: true, injecao: true });
 
   // --- Meter status latest ---
   const { data: meterStatus, isLoading: loadingMeter } = useQuery({
