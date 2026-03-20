@@ -229,6 +229,30 @@ export default function MeterDetailPage() {
       setRenaming(false);
     }
   }
+  // Populate leitura form fields on first load
+  useEffect(() => {
+    if (meter && !leituraLoaded) {
+      setLeitura03(String((meter as any).leitura_inicial_03 || 0));
+      setLeitura103(String((meter as any).leitura_inicial_103 || 0));
+      setLeituraData((meter as any).leitura_inicial_data || "");
+      setLeituraObs((meter as any).leitura_inicial_observacao || "");
+      setLeituraLoaded(true);
+    }
+  }, [meter, leituraLoaded]);
+
+  const saveLeituraMutation = useMutation({
+    mutationFn: () => meterService.updateLeituraInicial(meter!.id, {
+      leitura_inicial_03: Number(leitura03) || 0,
+      leitura_inicial_103: Number(leitura103) || 0,
+      leitura_inicial_data: leituraData || null,
+      leitura_inicial_observacao: leituraObs || null,
+    }),
+    onSuccess: () => {
+      toast({ title: "Leitura inicial salva com sucesso" });
+      qc.invalidateQueries({ queryKey: ["meter_device", id] });
+    },
+    onError: (err: any) => toast({ title: "Erro ao salvar", description: err?.message, variant: "destructive" }),
+  });
 
   if (isLoading) {
     return (
@@ -265,31 +289,6 @@ export default function MeterDetailPage() {
   const leituraInicial03 = Number((meter as any).leitura_inicial_03) || 0;
   const leituraInicial103 = Number((meter as any).leitura_inicial_103) || 0;
   const energiaRelogio = leituraInicial03 > 0 && energyVal != null ? energyVal + leituraInicial03 : null;
-
-  // Populate leitura form fields on first load
-  useEffect(() => {
-    if (meter && !leituraLoaded) {
-      setLeitura03(String((meter as any).leitura_inicial_03 || 0));
-      setLeitura103(String((meter as any).leitura_inicial_103 || 0));
-      setLeituraData((meter as any).leitura_inicial_data || "");
-      setLeituraObs((meter as any).leitura_inicial_observacao || "");
-      setLeituraLoaded(true);
-    }
-  }, [meter, leituraLoaded]);
-
-  const saveLeituraMutation = useMutation({
-    mutationFn: () => meterService.updateLeituraInicial(meter!.id, {
-      leitura_inicial_03: Number(leitura03) || 0,
-      leitura_inicial_103: Number(leitura103) || 0,
-      leitura_inicial_data: leituraData || null,
-      leitura_inicial_observacao: leituraObs || null,
-    }),
-    onSuccess: () => {
-      toast({ title: "Leitura inicial salva com sucesso" });
-      qc.invalidateQueries({ queryKey: ["meter_device", id] });
-    },
-    onError: (err: any) => toast({ title: "Erro ao salvar", description: err?.message, variant: "destructive" }),
-  });
 
   return (
     <div className="p-4 md:p-6 space-y-6">
