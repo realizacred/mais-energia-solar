@@ -219,6 +219,7 @@ export default function MeterDetailPage() {
     }
   }
 
+  if (isLoading) {
     return (
       <div className="p-4 md:p-6 space-y-6">
         <Skeleton className="h-9 w-24" />
