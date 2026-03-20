@@ -259,6 +259,7 @@ export default function MonitorPlantDetail() {
         </TabsContent>
 
         <TabsContent value="configuracoes" className="space-y-6">
+          <PlantDataSourcesSection plantId={plant.id} tenantId={plant.tenant_id} />
           <PlantResizingSection plantId={plant.id} tenantId={plant.tenant_id} />
         </TabsContent>
       </Tabs>
