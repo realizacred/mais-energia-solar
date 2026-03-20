@@ -438,7 +438,8 @@ export const tuyaIntegrationService = {
   async renameDevice(configId: string, deviceExternalId: string, meterId: string, newName: string) {
     await this.callProxy("rename_device", configId, { device_id: deviceExternalId, name: newName });
     // Also update local DB
-    await supabase.from("meter_devices").update({ name: newName, updated_at: new Date().toISOString() } as any).eq("id", meterId);
+    const { error } = await supabase.from("meter_devices").update({ name: newName, updated_at: new Date().toISOString() } as any).eq("id", meterId);
+    if (error) throw error;
   },
 
   /** Get device functions (DPs) */
