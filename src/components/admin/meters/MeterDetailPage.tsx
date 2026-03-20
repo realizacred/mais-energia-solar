@@ -397,7 +397,7 @@ export default function MeterDetailPage() {
             </div>
             <p className="text-sm text-muted-foreground">
               {latestStatus?.measured_at
-                ? `Última leitura: ${new Date(latestStatus.measured_at).toLocaleString("pt-BR")}`
+                ? `Última leitura: ${new Date(latestStatus.measured_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`
                 : "Sem leituras ainda"}
               {linkedUC && <> · UC: {linkedUC.nome}</>}
             </p>
