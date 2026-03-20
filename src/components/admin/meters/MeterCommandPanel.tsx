@@ -149,9 +149,21 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
 
   // Pre-fill form values from raw_payload when data arrives
   useEffect(() => {
-    if (initialized || !statusLatest?.raw_payload) return;
+    if (initialized) return;
+    if (!statusLatest) {
+      console.log("[MeterCommandPanel] No statusLatest yet for meterId:", meterId);
+      return;
+    }
+    if (!statusLatest.raw_payload) {
+      console.log("[MeterCommandPanel] statusLatest exists but no raw_payload");
+      return;
+    }
+
     const current = extractCurrentValues(statusLatest.raw_payload);
-    if (Object.keys(current).length === 0) return;
+    if (Object.keys(current).length === 0) {
+      console.log("[MeterCommandPanel] extractCurrentValues returned empty map");
+      return;
+    }
 
     const nums: Record<string, string> = {};
     const bools: Record<string, boolean> = {};
@@ -168,10 +180,11 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
       }
     }
 
+    console.log("[MeterCommandPanel] Pre-filling", Object.keys(nums).length, "numeric +", Object.keys(bools).length, "boolean values");
     setValues(prev => ({ ...prev, ...nums }));
     setBoolValues(prev => ({ ...prev, ...bools }));
     setInitialized(true);
-  }, [statusLatest, initialized]);
+  }, [statusLatest, initialized, meterId]);
 
   function setNumberValue(code: string, val: string) {
     setValues(prev => ({ ...prev, [code]: val }));
