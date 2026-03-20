@@ -7878,6 +7878,50 @@ export type Database = {
           },
         ]
       }
+      meter_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          meter_device_id: string
+          resolvido: boolean
+          resolvido_at: string | null
+          tenant_id: string
+          tipo: string
+          valor_atual: number | null
+          valor_limite: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meter_device_id: string
+          resolvido?: boolean
+          resolvido_at?: string | null
+          tenant_id?: string
+          tipo: string
+          valor_atual?: number | null
+          valor_limite?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meter_device_id?: string
+          resolvido?: boolean
+          resolvido_at?: string | null
+          tenant_id?: string
+          tipo?: string
+          valor_atual?: number | null
+          valor_limite?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_alerts_meter_device_id_fkey"
+            columns: ["meter_device_id"]
+            isOneToOne: false
+            referencedRelation: "meter_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meter_devices: {
         Row: {
           bidirectional_supported: boolean
