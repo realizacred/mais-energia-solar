@@ -52,6 +52,9 @@ const ChartTooltip = ({ active, payload, label }: any) => {
       <p className="text-muted-foreground">
         Consumo: <span className="font-semibold text-foreground">{Number(row?._realConsumo ?? 0).toFixed(2)} kWh</span>
       </p>
+      <p className="text-muted-foreground">
+        Injeção: <span className="font-semibold text-foreground">{Number(row?._realInjeção ?? 0).toFixed(2)} kWh</span>
+      </p>
     </div>
   );
 };
@@ -61,6 +64,7 @@ export function UCOverviewTab({
 }: Props) {
   const navigate = useNavigate();
   const [chartPeriod, setChartPeriod] = useState<"7d" | "30d" | "3m">("30d");
+  const [chartSeries, setChartSeries] = useState({ geracao: true, consumo: true, injecao: true });
 
   // --- Meter status latest ---
   const { data: meterStatus, isLoading: loadingMeter } = useQuery({
@@ -98,7 +102,7 @@ export function UCOverviewTab({
       const since = subDays(new Date(), chartDays).toISOString();
       const { data, error } = await supabase
         .from("meter_readings")
-        .select("measured_at, energy_import_kwh")
+        .select("measured_at, energy_import_kwh, energy_export_kwh")
         .eq("meter_device_id", meterId!)
         .gte("measured_at", since)
         .order("measured_at", { ascending: true });
@@ -128,20 +132,24 @@ export function UCOverviewTab({
 
   // --- Build chart data ---
   const chartData = useMemo(() => {
-    // Group meter readings by day to compute daily consumption
-    const readingsByDay: Record<string, number[]> = {};
+    const importByDay: Record<string, number[]> = {};
+    const exportByDay: Record<string, number[]> = {};
     meterReadings.forEach((r: any) => {
       const day = r.measured_at?.slice(0, 10);
       if (!day) return;
-      if (!readingsByDay[day]) readingsByDay[day] = [];
-      readingsByDay[day].push(Number(r.energy_import_kwh) || 0);
+      if (!importByDay[day]) importByDay[day] = [];
+      if (!exportByDay[day]) exportByDay[day] = [];
+      importByDay[day].push(Number(r.energy_import_kwh) || 0);
+      exportByDay[day].push(Number(r.energy_export_kwh) || 0);
     });
 
     const consumptionByDay: Record<string, number> = {};
-    Object.entries(readingsByDay).forEach(([day, vals]) => {
-      const max = Math.max(...vals);
-      const min = Math.min(...vals);
-      consumptionByDay[day] = Math.max(0, max - min);
+    const injectionByDay: Record<string, number> = {};
+    Object.entries(importByDay).forEach(([day, vals]) => {
+      consumptionByDay[day] = Math.max(0, Math.max(...vals) - Math.min(...vals));
+    });
+    Object.entries(exportByDay).forEach(([day, vals]) => {
+      injectionByDay[day] = Math.max(0, Math.max(...vals) - Math.min(...vals));
     });
 
     const generationByDay: Record<string, number> = {};
@@ -149,23 +157,21 @@ export function UCOverviewTab({
       generationByDay[m.date] = Number(m.energy_kwh) || 0;
     });
 
-    // Merge all days
-    const allDays = new Set([...Object.keys(consumptionByDay), ...Object.keys(generationByDay)]);
+    const allDays = new Set([...Object.keys(consumptionByDay), ...Object.keys(generationByDay), ...Object.keys(injectionByDay)]);
     return Array.from(allDays)
       .sort()
       .map((day) => {
         const gen = generationByDay[day] || 0;
         const cons = consumptionByDay[day] || 0;
+        const inj = injectionByDay[day] || 0;
         return {
           date: format(parseISO(day), "dd/MM", { locale: ptBR }),
-          Geração: gen,
-          Consumo: cons,
-          // Keep real values for tooltip
           _realGeração: gen,
           _realConsumo: cons,
-          // Show a tiny bar for zero values so both series are always visible
+          _realInjeção: inj,
           _displayGeração: gen === 0 ? 0.3 : gen,
           _displayConsumo: cons === 0 ? 0.3 : cons,
+          _displayInjeção: inj === 0 ? 0.3 : inj,
         };
       });
   }, [meterReadings, plantMetrics]);
@@ -289,12 +295,12 @@ export function UCOverviewTab({
         </Card>
       </div>
 
-      {/* SEÇÃO 2 — Gráfico Geração vs Consumo */}
+      {/* SEÇÃO 2 — Gráfico Geração vs Consumo vs Injeção */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" /> Geração vs Consumo
+              <BarChart3 className="w-4 h-4 text-primary" /> Geração vs Consumo vs Injeção
             </CardTitle>
             <div className="flex gap-1">
               {(["7d", "30d", "3m"] as const).map((p) => (
@@ -310,10 +316,27 @@ export function UCOverviewTab({
               ))}
             </div>
           </div>
+          {/* Series toggles */}
+          <div className="flex flex-wrap gap-3 mt-2">
+            {([
+              { key: "geracao" as const, label: "Geração", color: "bg-warning" },
+              { key: "consumo" as const, label: "Consumo", color: "bg-primary" },
+              { key: "injecao" as const, label: "Injeção", color: "bg-success" },
+            ]).map(({ key, label, color }) => (
+              <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground select-none">
+                <button
+                  type="button"
+                  onClick={() => setChartSeries(s => ({ ...s, [key]: !s[key] }))}
+                  className={`w-3.5 h-3.5 rounded-sm border border-border transition-colors ${chartSeries[key] ? color : "bg-muted"}`}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           {(loadingPlantMetrics || loadingReadings) ? (
-            <Skeleton className="h-[220px] w-full rounded-lg" />
+            <Skeleton className="h-[260px] w-full rounded-lg" />
           ) : chartData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <BarChart2 className="w-10 h-10 text-muted-foreground/40 mb-3" />
@@ -323,7 +346,7 @@ export function UCOverviewTab({
               </p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
@@ -338,11 +361,16 @@ export function UCOverviewTab({
                   tickLine={false}
                 />
                 <Tooltip content={<ChartTooltip />} />
-                <Legend
-                  wrapperStyle={{ fontSize: "12px" }}
-                />
-                <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={20} />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
+                {chartSeries.geracao && (
+                  <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                )}
+                {chartSeries.consumo && (
+                  <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                )}
+                {chartSeries.injecao && (
+                  <Bar dataKey="_displayInjeção" name="Injeção" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                )}
               </BarChart>
             </ResponsiveContainer>
           )}
