@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ArrowLeft, MapPin, Zap, FileText, Settings, Gauge, Link2, History, Edit, Trash2, Mail, Lock, Sun, Plus, Calendar, MoreHorizontal, BarChart3 } from "lucide-react";
+import { Building2, ArrowLeft, MapPin, Zap, FileText, Settings, Gauge, Link2, History, Edit, Trash2, Mail, Lock, Sun, Plus, Calendar, MoreHorizontal, BarChart3, TrendingUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
 import { UCOverviewTab } from "./UCOverviewTab";
 import { UCHistoricoTab } from "./UCHistoricoTab";
+import { UCEconomyReportTab } from "./UCEconomyReportTab";
 import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 
 const UC_TYPE_LABELS: Record<string, string> = {
@@ -191,6 +192,7 @@ export default function UCDetailPage() {
             <TabsTrigger value="medidor" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Medidor</TabsTrigger>
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
             <TabsTrigger value="usinas" className="gap-1"><Link2 className="w-3.5 h-3.5" /> Usinas</TabsTrigger>
+            <TabsTrigger value="economia" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Economia</TabsTrigger>
             {plantId && <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>}
             <TabsTrigger value="historico" className="gap-1"><History className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
           </TabsList>
@@ -367,6 +369,10 @@ export default function UCDetailPage() {
 
           <TabsContent value="usinas">
             <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
+          </TabsContent>
+
+          <TabsContent value="economia">
+            <UCEconomyReportTab unitId={uc.id} />
           </TabsContent>
 
           {plantId && (
