@@ -29,6 +29,7 @@ import { AddCreditDialog } from "./AddCreditDialog";
 import { UCOverviewTab } from "./UCOverviewTab";
 import { UCHistoricoTab } from "./UCHistoricoTab";
 import { UCEconomyReportTab } from "./UCEconomyReportTab";
+import { UCShareLinkButton } from "./UCShareLinkButton";
 import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 
 const UC_TYPE_LABELS: Record<string, string> = {
@@ -345,6 +346,9 @@ export default function UCDetailPage() {
 
             {/* Faturas por E-mail */}
             <UCBillingSettingsTab unitId={uc.id} />
+
+            {/* Portal do Cliente — link compartilhável */}
+            <UCShareLinkButton unitId={uc.id} />
 
             {/* Remover */}
             <Card className="border-destructive/20">
