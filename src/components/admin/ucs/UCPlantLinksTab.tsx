@@ -169,7 +169,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
           {activeLinks.map(link => {
             const plant = plants.find((p: any) => p.id === link.plant_id);
             const todayGen = todayMetrics.find((m: any) => m.monitor_plant_id === link.plant_id);
-            const isOnline = plant?.status === "online";
+            const isOnline = plant?.state === "online";
             return (
               <Card key={link.id} className="border-l-[3px] border-l-warning">
                 <CardContent className="p-4 space-y-3">
