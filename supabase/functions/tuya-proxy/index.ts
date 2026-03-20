@@ -490,67 +490,79 @@ Deno.serve(async (req) => {
             const now = new Date().toISOString();
             const online = deviceInfo.online ? "online" : "offline";
 
-            // Normalize DPS — expanded mapping for all known DPs
+            // Normalize DPS — confirmed real DP codes from device
             const reading: Record<string, any> = {
               voltage_v: null, current_a: null, power_w: null,
               energy_import_kwh: null, energy_export_kwh: null,
+              energy_total_kwh: null, energy_balance_kwh: null,
               reactive_power_kvar: null, power_factor: null,
               leakage_current_ma: null, neutral_current_a: null,
-              temperature_c: null, energy_balance_kwh: null,
+              temperature_c: null,
               status_a: null, status_b: null, status_c: null,
               fault_bitmap: null,
+              over_current_count: null, lost_current_count: null, leak_count: null,
             };
 
             const DPS_MAP: Record<string, string> = {
-              // Voltage/Current/Power (existing)
+              // Voltage/Current/Power
               cur_voltage: "voltage_v", phase_a_voltage: "voltage_v",
               cur_current: "current_a", phase_a_current: "current_a",
-              cur_power: "power_w", phase_a_power: "power_w", total_power: "power_w",
-              // Energy (existing)
-              add_ele: "energy_import_kwh", total_forward_energy: "energy_import_kwh",
-              reverse_energy_total: "energy_export_kwh", total_reverse_energy: "energy_export_kwh",
-              // Power quality (new)
+              cur_power: "power_w", phase_a_power: "power_w",
+              // Energy — confirmed real codes
+              total_forward_energy: "energy_import_kwh",
+              add_ele: "energy_import_kwh",
+              reverse_energy_total: "energy_export_kwh",
+              total_reverse_energy: "energy_export_kwh",
+              energy_total: "energy_total_kwh",
+              balance_energy: "energy_balance_kwh",
+              // Power — confirmed real codes
+              power_total: "power_w",
+              total_power: "power_w",
               power_reactive: "reactive_power_kvar",
               power_factor: "power_factor",
-              power_total: "power_w",
-              // Electrical safety (new)
+              // Electrical safety — confirmed real codes
               leakage_current: "leakage_current_ma",
               n_current: "neutral_current_a",
               temp_current: "temperature_c",
-              balance_energy: "energy_balance_kwh",
-              energy_total: "energy_import_kwh", // fallback if total_forward_energy missing
-              // Status (new) — stored as text
+              // Status — integer: 0=normal, 1=alarm, 2=trip
               status: "status_a",
               status_b: "status_b",
               status_c: "status_c",
               fault: "fault_bitmap",
+              // Counters
+              over_current_cnt: "over_current_count",
+              lost_current_cnt: "lost_current_count",
+              leak_cnt: "leak_count",
             };
 
             const SCALE: Record<string, number> = {
               voltage_v: 0.1, current_a: 0.001, power_w: 1,
               energy_import_kwh: 0.01, energy_export_kwh: 0.01,
+              energy_total_kwh: 0.001, energy_balance_kwh: 0.01,
               reactive_power_kvar: 0.1, power_factor: 0.001,
               leakage_current_ma: 1, neutral_current_a: 0.01,
-              temperature_c: 1, energy_balance_kwh: 0.01,
+              temperature_c: 1,
+              fault_bitmap: 1, status_a: 1, status_b: 1, status_c: 1,
+              over_current_count: 1, lost_current_count: 1, leak_count: 1,
             };
 
             for (const dp of dps) {
               const field = DPS_MAP[dp.code];
               if (!field) continue;
               if (typeof dp.value === "number") {
-                // Only overwrite if null (first match wins for same field)
                 if (reading[field] === null) {
                   reading[field] = dp.value * (SCALE[field] ?? 1);
                 }
+              } else if (typeof dp.value === "boolean") {
+                // skip booleans (switch, clear_energy, etc)
               } else {
-                // Text/string DPs (status, fault)
                 if (reading[field] === null) {
                   reading[field] = String(dp.value);
                 }
               }
             }
 
-            // Upsert meter_status_latest with expanded columns
+            // Upsert meter_status_latest with all expanded columns
             await supabase.from("meter_status_latest").upsert({
               meter_device_id: meter.id,
               measured_at: now,
@@ -560,16 +572,20 @@ Deno.serve(async (req) => {
               power_w: reading.power_w,
               energy_import_kwh: reading.energy_import_kwh,
               energy_export_kwh: reading.energy_export_kwh,
+              energy_total_kwh: reading.energy_total_kwh,
+              energy_balance_kwh: reading.energy_balance_kwh,
               reactive_power_kvar: reading.reactive_power_kvar,
               power_factor: reading.power_factor,
               leakage_current_ma: reading.leakage_current_ma,
               neutral_current_a: reading.neutral_current_a,
               temperature_c: reading.temperature_c,
-              energy_balance_kwh: reading.energy_balance_kwh,
               status_a: reading.status_a,
               status_b: reading.status_b,
               status_c: reading.status_c,
               fault_bitmap: reading.fault_bitmap,
+              over_current_count: reading.over_current_count,
+              lost_current_count: reading.lost_current_count,
+              leak_count: reading.leak_count,
               raw_payload: { dps, device_info: deviceInfo },
               updated_at: now,
             } as any, { onConflict: "meter_device_id" });

@@ -165,6 +165,9 @@ export default function MeterDetailPage() {
       statusB: (latestStatus as any)?.status_b ?? null,
       statusC: (latestStatus as any)?.status_c ?? null,
       faultBitmap: (latestStatus as any)?.fault_bitmap ?? null,
+      overCurrentCount: (latestStatus as any)?.over_current_count ?? null,
+      lostCurrentCount: (latestStatus as any)?.lost_current_count ?? null,
+      leakCount: (latestStatus as any)?.leak_count ?? null,
     };
   }, [latestStatus]);
 
@@ -457,13 +460,13 @@ export default function MeterDetailPage() {
           icon={Thermometer}
           label="Temperatura"
           value={extraDPs.temperature != null ? `${extraDPs.temperature} °C` : "—"}
-          color={extraDPs.temperature != null && extraDPs.temperature > 80 ? "destructive" : extraDPs.temperature != null && extraDPs.temperature > 60 ? "warning" : "warning"}
+          color={extraDPs.temperature != null && extraDPs.temperature > 70 ? "destructive" : extraDPs.temperature != null && extraDPs.temperature > 50 ? "warning" : "success"}
         />
         <StatCard
-          icon={Zap}
+          icon={AlertTriangle}
           label="Corrente de Fuga"
           value={extraDPs.leakageCurrent != null ? `${extraDPs.leakageCurrent} mA` : "—"}
-          color={extraDPs.leakageCurrent != null && extraDPs.leakageCurrent >= 30 ? "destructive" : "success"}
+          color={extraDPs.leakageCurrent != null && extraDPs.leakageCurrent >= 30 ? "destructive" : extraDPs.leakageCurrent != null && extraDPs.leakageCurrent >= 10 ? "warning" : "success"}
         />
         <StatCard
           icon={BarChart3}
@@ -613,7 +616,12 @@ export default function MeterDetailPage() {
         <TabsContent value="info">
           {/* Alarms & Phase Status */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MeterAlarmPanel faultBitmap={extraDPs.faultBitmap} />
+            <MeterAlarmPanel
+              faultBitmap={extraDPs.faultBitmap}
+              overCurrentCount={extraDPs.overCurrentCount}
+              lostCurrentCount={extraDPs.lostCurrentCount}
+              leakCount={extraDPs.leakCount}
+            />
             <MeterPhaseStatus statusA={extraDPs.statusA} statusB={extraDPs.statusB} statusC={extraDPs.statusC} />
           </div>
 
