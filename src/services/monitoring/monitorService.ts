@@ -86,6 +86,15 @@ function mapSolarPlantToMonitorPlant(sp: SolarPlant, clientId?: string | null): 
   };
 }
 
+function getMostRecentTimestamp(...timestamps: Array<string | null | undefined>): string | null {
+  return timestamps
+    .filter((value): value is string => {
+      if (!value) return false;
+      return !Number.isNaN(new Date(value).getTime());
+    })
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
+}
+
 function legacyStatusToHealth(
   sp: SolarPlant,
   m?: SolarPlantMetricsDaily,
@@ -173,15 +182,20 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   // monitor_plants.legacy_plant_id = solar_plants.id
   // Also fetch client_id for each plant
   const deviceSeenMap = new Map<string, string>();
+  const monitorPlantSeenMap = new Map<string, string>();
   const clientIdMap = new Map<string, string | null>();
   {
     const { data: mpRows } = await supabase
       .from("monitor_plants" as any)
-      .select("id, legacy_plant_id, client_id")
+      .select("id, legacy_plant_id, client_id, last_seen_at")
       .in("legacy_plant_id", plantList.map((p) => p.id));
-    const monitorPlantRows = (mpRows as unknown as Array<{ id: string; legacy_plant_id: string; client_id: string | null }>) || [];
+    const monitorPlantRows = (mpRows as unknown as Array<{ id: string; legacy_plant_id: string; client_id: string | null; last_seen_at: string | null }>) || [];
     monitorPlantRows.forEach((r) => {
       clientIdMap.set(r.legacy_plant_id, r.client_id);
+      const bestSeen = getMostRecentTimestamp(monitorPlantSeenMap.get(r.legacy_plant_id), r.last_seen_at);
+      if (bestSeen) {
+        monitorPlantSeenMap.set(r.legacy_plant_id, bestSeen);
+      }
     });
     if (monitorPlantRows.length > 0) {
       const mpIds = monitorPlantRows.map((r) => r.id);
@@ -257,11 +271,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   return plantList.map((sp) => {
     const m = todayMap.get(sp.id);
     // SSOT: plant_seen_at — prefer device last_seen_at (real communication).
-    // solar_plants.updated_at is refreshed by sync upserts even for offline plants,
-    // so it MUST NOT override a stale device timestamp.
-    // Only fall back to updated_at when no devices exist at all.
+    // If monitor_plants.last_seen_at is newer than monitor_devices, trust the freshest
+    // real communication timestamp available. solar_plants.updated_at remains a last-resort
+    // fallback only when neither source has a sync timestamp.
     const maxDeviceSeen = deviceSeenMap.get(sp.id) || null;
-    const bestLastSeen = maxDeviceSeen || sp.updated_at || null;
+    const monitorPlantSeen = monitorPlantSeenMap.get(sp.id) || null;
+    const bestLastSeen = getMostRecentTimestamp(maxDeviceSeen, monitorPlantSeen) || sp.updated_at || null;
     const health = legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen);
 
     // DEBUG SSOT — log specific problem plants
@@ -321,16 +336,18 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 
   // SSOT: Fetch MAX(monitor_devices.last_seen_at) + client_id for this plant
   let maxDeviceSeen: string | null = null;
+  let monitorPlantLastSeen: string | null = null;
   let plantClientId: string | null = null;
   let plantClientName: string | null = null;
   {
     const { data: mpRow } = await supabase
       .from("monitor_plants" as any)
-      .select("id, client_id")
+      .select("id, client_id, last_seen_at")
       .eq("legacy_plant_id", resolvedId)
       .maybeSingle();
     if (mpRow) {
       plantClientId = (mpRow as any).client_id || null;
+      monitorPlantLastSeen = (mpRow as any).last_seen_at || null;
       const { data: devRows } = await supabase
         .from("monitor_devices" as any)
         .select("last_seen_at")
@@ -351,7 +368,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
     }
   }
 
-  const bestLastSeen = maxDeviceSeen;
+  const bestLastSeen = getMostRecentTimestamp(maxDeviceSeen, monitorPlantLastSeen);
 
   return {
     ...mapSolarPlantToMonitorPlant(sp, plantClientId),
