@@ -29,6 +29,7 @@ import { AddCreditDialog } from "./AddCreditDialog";
 import { UCOverviewTab } from "./UCOverviewTab";
 import { UCHistoricoTab } from "./UCHistoricoTab";
 import { UCEconomyReportTab } from "./UCEconomyReportTab";
+import { UCShareLinkButton } from "./UCShareLinkButton";
 import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 
 const UC_TYPE_LABELS: Record<string, string> = {

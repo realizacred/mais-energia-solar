@@ -104,6 +104,7 @@ const App = () => (
               <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
               <Route path="/oauth/google-contacts/callback" element={<GoogleContactsCallbackPage />} />
               <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
+              <Route path="/uc/:token" element={<UCPublica />} />
 
               {/* Protected routes — tenant guard active */}
               <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />
