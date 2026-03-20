@@ -251,7 +251,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader><DialogTitle>Vincular Usina</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
