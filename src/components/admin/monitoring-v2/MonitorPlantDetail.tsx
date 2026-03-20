@@ -21,6 +21,7 @@ import { StringAlertBell } from "./devices/StringAlertBell";
 import { isMpptStringEnabled, getDeviceStringCards } from "@/services/monitoring/mpptStringService";
 import { PlantClientSection } from "./PlantClientSection";
 const PlantGenerationReport = lazy(() => import("./reports/PlantGenerationReport").then(m => ({ default: m.PlantGenerationReport })));
+import { PlantResizingSection } from "./PlantResizingSection";
 
 import { cn } from "@/lib/utils";
 import {
