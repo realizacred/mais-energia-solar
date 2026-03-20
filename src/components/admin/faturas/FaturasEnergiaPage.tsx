@@ -164,7 +164,7 @@ export default function FaturasEnergiaPage() {
       <PageHeader
         icon={Mail}
         title="Faturas de Energia"
-        subtitle="Recebimento automático de faturas por e-mail"
+        description="Recebimento automático de faturas por e-mail"
       />
 
       {/* Section 1 — Gmail Connection */}

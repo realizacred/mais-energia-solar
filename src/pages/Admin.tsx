@@ -571,6 +571,9 @@ export default function Admin() {
                 <Route path="medidores" element={<MetersListPage />} />
                 <Route path="medidores/:id" element={<MeterDetailPage />} />
                 
+                {/* Faturas de Energia */}
+                <Route path="faturas-energia" element={<FaturasEnergiaPage />} />
+                
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />
                 <Route path="ucs/:id" element={<UCDetailPage />} />
