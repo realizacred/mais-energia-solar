@@ -223,7 +223,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                             onChange={(e) => setNumberValue(dp.code, e.target.value)}
                             min={dp.min}
                             max={dp.max}
-                            className="w-24 h-8 text-xs"
+                            className="w-28 h-9 text-sm"
                           />
                         )}
 
