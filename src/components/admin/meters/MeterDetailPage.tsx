@@ -514,6 +514,11 @@ export default function MeterDetailPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Per-meter alert config */}
+          <div className="lg:col-span-2">
+            <MeterAlertConfig meterId={meter.id} metadata={meter.metadata} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
