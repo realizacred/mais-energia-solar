@@ -29,6 +29,7 @@ export function UCMeterTab({ unitId }: Props) {
   const { data: links = [], isLoading } = useQuery({
     queryKey: ["unit_meter_links", unitId],
     queryFn: () => meterService.getLinksForUnit(unitId),
+    staleTime: 1000 * 60 * 5,
   });
 
   const activeLink = links.find(l => l.is_active);
