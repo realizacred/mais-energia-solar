@@ -448,10 +448,23 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        result = await tuyaRequest(
-          baseUrl, clientId, clientSecret, token,
-          "GET", `/v1.0/devices/${deviceId}/functions`
-        );
+        // Fetch both specification (all DPs) and functions (writable DPs)
+        const [specResult, funcResult] = await Promise.all([
+          tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", `/v1.0/devices/${deviceId}/specification`),
+          tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", `/v1.0/devices/${deviceId}/functions`),
+        ]);
+        const statusDps = specResult?.result?.status || [];
+        const funcDps = specResult?.result?.functions || funcResult?.result?.functions || [];
+        // Merge: status (read) + functions (write), deduplicate by code
+        const seen = new Set<string>();
+        const allDps: any[] = [];
+        for (const dp of [...funcDps, ...statusDps]) {
+          if (dp?.code && !seen.has(dp.code)) {
+            seen.add(dp.code);
+            allDps.push({ ...dp, rw: funcDps.some((f: any) => f.code === dp.code) ? "rw" : "ro" });
+          }
+        }
+        result = { result: { functions: allDps, total: allDps.length } };
         break;
       }
 
