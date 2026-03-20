@@ -319,9 +319,9 @@ export function UCOverviewTab({
           {/* Series toggles */}
           <div className="flex flex-wrap gap-3 mt-2">
             {([
-              { key: "geracao" as const, label: "Geração", color: "bg-warning" },
-              { key: "consumo" as const, label: "Consumo", color: "bg-primary" },
-              { key: "injecao" as const, label: "Injeção", color: "bg-success" },
+              { key: "geracao" as const, label: "Geração", color: "bg-success" },
+              { key: "consumo" as const, label: "Consumo", color: "bg-destructive" },
+              { key: "injecao" as const, label: "Injeção", color: "bg-warning" },
             ]).map(({ key, label, color }) => (
               <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground select-none">
                 <button
@@ -363,13 +363,13 @@ export function UCOverviewTab({
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{ fontSize: "12px" }} />
                 {chartSeries.geracao && (
-                  <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                  <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} maxBarSize={18} />
                 )}
                 {chartSeries.consumo && (
-                  <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                  <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} maxBarSize={18} />
                 )}
                 {chartSeries.injecao && (
-                  <Bar dataKey="_displayInjeção" name="Injeção" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                  <Bar dataKey="_displayInjeção" name="Injeção" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={18} />
                 )}
               </BarChart>
             </ResponsiveContainer>
