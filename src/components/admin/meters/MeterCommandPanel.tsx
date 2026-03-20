@@ -191,7 +191,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                     >
                       {/* Label + tooltip */}
                       <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] font-mono shrink-0">{dp.code}</Badge>
+                        <Badge variant="outline" className="text-xs font-mono shrink-0 px-2 py-0.5">{dp.code}</Badge>
                         <span className="text-sm font-medium text-foreground truncate">{dp.label}</span>
                         <Tooltip>
                           <TooltipTrigger asChild>
