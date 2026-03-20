@@ -18344,6 +18344,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           email_billing_enabled: boolean
+          email_da_uc: string | null
           forward_to_email: string | null
           id: string
           notes: string | null
@@ -18359,6 +18360,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email_billing_enabled?: boolean
+          email_da_uc?: string | null
           forward_to_email?: string | null
           id?: string
           notes?: string | null
@@ -18374,6 +18376,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email_billing_enabled?: boolean
+          email_da_uc?: string | null
           forward_to_email?: string | null
           id?: string
           notes?: string | null
@@ -18627,9 +18630,13 @@ export type Database = {
           modalidade_tarifaria: string | null
           nome: string
           observacoes: string | null
+          proxima_leitura_data: string | null
           status: string
           tenant_id: string
           tipo_uc: Database["public"]["Enums"]["uc_type"]
+          ultima_leitura_data: string | null
+          ultima_leitura_kwh_03: number | null
+          ultima_leitura_kwh_103: number | null
           updated_at: string
           updated_by: string | null
         }
@@ -18647,9 +18654,13 @@ export type Database = {
           modalidade_tarifaria?: string | null
           nome: string
           observacoes?: string | null
+          proxima_leitura_data?: string | null
           status?: string
           tenant_id?: string
           tipo_uc?: Database["public"]["Enums"]["uc_type"]
+          ultima_leitura_data?: string | null
+          ultima_leitura_kwh_03?: number | null
+          ultima_leitura_kwh_103?: number | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -18667,9 +18678,13 @@ export type Database = {
           modalidade_tarifaria?: string | null
           nome?: string
           observacoes?: string | null
+          proxima_leitura_data?: string | null
           status?: string
           tenant_id?: string
           tipo_uc?: Database["public"]["Enums"]["uc_type"]
+          ultima_leitura_data?: string | null
+          ultima_leitura_kwh_03?: number | null
+          ultima_leitura_kwh_103?: number | null
           updated_at?: string
           updated_by?: string | null
         }
