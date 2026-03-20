@@ -27,6 +27,8 @@ interface Props {
   ucId: string;
   meterId?: string | null;
   plantId?: string | null;
+  /** Resolved solar_plants.id (from monitor_plants.legacy_plant_id) for metrics queries */
+  solarPlantId?: string | null;
   meterName?: string | null;
   meterOnline?: string | null;
   plantName?: string | null;

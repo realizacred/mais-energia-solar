@@ -16,6 +16,8 @@ interface Props {
   ucId: string;
   meterId?: string | null;
   plantId?: string | null;
+  /** Resolved solar_plants.id for metrics queries */
+  solarPlantId?: string | null;
 }
 
 const STALE_5M = 1000 * 60 * 5;
