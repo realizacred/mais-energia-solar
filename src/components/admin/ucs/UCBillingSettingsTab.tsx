@@ -258,6 +258,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
           </Button>
         </CardContent>
       </Card>
+      {LimitDialog}
     </div>
   );
 }
