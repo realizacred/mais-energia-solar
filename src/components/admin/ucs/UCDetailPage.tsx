@@ -7,6 +7,8 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { unitService, type UCRecord } from "@/services/unitService";
+import { useUnitCredits, useDeleteUnitCredit } from "@/hooks/useUnitCredits";
+import { useTenantSettings } from "@/hooks/useTenantSettings";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
