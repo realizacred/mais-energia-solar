@@ -141,23 +141,85 @@ export default function UCDetailPage() {
           <TabsContent value="geral" className="space-y-6">
             {/* Credit section */}
             <div>
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
-                <Zap className="w-4 h-4" /> Crédito
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Card>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                  <Zap className="w-4 h-4" /> Crédito
+                </h3>
+                <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => setAddCreditOpen(true)}>
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Crédito
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <Card className="border-l-[3px] border-l-primary">
                   <CardContent className="py-5">
                     <p className="text-xs text-muted-foreground mb-1">Crédito Acumulado</p>
-                    <p className="text-2xl font-bold">0.00 <span className="text-sm font-normal text-muted-foreground">kWh</span></p>
+                    <p className="text-2xl font-bold">{totalCreditoAdicionado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">kWh</span></p>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="border-l-[3px] border-l-info">
                   <CardContent className="py-5">
                     <p className="text-xs text-muted-foreground mb-1">Crédito Adicionado</p>
-                    <p className="text-2xl font-bold">0.00 <span className="text-sm font-normal text-muted-foreground">kWh</span></p>
+                    <p className="text-2xl font-bold">{totalCreditoAdicionado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">kWh</span></p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Credits table */}
+              {credits.length > 0 && (
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead className="font-semibold text-foreground">Vigência</TableHead>
+                        <TableHead className="font-semibold text-foreground">Quantidade</TableHead>
+                        <TableHead className="font-semibold text-foreground">Posto</TableHead>
+                        <TableHead className="font-semibold text-foreground">Observações</TableHead>
+                        <TableHead className="w-[50px]" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {credits.map((c) => (
+                        <TableRow key={c.id} className="hover:bg-muted/30">
+                          <TableCell className="text-sm">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                              {new Date(c.data_vigencia).toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" })}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm font-mono font-medium">
+                            {Number(c.quantidade_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} kWh
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <Badge variant="outline" className="text-xs">
+                              {c.posto_tarifario === "fora_ponta" ? "Fora Ponta" : c.posto_tarifario === "ponta" ? "Ponta" : "Intermediário"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground truncate max-w-[200px]" title={c.observacoes || ""}>
+                            {c.observacoes || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteCredit(c.id)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Remover
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
 
             {/* Usinas Relacionadas */}
