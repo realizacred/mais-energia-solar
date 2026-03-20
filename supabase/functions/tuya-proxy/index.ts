@@ -202,7 +202,7 @@ async function handleCronSync(supabase: any): Promise<Response> {
       // Sync readings for all meters in this config
       const { data: meters } = await supabase
         .from("meter_devices")
-        .select("id, external_device_id, integration_config_id")
+        .select("id, external_device_id, integration_config_id, tenant_id")
         .eq("integration_config_id", config.id)
         .eq("is_active", true)
         .eq("provider", "tuya");
@@ -219,15 +219,18 @@ async function handleCronSync(supabase: any): Promise<Response> {
           const online = deviceInfo.online ? "online" : "offline";
           const reading = buildReading(dps);
 
-          await supabase.from("meter_status_latest").upsert({
-            meter_device_id: meter.id, measured_at: now, online_status: online,
+          const { error: upsertErr } = await supabase.from("meter_status_latest").upsert({
+            meter_device_id: meter.id, tenant_id: meter.tenant_id,
+            measured_at: now, online_status: online,
             ...reading, raw_payload: { dps, device_info: deviceInfo }, updated_at: now,
           } as any, { onConflict: "meter_device_id" });
+          if (upsertErr) console.error(`[tuya-proxy] upsert error:`, upsertErr.message);
 
           await supabase.from("meter_readings").insert({
             meter_device_id: meter.id, measured_at: now,
             voltage_v: reading.voltage_v, current_a: reading.current_a,
-            power_w: reading.power_w, energy_import_kwh: reading.energy_import_kwh,
+            power_w: reading.power_w, power_factor: reading.power_factor,
+            energy_import_kwh: reading.energy_import_kwh,
             energy_export_kwh: reading.energy_export_kwh,
             raw_payload: { dps, device_info: deviceInfo },
           } as any);
@@ -296,9 +299,10 @@ function buildReading(dps: any[]): Record<string, any> {
   for (const dp of dps) {
     const field = DPS_MAP[dp.code];
     if (!field) continue;
-    if (typeof dp.value === "number") {
+    const numVal = typeof dp.value === "number" ? dp.value : (typeof dp.value === "string" && !isNaN(Number(dp.value)) ? Number(dp.value) : null);
+    if (numVal !== null) {
       if (reading[field] === null) {
-        reading[field] = dp.value * (SCALE[field] ?? 1);
+        reading[field] = numVal * (SCALE[field] ?? 1);
       }
     } else if (typeof dp.value === "boolean") {
       // skip booleans
@@ -629,7 +633,7 @@ Deno.serve(async (req) => {
         // Manual trigger: sync readings for ALL tuya meters in this config
         const { data: meters } = await supabase
           .from("meter_devices")
-          .select("id, external_device_id, integration_config_id")
+          .select("id, external_device_id, integration_config_id, tenant_id")
           .eq("integration_config_id", config_id)
           .eq("is_active", true)
           .eq("provider", "tuya");
@@ -667,7 +671,8 @@ Deno.serve(async (req) => {
 
             // Upsert meter_status_latest
             await supabase.from("meter_status_latest").upsert({
-              meter_device_id: meter.id, measured_at: now, online_status: online,
+              meter_device_id: meter.id, tenant_id: meter.tenant_id,
+              measured_at: now, online_status: online,
               ...reading, raw_payload: { dps, device_info: deviceInfo }, updated_at: now,
             } as any, { onConflict: "meter_device_id" });
 
@@ -675,7 +680,8 @@ Deno.serve(async (req) => {
             await supabase.from("meter_readings").insert({
               meter_device_id: meter.id, measured_at: now,
               voltage_v: reading.voltage_v, current_a: reading.current_a,
-              power_w: reading.power_w, energy_import_kwh: reading.energy_import_kwh,
+              power_w: reading.power_w, power_factor: reading.power_factor,
+              energy_import_kwh: reading.energy_import_kwh,
               energy_export_kwh: reading.energy_export_kwh,
               raw_payload: { dps, device_info: deviceInfo },
             } as any);

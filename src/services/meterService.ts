@@ -120,7 +120,7 @@ export const meterService = {
   async getLatestReadings(meterId: string, limit = 24) {
     const { data, error } = await supabase
       .from("meter_readings")
-      .select("id, meter_device_id, measured_at, voltage_v, current_a, power_w, energy_import_kwh, energy_export_kwh")
+      .select("id, meter_device_id, measured_at, voltage_v, current_a, power_w, power_factor, energy_import_kwh, energy_export_kwh")
       .eq("meter_device_id", meterId)
       .order("measured_at", { ascending: false })
       .limit(limit);
