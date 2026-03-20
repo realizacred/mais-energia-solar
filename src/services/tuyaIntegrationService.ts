@@ -59,6 +59,42 @@ const SCALE_MAP: Record<string, number> = {
   power_factor: 0.01,
 };
 
+/**
+ * Parse Tuya Raw phase DP (hex string) into voltage, current, power.
+ * Common format for smart breakers: VVVV CCCCCC PPPPPP (big-endian).
+ * Voltage: 2 bytes (÷10 = V), Current: 3 bytes (÷1000 = A), Power: 3 bytes (÷1 = W).
+ * Some devices use slightly different layouts — we detect by length.
+ */
+function parsePhaseRaw(hexValue: string): { voltage: number; current: number; power: number } | null {
+  if (!hexValue || typeof hexValue !== "string") return null;
+  const hex = hexValue.replace(/\s/g, "");
+  // Expected length: 16 chars (8 bytes) for standard breaker DPs
+  if (hex.length < 12) return null;
+  try {
+    // Layout: 2B voltage + 3B current + 3B power = 8 bytes = 16 hex chars
+    if (hex.length >= 16) {
+      const voltage = parseInt(hex.substring(0, 4), 16) / 10;
+      const current = parseInt(hex.substring(4, 10), 16) / 1000;
+      const power = parseInt(hex.substring(10, 16), 16);
+      if (voltage >= 0 && voltage <= 500 && current >= 0 && current <= 200) {
+        return { voltage, current, power };
+      }
+    }
+    // Fallback: 2B voltage + 2B current + 2B power = 6 bytes = 12 hex chars
+    if (hex.length >= 12) {
+      const voltage = parseInt(hex.substring(0, 4), 16) / 10;
+      const current = parseInt(hex.substring(4, 8), 16) / 1000;
+      const power = parseInt(hex.substring(8, 12), 16);
+      if (voltage >= 0 && voltage <= 500 && current >= 0 && current <= 200) {
+        return { voltage, current, power };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeDPS(dps: TuyaDPS[], deviceInfo?: any): NormalizedReading {
   const reading: NormalizedReading = {
     voltage_v: null,
@@ -72,6 +108,18 @@ function normalizeDPS(dps: TuyaDPS[], deviceInfo?: any): NormalizedReading {
   };
 
   for (const dp of dps) {
+    // Handle Raw phase DPs (smart breakers: phase_a, phase_b, phase_c)
+    if ((dp.code === "phase_a" || dp.code === "phase_b" || dp.code === "phase_c") && typeof dp.value === "string") {
+      const parsed = parsePhaseRaw(dp.value);
+      if (parsed && dp.code === "phase_a") {
+        // Use phase_a as primary reading (single-phase or first phase)
+        reading.voltage_v = reading.voltage_v ?? parsed.voltage;
+        reading.current_a = reading.current_a ?? parsed.current;
+        reading.power_w = reading.power_w ?? parsed.power;
+      }
+      continue;
+    }
+
     const field = DPS_MAP[dp.code];
     if (field && field !== "online_status" && typeof dp.value === "number") {
       const scale = SCALE_MAP[field] ?? 1;
