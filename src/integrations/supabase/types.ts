@@ -8110,19 +8110,23 @@ export type Database = {
           energy_balance_kwh: number | null
           energy_export_kwh: number | null
           energy_import_kwh: number | null
-          fault_bitmap: string | null
+          energy_total_kwh: number | null
+          fault_bitmap: number | null
+          leak_count: number | null
           leakage_current_ma: number | null
+          lost_current_count: number | null
           measured_at: string
           meter_device_id: string
           neutral_current_a: number | null
           online_status: string | null
+          over_current_count: number | null
           power_factor: number | null
           power_w: number | null
           raw_payload: Json
           reactive_power_kvar: number | null
-          status_a: string | null
-          status_b: string | null
-          status_c: string | null
+          status_a: number | null
+          status_b: number | null
+          status_c: number | null
           temperature_c: number | null
           tenant_id: string
           updated_at: string
@@ -8133,19 +8137,23 @@ export type Database = {
           energy_balance_kwh?: number | null
           energy_export_kwh?: number | null
           energy_import_kwh?: number | null
-          fault_bitmap?: string | null
+          energy_total_kwh?: number | null
+          fault_bitmap?: number | null
+          leak_count?: number | null
           leakage_current_ma?: number | null
+          lost_current_count?: number | null
           measured_at: string
           meter_device_id: string
           neutral_current_a?: number | null
           online_status?: string | null
+          over_current_count?: number | null
           power_factor?: number | null
           power_w?: number | null
           raw_payload?: Json
           reactive_power_kvar?: number | null
-          status_a?: string | null
-          status_b?: string | null
-          status_c?: string | null
+          status_a?: number | null
+          status_b?: number | null
+          status_c?: number | null
           temperature_c?: number | null
           tenant_id: string
           updated_at?: string
@@ -8156,19 +8164,23 @@ export type Database = {
           energy_balance_kwh?: number | null
           energy_export_kwh?: number | null
           energy_import_kwh?: number | null
-          fault_bitmap?: string | null
+          energy_total_kwh?: number | null
+          fault_bitmap?: number | null
+          leak_count?: number | null
           leakage_current_ma?: number | null
+          lost_current_count?: number | null
           measured_at?: string
           meter_device_id?: string
           neutral_current_a?: number | null
           online_status?: string | null
+          over_current_count?: number | null
           power_factor?: number | null
           power_w?: number | null
           raw_payload?: Json
           reactive_power_kvar?: number | null
-          status_a?: string | null
-          status_b?: string | null
-          status_c?: string | null
+          status_a?: number | null
+          status_b?: number | null
+          status_c?: number | null
           temperature_c?: number | null
           tenant_id?: string
           updated_at?: string
