@@ -18458,6 +18458,70 @@ export type Database = {
           },
         ]
       }
+      unit_credits: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_vigencia: string
+          id: string
+          observacoes: string | null
+          plant_id: string | null
+          posto_tarifario: string
+          quantidade_kwh: number
+          tenant_id: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_vigencia: string
+          id?: string
+          observacoes?: string | null
+          plant_id?: string | null
+          posto_tarifario?: string
+          quantidade_kwh: number
+          tenant_id: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_vigencia?: string
+          id?: string
+          observacoes?: string | null
+          plant_id?: string | null
+          posto_tarifario?: string
+          quantidade_kwh?: number
+          tenant_id?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_credits_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_credits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_credits_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unit_invoices: {
         Row: {
           compensated_kwh: number | null
