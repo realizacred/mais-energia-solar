@@ -680,7 +680,8 @@ Deno.serve(async (req) => {
 
             // Upsert meter_status_latest
             await supabase.from("meter_status_latest").upsert({
-              meter_device_id: meter.id, measured_at: now, online_status: online,
+              meter_device_id: meter.id, tenant_id: meter.tenant_id,
+              measured_at: now, online_status: online,
               ...reading, raw_payload: { dps, device_info: deviceInfo }, updated_at: now,
             } as any, { onConflict: "meter_device_id" });
 
