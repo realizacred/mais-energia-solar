@@ -18580,7 +18580,7 @@ export type Database = {
           plant_id: string
           relation_type?: Database["public"]["Enums"]["plant_relation_type"]
           started_at?: string
-          tenant_id: string
+          tenant_id?: string
           unit_id: string
           updated_at?: string
         }
