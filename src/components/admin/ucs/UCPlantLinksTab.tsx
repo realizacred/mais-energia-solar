@@ -210,7 +210,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
                     <div>
                       <p className="text-xs text-muted-foreground">Última comunicação</p>
                       <p className="font-mono text-xs">
-                        {plant?.last_communication_at ? format(new Date(plant.last_communication_at), "dd/MM HH:mm") : "—"}
+                        {plant?.last_seen_at ? format(new Date(plant.last_seen_at), "dd/MM HH:mm") : "—"}
                       </p>
                     </div>
                     <div>
