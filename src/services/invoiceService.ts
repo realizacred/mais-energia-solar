@@ -3,6 +3,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 
+export type BandeiraTarifaria = "verde" | "amarela" | "vermelha_1" | "vermelha_2";
+
 export interface UnitInvoice {
   id: string;
   unit_id: string;
@@ -19,6 +21,11 @@ export interface UnitInvoice {
   source: string | null;
   status: string;
   created_at: string;
+  demanda_contratada_kw: number | null;
+  demanda_medida_kw: number | null;
+  ultrapassagem_kw: number | null;
+  multa_ultrapassagem: number | null;
+  bandeira_tarifaria: BandeiraTarifaria | null;
 }
 
 export type BillingNotificationChannel = "whatsapp" | "email" | "ambos";
@@ -39,7 +46,7 @@ export interface BillingEmailSettings {
   servico_fatura_ativo: boolean;
 }
 
-const INVOICE_COLS = `id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at`;
+const INVOICE_COLS = `id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at, demanda_contratada_kw, demanda_medida_kw, ultrapassagem_kw, multa_ultrapassagem, bandeira_tarifaria`;
 // Use safe view that hides pdf_password — only exposes has_pdf_password boolean
 const BILLING_COLS = `id, unit_id, billing_capture_email, forward_to_email, email_billing_enabled, setup_status, notes, dia_leitura, dias_antecedencia_alerta, canal_notificacao, servico_fatura_ativo`;
 const BILLING_TABLE = "unit_billing_email_settings";

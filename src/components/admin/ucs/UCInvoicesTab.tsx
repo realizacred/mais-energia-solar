@@ -3,23 +3,39 @@
  */
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { invoiceService, type UnitInvoice } from "@/services/invoiceService";
+import { invoiceService, type UnitInvoice, type BandeiraTarifaria } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/storagePaths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, FileText, Upload, Mail, ExternalLink, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+const BANDEIRA_LABELS: Record<string, string> = {
+  verde: "Verde",
+  amarela: "Amarela",
+  vermelha_1: "Vermelha 1",
+  vermelha_2: "Vermelha 2",
+};
+
+const BANDEIRA_COLORS: Record<string, string> = {
+  verde: "border-success text-success",
+  amarela: "border-warning text-warning",
+  vermelha_1: "border-destructive text-destructive",
+  vermelha_2: "border-destructive text-destructive",
+};
 
 interface Props {
   unitId: string;
@@ -42,6 +58,11 @@ export function UCInvoicesTab({ unitId }: Props) {
     current_balance_kwh: "",
     due_date: "",
     pdf_file: null as File | null,
+    demanda_contratada_kw: "",
+    demanda_medida_kw: "",
+    ultrapassagem_kw: "",
+    multa_ultrapassagem: "",
+    bandeira_tarifaria: "" as string,
   });
 
   const { data: invoices = [], isLoading } = useQuery({
@@ -64,6 +85,8 @@ export function UCInvoicesTab({ unitId }: Props) {
     return signedData?.signedUrl || null;
   };
 
+  const parseNum = (v: string) => v ? parseFloat(v) : null;
+
   const createMut = useMutation({
     mutationFn: async () => {
       let pdfUrl: string | null = null;
@@ -74,15 +97,20 @@ export function UCInvoicesTab({ unitId }: Props) {
         unit_id: unitId,
         reference_month: form.reference_month,
         reference_year: form.reference_year,
-        total_amount: form.total_amount ? parseFloat(form.total_amount) : null,
-        energy_consumed_kwh: form.energy_consumed_kwh ? parseFloat(form.energy_consumed_kwh) : null,
-        energy_injected_kwh: form.energy_injected_kwh ? parseFloat(form.energy_injected_kwh) : null,
-        compensated_kwh: form.compensated_kwh ? parseFloat(form.compensated_kwh) : null,
-        previous_balance_kwh: form.previous_balance_kwh ? parseFloat(form.previous_balance_kwh) : null,
-        current_balance_kwh: form.current_balance_kwh ? parseFloat(form.current_balance_kwh) : null,
+        total_amount: parseNum(form.total_amount),
+        energy_consumed_kwh: parseNum(form.energy_consumed_kwh),
+        energy_injected_kwh: parseNum(form.energy_injected_kwh),
+        compensated_kwh: parseNum(form.compensated_kwh),
+        previous_balance_kwh: parseNum(form.previous_balance_kwh),
+        current_balance_kwh: parseNum(form.current_balance_kwh),
         due_date: form.due_date || null,
         pdf_file_url: pdfUrl,
         source: "manual",
+        demanda_contratada_kw: parseNum(form.demanda_contratada_kw),
+        demanda_medida_kw: parseNum(form.demanda_medida_kw),
+        ultrapassagem_kw: parseNum(form.ultrapassagem_kw),
+        multa_ultrapassagem: parseNum(form.multa_ultrapassagem),
+        bandeira_tarifaria: (form.bandeira_tarifaria || null) as BandeiraTarifaria | null,
       } as any);
     },
     onSuccess: () => {
@@ -98,7 +126,6 @@ export function UCInvoicesTab({ unitId }: Props) {
     setUploading(true);
     try {
       const pdfUrl = await uploadPdf(file);
-      // Create invoice with just the file — month/year from current date
       await invoiceService.create({
         unit_id: unitId,
         reference_month: new Date().getMonth() + 1,
@@ -128,6 +155,11 @@ export function UCInvoicesTab({ unitId }: Props) {
       current_balance_kwh: "",
       due_date: "",
       pdf_file: null,
+      demanda_contratada_kw: "",
+      demanda_medida_kw: "",
+      ultrapassagem_kw: "",
+      multa_ultrapassagem: "",
+      bandeira_tarifaria: "",
     });
   };
 
@@ -213,6 +245,7 @@ export function UCInvoicesTab({ unitId }: Props) {
                 <TableHead className="font-semibold text-foreground text-right">Consumo</TableHead>
                 <TableHead className="font-semibold text-foreground text-right">Injeção</TableHead>
                 <TableHead className="font-semibold text-foreground text-right">Saldo</TableHead>
+                <TableHead className="font-semibold text-foreground">Bandeira</TableHead>
                 <TableHead className="font-semibold text-foreground">Fonte</TableHead>
                 <TableHead className="font-semibold text-foreground">Status</TableHead>
                 <TableHead className="w-[50px]" />
@@ -227,6 +260,13 @@ export function UCInvoicesTab({ unitId }: Props) {
                   <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)} kWh` : "—"}</TableCell>
                   <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)} kWh` : "—"}</TableCell>
                   <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                  <TableCell>
+                    {inv.bandeira_tarifaria ? (
+                      <StatusBadge variant="muted" className={BANDEIRA_COLORS[inv.bandeira_tarifaria] || ""}>
+                        {BANDEIRA_LABELS[inv.bandeira_tarifaria] || inv.bandeira_tarifaria}
+                      </StatusBadge>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
                   </TableCell>
@@ -253,7 +293,7 @@ export function UCInvoicesTab({ unitId }: Props) {
 
       {/* Register invoice dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5 text-primary" />
@@ -277,8 +317,8 @@ export function UCInvoicesTab({ unitId }: Props) {
               </div>
             </div>
 
-            {/* Valor e Vencimento */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Valor, Vencimento, Bandeira */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Valor (R$)</Label>
                 <Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} placeholder="0,00" />
@@ -286,6 +326,18 @@ export function UCInvoicesTab({ unitId }: Props) {
               <div className="space-y-1">
                 <Label className="text-xs">Vencimento</Label>
                 <Input type="date" value={form.due_date} onChange={(e) => setForm(f => ({ ...f, due_date: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Bandeira Tarifária</Label>
+                <Select value={form.bandeira_tarifaria} onValueChange={(v) => setForm(f => ({ ...f, bandeira_tarifaria: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="verde">🟢 Verde</SelectItem>
+                    <SelectItem value="amarela">🟡 Amarela</SelectItem>
+                    <SelectItem value="vermelha_1">🔴 Vermelha 1</SelectItem>
+                    <SelectItem value="vermelha_2">🔴 Vermelha 2</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -314,6 +366,28 @@ export function UCInvoicesTab({ unitId }: Props) {
               <div className="space-y-1">
                 <Label className="text-xs">Saldo atual (kWh)</Label>
                 <Input type="number" step="0.1" value={form.current_balance_kwh} onChange={(e) => setForm(f => ({ ...f, current_balance_kwh: e.target.value }))} placeholder="0" />
+              </div>
+            </div>
+
+            {/* Demanda (Grupo A) */}
+            <Separator />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Demanda (Grupo A)</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Contratada (kW)</Label>
+                <Input type="number" step="0.1" value={form.demanda_contratada_kw} onChange={(e) => setForm(f => ({ ...f, demanda_contratada_kw: e.target.value }))} placeholder="0" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Medida (kW)</Label>
+                <Input type="number" step="0.1" value={form.demanda_medida_kw} onChange={(e) => setForm(f => ({ ...f, demanda_medida_kw: e.target.value }))} placeholder="0" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Ultrapassagem (kW)</Label>
+                <Input type="number" step="0.1" value={form.ultrapassagem_kw} onChange={(e) => setForm(f => ({ ...f, ultrapassagem_kw: e.target.value }))} placeholder="0" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Multa (R$)</Label>
+                <Input type="number" step="0.01" value={form.multa_ultrapassagem} onChange={(e) => setForm(f => ({ ...f, multa_ultrapassagem: e.target.value }))} placeholder="0,00" />
               </div>
             </div>
 
