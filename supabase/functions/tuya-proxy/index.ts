@@ -496,7 +496,11 @@ Deno.serve(async (req) => {
               "GET", `/v1.0/devices/${meter.external_device_id}`
             );
 
-            if (!statusResp.success) { failed++; continue; }
+            if (!statusResp.success) {
+              console.error(`[sync_readings] Device ${meter.external_device_id} status failed:`, statusResp.msg || statusResp.code);
+              failed++;
+              continue;
+            }
 
             const dps = statusResp.result || [];
             const deviceInfo = infoResp.result || {};
