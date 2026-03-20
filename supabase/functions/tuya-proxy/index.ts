@@ -676,7 +676,8 @@ Deno.serve(async (req) => {
             await supabase.from("meter_readings").insert({
               meter_device_id: meter.id, measured_at: now,
               voltage_v: reading.voltage_v, current_a: reading.current_a,
-              power_w: reading.power_w, energy_import_kwh: reading.energy_import_kwh,
+              power_w: reading.power_w, power_factor: reading.power_factor,
+              energy_import_kwh: reading.energy_import_kwh,
               energy_export_kwh: reading.energy_export_kwh,
               raw_payload: { dps, device_info: deviceInfo },
             } as any);
