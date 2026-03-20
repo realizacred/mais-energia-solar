@@ -434,6 +434,13 @@ export const tuyaIntegrationService = {
     return this.callProxy("send_command", configId, { device_id: deviceId, commands });
   },
 
+  /** Rename a Tuya device via API and update local DB */
+  async renameDevice(configId: string, deviceExternalId: string, meterId: string, newName: string) {
+    await this.callProxy("rename_device", configId, { device_id: deviceExternalId, name: newName });
+    // Also update local DB
+    await supabase.from("meter_devices").update({ name: newName, updated_at: new Date().toISOString() } as any).eq("id", meterId);
+  },
+
   /** Get device functions (DPs) */
   async getDeviceFunctions(configId: string, deviceId: string) {
     return this.callProxy("get_device_functions", configId, { device_id: deviceId });

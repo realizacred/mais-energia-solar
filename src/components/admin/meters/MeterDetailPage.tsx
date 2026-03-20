@@ -2,7 +2,7 @@
  * MeterDetailPage — Reformulated detail view for a single meter device.
  * Route: /admin/medidores/:id
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,7 +27,7 @@ import {
 import {
   Gauge, ArrowLeft, Zap, Activity, BarChart3,
   Clock, AlertTriangle, Unlink, Power, PowerOff,
-  RefreshCw, Loader2,
+  RefreshCw, Loader2, Thermometer, ShieldAlert, Pencil, Check, X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -60,6 +61,9 @@ export default function MeterDetailPage() {
   const [syncing, setSyncing] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [chartPeriod, setChartPeriod] = useState<"24h" | "7d" | "30d">("24h");
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
   const { data: meter, isLoading, error } = useQuery({
     queryKey: ["meter_device", id],
@@ -131,14 +135,24 @@ export default function MeterDetailPage() {
     }));
   }, [readings]);
 
-  // Current switch state from DPS
-  const switchState = useMemo(() => {
-    if (!latestStatus) return null;
+  // Current switch state and extra DPs from raw_payload
+  const extraDPs = useMemo(() => {
     const raw = (latestStatus as any)?.raw_payload;
-    if (!raw?.dps) return null;
-    const sw = raw.dps.find((dp: any) => dp.code === "switch");
-    return sw ? !!sw.value : null;
+    if (!raw?.dps) return { switchState: null as boolean | null, temperature: null as number | null, leakageCurrent: null as number | null, balanceEnergy: null as number | null };
+    const dps: any[] = raw.dps;
+    const sw = dps.find((dp: any) => dp.code === "switch");
+    const temp = dps.find((dp: any) => dp.code === "temp_current");
+    const leakage = dps.find((dp: any) => dp.code === "leakage_current");
+    const balance = dps.find((dp: any) => dp.code === "balance_energy");
+    return {
+      switchState: sw ? !!sw.value : null,
+      temperature: temp && typeof temp.value === "number" ? temp.value : null,
+      leakageCurrent: leakage && typeof leakage.value === "number" ? leakage.value : null,
+      balanceEnergy: balance && typeof balance.value === "number" ? (balance.value * 0.01) : null,
+    };
   }, [latestStatus]);
+
+  const switchState = extraDPs.switchState;
 
   async function handleSync() {
     if (!meter?.integration_config_id) return;
@@ -190,6 +204,21 @@ export default function MeterDetailPage() {
     }
   }
 
+  async function handleRename() {
+    if (!meter?.integration_config_id || !editName.trim()) return;
+    setRenaming(true);
+    try {
+      await tuyaIntegrationService.renameDevice(meter.integration_config_id, meter.external_device_id, meter.id, editName.trim());
+      toast({ title: "Nome atualizado com sucesso" });
+      qc.invalidateQueries({ queryKey: ["meter_device", id] });
+      setEditing(false);
+    } catch (err: any) {
+      toast({ title: "Erro ao renomear", description: err?.message, variant: "destructive" });
+    } finally {
+      setRenaming(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 space-y-6">
@@ -235,7 +264,30 @@ export default function MeterDetailPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground">{meter.name}</h1>
+              {editing ? (
+                <>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="h-8 w-48 text-base font-bold"
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setEditing(false); }}
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleRename} disabled={renaming}>
+                    {renaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-success" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(false)} disabled={renaming}>
+                    <X className="w-4 h-4 text-destructive" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-xl font-bold text-foreground">{meter.name}</h1>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditName(meter.name); setEditing(true); }}>
+                    <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                  </Button>
+                </>
+              )}
               <StatusBadge variant={meter.online_status === "online" ? "success" : "destructive"} dot>
                 {meter.online_status === "online" ? "Online" : "Offline"}
               </StatusBadge>
@@ -303,6 +355,33 @@ export default function MeterDetailPage() {
           icon={BarChart3}
           label="Energia Total"
           value={energyVal != null ? `${energyVal.toFixed(2)} kWh` : "—"}
+          color="success"
+        />
+      </div>
+      {/* Extra DPs row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={Thermometer}
+          label="Temperatura"
+          value={extraDPs.temperature != null ? `${extraDPs.temperature} °C` : "—"}
+          color="warning"
+        />
+        <StatCard
+          icon={ShieldAlert}
+          label="Corrente Fuga"
+          value={extraDPs.leakageCurrent != null ? `${extraDPs.leakageCurrent} mA` : "—"}
+          color="destructive"
+        />
+        <StatCard
+          icon={BarChart3}
+          label="Saldo Energia"
+          value={extraDPs.balanceEnergy != null ? `${extraDPs.balanceEnergy.toFixed(2)} kWh` : "—"}
+          color="info"
+        />
+        <StatCard
+          icon={Activity}
+          label="Frequência"
+          value="60 Hz"
           color="success"
         />
       </div>
