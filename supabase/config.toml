@@ -299,3 +299,9 @@ verify_jwt = false
 
 [functions.reaquecimento-analyzer]
 verify_jwt = false
+
+[functions.process-fatura-pdf]
+verify_jwt = false
+
+[functions.check-billing-emails]
+verify_jwt = false
