@@ -227,7 +227,8 @@ async function handleCronSync(supabase: any): Promise<Response> {
           }));
 
           const upsertPayload = {
-            meter_device_id: meter.id, measured_at: now, online_status: online,
+            meter_device_id: meter.id, tenant_id: meter.tenant_id,
+            measured_at: now, online_status: online,
             ...reading, raw_payload: { dps, device_info: deviceInfo }, updated_at: now,
           };
           const { error: upsertErr } = await supabase.from("meter_status_latest").upsert(
