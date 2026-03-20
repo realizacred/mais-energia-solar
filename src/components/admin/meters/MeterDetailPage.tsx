@@ -165,6 +165,9 @@ export default function MeterDetailPage() {
       statusB: (latestStatus as any)?.status_b ?? null,
       statusC: (latestStatus as any)?.status_c ?? null,
       faultBitmap: (latestStatus as any)?.fault_bitmap ?? null,
+      overCurrentCount: (latestStatus as any)?.over_current_count ?? null,
+      lostCurrentCount: (latestStatus as any)?.lost_current_count ?? null,
+      leakCount: (latestStatus as any)?.leak_count ?? null,
     };
   }, [latestStatus]);
 
