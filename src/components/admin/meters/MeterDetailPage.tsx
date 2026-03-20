@@ -616,7 +616,12 @@ export default function MeterDetailPage() {
         <TabsContent value="info">
           {/* Alarms & Phase Status */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MeterAlarmPanel faultBitmap={extraDPs.faultBitmap} />
+            <MeterAlarmPanel
+              faultBitmap={extraDPs.faultBitmap}
+              overCurrentCount={extraDPs.overCurrentCount}
+              lostCurrentCount={extraDPs.lostCurrentCount}
+              leakCount={extraDPs.leakCount}
+            />
             <MeterPhaseStatus statusA={extraDPs.statusA} statusB={extraDPs.statusB} statusC={extraDPs.statusC} />
           </div>
 
