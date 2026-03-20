@@ -197,7 +197,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                           <TooltipTrigger asChild>
                             <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0 cursor-help" />
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[320px] text-xs leading-relaxed">
+                          <TooltipContent side="top" className="max-w-[360px] text-sm leading-relaxed p-3">
                             {dp.description}
                           </TooltipContent>
                         </Tooltip>
