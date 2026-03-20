@@ -51,9 +51,6 @@ const ChartTooltip = ({ active, payload, label }: any) => {
       </p>
       <p className="text-muted-foreground">
         Consumo: <span className="font-semibold text-foreground">{Number(row?._realConsumo ?? 0).toFixed(2)} kWh</span>
-      </p>
-        </p>
-      ))}
     </div>
   );
 };
