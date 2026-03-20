@@ -204,7 +204,8 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
         toast({ title: "Valor inválido", description: `Deve ser entre ${dp.min ?? 0} e ${dp.max ?? 99999}`, variant: "destructive" });
         return;
       }
-      value = num;
+      // Apply DP scale: charge_energy has scale=2, so kWh × 100 = raw value
+      value = dp.scale ? Math.round(num * Math.pow(10, dp.scale)) : num;
     }
 
     setSendingCode(dp.code);
