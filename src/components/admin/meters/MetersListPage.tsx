@@ -1,10 +1,13 @@
 /**
- * MetersListPage — Main list page for Medidores.
+ * MetersListPage — Card-based list for Medidores with KPIs.
  */
 import { useState, useMemo } from "react";
 import { type MeterDevice } from "@/services/meterService";
 import { useMetersListData } from "@/hooks/useMetersListData";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { StatCard } from "@/components/ui-kit/StatCard";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
@@ -12,11 +15,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { Search, Gauge, ArrowLeftRight, AlertTriangle, Wifi, WifiOff, Link2, Activity } from "lucide-react";
+import { Search, Gauge, Wifi, WifiOff, Zap, BarChart3, Activity, AlertTriangle, ArrowRight, Link2 } from "lucide-react";
 import { MeterLinkDialog } from "./MeterLinkDialog";
 
 export default function MetersListPage() {
@@ -30,14 +33,31 @@ export default function MetersListPage() {
     search,
   });
 
-  // CORREÇÃO 4 — KPI cards data
+  // Get latest status for all meters
+  const meterIds = meters.map(m => m.id);
+  const { data: statusMap = {} } = useQuery({
+    queryKey: ["meter_status_latest_all", meterIds.join(",")],
+    queryFn: async () => {
+      if (!meterIds.length) return {};
+      const { data } = await supabase
+        .from("meter_status_latest")
+        .select("meter_device_id, power_w, voltage_v, current_a, energy_import_kwh")
+        .in("meter_device_id", meterIds);
+      const map: Record<string, any> = {};
+      for (const s of data || []) map[s.meter_device_id] = s;
+      return map;
+    },
+    staleTime: 1000 * 60,
+    enabled: meterIds.length > 0,
+  });
+
   const kpis = useMemo(() => {
     const total = meters.length;
     const online = meters.filter(m => m.online_status === "online").length;
     const offline = meters.filter(m => m.online_status === "offline").length;
-    const linked = meters.filter(m => !!getLinkedUC(m.id)).length;
-    return { total, online, offline, linked };
-  }, [meters, getLinkedUC]);
+    const totalEnergy = Object.values(statusMap).reduce((sum: number, s: any) => sum + (s?.energy_import_kwh || 0), 0);
+    return { total, online, offline, totalEnergy };
+  }, [meters, statusMap]);
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -47,154 +67,136 @@ export default function MetersListPage() {
         description="Dispositivos de medição IoT sincronizados via API"
       />
 
-      {/* CORREÇÃO 4 — KPI Cards §27 */}
+      {/* KPI Cards §27 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
-              <Gauge className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{kpis.total}</p>
-              <p className="text-sm text-muted-foreground mt-1">Total</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-success bg-card shadow-sm">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
-              <Wifi className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{kpis.online}</p>
-              <p className="text-sm text-muted-foreground mt-1">Online</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-destructive bg-card shadow-sm">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive shrink-0">
-              <WifiOff className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{kpis.offline}</p>
-              <p className="text-sm text-muted-foreground mt-1">Offline</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
-              <Link2 className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{kpis.linked}</p>
-              <p className="text-sm text-muted-foreground mt-1">Vinculados</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Gauge} label="Total Medidores" value={kpis.total} color="primary" />
+        <StatCard icon={Wifi} label="Online" value={kpis.online} color="success" />
+        <StatCard icon={WifiOff} label="Offline" value={kpis.offline} color="destructive" />
+        <StatCard icon={BarChart3} label="Energia Total (kWh)" value={kpis.totalEnergy.toFixed(2)} color="info" />
       </div>
 
-      <SectionCard>
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nome ou device ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="online">Online</SelectItem>
-              <SelectItem value="offline">Offline</SelectItem>
-              <SelectItem value="unknown">Desconhecido</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome ou device ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        {/* CORREÇÃO 2 — Skeleton no loading */}
-        {isLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : error ? (
-          <EmptyState icon={AlertTriangle} title="Erro ao carregar" description={String(error)} />
-        ) : meters.length === 0 ? (
-          <EmptyState
-            icon={Gauge}
-            title="Nenhum medidor encontrado"
-            description="Medidores serão importados automaticamente ao configurar uma integração de API (ex: Tuya) em Integrações > APIs."
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Modelo</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Device ID</TableHead>
-                  <TableHead>UC Vinculada</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Última Leitura</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {meters.map((m) => {
-                  const linkedUC = getLinkedUC(m.id);
-                  return (
-                    <TableRow key={m.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/medidores/${m.id}`)}>
-                      <TableCell className="font-medium">{m.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{m.model || "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs capitalize">{m.provider}</Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground max-w-[120px] truncate">{m.external_device_id}</TableCell>
-                      <TableCell>
-                        {linkedUC ? (
-                          <span className="text-xs font-medium text-primary">{linkedUC.nome}</span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">Não vinculado</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {m.bidirectional_supported ? (
-                            <Badge variant="outline" className="text-xs"><ArrowLeftRight className="w-3 h-3 mr-0.5" />Bidirecional</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs">Unidirecional</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge variant={m.online_status === "online" ? "success" : m.online_status === "offline" ? "destructive" : "muted"} dot>
-                          {m.online_status === "online" ? "Online" : m.online_status === "offline" ? "Offline" : "—"}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {m.last_reading_at ? new Date(m.last_reading_at).toLocaleString("pt-BR") : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setLinkDialogMeter(m)}>
-                            {linkedUC ? "Trocar UC" : "Vincular UC"}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </SectionCard>
+      {/* Loading / Error / Content */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : error ? (
+        <EmptyState icon={AlertTriangle} title="Erro ao carregar" description={String(error)} />
+      ) : meters.length === 0 ? (
+        <EmptyState
+          icon={Gauge}
+          title="Nenhum medidor encontrado"
+          description="Medidores serão importados automaticamente ao configurar uma integração de API (ex: Tuya) em Integrações > APIs."
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {meters.map((m) => {
+            const linkedUC = getLinkedUC(m.id);
+            const status = statusMap[m.id];
+            const power = status?.power_w ?? null;
+            const voltage = status?.voltage_v ?? null;
+            const current = status?.current_a ?? null;
+            const energy = status?.energy_import_kwh ?? null;
+            // Progress: assume max 10kW nominal
+            const powerPercent = power != null ? Math.min((power / 10000) * 100, 100) : 0;
+
+            return (
+              <Card
+                key={m.id}
+                className="bg-card border border-border shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                onClick={() => navigate(`/admin/medidores/${m.id}`)}
+              >
+                <CardContent className="p-5 space-y-3">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+                        <Gauge className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{m.name}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono truncate">{m.external_device_id}</p>
+                      </div>
+                    </div>
+                    <StatusBadge variant={m.online_status === "online" ? "success" : "destructive"} dot>
+                      {m.online_status === "online" ? "On" : "Off"}
+                    </StatusBadge>
+                  </div>
+
+                  {/* Power highlight */}
+                  <div className="text-center py-2">
+                    <p className="text-3xl font-bold tracking-tight text-foreground">
+                      {power != null ? (power >= 1000 ? `${(power / 1000).toFixed(2)} kW` : `${power} W`) : "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Potência atual</p>
+                  </div>
+
+                  {/* Power bar */}
+                  {power != null && (
+                    <Progress value={powerPercent} className="h-1.5" />
+                  )}
+
+                  {/* Secondary metrics */}
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-xs font-mono text-foreground">{voltage != null ? `${voltage.toFixed(1)}V` : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">Tensão</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-mono text-foreground">{current != null ? `${current.toFixed(2)}A` : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">Corrente</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-mono text-foreground">{energy != null ? `${energy.toFixed(1)}` : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">kWh</p>
+                    </div>
+                  </div>
+
+                  {/* UC linked + action */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    {linkedUC ? (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                        <Link2 className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{linkedUC.nome}</span>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={(e) => { e.stopPropagation(); setLinkDialogMeter(m); }}
+                      >
+                        Vincular UC
+                      </Button>
+                    )}
+                    <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {linkDialogMeter && (
         <MeterLinkDialog

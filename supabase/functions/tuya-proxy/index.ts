@@ -404,6 +404,182 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "send_command": {
+        const deviceId = params?.device_id;
+        const commands = params?.commands;
+        if (!deviceId || !commands?.length) {
+          return new Response(JSON.stringify({ error: "device_id and commands required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        result = await tuyaRequest(
+          baseUrl, clientId, clientSecret, token,
+          "POST", `/v1.0/devices/${deviceId}/commands`,
+          { commands }
+        );
+        console.log(`[tuya-proxy] send_command to ${deviceId}: ${JSON.stringify(commands)} → success=${result.success}`);
+        break;
+      }
+
+      case "get_device_functions": {
+        const deviceId = params?.device_id;
+        if (!deviceId) {
+          return new Response(JSON.stringify({ error: "device_id required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        result = await tuyaRequest(
+          baseUrl, clientId, clientSecret, token,
+          "GET", `/v1.0/devices/${deviceId}/functions`
+        );
+        break;
+      }
+
+      case "sync_readings": {
+        // Server-side cron: sync readings for ALL tuya meters in this tenant
+        const { data: meters } = await supabase
+          .from("meter_devices")
+          .select("id, external_device_id, integration_config_id")
+          .eq("integration_config_id", config_id)
+          .eq("is_active", true)
+          .eq("provider", "tuya");
+
+        if (!meters?.length) {
+          result = { success: true, processed: 0 };
+          break;
+        }
+
+        let processed = 0;
+        let failed = 0;
+
+        for (const meter of meters) {
+          try {
+            const statusResp = await tuyaRequest(
+              baseUrl, clientId, clientSecret, token,
+              "GET", `/v1.0/devices/${meter.external_device_id}/status`
+            );
+            const infoResp = await tuyaRequest(
+              baseUrl, clientId, clientSecret, token,
+              "GET", `/v1.0/devices/${meter.external_device_id}`
+            );
+
+            if (!statusResp.success) { failed++; continue; }
+
+            const dps = statusResp.result || [];
+            const deviceInfo = infoResp.result || {};
+            const now = new Date().toISOString();
+            const online = deviceInfo.online ? "online" : "offline";
+
+            // Normalize DPS
+            const reading: Record<string, any> = {
+              voltage_v: null, current_a: null, power_w: null,
+              energy_import_kwh: null, energy_export_kwh: null,
+            };
+
+            const DPS_MAP: Record<string, string> = {
+              cur_voltage: "voltage_v", phase_a_voltage: "voltage_v",
+              cur_current: "current_a", phase_a_current: "current_a",
+              cur_power: "power_w", phase_a_power: "power_w", total_power: "power_w",
+              add_ele: "energy_import_kwh", total_forward_energy: "energy_import_kwh",
+              reverse_energy_total: "energy_export_kwh", total_reverse_energy: "energy_export_kwh",
+            };
+
+            const SCALE: Record<string, number> = {
+              voltage_v: 0.1, current_a: 0.001, power_w: 1,
+              energy_import_kwh: 0.01, energy_export_kwh: 0.01,
+            };
+
+            for (const dp of dps) {
+              const field = DPS_MAP[dp.code];
+              if (field && typeof dp.value === "number") {
+                reading[field] = dp.value * (SCALE[field] ?? 1);
+              }
+            }
+
+            // Upsert meter_status_latest
+            await supabase.from("meter_status_latest").upsert({
+              meter_device_id: meter.id,
+              measured_at: now,
+              online_status: online,
+              voltage_v: reading.voltage_v,
+              current_a: reading.current_a,
+              power_w: reading.power_w,
+              energy_import_kwh: reading.energy_import_kwh,
+              energy_export_kwh: reading.energy_export_kwh,
+              raw_payload: { dps, device_info: deviceInfo },
+              updated_at: now,
+            } as any, { onConflict: "meter_device_id" });
+
+            // Insert reading
+            await supabase.from("meter_readings").insert({
+              meter_device_id: meter.id,
+              measured_at: now,
+              voltage_v: reading.voltage_v,
+              current_a: reading.current_a,
+              power_w: reading.power_w,
+              energy_import_kwh: reading.energy_import_kwh,
+              energy_export_kwh: reading.energy_export_kwh,
+              raw_payload: { dps, device_info: deviceInfo },
+            } as any);
+
+            // Update meter device
+            await supabase.from("meter_devices").update({
+              online_status: online,
+              last_seen_at: deviceInfo.online ? now : undefined,
+              last_reading_at: now,
+              updated_at: now,
+            } as any).eq("id", meter.id);
+
+            // Check alerts
+            const settings = (config.settings as any) || {};
+            const alertConfig = settings.alert_config || {};
+            const minV = alertConfig.min_voltage ?? 200;
+            const maxV = alertConfig.max_voltage ?? 240;
+            const maxP = alertConfig.max_power ?? 10000;
+
+            const alerts: any[] = [];
+            if (reading.voltage_v != null && reading.voltage_v < minV) {
+              alerts.push({ tipo: "tensao_baixa", valor_atual: reading.voltage_v, valor_limite: minV });
+            }
+            if (reading.voltage_v != null && reading.voltage_v > maxV) {
+              alerts.push({ tipo: "tensao_alta", valor_atual: reading.voltage_v, valor_limite: maxV });
+            }
+            if (reading.power_w != null && reading.power_w > maxP) {
+              alerts.push({ tipo: "sobrecarga", valor_atual: reading.power_w, valor_limite: maxP });
+            }
+
+            for (const alert of alerts) {
+              // Check if unresolved alert of same type exists
+              const { data: existing } = await supabase
+                .from("meter_alerts")
+                .select("id")
+                .eq("meter_device_id", meter.id)
+                .eq("tipo", alert.tipo)
+                .eq("resolvido", false)
+                .maybeSingle();
+              if (!existing) {
+                await supabase.from("meter_alerts").insert({
+                  meter_device_id: meter.id,
+                  tenant_id: tenantId,
+                  ...alert,
+                } as any);
+              }
+            }
+
+            processed++;
+          } catch (e: any) {
+            console.error(`[tuya-proxy] sync_readings error for ${meter.external_device_id}:`, e.message);
+            failed++;
+          }
+        }
+
+        console.log(`[tuya-proxy] sync_readings done: processed=${processed}, failed=${failed}`);
+        result = { success: true, processed, failed, total: meters.length };
+        break;
+      }
+
       case "proxy": {
         // Generic proxy for any Tuya endpoint
         const { method = "GET", path, body: reqBody } = params || {};
