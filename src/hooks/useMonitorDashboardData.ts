@@ -6,18 +6,21 @@ import { addMinutes } from "date-fns";
 
 const STALE = 1000 * 60 * 2; // 2 min — monitoring data changes frequently
 const SYNC_INTERVAL_MIN = 15;
+const REFRESH = 1000 * 30; // 30s — dashboard operacional precisa refletir sync recente
 
 export function useMonitorDashboardData() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["monitor-dashboard-stats"],
     queryFn: getDashboardStats,
     staleTime: STALE,
+    refetchInterval: REFRESH,
   });
 
   const { data: plants = [] } = useQuery({
     queryKey: ["monitor-plants-health"],
     queryFn: listPlantsWithHealth,
     staleTime: STALE,
+    refetchInterval: REFRESH,
   });
 
   const { data: openAlerts = [] } = useQuery({
