@@ -42,14 +42,16 @@ const STALE_2M = 1000 * 60 * 2;
 // §5: Custom tooltip
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload;
   return (
     <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
       <p className="font-medium text-foreground mb-1">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} className="text-muted-foreground">
-          {p.name}: <span className="font-semibold text-foreground">{Number(p.value).toFixed(2)} kWh</span>
-        </p>
-      ))}
+      <p className="text-muted-foreground">
+        Geração: <span className="font-semibold text-foreground">{Number(row?._realGeração ?? 0).toFixed(2)} kWh</span>
+      </p>
+      <p className="text-muted-foreground">
+        Consumo: <span className="font-semibold text-foreground">{Number(row?._realConsumo ?? 0).toFixed(2)} kWh</span>
+      </p>
     </div>
   );
 };
@@ -151,11 +153,21 @@ export function UCOverviewTab({
     const allDays = new Set([...Object.keys(consumptionByDay), ...Object.keys(generationByDay)]);
     return Array.from(allDays)
       .sort()
-      .map((day) => ({
-        date: format(parseISO(day), "dd/MM", { locale: ptBR }),
-        Geração: generationByDay[day] || 0,
-        Consumo: consumptionByDay[day] || 0,
-      }));
+      .map((day) => {
+        const gen = generationByDay[day] || 0;
+        const cons = consumptionByDay[day] || 0;
+        return {
+          date: format(parseISO(day), "dd/MM", { locale: ptBR }),
+          Geração: gen,
+          Consumo: cons,
+          // Keep real values for tooltip
+          _realGeração: gen,
+          _realConsumo: cons,
+          // Show a tiny bar for zero values so both series are always visible
+          _displayGeração: gen === 0 ? 0.3 : gen,
+          _displayConsumo: cons === 0 ? 0.3 : cons,
+        };
+      });
   }, [meterReadings, plantMetrics]);
 
   // --- KPI values ---
@@ -329,8 +341,8 @@ export function UCOverviewTab({
                 <Legend
                   wrapperStyle={{ fontSize: "12px" }}
                 />
-                <Bar dataKey="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                <Bar dataKey="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={20} />
               </BarChart>
             </ResponsiveContainer>
           )}
