@@ -563,8 +563,8 @@ export default function MeterDetailPage() {
                         <TableHead className="text-xs font-semibold text-foreground">Potência (W)</TableHead>
                         <TableHead className="text-xs font-semibold text-foreground">Tensão (V)</TableHead>
                         <TableHead className="text-xs font-semibold text-foreground">Corrente (A)</TableHead>
-                        <TableHead className="text-xs font-semibold text-foreground">Energia Imp. (kWh)</TableHead>
-                        <TableHead className="text-xs font-semibold text-foreground">Energia Exp. (kWh)</TableHead>
+                        <TableHead className="text-xs font-semibold text-foreground">Reg 03 — Consumo (kWh)</TableHead>
+                        <TableHead className="text-xs font-semibold text-foreground">Reg 103 — Injeção (kWh)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
