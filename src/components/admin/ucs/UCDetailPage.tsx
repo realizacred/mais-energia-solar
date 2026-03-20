@@ -49,6 +49,22 @@ export default function UCDetailPage() {
   const { data: credits = [] } = useUnitCredits(id ?? null);
   const deleteCredit = useDeleteUnitCredit();
 
+  // Fetch linked plant for generation report
+  const { data: linkedPlantId } = useQuery({
+    queryKey: ["uc_linked_plant", id],
+    queryFn: async () => {
+      const { data } = await (await import("@/integrations/supabase/client")).supabase
+        .from("unit_plant_links")
+        .select("plant_id")
+        .eq("unit_id", id!)
+        .eq("is_active", true)
+        .limit(1);
+      return data?.[0]?.plant_id ?? null;
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const totalCreditoAdicionado = credits.reduce((sum, c) => sum + Number(c.quantidade_kwh), 0);
 
   const handleDeleteCredit = async (creditId: string) => {
