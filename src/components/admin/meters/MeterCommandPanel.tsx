@@ -176,7 +176,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
                 {cat.icon}
               </div>
               <h3 className="text-sm font-semibold text-foreground">{cat.title}</h3>
-              <Badge variant="outline" className="text-[10px] ml-auto">{cat.dps.length}</Badge>
+              <Badge variant="outline" className="text-xs ml-auto">{cat.dps.length}</Badge>
             </div>
 
             <div className="space-y-2">
