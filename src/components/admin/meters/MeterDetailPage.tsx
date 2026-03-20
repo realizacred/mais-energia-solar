@@ -61,6 +61,9 @@ export default function MeterDetailPage() {
   const [syncing, setSyncing] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [chartPeriod, setChartPeriod] = useState<"24h" | "7d" | "30d">("24h");
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
   const { data: meter, isLoading, error } = useQuery({
     queryKey: ["meter_device", id],
