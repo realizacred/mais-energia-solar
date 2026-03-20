@@ -164,15 +164,29 @@ export default function MeterDetailPage() {
     };
   }, [latestStatus]);
 
-  const switchState = optimisticSwitch !== null ? optimisticSwitch : extraDPs.switchState;
+  // Persist last known switch state so the button never disappears
+  const [lastKnownSwitch, setLastKnownSwitch] = useState<boolean | null>(null);
 
-  // Reset optimistic state when latestStatus updates
   useEffect(() => {
-    if (optimisticSwitch !== null) {
+    if (extraDPs.switchState !== null) {
+      setLastKnownSwitch(extraDPs.switchState);
+    }
+  }, [extraDPs.switchState]);
+
+  // Reset optimistic state when latestStatus updates with actual switch data
+  useEffect(() => {
+    if (optimisticSwitch !== null && extraDPs.switchState !== null) {
       setOptimisticSwitch(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latestStatus]);
+  }, [extraDPs.switchState]);
+
+  // Priority: optimistic > fresh DP > last known
+  const switchState = optimisticSwitch !== null
+    ? optimisticSwitch
+    : extraDPs.switchState !== null
+      ? extraDPs.switchState
+      : lastKnownSwitch;
 
   async function handleSync() {
     if (!meter?.integration_config_id) return;
