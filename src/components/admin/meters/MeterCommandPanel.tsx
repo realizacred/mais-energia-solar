@@ -204,18 +204,52 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
     }
   }
 
+  const handleRefresh = () => {
+    setInitialized(false);
+    qc.invalidateQueries({ queryKey: ["meter_status_latest", meterId] });
+  };
+
+  if (loadingStatus) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Terminal className="w-4 h-4" /> Painel de Comandos do Dispositivo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Terminal className="w-4 h-4" /> Painel de Comandos do Dispositivo
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Terminal className="w-4 h-4" /> Painel de Comandos do Dispositivo
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {initialized && (
+              <Badge variant="outline" className="text-xs text-success border-success/30 bg-success/10">
+                Valores carregados do dispositivo
+              </Badge>
+            )}
+            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={handleRefresh}>
+              <RefreshCw className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
           <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
           <p className="text-xs text-muted-foreground">
-            Comandos são enviados diretamente ao dispositivo. Use com cuidado — valores incorretos podem causar mau funcionamento.
+            Os valores exibidos são da última leitura do dispositivo. Altere e clique Enviar para gravar no medidor.
           </p>
         </div>
 
