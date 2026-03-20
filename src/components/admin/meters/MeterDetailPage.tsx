@@ -2,7 +2,7 @@
  * MeterDetailPage — Reformulated detail view for a single meter device.
  * Route: /admin/medidores/:id
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
