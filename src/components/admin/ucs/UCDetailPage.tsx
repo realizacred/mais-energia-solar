@@ -73,12 +73,13 @@ export default function UCDetailPage() {
   });
 
   // §23: Fetch plant link ONCE here, pass as props
+  // monitor_plants.legacy_plant_id maps to solar_plants.id (needed for metrics)
   const { data: plantLink } = useQuery({
     queryKey: ["uc_plant_link", id],
     queryFn: async () => {
       const { data } = await supabase
         .from("unit_plant_links")
-        .select("plant_id, monitor_plants(id, name, installed_power_kwp)")
+        .select("plant_id, monitor_plants(id, name, installed_power_kwp, legacy_plant_id)")
         .eq("unit_id", id!)
         .eq("is_active", true)
         .limit(1)
@@ -93,6 +94,8 @@ export default function UCDetailPage() {
   const meterDevice = (meterLink as any)?.meter_devices ?? null;
   const plantId = (plantLink as any)?.plant_id ?? null;
   const plantDevice = (plantLink as any)?.monitor_plants ?? null;
+  // solar_plants.id for metrics queries (resolved via legacy_plant_id)
+  const solarPlantId = plantDevice?.legacy_plant_id ?? null;
 
   const totalCreditoAdicionado = credits.reduce((sum, c) => sum + Number(c.quantidade_kwh), 0);
 
