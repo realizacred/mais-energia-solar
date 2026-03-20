@@ -170,7 +170,19 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
           {activeLinks.map(link => {
             const plant = plants.find((p: any) => p.id === link.plant_id);
             const todayGen = todayMetrics.find((m: any) => m.monitor_plant_id === link.plant_id);
-            const isOnline = plant?.state === "online";
+            const energyToday = todayGen ? Number(todayGen.energy_kwh) : 0;
+            const derived = derivePlantStatus({
+              updated_at: plant?.last_seen_at || null,
+              power_kw: null,
+              energy_today_kwh: energyToday,
+              provider_status: plant?.state,
+            });
+            const statusLabel: Record<PlantUiStatus, string> = { online: "Online", standby: "Standby", offline: "Offline" };
+            const statusClass: Record<PlantUiStatus, string> = {
+              online: "border-success text-success",
+              standby: "border-warning text-warning",
+              offline: "border-destructive text-destructive",
+            };
             return (
               <Card key={link.id} className="border-l-[3px] border-l-warning">
                 <CardContent className="p-4 space-y-3">
@@ -183,8 +195,8 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
                         <p className="text-sm font-semibold text-foreground">{plant?.name || link.plant_id.slice(0, 8) + "..."}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <Badge variant="outline" className="text-xs">{RELATION_LABELS[link.relation_type] || link.relation_type}</Badge>
-                          <Badge variant="outline" className={`text-xs ${isOnline ? "border-success text-success" : "border-destructive text-destructive"}`}>
-                            {isOnline ? "Online" : "Offline"}
+                          <Badge variant="outline" className={`text-xs ${statusClass[derived.uiStatus]}`}>
+                            {statusLabel[derived.uiStatus]}
                           </Badge>
                           {link.allocation_percent != null && (
                             <span className="text-xs text-muted-foreground">Rateio: {link.allocation_percent}%</span>
