@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
 import { tuyaIntegrationService } from "@/services/tuyaIntegrationService";
 import { MeterAlertConfig } from "./MeterAlertConfig";
+import { MeterCommandPanel } from "./MeterCommandPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
@@ -27,7 +28,7 @@ import {
 import {
   Gauge, ArrowLeft, Zap, Activity, BarChart3,
   Clock, AlertTriangle, Unlink, Power, PowerOff,
-  RefreshCw, Loader2, Thermometer, ShieldAlert, Pencil, Check, X,
+  RefreshCw, Loader2, Thermometer, ShieldAlert, Pencil, Check, X, Terminal,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -390,6 +391,7 @@ export default function MeterDetailPage() {
         <TabsList>
           <TabsTrigger value="chart">Gráfico</TabsTrigger>
           <TabsTrigger value="readings">Leituras</TabsTrigger>
+          <TabsTrigger value="commands">Comandos</TabsTrigger>
           <TabsTrigger value="info">Informações</TabsTrigger>
         </TabsList>
 
@@ -502,6 +504,23 @@ export default function MeterDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Commands Tab */}
+        <TabsContent value="commands">
+          {meter.integration_config_id ? (
+            <MeterCommandPanel
+              configId={meter.integration_config_id}
+              externalDeviceId={meter.external_device_id}
+              meterId={meter.id}
+            />
+          ) : (
+            <EmptyState
+              icon={Terminal}
+              title="Sem integração"
+              description="Este medidor não está vinculado a uma integração Tuya."
+            />
+          )}
         </TabsContent>
 
         {/* Info Tab */}
