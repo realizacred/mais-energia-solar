@@ -23,6 +23,7 @@ import { UCBillingSettingsTab } from "./UCBillingSettingsTab";
 import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { UCFormDialog } from "./UCFormDialog";
+import { AddCreditDialog } from "./AddCreditDialog";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Consumo",
