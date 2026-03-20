@@ -213,13 +213,16 @@ export default function MeterDetailPage() {
       ]);
       // Optimistic update immediately
       setOptimisticSwitch(newValue);
-      toast({ title: newValue ? "Medidor ligado" : "Medidor desligado" });
-      // Refresh status after Tuya processes
-      setTimeout(() => {
+      toast({ title: newValue ? "Comando: Ligar enviado" : "Comando: Desligar enviado" });
+      // Wait for device to process, then sync real state from Tuya
+      setTimeout(async () => {
+        try {
+          await tuyaIntegrationService.syncDeviceStatus(meter.integration_config_id!, id!);
+        } catch (_) { /* ignore sync errors */ }
+        setOptimisticSwitch(null); // Always clear optimistic after real sync
         qc.invalidateQueries({ queryKey: ["meter_status_latest", id] });
-      }, 3000);
+      }, 4000);
     } catch (err: any) {
-      // Revert optimistic on error
       setOptimisticSwitch(null);
       toast({ title: "Erro ao enviar comando", description: err?.message, variant: "destructive" });
     } finally {
