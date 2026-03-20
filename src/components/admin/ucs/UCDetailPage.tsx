@@ -375,6 +375,12 @@ export default function UCDetailPage() {
             <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
           </TabsContent>
 
+          {linkedPlantId && (
+            <TabsContent value="relatorios">
+              <PlantGenerationReport plantId={linkedPlantId} />
+            </TabsContent>
+          )}
+
           <TabsContent value="historico">
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
