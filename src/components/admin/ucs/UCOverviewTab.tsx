@@ -341,8 +341,8 @@ export function UCOverviewTab({
                 <Legend
                   wrapperStyle={{ fontSize: "12px" }}
                 />
-                <Bar dataKey="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                <Bar dataKey="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={20} />
               </BarChart>
             </ResponsiveContainer>
           )}
