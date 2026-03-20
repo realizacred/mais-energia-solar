@@ -150,7 +150,7 @@ function normalizeDevice(raw: any) {
     manufacturer: raw.manufacturer || "Tuya",
     product_id: raw.product_id || raw.productId || null,
     category: raw.category || null,
-    serial_number: raw.sn || raw.uuid || null,
+    serial_number: raw.id || raw.sn || raw.uuid || null,
     firmware_version: raw.sw_ver || null,
     online_status: raw.online ? "online" : "offline",
     bidirectional_supported: false, // Will be updated based on DPS
