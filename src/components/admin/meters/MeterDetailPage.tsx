@@ -665,6 +665,71 @@ export default function MeterDetailPage() {
             </Card>
           </div>
 
+          {/* Leitura Inicial do Relógio Físico */}
+          <div className="lg:col-span-2">
+            <section className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <Gauge className="w-3.5 h-3.5 text-primary" />
+                Leitura Inicial do Relógio Físico
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Informe a leitura atual do relógio físico do medidor no momento da instalação.
+                O sistema usará esse valor como base para calcular o consumo real.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Leitura 03 (kWh) — energia consumida</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={leitura03}
+                    onChange={(e) => setLeitura03(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Leitura 103 (kWh) — energia injetada</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={leitura103}
+                    onChange={(e) => setLeitura103(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Data da leitura inicial</label>
+                  <Input
+                    type="date"
+                    value={leituraData}
+                    onChange={(e) => setLeituraData(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Observação</label>
+                  <Textarea
+                    value={leituraObs}
+                    onChange={(e) => setLeituraObs(e.target.value)}
+                    placeholder="Ex: Relógio físico marcava 1523.45 kWh no dia da instalação"
+                    rows={2}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={() => saveLeituraMutation.mutate()}
+                  disabled={saveLeituraMutation.isPending}
+                >
+                  {saveLeituraMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+                  Salvar leitura inicial
+                </Button>
+              </div>
+            </section>
+          </div>
+
           {/* Per-meter alert config */}
           <div className="lg:col-span-2">
             <MeterAlertConfig meterId={meter.id} metadata={meter.metadata} latestStatus={latestStatus} />
