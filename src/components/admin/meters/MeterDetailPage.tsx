@@ -596,7 +596,7 @@ export default function MeterDetailPage() {
 
           {/* Per-meter alert config */}
           <div className="lg:col-span-2">
-            <MeterAlertConfig meterId={meter.id} metadata={meter.metadata} />
+            <MeterAlertConfig meterId={meter.id} metadata={meter.metadata} latestStatus={latestStatus} />
           </div>
         </TabsContent>
       </Tabs>
