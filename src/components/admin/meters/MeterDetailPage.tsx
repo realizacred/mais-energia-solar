@@ -69,6 +69,13 @@ export default function MeterDetailPage() {
   const [editName, setEditName] = useState("");
   const [renaming, setRenaming] = useState(false);
 
+  // Leitura inicial state
+  const [leitura03, setLeitura03] = useState("");
+  const [leitura103, setLeitura103] = useState("");
+  const [leituraData, setLeituraData] = useState("");
+  const [leituraObs, setLeituraObs] = useState("");
+  const [leituraLoaded, setLeituraLoaded] = useState(false);
+
   const { data: meter, isLoading, error } = useQuery({
     queryKey: ["meter_device", id],
     queryFn: () => meterService.getById(id!),
