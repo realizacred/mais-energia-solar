@@ -22,6 +22,8 @@ import { isMpptStringEnabled, getDeviceStringCards } from "@/services/monitoring
 import { PlantClientSection } from "./PlantClientSection";
 const PlantGenerationReport = lazy(() => import("./reports/PlantGenerationReport").then(m => ({ default: m.PlantGenerationReport })));
 import { PlantResizingSection } from "./PlantResizingSection";
+import { PlantDataSourcesBadges } from "./PlantDataSourcesBadges";
+import { PlantDataSourcesSection } from "./PlantDataSourcesSection";
 
 import { cn } from "@/lib/utils";
 import {
@@ -193,6 +195,9 @@ export default function MonitorPlantDetail() {
             clientName={plant.client_name || null}
           />
 
+          {/* Data sources (portals) badges */}
+          <PlantDataSourcesBadges plantId={plant.id} tenantId={plant.tenant_id} />
+
           {/* Generation chart with time range */}
           <SectionCard
             title="Geração"
@@ -254,6 +259,7 @@ export default function MonitorPlantDetail() {
         </TabsContent>
 
         <TabsContent value="configuracoes" className="space-y-6">
+          <PlantDataSourcesSection plantId={plant.id} tenantId={plant.tenant_id} />
           <PlantResizingSection plantId={plant.id} tenantId={plant.tenant_id} />
         </TabsContent>
       </Tabs>

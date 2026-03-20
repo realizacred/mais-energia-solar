@@ -10779,6 +10779,60 @@ export type Database = {
         }
         Relationships: []
       }
+      plant_data_sources: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          integration_id: string
+          is_active: boolean
+          label: string | null
+          plant_id: string
+          provider_device_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          integration_id: string
+          is_active?: boolean
+          label?: string | null
+          plant_id: string
+          provider_device_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          integration_id?: string
+          is_active?: boolean
+          label?: string | null
+          plant_id?: string
+          provider_device_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plant_data_sources_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plant_data_sources_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plant_resizing_history: {
         Row: {
           comentario: string | null
