@@ -235,7 +235,7 @@ export const tuyaIntegrationService = {
       // Get meters for this config
       let query = supabase
         .from("meter_devices")
-        .select("id, external_device_id")
+        .select("id, external_device_id, tenant_id")
         .eq("integration_config_id", configId)
         .eq("is_active", true);
 
