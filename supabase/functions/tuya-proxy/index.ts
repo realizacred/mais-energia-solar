@@ -290,30 +290,36 @@ Deno.serve(async (req) => {
       }
 
       case "get_devices": {
-        // Fetch all devices from Tuya cloud
+        // Prefer SmartLife account listing when user_uid is explicitly configured.
         const pageSize = params?.page_size || 100;
+        const configuredUserUid = ((config.settings as any)?.user_uid || "").trim();
+        const userUid = configuredUserUid || token.uid;
+        console.log(
+          `[tuya-proxy] Device listing: userUid=${userUid}, tokenUid=${token.uid}, source=${configuredUserUid ? "settings.user_uid" : "token.uid"}`
+        );
+
+        if (configuredUserUid) {
+          const uidPath = `/v1.0/users/${userUid}/devices`;
+          console.log(`[tuya-proxy] Listing devices via ${uidPath}`);
+          const resp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", uidPath);
+          if (!resp.success) {
+            throw new Error(`Tuya get_devices error: ${resp.code} - ${resp.msg}`);
+          }
+          const devices = resp.result || [];
+          result = { success: true, result: devices, total: devices.length };
+          break;
+        }
+
         let lastRowKey = "";
         const allDevices: any[] = [];
         let hasMore = true;
-
-        // Use stored user_uid (SmartLife account UID) with fallback to token.uid (Cloud project UID)
-        const userUid = (config.settings as any)?.user_uid || token.uid;
-        console.log(`[tuya-proxy] Device listing: userUid=${userUid}, tokenUid=${token.uid}`);
 
         while (hasMore) {
           const path = `/v2.0/cloud/thing?page_size=${pageSize}${lastRowKey ? `&last_row_key=${encodeURIComponent(lastRowKey)}` : ""}`;
           const resp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", path);
 
           if (!resp.success) {
-            // Fallback to v1.0 device list using the SmartLife user UID
-            const uidPath = `/v1.0/users/${userUid}/devices`;
-            console.log(`[tuya-proxy] v2.0 failed, fallback to ${uidPath}`);
-            const fallback = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", uidPath);
-            if (fallback.success && fallback.result) {
-              allDevices.push(...fallback.result);
-            }
-            hasMore = false;
-            break;
+            throw new Error(`Tuya get_devices error: ${resp.code} - ${resp.msg}`);
           }
 
           const items = resp.result?.list || [];
