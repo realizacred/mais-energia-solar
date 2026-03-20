@@ -1,18 +1,21 @@
 /**
- * UCMeterTab — Shows linked meter and allows linking/unlinking.
+ * UCMeterTab — Shows linked meter, leitura inicial, and allows linking/unlinking.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Gauge, Link2, Link2Off, ArrowLeftRight, History, Search } from "lucide-react";
-import { useState } from "react";
+import { Gauge, Link2, Link2Off, ArrowLeftRight, History, Search, Save, Info } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface Props {
   unitId: string;
