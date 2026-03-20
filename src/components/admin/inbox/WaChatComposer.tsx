@@ -252,6 +252,8 @@ export function WaChatComposer({
     setSlashQuery("");
     onNoteModeChange(false);
     onCancelReply?.();
+    // Refocus textarea so user can keep typing after sending
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
