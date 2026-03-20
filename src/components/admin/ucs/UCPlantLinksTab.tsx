@@ -12,9 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
-import { Link2, Plus, Trash2, Sun, Zap } from "lucide-react";
+import { Link2, Plus, Trash2, Sun, ArrowRight, Zap, Activity } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 
 interface Props {
   unitId: string;
