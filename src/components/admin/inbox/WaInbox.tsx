@@ -599,10 +599,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         </div>
       )}
 
-      {/* Stats - only in admin mode */}
-      {!vendorMode && <div className="shrink-0 mb-3"><WaInboxStats conversations={allConversations} /></div>}
-
-      {/* Compact stats for vendor/mobile mode */}
+      {/* Stats — compact inline for all modes */}
+      {!vendorMode && <div className="shrink-0 mb-2"><WaInboxStats conversations={allConversations} compact /></div>}
       {vendorMode && showCompactStats && <div className="shrink-0"><WaInboxStats conversations={allConversations} compact /></div>}
 
       {/* SLA Alerts Banner */}
