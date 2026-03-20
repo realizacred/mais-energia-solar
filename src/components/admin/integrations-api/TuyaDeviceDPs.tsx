@@ -94,6 +94,8 @@ export function TuyaDeviceDPs({ configId }: Props) {
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-[10px] font-mono">{dp.code}</Badge>
                     <span className="text-muted-foreground">{dp.name || dp.code}</span>
+                    {dp.rw === "rw" && <Badge className="text-[9px] bg-primary/10 text-primary border-primary/20">escrita</Badge>}
+                    {dp.rw === "ro" && <Badge variant="secondary" className="text-[9px]">leitura</Badge>}
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-[10px]">{dp.type || "—"}</Badge>
