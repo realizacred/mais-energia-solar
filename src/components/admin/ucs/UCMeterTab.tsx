@@ -119,6 +119,11 @@ export function UCMeterTab({ unitId }: Props) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Leitura Inicial do Relógio Físico */}
+        {activeMeter && (
+          <LeituraInicialCard meterId={activeMeter.id} meter={activeMeter} />
+        )}
       ) : (
         <EmptyState
           icon={Gauge}
