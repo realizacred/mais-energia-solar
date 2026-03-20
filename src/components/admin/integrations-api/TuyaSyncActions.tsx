@@ -12,7 +12,7 @@ import {
   TestTube2, Download, RefreshCw, Zap, Clock,
   CheckCircle2, XCircle, Loader2, Gauge
 } from "lucide-react";
-import { TuyaAlertConfig } from "./TuyaAlertConfig";
+
 import { TuyaDeviceDPs } from "./TuyaDeviceDPs";
 
 interface Props {
@@ -169,8 +169,7 @@ export function TuyaSyncActions({ configId, configName }: Props) {
         </Card>
       )}
 
-      {/* Alert Config */}
-      <TuyaAlertConfig configId={configId} />
+      {/* Alert Config removed — now per-meter in MeterDetailPage */}
 
       {/* Device DPs */}
       <TuyaDeviceDPs configId={configId} />
