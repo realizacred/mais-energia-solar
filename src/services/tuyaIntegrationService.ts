@@ -128,7 +128,10 @@ export const tuyaIntegrationService = {
     });
 
     try {
-      const resp = await this.callProxy("get_devices", configId);
+      // Pass known device IDs as fallback so the proxy can try direct fetch
+      const resp = await this.callProxy("get_devices", configId, {
+        known_device_ids: ["ebbe88c2fd12dac6feajsg"],
+      });
 
       if (!resp.success && !resp.result?.length) {
         throw new Error(resp.msg || "Failed to fetch devices");
