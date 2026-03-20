@@ -152,17 +152,19 @@ export default function MeterDetailPage() {
   // Current switch state and extra DPs from raw_payload
   const extraDPs = useMemo(() => {
     const raw = (latestStatus as any)?.raw_payload;
-    if (!raw?.dps) return { switchState: null as boolean | null, temperature: null as number | null, leakageCurrent: null as number | null, balanceEnergy: null as number | null };
-    const dps: any[] = raw.dps;
+    const dps: any[] = raw?.dps || [];
     const sw = dps.find((dp: any) => dp.code === "switch");
-    const temp = dps.find((dp: any) => dp.code === "temp_current");
-    const leakage = dps.find((dp: any) => dp.code === "leakage_current");
-    const balance = dps.find((dp: any) => dp.code === "balance_energy");
     return {
       switchState: sw ? !!sw.value : null,
-      temperature: temp && typeof temp.value === "number" ? temp.value : null,
-      leakageCurrent: leakage && typeof leakage.value === "number" ? leakage.value : null,
-      balanceEnergy: balance && typeof balance.value === "number" ? (balance.value * 0.01) : null,
+      temperature: (latestStatus as any)?.temperature_c ?? null,
+      leakageCurrent: (latestStatus as any)?.leakage_current_ma ?? null,
+      balanceEnergy: (latestStatus as any)?.energy_balance_kwh ?? null,
+      powerFactor: (latestStatus as any)?.power_factor ?? null,
+      reactivePower: (latestStatus as any)?.reactive_power_kvar ?? null,
+      statusA: (latestStatus as any)?.status_a ?? null,
+      statusB: (latestStatus as any)?.status_b ?? null,
+      statusC: (latestStatus as any)?.status_c ?? null,
+      faultBitmap: (latestStatus as any)?.fault_bitmap ?? null,
     };
   }, [latestStatus]);
 
