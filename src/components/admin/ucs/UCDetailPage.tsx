@@ -2,10 +2,12 @@
  * UCDetailPage — Full detail page for a Unidade Consumidora.
  * Route: /admin/ucs/:id
  * Improved with prominent header banner, restructured Config tab.
+ * Tarefa: meter/plant links fetched once here, passed as props.
  */
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { unitService, type UCRecord } from "@/services/unitService";
 import { useUnitCredits, useDeleteUnitCredit } from "@/hooks/useUnitCredits";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
@@ -24,6 +26,8 @@ import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
+import { UCOverviewTab } from "./UCOverviewTab";
+import { UCHistoricoTab } from "./UCHistoricoTab";
 import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 
 const UC_TYPE_LABELS: Record<string, string> = {
@@ -40,30 +44,55 @@ export default function UCDetailPage() {
   const { tenant } = useTenantSettings();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addCreditOpen, setAddCreditOpen] = useState(false);
+
   const { data: uc, isLoading, error } = useQuery({
     queryKey: ["uc_detail", id],
     queryFn: () => unitService.getById(id!),
     enabled: !!id,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: credits = [] } = useUnitCredits(id ?? null);
   const deleteCredit = useDeleteUnitCredit();
 
-  // Fetch linked plant for generation report
-  const { data: linkedPlantId } = useQuery({
-    queryKey: ["uc_linked_plant", id],
+  // §23: Fetch meter link ONCE here, pass as props
+  const { data: meterLink } = useQuery({
+    queryKey: ["uc_meter_link", id],
     queryFn: async () => {
-      const { data } = await (await import("@/integrations/supabase/client")).supabase
-        .from("unit_plant_links")
-        .select("plant_id")
+      const { data } = await supabase
+        .from("unit_meter_links")
+        .select("meter_device_id, meter_devices(id, name, online_status)")
         .eq("unit_id", id!)
         .eq("is_active", true)
-        .limit(1);
-      return data?.[0]?.plant_id ?? null;
+        .limit(1)
+        .maybeSingle();
+      return data;
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
   });
+
+  // §23: Fetch plant link ONCE here, pass as props
+  const { data: plantLink } = useQuery({
+    queryKey: ["uc_plant_link", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("unit_plant_links")
+        .select("plant_id, monitor_plants(id, name, installed_power_kwp)")
+        .eq("unit_id", id!)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const meterId = (meterLink as any)?.meter_device_id ?? null;
+  const meterDevice = (meterLink as any)?.meter_devices ?? null;
+  const plantId = (plantLink as any)?.plant_id ?? null;
+  const plantDevice = (plantLink as any)?.monitor_plants ?? null;
 
   const totalCreditoAdicionado = credits.reduce((sum, c) => sum + Number(c.quantidade_kwh), 0);
 
@@ -107,7 +136,7 @@ export default function UCDetailPage() {
         </Button>
       </div>
 
-      {/* Hero header banner — inspired by reference */}
+      {/* Hero header banner */}
       <div className="mx-4 md:mx-6 mt-3 rounded-xl bg-gradient-to-r from-card to-muted/30 border shadow-sm p-5 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
@@ -144,163 +173,32 @@ export default function UCDetailPage() {
 
       {/* Tabs */}
       <div className="p-4 md:p-6 space-y-4">
-        <Tabs defaultValue="geral" className="space-y-4">
+        <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="geral" className="gap-1"><Building2 className="w-3.5 h-3.5" /> Geral</TabsTrigger>
+            <TabsTrigger value="overview" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Overview</TabsTrigger>
             <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
             <TabsTrigger value="medidor" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Medidor</TabsTrigger>
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
             <TabsTrigger value="usinas" className="gap-1"><Link2 className="w-3.5 h-3.5" /> Usinas</TabsTrigger>
-            {linkedPlantId && <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>}
+            {plantId && <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>}
             <TabsTrigger value="historico" className="gap-1"><History className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
           </TabsList>
 
-          {/* === GERAL TAB === */}
-          <TabsContent value="geral" className="space-y-6">
-            {/* Credit section */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
-                  <Zap className="w-4 h-4" /> Crédito
-                </h3>
-                <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => setAddCreditOpen(true)}>
-                  <Plus className="w-3.5 h-3.5" /> Adicionar Crédito
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <Card className="border-l-[3px] border-l-primary">
-                  <CardContent className="py-5">
-                    <p className="text-xs text-muted-foreground mb-1">Crédito Acumulado</p>
-                    <p className="text-2xl font-bold">{totalCreditoAdicionado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">kWh</span></p>
-                  </CardContent>
-                </Card>
-                <Card className="border-l-[3px] border-l-info">
-                  <CardContent className="py-5">
-                    <p className="text-xs text-muted-foreground mb-1">Crédito Adicionado</p>
-                    <p className="text-2xl font-bold">{totalCreditoAdicionado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">kWh</span></p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Credits table */}
-              {credits.length > 0 && (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="font-semibold text-foreground">Vigência</TableHead>
-                        <TableHead className="font-semibold text-foreground">Quantidade</TableHead>
-                        <TableHead className="font-semibold text-foreground">Posto</TableHead>
-                        <TableHead className="font-semibold text-foreground">Observações</TableHead>
-                        <TableHead className="w-[50px]" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {credits.map((c) => (
-                        <TableRow key={c.id} className="hover:bg-muted/30">
-                          <TableCell className="text-sm">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                              {new Date(c.data_vigencia).toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" })}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm font-mono font-medium">
-                            {Number(c.quantidade_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} kWh
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            <Badge variant="outline" className="text-xs">
-                              {c.posto_tarifario === "fora_ponta" ? "Fora Ponta" : c.posto_tarifario === "ponta" ? "Ponta" : "Intermediário"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground truncate max-w-[200px]" title={c.observacoes || ""}>
-                            {c.observacoes || "—"}
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleDeleteCredit(c.id)}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Remover
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
-
-            {/* Usinas Relacionadas */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
-                <Sun className="w-4 h-4" /> Usinas Relacionadas
-              </h3>
-              <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
-            </div>
-
-            {/* Faturas Preview */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
-                <FileText className="w-4 h-4" /> Lista de Faturas
-              </h3>
-              <UCInvoicesTab unitId={uc.id} />
-            </div>
-
-            {/* Details card */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Dados da UC</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Código da UC</p>
-                    <p className="text-sm font-mono font-medium">{uc.codigo_uc}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Nome / Denominação</p>
-                    <p className="text-sm font-medium">{uc.nome}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Tipo da UC</p>
-                    <Badge variant="outline" className="text-xs">{UC_TYPE_LABELS[uc.tipo_uc] || uc.tipo_uc}</Badge>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Concessionária</p>
-                    <p className="text-sm">{uc.concessionaria_nome || "Não definida"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Modalidade Tarifária</p>
-                    <p className="text-sm">{uc.modalidade_tarifaria || "—"}</p>
-                  </div>
-                  {enderecoStr && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Endereço</p>
-                      <p className="text-sm">{enderecoStr}</p>
-                    </div>
-                  )}
-                  {uc.observacoes && (
-                    <div className="md:col-span-2">
-                      <p className="text-xs text-muted-foreground mb-0.5">Observações</p>
-                      <p className="text-sm">{uc.observacoes}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          {/* === OVERVIEW TAB (replaces "Geral") === */}
+          <TabsContent value="overview">
+            <UCOverviewTab
+              ucId={uc.id}
+              meterId={meterId}
+              plantId={plantId}
+              meterName={meterDevice?.name}
+              meterOnline={meterDevice?.online_status}
+              plantName={plantDevice?.name}
+              plantCapacityKwp={plantDevice?.installed_power_kwp}
+              proximaLeituraData={(uc as any).proxima_leitura_data}
+            />
           </TabsContent>
 
-          {/* === CONFIGURAÇÕES TAB — Restructured like reference === */}
+          {/* === CONFIGURAÇÕES TAB === */}
           <TabsContent value="config" className="space-y-6">
             {/* Cadastro section */}
             <Card>
@@ -333,6 +231,90 @@ export default function UCDetailPage() {
                   <span className="text-muted-foreground min-w-[120px]">Modalidade:</span>
                   <span>{uc.modalidade_tarifaria || "—"}</span>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Créditos */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2"><Zap className="w-4 h-4" /> Crédito GD</CardTitle>
+                  <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => setAddCreditOpen(true)}>
+                    <Plus className="w-3.5 h-3.5" /> Adicionar Crédito
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <Card className="border-l-[3px] border-l-primary">
+                    <CardContent className="py-5">
+                      <p className="text-xs text-muted-foreground mb-1">Crédito Acumulado</p>
+                      <p className="text-2xl font-bold">{totalCreditoAdicionado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">kWh</span></p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-l-[3px] border-l-info">
+                    <CardContent className="py-5">
+                      <p className="text-xs text-muted-foreground mb-1">Crédito Adicionado</p>
+                      <p className="text-2xl font-bold">{totalCreditoAdicionado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground">kWh</span></p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {credits.length > 0 && (
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                          <TableHead className="font-semibold text-foreground">Vigência</TableHead>
+                          <TableHead className="font-semibold text-foreground">Quantidade</TableHead>
+                          <TableHead className="font-semibold text-foreground">Posto</TableHead>
+                          <TableHead className="font-semibold text-foreground">Observações</TableHead>
+                          <TableHead className="w-[50px]" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {credits.map((c) => (
+                          <TableRow key={c.id} className="hover:bg-muted/30">
+                            <TableCell className="text-sm">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                                {new Date(c.data_vigencia).toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" })}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm font-mono font-medium">
+                              {Number(c.quantidade_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} kWh
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              <Badge variant="outline" className="text-xs">
+                                {c.posto_tarifario === "fora_ponta" ? "Fora Ponta" : c.posto_tarifario === "ponta" ? "Ponta" : "Intermediário"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground truncate max-w-[200px]" title={c.observacoes || ""}>
+                              {c.observacoes || "—"}
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => handleDeleteCredit(c.id)}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 mr-2" /> Remover
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -375,20 +357,18 @@ export default function UCDetailPage() {
             <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
           </TabsContent>
 
-          {linkedPlantId && (
+          {plantId && (
             <TabsContent value="relatorios">
-              <PlantGenerationReport plantId={linkedPlantId} />
+              <PlantGenerationReport plantId={plantId} />
             </TabsContent>
           )}
 
           <TabsContent value="historico">
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <History className="w-8 h-8 mx-auto mb-3 text-muted-foreground/50" />
-                <p className="text-sm font-medium">Histórico de atividades</p>
-                <p className="text-xs">O registro de alterações desta UC aparecerá aqui.</p>
-              </CardContent>
-            </Card>
+            <UCHistoricoTab
+              ucId={uc.id}
+              meterId={meterId}
+              plantId={plantId}
+            />
           </TabsContent>
         </Tabs>
       </div>
