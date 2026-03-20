@@ -506,6 +506,23 @@ export default function MeterDetailPage() {
           </Card>
         </TabsContent>
 
+        {/* Commands Tab */}
+        <TabsContent value="commands">
+          {meter.integration_config_id ? (
+            <MeterCommandPanel
+              configId={meter.integration_config_id}
+              externalDeviceId={meter.external_device_id}
+              meterId={meter.id}
+            />
+          ) : (
+            <EmptyState
+              icon={Terminal}
+              title="Sem integração"
+              description="Este medidor não está vinculado a uma integração Tuya."
+            />
+          )}
+        </TabsContent>
+
         {/* Info Tab */}
         <TabsContent value="info">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
