@@ -73,18 +73,26 @@ export default function UCDetailPage() {
   });
 
   // §23: Fetch plant link ONCE here, pass as props
-  // monitor_plants.legacy_plant_id maps to solar_plants.id (needed for metrics)
+  // No FK from unit_plant_links to monitor_plants, so fetch in two steps
   const { data: plantLink } = useQuery({
     queryKey: ["uc_plant_link", id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: link } = await supabase
         .from("unit_plant_links")
-        .select("plant_id, monitor_plants(id, name, installed_power_kwp, legacy_plant_id)")
+        .select("plant_id")
         .eq("unit_id", id!)
         .eq("is_active", true)
         .limit(1)
         .maybeSingle();
-      return data;
+      if (!link?.plant_id) return null;
+
+      const { data: plant } = await supabase
+        .from("monitor_plants")
+        .select("id, name, installed_power_kwp, legacy_plant_id")
+        .eq("id", link.plant_id)
+        .maybeSingle();
+
+      return { plant_id: link.plant_id, monitor_plants: plant };
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
