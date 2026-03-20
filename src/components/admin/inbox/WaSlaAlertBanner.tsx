@@ -50,6 +50,7 @@ interface WaSlaAlertBannerProps {
   onAcknowledgeAll: () => void;
   onPauseSla?: (conversationId: string, hours: number) => void;
   isAdmin?: boolean;
+  defaultCollapsed?: boolean;
 }
 
 export function WaSlaAlertBanner({
@@ -59,8 +60,9 @@ export function WaSlaAlertBanner({
   onAcknowledgeAll,
   onPauseSla,
   isAdmin = false,
+  defaultCollapsed = false,
 }: WaSlaAlertBannerProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(!defaultCollapsed);
 
   const unackedAlerts = alerts.filter((a) => !a.acknowledged);
   const escalatedAlerts = unackedAlerts.filter((a) => a.escalated);
