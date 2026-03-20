@@ -31,6 +31,10 @@ export interface MeterDevice {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  leitura_inicial_03: number | null;
+  leitura_inicial_103: number | null;
+  leitura_inicial_data: string | null;
+  leitura_inicial_observacao: string | null;
 }
 
 export interface MeterReading {
