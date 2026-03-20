@@ -252,6 +252,10 @@ export default function MonitorPlantDetail() {
             <PlantGenerationReport plantId={plant.id} />
           </Suspense>
         </TabsContent>
+
+        <TabsContent value="configuracoes" className="space-y-6">
+          <PlantResizingSection plantId={plant.id} tenantId={plant.tenant_id} />
+        </TabsContent>
       </Tabs>
     </div>
   );
