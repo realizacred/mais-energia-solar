@@ -295,12 +295,12 @@ export function UCOverviewTab({
         </Card>
       </div>
 
-      {/* SEÇÃO 2 — Gráfico Geração vs Consumo */}
+      {/* SEÇÃO 2 — Gráfico Geração vs Consumo vs Injeção */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" /> Geração vs Consumo
+              <BarChart3 className="w-4 h-4 text-primary" /> Geração vs Consumo vs Injeção
             </CardTitle>
             <div className="flex gap-1">
               {(["7d", "30d", "3m"] as const).map((p) => (
@@ -316,10 +316,27 @@ export function UCOverviewTab({
               ))}
             </div>
           </div>
+          {/* Series toggles */}
+          <div className="flex flex-wrap gap-3 mt-2">
+            {([
+              { key: "geracao" as const, label: "Geração", color: "bg-warning" },
+              { key: "consumo" as const, label: "Consumo", color: "bg-primary" },
+              { key: "injecao" as const, label: "Injeção", color: "bg-success" },
+            ]).map(({ key, label, color }) => (
+              <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground select-none">
+                <button
+                  type="button"
+                  onClick={() => setChartSeries(s => ({ ...s, [key]: !s[key] }))}
+                  className={`w-3.5 h-3.5 rounded-sm border border-border transition-colors ${chartSeries[key] ? color : "bg-muted"}`}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           {(loadingPlantMetrics || loadingReadings) ? (
-            <Skeleton className="h-[220px] w-full rounded-lg" />
+            <Skeleton className="h-[260px] w-full rounded-lg" />
           ) : chartData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <BarChart2 className="w-10 h-10 text-muted-foreground/40 mb-3" />
@@ -329,7 +346,7 @@ export function UCOverviewTab({
               </p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
@@ -344,11 +361,16 @@ export function UCOverviewTab({
                   tickLine={false}
                 />
                 <Tooltip content={<ChartTooltip />} />
-                <Legend
-                  wrapperStyle={{ fontSize: "12px" }}
-                />
-                <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={20} />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
+                {chartSeries.geracao && (
+                  <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                )}
+                {chartSeries.consumo && (
+                  <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                )}
+                {chartSeries.injecao && (
+                  <Bar dataKey="_displayInjeção" name="Injeção" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                )}
               </BarChart>
             </ResponsiveContainer>
           )}
