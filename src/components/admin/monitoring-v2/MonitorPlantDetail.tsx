@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown, Users, BarChart3 } from "lucide-react";
+import { Sun, ArrowLeft, Zap, Activity, AlertTriangle, Cpu, RefreshCw, ChevronDown, Users, BarChart3, Settings } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPlantDetail, listDevices, listAlerts, listDailyReadings, syncPlantDevices } from "@/services/monitoring/monitorService";
 import { toast } from "sonner";
