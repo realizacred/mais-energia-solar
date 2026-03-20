@@ -366,8 +366,8 @@ export default function MeterDetailPage() {
           {switchState !== null && (
             <Button
               size="sm"
-              variant={switchState ? "default" : "outline"}
-              className={switchState ? "bg-success hover:bg-success/90 text-success-foreground" : "border-destructive text-destructive hover:bg-destructive/10"}
+              variant={switchState ? "default" : "destructive"}
+              className={switchState ? "bg-success hover:bg-success/90 text-success-foreground" : ""}
               onClick={handleToggle}
               disabled={toggling}
             >
