@@ -25,6 +25,7 @@ interface Props {
 export function UCBillingSettingsTab({ unitId }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { guardLimit, LimitDialog } = usePlanGuard();
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     billing_capture_email: "",
