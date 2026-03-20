@@ -391,6 +391,7 @@ export default function MeterDetailPage() {
         <TabsList>
           <TabsTrigger value="chart">Gráfico</TabsTrigger>
           <TabsTrigger value="readings">Leituras</TabsTrigger>
+          <TabsTrigger value="commands">Comandos</TabsTrigger>
           <TabsTrigger value="info">Informações</TabsTrigger>
         </TabsList>
 
