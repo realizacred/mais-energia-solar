@@ -169,8 +169,7 @@ export function TuyaSyncActions({ configId, configName }: Props) {
         </Card>
       )}
 
-      {/* Alert Config */}
-      <TuyaAlertConfig configId={configId} />
+      {/* Alert Config removed — now per-meter in MeterDetailPage */}
 
       {/* Device DPs */}
       <TuyaDeviceDPs configId={configId} />
