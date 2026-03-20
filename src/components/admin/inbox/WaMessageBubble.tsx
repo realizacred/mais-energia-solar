@@ -102,7 +102,7 @@ export function WaMessageBubble({
     <div>
       {showDate && (
         <div className="flex justify-center my-3">
-          <Badge variant="secondary" className="text-[10px] px-3 py-0.5 bg-muted/70">
+          <Badge variant="secondary" className="text-[11px] px-3 py-1 bg-muted text-muted-foreground font-medium shadow-sm border border-border/40">
             {format(new Date(msg.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </Badge>
         </div>
