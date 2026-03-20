@@ -218,11 +218,22 @@ async function handleCronSync(supabase: any): Promise<Response> {
           const now = new Date().toISOString();
           const online = deviceInfo.online ? "online" : "offline";
           const reading = buildReading(dps);
+          console.log(`[tuya-proxy] buildReading for ${meter.external_device_id}:`, JSON.stringify({
+            temperature_c: reading.temperature_c,
+            power_factor: reading.power_factor,
+            reactive_power_kvar: reading.reactive_power_kvar,
+            leakage_current_ma: reading.leakage_current_ma,
+            status_a: reading.status_a,
+          }));
 
-          await supabase.from("meter_status_latest").upsert({
+          const upsertPayload = {
             meter_device_id: meter.id, measured_at: now, online_status: online,
             ...reading, raw_payload: { dps, device_info: deviceInfo }, updated_at: now,
-          } as any, { onConflict: "meter_device_id" });
+          };
+          const { error: upsertErr } = await supabase.from("meter_status_latest").upsert(
+            upsertPayload as any, { onConflict: "meter_device_id" }
+          );
+          if (upsertErr) console.error(`[tuya-proxy] upsert error:`, upsertErr.message);
 
           await supabase.from("meter_readings").insert({
             meter_device_id: meter.id, measured_at: now,
