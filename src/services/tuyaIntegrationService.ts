@@ -60,32 +60,44 @@ const SCALE_MAP: Record<string, number> = {
 };
 
 /**
- * Parse Tuya Raw phase DP (hex string) into voltage, current, power.
- * Common format for smart breakers: VVVV CCCCCC PPPPPP (big-endian).
- * Voltage: 2 bytes (÷10 = V), Current: 3 bytes (÷1000 = A), Power: 3 bytes (÷1 = W).
- * Some devices use slightly different layouts — we detect by length.
+ * Decode Base64 string to hex string.
+ * Tuya Raw DPs come as Base64-encoded binary data.
  */
-function parsePhaseRaw(hexValue: string): { voltage: number; current: number; power: number } | null {
-  if (!hexValue || typeof hexValue !== "string") return null;
-  const hex = hexValue.replace(/\s/g, "");
-  // Expected length: 16 chars (8 bytes) for standard breaker DPs
-  if (hex.length < 12) return null;
+function base64ToHex(b64: string): string {
   try {
+    const binary = atob(b64);
+    return Array.from(binary, (ch) => ch.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Parse Tuya Raw phase DP (Base64-encoded) into voltage, current, power.
+ * Format for smart breakers (8 bytes): 2B voltage (÷10=V) + 3B current (÷1000=A) + 3B power (W).
+ */
+function parsePhaseRaw(rawValue: string): { voltage: number; current: number; power: number } | null {
+  if (!rawValue || typeof rawValue !== "string") return null;
+  try {
+    // Tuya Raw DPs are Base64-encoded
+    const hex = base64ToHex(rawValue);
+    if (hex.length < 12) return null;
+
     // Layout: 2B voltage + 3B current + 3B power = 8 bytes = 16 hex chars
     if (hex.length >= 16) {
       const voltage = parseInt(hex.substring(0, 4), 16) / 10;
       const current = parseInt(hex.substring(4, 10), 16) / 1000;
       const power = parseInt(hex.substring(10, 16), 16);
-      if (voltage >= 0 && voltage <= 500 && current >= 0 && current <= 200) {
+      if (voltage >= 0 && voltage <= 500 && current >= 0 && current <= 300) {
         return { voltage, current, power };
       }
     }
-    // Fallback: 2B voltage + 2B current + 2B power = 6 bytes = 12 hex chars
+    // Fallback: shorter layout 2B + 2B + 2B = 12 hex chars
     if (hex.length >= 12) {
       const voltage = parseInt(hex.substring(0, 4), 16) / 10;
       const current = parseInt(hex.substring(4, 8), 16) / 1000;
       const power = parseInt(hex.substring(8, 12), 16);
-      if (voltage >= 0 && voltage <= 500 && current >= 0 && current <= 200) {
+      if (voltage >= 0 && voltage <= 500 && current >= 0 && current <= 300) {
         return { voltage, current, power };
       }
     }
