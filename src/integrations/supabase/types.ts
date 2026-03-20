@@ -18561,6 +18561,60 @@ export type Database = {
           },
         ]
       }
+      uc_client_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          last_accessed_at: string | null
+          tenant_id: string
+          token: string
+          unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_accessed_at?: string | null
+          tenant_id?: string
+          token?: string
+          unit_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_accessed_at?: string | null
+          tenant_id?: string
+          token?: string
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uc_client_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uc_client_tokens_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unit_billing_email_settings: {
         Row: {
           billing_capture_email: string | null
@@ -23138,6 +23192,7 @@ export type Database = {
           status: string
         }[]
       }
+      resolve_uc_client_token: { Args: { p_token: string }; Returns: Json }
       resolve_wa_conversation: {
         Args: { p_instance_id: string; p_remote_jid: string }
         Returns: string
