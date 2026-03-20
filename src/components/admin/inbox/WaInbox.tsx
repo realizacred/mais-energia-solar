@@ -590,7 +590,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-hidden" : "flex flex-col w-full h-full min-h-0 overflow-hidden p-4 pb-0 md:p-6 md:pb-0"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
-        <div className="shrink-0 mb-3">
+        <div className="shrink-0 mb-2">
           <WaInboxHeader
             instances={instances}
             onNewChat={() => setShowStartChat(true)}
