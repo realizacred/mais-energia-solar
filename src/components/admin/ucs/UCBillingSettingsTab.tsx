@@ -173,6 +173,9 @@ export function UCBillingSettingsTab({ unitId }: Props) {
                 </Select>
               </div>
             </div>
+
+            {/* Last alert info + manual trigger */}
+            <LastAlertInfo unitId={unitId} />
           </CardContent>
         )}
       </Card>
