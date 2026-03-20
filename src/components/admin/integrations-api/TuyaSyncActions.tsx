@@ -12,7 +12,7 @@ import {
   TestTube2, Download, RefreshCw, Zap, Clock,
   CheckCircle2, XCircle, Loader2, Gauge
 } from "lucide-react";
-import { TuyaAlertConfig } from "./TuyaAlertConfig";
+
 import { TuyaDeviceDPs } from "./TuyaDeviceDPs";
 
 interface Props {
