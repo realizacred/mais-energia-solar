@@ -378,6 +378,15 @@ export default function UCDetailPage() {
           setEditDialogOpen(false);
         }}
       />
+
+      {tenant && (
+        <AddCreditDialog
+          open={addCreditOpen}
+          onOpenChange={setAddCreditOpen}
+          unitId={uc.id}
+          tenantId={tenant.id}
+        />
+      )}
     </div>
   );
 }
