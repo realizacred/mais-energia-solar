@@ -599,13 +599,11 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         </div>
       )}
 
-      {/* Stats — compact inline for all modes */}
-      {!vendorMode && <div className="shrink-0 mb-2"><WaInboxStats conversations={allConversations} compact /></div>}
-      {vendorMode && showCompactStats && <div className="shrink-0"><WaInboxStats conversations={allConversations} compact /></div>}
-
-      {/* SLA Alerts Banner — collapsed by default to save space */}
-      {slaEnabled && (
-        <div className="shrink-0 mb-2">
+      {/* Stats + SLA Alert — same row to save vertical space */}
+      <div className="shrink-0 mb-2 flex flex-wrap items-center gap-2">
+        {!vendorMode && <WaInboxStats conversations={allConversations} compact />}
+        {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
+        {slaEnabled && (
           <WaSlaAlertBanner
             alerts={isAdminUser ? slaAlerts : mySlaAlerts}
             onOpenConversation={(convId) => {
@@ -618,8 +616,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
             isAdmin={isAdminUser}
             defaultCollapsed
           />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Follow-up Widget */}
       <div className="shrink-0">
