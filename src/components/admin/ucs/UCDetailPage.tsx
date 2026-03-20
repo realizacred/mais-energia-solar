@@ -193,6 +193,7 @@ export default function UCDetailPage() {
               ucId={uc.id}
               meterId={meterId}
               plantId={plantId}
+              solarPlantId={solarPlantId}
               meterName={meterDevice?.name}
               meterOnline={meterDevice?.online_status}
               plantName={plantDevice?.name}
