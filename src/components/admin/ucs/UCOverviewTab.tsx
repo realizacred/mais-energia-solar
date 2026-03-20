@@ -132,20 +132,24 @@ export function UCOverviewTab({
 
   // --- Build chart data ---
   const chartData = useMemo(() => {
-    // Group meter readings by day to compute daily consumption
-    const readingsByDay: Record<string, number[]> = {};
+    const importByDay: Record<string, number[]> = {};
+    const exportByDay: Record<string, number[]> = {};
     meterReadings.forEach((r: any) => {
       const day = r.measured_at?.slice(0, 10);
       if (!day) return;
-      if (!readingsByDay[day]) readingsByDay[day] = [];
-      readingsByDay[day].push(Number(r.energy_import_kwh) || 0);
+      if (!importByDay[day]) importByDay[day] = [];
+      if (!exportByDay[day]) exportByDay[day] = [];
+      importByDay[day].push(Number(r.energy_import_kwh) || 0);
+      exportByDay[day].push(Number(r.energy_export_kwh) || 0);
     });
 
     const consumptionByDay: Record<string, number> = {};
-    Object.entries(readingsByDay).forEach(([day, vals]) => {
-      const max = Math.max(...vals);
-      const min = Math.min(...vals);
-      consumptionByDay[day] = Math.max(0, max - min);
+    const injectionByDay: Record<string, number> = {};
+    Object.entries(importByDay).forEach(([day, vals]) => {
+      consumptionByDay[day] = Math.max(0, Math.max(...vals) - Math.min(...vals));
+    });
+    Object.entries(exportByDay).forEach(([day, vals]) => {
+      injectionByDay[day] = Math.max(0, Math.max(...vals) - Math.min(...vals));
     });
 
     const generationByDay: Record<string, number> = {};
@@ -153,23 +157,21 @@ export function UCOverviewTab({
       generationByDay[m.date] = Number(m.energy_kwh) || 0;
     });
 
-    // Merge all days
-    const allDays = new Set([...Object.keys(consumptionByDay), ...Object.keys(generationByDay)]);
+    const allDays = new Set([...Object.keys(consumptionByDay), ...Object.keys(generationByDay), ...Object.keys(injectionByDay)]);
     return Array.from(allDays)
       .sort()
       .map((day) => {
         const gen = generationByDay[day] || 0;
         const cons = consumptionByDay[day] || 0;
+        const inj = injectionByDay[day] || 0;
         return {
           date: format(parseISO(day), "dd/MM", { locale: ptBR }),
-          Geração: gen,
-          Consumo: cons,
-          // Keep real values for tooltip
           _realGeração: gen,
           _realConsumo: cons,
-          // Show a tiny bar for zero values so both series are always visible
+          _realInjeção: inj,
           _displayGeração: gen === 0 ? 0.3 : gen,
           _displayConsumo: cons === 0 ? 0.3 : cons,
+          _displayInjeção: inj === 0 ? 0.3 : inj,
         };
       });
   }, [meterReadings, plantMetrics]);
