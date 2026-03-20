@@ -55,27 +55,10 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 };
 
 export function UCOverviewTab({
-  ucId, meterId, plantId, meterName, meterOnline, plantName, plantCapacityKwp, proximaLeituraData,
+  ucId, meterId, plantId, solarPlantId, meterName, meterOnline, plantName, plantCapacityKwp, proximaLeituraData,
 }: Props) {
   const navigate = useNavigate();
   const [chartPeriod, setChartPeriod] = useState<"7d" | "30d" | "3m">("30d");
-
-  // --- Resolve solar_plant_id from monitor_plants.legacy_plant_id ---
-  // unit_plant_links.plant_id → monitor_plants.id → legacy_plant_id → solar_plants.id
-  const { data: solarPlantId } = useQuery({
-    queryKey: ["uc_overview_solar_plant_id", plantId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("monitor_plants")
-        .select("legacy_plant_id")
-        .eq("id", plantId!)
-        .maybeSingle();
-      if (error) throw error;
-      return (data?.legacy_plant_id as string) || null;
-    },
-    enabled: !!plantId,
-    staleTime: STALE_5M,
-  });
 
   // --- Meter status latest ---
   const { data: meterStatus, isLoading: loadingMeter } = useQuery({
@@ -86,7 +69,7 @@ export function UCOverviewTab({
   });
 
   // --- Plant metrics daily (for chart + KPI) ---
-  // Uses solarPlantId (resolved from monitor_plants.legacy_plant_id)
+  // solarPlantId = solar_plants.id (resolved from monitor_plants.legacy_plant_id in parent)
   const chartDays = chartPeriod === "7d" ? 7 : chartPeriod === "30d" ? 30 : 90;
   const effectivePlantId = solarPlantId || plantId;
   const { data: plantMetrics = [], isLoading: loadingPlantMetrics } = useQuery({
