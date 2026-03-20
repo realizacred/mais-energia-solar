@@ -302,33 +302,49 @@ Deno.serve(async (req) => {
           const uidPath = `/v1.0/users/${userUid}/devices`;
           console.log(`[tuya-proxy] Listing devices via ${uidPath}`);
           const resp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", uidPath);
-          if (!resp.success) {
-            throw new Error(`Tuya get_devices error: ${resp.code} - ${resp.msg}`);
+          if (resp.success && resp.result?.length) {
+            const devices = resp.result;
+            result = { success: true, result: devices, total: devices.length };
+            break;
           }
-          const devices = resp.result || [];
-          result = { success: true, result: devices, total: devices.length };
-          break;
+          console.log(`[tuya-proxy] /v1.0/users/${userUid}/devices returned ${resp.result?.length ?? 0} devices, code=${resp.code}, msg=${resp.msg}`);
         }
 
-        let lastRowKey = "";
-        const allDevices: any[] = [];
-        let hasMore = true;
-
-        while (hasMore) {
-          const path = `/v2.0/cloud/thing?page_size=${pageSize}${lastRowKey ? `&last_row_key=${encodeURIComponent(lastRowKey)}` : ""}`;
+        // Fallback: try /v2.0/cloud/thing (IoT Core)
+        {
+          const path = `/v2.0/cloud/thing?page_size=${pageSize}`;
+          console.log(`[tuya-proxy] Trying IoT Core: ${path}`);
           const resp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", path);
-
-          if (!resp.success) {
-            throw new Error(`Tuya get_devices error: ${resp.code} - ${resp.msg}`);
+          if (resp.success && resp.result?.list?.length) {
+            const devices = resp.result.list;
+            result = { success: true, result: devices, total: devices.length };
+            break;
           }
-
-          const items = resp.result?.list || [];
-          allDevices.push(...items);
-          lastRowKey = resp.result?.last_row_key || "";
-          hasMore = !!lastRowKey && items.length === pageSize;
+          console.log(`[tuya-proxy] /v2.0/cloud/thing returned ${resp.result?.list?.length ?? 0} devices, code=${resp.code}, msg=${resp.msg}`);
         }
 
-        result = { success: true, result: allDevices, total: allDevices.length };
+        // Fallback: try known device IDs directly
+        const knownDeviceIds = params?.known_device_ids || [];
+        if (knownDeviceIds.length) {
+          console.log(`[tuya-proxy] Trying direct device fetch for ${knownDeviceIds.length} known IDs`);
+          const directDevices: any[] = [];
+          for (const did of knownDeviceIds) {
+            const resp = await tuyaRequest(baseUrl, clientId, clientSecret, token, "GET", `/v1.0/devices/${did}`);
+            if (resp.success && resp.result) {
+              directDevices.push(resp.result);
+              console.log(`[tuya-proxy] Direct fetch OK: ${did} → ${resp.result.name || "unnamed"}`);
+            } else {
+              console.log(`[tuya-proxy] Direct fetch failed for ${did}: ${resp.code} - ${resp.msg}`);
+            }
+          }
+          if (directDevices.length) {
+            result = { success: true, result: directDevices, total: directDevices.length };
+            break;
+          }
+        }
+
+        // All methods exhausted
+        result = { success: true, result: [], total: 0 };
         break;
       }
 
