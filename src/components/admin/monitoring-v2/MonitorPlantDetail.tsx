@@ -174,6 +174,7 @@ export default function MonitorPlantDetail() {
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="visao-geral" className="gap-1"><Sun className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
           <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>
+          <TabsTrigger value="configuracoes" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="visao-geral" className="space-y-6">
