@@ -2,9 +2,9 @@
  * MeterDetailPage — Reformulated detail view for a single meter device.
  * Route: /admin/medidores/:id
  */
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
 import { tuyaIntegrationService } from "@/services/tuyaIntegrationService";
 import { MeterAlertConfig } from "./MeterAlertConfig";
