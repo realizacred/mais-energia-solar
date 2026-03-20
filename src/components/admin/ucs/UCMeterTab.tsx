@@ -228,3 +228,101 @@ function UCMeterLinkDialog({ open, onOpenChange, unitId }: { open: boolean; onOp
     </Dialog>
   );
 }
+
+/** Sub-component: Leitura Inicial do Relógio Físico */
+function LeituraInicialCard({ meterId, meter }: { meterId: string; meter: any }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [leitura03, setLeitura03] = useState("");
+  const [leitura103, setLeitura103] = useState("");
+  const [leituraData, setLeituraData] = useState("");
+  const [leituraObs, setLeituraObs] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (meter && !loaded) {
+      setLeitura03(String(meter.leitura_inicial_03 || 0));
+      setLeitura103(String(meter.leitura_inicial_103 || 0));
+      setLeituraData(meter.leitura_inicial_data || "");
+      setLeituraObs(meter.leitura_inicial_observacao || "");
+      setLoaded(true);
+    }
+  }, [meter, loaded]);
+
+  const saveMut = useMutation({
+    mutationFn: () => meterService.updateLeituraInicial(meterId, {
+      leitura_inicial_03: Number(leitura03) || 0,
+      leitura_inicial_103: Number(leitura103) || 0,
+      leitura_inicial_data: leituraData || null,
+      leitura_inicial_observacao: leituraObs || null,
+    }),
+    onSuccess: () => {
+      toast({ title: "Leitura inicial salva com sucesso" });
+      qc.invalidateQueries({ queryKey: ["meter_device", meterId] });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Gauge className="w-4 h-4 text-primary" /> Leitura Inicial do Relógio Físico
+        </CardTitle>
+        <CardDescription>Registre a leitura do relógio no momento da instalação do medidor IoT</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-info/10 border border-info/20">
+          <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">
+            A leitura inicial é usada para calcular o consumo real combinando os dados do relógio físico com o medidor IoT.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Leitura Posto 03 (kWh)</Label>
+            <Input
+              type="number"
+              value={leitura03}
+              onChange={(e) => setLeitura03(e.target.value)}
+              placeholder="Ex: 12345"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Leitura Posto 103 (kWh)</Label>
+            <Input
+              type="number"
+              value={leitura103}
+              onChange={(e) => setLeitura103(e.target.value)}
+              placeholder="Ex: 6789"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Data da leitura</Label>
+            <Input
+              type="date"
+              value={leituraData}
+              onChange={(e) => setLeituraData(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Observações</Label>
+          <Textarea
+            value={leituraObs}
+            onChange={(e) => setLeituraObs(e.target.value)}
+            rows={2}
+            placeholder="Observações sobre a leitura inicial..."
+          />
+        </div>
+
+        <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} size="sm">
+          <Save className="w-3 h-3 mr-1" />
+          {saveMut.isPending ? "Salvando..." : "Salvar Leitura Inicial"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
