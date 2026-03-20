@@ -63,14 +63,43 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   const { data: plants = [] } = useQuery({
     queryKey: ["plants_for_uc_link"],
     queryFn: async () => {
-      // Try monitor_plants first, fallback to empty
       const { data } = await (supabase as any)
         .from("monitor_plants")
-        .select("id, name")
+        .select("id, name, installed_power_kwp, status, last_communication_at, lat, lng")
         .order("name")
         .limit(100);
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Fetch today's generation for linked plants
+  const activePlantIds = links.filter(l => l.is_active).map(l => l.plant_id);
+  const { data: todayMetrics = [] } = useQuery({
+    queryKey: ["plant_today_metrics_uc", activePlantIds],
+    queryFn: async () => {
+      if (activePlantIds.length === 0) return [];
+      // Get legacy_plant_id mapping
+      const { data: plantRows } = await (supabase as any)
+        .from("monitor_plants")
+        .select("id, legacy_plant_id")
+        .in("id", activePlantIds);
+      const legacyIds = (plantRows || []).map((p: any) => p.legacy_plant_id).filter(Boolean);
+      if (legacyIds.length === 0) return [];
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("solar_plant_metrics_daily")
+        .select("plant_id, energy_kwh, date")
+        .in("plant_id", legacyIds)
+        .eq("date", today);
+      // Map back to monitor_plants.id
+      return (data || []).map((m: any) => {
+        const mp = (plantRows || []).find((p: any) => p.legacy_plant_id === m.plant_id);
+        return { ...m, monitor_plant_id: mp?.id };
+      });
+    },
+    enabled: activePlantIds.length > 0,
+    staleTime: 1000 * 60 * 2,
   });
 
   const createMut = useMutation({
