@@ -64,6 +64,7 @@ export default function MeterDetailPage() {
   const [unlinking, setUnlinking] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [optimisticSwitch, setOptimisticSwitch] = useState<boolean | null>(null);
   const [chartPeriod, setChartPeriod] = useState<"24h" | "7d" | "30d">("24h");
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -163,7 +164,15 @@ export default function MeterDetailPage() {
     };
   }, [latestStatus]);
 
-  const switchState = extraDPs.switchState;
+  const switchState = optimisticSwitch !== null ? optimisticSwitch : extraDPs.switchState;
+
+  // Reset optimistic state when latestStatus updates
+  useEffect(() => {
+    if (optimisticSwitch !== null) {
+      setOptimisticSwitch(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestStatus]);
 
   async function handleSync() {
     if (!meter?.integration_config_id) return;
@@ -188,12 +197,16 @@ export default function MeterDetailPage() {
       await tuyaIntegrationService.sendCommand(meter.integration_config_id, meter.external_device_id, [
         { code: "switch", value: newValue },
       ]);
+      // Optimistic update immediately
+      setOptimisticSwitch(newValue);
       toast({ title: newValue ? "Medidor ligado" : "Medidor desligado" });
-      // Refresh status
+      // Refresh status after Tuya processes
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ["meter_status_latest", id] });
-      }, 2000);
+      }, 3000);
     } catch (err: any) {
+      // Revert optimistic on error
+      setOptimisticSwitch(null);
       toast({ title: "Erro ao enviar comando", description: err?.message, variant: "destructive" });
     } finally {
       setToggling(false);
@@ -353,8 +366,8 @@ export default function MeterDetailPage() {
           {switchState !== null && (
             <Button
               size="sm"
-              variant={switchState ? "default" : "outline"}
-              className={switchState ? "bg-success hover:bg-success/90 text-success-foreground" : "border-destructive text-destructive hover:bg-destructive/10"}
+              variant={switchState ? "default" : "destructive"}
+              className={switchState ? "bg-success hover:bg-success/90 text-success-foreground" : ""}
               onClick={handleToggle}
               disabled={toggling}
             >
