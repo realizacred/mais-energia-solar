@@ -363,13 +363,13 @@ export function UCOverviewTab({
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{ fontSize: "12px" }} />
                 {chartSeries.geracao && (
-                  <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                  <Bar dataKey="_displayGeração" name="Geração" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} maxBarSize={18} />
                 )}
                 {chartSeries.consumo && (
-                  <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                  <Bar dataKey="_displayConsumo" name="Consumo" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} maxBarSize={18} />
                 )}
                 {chartSeries.injecao && (
-                  <Bar dataKey="_displayInjeção" name="Injeção" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} maxBarSize={18} />
+                  <Bar dataKey="_displayInjeção" name="Injeção" fill="hsl(var(--warning))" radius={[3, 3, 0, 0]} maxBarSize={18} />
                 )}
               </BarChart>
             </ResponsiveContainer>
