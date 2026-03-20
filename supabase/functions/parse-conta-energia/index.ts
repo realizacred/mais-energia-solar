@@ -1,5 +1,6 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // parse-conta-energia — Extract tariff data from energy bill PDF text
+// Layer 1: Regex (fast) + Layer 2: OpenAI fallback (for missing fields)
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
@@ -26,7 +27,17 @@ interface ExtractedData {
   tipo_ligacao: string | null;
   mes_referencia: string | null;
   demanda_contratada_kw: number | null;
+  numero_uc: string | null;
+  vencimento: string | null;
+  proxima_leitura_data: string | null;
+  saldo_gd: number | null;
+  saldo_gd_acumulado: number | null;
+  leitura_anterior_03: number | null;
+  leitura_atual_03: number | null;
+  leitura_anterior_103: number | null;
+  leitura_atual_103: number | null;
   confidence: number;
+  ai_fallback_used: boolean;
   raw_fields: Record<string, string>;
 }
 
@@ -55,17 +66,11 @@ const CONC_PATTERNS: Array<{ pattern: RegExp; nome: string }> = [
   { pattern: /CEMAR/i, nome: "CEMAR" },
 ];
 
-const ESTADOS_MAP: Record<string, string> = {
-  "ACRE": "AC", "ALAGOAS": "AL", "AMAPA": "AP", "AMAZONAS": "AM",
-  "BAHIA": "BA", "CEARA": "CE", "DISTRITO FEDERAL": "DF", "ESPIRITO SANTO": "ES",
-  "GOIAS": "GO", "MARANHAO": "MA", "MATO GROSSO": "MT", "MATO GROSSO DO SUL": "MS",
-  "MINAS GERAIS": "MG", "PARA": "PA", "PARAIBA": "PB", "PARANA": "PR",
-  "PERNAMBUCO": "PE", "PIAUI": "PI", "RIO DE JANEIRO": "RJ", "RIO GRANDE DO NORTE": "RN",
-  "RIO GRANDE DO SUL": "RS", "RONDONIA": "RO", "RORAIMA": "RR",
-  "SANTA CATARINA": "SC", "SAO PAULO": "SP", "SERGIPE": "SE", "TOCANTINS": "TO",
-};
+function parseNum(s: string): number {
+  return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+}
 
-// ── Extraction logic ─────────────────────────────────────────────────────────
+// ── LAYER 1: Regex extraction ────────────────────────────────────────────────
 
 function extractFromText(text: string): ExtractedData {
   const raw: Record<string, string> = {};
@@ -81,7 +86,7 @@ function extractFromText(text: string): ExtractedData {
     }
   }
 
-  // Consumo kWh - multiple patterns
+  // Consumo kWh
   let consumo: number | null = null;
   const consumoPatterns = [
     /consumo\s*(?:ativo|total|mensal)?[:\s]*(\d[\d.,]*)\s*kWh/i,
@@ -91,15 +96,10 @@ function extractFromText(text: string): ExtractedData {
   ];
   for (const p of consumoPatterns) {
     const m = text.match(p);
-    if (m) {
-      consumo = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
-      raw['consumo_match'] = m[0];
-      confidence += 10;
-      break;
-    }
+    if (m) { consumo = parseNum(m[1]); raw['consumo_match'] = m[0]; confidence += 10; break; }
   }
 
-  // Tarifa de energia (TE) R$/kWh
+  // Tarifa de energia (TE)
   let tarifaEnergia: number | null = null;
   const tePatterns = [
     /tarifa\s*(?:de\s*)?energia\s*(?:TE)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
@@ -108,12 +108,7 @@ function extractFromText(text: string): ExtractedData {
   ];
   for (const p of tePatterns) {
     const m = text.match(p);
-    if (m) {
-      tarifaEnergia = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
-      raw['te_match'] = m[0];
-      confidence += 15;
-      break;
-    }
+    if (m) { tarifaEnergia = parseNum(m[1]); raw['te_match'] = m[0]; confidence += 15; break; }
   }
 
   // TUSD / Fio B
@@ -125,15 +120,10 @@ function extractFromText(text: string): ExtractedData {
   ];
   for (const p of tusdPatterns) {
     const m = text.match(p);
-    if (m) {
-      tarifaFioB = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
-      raw['tusd_match'] = m[0];
-      confidence += 10;
-      break;
-    }
+    if (m) { tarifaFioB = parseNum(m[1]); raw['tusd_match'] = m[0]; confidence += 10; break; }
   }
 
-  // Valor total da fatura
+  // Valor total
   let valorTotal: number | null = null;
   const totalPatterns = [
     /(?:valor\s*(?:total|a\s*pagar)|total\s*(?:da\s*fatura|a\s*pagar))[:\s]*R?\$?\s*(\d[\d.,]*)/i,
@@ -141,58 +131,37 @@ function extractFromText(text: string): ExtractedData {
   ];
   for (const p of totalPatterns) {
     const m = text.match(p);
-    if (m) {
-      valorTotal = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
-      raw['total_match'] = m[0];
-      confidence += 10;
-      break;
-    }
+    if (m) { valorTotal = parseNum(m[1]); raw['total_match'] = m[0]; confidence += 10; break; }
   }
 
   // ICMS
   let icms: number | null = null;
   const icmsMatch = text.match(/ICMS[:\s]*(\d[\d.,]*)\s*%/i);
-  if (icmsMatch) {
-    icms = parseFloat(icmsMatch[1].replace(',', '.'));
-    raw['icms_match'] = icmsMatch[0];
-    confidence += 5;
-  }
+  if (icmsMatch) { icms = parseFloat(icmsMatch[1].replace(',', '.')); raw['icms_match'] = icmsMatch[0]; confidence += 5; }
 
   // PIS
   let pis: number | null = null;
   const pisMatch = text.match(/PIS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (pisMatch) {
-    pis = parseFloat(pisMatch[1].replace(/\./g, '').replace(',', '.'));
-    raw['pis_match'] = pisMatch[0];
-    confidence += 5;
-  }
+  if (pisMatch) { pis = parseNum(pisMatch[1]); raw['pis_match'] = pisMatch[0]; confidence += 5; }
 
   // COFINS
   let cofins: number | null = null;
   const cofinsMatch = text.match(/COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (cofinsMatch) {
-    cofins = parseFloat(cofinsMatch[1].replace(/\./g, '').replace(',', '.'));
-    raw['cofins_match'] = cofinsMatch[0];
-    confidence += 5;
-  }
+  if (cofinsMatch) { cofins = parseNum(cofinsMatch[1]); raw['cofins_match'] = cofinsMatch[0]; confidence += 5; }
 
   // Bandeira
   let bandeira: string | null = null;
   const bandeiraMatch = text.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
-  if (bandeiraMatch) {
-    bandeira = bandeiraMatch[1];
-    raw['bandeira_match'] = bandeiraMatch[0];
-    confidence += 5;
-  }
+  if (bandeiraMatch) { bandeira = bandeiraMatch[1]; raw['bandeira_match'] = bandeiraMatch[0]; confidence += 5; }
 
-  // Tipo de ligação (mono/bi/tri)
+  // Tipo de ligação
   let tipoLigacao: string | null = null;
   if (/trif[áa]sic/i.test(text)) tipoLigacao = "trifasico";
   else if (/bif[áa]sic/i.test(text)) tipoLigacao = "bifasico";
   else if (/monof[áa]sic/i.test(text)) tipoLigacao = "monofasico";
   if (tipoLigacao) confidence += 5;
 
-  // Classe (residencial, comercial, industrial)
+  // Classe
   let classe: string | null = null;
   if (/residencial/i.test(text)) classe = "Residencial";
   else if (/comercial/i.test(text)) classe = "Comercial";
@@ -203,43 +172,122 @@ function extractFromText(text: string): ExtractedData {
   // Mês referência
   let mesRef: string | null = null;
   const mesMatch = text.match(/(?:m[êe]s\s*(?:de\s*)?refer[êe]ncia|refer[êe]ncia)[:\s]*((?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[\w\/]*\d{2,4}|\d{2}\/\d{4})/i);
-  if (mesMatch) {
-    mesRef = mesMatch[1];
-    raw['mes_match'] = mesMatch[0];
-    confidence += 5;
-  }
+  if (mesMatch) { mesRef = mesMatch[1]; raw['mes_match'] = mesMatch[0]; confidence += 5; }
 
   // Demanda contratada
   let demanda: number | null = null;
   const demandaMatch = text.match(/demanda\s*contratada[:\s]*(\d[\d.,]*)\s*kW/i);
-  if (demandaMatch) {
-    demanda = parseFloat(demandaMatch[1].replace(/\./g, '').replace(',', '.'));
-    raw['demanda_match'] = demandaMatch[0];
-    confidence += 5;
-  }
+  if (demandaMatch) { demanda = parseNum(demandaMatch[1]); raw['demanda_match'] = demandaMatch[0]; confidence += 5; }
 
-  // Estado - try UF codes
+  // Estado
   let estado: string | null = null;
   const ufMatch = text.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
-  if (ufMatch) {
-    estado = ufMatch[1];
-    confidence += 5;
-  }
+  if (ufMatch) { estado = ufMatch[1]; confidence += 5; }
 
   // Cidade
   let cidade: string | null = null;
   const cidadeMatch = text.match(/(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i);
-  if (cidadeMatch) {
-    cidade = cidadeMatch[1].trim();
-    raw['cidade_match'] = cidadeMatch[0];
+  if (cidadeMatch) { cidade = cidadeMatch[1].trim(); raw['cidade_match'] = cidadeMatch[0]; }
+
+  // ── NEW FIELDS ──
+
+  // Número UC (Unidade Consumidora)
+  let numeroUc: string | null = null;
+  const ucPatterns = [
+    /(?:unidade\s*consumidora|UC|instala[çc][ãa]o|c[óo]d(?:igo)?[\s.]*(?:UC|instala[çc][ãa]o))[:\s]*(\d{5,15})/i,
+    /N[ºo°]\s*(?:da\s*)?(?:UC|instala[çc][ãa]o)[:\s]*(\d{5,15})/i,
+  ];
+  for (const p of ucPatterns) {
+    const m = text.match(p);
+    if (m) { numeroUc = m[1]; raw['uc_match'] = m[0]; confidence += 5; break; }
   }
 
-  // Cap confidence at 100
+  // Vencimento
+  let vencimento: string | null = null;
+  const vencPatterns = [
+    /vencimento[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    /data\s*(?:de\s*)?vencimento[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+  ];
+  for (const p of vencPatterns) {
+    const m = text.match(p);
+    if (m) { vencimento = m[1]; raw['venc_match'] = m[0]; confidence += 5; break; }
+  }
+
+  // Próxima leitura
+  let proximaLeitura: string | null = null;
+  const proxPatterns = [
+    /pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    /data\s*(?:da\s*)?pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    /leitura\s*pr[óo]x(?:ima)?[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+  ];
+  for (const p of proxPatterns) {
+    const m = text.match(p);
+    if (m) { proximaLeitura = m[1]; raw['prox_leitura_match'] = m[0]; confidence += 5; break; }
+  }
+
+  // Saldo GD (geração distribuída)
+  let saldoGd: number | null = null;
+  const saldoGdPatterns = [
+    /saldo\s*(?:de\s*)?(?:gera[çc][ãa]o|GD|cr[ée]ditos?\s*(?:de\s*)?energia)[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
+    /cr[ée]ditos?\s*(?:acumulados?|de\s*energia)[:\s]*(\d[\d.,]*)\s*kWh/i,
+  ];
+  for (const p of saldoGdPatterns) {
+    const m = text.match(p);
+    if (m) { saldoGd = parseNum(m[1]); raw['saldo_gd_match'] = m[0]; confidence += 5; break; }
+  }
+
+  // Saldo GD acumulado
+  let saldoGdAcumulado: number | null = null;
+  const saldoAcumPatterns = [
+    /saldo\s*acumulado[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
+    /total\s*(?:de\s*)?cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
+  ];
+  for (const p of saldoAcumPatterns) {
+    const m = text.match(p);
+    if (m) { saldoGdAcumulado = parseNum(m[1]); raw['saldo_acum_match'] = m[0]; break; }
+  }
+
+  // Leitura anterior/atual registros 03 (Energia ativa consumida)
+  let leituraAnterior03: number | null = null;
+  let leituraAtual03: number | null = null;
+  const leitura03Patterns = [
+    /(?:energia\s*(?:ativa|el[ée]trica)?\s*(?:consumida)?|registro\s*03).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/is,
+    /(?:leitura|medidor).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/is,
+  ];
+  for (const p of leitura03Patterns) {
+    const m = text.match(p);
+    if (m) {
+      leituraAnterior03 = parseNum(m[1]);
+      leituraAtual03 = parseNum(m[2]);
+      raw['leitura_03_match'] = m[0].substring(0, 200);
+      confidence += 5;
+      break;
+    }
+  }
+
+  // Leitura registros 103 (Energia injetada)
+  let leituraAnterior103: number | null = null;
+  let leituraAtual103: number | null = null;
+  const leitura103Patterns = [
+    /(?:energia\s*injetada|registro\s*103).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/is,
+    /injetada.*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/is,
+  ];
+  for (const p of leitura103Patterns) {
+    const m = text.match(p);
+    if (m) {
+      leituraAnterior103 = parseNum(m[1]);
+      leituraAtual103 = parseNum(m[2]);
+      raw['leitura_103_match'] = m[0].substring(0, 200);
+      confidence += 5;
+      break;
+    }
+  }
+
   confidence = Math.min(confidence, 100);
 
   return {
     concessionaria_nome: concNome,
-    cliente_nome: null, // Hard to extract reliably
+    cliente_nome: null,
     endereco: null,
     cidade,
     estado,
@@ -255,9 +303,128 @@ function extractFromText(text: string): ExtractedData {
     tipo_ligacao: tipoLigacao,
     mes_referencia: mesRef,
     demanda_contratada_kw: demanda,
+    numero_uc: numeroUc,
+    vencimento,
+    proxima_leitura_data: proximaLeitura,
+    saldo_gd: saldoGd,
+    saldo_gd_acumulado: saldoGdAcumulado,
+    leitura_anterior_03: leituraAnterior03,
+    leitura_atual_03: leituraAtual03,
+    leitura_anterior_103: leituraAnterior103,
+    leitura_atual_103: leituraAtual103,
     confidence,
+    ai_fallback_used: false,
     raw_fields: raw,
   };
+}
+
+// ── LAYER 2: OpenAI fallback for missing fields ──────────────────────────────
+
+async function aiExtractMissingFields(
+  text: string,
+  regexResult: ExtractedData
+): Promise<ExtractedData> {
+  const missingFields: string[] = [];
+  if (!regexResult.proxima_leitura_data) missingFields.push("proxima_leitura_data (formato DD/MM/YYYY)");
+  if (regexResult.saldo_gd === null) missingFields.push("saldo_gd (em kWh, número)");
+  if (!regexResult.numero_uc) missingFields.push("numero_uc (código da unidade consumidora)");
+  if (!regexResult.vencimento) missingFields.push("vencimento (formato DD/MM/YYYY)");
+  if (regexResult.valor_total === null) missingFields.push("valor_total (em R$, número)");
+
+  if (missingFields.length === 0) return regexResult;
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    console.warn("[parse-conta-energia] LOVABLE_API_KEY not available, skipping AI fallback");
+    return regexResult;
+  }
+
+  try {
+    // Use only first 4000 chars to keep costs low
+    const truncatedText = text.substring(0, 4000);
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content: "Você é um extrator de dados de faturas de energia elétrica brasileiras. Retorne APENAS os campos solicitados em formato JSON. Se não encontrar um campo, retorne null. Números devem ser sem formatação (use ponto como decimal). Datas no formato DD/MM/YYYY."
+          },
+          {
+            role: "user",
+            content: `Extraia APENAS estes campos da fatura abaixo:\n${missingFields.join("\n")}\n\nTexto da fatura:\n${truncatedText}`
+          }
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_invoice_fields",
+              description: "Extract specific fields from a Brazilian energy bill",
+              parameters: {
+                type: "object",
+                properties: {
+                  proxima_leitura_data: { type: "string", description: "Next reading date DD/MM/YYYY" },
+                  saldo_gd: { type: "number", description: "GD balance in kWh" },
+                  numero_uc: { type: "string", description: "Consumer unit code" },
+                  vencimento: { type: "string", description: "Due date DD/MM/YYYY" },
+                  valor_total: { type: "number", description: "Total amount in BRL" },
+                },
+                additionalProperties: false,
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "extract_invoice_fields" } },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[parse-conta-energia] AI fallback failed: ${response.status}`);
+      return regexResult;
+    }
+
+    const aiResult = await response.json();
+    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall?.function?.arguments) return regexResult;
+
+    const aiFields = JSON.parse(toolCall.function.arguments);
+    const result = { ...regexResult, ai_fallback_used: true };
+
+    // Only fill in what regex missed
+    if (!result.proxima_leitura_data && aiFields.proxima_leitura_data) {
+      result.proxima_leitura_data = aiFields.proxima_leitura_data;
+      result.raw_fields['ai_proxima_leitura'] = aiFields.proxima_leitura_data;
+    }
+    if (result.saldo_gd === null && aiFields.saldo_gd != null) {
+      result.saldo_gd = aiFields.saldo_gd;
+      result.raw_fields['ai_saldo_gd'] = String(aiFields.saldo_gd);
+    }
+    if (!result.numero_uc && aiFields.numero_uc) {
+      result.numero_uc = aiFields.numero_uc;
+      result.raw_fields['ai_numero_uc'] = aiFields.numero_uc;
+    }
+    if (!result.vencimento && aiFields.vencimento) {
+      result.vencimento = aiFields.vencimento;
+      result.raw_fields['ai_vencimento'] = aiFields.vencimento;
+    }
+    if (result.valor_total === null && aiFields.valor_total != null) {
+      result.valor_total = aiFields.valor_total;
+      result.raw_fields['ai_valor_total'] = String(aiFields.valor_total);
+    }
+
+    result.confidence = Math.min(result.confidence + 10, 100);
+    return result;
+  } catch (err) {
+    console.error("[parse-conta-energia] AI fallback error:", err);
+    return regexResult;
+  }
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -266,34 +433,45 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    // Auth check
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const authHeader = req.headers.get('Authorization');
+
+    // Allow service_role calls (from process-fatura-pdf) without user auth
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const isServiceRole = authHeader === `Bearer ${serviceRoleKey}`;
+
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), 
+      return new Response(JSON.stringify({ error: 'Não autorizado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), 
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!isServiceRole) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: authError } = await userClient.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Não autorizado' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
     }
 
-    // Get text from request body
     const body = await req.json();
-    const { text } = body;
+    const { text, use_ai_fallback = true } = body;
 
     if (!text || typeof text !== 'string') {
-      return new Response(JSON.stringify({ error: 'Campo "text" é obrigatório' }), 
+      return new Response(JSON.stringify({ error: 'Campo "text" é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const extracted = extractFromText(text);
+    // Layer 1: Regex
+    let extracted = extractFromText(text);
+
+    // Layer 2: AI fallback (only if enabled and fields are missing)
+    if (use_ai_fallback) {
+      extracted = await aiExtractMissingFields(text, extracted);
+    }
 
     return new Response(JSON.stringify({
       success: true,
@@ -302,7 +480,7 @@ Deno.serve(async (req) => {
 
   } catch (err: any) {
     console.error("[parse-conta-energia] Error:", err);
-    return new Response(JSON.stringify({ error: err.message || 'Erro interno' }), 
+    return new Response(JSON.stringify({ error: err.message || 'Erro interno' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
