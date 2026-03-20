@@ -445,31 +445,31 @@ export default function MeterDetailPage() {
           </ShadTooltip>
         </TooltipProvider>
       </div>
-      {/* Extra DPs row */}
+      {/* Extra DPs row — expanded KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={Activity}
+          label="Fator de Potência"
+          value={extraDPs.powerFactor != null ? `${extraDPs.powerFactor.toFixed(3)} pf` : "—"}
+          color="info"
+        />
         <StatCard
           icon={Thermometer}
           label="Temperatura"
           value={extraDPs.temperature != null ? `${extraDPs.temperature} °C` : "—"}
-          color="warning"
+          color={extraDPs.temperature != null && extraDPs.temperature > 80 ? "destructive" : extraDPs.temperature != null && extraDPs.temperature > 60 ? "warning" : "warning"}
         />
         <StatCard
-          icon={ShieldAlert}
-          label="Corrente Fuga"
+          icon={Zap}
+          label="Corrente de Fuga"
           value={extraDPs.leakageCurrent != null ? `${extraDPs.leakageCurrent} mA` : "—"}
-          color="destructive"
+          color={extraDPs.leakageCurrent != null && extraDPs.leakageCurrent >= 30 ? "destructive" : "success"}
         />
         <StatCard
           icon={BarChart3}
-          label="Saldo Energia"
-          value={extraDPs.balanceEnergy != null ? `${extraDPs.balanceEnergy.toFixed(2)} kWh` : "—"}
-          color="info"
-        />
-        <StatCard
-          icon={Activity}
-          label="Frequência"
-          value="60 Hz"
-          color="success"
+          label="Potência Reativa"
+          value={extraDPs.reactivePower != null ? `${extraDPs.reactivePower.toFixed(1)} kVar` : "—"}
+          color="primary"
         />
       </div>
 
