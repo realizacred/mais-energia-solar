@@ -32,7 +32,7 @@ import {
   Gauge, ArrowLeft, Zap, Activity, BarChart3,
   Clock, AlertTriangle, Unlink, Power, PowerOff,
   RefreshCw, Loader2, Thermometer, ShieldAlert, Pencil, Check, X, Terminal,
-  Save, CalendarDays, BookOpen, Info,
+  Save, CalendarDays, BookOpen, Info, Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip as ShadTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -71,6 +71,27 @@ export default function MeterDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [renaming, setRenaming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteMeter() {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await supabase.from("meter_status_latest").delete().eq("meter_device_id", id);
+      await supabase.from("meter_readings").delete().eq("meter_device_id", id);
+      await supabase.from("meter_alerts").delete().eq("meter_device_id", id);
+      await supabase.from("unit_meter_links").delete().eq("meter_device_id", id);
+      const { error: delErr } = await supabase.from("meter_devices").delete().eq("id", id);
+      if (delErr) throw delErr;
+      toast({ title: "Medidor excluído com sucesso" });
+      qc.invalidateQueries({ queryKey: ["meter_devices"] });
+      navigate("/admin/medidores");
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err?.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   // Leitura inicial state
   const [leitura03, setLeitura03] = useState("");
@@ -405,6 +426,32 @@ export default function MeterDetailPage() {
               {switchState ? "Ligado" : "Desligado"}
             </Button>
           )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10">
+                <Trash2 className="w-4 h-4 mr-1" /> Excluir
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir medidor?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação removerá o medidor <strong>{meter.name}</strong>, todas as leituras, alertas e vínculos associados. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteMeter}
+                  disabled={deleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
