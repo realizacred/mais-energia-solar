@@ -356,4 +356,42 @@ export const tuyaIntegrationService = {
     if (error) throw error;
     return count || 0;
   },
+
+  /** Send command to a Tuya device (e.g., switch on/off) */
+  async sendCommand(configId: string, deviceId: string, commands: { code: string; value: any }[]) {
+    return this.callProxy("send_command", configId, { device_id: deviceId, commands });
+  },
+
+  /** Get device functions (DPs) */
+  async getDeviceFunctions(configId: string, deviceId: string) {
+    return this.callProxy("get_device_functions", configId, { device_id: deviceId });
+  },
+
+  /** Trigger server-side readings sync */
+  async syncReadings(configId: string) {
+    return this.callProxy("sync_readings", configId);
+  },
+
+  /** Get alerts for a meter */
+  async getAlerts(meterId: string, resolvedFilter?: boolean) {
+    let q = supabase
+      .from("meter_alerts")
+      .select("*")
+      .eq("meter_device_id", meterId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (resolvedFilter !== undefined) q = q.eq("resolvido", resolvedFilter);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** Resolve an alert */
+  async resolveAlert(alertId: string) {
+    const { error } = await supabase
+      .from("meter_alerts")
+      .update({ resolvido: true, resolvido_at: new Date().toISOString() } as any)
+      .eq("id", alertId);
+    if (error) throw error;
+  },
 };
