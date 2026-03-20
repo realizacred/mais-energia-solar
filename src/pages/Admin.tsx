@@ -333,6 +333,7 @@ const TAB_TITLES: Record<string, string> = {
   "aneel-sync-status": "Status do Sync ANEEL",
   medidores: "Medidores",
   ucs: "Unidades Consumidoras",
+  "faturas-energia": "Faturas de Energia",
 };
 
 /** N8n placeholder component */
