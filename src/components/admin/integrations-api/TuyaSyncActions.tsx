@@ -1,5 +1,5 @@
 /**
- * TuyaSyncActions — Action buttons and sync logs for a Tuya integration config.
+ * TuyaSyncActions — Action buttons, sync logs, alert config, and DPs for a Tuya integration config.
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,12 +7,13 @@ import { tuyaIntegrationService } from "@/services/tuyaIntegrationService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  TestTube2, Download, RefreshCw, Zap, Clock, AlertTriangle,
+  TestTube2, Download, RefreshCw, Zap, Clock,
   CheckCircle2, XCircle, Loader2, Gauge
 } from "lucide-react";
+import { TuyaAlertConfig } from "./TuyaAlertConfig";
+import { TuyaDeviceDPs } from "./TuyaDeviceDPs";
 
 interface Props {
   configId: string;
@@ -27,12 +28,14 @@ export function TuyaSyncActions({ configId, configName }: Props) {
   const { data: meterCount = 0 } = useQuery({
     queryKey: ["tuya_meter_count", configId],
     queryFn: () => tuyaIntegrationService.getImportedMeterCount(configId),
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: logs = [] } = useQuery({
     queryKey: ["tuya_sync_logs", configId],
     queryFn: () => tuyaIntegrationService.getSyncLogs(configId, 5),
     refetchInterval: loadingAction ? 3000 : false,
+    staleTime: 1000 * 60,
   });
 
   function formatResult(action: string, result: any): string {
@@ -165,6 +168,12 @@ export function TuyaSyncActions({ configId, configName }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* Alert Config */}
+      <TuyaAlertConfig configId={configId} />
+
+      {/* Device DPs */}
+      <TuyaDeviceDPs configId={configId} />
     </div>
   );
 }
