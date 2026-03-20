@@ -347,6 +347,9 @@ export default function UCDetailPage() {
             {/* Faturas por E-mail */}
             <UCBillingSettingsTab unitId={uc.id} />
 
+            {/* Portal do Cliente — link compartilhável */}
+            <UCShareLinkButton unitId={uc.id} />
+
             {/* Remover */}
             <Card className="border-destructive/20">
               <CardHeader className="pb-3">
