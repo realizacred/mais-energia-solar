@@ -372,6 +372,7 @@ export default function UCDetailPage() {
               ucId={uc.id}
               meterId={meterId}
               plantId={plantId}
+              solarPlantId={solarPlantId}
             />
           </TabsContent>
         </Tabs>
