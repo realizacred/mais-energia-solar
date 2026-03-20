@@ -1,18 +1,23 @@
 /**
- * UCInvoicesTab — Invoices list for a UC with upload support.
+ * UCInvoicesTab — Invoices list for a UC with manual registration, PDF upload, and email config info.
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceService, type UnitInvoice } from "@/services/invoiceService";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/storagePaths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Upload, Mail, ExternalLink, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -24,74 +29,221 @@ export function UCInvoicesTab({ unitId }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     reference_month: new Date().getMonth() + 1,
     reference_year: new Date().getFullYear(),
     total_amount: "",
     energy_consumed_kwh: "",
     energy_injected_kwh: "",
+    compensated_kwh: "",
+    previous_balance_kwh: "",
+    current_balance_kwh: "",
     due_date: "",
+    pdf_file: null as File | null,
   });
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["unit_invoices", unitId],
     queryFn: () => invoiceService.listByUnit(unitId),
+    staleTime: 1000 * 60 * 5,
   });
 
+  const uploadPdf = async (file: File): Promise<string | null> => {
+    const tenantId = await getCurrentTenantId();
+    if (!tenantId) throw new Error("Tenant não encontrado");
+    const ext = file.name.split(".").pop() || "pdf";
+    const path = `${tenantId}/${form.reference_year}/${String(form.reference_month).padStart(2, "0")}/${unitId}.${ext}`;
+    const { error } = await supabase.storage.from("faturas-energia").upload(path, file, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+    if (error) throw error;
+    const { data: signedData } = await supabase.storage.from("faturas-energia").createSignedUrl(path, 86400);
+    return signedData?.signedUrl || null;
+  };
+
   const createMut = useMutation({
-    mutationFn: () => invoiceService.create({
-      unit_id: unitId,
-      reference_month: form.reference_month,
-      reference_year: form.reference_year,
-      total_amount: form.total_amount ? parseFloat(form.total_amount) : null,
-      energy_consumed_kwh: form.energy_consumed_kwh ? parseFloat(form.energy_consumed_kwh) : null,
-      energy_injected_kwh: form.energy_injected_kwh ? parseFloat(form.energy_injected_kwh) : null,
-      due_date: form.due_date || null,
-      source: "manual",
-    } as any),
+    mutationFn: async () => {
+      let pdfUrl: string | null = null;
+      if (form.pdf_file) {
+        pdfUrl = await uploadPdf(form.pdf_file);
+      }
+      return invoiceService.create({
+        unit_id: unitId,
+        reference_month: form.reference_month,
+        reference_year: form.reference_year,
+        total_amount: form.total_amount ? parseFloat(form.total_amount) : null,
+        energy_consumed_kwh: form.energy_consumed_kwh ? parseFloat(form.energy_consumed_kwh) : null,
+        energy_injected_kwh: form.energy_injected_kwh ? parseFloat(form.energy_injected_kwh) : null,
+        compensated_kwh: form.compensated_kwh ? parseFloat(form.compensated_kwh) : null,
+        previous_balance_kwh: form.previous_balance_kwh ? parseFloat(form.previous_balance_kwh) : null,
+        current_balance_kwh: form.current_balance_kwh ? parseFloat(form.current_balance_kwh) : null,
+        due_date: form.due_date || null,
+        pdf_file_url: pdfUrl,
+        source: "manual",
+      } as any);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
       setDialogOpen(false);
-      toast({ title: "Fatura registrada" });
+      resetForm();
+      toast({ title: "Fatura registrada com sucesso" });
     },
-    onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Erro ao registrar fatura", description: err?.message, variant: "destructive" }),
   });
+
+  const handleFileUploadOnly = async (file: File) => {
+    setUploading(true);
+    try {
+      const pdfUrl = await uploadPdf(file);
+      // Create invoice with just the file — month/year from current date
+      await invoiceService.create({
+        unit_id: unitId,
+        reference_month: new Date().getMonth() + 1,
+        reference_year: new Date().getFullYear(),
+        pdf_file_url: pdfUrl,
+        source: "manual",
+      } as any);
+      qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
+      toast({ title: "PDF da fatura importado" });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err?.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const resetForm = () => {
+    setForm({
+      reference_month: new Date().getMonth() + 1,
+      reference_year: new Date().getFullYear(),
+      total_amount: "",
+      energy_consumed_kwh: "",
+      energy_injected_kwh: "",
+      compensated_kwh: "",
+      previous_balance_kwh: "",
+      current_balance_kwh: "",
+      due_date: "",
+      pdf_file: null,
+    });
+  };
+
+  const SOURCE_LABELS: Record<string, string> = {
+    manual: "Manual",
+    email: "E-mail",
+    gmail: "Gmail",
+    upload: "Upload",
+  };
+
+  const STATUS_LABELS: Record<string, string> = {
+    pending: "Pendente",
+    processed: "Processada",
+    error: "Erro",
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Faturas</h3>
-        <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4 mr-1" /> Registrar Fatura</Button>
+      {/* Actions bar */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h3 className="text-sm font-medium text-foreground">Faturas</h3>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileUploadOnly(file);
+            }}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            <Upload className="w-4 h-4 mr-1" />
+            {uploading ? "Enviando..." : "Importar PDF"}
+          </Button>
+          <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Registrar Fatura
+          </Button>
+        </div>
       </div>
 
+      {/* Info card about automatic email */}
+      <Card className="border-info/20 bg-info/5">
+        <CardContent className="flex items-start gap-3 py-3 px-4">
+          <Mail className="w-4 h-4 text-info shrink-0 mt-0.5" />
+          <div className="text-xs text-muted-foreground space-y-1 flex-1">
+            <p>
+              <strong>Recebimento automático:</strong> Configure o e-mail da concessionária na aba{" "}
+              <strong>Configurações</strong> para receber faturas automaticamente.
+              Ou acesse a{" "}
+              <Link to="/admin/faturas-energia" className="text-primary underline inline-flex items-center gap-0.5">
+                Central de Faturas <ExternalLink className="w-3 h-3" />
+              </Link>{" "}
+              para configurar a integração Gmail.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
       {isLoading ? (
-        <div className="py-8 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
       ) : invoices.length === 0 ? (
-        <EmptyState icon={FileText} title="Nenhuma fatura" description="Registre manualmente ou configure o recebimento por e-mail." />
+        <EmptyState icon={FileText} title="Nenhuma fatura" description="Registre manualmente, importe um PDF ou configure o recebimento por e-mail." />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Referência</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Consumo (kWh)</TableHead>
-                <TableHead>Injeção (kWh)</TableHead>
-                <TableHead>Fonte</TableHead>
-                <TableHead>Status</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground">Referência</TableHead>
+                <TableHead className="font-semibold text-foreground">Vencimento</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Valor</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Consumo</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Injeção</TableHead>
+                <TableHead className="font-semibold text-foreground text-right">Saldo</TableHead>
+                <TableHead className="font-semibold text-foreground">Fonte</TableHead>
+                <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="w-[50px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {invoices.map((inv) => (
-                <TableRow key={inv.id}>
-                  <TableCell className="font-medium">{MONTHS[inv.reference_month - 1]}/{inv.reference_year}</TableCell>
-                  <TableCell className="text-sm">{inv.due_date ? new Date(inv.due_date).toLocaleDateString("pt-BR") : "—"}</TableCell>
-                  <TableCell className="text-sm">{inv.total_amount != null ? `R$ ${inv.total_amount.toFixed(2)}` : "—"}</TableCell>
-                  <TableCell className="text-sm">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)}` : "—"}</TableCell>
-                  <TableCell className="text-sm">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)}` : "—"}</TableCell>
-                  <TableCell><StatusBadge variant="muted">{inv.source || "manual"}</StatusBadge></TableCell>
-                  <TableCell><StatusBadge variant={inv.status === "processed" ? "success" : "warning"} dot>{inv.status}</StatusBadge></TableCell>
+                <TableRow key={inv.id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="font-medium text-foreground">{MONTHS[inv.reference_month - 1]}/{inv.reference_year}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{inv.due_date ? new Date(inv.due_date).toLocaleDateString("pt-BR") : "—"}</TableCell>
+                  <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toFixed(2)}` : "—"}</TableCell>
+                  <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                  <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                  <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                  <TableCell>
+                    <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
+                      {STATUS_LABELS[inv.status] || inv.status}
+                    </StatusBadge>
+                  </TableCell>
+                  <TableCell>
+                    {inv.pdf_file_url && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                        <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
+                          <Eye className="w-4 h-4 text-primary" />
+                        </a>
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -99,20 +251,89 @@ export function UCInvoicesTab({ unitId }: Props) {
         </div>
       )}
 
+      {/* Register invoice dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Registrar Fatura</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Mês</Label><Input type="number" min={1} max={12} value={form.reference_month} onChange={(e) => setForm(f => ({ ...f, reference_month: parseInt(e.target.value) || 1 }))} /></div>
-            <div className="space-y-1"><Label className="text-xs">Ano</Label><Input type="number" value={form.reference_year} onChange={(e) => setForm(f => ({ ...f, reference_year: parseInt(e.target.value) || 2024 }))} /></div>
-            <div className="space-y-1"><Label className="text-xs">Valor (R$)</Label><Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} /></div>
-            <div className="space-y-1"><Label className="text-xs">Vencimento</Label><Input type="date" value={form.due_date} onChange={(e) => setForm(f => ({ ...f, due_date: e.target.value }))} /></div>
-            <div className="space-y-1"><Label className="text-xs">Consumo (kWh)</Label><Input type="number" step="0.1" value={form.energy_consumed_kwh} onChange={(e) => setForm(f => ({ ...f, energy_consumed_kwh: e.target.value }))} /></div>
-            <div className="space-y-1"><Label className="text-xs">Injeção (kWh)</Label><Input type="number" step="0.1" value={form.energy_injected_kwh} onChange={(e) => setForm(f => ({ ...f, energy_injected_kwh: e.target.value }))} /></div>
+        <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Registrar Fatura</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Preencha os dados da conta de energia manualmente</p>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+            {/* Referência */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Mês</Label>
+                <Input type="number" min={1} max={12} value={form.reference_month} onChange={(e) => setForm(f => ({ ...f, reference_month: parseInt(e.target.value) || 1 }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Ano</Label>
+                <Input type="number" value={form.reference_year} onChange={(e) => setForm(f => ({ ...f, reference_year: parseInt(e.target.value) || 2024 }))} />
+              </div>
+            </div>
+
+            {/* Valor e Vencimento */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Valor (R$)</Label>
+                <Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} placeholder="0,00" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Vencimento</Label>
+                <Input type="date" value={form.due_date} onChange={(e) => setForm(f => ({ ...f, due_date: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Energia */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Consumo (kWh)</Label>
+                <Input type="number" step="0.1" value={form.energy_consumed_kwh} onChange={(e) => setForm(f => ({ ...f, energy_consumed_kwh: e.target.value }))} placeholder="0" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Injeção (kWh)</Label>
+                <Input type="number" step="0.1" value={form.energy_injected_kwh} onChange={(e) => setForm(f => ({ ...f, energy_injected_kwh: e.target.value }))} placeholder="0" />
+              </div>
+            </div>
+
+            {/* Compensação e Saldo */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Compensado (kWh)</Label>
+                <Input type="number" step="0.1" value={form.compensated_kwh} onChange={(e) => setForm(f => ({ ...f, compensated_kwh: e.target.value }))} placeholder="0" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Saldo anterior (kWh)</Label>
+                <Input type="number" step="0.1" value={form.previous_balance_kwh} onChange={(e) => setForm(f => ({ ...f, previous_balance_kwh: e.target.value }))} placeholder="0" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Saldo atual (kWh)</Label>
+                <Input type="number" step="0.1" value={form.current_balance_kwh} onChange={(e) => setForm(f => ({ ...f, current_balance_kwh: e.target.value }))} placeholder="0" />
+              </div>
+            </div>
+
+            {/* PDF upload */}
+            <div className="space-y-1">
+              <Label className="text-xs">PDF da Fatura (opcional)</Label>
+              <Input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => setForm(f => ({ ...f, pdf_file: e.target.files?.[0] || null }))}
+                className="text-sm file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+              />
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={() => createMut.mutate()} disabled={createMut.isPending}>{createMut.isPending ? "Salvando..." : "Salvar"}</Button>
+
+          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={createMut.isPending}>Cancelar</Button>
+            <Button onClick={() => createMut.mutate()} disabled={createMut.isPending}>
+              {createMut.isPending ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
