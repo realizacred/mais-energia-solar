@@ -422,6 +422,24 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "rename_device": {
+        const deviceId = params?.device_id;
+        const newName = params?.name;
+        if (!deviceId || !newName) {
+          return new Response(JSON.stringify({ error: "device_id and name required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        result = await tuyaRequest(
+          baseUrl, clientId, clientSecret, token,
+          "PUT", `/v1.0/devices/${deviceId}`,
+          { name: newName }
+        );
+        console.log(`[tuya-proxy] rename_device ${deviceId} → "${newName}": success=${result.success}`);
+        break;
+      }
+
       case "get_device_functions": {
         const deviceId = params?.device_id;
         if (!deviceId) {
