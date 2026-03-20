@@ -7938,6 +7938,10 @@ export type Database = {
           is_active: boolean
           last_reading_at: string | null
           last_seen_at: string | null
+          leitura_inicial_03: number | null
+          leitura_inicial_103: number | null
+          leitura_inicial_data: string | null
+          leitura_inicial_observacao: string | null
           manufacturer: string | null
           metadata: Json
           model: string | null
@@ -7969,6 +7973,10 @@ export type Database = {
           is_active?: boolean
           last_reading_at?: string | null
           last_seen_at?: string | null
+          leitura_inicial_03?: number | null
+          leitura_inicial_103?: number | null
+          leitura_inicial_data?: string | null
+          leitura_inicial_observacao?: string | null
           manufacturer?: string | null
           metadata?: Json
           model?: string | null
@@ -8000,6 +8008,10 @@ export type Database = {
           is_active?: boolean
           last_reading_at?: string | null
           last_seen_at?: string | null
+          leitura_inicial_03?: number | null
+          leitura_inicial_103?: number | null
+          leitura_inicial_data?: string | null
+          leitura_inicial_observacao?: string | null
           manufacturer?: string | null
           metadata?: Json
           model?: string | null
