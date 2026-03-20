@@ -1,9 +1,9 @@
 /**
  * PlantGenerationReport — Reusable generation & performance report component.
- * Shows KPI cards, daily bar chart, and 12-month historical table.
+ * Shows KPI cards, daily bar chart, 12-month historical table, and estimated reports.
  * Used in both usina detail and UC detail pages.
  */
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -24,13 +30,17 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
-  Legend,
 } from "recharts";
-import { Zap, Activity, BarChart3, FileDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Zap, Activity, BarChart3, FileDown, ChevronLeft, ChevronRight,
+  ChevronDown, FileBarChart, Trash2, CalendarRange,
+} from "lucide-react";
 import { useGenerationReport, type MonthlyReportRow } from "@/hooks/useGenerationReport";
+import { useEstimatedReports, useDeleteEstimatedReport, type EstimatedReport } from "@/hooks/useEstimatedReports";
+import { EstimateReportDialog } from "./EstimateReportDialog";
 import { format, subMonths, addMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface Props {
   plantId: string;
@@ -41,6 +51,10 @@ export function PlantGenerationReport({ plantId, showExport = true }: Props) {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(() => format(now, "yyyy-MM"));
   const { data: report, isLoading } = useGenerationReport(plantId, selectedMonth);
+  const { data: estimatedReports = [] } = useEstimatedReports(plantId);
+  const deleteMutation = useDeleteEstimatedReport();
+
+  const [showEstimateDialog, setShowEstimateDialog] = useState(false);
 
   const handlePrevMonth = () => {
     const d = parseISO(`${selectedMonth}-01`);
@@ -53,6 +67,15 @@ export function PlantGenerationReport({ plantId, showExport = true }: Props) {
   };
 
   const selectedLabel = format(parseISO(`${selectedMonth}-01`), "MMMM yyyy", { locale: ptBR });
+
+  const handleDeleteEstimated = async (id: string) => {
+    try {
+      await deleteMutation.mutateAsync({ id, plantId });
+      toast.success("Relatório estimado removido");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao remover relatório");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -84,6 +107,32 @@ export function PlantGenerationReport({ plantId, showExport = true }: Props) {
 
   return (
     <div className="space-y-5">
+      {/* Sub-tabs: Detalhado / Geração + Advanced dropdown */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+            Detalhado
+          </Badge>
+          <Badge variant="outline" className="text-muted-foreground">
+            Geração
+          </Badge>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1">
+              Avançado
+              <ChevronDown className="w-3.5 h-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setShowEstimateDialog(true)}>
+              <FileBarChart className="w-4 h-4 mr-2" />
+              Estimar relatórios antigos
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="border-l-[3px] border-l-warning">
@@ -271,6 +320,97 @@ export function PlantGenerationReport({ plantId, showExport = true }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Estimated Reports Section */}
+      {estimatedReports.length > 0 && (
+        <Card>
+          <CardContent className="pt-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground">Relatórios Estimados</h3>
+              <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/20">
+                E
+              </Badge>
+            </div>
+
+            <div className="rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="font-semibold text-foreground">Período</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Tarifa</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Geração</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Retorno</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Desempenho</TableHead>
+                    <TableHead className="w-[50px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {estimatedReports.map((er) => (
+                    <TableRow key={er.id} className="hover:bg-muted/30">
+                      <TableCell className="text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 bg-warning/10 text-warning border-warning/20">
+                            E
+                          </Badge>
+                          <span className="font-medium">
+                            {format(parseISO(er.period_start), "dd/MM/yyyy")} — {format(parseISO(er.period_end), "dd/MM/yyyy")}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-right font-mono">
+                        R$ {Number(er.tarifa_kwh).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-sm text-right font-mono">
+                        {er.geracao_periodo_kwh?.toLocaleString("pt-BR", { minimumFractionDigits: 1 }) ?? "—"} kWh
+                      </TableCell>
+                      <TableCell className="text-sm text-right font-mono font-medium text-success">
+                        R$ {er.retorno_estimado?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) ?? "—"}
+                        {er.retorno_pct ? (
+                          <span className="text-xs text-muted-foreground ml-1">({er.retorno_pct.toFixed(2)}%)</span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs font-mono ${
+                            (er.desempenho_pct ?? 0) >= 90
+                              ? "border-success/30 text-success"
+                              : (er.desempenho_pct ?? 0) >= 70
+                              ? "border-warning/30 text-warning"
+                              : "border-destructive/30 text-destructive"
+                          }`}
+                        >
+                          {er.desempenho_pct?.toFixed(0) ?? "—"}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteEstimated(er.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Estimate Dialog */}
+      <EstimateReportDialog
+        open={showEstimateDialog}
+        onOpenChange={setShowEstimateDialog}
+        plantId={plantId}
+        capacityKwp={report.capacityKwp}
+        totalInvestido={null}
+      />
     </div>
   );
 }
