@@ -31,6 +31,10 @@ export interface MeterDevice {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  leitura_inicial_03: number | null;
+  leitura_inicial_103: number | null;
+  leitura_inicial_data: string | null;
+  leitura_inicial_observacao: string | null;
 }
 
 export interface MeterReading {
@@ -55,7 +59,7 @@ export interface UnitMeterLink {
   notes: string | null;
 }
 
-const METER_COLS = `id, tenant_id, provider, integration_config_id, external_device_id, product_id, model, manufacturer, serial_number, name, description, category, firmware_version, online_status, health_status, bidirectional_supported, supports_import_energy, supports_export_energy, supports_power, installed_at, last_seen_at, last_reading_at, metadata, is_active, created_at, updated_at`;
+const METER_COLS = `id, tenant_id, provider, integration_config_id, external_device_id, product_id, model, manufacturer, serial_number, name, description, category, firmware_version, online_status, health_status, bidirectional_supported, supports_import_energy, supports_export_energy, supports_power, installed_at, last_seen_at, last_reading_at, metadata, is_active, created_at, updated_at, leitura_inicial_03, leitura_inicial_103, leitura_inicial_data, leitura_inicial_observacao`;
 
 export const meterService = {
   async list(filters?: { provider?: string; online_status?: string; search?: string }) {
@@ -151,5 +155,18 @@ export const meterService = {
     if (error) throw error;
     
     return (allMeters || []).filter(m => !linked.has(m.id)) as MeterDevice[];
+  },
+
+  async updateLeituraInicial(id: string, payload: {
+    leitura_inicial_03: number;
+    leitura_inicial_103: number;
+    leitura_inicial_data: string | null;
+    leitura_inicial_observacao: string | null;
+  }) {
+    const { error } = await supabase
+      .from("meter_devices")
+      .update(payload as any)
+      .eq("id", id);
+    if (error) throw error;
   },
 };
