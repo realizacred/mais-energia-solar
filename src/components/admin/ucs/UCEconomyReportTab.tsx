@@ -70,21 +70,21 @@ export function UCEconomyReportTab({ unitId }: Props) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Fetch UC tariff info
-  const { data: ucInfo } = useQuery({
-    queryKey: ["uc_tariff_info", unitId],
+  // Fetch tenant tariff from calculadora_config
+  const { data: calcConfig } = useQuery({
+    queryKey: ["calc_config_tariff"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("units_consumidoras")
-        .select("tarifa_media_kwh, concessionaria_id")
-        .eq("id", unitId)
-        .single();
-      return data as { tarifa_media_kwh: number | null; concessionaria_id: string | null } | null;
+        .from("calculadora_config")
+        .select("tarifa_media_kwh")
+        .limit(1)
+        .maybeSingle();
+      return data as { tarifa_media_kwh: number } | null;
     },
     staleTime: 1000 * 60 * 15,
   });
 
-  const tariff = ucInfo?.tarifa_media_kwh || DEFAULT_TARIFF;
+  const tariff = calcConfig?.tarifa_media_kwh || DEFAULT_TARIFF;
 
   // Available years from invoices
   const years = useMemo(() => {
