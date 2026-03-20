@@ -10,12 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, Save, Loader2, Settings, Zap, Thermometer, ShieldAlert, Activity, Gauge } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, Save, Loader2, Settings, Zap, Thermometer, ShieldAlert, Activity, Gauge, RefreshCw } from "lucide-react";
 
 interface Props {
   meterId: string;
   metadata: Record<string, any> | null;
   latestStatus?: Record<string, any> | null;
+  configId?: string;
+  externalDeviceId?: string;
 }
 
 interface AlertConfig {
@@ -56,10 +59,36 @@ const DEFAULTS: AlertConfig = {
   energy_alerts_enabled: false,
 };
 
-export function MeterAlertConfig({ meterId, metadata, latestStatus }: Props) {
+export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, externalDeviceId }: Props) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [config, setConfig] = useState<AlertConfig>(DEFAULTS);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleResync() {
+    if (!configId || !externalDeviceId) {
+      toast({ title: "Sem configuração Tuya vinculada", variant: "destructive" });
+      return;
+    }
+    setSyncing(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+
+      const resp = await supabase.functions.invoke("tuya-proxy", {
+        body: { action: "sync_readings", config_id: configId, device_id: externalDeviceId },
+      });
+      if (resp.error) throw resp.error;
+      qc.invalidateQueries({ queryKey: ["meter_status_latest", meterId] });
+      toast({ title: "Dados resincronizados com sucesso" });
+    } catch (err: any) {
+      toast({ title: "Erro ao resincronizar", description: err?.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   useEffect(() => {
     const ac = metadata?.alert_config;
@@ -96,10 +125,14 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus }: Props) {
     <div className="space-y-4 mt-4">
       {/* Current Device Status */}
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-1.5">
             <Settings className="w-4 h-4" /> Configuração Atual do Dispositivo
           </CardTitle>
+          <Button variant="outline" size="sm" onClick={handleResync} disabled={syncing || !configId}>
+            {syncing ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+            Resincronizar
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
