@@ -102,7 +102,7 @@ export function UCOverviewTab({
       const since = subDays(new Date(), chartDays).toISOString();
       const { data, error } = await supabase
         .from("meter_readings")
-        .select("measured_at, energy_import_kwh")
+        .select("measured_at, energy_import_kwh, energy_export_kwh")
         .eq("meter_device_id", meterId!)
         .gte("measured_at", since)
         .order("measured_at", { ascending: true });
