@@ -590,7 +590,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     <div className={`${vendorMode ? "flex flex-col h-full min-h-0 w-full max-w-full overflow-hidden" : "flex flex-col w-full h-full min-h-0 overflow-hidden p-4 pb-0 md:p-6 md:pb-0"}`} data-wa-inbox-active>
       {/* Header — hidden in vendor/standalone mode */}
       {!vendorMode && (
-        <div className="shrink-0 mb-3">
+        <div className="shrink-0 mb-2">
           <WaInboxHeader
             instances={instances}
             onNewChat={() => setShowStartChat(true)}
@@ -599,15 +599,13 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         </div>
       )}
 
-      {/* Stats - only in admin mode */}
-      {!vendorMode && <div className="shrink-0 mb-3"><WaInboxStats conversations={allConversations} /></div>}
-
-      {/* Compact stats for vendor/mobile mode */}
+      {/* Stats — compact inline for all modes */}
+      {!vendorMode && <div className="shrink-0 mb-2"><WaInboxStats conversations={allConversations} compact /></div>}
       {vendorMode && showCompactStats && <div className="shrink-0"><WaInboxStats conversations={allConversations} compact /></div>}
 
-      {/* SLA Alerts Banner */}
+      {/* SLA Alerts Banner — collapsed by default to save space */}
       {slaEnabled && (
-        <div className="shrink-0 mb-3">
+        <div className="shrink-0 mb-2">
           <WaSlaAlertBanner
             alerts={isAdminUser ? slaAlerts : mySlaAlerts}
             onOpenConversation={(convId) => {
@@ -618,6 +616,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
             onAcknowledgeAll={acknowledgeAllSla}
             onPauseSla={pauseSlaConversation}
             isAdmin={isAdminUser}
+            defaultCollapsed
           />
         </div>
       )}
