@@ -52,6 +52,9 @@ const ChartTooltip = ({ active, payload, label }: any) => {
       <p className="text-muted-foreground">
         Consumo: <span className="font-semibold text-foreground">{Number(row?._realConsumo ?? 0).toFixed(2)} kWh</span>
       </p>
+      <p className="text-muted-foreground">
+        Injeção: <span className="font-semibold text-foreground">{Number(row?._realInjeção ?? 0).toFixed(2)} kWh</span>
+      </p>
     </div>
   );
 };
