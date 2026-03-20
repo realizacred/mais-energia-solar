@@ -195,6 +195,9 @@ export default function MonitorPlantDetail() {
             clientName={plant.client_name || null}
           />
 
+          {/* Data sources (portals) badges */}
+          <PlantDataSourcesBadges plantId={plant.id} tenantId={plant.tenant_id} />
+
           {/* Generation chart with time range */}
           <SectionCard
             title="Geração"
