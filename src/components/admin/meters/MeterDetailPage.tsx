@@ -27,7 +27,7 @@ import {
 import {
   Gauge, ArrowLeft, Zap, Activity, BarChart3,
   Clock, AlertTriangle, Unlink, Power, PowerOff,
-  RefreshCw, Loader2,
+  RefreshCw, Loader2, Thermometer, ShieldAlert, Pencil, Check, X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
