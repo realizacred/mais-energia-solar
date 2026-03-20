@@ -309,9 +309,10 @@ function buildReading(dps: any[]): Record<string, any> {
   for (const dp of dps) {
     const field = DPS_MAP[dp.code];
     if (!field) continue;
-    if (typeof dp.value === "number") {
+    const numVal = typeof dp.value === "number" ? dp.value : (typeof dp.value === "string" && !isNaN(Number(dp.value)) ? Number(dp.value) : null);
+    if (numVal !== null) {
       if (reading[field] === null) {
-        reading[field] = dp.value * (SCALE[field] ?? 1);
+        reading[field] = numVal * (SCALE[field] ?? 1);
       }
     } else if (typeof dp.value === "boolean") {
       // skip booleans
