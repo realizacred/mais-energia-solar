@@ -358,6 +358,33 @@ export default function MeterDetailPage() {
           color="success"
         />
       </div>
+      {/* Extra DPs row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={Thermometer}
+          label="Temperatura"
+          value={extraDPs.temperature != null ? `${extraDPs.temperature} °C` : "—"}
+          color="warning"
+        />
+        <StatCard
+          icon={ShieldAlert}
+          label="Corrente Fuga"
+          value={extraDPs.leakageCurrent != null ? `${extraDPs.leakageCurrent} mA` : "—"}
+          color="destructive"
+        />
+        <StatCard
+          icon={BarChart3}
+          label="Saldo Energia"
+          value={extraDPs.balanceEnergy != null ? `${extraDPs.balanceEnergy.toFixed(2)} kWh` : "—"}
+          color="info"
+        />
+        <StatCard
+          icon={Activity}
+          label="Frequência"
+          value="60 Hz"
+          color="success"
+        />
+      </div>
 
       <Tabs defaultValue="chart" className="space-y-4">
         <TabsList>
