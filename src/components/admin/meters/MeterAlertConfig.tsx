@@ -17,6 +17,8 @@ interface Props {
   meterId: string;
   metadata: Record<string, any> | null;
   latestStatus?: Record<string, any> | null;
+  configId?: string;
+  externalDeviceId?: string;
 }
 
 interface AlertConfig {
