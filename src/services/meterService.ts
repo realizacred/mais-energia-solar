@@ -156,4 +156,17 @@ export const meterService = {
     
     return (allMeters || []).filter(m => !linked.has(m.id)) as MeterDevice[];
   },
+
+  async updateLeituraInicial(id: string, payload: {
+    leitura_inicial_03: number;
+    leitura_inicial_103: number;
+    leitura_inicial_data: string | null;
+    leitura_inicial_observacao: string | null;
+  }) {
+    const { error } = await supabase
+      .from("meter_devices")
+      .update(payload as any)
+      .eq("id", id);
+    if (error) throw error;
+  },
 };
