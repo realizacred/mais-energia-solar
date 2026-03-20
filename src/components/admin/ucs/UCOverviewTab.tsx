@@ -42,12 +42,16 @@ const STALE_2M = 1000 * 60 * 2;
 // §5: Custom tooltip
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload;
   return (
     <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
       <p className="font-medium text-foreground mb-1">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} className="text-muted-foreground">
-          {p.name}: <span className="font-semibold text-foreground">{Number(p.value).toFixed(2)} kWh</span>
+      <p className="text-muted-foreground">
+        Geração: <span className="font-semibold text-foreground">{Number(row?._realGeração ?? 0).toFixed(2)} kWh</span>
+      </p>
+      <p className="text-muted-foreground">
+        Consumo: <span className="font-semibold text-foreground">{Number(row?._realConsumo ?? 0).toFixed(2)} kWh</span>
+      </p>
         </p>
       ))}
     </div>
