@@ -617,7 +617,7 @@ export default function MeterDetailPage() {
             <MeterPhaseStatus statusA={extraDPs.statusA} statusB={extraDPs.statusB} statusC={extraDPs.statusC} />
           </div>
 
-          {/* Device Info */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
