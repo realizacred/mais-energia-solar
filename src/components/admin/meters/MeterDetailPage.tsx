@@ -702,32 +702,43 @@ export default function MeterDetailPage() {
                 <Gauge className="w-3.5 h-3.5 text-primary" />
                 Leitura Inicial do Relógio Físico
               </p>
-              <p className="text-xs text-muted-foreground">
-                Informe a leitura atual do relógio físico do medidor no momento da instalação.
-                O sistema usará esse valor como base para calcular o consumo real.
-              </p>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-info/10 border border-info/20">
+                <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>O medidor Tuya começa a contar do <strong className="text-foreground">zero</strong> quando é instalado. Para que o sistema mostre o valor real do relógio físico, informe aqui a leitura que o relógio marcava no momento da instalação.</p>
+                  <p><strong className="text-foreground">Registro 03</strong> = <span className="font-mono">total_forward_energy</span> = Energia consumida da rede (importação)</p>
+                  <p><strong className="text-foreground">Registro 103</strong> = <span className="font-mono">reverse_energy_total</span> = Energia injetada na rede (exportação/geração excedente)</p>
+                  <p>⚠️ Não é possível alterar o contador do medidor via comando — ele é somente leitura. O offset é aplicado apenas na exibição.</p>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Leitura 03 (kWh) — energia consumida</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">
+                    <span className="font-semibold text-foreground">Reg 03</span> — Energia Consumida (kWh)
+                  </label>
                   <Input
                     type="number"
                     min={0}
                     step="0.01"
                     value={leitura03}
                     onChange={(e) => setLeitura03(e.target.value)}
-                    placeholder="0.00"
+                    placeholder="Ex: 1523.45"
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">DP: total_forward_energy — quanto o local consumiu da rede</p>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Leitura 103 (kWh) — energia injetada</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">
+                    <span className="font-semibold text-foreground">Reg 103</span> — Energia Injetada (kWh)
+                  </label>
                   <Input
                     type="number"
                     min={0}
                     step="0.01"
                     value={leitura103}
                     onChange={(e) => setLeitura103(e.target.value)}
-                    placeholder="0.00"
+                    placeholder="Ex: 55.00"
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">DP: reverse_energy_total — quanto o sistema solar injetou na rede</p>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Data da leitura inicial</label>
@@ -742,7 +753,7 @@ export default function MeterDetailPage() {
                   <Textarea
                     value={leituraObs}
                     onChange={(e) => setLeituraObs(e.target.value)}
-                    placeholder="Ex: Relógio físico marcava 1523.45 kWh no dia da instalação"
+                    placeholder="Ex: Relógio físico marcava 1523.45 kWh (03) e 55.00 kWh (103) no dia da instalação"
                     rows={2}
                   />
                 </div>
