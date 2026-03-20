@@ -104,16 +104,29 @@ const DP_CATEGORIES: DPCategory[] = [
   },
 ];
 
-/** Extract current DP values from raw_payload.dps array */
+/** Extract current DP values from raw_payload — tries multiple known structures */
 function extractCurrentValues(rawPayload: any): Record<string, any> {
   const map: Record<string, any> = {};
-  const dps = rawPayload?.dps;
-  if (!Array.isArray(dps)) return map;
-  for (const dp of dps) {
-    if (dp?.code && dp.value !== undefined) {
-      map[dp.code] = dp.value;
+  if (!rawPayload || typeof rawPayload !== "object") return map;
+
+  // Try multiple locations where DPs may live
+  const candidates: any[] = [
+    rawPayload?.dps,
+    rawPayload?.device_info?.status,
+    rawPayload?.status,
+  ];
+
+  for (const arr of candidates) {
+    if (!Array.isArray(arr)) continue;
+    for (const dp of arr) {
+      if (dp?.code && dp.value !== undefined && !(dp.code in map)) {
+        map[dp.code] = dp.value;
+      }
     }
   }
+
+  console.log("[MeterCommandPanel] extractCurrentValues found", Object.keys(map).length, "DPs, sample:", 
+    Object.fromEntries(Object.entries(map).slice(0, 5)));
   return map;
 }
 
@@ -136,9 +149,21 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
 
   // Pre-fill form values from raw_payload when data arrives
   useEffect(() => {
-    if (initialized || !statusLatest?.raw_payload) return;
+    if (initialized) return;
+    if (!statusLatest) {
+      console.log("[MeterCommandPanel] No statusLatest yet for meterId:", meterId);
+      return;
+    }
+    if (!statusLatest.raw_payload) {
+      console.log("[MeterCommandPanel] statusLatest exists but no raw_payload");
+      return;
+    }
+
     const current = extractCurrentValues(statusLatest.raw_payload);
-    if (Object.keys(current).length === 0) return;
+    if (Object.keys(current).length === 0) {
+      console.log("[MeterCommandPanel] extractCurrentValues returned empty map");
+      return;
+    }
 
     const nums: Record<string, string> = {};
     const bools: Record<string, boolean> = {};
@@ -155,10 +180,11 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
       }
     }
 
+    console.log("[MeterCommandPanel] Pre-filling", Object.keys(nums).length, "numeric +", Object.keys(bools).length, "boolean values");
     setValues(prev => ({ ...prev, ...nums }));
     setBoolValues(prev => ({ ...prev, ...bools }));
     setInitialized(true);
-  }, [statusLatest, initialized]);
+  }, [statusLatest, initialized, meterId]);
 
   function setNumberValue(code: string, val: string) {
     setValues(prev => ({ ...prev, [code]: val }));
