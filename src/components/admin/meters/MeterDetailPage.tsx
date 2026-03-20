@@ -460,13 +460,13 @@ export default function MeterDetailPage() {
           icon={Thermometer}
           label="Temperatura"
           value={extraDPs.temperature != null ? `${extraDPs.temperature} °C` : "—"}
-          color={extraDPs.temperature != null && extraDPs.temperature > 80 ? "destructive" : extraDPs.temperature != null && extraDPs.temperature > 60 ? "warning" : "warning"}
+          color={extraDPs.temperature != null && extraDPs.temperature > 70 ? "destructive" : extraDPs.temperature != null && extraDPs.temperature > 50 ? "warning" : "success"}
         />
         <StatCard
-          icon={Zap}
+          icon={AlertTriangle}
           label="Corrente de Fuga"
           value={extraDPs.leakageCurrent != null ? `${extraDPs.leakageCurrent} mA` : "—"}
-          color={extraDPs.leakageCurrent != null && extraDPs.leakageCurrent >= 30 ? "destructive" : "success"}
+          color={extraDPs.leakageCurrent != null && extraDPs.leakageCurrent >= 30 ? "destructive" : extraDPs.leakageCurrent != null && extraDPs.leakageCurrent >= 10 ? "warning" : "success"}
         />
         <StatCard
           icon={BarChart3}
