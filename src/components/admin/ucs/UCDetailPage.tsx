@@ -24,6 +24,7 @@ import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
+import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Consumo",
