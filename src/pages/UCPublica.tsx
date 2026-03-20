@@ -55,8 +55,9 @@ export default function UCPublica() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("resolve_uc_client_token", { p_token: token! });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as {
+      const parsed = data as any;
+      if (parsed?.error) throw new Error(parsed.error);
+      return parsed as {
         unit_id: string; unit_name: string; codigo_uc: string;
         concessionaria_nome: string; tipo_uc: string; tenant_id: string;
         brand: { logo_url?: string; color_primary?: string; company_name?: string };
