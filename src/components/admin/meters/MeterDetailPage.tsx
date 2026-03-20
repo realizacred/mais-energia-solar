@@ -625,7 +625,7 @@ export default function MeterDetailPage() {
                     <TableBody>
                       {recentReadings.map((r: any) => (
                         <TableRow key={r.id} className="hover:bg-muted/30">
-                          <TableCell className="text-xs">{new Date(r.measured_at).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="text-xs">{new Date(r.measured_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</TableCell>
                           <TableCell className="text-xs font-mono">{r.power_w?.toFixed(1) ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{r.voltage_v?.toFixed(1) ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{r.current_a?.toFixed(3) ?? "—"}</TableCell>
