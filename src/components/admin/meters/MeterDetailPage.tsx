@@ -64,6 +64,7 @@ export default function MeterDetailPage() {
   const [unlinking, setUnlinking] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [optimisticSwitch, setOptimisticSwitch] = useState<boolean | null>(null);
   const [chartPeriod, setChartPeriod] = useState<"24h" | "7d" | "30d">("24h");
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
