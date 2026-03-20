@@ -713,7 +713,7 @@ export default function MeterDetailPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Última Comunicação</p>
-                    <p>{meter.last_seen_at ? new Date(meter.last_seen_at).toLocaleString("pt-BR") : "—"}</p>
+                    <p>{meter.last_seen_at ? new Date(meter.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}</p>
                   </div>
                 </div>
               </CardContent>
