@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Loader2, Terminal, AlertTriangle, Info } from "lucide-react";
+import { Send, Loader2, Terminal, AlertTriangle, Info, Power, Shield, Zap, Clock, Gauge, Settings, ThermometerSun } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
@@ -30,27 +30,76 @@ interface WritableDP {
   scale?: number;
 }
 
-/** Known writable DPs from the user's device specification */
-const WRITABLE_DPS: WritableDP[] = [
-  { code: "switch", label: "Liga/Desliga", description: "Controla o estado do disjuntor. Ligado = energia passa, Desligado = corta a energia da instalação remotamente.", type: "boolean" },
-  { code: "switch_prepayment", label: "Pré-pagamento", description: "Modo pré-pago: quando ativo, o medidor corta a energia automaticamente ao atingir o limite de kWh configurado em 'Energia de Carga'.", type: "boolean" },
-  { code: "clear_energy", label: "Zerar Consumo", description: "Zera o contador acumulado de energia (kWh) do medidor. Útil para reiniciar a contagem após manutenção ou troca de período.", type: "boolean" },
-  { code: "recover_enable", label: "Religamento Automático", description: "Se ativo, o disjuntor tenta religar sozinho após um desligamento por proteção (sobrecorrente, sobretensão, etc).", type: "boolean" },
-  { code: "charge_energy", label: "Limite Pré-pago (kWh)", description: "Define quantos kWh o consumidor pode usar no modo pré-pago. Ao atingir esse valor, o disjuntor desliga automaticamente. Ex: 500 = 500 kWh.", type: "number", min: 0, max: 999999, scale: 2 },
-  { code: "recover_sec", label: "Intervalo Religamento (s)", description: "Tempo em segundos que o disjuntor aguarda entre cada tentativa de religamento automático. Ex: 30 = espera 30s antes de tentar religar.", type: "number", min: 1, max: 99 },
-  { code: "recover_cnt", label: "Máx. Tentativas Religamento", description: "Quantas vezes o disjuntor tenta religar automaticamente. Se todas falharem, permanece desligado até intervenção manual. Ex: 3 = tenta 3 vezes.", type: "number", min: 1, max: 30 },
-  { code: "countdown_1", label: "Timer Desligamento (s)", description: "Programa o desligamento automático após X segundos. Útil para testes ou desligamentos programados. Ex: 3600 = desliga em 1 hora. 0 = desativado.", type: "number", min: 0, max: 86400 },
-  { code: "leak_delay", label: "Tolerância Fuga (s)", description: "Tempo em segundos que o medidor tolera fuga de corrente antes de desligar por proteção. Evita desarmes por picos momentâneos. Ex: 5 = tolera 5s.", type: "number", min: 1, max: 99 },
-  { code: "power_on_delay", label: "Atraso ao Ligar (s)", description: "Tempo de espera após o comando 'Ligar' antes de efetivamente energizar. Útil para dar tempo de preparação. Ex: 10 = liga após 10s.", type: "number", min: 1, max: 9999 },
-  { code: "alarm_v_delay", label: "Tolerância Tensão (s)", description: "Tempo que o medidor tolera tensão fora da faixa (sub ou sobretensão) antes de disparar alarme/proteção. Ex: 30 = tolera 30s fora da faixa.", type: "number", min: 1, max: 9999 },
-  { code: "alarm_over_c_delay", label: "Tolerância Sobrecorrente (s)", description: "Tempo que o medidor tolera corrente acima do limite antes de disparar proteção. Evita desarme por picos curtos de partida de motores. Ex: 10.", type: "number", min: 1, max: 9999 },
-  { code: "alarm_low_c_delay", label: "Tolerância Subcorrente (s)", description: "Tempo que o medidor tolera corrente abaixo do mínimo antes de alertar. Pode indicar equipamento desligado ou com defeito. Ex: 60.", type: "number", min: 1, max: 9999 },
-  { code: "alam_v_cnt", label: "Máx. Alarmes Tensão", description: "Quantas vezes o alarme de tensão pode disparar antes de o disjuntor desligar definitivamente. Ex: 5 = após 5 alarmes, desliga por segurança.", type: "number", min: 1, max: 9999 },
-  { code: "alarm_over_c_cnt", label: "Máx. Alarmes Sobrecorrente", description: "Quantas vezes o alarme de sobrecorrente pode disparar antes de desligar. Ex: 3 = após 3 ocorrências, corta energia.", type: "number", min: 1, max: 999 },
-  { code: "alarm_low_c_cnt", label: "Máx. Alarmes Subcorrente", description: "Quantas vezes o alarme de subcorrente pode disparar antes de alertar o operador. Ex: 10.", type: "number", min: 1, max: 999 },
-  { code: "switch_delay", label: "Anti-Bounce (s)", description: "Tempo mínimo entre acionamentos do switch para evitar liga/desliga rápido que pode danificar equipamentos. Ex: 5 = mínimo 5s entre comandos.", type: "number", min: 0, max: 9999 },
-  { code: "energy_pt", label: "Fator PT (Tensão)", description: "Fator de calibração do Transformador de Potencial (PT). Usado para corrigir a leitura de tensão do medidor. Valor padrão de fábrica geralmente é 1. Altere apenas se souber o fator do seu TP.", type: "number", min: 0, max: 9999 },
-  { code: "energy_ct", label: "Fator CT (Corrente)", description: "Fator de calibração do Transformador de Corrente (CT). Usado para corrigir a leitura de corrente/potência. Se usa TC externo de 200/5A, o fator é 40. Altere apenas com conhecimento técnico.", type: "number", min: 0, max: 9999 },
+interface DPCategory {
+  title: string;
+  icon: React.ReactNode;
+  dps: WritableDP[];
+}
+
+/** All writable DPs from the device, organized by category */
+const DP_CATEGORIES: DPCategory[] = [
+  {
+    title: "Controle de Energia",
+    icon: <Power className="w-4 h-4" />,
+    dps: [
+      { code: "switch", label: "Liga/Desliga", description: "Controla o estado do disjuntor. Ligado = energia passa para a instalação. Desligado = corta totalmente a energia remotamente.", type: "boolean" },
+      { code: "countdown_1", label: "Timer Desligamento (s)", description: "Programa o desligamento automático após X segundos. Útil para testes ou desligamentos programados. Ex: 3600 = desliga em 1 hora. 0 = desativado.", type: "number", min: 0, max: 86400 },
+      { code: "power_on_delay", label: "Atraso ao Ligar (s)", description: "Tempo de espera após o comando 'Ligar' antes de efetivamente energizar a saída. Protege contra inrush. Ex: 10 = liga após 10 segundos.", type: "number", min: 1, max: 9999 },
+      { code: "switch_delay", label: "Anti-Bounce (s)", description: "Tempo mínimo entre acionamentos do switch. Evita liga/desliga rápido que pode danificar equipamentos conectados. Ex: 5 = mínimo 5s entre comandos.", type: "number", min: 0, max: 9999 },
+      { code: "swithc_power_save", label: "Modo Economia", description: "Define o modo de economia de energia do próprio disjuntor. 0 = desativado, 1 = economia leve, 2 = economia máxima. Reduz consumo do medidor em standby.", type: "number", min: 0, max: 3 },
+    ],
+  },
+  {
+    title: "Pré-pagamento",
+    icon: <Gauge className="w-4 h-4" />,
+    dps: [
+      { code: "switch_prepayment", label: "Ativar Pré-pagamento", description: "Modo pré-pago: quando ativo, o medidor corta a energia automaticamente ao atingir o limite de kWh configurado em 'Limite Pré-pago'. Usado para controle de créditos de energia.", type: "boolean" },
+      { code: "charge_energy", label: "Limite Pré-pago (kWh)", description: "Define quantos kWh o consumidor pode usar no modo pré-pago. Ao atingir esse valor, o disjuntor desliga automaticamente. Ex: 500 = 500 kWh disponíveis.", type: "number", min: 0, max: 999999, scale: 2 },
+      { code: "clear_energy", label: "Zerar Consumo Acumulado", description: "Zera o contador acumulado de energia (kWh) do medidor. Útil para reiniciar a contagem após manutenção, troca de período ou início de novo ciclo de faturamento.", type: "boolean" },
+    ],
+  },
+  {
+    title: "Religamento Automático",
+    icon: <Zap className="w-4 h-4" />,
+    dps: [
+      { code: "recover_enable", label: "Ativar Religamento", description: "Se ativo, o disjuntor tenta religar sozinho após um desligamento por proteção (sobrecorrente, sobretensão, fuga, etc). Essencial para instalações remotas.", type: "boolean" },
+      { code: "recover_sec", label: "Intervalo entre Tentativas (s)", description: "Tempo em segundos que o disjuntor aguarda entre cada tentativa de religamento automático. Ex: 30 = espera 30s antes de tentar religar.", type: "number", min: 1, max: 99 },
+      { code: "recover_cnt", label: "Máx. Tentativas", description: "Número máximo de vezes que o disjuntor tenta religar. Se todas falharem, permanece desligado até intervenção manual. Ex: 3 = tenta 3 vezes.", type: "number", min: 1, max: 30 },
+    ],
+  },
+  {
+    title: "Proteção de Tensão",
+    icon: <Shield className="w-4 h-4" />,
+    dps: [
+      { code: "alarm_v_delay", label: "Tolerância Tensão (s)", description: "Tempo que o medidor tolera tensão fora da faixa (sub ou sobretensão) antes de disparar proteção. Evita desarmes por flutuações momentâneas da rede. Ex: 20s.", type: "number", min: 1, max: 9999 },
+      { code: "alam_v_cnt", label: "Máx. Alarmes antes de Desligar", description: "Quantas vezes o alarme de tensão pode disparar antes de o disjuntor desligar definitivamente. Ex: 5 = após 5 eventos, corta por segurança.", type: "number", min: 1, max: 9999 },
+    ],
+  },
+  {
+    title: "Proteção de Corrente",
+    icon: <Shield className="w-4 h-4" />,
+    dps: [
+      { code: "alarm_over_c_delay", label: "Tolerância Sobrecorrente (s)", description: "Tempo que o medidor tolera corrente acima do limite antes de desligar. Evita desarme por picos curtos como partida de motores. Ex: 10s.", type: "number", min: 1, max: 9999 },
+      { code: "alarm_over_c_cnt", label: "Máx. Alarmes Sobrecorrente", description: "Quantas vezes o alarme de sobrecorrente pode disparar antes de desligar definitivamente. Ex: 3 = após 3 ocorrências, corta.", type: "number", min: 1, max: 999 },
+      { code: "alarm_low_c_delay", label: "Tolerância Subcorrente (s)", description: "Tempo que o medidor tolera corrente abaixo do mínimo antes de alertar. Pode indicar fio rompido ou problema na carga. Ex: 60s.", type: "number", min: 1, max: 9999 },
+      { code: "alarm_low_c_cnt", label: "Máx. Alarmes Subcorrente", description: "Quantas vezes o alarme de subcorrente pode disparar antes de notificar. Ex: 10 = tolerante a oscilações.", type: "number", min: 1, max: 999 },
+    ],
+  },
+  {
+    title: "Proteção de Fuga (DR)",
+    icon: <ThermometerSun className="w-4 h-4" />,
+    dps: [
+      { code: "leak_delay", label: "Tolerância Fuga (s)", description: "Tempo que o medidor tolera fuga de corrente (diferencial) antes de desligar por proteção DR. Evita desarmes por picos momentâneos. Ex: 5 = tolera 5 segundos.", type: "number", min: 1, max: 99 },
+    ],
+  },
+  {
+    title: "Calibração do Sensor",
+    icon: <Settings className="w-4 h-4" />,
+    dps: [
+      { code: "energy_pt", label: "Fator PT (Tensão)", description: "Fator de calibração do Transformador de Potencial (PT). Corrige a leitura de tensão. Valor de fábrica: 10 (equivale a 1.0x). ⚠️ Altere apenas com conhecimento técnico — valores errados causam leituras incorretas.", type: "number", min: 0, max: 9999 },
+      { code: "energy_ct", label: "Fator CT (Corrente)", description: "Fator de calibração do Transformador de Corrente (CT). Corrige a leitura de corrente e potência. Se usar TC externo de 200/5A, o fator seria 40. Valor de fábrica: 10. ⚠️ Altere apenas com conhecimento técnico.", type: "number", min: 0, max: 9999 },
+    ],
+  },
 ];
 
 export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props) {
@@ -109,87 +158,111 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Terminal className="w-4 h-4" /> Enviar Comando ao Dispositivo
+          <Terminal className="w-4 h-4" /> Painel de Comandos do Dispositivo
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-6">
         <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
           <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
           <p className="text-xs text-muted-foreground">
-            Comandos são enviados diretamente ao dispositivo. Use com cuidado.
+            Comandos são enviados diretamente ao dispositivo. Use com cuidado — valores incorretos podem causar mau funcionamento.
           </p>
         </div>
 
-        <div className="space-y-2">
-          {WRITABLE_DPS.map(dp => {
-            const isSending = sendingCode === dp.code;
-            const result = lastResults[dp.code];
-
-            return (
-              <div
-                key={dp.code}
-                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
-              >
-                {/* Info col */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] font-mono shrink-0">{dp.code}</Badge>
-                    <span className="text-sm font-medium text-foreground truncate">{dp.label}</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[260px] text-xs">
-                        {dp.description}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block">{dp.description}</p>
-                </div>
-
-                {/* Value col */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {dp.type === "boolean" ? (
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={boolValues[dp.code] ?? false}
-                        onCheckedChange={(v) => setBoolValue(dp.code, v)}
-                      />
-                      <span className="text-xs text-muted-foreground w-16">
-                        {boolValues[dp.code] ? "Ligado" : "Desligado"}
-                      </span>
-                    </div>
-                  ) : (
-                    <Input
-                      type="number"
-                      placeholder={`${dp.min ?? 0}–${dp.max ?? 99999}`}
-                      value={values[dp.code] ?? ""}
-                      onChange={(e) => setNumberValue(dp.code, e.target.value)}
-                      min={dp.min}
-                      max={dp.max}
-                      className="w-28 h-8 text-xs"
-                    />
-                  )}
-
-                  {result && (
-                    <Badge variant={result.success ? "default" : "destructive"} className="text-[10px] shrink-0">
-                      {result.success ? "✓" : "✗"}
-                    </Badge>
-                  )}
-
-                  <Button
-                    size="sm"
-                    className="h-8 px-3"
-                    onClick={() => handleSend(dp)}
-                    disabled={isSending}
-                  >
-                    {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                    <span className="hidden sm:inline ml-1 text-xs">Enviar</span>
-                  </Button>
-                </div>
+        {DP_CATEGORIES.map(cat => (
+          <div key={cat.title} className="space-y-2">
+            <div className="flex items-center gap-2 pb-1 border-b border-border">
+              <div className="w-6 h-6 rounded flex items-center justify-center bg-primary/10 text-primary shrink-0">
+                {cat.icon}
               </div>
-            );
-          })}
+              <h3 className="text-sm font-semibold text-foreground">{cat.title}</h3>
+              <Badge variant="outline" className="text-[10px] ml-auto">{cat.dps.length}</Badge>
+            </div>
+
+            <div className="space-y-2">
+              {cat.dps.map(dp => {
+                const isSending = sendingCode === dp.code;
+                const result = lastResults[dp.code];
+
+                return (
+                  <div
+                    key={dp.code}
+                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] font-mono shrink-0">{dp.code}</Badge>
+                        <span className="text-sm font-medium text-foreground truncate">{dp.label}</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[300px] text-xs">
+                            {dp.description}
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{dp.description}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {dp.type === "boolean" ? (
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={boolValues[dp.code] ?? false}
+                            onCheckedChange={(v) => setBoolValue(dp.code, v)}
+                          />
+                          <span className="text-xs text-muted-foreground w-16">
+                            {boolValues[dp.code] ? "Ligado" : "Desligado"}
+                          </span>
+                        </div>
+                      ) : (
+                        <Input
+                          type="number"
+                          placeholder={`${dp.min ?? 0}–${dp.max ?? 99999}`}
+                          value={values[dp.code] ?? ""}
+                          onChange={(e) => setNumberValue(dp.code, e.target.value)}
+                          min={dp.min}
+                          max={dp.max}
+                          className="w-28 h-8 text-xs"
+                        />
+                      )}
+
+                      {result && (
+                        <Badge variant={result.success ? "default" : "destructive"} className="text-[10px] shrink-0">
+                          {result.success ? "✓" : "✗"}
+                        </Badge>
+                      )}
+
+                      <Button
+                        size="sm"
+                        className="h-8 px-3"
+                        onClick={() => handleSend(dp)}
+                        disabled={isSending}
+                      >
+                        {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        <span className="hidden sm:inline ml-1 text-xs">Enviar</span>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border">
+          <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">DPs somente leitura (exibidos no painel de status):</p>
+            <p>
+              <span className="font-mono">total_forward_energy</span>, <span className="font-mono">phase_a/b/c</span>, <span className="font-mono">fault</span>, <span className="font-mono">balance_energy</span>, <span className="font-mono">leakage_current</span>, <span className="font-mono">temp_current</span>, <span className="font-mono">reverse_energy_total</span>, <span className="font-mono">power_total</span>, <span className="font-mono">power_reactive</span>, <span className="font-mono">pa/pb/pc_instant</span>, <span className="font-mono">energy_total</span>, <span className="font-mono">energy_all</span>, <span className="font-mono">power_factor</span>, <span className="font-mono">status/status_b/status_c</span>, <span className="font-mono">n_current</span>, <span className="font-mono">over_current_cnt</span>, <span className="font-mono">lost_current_cnt</span>, <span className="font-mono">leak_cnt</span>
+            </p>
+            <p className="font-medium text-foreground mt-2">DPs codificados (Base64 — configuração avançada via app Tuya):</p>
+            <p>
+              <span className="font-mono">alarm_set_1/2/3</span> (limites tensão/corrente/potência), <span className="font-mono">cycle_time</span> (programação horária), <span className="font-mono">switch_inching</span> (modo pulso), <span className="font-mono">random_time</span> (timer aleatório)
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>
