@@ -550,7 +550,7 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Upsert meter_status_latest with expanded columns
+            // Upsert meter_status_latest with all expanded columns
             await supabase.from("meter_status_latest").upsert({
               meter_device_id: meter.id,
               measured_at: now,
@@ -560,16 +560,20 @@ Deno.serve(async (req) => {
               power_w: reading.power_w,
               energy_import_kwh: reading.energy_import_kwh,
               energy_export_kwh: reading.energy_export_kwh,
+              energy_total_kwh: reading.energy_total_kwh,
+              energy_balance_kwh: reading.energy_balance_kwh,
               reactive_power_kvar: reading.reactive_power_kvar,
               power_factor: reading.power_factor,
               leakage_current_ma: reading.leakage_current_ma,
               neutral_current_a: reading.neutral_current_a,
               temperature_c: reading.temperature_c,
-              energy_balance_kwh: reading.energy_balance_kwh,
               status_a: reading.status_a,
               status_b: reading.status_b,
               status_c: reading.status_c,
               fault_bitmap: reading.fault_bitmap,
+              over_current_count: reading.over_current_count,
+              lost_current_count: reading.lost_current_count,
+              leak_count: reading.leak_count,
               raw_payload: { dps, device_info: deviceInfo },
               updated_at: now,
             } as any, { onConflict: "meter_device_id" });
