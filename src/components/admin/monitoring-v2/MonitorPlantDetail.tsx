@@ -22,6 +22,8 @@ import { isMpptStringEnabled, getDeviceStringCards } from "@/services/monitoring
 import { PlantClientSection } from "./PlantClientSection";
 const PlantGenerationReport = lazy(() => import("./reports/PlantGenerationReport").then(m => ({ default: m.PlantGenerationReport })));
 import { PlantResizingSection } from "./PlantResizingSection";
+import { PlantDataSourcesBadges } from "./PlantDataSourcesBadges";
+import { PlantDataSourcesSection } from "./PlantDataSourcesSection";
 
 import { cn } from "@/lib/utils";
 import {
