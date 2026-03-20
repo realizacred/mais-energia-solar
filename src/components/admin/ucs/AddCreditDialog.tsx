@@ -55,13 +55,20 @@ export function AddCreditDialog({ open, onOpenChange, unitId, tenantId }: Props)
   const { data: linkedPlants } = useQuery({
     queryKey: ["uc_plant_links_for_credit", unitId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: links, error: linksErr } = await supabase
         .from("unit_plant_links")
-        .select("plant_id, monitor_plants(id, name)")
+        .select("plant_id")
         .eq("unit_id", unitId)
         .eq("is_active", true);
-      if (error) throw error;
-      return (data ?? []) as Array<{ plant_id: string; monitor_plants: { id: string; name: string } | null }>;
+      if (linksErr) throw linksErr;
+      if (!links?.length) return [];
+      const plantIds = links.map((l) => l.plant_id);
+      const { data: plants, error: plantsErr } = await supabase
+        .from("monitor_plants")
+        .select("id, name")
+        .in("id", plantIds);
+      if (plantsErr) throw plantsErr;
+      return (plants ?? []) as Array<{ id: string; name: string }>;
     },
     staleTime: 1000 * 60 * 5,
     enabled: open && !!unitId,
