@@ -113,7 +113,14 @@ export function UCBillingSettingsTab({ unitId }: Props) {
             </CardTitle>
             <Switch
               checked={form.servico_fatura_ativo}
-              onCheckedChange={(v) => setForm(f => ({ ...f, servico_fatura_ativo: v }))}
+              onCheckedChange={async (v) => {
+                if (v && !form.servico_fatura_ativo) {
+                  // Check plan limit before enabling
+                  const ok = await guardLimit("max_ucs_monitored");
+                  if (!ok) return;
+                }
+                setForm(f => ({ ...f, servico_fatura_ativo: v }));
+              }}
             />
           </div>
           <CardDescription>Ative para habilitar registro mensal, alertas e relatórios para esta UC</CardDescription>
