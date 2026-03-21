@@ -22622,6 +22622,15 @@ export type Database = {
           remaining: number
         }[]
       }
+      check_usage_limit_backend: {
+        Args: { _delta?: number; _metric_key: string; _tenant_id: string }
+        Returns: {
+          allowed: boolean
+          current_value: number
+          limit_value: number
+          remaining: number
+        }[]
+      }
       claim_followup_candidates: {
         Args: { _limit?: number }
         Returns: {
