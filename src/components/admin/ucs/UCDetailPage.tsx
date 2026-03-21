@@ -196,6 +196,7 @@ export default function UCDetailPage() {
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
             <TabsTrigger value="usinas" className="gap-1"><Link2 className="w-3.5 h-3.5" /> Usinas</TabsTrigger>
             <TabsTrigger value="economia" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Economia</TabsTrigger>
+            <TabsTrigger value="comparativo" className="gap-1"><Activity className="w-3.5 h-3.5" /> Comparativo</TabsTrigger>
             {plantId && <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>}
             <TabsTrigger value="historico" className="gap-1"><History className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
           </TabsList>
