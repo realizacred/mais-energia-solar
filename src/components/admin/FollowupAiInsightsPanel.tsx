@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useFollowupIntelligence } from "@/hooks/useFollowupIntelligence";
-import { useTenantPlan } from "@/hooks/useTenantPlan";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
