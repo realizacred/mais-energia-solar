@@ -22,8 +22,8 @@ interface AlertConfig {
 }
 
 const DEFAULTS: AlertConfig = {
-  min_voltage: 200,
-  max_voltage: 240,
+  min_voltage: 110,
+  max_voltage: 133,
   max_power: 10000,
   offline_alerts_enabled: true,
 };

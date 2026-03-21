@@ -711,11 +711,13 @@ Deno.serve(async (req) => {
               last_reading_at: now, updated_at: now,
             } as any).eq("id", meter.id);
 
-            // Check alerts
+            // Check alerts — read per-meter config first, fall back to integration config
+            const meterAlertCfg = (meter as any).metadata?.alert_config || {};
             const settings = (config.settings as any) || {};
-            const alertConfig = settings.alert_config || {};
-            const minV = alertConfig.min_voltage ?? 200;
-            const maxV = alertConfig.max_voltage ?? 240;
+            const integrationAlertCfg = settings.alert_config || {};
+            const alertConfig = { ...integrationAlertCfg, ...meterAlertCfg };
+            const minV = alertConfig.min_voltage ?? 110;  // ANEEL 127V network default
+            const maxV = alertConfig.max_voltage ?? 133;  // ANEEL 127V network default
             const maxP = alertConfig.max_power ?? 10000;
 
             const alerts: any[] = [];

@@ -41,9 +41,15 @@ interface AlertConfig {
   energy_alerts_enabled: boolean;
 }
 
+const VOLTAGE_PRESETS = {
+  127: { min: 110, max: 133 },
+  220: { min: 201, max: 231 },
+} as const;
+
 const DEFAULTS: AlertConfig = {
-  min_voltage: 200,
-  max_voltage: 240,
+  nominal_voltage: 127,
+  min_voltage: 110,
+  max_voltage: 133,
   max_power: 10000,
   max_current: 63,
   max_temperature: 85,
