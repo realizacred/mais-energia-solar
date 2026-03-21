@@ -380,7 +380,9 @@ export default function UCDetailPage() {
           </TabsContent>
 
           <TabsContent value="economia">
-            <UCEconomyReportTab unitId={uc.id} />
+            <FeatureGate featureKey="relatorio_mensal_pdf">
+              <UCEconomyReportTab unitId={uc.id} />
+            </FeatureGate>
           </TabsContent>
 
           <TabsContent value="comparativo">

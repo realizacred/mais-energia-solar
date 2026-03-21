@@ -7,6 +7,7 @@ import { DirectorAlerts } from "./DirectorAlerts";
 import { DirectorActionPlan } from "./DirectorActionPlan";
 import { DirectorReports } from "./DirectorReports";
 import { useAiInsights } from "@/hooks/useAiInsights";
+import { FeatureGate } from "@/components/plan/FeatureGate";
 
 const tabs = [
   { id: "overview", label: "Visão Geral", icon: Brain, color: "text-info" },
