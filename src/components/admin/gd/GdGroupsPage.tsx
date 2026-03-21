@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useGdGroups } from "@/hooks/useGdGroups";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
+import { useUCsList, useClientesList } from "@/hooks/useFormSelects";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Sun, Plus, MoreHorizontal, Eye, Pencil, Trash2, Users, Building2 } from "lucide-react";
+import { Sun, Plus, MoreHorizontal, Eye, Pencil, Users, AlertTriangle } from "lucide-react";
 import { GdGroupFormModal } from "./GdGroupFormModal";
 import { GdGroupDetailModal } from "./GdGroupDetailModal";
 import type { GdGroup } from "@/hooks/useGdGroups";
@@ -20,35 +21,11 @@ import type { GdGroup } from "@/hooks/useGdGroups";
 export function GdGroupsPage() {
   const { data: groups = [], isLoading } = useGdGroups();
   const { data: concessionarias = [] } = useConcessionarias();
+  const { data: ucs = [] } = useUCsList();
+  const { data: clientes = [] } = useClientesList();
   const [formOpen, setFormOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GdGroup | null>(null);
   const [detailGroup, setDetailGroup] = useState<GdGroup | null>(null);
-
-  // Fetch UCs and Clients for display
-  const { data: ucs = [] } = useQuery({
-    queryKey: ["ucs_for_gd"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("units_consumidoras")
-        .select("id, nome, codigo_uc")
-        .eq("is_archived", false);
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes_for_gd"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("clientes")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("nome");
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
 
   // Fetch beneficiary counts per group
   const { data: benCounts = [] } = useQuery({
@@ -62,9 +39,9 @@ export function GdGroupsPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const ucMap = new Map(ucs.map((u: any) => [u.id, u]));
+  const ucMap = new Map(ucs.map((u) => [u.id, u]));
   const concMap = new Map(concessionarias.map((c) => [c.id, c]));
-  const clienteMap = new Map(clientes.map((c: any) => [c.id, c]));
+  const clienteMap = new Map(clientes.map((c) => [c.id, c]));
   const benCountMap = new Map<string, number>();
   benCounts.forEach((b: any) => {
     if (b.is_active) {
@@ -149,10 +126,16 @@ export function GdGroupsPage() {
                       {uc ? `${uc.codigo_uc} — ${uc.nome}` : "—"}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className="text-xs">
-                        <Users className="w-3 h-3 mr-1" />
-                        {benCount}
-                      </Badge>
+                      {benCount === 0 ? (
+                        <Badge variant="outline" className="text-xs border-warning text-warning">
+                          <AlertTriangle className="w-3 h-3 mr-1" /> 0
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          <Users className="w-3 h-3 mr-1" />
+                          {benCount}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={g.status === "active" ? "default" : "secondary"} className="text-xs">

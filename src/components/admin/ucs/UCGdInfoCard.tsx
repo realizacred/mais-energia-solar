@@ -1,9 +1,10 @@
 /**
  * UCGdInfoCard — Shows GD participation info on UC detail page.
+ * Links directly to the specific GD group.
  */
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sun, Users, ArrowRight } from "lucide-react";
+import { Sun, Users, ExternalLink } from "lucide-react";
 import { useGdBeneficiariesByUC, useGdGroupByGenerator } from "@/hooks/useGdBeneficiaries";
 import { Link } from "react-router-dom";
 
@@ -33,8 +34,8 @@ export function UCGdInfoCard({ ucId }: Props) {
                   <Sun className="w-3 h-3 mr-1" /> Geradora
                 </Badge>
                 <span className="text-sm text-foreground">{g.nome}</span>
-                <Link to="/admin/gd-rateio" className="text-xs text-primary hover:underline flex items-center gap-0.5">
-                  Ver grupo <ArrowRight className="w-3 h-3" />
+                <Link to={`/admin/gd-rateio?group=${g.id}`} className="text-xs text-primary hover:underline flex items-center gap-0.5">
+                  Ver grupo <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
             ))}
@@ -52,6 +53,9 @@ export function UCGdInfoCard({ ucId }: Props) {
                 <span className="text-xs text-muted-foreground font-mono">
                   {Number(b.allocation_percent).toFixed(2)}%
                 </span>
+                <Link to={`/admin/gd-rateio?group=${b.gd_groups?.id}`} className="text-xs text-primary hover:underline flex items-center gap-0.5">
+                  Ver grupo <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
             ))}
           </div>

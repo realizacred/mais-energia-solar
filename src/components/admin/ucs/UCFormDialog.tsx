@@ -1,7 +1,7 @@
 /**
  * UCFormDialog — Create/Edit UC dialog with sections, CEP auto-fill, and input masks.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { unitService, type UCRecord } from "@/services/unitService";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useConcessionarias } from "@/hooks/useConcessionarias";
+import { useClientesList } from "@/hooks/useFormSelects";
 import { Loader2, MapPin, Zap, FileText, Sun, Mail } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
@@ -44,23 +44,8 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [address, setAddress] = useState<AddressData>({ ...EMPTY_ADDRESS });
 
-  const { data: concessionarias = [] } = useQuery({
-    queryKey: ["concessionarias_select"],
-    queryFn: async () => {
-      const { data } = await supabase.from("concessionarias").select("id, nome, estado").eq("ativo", true).order("nome");
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes_select_uc"],
-    queryFn: async () => {
-      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true).order("nome");
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: concessionarias = [] } = useConcessionarias();
+  const { data: clientes = [] } = useClientesList();
 
   useEffect(() => {
     if (!open) return;
