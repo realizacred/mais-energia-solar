@@ -1020,7 +1020,7 @@ function GerenciamentoTab({
             </Card>
           )}
 
-          {/* Checklist de Documentos desabilitado temporariamente */}
+          <ProjetoDocChecklist dealId={dealId} />
         </div>
 
         {/* ── RIGHT WORK AREA (70%) ── */}
