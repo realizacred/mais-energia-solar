@@ -5,10 +5,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sun, Zap, Users, FileText, Building2, DollarSign, ArrowDownUp } from "lucide-react";
+import { Sun, Zap, Users, FileText, Building2, DollarSign, ArrowDownUp, TrendingUp, BarChart3 } from "lucide-react";
 import { useClienteUCs, useClienteGdGroups, useClienteInvoiceSummary } from "@/hooks/useClienteEnergia";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { useClienteEnergiaResumo } from "@/hooks/useGdEnergyEngine";
+import { useClienteCreditBalance } from "@/hooks/useGdEnergyReport";
 
 interface Props {
   clienteId: string;
