@@ -334,7 +334,7 @@ const TAB_TITLES: Record<string, string> = {
   changelog: "Atualizações do sistema",
   "notificacoes-config": "Notificações",
   "loading-config": "Personalização visual",
-  "tenant-settings": "Dados da empresa",
+  "tenant-settings": "Empresa",
   "monitoramento-solar": "Monitoramento Solar",
   "conf-solar": "Premissas solar",
   "variaveis-sistema": "Variáveis do Sistema",
