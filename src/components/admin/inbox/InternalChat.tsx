@@ -561,9 +561,9 @@ function ChatView({
         <div className="flex items-center gap-0.5 px-3 pt-2 pb-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <button onClick={() => wrapSelection("*")} className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
+              <Button variant="ghost" size="icon" onClick={() => wrapSelection("*")} className="p-1.5 h-auto w-auto rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
                 <Bold className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-[10px]">Negrito</TooltipContent>
           </Tooltip>
