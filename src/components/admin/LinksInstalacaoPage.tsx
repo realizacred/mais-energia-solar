@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Download, ExternalLink, MessageCircle, Share, Smartphone, MoreVertical, Users, Check, Wrench, QrCode, Link2 } from "lucide-react";
+import { Copy, Download, ExternalLink, MessageCircle, Share, Smartphone, MoreVertical, Users, Check, Wrench, QrCode, Link2, Sun, ClipboardCheck, Star, Calculator } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useQuery } from "@tanstack/react-query";
@@ -43,6 +43,9 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
   const waAppUrl = `${appUrl}/app`;
   const sistemaAppUrl = `${appUrl}/sistema`;
   const instaladorAppUrl = `${appUrl}/instalador`;
+  const checklistUrl = `${appUrl}/checklist`;
+  const avaliacaoUrl = `${appUrl}/avaliacao`;
+  const calculadoraUrl = `${appUrl}/calculadora`;
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -109,18 +112,25 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
 
       {/* §29 Tabs after header */}
       <Tabs defaultValue="form" className="w-full">
-        <TabsList className="w-full grid grid-cols-3">
+        <TabsList className="w-full grid grid-cols-4">
           <TabsTrigger value="form" className="gap-1.5 text-xs sm:text-sm">
             <Users className="h-3.5 w-3.5" />
-            Formulário
+            <span className="hidden sm:inline">Formulário</span>
+            <span className="sm:hidden">Form</span>
           </TabsTrigger>
           <TabsTrigger value="whatsapp" className="gap-1.5 text-xs sm:text-sm">
             <MessageCircle className="h-3.5 w-3.5" />
             WhatsApp
           </TabsTrigger>
+          <TabsTrigger value="cliente" className="gap-1.5 text-xs sm:text-sm">
+            <Sun className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Área do Cliente</span>
+            <span className="sm:hidden">Cliente</span>
+          </TabsTrigger>
           <TabsTrigger value="pwa" className="gap-1.5 text-xs sm:text-sm">
             <Smartphone className="h-3.5 w-3.5" />
-            App PWA
+            <span className="hidden sm:inline">App PWA</span>
+            <span className="sm:hidden">App</span>
           </TabsTrigger>
         </TabsList>
 
@@ -178,6 +188,61 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
                 onQr={(slug) => setQrData({ slug, type: "wa" })}
                 shareText={(link) => `Fale comigo pelo WhatsApp: ${link}`}
               />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Tab: Área do Cliente ── */}
+        <TabsContent value="cliente">
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader className="border-b border-border pb-3">
+              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                <Sun className="h-5 w-5 text-primary" />
+                Links Públicos para Clientes
+              </CardTitle>
+              <CardDescription>
+                Páginas públicas destinadas aos clientes de energia solar. Envie estes links para seus clientes acessarem serviços específicos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4">
+              <PwaAppRow
+                icon={<Calculator className="h-5 w-5 text-primary" />}
+                label="☀️ Simulador Solar"
+                url={calculadoraUrl}
+                copiedId={copiedId}
+                copyKey="calc"
+                onCopy={handleCopy}
+                bgClass="bg-primary/10"
+              />
+              <p className="text-xs text-muted-foreground px-1">Simulador público de economia com energia solar. Gera estimativa de investimento e retorno.</p>
+
+              <PwaAppRow
+                icon={<ClipboardCheck className="h-5 w-5 text-info" />}
+                label="📋 Checklist do Cliente"
+                url={checklistUrl}
+                copiedId={copiedId}
+                copyKey="checklist"
+                onCopy={handleCopy}
+                bgClass="bg-info/10"
+              />
+              <p className="text-xs text-muted-foreground px-1">Formulário para o cliente preencher dados e enviar documentos necessários para o projeto.</p>
+
+              <PwaAppRow
+                icon={<Star className="h-5 w-5 text-warning" />}
+                label="⭐ Avaliação do Serviço"
+                url={avaliacaoUrl}
+                copiedId={copiedId}
+                copyKey="avaliacao"
+                onCopy={handleCopy}
+                bgClass="bg-warning/10"
+              />
+              <p className="text-xs text-muted-foreground px-1">Página para o cliente avaliar o atendimento e a instalação após o serviço.</p>
+
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-3 mt-4">
+                <p className="text-xs text-muted-foreground">
+                  <strong>💡 Dica:</strong> Links de proposta (<code className="text-xs">/proposta/:token</code>) e UC pública (<code className="text-xs">/uc/:token</code>) são gerados automaticamente pelo sistema para cada cliente — não precisam ser criados manualmente.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
