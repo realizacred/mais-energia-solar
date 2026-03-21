@@ -342,6 +342,9 @@ function ProjetoDetalheContent() {
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} />
           )}
+          {activeTab === "instalacao" && (
+            <ProjetoInstalacaoTab dealId={deal.id} />
+          )}
         </motion.div>
       </AnimatePresence>
 
