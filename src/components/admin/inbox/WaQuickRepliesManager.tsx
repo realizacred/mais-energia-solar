@@ -593,7 +593,7 @@ export function WaQuickRepliesManager() {
 
             {/* Category Add/Edit Dialog */}
             <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-              <DialogContent className="max-w-md">
+              <DialogContent className="w-[90vw] max-w-md">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Tag className="w-5 h-5" />
@@ -688,7 +688,7 @@ export function WaQuickRepliesManager() {
 
         {/* ── Respostas: Add/Edit Dialog ── */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="w-[90vw] max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Zap className="w-5 h-5" />

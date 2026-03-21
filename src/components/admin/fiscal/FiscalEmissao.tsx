@@ -283,7 +283,7 @@ function InvoiceDetailDialog({ invoice, open, onClose, onUpdated }: { invoice: a
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[90vw] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             NFS-e {invoice?.invoice_number ? `#${invoice.invoice_number}` : "(rascunho)"}

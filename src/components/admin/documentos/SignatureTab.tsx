@@ -351,7 +351,7 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[90vw] max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base">{signer ? "Editar signatário" : "Cadastrar signatário"}</DialogTitle>
         </DialogHeader>

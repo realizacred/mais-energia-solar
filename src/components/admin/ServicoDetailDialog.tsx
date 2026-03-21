@@ -126,7 +126,7 @@
    return (
      <>
        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-         <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+         <DialogContent className="w-[90vw] max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
            <DialogHeader>
              <DialogTitle className="flex items-center gap-2">
                <Wrench className="h-5 w-5 text-primary" />
