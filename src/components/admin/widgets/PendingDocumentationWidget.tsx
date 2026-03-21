@@ -153,7 +153,7 @@ export function PendingDocumentationWidget({
 
   if (leads.length === 0) {
     return (
-      <Card className="border-dashed">
+      <Card className="border-dashed flex flex-col h-full">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <FileWarning className="h-5 w-5 text-muted-foreground" />
