@@ -521,8 +521,10 @@ export function RolePermissionsManager() {
       {/* Role tabs */}
       <div className="flex gap-2 flex-wrap">
         {EDITABLE_ROLES.map((role) => (
-          <button
+          <Button
             key={role}
+            variant="ghost"
+            size="sm"
             onClick={() => setActiveRole(role)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               activeRole === role
@@ -531,7 +533,7 @@ export function RolePermissionsManager() {
             }`}
           >
             {ROLE_LABELS[role]}
-          </button>
+          </Button>
         ))}
       </div>
 
