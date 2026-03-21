@@ -327,6 +327,32 @@ export default function LeadsPipeline() {
     setLossLead(null);
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkAssign = async () => {
+    if (!bulkStatusId || selectedIds.size === 0) return;
+    setBulkLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase.from("leads").update({ status_id: bulkStatusId }).in("id", ids);
+      if (error) throw error;
+      setLeads(prev => prev.map(l => ids.includes(l.id) ? { ...l, status_id: bulkStatusId } : l));
+      toast({ title: "Status atualizado", description: `${ids.length} lead(s) classificados.` });
+      setSelectedIds(new Set());
+      setBulkStatusId("");
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   if (loading) return <LoadingState message="Carregando pipeline..." />;
 
   return (
