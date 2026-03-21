@@ -19778,6 +19778,9 @@ export type Database = {
           due_date: string | null
           energy_consumed_kwh: number | null
           energy_injected_kwh: number | null
+          file_hash: string | null
+          file_size_bytes: number | null
+          has_file: boolean
           id: string
           multa_ultrapassagem: number | null
           pdf_file_url: string | null
@@ -19806,6 +19809,9 @@ export type Database = {
           due_date?: string | null
           energy_consumed_kwh?: number | null
           energy_injected_kwh?: number | null
+          file_hash?: string | null
+          file_size_bytes?: number | null
+          has_file?: boolean
           id?: string
           multa_ultrapassagem?: number | null
           pdf_file_url?: string | null
@@ -19834,6 +19840,9 @@ export type Database = {
           due_date?: string | null
           energy_consumed_kwh?: number | null
           energy_injected_kwh?: number | null
+          file_hash?: string | null
+          file_size_bytes?: number | null
+          has_file?: boolean
           id?: string
           multa_ultrapassagem?: number | null
           pdf_file_url?: string | null
