@@ -321,6 +321,7 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
         open={addBenOpen}
         onOpenChange={setAddBenOpen}
         groupId={groupId}
+        ucGeradoraId={group?.uc_geradora_id}
         existingBeneficiaries={beneficiaries}
       />
     </Dialog>

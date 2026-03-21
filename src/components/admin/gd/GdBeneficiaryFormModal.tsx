@@ -3,7 +3,7 @@
  * Supports selecting existing UC or creating a new one inline.
  * §25-S1: w-[90vw] mandatory.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,19 +19,28 @@ import { useUCsList } from "@/hooks/useFormSelects";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { gdService } from "@/services/gdService";
 import { unitService } from "@/services/unitService";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   groupId: string;
+  ucGeradoraId?: string;
   existingBeneficiaries: GdBeneficiary[];
 }
 
-export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, existingBeneficiaries }: Props) {
+export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradoraId, existingBeneficiaries }: Props) {
   const { toast } = useToast();
   const saveBen = useSaveGdBeneficiary();
   const { data: ucs = [] } = useUCsList();
   const { data: concessionarias = [] } = useConcessionarias();
+
+  // Filter out the generator UC and already-linked active beneficiaries
+  const existingUcIds = new Set(existingBeneficiaries.filter(b => b.is_active).map(b => b.uc_beneficiaria_id));
+  const availableUcs = useMemo(() => 
+    ucs.filter(u => u.id !== ucGeradoraId && !existingUcIds.has(u.id)),
+    [ucs, ucGeradoraId, existingBeneficiaries]
+  );
 
   const [createNew, setCreateNew] = useState(false);
   const [form, setForm] = useState({
@@ -65,6 +74,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, existingBe
         return;
       }
       try {
+        const { tenantId } = await getCurrentTenantId();
         const conc = concessionarias.find(c => c.id === newUc.concessionaria_id);
         const created = await unitService.create({
           nome: newUc.nome.trim(),
@@ -75,6 +85,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, existingBe
           concessionaria_nome: conc?.nome || null,
           email_fatura: newUc.email_fatura.trim() || null,
           status: "active",
+          tenant_id: tenantId,
         } as any);
         ucId = created.id;
       } catch (err: any) {
@@ -186,7 +197,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, existingBe
                 <Select value={form.uc_beneficiaria_id} onValueChange={set("uc_beneficiaria_id")}>
                   <SelectTrigger><SelectValue placeholder="Selecione a UC..." /></SelectTrigger>
                   <SelectContent>
-                    {ucs.map((u) => (
+                    {availableUcs.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.codigo_uc} — {u.nome}
                       </SelectItem>
