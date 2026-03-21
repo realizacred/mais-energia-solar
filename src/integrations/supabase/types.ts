@@ -3520,6 +3520,242 @@ export type Database = {
         }
         Relationships: []
       }
+      email_accounts: {
+        Row: {
+          account_role: string
+          can_read: boolean
+          can_send: boolean
+          created_at: string
+          email_address: string
+          host: string | null
+          id: string
+          is_active: boolean
+          last_error: string | null
+          last_sync_at: string | null
+          port: number | null
+          provider_type: string
+          settings: Json | null
+          tenant_id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          account_role?: string
+          can_read?: boolean
+          can_send?: boolean
+          created_at?: string
+          email_address: string
+          host?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_sync_at?: string | null
+          port?: number | null
+          provider_type?: string
+          settings?: Json | null
+          tenant_id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          account_role?: string
+          can_read?: boolean
+          can_send?: boolean
+          created_at?: string
+          email_address?: string
+          host?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_sync_at?: string | null
+          port?: number | null
+          provider_type?: string
+          settings?: Json | null
+          tenant_id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_ingestion_messages: {
+        Row: {
+          attachment_count: number | null
+          created_at: string
+          error_message: string | null
+          external_message_id: string | null
+          id: string
+          invoice_import_job_id: string | null
+          received_at: string | null
+          result_status: string
+          run_id: string
+          sender: string | null
+          subject: string | null
+          tenant_id: string
+        }
+        Insert: {
+          attachment_count?: number | null
+          created_at?: string
+          error_message?: string | null
+          external_message_id?: string | null
+          id?: string
+          invoice_import_job_id?: string | null
+          received_at?: string | null
+          result_status?: string
+          run_id: string
+          sender?: string | null
+          subject?: string | null
+          tenant_id: string
+        }
+        Update: {
+          attachment_count?: number | null
+          created_at?: string
+          error_message?: string | null
+          external_message_id?: string | null
+          id?: string
+          invoice_import_job_id?: string | null
+          received_at?: string | null
+          result_status?: string
+          run_id?: string
+          sender?: string | null
+          subject?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_ingestion_messages_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "email_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_ingestion_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_ingestion_rules: {
+        Row: {
+          allowed_extensions: string[] | null
+          concessionaria_id: string | null
+          created_at: string
+          email_account_id: string
+          folder_name: string | null
+          has_attachment: boolean | null
+          id: string
+          is_active: boolean
+          sender_contains: string | null
+          subject_contains: string | null
+          tenant_id: string
+        }
+        Insert: {
+          allowed_extensions?: string[] | null
+          concessionaria_id?: string | null
+          created_at?: string
+          email_account_id: string
+          folder_name?: string | null
+          has_attachment?: boolean | null
+          id?: string
+          is_active?: boolean
+          sender_contains?: string | null
+          subject_contains?: string | null
+          tenant_id: string
+        }
+        Update: {
+          allowed_extensions?: string[] | null
+          concessionaria_id?: string | null
+          created_at?: string
+          email_account_id?: string
+          folder_name?: string | null
+          has_attachment?: boolean | null
+          id?: string
+          is_active?: boolean
+          sender_contains?: string | null
+          subject_contains?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_ingestion_rules_email_account_id_fkey"
+            columns: ["email_account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_ingestion_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_ingestion_runs: {
+        Row: {
+          duplicate_count: number
+          email_account_id: string
+          error_count: number
+          finished_at: string | null
+          id: string
+          imported_count: number
+          processed_count: number
+          started_at: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          duplicate_count?: number
+          email_account_id: string
+          error_count?: number
+          finished_at?: string | null
+          id?: string
+          imported_count?: number
+          processed_count?: number
+          started_at?: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          duplicate_count?: number
+          email_account_id?: string
+          error_count?: number
+          finished_at?: string | null
+          id?: string
+          imported_count?: number
+          processed_count?: number
+          started_at?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_ingestion_runs_email_account_id_fkey"
+            columns: ["email_account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_ingestion_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       energy_alerts: {
         Row: {
           alert_type: string
