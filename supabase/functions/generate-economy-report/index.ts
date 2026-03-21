@@ -227,6 +227,9 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
+    // Track usage
+    await trackUsage(supabase, tenantId, "relatorios_pdf", 1, { userId: user.id, source: "generate-economy-report" });
+
     return new Response(html, {
       headers: {
         ...corsHeaders,
