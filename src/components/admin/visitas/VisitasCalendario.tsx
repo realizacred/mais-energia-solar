@@ -101,11 +101,20 @@ export function VisitasCalendario() {
     setDialogOpen(true);
   };
 
+  const [lastCreated, setLastCreated] = useState<{ data_hora: string; duracao_minutos: number; endereco: string; observacoes: string } | null>(null);
+
   const handleSave = () => {
     if (!selectedDate) return;
     const [h, m] = form.hora.split(":").map(Number);
     const dataHora = new Date(selectedDate);
     dataHora.setHours(h, m, 0, 0);
+
+    const visitaData = {
+      data_hora: dataHora.toISOString(),
+      duracao_minutos: form.duracao_minutos,
+      endereco: form.endereco,
+      observacoes: form.observacoes,
+    };
 
     criarVisita.mutate({
       lead_id: null,
@@ -118,6 +127,7 @@ export function VisitasCalendario() {
       observacoes: form.observacoes || null,
       created_by: null,
     });
+    setLastCreated(visitaData);
     setDialogOpen(false);
     setForm({ consultor_id: "", endereco: "", observacoes: "", hora: "09:00", duracao_minutos: 60 });
   };
