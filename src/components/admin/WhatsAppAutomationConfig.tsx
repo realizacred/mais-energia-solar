@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { FeatureGate } from "@/components/plan/FeatureGate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -312,7 +313,9 @@ export function WhatsAppAutomationConfig() {
           </TabsContent>
 
           <TabsContent value="automacoes" className="mt-4">
-            <WhatsAppAutomationTemplates />
+            <FeatureGate featureKey="automacoes">
+              <WhatsAppAutomationTemplates />
+            </FeatureGate>
           </TabsContent>
 
 

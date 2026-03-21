@@ -7,6 +7,7 @@ import { DirectorAlerts } from "./DirectorAlerts";
 import { DirectorActionPlan } from "./DirectorActionPlan";
 import { DirectorReports } from "./DirectorReports";
 import { useAiInsights } from "@/hooks/useAiInsights";
+import { FeatureGate } from "@/components/plan/FeatureGate";
 
 const tabs = [
   { id: "overview", label: "Visão Geral", icon: Brain, color: "text-info" },
@@ -20,6 +21,7 @@ export function CommercialDirectorDashboard() {
   const insights = useAiInsights();
 
   return (
+    <FeatureGate featureKey="ai_insights">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -62,5 +64,6 @@ export function CommercialDirectorDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+    </FeatureGate>
   );
 }

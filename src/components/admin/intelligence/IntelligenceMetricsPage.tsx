@@ -4,6 +4,7 @@ import { BarChart3, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIntelligenceMetrics } from "@/hooks/useIntelligenceMetrics";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { FeatureGate } from "@/components/plan/FeatureGate";
 
 const TEMP_COLORS: Record<string, string> = {
   quente: "hsl(var(--destructive))",
@@ -74,6 +75,7 @@ export function IntelligenceMetricsPage() {
   }));
 
   return (
+    <FeatureGate featureKey="alerta_performance">
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -147,5 +149,6 @@ export function IntelligenceMetricsPage() {
         </Card>
       </div>
     </div>
+    </FeatureGate>
   );
 }

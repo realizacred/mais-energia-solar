@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useFollowupIntelligence } from "@/hooks/useFollowupIntelligence";
-import { useTenantPlan } from "@/hooks/useTenantPlan";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,8 +41,7 @@ const SENTIMENT_CONFIG = {
 };
 
 export function FollowupAiInsightsPanel({ conversationId, clienteNome }: Props) {
-  const { hasFeature } = useTenantPlan();
-  const hasAi = hasFeature("ai_followup");
+  const { hasAccess: hasAi, isLoading: aiLoading } = useFeatureAccess("ai_followup");
   const { generateMessage, classifyUrgency, suggestTiming, summarize, getState } = useFollowupIntelligence();
 
   const msgState = getState(conversationId, "generate_message");

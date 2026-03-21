@@ -30,6 +30,7 @@ import { UCOverviewTab } from "./UCOverviewTab";
 import { UCHistoricoTab } from "./UCHistoricoTab";
 import { UCEconomyReportTab } from "./UCEconomyReportTab";
 import { UCComparativoTab } from "./UCComparativoTab";
+import { FeatureGate } from "@/components/plan/FeatureGate";
 import { UCShareLinkButton } from "./UCShareLinkButton";
 import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
@@ -379,11 +380,15 @@ export default function UCDetailPage() {
           </TabsContent>
 
           <TabsContent value="economia">
-            <UCEconomyReportTab unitId={uc.id} />
+            <FeatureGate featureKey="relatorio_mensal_pdf">
+              <UCEconomyReportTab unitId={uc.id} />
+            </FeatureGate>
           </TabsContent>
 
           <TabsContent value="comparativo">
-            <UCComparativoTab unitId={uc.id} simulacaoId={(uc as any).simulacao_id ?? null} />
+            <FeatureGate featureKey="comparativo_uc">
+              <UCComparativoTab unitId={uc.id} simulacaoId={(uc as any).simulacao_id ?? null} />
+            </FeatureGate>
           </TabsContent>
 
           {plantId && (
