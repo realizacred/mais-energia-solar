@@ -67,9 +67,9 @@ export function TemplateFormBuilder({ fields, onChange }: Props) {
       <div className="space-y-2">
         {fields.map((f, idx) => (
           <div key={idx} className="flex items-start gap-2 p-2 rounded-lg border bg-card">
-            <button type="button" onClick={() => moveUp(idx)} className="mt-2 cursor-grab text-muted-foreground hover:text-foreground">
+            <Button type="button" variant="ghost" size="icon" onClick={() => moveUp(idx)} className="mt-2 cursor-grab h-7 w-7 text-muted-foreground hover:text-foreground">
               <GripVertical className="h-4 w-4" />
-            </button>
+            </Button>
             <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2">
               <Input
                 value={f.key}

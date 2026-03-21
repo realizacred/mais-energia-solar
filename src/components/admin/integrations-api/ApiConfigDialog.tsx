@@ -155,9 +155,9 @@ export function ApiConfigDialog({ open, onOpenChange, editingConfig, onSuccess }
                   data-lpignore="true"
                   data-form-type="other"
                 />
-                <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <Button type="button" variant="ghost" size="icon" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground">
                   {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

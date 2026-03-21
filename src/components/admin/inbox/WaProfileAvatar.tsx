@@ -29,12 +29,12 @@ const INVALID_PROFILE_VALUES = new Set(["", "none", "null", "undefined"]);
 
 // Avatar color palette for fallback when no photo — uses semantic-compatible soft tones
 const AVATAR_COLORS = [
-  { bg: "bg-blue-100 dark:bg-blue-900/40", text: "text-blue-800 dark:text-blue-300" },
-  { bg: "bg-green-100 dark:bg-green-900/40", text: "text-green-800 dark:text-green-300" },
-  { bg: "bg-purple-100 dark:bg-purple-900/40", text: "text-purple-800 dark:text-purple-300" },
-  { bg: "bg-amber-100 dark:bg-amber-900/40", text: "text-amber-800 dark:text-amber-300" },
-  { bg: "bg-rose-100 dark:bg-rose-900/40", text: "text-rose-800 dark:text-rose-300" },
-  { bg: "bg-cyan-100 dark:bg-cyan-900/40", text: "text-cyan-800 dark:text-cyan-300" },
+  { bg: "bg-info/10", text: "text-info" },
+  { bg: "bg-success/10", text: "text-success" },
+  { bg: "bg-primary/10", text: "text-primary" },
+  { bg: "bg-warning/10", text: "text-warning" },
+  { bg: "bg-destructive/10", text: "text-destructive" },
+  { bg: "bg-accent", text: "text-accent-foreground" },
 ] as const;
 
 function getColorByName(name: string | null) {
