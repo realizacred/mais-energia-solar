@@ -5,6 +5,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { invoiceService } from "@/services/invoiceService";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 
 export type ImportJobStatus = "queued" | "processing" | "completed" | "failed" | "partial";
 export type ImportItemStatus = "processing" | "imported" | "duplicate" | "failed";
@@ -157,9 +158,13 @@ export const invoiceImportService = {
       // Call edge function
       const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
         body: { pdf_base64: pdfBase64, unit_id: unitId, source: "upload" },
+        headers: { "x-client-timeout": "120" },
       });
 
-      if (error) throw error;
+      if (error) {
+        const parsedError = await parseInvokeError(error);
+        throw new Error(parsedError.message || "Erro ao processar fatura");
+      }
       if (data?.error) throw new Error(data.error);
 
       const parsed = data?.data?.parsed;

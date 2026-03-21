@@ -50,6 +50,7 @@ export function useStartInvoiceImport() {
       let success = 0;
       let duplicate = 0;
       let errors = 0;
+      let firstError: string | null = null;
       const enrichedUcs: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
@@ -57,7 +58,10 @@ export function useStartInvoiceImport() {
 
         if (result.status === "imported") success++;
         else if (result.status === "duplicate") duplicate++;
-        else errors++;
+        else {
+          errors++;
+          if (!firstError && result.error) firstError = result.error;
+        }
 
         // Update job progress incrementally
         await invoiceImportService.updateJobProgress(job.id, {
@@ -73,7 +77,7 @@ export function useStartInvoiceImport() {
       }
 
       await invoiceImportService.finalizeJob(job.id, { success, duplicate, errors, enriched_ucs: enrichedUcs });
-      return { jobId: job.id, success, duplicate, errors };
+      return { jobId: job.id, success, duplicate, errors, firstError };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invoice_import_jobs"] });

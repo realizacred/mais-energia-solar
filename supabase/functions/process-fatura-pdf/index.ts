@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-client-timeout, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 interface ProcessRequest {
@@ -106,19 +106,19 @@ async function processInvoice(
   }
 
   // ── 2. Call parse-conta-energia ──
-  const parseRes = await fetch(`${supabaseUrl}/functions/v1/parse-conta-energia`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${serviceRoleKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ text: pdfText, use_ai_fallback: true }),
-  });
+  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, true, 25000);
+  let parseResult = parseAttempt.body;
 
-  const parseResult = await parseRes.json();
-  if (!parseResult.success) {
-    return new Response(JSON.stringify({ error: 'Falha ao parsear fatura', details: parseResult }),
-      { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (!parseAttempt.ok || !parseResult?.success) {
+    const regexOnlyAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, false, 10000);
+    if (regexOnlyAttempt.ok && regexOnlyAttempt.body?.success) {
+      parseResult = regexOnlyAttempt.body;
+    } else {
+      return new Response(JSON.stringify({
+        error: 'Falha ao parsear fatura',
+        details: parseResult || regexOnlyAttempt.body || null,
+      }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
   }
 
   const parsed = parseResult.data;
@@ -294,6 +294,52 @@ async function processInvoice(
       uc_found: !!ucData,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+}
+
+async function callParseContaEnergia(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  text: string,
+  useAiFallback: boolean,
+  timeoutMs: number,
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/parse-conta-energia`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text, use_ai_fallback: useAiFallback }),
+      signal: controller.signal,
+    });
+
+    let body: any = null;
+    try {
+      body = await response.json();
+    } catch {
+      body = { error: 'Resposta inválida do parser de faturas' };
+    }
+
+    return { ok: response.ok, body };
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      return {
+        ok: false,
+        body: {
+          error: useAiFallback
+            ? 'Timeout ao extrair dados com IA; tentando modo rápido.'
+            : 'Tempo esgotado ao extrair dados da fatura.',
+        },
+      };
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 // ── Helpers ──

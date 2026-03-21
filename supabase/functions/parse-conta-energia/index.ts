@@ -6,7 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-client-timeout, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 interface ExtractedData {
@@ -342,6 +342,8 @@ async function aiExtractMissingFields(
   try {
     // Use only first 4000 chars to keep costs low
     const truncatedText = text.substring(0, 4000);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -383,7 +385,10 @@ async function aiExtractMissingFields(
         ],
         tool_choice: { type: "function", function: { name: "extract_invoice_fields" } },
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.warn(`[parse-conta-energia] AI fallback failed: ${response.status}`);
@@ -421,7 +426,11 @@ async function aiExtractMissingFields(
 
     result.confidence = Math.min(result.confidence + 10, 100);
     return result;
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      console.warn("[parse-conta-energia] AI fallback timeout, usando regex apenas");
+      return regexResult;
+    }
     console.error("[parse-conta-energia] AI fallback error:", err);
     return regexResult;
   }
