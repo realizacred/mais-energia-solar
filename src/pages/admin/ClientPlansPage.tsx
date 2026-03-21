@@ -67,11 +67,19 @@ function formatLimitValue(v: number): string {
 }
 
 export default function ClientPlansPage() {
-  const { data: plans = [], isLoading } = usePublicPlans();
+  const { data: plans, isLoading } = usePlanPricing();
   const { subscription } = useTenantPlan();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const viewTracked = useRef(false);
 
   const currentPlanCode = subscription?.plan_code ?? null;
+
+  // Track page view once plans load
+  useEffect(() => {
+    if (viewTracked.current || !plans.length) return;
+    viewTracked.current = true;
+    plans.forEach((p) => trackPricingEvent("plan_view", p.id, p.variant_id));
+  }, [plans]);
 
   // Collect all feature keys across all plans, ordered
   const allFeatureKeys = Array.from(
