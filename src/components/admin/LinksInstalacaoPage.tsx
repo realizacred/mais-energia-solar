@@ -43,6 +43,9 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
   const waAppUrl = `${appUrl}/app`;
   const sistemaAppUrl = `${appUrl}/sistema`;
   const instaladorAppUrl = `${appUrl}/instalador`;
+  const checklistUrl = `${appUrl}/checklist`;
+  const avaliacaoUrl = `${appUrl}/avaliacao`;
+  const calculadoraUrl = `${appUrl}/calculadora`;
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
