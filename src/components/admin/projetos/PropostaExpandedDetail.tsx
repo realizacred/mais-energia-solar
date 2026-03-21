@@ -447,16 +447,16 @@ function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, 
             Gerar outro arquivo
           </Button>
           <div className="space-y-1">
-            <button onClick={handleDownloadPdf} disabled={!html || downloadingPdf} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1">
+            <Button variant="link" onClick={handleDownloadPdf} disabled={!html || downloadingPdf} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
               <FileText className="h-3.5 w-3.5" />
               {downloadingPdf ? "Gerando..." : "Baixar PDF"}
-            </button>
-            <button onClick={() => copyLink(true)} className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
+            </Button>
+            <Button variant="link" onClick={() => copyLink(true)} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
               <Link2 className="h-3.5 w-3.5" /> Copiar link com rastreio
-            </button>
-            <button onClick={() => copyLink(false)} className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
+            </Button>
+            <Button variant="link" onClick={() => copyLink(false)} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
               <Link2 className="h-3.5 w-3.5" /> Copiar link sem rastreio
-            </button>
+            </Button>
             {validadeDate && (
               <div className="flex items-center gap-2 text-xs text-primary py-1">
                 <CalendarCheck className="h-3.5 w-3.5" /> Validade da proposta: {validadeDate}

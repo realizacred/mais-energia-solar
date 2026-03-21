@@ -260,11 +260,11 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
                     return (
                       <TableRow key={t.id} className={isDeleted ? "opacity-60" : ""}>
                         <TableCell>
-                          <button onClick={() => onSelectTenant(t.id)} className="text-left hover:underline">
+                          <Button variant="link" onClick={() => onSelectTenant(t.id)} className="text-left hover:underline h-auto p-0 flex-col items-start">
                             <p className="font-medium">{t.nome}</p>
                             <p className="text-xs text-muted-foreground">{t.slug}</p>
                             {t.documento && <p className="text-xs text-muted-foreground">{t.documento}</p>}
-                          </button>
+                          </Button>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">{t.plan_name || t.plano}</Badge>

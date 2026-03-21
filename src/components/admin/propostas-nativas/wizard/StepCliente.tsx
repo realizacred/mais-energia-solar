@@ -461,10 +461,10 @@ function StepClienteForm({
           ) : (
             <div className="border rounded-xl divide-y max-h-60 overflow-y-auto">
               {leads.map(l => (
-                <button key={l.id} className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors" onClick={() => handleSelect(l)}>
+                <Button key={l.id} variant="ghost" className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors h-auto justify-start flex-col items-start rounded-none" onClick={() => handleSelect(l)}>
                   <p className="font-medium text-sm truncate">{l.nome}</p>
                   <p className="text-xs text-muted-foreground">{l.telefone} • {l.lead_code}{l.estado ? ` • ${l.estado}` : ""}</p>
-                </button>
+                </Button>
               ))}
             </div>
           )}

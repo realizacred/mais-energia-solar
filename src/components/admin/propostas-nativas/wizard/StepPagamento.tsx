@@ -503,9 +503,9 @@ export function StepPagamento({
 
           {/* Sub-tab for UCs */}
           <div className="border-b border-border/30 pb-0">
-            <button className="text-xs font-medium border-b-2 border-primary pb-2 px-3 text-foreground">
+            <Button variant="ghost" className="text-xs font-medium border-b-2 border-primary pb-2 px-3 text-foreground h-auto rounded-none">
               1. Unidade
-            </button>
+            </Button>
           </div>
 
           {/* Table */}
@@ -544,9 +544,9 @@ export function StepPagamento({
 
       {/* Footer */}
       <div className="pt-3 border-t border-border/30 mt-4">
-        <button onClick={() => setShowVariaveisModal(true)} className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors">
+        <Button variant="link" onClick={() => setShowVariaveisModal(true)} className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors h-auto p-0">
           <Info className="h-3.5 w-3.5" /> Consultar variáveis da proposta
-        </button>
+        </Button>
       </div>
 
       {/* ═══ Modal: Detalhes dos Gastos ═══ */}
@@ -913,9 +913,9 @@ function VariaveisModal({ open, onClose }: { open: boolean; onClose: () => void 
                 className="h-8 text-xs pl-8"
               />
               {search && (
-                <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                <Button variant="ghost" size="icon" onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 h-auto w-auto p-0">
                   <X className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
+                </Button>
               )}
             </div>
 

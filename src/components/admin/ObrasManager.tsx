@@ -607,9 +607,9 @@ export function ObrasManager() {
                   {form.tags.map((tag) => (
                     <Badge key={tag} variant="secondary" className="gap-1 text-xs">
                       {tag}
-                      <button type="button" onClick={() => removeTag(tag)} className="hover:text-destructive ml-0.5">
+                      <Button variant="ghost" size="icon" type="button" onClick={() => removeTag(tag)} className="hover:text-destructive ml-0.5 h-auto w-auto p-0">
                         <X className="w-3 h-3" />
-                      </button>
+                      </Button>
                     </Badge>
                   ))}
                 </div>
@@ -629,14 +629,15 @@ export function ObrasManager() {
               {availableSuggestedTags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {availableSuggestedTags.map((tag) => (
-                    <button
+                    <Button
                       key={tag}
                       type="button"
+                      variant="outline"
                       onClick={() => addTag(tag)}
-                      className="px-2 py-0.5 text-[10px] rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      className="px-2 py-0.5 text-[10px] rounded-full h-auto"
                     >
                       + {tag}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -675,9 +676,9 @@ export function ObrasManager() {
                         <X className="w-3 h-3" />
                       </Button>
                       {idx !== 0 && (
-                        <button type="button" onClick={() => setAsCover(idx)} className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-foreground/70 text-background text-[9px] rounded font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-foreground/90">
+                        <Button variant="ghost" type="button" onClick={() => setAsCover(idx)} className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-foreground/70 text-background text-[9px] rounded font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-foreground/90 h-auto">
                           Definir capa
-                        </button>
+                        </Button>
                       )}
                       {idx === 0 && (
                         <Badge className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[9px]">★ Capa</Badge>

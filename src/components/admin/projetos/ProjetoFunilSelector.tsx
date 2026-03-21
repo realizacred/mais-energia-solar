@@ -131,9 +131,9 @@ export function ProjetoFunilSelector({
               {isSelected && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-0.5 rounded hover:bg-muted transition-colors mr-0.5">
+                    <Button variant="ghost" size="icon" className="p-0.5 h-auto w-auto rounded hover:bg-muted transition-colors mr-0.5">
                       <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                    </button>
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-44">
                     <DropdownMenuItem onClick={() => {

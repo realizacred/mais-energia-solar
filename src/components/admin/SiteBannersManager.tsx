@@ -134,7 +134,7 @@ export function SiteBannersManager() {
               <Plus className="w-4 h-4" /> Novo Banner
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-[90vw] max-w-lg">
             <DialogHeader>
               <DialogTitle>Novo Banner</DialogTitle>
             </DialogHeader>

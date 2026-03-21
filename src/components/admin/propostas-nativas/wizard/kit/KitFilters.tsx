@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,10 +17,10 @@ interface FilterSection {
 function CollapsibleFilter({ label, open, onToggle, children }: FilterSection) {
   return (
     <div className="space-y-2">
-      <button onClick={onToggle} className="flex items-center justify-between w-full text-xs font-bold text-foreground">
+      <Button variant="ghost" onClick={onToggle} className="flex items-center justify-between w-full text-xs font-bold text-foreground h-auto p-0">
         {label}
         {open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-      </button>
+      </Button>
       {open && children}
     </div>
   );
@@ -71,9 +72,9 @@ export function KitFilters({ filters, onFiltersChange, consumoMensal }: KitFilte
     <div className="space-y-4 w-full">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-bold text-foreground">Filtros</h4>
-        <button onClick={clearFilters} className="text-[11px] text-primary hover:underline font-medium">
+        <Button variant="link" onClick={clearFilters} className="text-[11px] text-primary hover:underline font-medium h-auto p-0">
           Limpar filtro
-        </button>
+        </Button>
       </div>
 
       <div className="rounded-lg border border-info/30 bg-info/5 px-3 py-2">

@@ -382,9 +382,9 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-muted-foreground">HP *</Label>
-                    <button onClick={() => onOpenMesAMes("hp")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                    <Button variant="link" onClick={() => onOpenMesAMes("hp")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5 h-auto p-0">
                       mês a mês <Edit2 className="h-2.5 w-2.5" />
-                    </button>
+                    </Button>
                   </div>
                   <div className="relative">
                     <Input type="number" min={0} value={uc.consumo_mensal_p || ""} onChange={e => onUpdate("consumo_mensal_p", Number(e.target.value))} className="h-8 text-xs pr-10" />
@@ -394,9 +394,9 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-muted-foreground">HFP *</Label>
-                    <button onClick={() => onOpenMesAMes("hfp")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                    <Button variant="link" onClick={() => onOpenMesAMes("hfp")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5 h-auto p-0">
                       mês a mês <Edit2 className="h-2.5 w-2.5" />
-                    </button>
+                    </Button>
                   </div>
                   <div className="relative">
                     <Input type="number" min={0} value={uc.consumo_mensal_fp || ""} onChange={e => onUpdate("consumo_mensal_fp", Number(e.target.value))} className="h-8 text-xs pr-10" />
@@ -409,9 +409,9 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">Consumo *</Label>
-                <button onClick={() => onOpenMesAMes("consumo")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                <Button variant="link" onClick={() => onOpenMesAMes("consumo")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5 h-auto p-0">
                   mês a mês <Edit2 className="h-2.5 w-2.5" />
-                </button>
+                </Button>
               </div>
               <div className="relative">
                 <Input type="number" min={0} value={uc.consumo_mensal || ""} onChange={e => onUpdate("consumo_mensal", Number(e.target.value))} className="h-8 text-xs pr-10" />
@@ -438,11 +438,11 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
             <div className="flex items-center gap-4 text-xs">
               <span className="text-primary">
                 Tarifa: R${(uc.tarifa_distribuidora || 0).toFixed(5)}
-                <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                <Button variant="ghost" size="icon" className="ml-1 inline-flex h-auto w-auto p-0" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></Button>
               </span>
               <span className="text-primary">
                 FioB: R${(uc.tarifa_fio_b || 0).toFixed(5)}
-                <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                <Button variant="ghost" size="icon" className="ml-1 inline-flex h-auto w-auto p-0" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></Button>
               </span>
             </div>
           )}
@@ -503,11 +503,11 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
               <div className="flex gap-4 text-xs">
                 <span className="text-primary">
                   Consumo: R${(uc.demanda_consumo_rs || 0).toFixed(2)}
-                  <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                  <Button variant="ghost" size="icon" className="ml-1 inline-flex h-auto w-auto p-0" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></Button>
                 </span>
                 <span className="text-primary">
                   Geração: R${(uc.demanda_geracao_rs || 0).toFixed(2)}
-                  <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                  <Button variant="ghost" size="icon" className="ml-1 inline-flex h-auto w-auto p-0" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></Button>
                 </span>
               </div>
             </div>
@@ -518,13 +518,13 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
       {/* Footer */}
       <Separator className="opacity-40" />
       <div className="flex items-center justify-between">
-        <button onClick={onOpenConfig} className="text-xs text-primary hover:underline flex items-center gap-1.5">
+        <Button variant="link" onClick={onOpenConfig} className="text-xs text-primary hover:underline flex items-center gap-1.5 h-auto p-0">
           <Settings className="h-3.5 w-3.5" /> Configurações adicionais
-        </button>
+        </Button>
         {totalUCs > 1 && uc.is_geradora && (
-          <button onClick={onOpenRateio} className="text-xs text-primary hover:underline flex items-center gap-1.5">
+          <Button variant="link" onClick={onOpenRateio} className="text-xs text-primary hover:underline flex items-center gap-1.5 h-auto p-0">
             <Zap className="h-3.5 w-3.5" /> Gerenciar rateio de créditos
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -537,7 +537,7 @@ function TarifaEditRow({ label, value, onEdit }: { label: string; value: number;
     <div className="flex items-center gap-1 text-primary">
       <span className="text-muted-foreground">{label}:</span>
       <span>R${(value || 0).toFixed(5)}</span>
-      <button className="inline-flex" onClick={onEdit}><Edit2 className="h-2.5 w-2.5" /></button>
+      <Button variant="ghost" size="icon" className="inline-flex h-auto w-auto p-0" onClick={onEdit}><Edit2 className="h-2.5 w-2.5" /></Button>
     </div>
   );
 }

@@ -927,7 +927,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
-                        <button className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
+                        <Button variant="link" className="text-[10px] text-secondary hover:underline flex items-center gap-0.5 h-auto p-0">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
                       </div>
                       <div className="relative">
                         <Input type="number" step="0.01" value={cfg.fator_geracao || ""} onChange={e => updateTopoConfig(topo, "fator_geracao", Number(e.target.value))} className="h-9 text-xs pr-16" />

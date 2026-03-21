@@ -489,22 +489,22 @@ export function StepConsumptionIntelligence({
           <span>Consumo Médio Total</span>
           <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
         </div>
-        <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
+        <Button variant="ghost" onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group h-auto p-0">
           <Pencil className="h-3.5 w-3.5" />
           <span>Potência Ideal</span>
           <span className="font-bold text-foreground">
             T: {potenciaIdealByTopo.tradicional.toFixed(2)} | M: {potenciaIdealByTopo.microinversor.toFixed(2)} | O: {potenciaIdealByTopo.otimizador.toFixed(2)}
           </span>
           <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
-        <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
+        </Button>
+        <Button variant="ghost" onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group h-auto p-0">
           <Zap className="h-3.5 w-3.5" />
           <span>Fator de Geração</span>
           <span className="font-bold text-foreground">
             T: {getTopoConfig("tradicional").fator_geracao.toFixed(2)} | M: {getTopoConfig("microinversor").fator_geracao.toFixed(2)} | O: {getTopoConfig("otimizador").fator_geracao.toFixed(2)}
           </span>
           <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
+        </Button>
       </div>
 
       {/* ─── Tabs + actions */}
@@ -533,9 +533,9 @@ export function StepConsumptionIntelligence({
             <Button size="sm" className="h-7 text-[11px] bg-primary hover:bg-primary/90" onClick={handleAutoRateio}>
               Rateio automático
             </Button>
-            <button onClick={() => setRateioOpen(true)} className="text-[11px] text-secondary hover:underline flex items-center gap-1">
+            <Button variant="link" onClick={() => setRateioOpen(true)} className="text-[11px] text-secondary hover:underline flex items-center gap-1 h-auto p-0">
               <Settings2 className="h-3 w-3" /> Gerenciar rateio de créditos
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -751,9 +751,9 @@ function PremissasContent({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
-                  <button onClick={() => onOpenTopoMesAMes(topo)} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">
+                  <Button variant="link" onClick={() => onOpenTopoMesAMes(topo)} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5 h-auto p-0">
                     mês a mês <Pencil className="h-2.5 w-2.5" />
-                  </button>
+                  </Button>
                 </div>
                 <div className="relative">
                   <Input

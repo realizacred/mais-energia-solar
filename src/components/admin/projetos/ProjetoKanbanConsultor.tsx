@@ -80,7 +80,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
           return (
             <Collapsible key={col.id} defaultOpen={col.count > 0}>
               <CollapsibleTrigger asChild>
-                <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-muted/30 transition-colors">
+                <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-muted/30 transition-colors h-auto">
                   <div className="flex items-center gap-2 min-w-0">
                     <Avatar className="h-6 w-6 border border-primary/30">
                       <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
@@ -96,7 +96,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                     <span className="text-[11px] font-mono font-semibold text-success">{formatBRL(col.totalValor)}</span>
                     <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
                   </div>
-                </button>
+                </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="space-y-2 pt-2 pb-1">

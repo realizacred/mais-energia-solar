@@ -144,7 +144,7 @@ export default function WebhookManager() {
               Novo Webhook
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-[90vw] max-w-lg">
             <DialogHeader>
               <DialogTitle>Adicionar Webhook</DialogTitle>
             </DialogHeader>

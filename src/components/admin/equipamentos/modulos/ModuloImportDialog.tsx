@@ -247,7 +247,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { setParsed(null); setRawText(""); } onOpenChange(v); }}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Importar Módulos em Massa</DialogTitle>
         </DialogHeader>
