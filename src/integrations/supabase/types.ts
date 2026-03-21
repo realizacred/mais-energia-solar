@@ -5394,6 +5394,68 @@ export type Database = {
           },
         ]
       }
+      gd_recalc_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          gd_group_id: string
+          id: string
+          last_error: string | null
+          processed_at: string | null
+          reference_month: number
+          reference_year: number
+          requested_by: string | null
+          status: string
+          tenant_id: string
+          trigger_entity_id: string | null
+          trigger_entity_type: string | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          gd_group_id: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          reference_month: number
+          reference_year: number
+          requested_by?: string | null
+          status?: string
+          tenant_id: string
+          trigger_entity_id?: string | null
+          trigger_entity_type?: string | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          gd_group_id?: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          reference_month?: number
+          reference_year?: number
+          requested_by?: string | null
+          status?: string
+          tenant_id?: string
+          trigger_entity_id?: string | null
+          trigger_entity_type?: string | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_recalc_queue_gd_group_id_fkey"
+            columns: ["gd_group_id"]
+            isOneToOne: false
+            referencedRelation: "gd_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_documents: {
         Row: {
           cliente_id: string | null
