@@ -42,7 +42,7 @@ export function useTenantSubscriptionsAdmin() {
 export function useUpdateSubscription() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; status?: string; plan_id?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; status?: "active" | "trialing" | "past_due" | "canceled" | "expired"; plan_id?: string }) => {
       const { error } = await supabase
         .from("subscriptions")
         .update(updates)
