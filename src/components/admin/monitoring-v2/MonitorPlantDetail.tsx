@@ -79,10 +79,11 @@ export default function MonitorPlantDetail() {
     }
   };
 
-  const { data: plant, isLoading } = useQuery({
+  const { data: plant, isLoading, error: plantError } = useQuery({
     queryKey: ["monitor-plant-detail", plantId],
     queryFn: () => getPlantDetail(plantId!),
     enabled: !!plantId,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: devices = [] } = useQuery({
