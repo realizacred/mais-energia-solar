@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClientLinkedPlants } from "./monitoring-v2/ClientLinkedPlants";
+import { ClienteEnergiaTab } from "./clientes/ClienteEnergiaTab";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@ import {
 import {
   User, Phone, Mail, MapPin, Zap, DollarSign, Calendar, FileText,
   ExternalLink, Eye, FolderOpen, MessageSquare, Clock, ArrowRight,
-  TrendingDown, Send, ChevronRight,
+  TrendingDown, Send, ChevronRight, Sun,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import {
@@ -305,7 +306,9 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
               <TabsTrigger value="projetos" className="flex-1 text-xs">
                 Projetos {projetos.length > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{projetos.length}</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="ucs" className="flex-1 text-xs">UCs</TabsTrigger>
+              <TabsTrigger value="energia" className="flex-1 text-xs">
+                <Sun className="w-3 h-3 mr-1" /> Energia
+              </TabsTrigger>
               <TabsTrigger value="docs" className="flex-1 text-xs">
                 Docs {totalDocs > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{totalDocs}</Badge>}
               </TabsTrigger>
@@ -459,8 +462,9 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 )}
               </TabsContent>
 
-              {/* ABA 4 — Unidades Consumidoras */}
-              <TabsContent value="ucs" className="mt-0">
+              {/* ABA 4 — Energia (UCs + GD + Faturas) */}
+              <TabsContent value="energia" className="mt-0 space-y-4">
+                <ClienteEnergiaTab clienteId={cliente.id} />
                 <ClientLinkedPlants clientId={cliente.id} />
               </TabsContent>
 
