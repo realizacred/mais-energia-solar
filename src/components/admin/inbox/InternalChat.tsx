@@ -569,9 +569,9 @@ function ChatView({
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button onClick={() => wrapSelection("_")} className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
+              <Button variant="ghost" size="icon" onClick={() => wrapSelection("_")} className="p-1.5 h-auto w-auto rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
                 <Italic className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-[10px]">Itálico</TooltipContent>
           </Tooltip>
