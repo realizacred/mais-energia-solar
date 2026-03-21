@@ -93,6 +93,7 @@ const TABS = [
   { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary" },
   { id: "vinculo" as TabId, label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
   { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning" },
+  { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success" },
 ] as const;
 
 export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
