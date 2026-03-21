@@ -119,6 +119,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "politica-precos", label_default: "Política de Preços", group_default: "Financeiro", order_default: 6, icon: "Shield", description: "Regras versionadas de precificação, margens e comissões", keywords: ["precificação", "margem", "comissão", "custo", "política", "pricing"], criticality: "business_critical", permission: "admin_only" },
   { nav_key: "integracao-asaas", label_default: "Integração Asaas", group_default: "Financeiro", order_default: 7, icon: "CreditCard", description: "Configuração de cobrança automática via Asaas", keywords: ["asaas", "cobrança", "boleto", "pix", "pagamento", "webhook", "gateway"], criticality: "normal", permission: "admin_only" },
   { nav_key: "asaas-conversao", label_default: "Conversão Asaas", group_default: "Financeiro", order_default: 8, icon: "BarChart3", description: "Funil de configuração da integração Asaas", keywords: ["asaas", "conversão", "funil", "configuração", "tracking"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "planos", label_default: "Planos", group_default: "Financeiro", order_default: 9, icon: "Sparkles", description: "Visualize e compare planos disponíveis", keywords: ["plano", "upgrade", "preço", "assinatura", "billing"], criticality: "normal", permission: "all" },
 
   // ── 8. Equipe ──
   { nav_key: "vendedores", label_default: "Consultores", group_default: "Equipe", order_default: 0, icon: "Users", description: "Cadastro e gestão de consultores", keywords: ["consultor", "consultora", "consultores", "equipe", "cadastro"], criticality: "normal", permission: "admin_only" },
@@ -181,7 +182,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "menus", label_default: "Personalizar Menus", group_default: "Administração", order_default: 8, icon: "LayoutList", description: "Reorganizar e ocultar itens do menu lateral", keywords: ["menu", "sidebar", "organizar", "ocultar", "personalizar", "navegação"], criticality: "normal", permission: "admin_only" },
   { nav_key: "data-reset", label_default: "Limpeza de Dados", group_default: "Administração", order_default: 9, icon: "Trash2", description: "Limpeza seletiva e reset de dados", keywords: ["reset", "limpeza", "deletar", "remover", "manutenção"], criticality: "normal", permission: "admin_only" },
   { nav_key: "backup", label_default: "Backup de Dados", group_default: "Administração", order_default: 10, icon: "HardDrive", description: "Exportar dados do tenant para backup seguro (somente banco de dados)", keywords: ["backup", "exportar", "dados", "segurança", "json"], criticality: "normal", permission: "admin_only" },
-
+  
 
   // ── Campos Customizados (Configurações) ──
   { nav_key: "custom-fields", label_default: "Campos Customizados", group_default: "Configurações", order_default: 4, icon: "Settings2", description: "Campos personalizados para leads e projetos", keywords: ["campo", "customizado", "personalizado", "opção"], criticality: "normal", permission: "admin_only" },
