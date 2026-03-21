@@ -24,13 +24,6 @@ export function useStorageManagement() {
   const storageQuery = useQuery<TableStorageInfo[]>({
     queryKey: QK,
     queryFn: async () => {
-      // Fetch stats for the two large tables
-      const [payloadsRes, webhooksRes] = await Promise.all([
-        supabase.rpc("get_table_stats" as never, { p_table: "monitor_provider_payloads" }),
-        supabase.rpc("get_table_stats" as never, { p_table: "wa_webhook_events" }),
-      ]);
-
-      // Fallback: direct count queries if RPC doesn't exist
       const results: TableStorageInfo[] = [];
 
       // monitor_provider_payloads
@@ -41,7 +34,7 @@ export function useStorageManagement() {
       results.push({
         table_name: "monitor_provider_payloads",
         row_count: payloadCount ?? 0,
-        total_size: estimateSize(payloadCount ?? 0, 3.7), // ~3.7 KB/row based on 1276MB/355K
+        total_size: estimateSize(payloadCount ?? 0, 3.7),
         retention_days: 7,
       });
 
