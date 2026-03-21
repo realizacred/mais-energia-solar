@@ -533,9 +533,9 @@ export function StepConsumptionIntelligence({
             <Button size="sm" className="h-7 text-[11px] bg-primary hover:bg-primary/90" onClick={handleAutoRateio}>
               Rateio automático
             </Button>
-            <button onClick={() => setRateioOpen(true)} className="text-[11px] text-secondary hover:underline flex items-center gap-1">
+            <Button variant="link" onClick={() => setRateioOpen(true)} className="text-[11px] text-secondary hover:underline flex items-center gap-1 h-auto p-0">
               <Settings2 className="h-3 w-3" /> Gerenciar rateio de créditos
-            </button>
+            </Button>
           </div>
         )}
       </div>
