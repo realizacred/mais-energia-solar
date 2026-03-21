@@ -47,8 +47,33 @@ export function DirectorOverview({ insights }: Props) {
     return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
+  const pctSemStatus = leadStats && leadStats.total > 0
+    ? Math.round((leadStats.semStatus / leadStats.total) * 100)
+    : 0;
+
   return (
     <div className="space-y-5">
+      {/* Pipeline adoption alert */}
+      {leadStats && pctSemStatus >= 50 && (
+        <Card className="border-l-[3px] border-l-destructive bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive shrink-0">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {leadStats.semStatus} leads sem classificação ({pctSemStatus}%)
+              </p>
+              <p className="text-xs text-muted-foreground">
+                O funil não está sendo acompanhado — classifique os leads para ativar automações e métricas.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => navigate("/admin/leads")} className="shrink-0">
+              Classificar agora
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       {/* Generate Button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
