@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { trackAsaasConfigured } from "@/hooks/useAsaasTracking";
 
 const STALE_CONFIG = 1000 * 60 * 5;
 const STALE_LOGS = 1000 * 60 * 2;
@@ -137,7 +138,10 @@ export function useSaveAsaasConfig() {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [QK] }),
+    onSuccess: () => {
+      trackAsaasConfigured();
+      qc.invalidateQueries({ queryKey: [QK] });
+    },
   });
 }
 
