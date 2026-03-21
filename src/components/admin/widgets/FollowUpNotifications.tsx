@@ -178,33 +178,33 @@ export function FollowUpNotifications({
 
   return (
     <Card className={`flex flex-col h-full ${criticalCount > 0 ? "border-l-[3px] border-l-destructive bg-card" : "border-l-[3px] border-l-warning bg-card"}`}>
-      <CardHeader className="pb-3">
+      <CardHeader className="py-3 px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {criticalCount > 0 ? (
-              <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+              <div className="w-7 h-7 rounded-md bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Bell className="h-4 w-4 text-warning" />
+              <div className="w-7 h-7 rounded-md bg-warning/10 flex items-center justify-center">
+                <Bell className="h-3.5 w-3.5 text-warning" />
               </div>
             )}
-            <CardTitle className="text-base">Follow-up Pendente</CardTitle>
+            <CardTitle className="text-sm font-semibold">Follow-up Pendente</CardTitle>
             <Badge 
               variant="outline"
-              className={criticalCount > 0 ? "bg-destructive/10 text-destructive border-destructive/20 text-xs" : "bg-warning/10 text-warning border-warning/20 text-xs"}
+              className={criticalCount > 0 ? "bg-destructive/10 text-destructive border-destructive/20 text-[10px] h-5" : "bg-warning/10 text-warning border-warning/20 text-[10px] h-5"}
             >
               {leads.length}
             </Badge>
           </div>
         </div>
-        <CardDescription>
+        <CardDescription className="text-xs">
           Leads sem contato há mais de {diasAlerta} dias
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 flex flex-col">
-        <ScrollArea className="flex-1 min-h-0 max-h-[320px]">
+      <CardContent className="flex-1 min-h-0 flex flex-col px-4 pt-0 pb-3">
+        <ScrollArea className="flex-1 min-h-0 max-h-[200px]">
           <div className="space-y-2">
             {leads.map((lead) => (
               <div
