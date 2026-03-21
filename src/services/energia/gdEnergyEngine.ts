@@ -491,6 +491,19 @@ export async function calculateGdMonth(
 
   if (snapErr) throw new Error(`Erro ao salvar snapshot: ${snapErr.message}`);
 
+  // 7.5. Reconciliation: compare all three sources and persist
+  try {
+    const reconciliation = buildReconciliation(
+      allSources.meter?.generation_kwh ?? null,
+      allSources.monitoring?.generation_kwh ?? null,
+      allSources.invoice?.generation_kwh ?? null,
+      genSource.source_type
+    );
+    await upsertReconciliation(gdGroupId, snapshot.id, year, month, reconciliation);
+  } catch (recErr) {
+    console.error("Reconciliation upsert error (non-blocking):", recErr);
+  }
+
   // 8. Upsert allocations
   for (const alloc of allocations) {
     await (supabase as any)
