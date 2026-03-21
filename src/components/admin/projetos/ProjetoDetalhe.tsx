@@ -33,6 +33,7 @@ import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { VariableMapperPanel } from "./VariableMapperPanel";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
+import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { ProjetoChatTab } from "./ProjetoChatTab";
@@ -93,6 +94,7 @@ const TABS = [
   { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary" },
   { id: "vinculo" as TabId, label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
   { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning" },
+  { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success" },
 ] as const;
 
 export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
@@ -340,6 +342,9 @@ function ProjetoDetalheContent() {
           )}
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} />
+          )}
+          {activeTab === "instalacao" && (
+            <ProjetoInstalacaoTab dealId={deal.id} />
           )}
         </motion.div>
       </AnimatePresence>
@@ -1020,7 +1025,7 @@ function GerenciamentoTab({
             </Card>
           )}
 
-          {/* Checklist de Documentos desabilitado temporariamente */}
+          <ProjetoDocChecklist dealId={deal.id} />
         </div>
 
         {/* ── RIGHT WORK AREA (70%) ── */}
@@ -1894,7 +1899,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Checklist de Documentos desabilitado temporariamente */}
+      <ProjetoDocChecklist dealId={dealId} />
 
       {/* Generated Documents */}
       <div className="space-y-4">
