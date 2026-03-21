@@ -3520,6 +3520,79 @@ export type Database = {
         }
         Relationships: []
       }
+      energy_alerts: {
+        Row: {
+          alert_type: string
+          context_json: Json | null
+          created_at: string
+          description: string | null
+          gd_group_id: string | null
+          id: string
+          plant_id: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          tenant_id: string
+          title: string
+          unit_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          context_json?: Json | null
+          created_at?: string
+          description?: string | null
+          gd_group_id?: string | null
+          id?: string
+          plant_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          tenant_id?: string
+          title: string
+          unit_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          context_json?: Json | null
+          created_at?: string
+          description?: string | null
+          gd_group_id?: string | null
+          id?: string
+          plant_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          tenant_id?: string
+          title?: string
+          unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "energy_alerts_gd_group_id_fkey"
+            columns: ["gd_group_id"]
+            isOneToOne: false
+            referencedRelation: "gd_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "energy_alerts_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "energy_alerts_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_categorias: {
         Row: {
           ativo: boolean | null
