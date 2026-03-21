@@ -188,6 +188,11 @@ export default function UCDetailPage() {
         </div>
       </div>
 
+      {/* GD Info */}
+      <div className="mx-4 md:mx-6 mt-3">
+        <UCGdInfoCard ucId={id!} />
+      </div>
+
       {/* Tabs */}
       <div className="p-4 md:p-6 space-y-4">
         <Tabs defaultValue="overview" className="space-y-4">
