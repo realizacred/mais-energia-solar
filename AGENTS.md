@@ -1,6 +1,6 @@
-# AGENTS.md v2.0 — Mais Energia Solar CRM
+# AGENTS.md v2.1 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-03-19
+# Última atualização: 2026-03-20
 
 # =============================================================================
 # ⚠️ INSTRUÇÃO PRIMÁRIA PARA AI — LEIA PRIMEIRO
@@ -118,6 +118,16 @@ RB-12 NÃO MODIFICAR src/components/ui/
     NUNCA edite: arquivos em src/components/ui/ (exceto switch.tsx e slider.tsx)
     Motivo: shadcn/ui base, atualizações sobrescrevem mudanças
     Exceções permitidas: switch.tsx, slider.tsx (tokens semânticos)
+
+RB-13 FUSO HORÁRIO BRASÍLIA OBRIGATÓRIO
+    O sistema opera exclusivamente no fuso de Brasília (America/Sao_Paulo, UTC-3).
+    NUNCA use: toLocaleString("pt-BR") sem timeZone — em ambientes cloud (preview, SSR) o fuso padrão é UTC.
+    SEMPRE use: toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    SEMPRE use: toLocaleTimeString("pt-BR", { ..., timeZone: "America/Sao_Paulo" })
+    SEMPRE use: toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    Para date-fns: Usar helpers de src/services/monitoring/plantStatusEngine.ts (getTodayBrasilia, isBrasiliaNight, etc.)
+    Para Edge Functions (Deno): Usar new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    Motivo: Preview do Lovable roda em UTC — horários aparecem +3h adiantados se não forçar o fuso.
 
 # =============================================================================
 # BLOCO 2 — BOAS PRÁTICAS (RECOMENDADO, NÃO BLOQUEANTE)
@@ -772,6 +782,12 @@ AP-12 FORMULÁRIO SEM ZOD/REACT-HOOK-FORM
     🔍 Detectar: grep -rn "useState.*set.*value\|onChange.*set" src/components/ | grep -i "form"
     💥 Consequência: Validação inconsistente, código verboso, bugs de estado
 
+AP-13 DATA/HORA SEM FUSO BRASÍLIA
+    ❌ Errado: new Date(timestamp).toLocaleString("pt-BR") — mostra UTC no cloud
+    ✅ Certo: new Date(timestamp).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    🔍 Detectar: grep -rn 'toLocaleString\|toLocaleTimeString\|toLocaleDateString' src/ | grep -v 'timeZone'
+    💥 Consequência: Horários aparecem +3h adiantados no preview e deploy (Lovable roda em UTC)
+
 # =============================================================================
 # BLOCO 5 — DECISÕES ARQUITETURAIS (DA-XX)
 # POR QUE fizemos assim? QUANDO quebrar a regra?
@@ -1280,5 +1296,5 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - Nunca "aproveitar" para refatorar código adjacente
 
 # =============================================================================
-# FIM DO AGENTS.md v2.0
+# FIM DO AGENTS.md v2.1
 # =============================================================================
