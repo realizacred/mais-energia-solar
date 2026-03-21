@@ -6,6 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { buildReconciliation, upsertReconciliation } from "./gdReconciliation";
+import { applyOverflowDistribution, persistOverflowTransfers } from "./gdOverflowDistribution";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -68,6 +69,8 @@ export interface GdMonthlyAllocation {
   used_from_balance_kwh: number;
   estimated_savings_brl: number | null;
   source_invoice_id: string | null;
+  overflow_received_kwh: number;
+  overflow_ceded_kwh: number;
   created_at: string;
   updated_at: string;
 }
@@ -390,7 +393,7 @@ export async function calculateGdMonth(
   // 4. Get active beneficiaries
   const { data: bens = [] } = await supabase
     .from("gd_group_beneficiaries")
-    .select("id, uc_beneficiaria_id, allocation_percent, is_active")
+    .select("id, uc_beneficiaria_id, allocation_percent, is_active, priority_order, allow_overflow_in, allow_overflow_out")
     .eq("gd_group_id", gdGroupId)
     .eq("is_active", true);
 
@@ -460,6 +463,32 @@ export async function calculateGdMonth(
     } as any);
   }
 
+  // 5.5 Apply overflow redistribution (Phase 2.4)
+  const overflowConfigs = (bens as any[]).map((b: any) => ({
+    uc_beneficiaria_id: b.uc_beneficiaria_id,
+    priority_order: b.priority_order ?? null,
+    allow_overflow_in: b.allow_overflow_in !== false,
+    allow_overflow_out: b.allow_overflow_out !== false,
+  }));
+
+  const overflowResult = applyOverflowDistribution(
+    allocations.map(a => ({ ...a, overflow_received_kwh: 0, overflow_ceded_kwh: 0 })) as any,
+    overflowConfigs
+  );
+
+  // Replace allocations with overflow-adjusted versions and recalculate totals
+  const finalAllocations = overflowResult.allocations;
+  totalAllocated = 0;
+  totalCompensated = 0;
+  totalSurplus = 0;
+  totalDeficit = 0;
+  for (const a of finalAllocations) {
+    totalAllocated += a.allocated_kwh;
+    totalCompensated += a.compensated_kwh;
+    totalSurplus += a.surplus_kwh;
+    totalDeficit += a.deficit_kwh;
+  }
+
   // 6. Determine status
   let calcStatus: CalculationStatus = genSource.status;
   if (calcStatus === "complete" && hasMissingInvoice) calcStatus = "missing_beneficiary_invoice";
@@ -480,6 +509,7 @@ export async function calculateGdMonth(
     generation_source_id: genSource.source_id,
     generation_source_confidence: genSource.confidence,
     generation_source_notes: genSource.notes,
+    total_overflow_kwh: Math.round(overflowResult.total_overflow_kwh * 100) / 100,
     updated_at: new Date().toISOString(),
   };
 
@@ -504,23 +534,31 @@ export async function calculateGdMonth(
     console.error("Reconciliation upsert error (non-blocking):", recErr);
   }
 
-  // 8. Upsert allocations
-  for (const alloc of allocations) {
+  // 8. Upsert allocations (using overflow-adjusted versions)
+  for (const alloc of finalAllocations) {
+    const { _new_balance, ...allocData } = alloc as any;
     await (supabase as any)
       .from("gd_monthly_allocations")
       .upsert(
         {
           snapshot_id: snapshot.id,
           gd_group_id: gdGroupId,
-          ...alloc,
+          ...allocData,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "snapshot_id,uc_beneficiaria_id" }
       );
   }
 
+  // 8.5. Persist overflow transfers (Phase 2.4)
+  try {
+    await persistOverflowTransfers(snapshot.id, gdGroupId, overflowResult.transfers);
+  } catch (ovErr) {
+    console.error("Overflow persist error (non-blocking):", ovErr);
+  }
+
   // 9. Update credit balances (idempotent: set new_balance directly)
-  for (const alloc of allocations) {
+  for (const alloc of finalAllocations) {
     const newBalance = (alloc as any)._new_balance as number;
     const { data: existing } = await (supabase as any)
       .from("gd_credit_balances")

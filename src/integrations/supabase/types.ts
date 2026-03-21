@@ -5006,12 +5006,15 @@ export type Database = {
         Row: {
           allocation_percent: number
           allocation_type: string
+          allow_overflow_in: boolean
+          allow_overflow_out: boolean
           created_at: string
           end_date: string | null
           gd_group_id: string
           id: string
           is_active: boolean
           notes: string | null
+          priority_order: number | null
           start_date: string | null
           tenant_id: string
           uc_beneficiaria_id: string
@@ -5020,12 +5023,15 @@ export type Database = {
         Insert: {
           allocation_percent?: number
           allocation_type?: string
+          allow_overflow_in?: boolean
+          allow_overflow_out?: boolean
           created_at?: string
           end_date?: string | null
           gd_group_id: string
           id?: string
           is_active?: boolean
           notes?: string | null
+          priority_order?: number | null
           start_date?: string | null
           tenant_id?: string
           uc_beneficiaria_id: string
@@ -5034,12 +5040,15 @@ export type Database = {
         Update: {
           allocation_percent?: number
           allocation_type?: string
+          allow_overflow_in?: boolean
+          allow_overflow_out?: boolean
           created_at?: string
           end_date?: string | null
           gd_group_id?: string
           id?: string
           is_active?: boolean
           notes?: string | null
+          priority_order?: number | null
           start_date?: string | null
           tenant_id?: string
           uc_beneficiaria_id?: string
@@ -5148,6 +5157,8 @@ export type Database = {
           estimated_savings_brl: number | null
           gd_group_id: string
           id: string
+          overflow_ceded_kwh: number
+          overflow_received_kwh: number
           prior_balance_kwh: number
           snapshot_id: string
           source_invoice_id: string | null
@@ -5167,6 +5178,8 @@ export type Database = {
           estimated_savings_brl?: number | null
           gd_group_id: string
           id?: string
+          overflow_ceded_kwh?: number
+          overflow_received_kwh?: number
           prior_balance_kwh?: number
           snapshot_id: string
           source_invoice_id?: string | null
@@ -5186,6 +5199,8 @@ export type Database = {
           estimated_savings_brl?: number | null
           gd_group_id?: string
           id?: string
+          overflow_ceded_kwh?: number
+          overflow_received_kwh?: number
           prior_balance_kwh?: number
           snapshot_id?: string
           source_invoice_id?: string | null
@@ -5233,6 +5248,68 @@ export type Database = {
           },
         ]
       }
+      gd_monthly_overflows: {
+        Row: {
+          created_at: string
+          from_uc_id: string
+          gd_group_id: string
+          id: string
+          overflow_kwh: number
+          snapshot_id: string
+          tenant_id: string
+          to_uc_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_uc_id: string
+          gd_group_id: string
+          id?: string
+          overflow_kwh?: number
+          snapshot_id: string
+          tenant_id?: string
+          to_uc_id: string
+        }
+        Update: {
+          created_at?: string
+          from_uc_id?: string
+          gd_group_id?: string
+          id?: string
+          overflow_kwh?: number
+          snapshot_id?: string
+          tenant_id?: string
+          to_uc_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_monthly_overflows_from_uc_id_fkey"
+            columns: ["from_uc_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_monthly_overflows_gd_group_id_fkey"
+            columns: ["gd_group_id"]
+            isOneToOne: false
+            referencedRelation: "gd_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_monthly_overflows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_monthly_overflows_to_uc_id_fkey"
+            columns: ["to_uc_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gd_monthly_snapshots: {
         Row: {
           calculation_status: string
@@ -5252,6 +5329,7 @@ export type Database = {
           total_allocated_kwh: number
           total_compensated_kwh: number
           total_deficit_kwh: number
+          total_overflow_kwh: number
           total_surplus_kwh: number
           updated_at: string
         }
@@ -5273,6 +5351,7 @@ export type Database = {
           total_allocated_kwh?: number
           total_compensated_kwh?: number
           total_deficit_kwh?: number
+          total_overflow_kwh?: number
           total_surplus_kwh?: number
           updated_at?: string
         }
@@ -5294,6 +5373,7 @@ export type Database = {
           total_allocated_kwh?: number
           total_compensated_kwh?: number
           total_deficit_kwh?: number
+          total_overflow_kwh?: number
           total_surplus_kwh?: number
           updated_at?: string
         }

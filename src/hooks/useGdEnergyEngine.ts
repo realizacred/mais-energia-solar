@@ -89,6 +89,7 @@ export function useCalculateGdMonth() {
       qc.invalidateQueries({ queryKey: ["gd_monthly_allocations"] });
       qc.invalidateQueries({ queryKey: ["gd_credit_balances"] });
       qc.invalidateQueries({ queryKey: ["gd_reconciliation"] });
+      qc.invalidateQueries({ queryKey: ["gd_monthly_overflows"] });
     },
   });
 }
