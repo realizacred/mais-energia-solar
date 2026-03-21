@@ -85,6 +85,10 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
       return;
     }
+    if (!form.concessionaria_id) {
+      toast({ title: "Concessionária é obrigatória", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const conc = concessionarias.find(c => c.id === form.concessionaria_id);
