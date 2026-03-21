@@ -242,15 +242,50 @@ export default function FaturasEnergiaPage() {
               </Button>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">
-                  Conecte sua conta Gmail para receber faturas de energia automaticamente.
-                </p>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Conecte sua conta Gmail</p>
+                  <p className="text-xs text-muted-foreground">Autorize o acesso para receber faturas automaticamente</p>
+                </div>
+                <Button size="sm" onClick={handleConnect}>
+                  <Mail className="w-4 h-4 mr-1" /> Conectar Gmail
+                </Button>
               </div>
-              <Button size="sm" onClick={handleConnect}>
-                <Mail className="w-4 h-4 mr-1" /> Conectar Gmail
-              </Button>
+
+              {/* Onboarding steps */}
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <p className="text-xs font-semibold text-foreground">Como funciona em 3 passos:</p>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">1</div>
+                  <div>
+                    <p className="text-xs font-medium text-foreground">Conecte sua conta Gmail</p>
+                    <p className="text-xs text-muted-foreground">Clique no botão acima para autorizar o acesso à caixa de entrada</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center shrink-0">2</div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Cadastre o e-mail de cada UC na concessionária</p>
+                    <p className="text-xs text-muted-foreground">Vá em cada UC → Configurações → Faturas por e-mail e copie o e-mail gerado</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center shrink-0">3</div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Pronto! Faturas chegam automaticamente</p>
+                    <p className="text-xs text-muted-foreground">O sistema verifica sua caixa a cada hora, extrai os dados e notifica o cliente</p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground mb-1.5">Concessionárias suportadas:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {["CEMIG","Energisa","COPEL","CPFL","Enel","Light","CELESC","Equatorial"].map(c => (
+                      <Badge key={c} variant="outline" className="text-xs bg-muted text-muted-foreground">{c}</Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
