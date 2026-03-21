@@ -410,6 +410,14 @@ Deno.serve(async (req) => {
 
       for (const tenant of tenants) {
         try {
+          // Entitlement check per tenant — skip if feature not available
+          const denial = await enforceFeature(supabase, tenant.id, "ai_insights", corsHeaders, { skipAudit: true });
+          if (denial) {
+            console.log(`[generate-ai-insights] CRON: Skipping tenant ${tenant.nome} — ai_insights not in plan`);
+            results.push({ tenant: tenant.nome, success: false, error: "feature_not_available" });
+            continue;
+          }
+
           const result = await generateInsightForTenant(
             supabase,
             tenant.id,
@@ -417,6 +425,9 @@ Deno.serve(async (req) => {
             { auto: true, source: "cron" },
             null
           );
+          if (result.success) {
+            await trackUsage(supabase, tenant.id, "ai_insights", 1, { source: "cron" });
+          }
           results.push({ tenant: tenant.nome, ...result });
         } catch (err: any) {
           console.error(`[generate-ai-insights] CRON error for tenant ${tenant.nome}:`, err.message);
