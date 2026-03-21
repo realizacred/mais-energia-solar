@@ -65,7 +65,7 @@ export default function FaturasEnergiaPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("units_consumidoras")
-        .select("id, nome, codigo_uc, concessionaria_id")
+        .select("id, nome, codigo_uc, concessionaria_id, concessionaria_nome")
         .eq("is_archived", false)
         .order("nome");
       return data || [];
