@@ -258,6 +258,18 @@ function ChecklistCard({
                   {doneItems}/{totalItems} concluídos
                 </span>
                 <div className="flex items-center gap-2">
+                  {isConcluido && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadReport}
+                      disabled={downloading}
+                      className="gap-1.5"
+                    >
+                      {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                      Relatório PDF
+                    </Button>
+                  )}
                   {doneItems < totalItems && (
                     <div className="flex items-center gap-1.5">
                       <AlertCircle className="h-3.5 w-3.5 text-warning" />
