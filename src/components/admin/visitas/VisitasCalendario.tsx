@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Clock, User } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Clock, User, ExternalLink } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useVisitasTecnicas, useCriarVisita } from "@/hooks/useVisitasTecnicas";
@@ -32,6 +32,21 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+/** Open Google Calendar with pre-filled event data */
+function openGoogleCalendar(visita: { data_hora: string; duracao_minutos?: number | null; endereco?: string | null; observacoes?: string | null }) {
+  const start = new Date(visita.data_hora);
+  const end = new Date(start.getTime() + (visita.duracao_minutos || 60) * 60000);
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `Visita Técnica${visita.endereco ? " — " + visita.endereco : ""}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: visita.observacoes || "Visita técnica agendada pelo sistema",
+    location: visita.endereco || "",
+  });
+  window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, "_blank");
+}
 
 export function VisitasCalendario() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -86,11 +101,20 @@ export function VisitasCalendario() {
     setDialogOpen(true);
   };
 
+  const [lastCreated, setLastCreated] = useState<{ data_hora: string; duracao_minutos: number; endereco: string; observacoes: string } | null>(null);
+
   const handleSave = () => {
     if (!selectedDate) return;
     const [h, m] = form.hora.split(":").map(Number);
     const dataHora = new Date(selectedDate);
     dataHora.setHours(h, m, 0, 0);
+
+    const visitaData = {
+      data_hora: dataHora.toISOString(),
+      duracao_minutos: form.duracao_minutos,
+      endereco: form.endereco,
+      observacoes: form.observacoes,
+    };
 
     criarVisita.mutate({
       lead_id: null,
@@ -103,6 +127,7 @@ export function VisitasCalendario() {
       observacoes: form.observacoes || null,
       created_by: null,
     });
+    setLastCreated(visitaData);
     setDialogOpen(false);
     setForm({ consultor_id: "", endereco: "", observacoes: "", hora: "09:00", duracao_minutos: 60 });
   };
@@ -242,6 +267,15 @@ export function VisitasCalendario() {
                             <span className="truncate">{v.endereco}</span>
                           </div>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] text-muted-foreground hover:text-primary mt-1"
+                          onClick={(e) => { e.stopPropagation(); openGoogleCalendar(v); }}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Google Calendar
+                        </Button>
                       </div>
                     ))}
                   </div>

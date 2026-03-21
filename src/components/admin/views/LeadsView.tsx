@@ -4,7 +4,10 @@ import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
-import { Users } from "lucide-react";
+import { Users, Download } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import { useOrcamentosAdmin } from "@/hooks/useOrcamentosAdmin";
 import { 
   OrcamentosTable, 
@@ -146,12 +149,51 @@ export function LeadsView() {
     }
   }, [orcamentos]);
 
+  const handleExportExcel = async () => {
+    try {
+      toast.info("Exportando leads...");
+      const { data: leads, error } = await supabase
+        .from("leads")
+        .select("nome, telefone, email, cidade, estado, consultor, media_consumo, created_at, ultimo_contato")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const rows = (leads || []).map((l: any) => ({
+        Nome: l.nome || "",
+        Telefone: l.telefone || "",
+        "E-mail": l.email || "",
+        Cidade: l.cidade || "",
+        Estado: l.estado || "",
+        Consultor: l.consultor || "",
+        "Consumo Médio": l.media_consumo ?? "",
+        "Criado em": l.created_at ? new Date(l.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
+        "Último contato": l.ultimo_contato ? new Date(l.ultimo_contato).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Leads");
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `leads-export-${today}.xlsx`);
+      toast.success(`${rows.length} leads exportados!`);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao exportar");
+    }
+  };
+
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <PageHeader
         icon={Users}
         title="Leads"
         description="Gerencie os orçamentos e leads recebidos"
+        actions={
+          <Button variant="outline" size="sm" onClick={handleExportExcel}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Excel
+          </Button>
+        }
       />
 
       {/* Notification Widgets */}
