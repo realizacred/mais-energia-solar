@@ -518,13 +518,13 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
       {/* Footer */}
       <Separator className="opacity-40" />
       <div className="flex items-center justify-between">
-        <button onClick={onOpenConfig} className="text-xs text-primary hover:underline flex items-center gap-1.5">
+        <Button variant="link" onClick={onOpenConfig} className="text-xs text-primary hover:underline flex items-center gap-1.5 h-auto p-0">
           <Settings className="h-3.5 w-3.5" /> Configurações adicionais
-        </button>
+        </Button>
         {totalUCs > 1 && uc.is_geradora && (
-          <button onClick={onOpenRateio} className="text-xs text-primary hover:underline flex items-center gap-1.5">
+          <Button variant="link" onClick={onOpenRateio} className="text-xs text-primary hover:underline flex items-center gap-1.5 h-auto p-0">
             <Zap className="h-3.5 w-3.5" /> Gerenciar rateio de créditos
-          </button>
+          </Button>
         )}
       </div>
     </div>
