@@ -197,6 +197,12 @@ function IntegrationRow({
                 ? `Última sync ${formatDistanceToNow(new Date(integration.last_sync_at), { addSuffix: true, locale: ptBR })}`
                 : "Nunca sincronizado"}
             </p>
+            {hasExpiredError && (
+              <p className="text-xs text-destructive mt-0.5 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Sessão expirada — reconexão necessária
+              </p>
+            )}
           </div>
         </div>
 
