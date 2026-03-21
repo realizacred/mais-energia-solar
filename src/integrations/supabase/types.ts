@@ -7150,6 +7150,50 @@ export type Database = {
           },
         ]
       }
+      lead_audit_log: {
+        Row: {
+          campo_alterado: string
+          created_at: string
+          id: string
+          lead_id: string
+          tenant_id: string
+          user_id: string | null
+          user_nome: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo_alterado: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          tenant_id: string
+          user_id?: string | null
+          user_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo_alterado?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          tenant_id?: string
+          user_id?: string | null
+          user_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_audit_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_distribution_log: {
         Row: {
           consultor_anterior_id: string | null
@@ -19706,6 +19750,83 @@ export type Database = {
             columns: ["consultor_id"]
             isOneToOne: false
             referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visitas_tecnicas: {
+        Row: {
+          cliente_id: string | null
+          consultor_id: string | null
+          created_at: string
+          created_by: string | null
+          data_hora: string
+          duracao_minutos: number | null
+          endereco: string | null
+          id: string
+          lead_id: string | null
+          observacoes: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_hora: string
+          duracao_minutos?: number | null
+          endereco?: string | null
+          id?: string
+          lead_id?: string | null
+          observacoes?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_hora?: string
+          duracao_minutos?: number | null
+          endereco?: string | null
+          id?: string
+          lead_id?: string | null
+          observacoes?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitas_tecnicas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visitas_tecnicas_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visitas_tecnicas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visitas_tecnicas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

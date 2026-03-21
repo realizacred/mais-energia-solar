@@ -57,6 +57,7 @@ const PropostasManager = lazy(() => import("@/components/admin/PropostasManager"
 const ChecklistsManager = lazy(() => import("@/components/admin/ChecklistsManager").then(m => ({ default: m.ChecklistsManager })));
 const AvaliacoesManager = lazy(() => import("@/components/admin/AvaliacoesManager").then(m => ({ default: m.AvaliacoesManager })));
 const ServicosManager = lazy(() => import("@/components/admin/ServicosManager").then(m => ({ default: m.ServicosManager })));
+const VisitasCalendario = lazy(() => import("@/components/admin/visitas/VisitasCalendario").then(m => ({ default: m.VisitasCalendario })));
 const InstaladorManager = lazy(() => import("@/components/admin/InstaladorManager").then(m => ({ default: m.InstaladorManager })));
 const EstoquePage = lazy(() => import("@/components/admin/estoque/EstoquePage"));
 const DepositosPage = lazy(() => import("@/components/admin/estoque/DepositosPage").then(m => ({ default: m.DepositosPage })));
@@ -263,6 +264,7 @@ const TAB_TITLES: Record<string, string> = {
   avaliacoes: "Satisfação (NPS)",
   instaladores: "Equipe técnica",
   servicos: "Agenda de serviços",
+  "visitas-tecnicas": "Visitas técnicas",
   "financeiro-dashboard": "Financeiro",
   recebimentos: "Contas a receber",
   inadimplencia: "Inadimplência",
@@ -557,6 +559,7 @@ export default function Admin() {
                 <Route path="checklists" element={<ChecklistsManager />} />
                 <Route path="avaliacoes" element={<AvaliacoesManager />} />
                 <Route path="servicos" element={<ServicosManager />} />
+                <Route path="visitas-tecnicas" element={<VisitasCalendario />} />
                 <Route path="documentos" element={<DocumentosPage />} />
                 <Route path="documentos-assinaturas" element={<DocumentosPage />} />
                 

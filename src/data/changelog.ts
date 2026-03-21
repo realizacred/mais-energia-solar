@@ -19,6 +19,45 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.82.0",
+    date: "2026-03-21",
+    title: "Visitas Técnicas, Audit Log de Leads e Relatório de Consultor",
+    type: "feature",
+    description: "Calendário de visitas técnicas, histórico de alterações em leads com trigger automático, e relatório de performance do consultor em HTML.",
+    details: [
+      "Tabela visitas_tecnicas com RLS e calendário mensal interativo",
+      "Tabela lead_audit_log com trigger automático para status, consultor, último contato e próxima ação",
+      "Histórico de alterações visível no dialog de detalhes do lead",
+      "Edge function generate-consultant-report com KPIs, funil e comissões",
+      "Rota /admin/visitas-tecnicas adicionada ao navRegistry",
+    ],
+  },
+  {
+    version: "2.81.0",
+    date: "2026-03-21",
+    title: "Alertas de Inadimplência, Relatório Economia e Responsividade",
+    type: "feature",
+    description: "Notificações automáticas de parcelas vencidas via WhatsApp, relatório de economia da UC e melhorias mobile.",
+    details: [
+      "Edge function notify-parcelas-vencidas com dedup semanal via idempotency_key",
+      "Edge function generate-economy-report para download HTML",
+      "Cron diário 9h BRT para alertas de inadimplência",
+    ],
+  },
+  {
+    version: "2.80.0",
+    date: "2026-03-21",
+    title: "Relatório Semanal do Diretor e Busca Global",
+    type: "feature",
+    description: "Relatório automático semanal via WhatsApp para admins e busca global com ⌘K/Ctrl+K.",
+    details: [
+      "Edge function director-weekly-report com métricas semanais",
+      "Cron toda segunda 10h UTC (7h BRT)",
+      "GlobalSearch com CommandDialog e busca em leads, clientes e projetos",
+      "Purge de storage otimizado com deletes em lotes de 1000",
+    ],
+  },
+  {
     version: "2.79.0",
     date: "2026-03-19",
     title: "Melhorias no Rastreamento e Envio de Propostas",

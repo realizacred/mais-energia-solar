@@ -1,7 +1,8 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
-import { FileText, Image, ExternalLink, User } from "lucide-react";
+import { FileText, Image, ExternalLink, User, History } from "lucide-react";
+import { LeadAuditHistory } from "./LeadAuditHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -214,6 +215,15 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
               </div>
             </>
           )}
+
+          {/* Histórico de Alterações */}
+          <div className="border-t border-border" />
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5" /> Histórico de Alterações
+            </p>
+            <LeadAuditHistory leadId={lead.id} />
+          </div>
         </div>
       </DialogContent>
     </Dialog>
