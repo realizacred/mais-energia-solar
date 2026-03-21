@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Menu, ShieldAlert } from "lucide-react";
 import { SistemaInstallBanner } from "@/components/pwa/SistemaInstallBanner";
