@@ -34,6 +34,18 @@ const UC_TYPE_LABELS: Record<string, string> = {
   beneficiaria: "Beneficiária",
 };
 
+const PAPEL_GD_LABELS: Record<string, string> = {
+  none: "Nenhum",
+  geradora: "Geradora",
+  beneficiaria: "Beneficiária",
+};
+
+const CATEGORIA_GD_LABELS: Record<string, string> = {
+  gd1: "GD I",
+  gd2: "GD II",
+  gd3: "GD III",
+};
+
 export default function UCDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
