@@ -188,7 +188,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                   <Select value={form.tipo_uc} onValueChange={set("tipo_uc")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="consumo">Consumo</SelectItem>
+                      <SelectItem value="beneficiaria">Beneficiária</SelectItem>
                       <SelectItem value="gd_geradora">GD Geradora</SelectItem>
                       <SelectItem value="mista">Mista (Geradora + Consumo)</SelectItem>
                     </SelectContent>

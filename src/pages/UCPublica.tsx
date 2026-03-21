@@ -194,7 +194,7 @@ export default function UCPublica() {
                 </p>
               </div>
               <Badge variant="outline" className="text-xs shrink-0">
-                {resolved.tipo_uc === "gd_geradora" ? "GD Geradora" : resolved.tipo_uc === "beneficiaria" ? "Beneficiária" : "Consumo"}
+                {resolved.tipo_uc === "gd_geradora" ? "GD Geradora" : resolved.tipo_uc === "mista" ? "Mista" : "Beneficiária"}
               </Badge>
             </div>
           </CardContent>
