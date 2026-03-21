@@ -3143,6 +3143,7 @@ export type Database = {
           notas: string | null
           owner_id: string
           pipeline_id: string
+          projeto_id: string | null
           stage_id: string | null
           status: string
           tenant_id: string
@@ -3165,6 +3166,7 @@ export type Database = {
           notas?: string | null
           owner_id: string
           pipeline_id: string
+          projeto_id?: string | null
           stage_id?: string | null
           status?: string
           tenant_id?: string
@@ -3187,6 +3189,7 @@ export type Database = {
           notas?: string | null
           owner_id?: string
           pipeline_id?: string
+          projeto_id?: string | null
           stage_id?: string | null
           status?: string
           tenant_id?: string
@@ -3221,6 +3224,13 @@ export type Database = {
             columns: ["pipeline_id"]
             isOneToOne: false
             referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
           {
