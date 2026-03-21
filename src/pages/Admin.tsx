@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { GlobalSearch } from "@/components/admin/GlobalSearch";
-import { TrialBanner } from "@/components/plan";
+import { TrialBanner, UpsellBanner } from "@/components/plan";
 import { TourProvider } from "@/components/tour";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
 import { HelpCenterDrawer } from "@/components/help/HelpCenterDrawer";
@@ -506,6 +506,7 @@ export default function Admin() {
 
           <SistemaInstallBanner />
           <TrialBanner />
+          <UpsellBanner />
           <FeatureDiscoveryLayer />
           <main className={`flex-1 admin-content overflow-x-hidden animate-fade-in ${isInboxLayout ? "min-h-0 overflow-y-hidden" : ""}`}>
             <Suspense fallback={<LoadingSpinner />}>
