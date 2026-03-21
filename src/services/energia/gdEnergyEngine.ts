@@ -2,8 +2,10 @@
  * gdEnergyEngine — SSOT engine for GD monthly energy calculation.
  * SRP: Calculate generation, allocation, compensation, surplus, deficit, and savings.
  * Phase 2.2: Multi-source generation resolver (meter > monitoring > invoice > missing).
+ * Phase 2.x: Source reconciliation (meter vs monitoring vs invoice).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { buildReconciliation, upsertReconciliation } from "./gdReconciliation";
 
 // ─── Types ───────────────────────────────────────────────────────
 
