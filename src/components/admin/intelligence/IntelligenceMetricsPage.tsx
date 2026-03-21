@@ -149,5 +149,6 @@ export function IntelligenceMetricsPage() {
         </Card>
       </div>
     </div>
+    </FeatureGate>
   );
 }

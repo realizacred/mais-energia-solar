@@ -312,7 +312,9 @@ export function WhatsAppAutomationConfig() {
           </TabsContent>
 
           <TabsContent value="automacoes" className="mt-4">
-            <WhatsAppAutomationTemplates />
+            <FeatureGate featureKey="automacoes">
+              <WhatsAppAutomationTemplates />
+            </FeatureGate>
           </TabsContent>
 
 
