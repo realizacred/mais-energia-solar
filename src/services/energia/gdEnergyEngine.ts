@@ -461,6 +461,32 @@ export async function calculateGdMonth(
     } as any);
   }
 
+  // 5.5 Apply overflow redistribution (Phase 2.4)
+  const overflowConfigs = (bens as any[]).map((b: any) => ({
+    uc_beneficiaria_id: b.uc_beneficiaria_id,
+    priority_order: b.priority_order ?? null,
+    allow_overflow_in: b.allow_overflow_in !== false,
+    allow_overflow_out: b.allow_overflow_out !== false,
+  }));
+
+  const overflowResult = applyOverflowDistribution(
+    allocations.map(a => ({ ...a, overflow_received_kwh: 0, overflow_ceded_kwh: 0 })) as any,
+    overflowConfigs
+  );
+
+  // Replace allocations with overflow-adjusted versions and recalculate totals
+  const finalAllocations = overflowResult.allocations;
+  totalAllocated = 0;
+  totalCompensated = 0;
+  totalSurplus = 0;
+  totalDeficit = 0;
+  for (const a of finalAllocations) {
+    totalAllocated += a.allocated_kwh;
+    totalCompensated += a.compensated_kwh;
+    totalSurplus += a.surplus_kwh;
+    totalDeficit += a.deficit_kwh;
+  }
+
   // 6. Determine status
   let calcStatus: CalculationStatus = genSource.status;
   if (calcStatus === "complete" && hasMissingInvoice) calcStatus = "missing_beneficiary_invoice";
