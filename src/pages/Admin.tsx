@@ -648,6 +648,7 @@ export default function Admin() {
                 <Route path="monitoramento/*" element={<MonitoringModule />} />
                 <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
+                <Route path="integracao-asaas" element={<AsaasIntegrationPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
                 <Route path="solarmarket-config" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
