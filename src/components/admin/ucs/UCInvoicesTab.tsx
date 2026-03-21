@@ -129,27 +129,52 @@ export function UCInvoicesTab({ unitId }: Props) {
   const handleFileUploadOnly = async (file: File) => {
     setUploading(true);
     setUploadProgress(10);
-    setUploadStep("Enviando PDF...");
+    setUploadStep("Lendo PDF...");
     try {
+      // Convert file to base64
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const pdfBase64 = btoa(binary);
+
       setUploadProgress(30);
-      const pdfUrl = await uploadPdf(file);
-      setUploadProgress(60);
-      setUploadStep("Registrando fatura...");
-      await invoiceService.create({
-        unit_id: unitId,
-        reference_month: new Date().getMonth() + 1,
-        reference_year: new Date().getFullYear(),
-        pdf_file_url: pdfUrl,
-        source: "manual",
-        status: "received",
-      } as any);
+      setUploadStep("Extraindo dados da fatura...");
+
+      // Call process-fatura-pdf edge function which parses, uploads and creates the invoice
+      const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
+        body: {
+          pdf_base64: pdfBase64,
+          unit_id: unitId,
+          source: "upload",
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setUploadProgress(90);
+      setUploadStep("Finalizando...");
+
+      const parsed = data?.data?.parsed;
+      const fieldsExtracted = parsed
+        ? [parsed.consumo_kwh && "consumo", parsed.valor_total && "valor", parsed.vencimento && "vencimento", parsed.saldo_gd && "saldo GD"].filter(Boolean)
+        : [];
+
       setUploadProgress(100);
       setUploadStep("Concluído!");
       qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
-      toast({ title: "PDF da fatura importado com sucesso" });
+
+      if (fieldsExtracted.length > 0) {
+        toast({ title: "Fatura importada e processada", description: `Dados extraídos: ${fieldsExtracted.join(", ")}` });
+      } else {
+        toast({ title: "PDF importado", description: "Não foi possível extrair dados automaticamente. Verifique se o PDF não é uma imagem escaneada." });
+      }
     } catch (err: any) {
-      console.error("[UCInvoicesTab] Erro no upload/insert:", err);
-      toast({ title: "Erro no upload", description: err?.message, variant: "destructive" });
+      console.error("[UCInvoicesTab] Erro no processamento:", err);
+      toast({ title: "Erro ao processar fatura", description: err?.message, variant: "destructive" });
     } finally {
       setTimeout(() => {
         setUploading(false);
