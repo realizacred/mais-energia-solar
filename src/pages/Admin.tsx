@@ -531,6 +531,14 @@ export default function Admin() {
           <TrialBanner />
           <UpsellBanner />
           <FeatureDiscoveryLayer />
+          {tenantId && (
+            <OnboardingWizard
+              open={showOnboarding}
+              onOpenChange={setShowOnboarding}
+              tenantId={tenantId}
+              userName={user?.email?.split("@")[0]}
+            />
+          )}
           <main className={`flex-1 admin-content overflow-x-hidden animate-fade-in ${isInboxLayout ? "min-h-0 overflow-y-hidden" : ""}`}>
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
