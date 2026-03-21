@@ -57,10 +57,12 @@ Deno.serve(async (req) => {
       .eq('email_billing_enabled', true);
 
     if (settingsErr || !settings?.length) {
+      console.log('[check-billing-emails] Nenhuma configuração ativa — pulando. Configure Gmail OAuth em /admin/faturas-energia');
       return new Response(JSON.stringify({
         success: true,
-        message: 'Nenhuma configuração ativa de billing email encontrada',
+        message: 'Nenhuma configuração de e-mail ativa',
         processed: 0,
+        hint: 'Configure o Gmail OAuth em /admin/faturas-energia e ative a captura por e-mail nas UCs',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

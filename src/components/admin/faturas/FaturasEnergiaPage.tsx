@@ -26,6 +26,8 @@ export default function FaturasEnergiaPage() {
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
   const [disconnecting, setDisconnecting] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Show toast on redirect from OAuth callback
   useEffect(() => {
