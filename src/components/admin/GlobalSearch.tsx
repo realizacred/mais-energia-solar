@@ -50,7 +50,7 @@ function useGlobalSearchData() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos")
-        .select("id, nome, status, potencia_kwp")
+        .select("id, codigo, status, potencia_kwp, cidade_instalacao")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
