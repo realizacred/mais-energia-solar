@@ -507,6 +507,7 @@ export default function Admin() {
                 <Route index element={<Navigate to="leads" replace />} />
                 
                 {/* Visão Geral */}
+                <Route path="meu-painel" element={<ConsultorDashboard />} />
                 <Route path="dashboard" element={<AnalyticsDashboard />} />
                 <Route path="performance" element={<PerformanceDashboard />} />
                 <Route path="release" element={<ReleaseChecklist />} />
