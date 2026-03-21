@@ -86,6 +86,11 @@ export default function LeadsPipeline() {
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [selectedLeadForWhatsApp, setSelectedLeadForWhatsApp] = useState<Lead | null>(null);
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatusId, setBulkStatusId] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   // Loss dialog
   const [lossDialogOpen, setLossDialogOpen] = useState(false);
   const [lossLead, setLossLead] = useState<Lead | null>(null);
