@@ -93,7 +93,6 @@ interface NewUserForm {
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  super_admin: { label: "Super Admin", color: "bg-destructive/10 text-destructive border-destructive/20", icon: ShieldAlert },
   admin: { label: "Administrador", color: "bg-destructive/10 text-destructive border-destructive/20", icon: ShieldAlert },
   gerente: { label: "Gerente", color: "bg-warning/10 text-warning border-warning/20", icon: ShieldCheck },
   consultor: { label: "Consultor", color: "bg-info/10 text-info border-info/20", icon: Users },
@@ -576,12 +575,12 @@ export function UsuariosManager() {
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {user.created_at
-                          ? format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })
+                          ? new Date(user.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
                           : "—"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {user.last_sign_in_at
-                          ? format(new Date(user.last_sign_in_at), "dd/MM/yy HH:mm", { locale: ptBR })
+                          ? new Date(user.last_sign_in_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })
                           : "Nunca"}
                       </TableCell>
                       <TableCell className="text-right">
