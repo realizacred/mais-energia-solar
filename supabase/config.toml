@@ -319,3 +319,6 @@ verify_jwt = false
 
 [functions.lead-scoring-cron]
 verify_jwt = false
+
+[functions.notify-consultores-weekly]
+verify_jwt = false
