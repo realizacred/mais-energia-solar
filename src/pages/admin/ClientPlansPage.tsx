@@ -63,7 +63,7 @@ const HIGHLIGHT_LIMITS = [
 function formatLimitValue(v: number): string {
   if (v === 0) return "—";
   if (v >= 999999) return "Ilimitado";
-  return v.toLocaleString("pt-BR");
+  return `até ${v.toLocaleString("pt-BR")}/mês`;
 }
 
 export default function ClientPlansPage() {
@@ -111,7 +111,7 @@ export default function ClientPlansPage() {
       <PageHeader
         icon={Sparkles}
         title="Escolha o plano ideal para seu negócio"
-        description="Cresça com automação, inteligência e controle"
+        description="Aumente suas vendas, automatize processos e tenha controle total da sua operação solar."
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
@@ -165,7 +165,7 @@ function PlanCard({
           <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
           {isPopular && (
             <Badge className="bg-primary text-primary-foreground text-xs gap-1">
-              <Star className="w-3 h-3" /> Mais popular
+              <Star className="w-3 h-3" /> ⭐ Mais popular
             </Badge>
           )}
         </div>
@@ -185,6 +185,13 @@ function PlanCard({
         )}
       </div>
 
+      {/* Social proof for popular plan */}
+      {isPopular && (
+        <p className="px-6 pb-2 text-xs text-muted-foreground italic">
+          Plano mais escolhido por empresas em crescimento
+        </p>
+      )}
+
       {/* Button */}
       <div className="px-6 pb-4">
         {isCurrent ? (
@@ -193,12 +200,17 @@ function PlanCard({
           </Button>
         ) : (
           <Button
-            className={`w-full gap-2 ${isPopular ? "" : ""}`}
+            className="w-full gap-2"
             variant={isPopular ? "default" : "outline"}
             onClick={onUpgrade}
           >
-            <Zap className="w-4 h-4" /> Fazer upgrade
+            <Zap className="w-4 h-4" /> Desbloquear este plano
           </Button>
+        )}
+        {!isCurrent && (
+          <p className="text-[11px] text-muted-foreground text-center mt-1.5">
+            Evite bloqueios e mantenha sua operação fluindo
+          </p>
         )}
       </div>
 
