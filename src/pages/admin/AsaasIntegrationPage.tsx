@@ -5,7 +5,7 @@
 import { useState } from "react";
 import {
   CreditCard, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Shield,
-  Zap, AlertTriangle, Copy, Webhook, Clock, Activity, RefreshCw,
+  Zap, AlertTriangle, Copy, Webhook, Clock, Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useSessionContext } from "@/hooks/useSessionContext";
 import {
   useAsaasConfig,
   useAsaasWebhookEvents,
@@ -37,9 +36,8 @@ function formatDateBR(d: string | null) {
 }
 
 export default function AsaasIntegrationPage() {
-  const { tenantId } = useSessionContext();
-  const { data: config, isLoading: loadingConfig } = useAsaasConfig(tenantId);
-  const { data: events, isLoading: loadingEvents } = useAsaasWebhookEvents(tenantId);
+  const { data: config, isLoading: loadingConfig } = useAsaasConfig();
+  const { data: events, isLoading: loadingEvents } = useAsaasWebhookEvents();
   const saveMutation = useSaveAsaasConfig();
   const testMutation = useTestAsaasConnection();
 
@@ -61,8 +59,6 @@ export default function AsaasIntegrationPage() {
   const isConnected = config?.is_active && isConfigured;
   const lastEvent = events?.[0];
   const lastError = events?.find((e) => e.status === "error");
-
-  // KPI derivations
   const totalEvents = events?.length ?? 0;
   const webhookReceiving = !!lastEvent;
 
@@ -101,7 +97,6 @@ export default function AsaasIntegrationPage() {
     }
   };
 
-  // Checklist items
   const checklist = [
     { label: "API Key cadastrada", ok: isConfigured },
     { label: "Conexão validada", ok: testMutation.data?.success === true },
@@ -157,7 +152,6 @@ export default function AsaasIntegrationPage() {
       {/* Config Form */}
       <SectionCard icon={CreditCard} title="Configuração" description="Chave de API e ambiente" variant="blue">
         <div className="space-y-5">
-          {/* Provider badge */}
           <div className="flex items-center gap-3 p-3 rounded-lg border border-border/60 bg-muted/30">
             <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center">
               <CreditCard className="h-4 w-4 text-success" />

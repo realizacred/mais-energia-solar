@@ -4,7 +4,8 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useSessionContext } from "@/hooks/useSessionContext";
+import { useAuth } from "@/hooks/useAuth";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 const STALE_CONFIG = 1000 * 60 * 5;
 const STALE_LOGS = 1000 * 60 * 2;
@@ -35,9 +36,10 @@ export interface AsaasWebhookEvent {
   created_at: string;
 }
 
-export function useAsaasConfig(tenantId: string | undefined) {
+export function useAsaasConfig() {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: [QK, "config", tenantId],
+    queryKey: [QK, "config"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payment_gateway_config")
@@ -48,13 +50,14 @@ export function useAsaasConfig(tenantId: string | undefined) {
       return data as AsaasConfig | null;
     },
     staleTime: STALE_CONFIG,
-    enabled: !!tenantId,
+    enabled: !!user,
   });
 }
 
-export function useAsaasWebhookEvents(tenantId: string | undefined) {
+export function useAsaasWebhookEvents() {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: [QK, "events", tenantId],
+    queryKey: [QK, "events"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billing_webhook_events")
@@ -66,7 +69,7 @@ export function useAsaasWebhookEvents(tenantId: string | undefined) {
       return (data || []) as AsaasWebhookEvent[];
     },
     staleTime: STALE_LOGS,
-    enabled: !!tenantId,
+    enabled: !!user,
   });
 }
 
@@ -80,15 +83,8 @@ export function useSaveAsaasConfig() {
       is_active: boolean;
       existingId?: string | null;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sessão expirada");
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", user.id)
-        .single();
-      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+      const { tenantId } = await getCurrentTenantId();
+      if (!tenantId) throw new Error("Tenant não encontrado");
 
       if (payload.existingId) {
         const { error } = await supabase
@@ -105,7 +101,7 @@ export function useSaveAsaasConfig() {
         const { error } = await supabase
           .from("payment_gateway_config")
           .insert({
-            tenant_id: profile.tenant_id,
+            tenant_id: tenantId,
             provider: "asaas",
             api_key: payload.api_key,
             environment: payload.environment,
