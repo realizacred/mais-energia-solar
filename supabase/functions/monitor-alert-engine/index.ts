@@ -411,6 +411,8 @@ async function processAlertsTenant(
           }
         } else {
           stats.opened++;
+          // Track usage for billing
+          await trackUsage(sb, tenantId, "alertas_performance", 1, { source: "monitor-alert-engine" });
         }
       } catch (err) {
         console.error(`[alert-engine] event insert error:`, err);
