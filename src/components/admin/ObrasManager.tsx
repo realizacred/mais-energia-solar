@@ -607,9 +607,9 @@ export function ObrasManager() {
                   {form.tags.map((tag) => (
                     <Badge key={tag} variant="secondary" className="gap-1 text-xs">
                       {tag}
-                      <button type="button" onClick={() => removeTag(tag)} className="hover:text-destructive ml-0.5">
+                      <Button variant="ghost" size="icon" type="button" onClick={() => removeTag(tag)} className="hover:text-destructive ml-0.5 h-auto w-auto p-0">
                         <X className="w-3 h-3" />
-                      </button>
+                      </Button>
                     </Badge>
                   ))}
                 </div>
