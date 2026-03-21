@@ -331,7 +331,7 @@ export async function getEnergyFinancialRanking(limit = 10): Promise<{
     .from("gd_monthly_snapshots")
     .select("id, gd_group_id");
 
-  const snapshotGroupMap = new Map(allSnapshots.map((s: any) => [s.id, s.gd_group_id]));
+  const snapshotGroupMap = new Map<string, string>(allSnapshots.map((s: any) => [s.id, s.gd_group_id]));
 
   // Aggregate by group
   const groupTotals = new Map<string, { savings: number; compensated: number }>();
