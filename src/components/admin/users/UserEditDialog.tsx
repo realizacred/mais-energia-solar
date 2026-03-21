@@ -630,7 +630,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-2">
+          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
             <Button variant="ghost" onClick={onClose}>
               Fechar
             </Button>
