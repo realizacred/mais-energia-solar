@@ -30,6 +30,47 @@ export default function ConsultorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data, isLoading } = useConsultorDashboard(user?.id);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportMes, setExportMes] = useState(String(new Date().getMonth() + 1));
+  const [exportAno, setExportAno] = useState(String(new Date().getFullYear()));
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!user?.id) return;
+    setExporting(true);
+    try {
+      const { data: consultor, error: cErr } = await supabase
+        .from("consultores")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      if (cErr || !consultor) throw new Error("Consultor não encontrado");
+
+      const res = await supabase.functions.invoke("generate-consultant-report", {
+        body: { consultor_id: consultor.id, mes: Number(exportMes), ano: Number(exportAno) },
+      });
+      if (res.error) throw res.error;
+
+      const blob = new Blob([res.data], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio-${exportMes}-${exportAno}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportOpen(false);
+      toast.success("Relatório gerado com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao gerar relatório");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const MESES = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  ];
 
   return (
     <div className="w-full space-y-6 p-4 md:p-6">
@@ -44,7 +85,55 @@ export default function ConsultorDashboard() {
             <p className="text-sm text-muted-foreground">Seus leads e metas</p>
           </div>
         </div>
+        <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+          <Download className="w-4 h-4 mr-2" />
+          Exportar Relatório
+        </Button>
       </div>
+
+      {/* Export Dialog — §25-S1, RB-07 */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="w-[90vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-primary" />
+              Exportar Relatório
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Mês</label>
+              <Select value={exportMes} onValueChange={setExportMes}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MESES.map((m, i) => (
+                    <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Ano</label>
+              <Select value={exportAno} onValueChange={setExportAno}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[2024, 2025, 2026].map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setExportOpen(false)} disabled={exporting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleExport} disabled={exporting}>
+              {exporting ? "Gerando..." : "Gerar Relatório"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* §27 KPI Cards */}
       {isLoading ? (
