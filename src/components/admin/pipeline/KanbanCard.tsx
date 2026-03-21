@@ -27,10 +27,14 @@ import {
   Trophy,
   XCircle,
   DollarSign,
+  Flame,
+  Thermometer,
+  Snowflake,
 } from "lucide-react";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatBRLCompact } from "@/lib/formatters";
+import { useLeadScoresMap } from "@/hooks/useLeadScoresMap";
 
 interface Lead {
   id: string;
