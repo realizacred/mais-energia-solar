@@ -26,6 +26,7 @@ const CONTEXT_MESSAGES: Record<string, string> = {
 
 export function AsaasNotConfigured({ context = "generic", className }: AsaasNotConfiguredProps) {
   const navigate = useNavigate();
+  const { trackClick } = useAsaasNotConfiguredTracking(context);
 
   return (
     <EmptyState
@@ -34,7 +35,10 @@ export function AsaasNotConfigured({ context = "generic", className }: AsaasNotC
       description={CONTEXT_MESSAGES[context]}
       action={{
         label: "Configurar integração",
-        onClick: () => navigate("/admin/integracao-asaas"),
+        onClick: () => {
+          trackClick();
+          navigate("/admin/integracao-asaas");
+        },
         icon: Settings,
       }}
       className={className}
