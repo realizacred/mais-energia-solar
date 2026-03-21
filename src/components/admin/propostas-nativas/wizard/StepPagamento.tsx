@@ -544,9 +544,9 @@ export function StepPagamento({
 
       {/* Footer */}
       <div className="pt-3 border-t border-border/30 mt-4">
-        <button onClick={() => setShowVariaveisModal(true)} className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors">
+        <Button variant="link" onClick={() => setShowVariaveisModal(true)} className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors h-auto p-0">
           <Info className="h-3.5 w-3.5" /> Consultar variáveis da proposta
-        </button>
+        </Button>
       </div>
 
       {/* ═══ Modal: Detalhes dos Gastos ═══ */}
