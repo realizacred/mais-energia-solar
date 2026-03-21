@@ -1,5 +1,6 @@
 import { type LucideIcon, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PageHeaderProps {
