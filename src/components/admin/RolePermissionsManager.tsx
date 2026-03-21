@@ -25,6 +25,11 @@ import {
   Zap,
   Brain,
   ClipboardList,
+  Sun,
+  Globe,
+  Package,
+  Trophy,
+  Sparkles,
 } from "lucide-react";
 
 // ═══ Module definitions ═══
