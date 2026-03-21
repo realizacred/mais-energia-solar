@@ -34,6 +34,14 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
   const ucIds = ucs.map((u: any) => u.id);
   const { data: invoices = [] } = useClienteInvoiceSummary(ucIds);
 
+  // GD Energy monthly summary
+  const now = new Date();
+  const brasilNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  let refMonth = brasilNow.getMonth();
+  let refYear = brasilNow.getFullYear();
+  if (refMonth === 0) { refMonth = 12; refYear--; }
+  const { data: energiaResumo } = useClienteEnergiaResumo(clienteId, refYear, refMonth);
+
   const concMap = new Map(concessionarias.map((c) => [c.id, c]));
 
   // Count invoices per UC
