@@ -266,7 +266,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
             return (
               <Collapsible key={stage.id} defaultOpen={stageDeals.length > 0}>
                 <CollapsibleTrigger asChild>
-                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-muted/30 transition-colors">
+                  <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-muted/30 transition-colors h-auto">
                     <div className="flex items-center gap-2 min-w-0">
                       <h3 className="text-sm font-bold text-foreground truncate">{stage.name}</h3>
                       <Badge variant="outline" className="text-[10px] h-5 font-semibold rounded-lg">

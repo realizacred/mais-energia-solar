@@ -235,10 +235,10 @@ function ProjetoDetalheContent() {
               {/* + Etiqueta */}
               <Popover open={etiquetaPopoverOpen} onOpenChange={setEtiquetaPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  <Button variant="ghost" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors h-auto p-0">
                     <Plus className="h-3.5 w-3.5" />
                     Etiqueta
-                  </button>
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-2 z-50" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                   <p className="text-xs font-semibold text-muted-foreground mb-2 px-1">Etiquetas</p>

@@ -139,7 +139,7 @@ function DocumentThumbnail({ path, onClick }: { path: string; onClick: () => voi
   }
 
   return (
-    <button type="button" onClick={onClick} className="w-16 h-16 rounded-lg border-2 border-transparent hover:border-primary overflow-hidden transition-colors group relative">
+    <Button type="button" variant="ghost" onClick={onClick} className="w-16 h-16 rounded-lg border-2 border-transparent hover:border-primary overflow-hidden transition-colors group relative p-0">
       {isImage && url ? (
         <img src={url} alt="Documento" className="w-full h-full object-cover" />
       ) : (

@@ -198,12 +198,12 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
                 step={field.field_type === "currency" ? "0.01" : undefined}
               />
             )}
-            <button onClick={save} disabled={saving} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors shrink-0">
+            <Button variant="ghost" size="icon" onClick={save} disabled={saving} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors shrink-0">
               <Check className="h-3 w-3" />
-            </button>
-            <button onClick={cancel} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground transition-colors shrink-0">
+            </Button>
+            <Button variant="ghost" size="icon" onClick={cancel} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground transition-colors shrink-0">
               <X className="h-3 w-3" />
-            </button>
+            </Button>
           </div>
         </div>
         {showSeparator && <Separator />}

@@ -612,14 +612,15 @@ function ChatView({
           {/* File upload */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant="ghost" size="icon"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1.5 h-auto w-auto rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
                 type="button"
                 disabled={isUploading}
               >
                 {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-[10px]">Enviar arquivo</TooltipContent>
           </Tooltip>

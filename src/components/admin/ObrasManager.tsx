@@ -675,9 +675,9 @@ export function ObrasManager() {
                         <X className="w-3 h-3" />
                       </Button>
                       {idx !== 0 && (
-                        <button type="button" onClick={() => setAsCover(idx)} className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-foreground/70 text-background text-[9px] rounded font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-foreground/90">
+                        <Button variant="ghost" type="button" onClick={() => setAsCover(idx)} className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-foreground/70 text-background text-[9px] rounded font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-foreground/90 h-auto">
                           Definir capa
-                        </button>
+                        </Button>
                       )}
                       {idx === 0 && (
                         <Badge className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[9px]">★ Capa</Badge>

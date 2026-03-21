@@ -751,9 +751,9 @@ function PremissasContent({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
-                  <button onClick={() => onOpenTopoMesAMes(topo)} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">
+                  <Button variant="link" onClick={() => onOpenTopoMesAMes(topo)} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5 h-auto p-0">
                     mês a mês <Pencil className="h-2.5 w-2.5" />
-                  </button>
+                  </Button>
                 </div>
                 <div className="relative">
                   <Input

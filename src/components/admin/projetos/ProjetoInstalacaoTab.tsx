@@ -197,7 +197,7 @@ function ChecklistCard({
 
   return (
     <Card className="border-border/60">
-      <button onClick={onToggleExpand} className="w-full text-left">
+      <Button variant="ghost" onClick={onToggleExpand} className="w-full text-left h-auto p-0">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

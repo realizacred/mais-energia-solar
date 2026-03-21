@@ -462,9 +462,9 @@ export function WaChatPanel({
                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                   {assignedConsultor && <span className="truncate max-w-[80px]">{assignedConsultor.nome}</span>}
                   {conversation.lead_id && (
-                    <button onClick={() => setShowLeadInfo(true)} className="text-primary/70 hover:text-primary transition-colors truncate max-w-[70px]">
+                    <Button variant="link" onClick={() => setShowLeadInfo(true)} className="text-primary/70 hover:text-primary transition-colors truncate max-w-[70px] h-auto p-0 text-[10px]">
                       {assignedConsultor ? " · " : ""}{conversation.lead_nome || "Lead"}
-                    </button>
+                    </Button>
                   )}
                   {currentNotification && (
                     <IntelligenceBadge

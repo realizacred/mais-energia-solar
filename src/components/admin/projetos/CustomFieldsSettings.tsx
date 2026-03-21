@@ -896,9 +896,9 @@ export function CustomFieldsSettings() {
                     return p ? (
                       <Badge key={pid} variant="default" className="gap-1 text-xs">
                         {p.name}
-                        <button onClick={() => setActivityForm(prev => ({
+                        <Button variant="ghost" size="icon" onClick={() => setActivityForm(prev => ({
                           ...prev, pipeline_ids: prev.pipeline_ids.filter(x => x !== pid)
-                        }))} className="ml-0.5 hover:text-destructive">×</button>
+                        }))} className="ml-0.5 hover:text-destructive h-auto w-auto p-0">×</Button>
                       </Badge>
                     ) : null;
                   })}

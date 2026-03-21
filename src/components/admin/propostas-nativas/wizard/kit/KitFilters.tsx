@@ -72,9 +72,9 @@ export function KitFilters({ filters, onFiltersChange, consumoMensal }: KitFilte
     <div className="space-y-4 w-full">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-bold text-foreground">Filtros</h4>
-        <button onClick={clearFilters} className="text-[11px] text-primary hover:underline font-medium">
+        <Button variant="link" onClick={clearFilters} className="text-[11px] text-primary hover:underline font-medium h-auto p-0">
           Limpar filtro
-        </button>
+        </Button>
       </div>
 
       <div className="rounded-lg border border-info/30 bg-info/5 px-3 py-2">

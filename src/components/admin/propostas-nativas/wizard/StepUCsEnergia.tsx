@@ -537,7 +537,7 @@ function TarifaEditRow({ label, value, onEdit }: { label: string; value: number;
     <div className="flex items-center gap-1 text-primary">
       <span className="text-muted-foreground">{label}:</span>
       <span>R${(value || 0).toFixed(5)}</span>
-      <button className="inline-flex" onClick={onEdit}><Edit2 className="h-2.5 w-2.5" /></button>
+      <Button variant="ghost" size="icon" className="inline-flex h-auto w-auto p-0" onClick={onEdit}><Edit2 className="h-2.5 w-2.5" /></Button>
     </div>
   );
 }

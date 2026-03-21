@@ -309,10 +309,10 @@ function DeviceCardWithDetails({ device: d, plantStatus }: { device: MonitorDevi
           <div className="px-3 pb-2 border-t border-border/30 pt-2">
             <InverterSummaryRow device={d} isOffline={coherentStatus === "offline" || coherentStatus === "standby"} />
             <CollapsibleTrigger asChild>
-              <button className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors mt-2">
+              <Button variant="ghost" className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors mt-2 h-auto p-0">
                 {open ? "Ocultar detalhes técnicos" : "Ver detalhes técnicos"}
                 <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
-              </button>
+              </Button>
             </CollapsibleTrigger>
           </div>
         )}
