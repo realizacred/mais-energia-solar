@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -171,10 +172,18 @@ export function ProjetosManager() {
         title="Projetos"
         description="Acompanhe cada projeto da documentação à vistoria"
         actions={
-          <Button onClick={() => { setDefaultConsultorId(undefined); setDefaultStageId(undefined); setDefaultModalPipelineId(undefined); setNovoProjetoOpen(true); }} className="gap-1.5 border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-none font-semibold">
-            <Plus className="h-4 w-4" />
-            Novo Projeto
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => { setDefaultConsultorId(undefined); setDefaultStageId(undefined); setDefaultModalPipelineId(undefined); setNovoProjetoOpen(true); }}
+                className="gap-1.5 font-semibold"
+              >
+                <Plus className="h-4 w-4" />
+                Novo Projeto
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Criar novo projeto de instalação</TooltipContent>
+          </Tooltip>
         }
       />
 
@@ -183,104 +192,30 @@ export function ProjetosManager() {
         open={novoProjetoOpen}
         onOpenChange={setNovoProjetoOpen}
         consultores={consultoresFilter}
-        dynamicEtiquetas={dynamicEtiquetas}
         defaultConsultorId={defaultConsultorId}
         defaultPipelineId={defaultModalPipelineId || selectedPipelineId || pipelines[0]?.id}
         defaultStageId={defaultStageId}
         pipelines={activePipelines.map(p => ({ id: p.id, name: p.name }))}
         stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position, is_closed: s.is_closed }))}
         onSubmit={async (data) => {
-          // ✅ 1) Se selecionou cliente existente, usa ele e NÃO cria outro
-          let customerId: string | undefined = data.clienteId || undefined;
-
-          // ✅ 2) Se não selecionou, chama RPC (deduplica por telefone_normalized via RLS)
-          if (!customerId && data.cliente?.nome?.trim()) {
-            // Bloquear se telefone vazio (clientes.telefone é NOT NULL)
-            if (!data.cliente.telefone?.trim()) {
-              toast({ title: "Telefone obrigatório", description: "Preencha o telefone do cliente para continuar.", variant: "destructive" });
-              return;
-            }
-
-            const rpcPayload = {
-              p_nome: data.cliente.nome,
-              p_telefone: data.cliente.telefone,
-              p_email: data.cliente.email || null,
-              p_cpf_cnpj: data.cliente.cpfCnpj || null,
-              p_empresa: data.cliente.empresa || null,
-              p_cep: data.cliente.cep || null,
-              p_estado: data.cliente.estado || null,
-              p_cidade: data.cliente.cidade || null,
-              p_rua: data.cliente.endereco || null,
-              p_numero: data.cliente.numero || null,
-              p_bairro: data.cliente.bairro || null,
-              p_complemento: data.cliente.complemento || null,
-            };
-
-            console.debug("[NovoProj] RPC payload:", { nome: rpcPayload.p_nome, telefone: rpcPayload.p_telefone });
-
-            const { data: clienteId, error } = await supabase.rpc(
-              "get_or_create_cliente" as any,
-              rpcPayload
-            );
-
-            if (error) {
-              console.error("[NovoProj] RPC error:", error);
-              toast({ title: "Erro ao criar/buscar cliente", description: error.message, variant: "destructive" });
-              return;
-            }
-            if (!clienteId) {
-              console.error("[NovoProj] RPC returned null");
-              toast({ title: "Erro", description: "Não foi possível obter o ID do cliente.", variant: "destructive" });
-              return;
-            }
-            customerId = clienteId as string;
-            console.debug("[NovoProj] customerId resolvido:", customerId);
-          }
-
-          console.debug("[NovoProj] createDeal payload:", {
-            title: data.nome || data.cliente.nome,
-            ownerId: data.consultorId,
-            pipelineId: data.pipelineId,
-            stageId: data.stageId,
-            customerId,
-          });
-
-          // ✅ 3) Validar que temos um cliente antes de criar o deal
+          const customerId = data.clienteId;
           if (!customerId) {
-            toast({ title: "Erro", description: "Selecione ou cadastre um cliente para criar o projeto.", variant: "destructive" });
+            toast({ title: "Erro", description: "Selecione um cliente.", variant: "destructive" });
             return;
           }
 
-          // ✅ 3.5) Guard: verificar se já existe projeto ativo para este cliente
-          const { data: existente } = await supabase
-            .from("projetos")
-            .select("id, codigo")
-            .eq("cliente_id", customerId)
-            .in("status", ["criado", "aguardando_documentacao", "em_analise", "aprovado", "em_instalacao"])
-            .limit(1)
-            .maybeSingle();
-
-          if (existente) {
-            toast({
-              title: "Projeto já existe",
-              description: `Este cliente já tem o projeto ${existente.codigo || "em andamento"}. Abra-o pelo kanban.`,
-              variant: "destructive",
-            });
-            return;
-          }
-
-          // ✅ 4) Cria o projeto/deal vinculando o cliente certo
           const result = await createDeal({
-            title: data.nome || data.cliente.nome,
+            title: data.nome,
             ownerId: data.consultorId || undefined,
             pipelineId: data.pipelineId,
             stageId: data.stageId,
             customerId,
-            etiqueta: data.etiqueta || undefined,
-            notas: data.notas || undefined,
+            value: data.valor,
           });
 
-          console.debug("[NovoProj] createDeal result:", result);
+          if (result?.id) {
+            setSelectedDealId(result.id);
+          }
         }}
       />
 

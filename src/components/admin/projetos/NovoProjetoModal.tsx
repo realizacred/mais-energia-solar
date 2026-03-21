@@ -1,17 +1,13 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useCepLookup } from "@/hooks/useCepLookup";
-import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { supabase } from "@/integrations/supabase/client";
-import { BRAZIL_STATES, CITIES_BY_STATE } from "@/data/brazil-states-cities";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { EmailInput } from "@/components/ui/EmailInput";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,58 +16,23 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectGroup,
-  SelectLabel,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Phone, Loader2, Users, MapPin, Search, FolderKanban, Layers, GitBranch } from "lucide-react";
-import { FloatingSelect } from "@/components/ui/floating-select";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
+import { FolderKanban, Loader2, Search, AlertTriangle, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface DynamicEtiqueta {
-  id: string;
-  nome: string;
-  cor: string;
-  grupo: string;
-  short: string | null;
-  icon: string | null;
-}
-
-interface PipelineOption {
-  id: string;
-  name: string;
-}
-
-interface StageOption {
-  id: string;
-  name: string;
-  pipeline_id: string;
-  position: number;
-  is_closed?: boolean;
-}
-
-interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  consultores: { id: string; nome: string }[];
-  onSubmit?: (data: NovoProjetoData) => void | Promise<void>;
-  defaultConsultorId?: string;
-  dynamicEtiquetas?: DynamicEtiqueta[];
-  pipelines?: PipelineOption[];
-  stages?: StageOption[];
-  defaultPipelineId?: string;
-  defaultStageId?: string;
-}
 
 export interface NovoProjetoData {
   nome: string;
-  descricao: string;
   consultorId: string;
-  etiqueta: string;
-  notas: string;
+  valor?: number;
   pipelineId?: string;
   stageId?: string;
-  clienteId?: string; // ID of existing client (skip creation)
+  clienteId: string;
+  /** @deprecated kept for backward compat — always empty now */
+  descricao: string;
+  etiqueta: string;
+  notas: string;
   cliente: {
     nome: string;
     email: string;
@@ -88,76 +49,79 @@ export interface NovoProjetoData {
   };
 }
 
-const autoCapitalize = (value: string) =>
-  value.replace(/\b\w/g, (char) => char.toUpperCase());
+interface ClienteResult {
+  id: string;
+  nome: string;
+  telefone: string;
+  email: string | null;
+}
+
+interface ProjetoExistente {
+  id: string;
+  codigo: string;
+}
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  consultores: { id: string; nome: string }[];
+  onSubmit?: (data: NovoProjetoData) => void | Promise<void>;
+  defaultConsultorId?: string;
+  /** kept for backward compat — ignored in simplified modal */
+  dynamicEtiquetas?: any[];
+  pipelines?: { id: string; name: string }[];
+  stages?: { id: string; name: string; pipeline_id: string; position: number; is_closed?: boolean }[];
+  defaultPipelineId?: string;
+  defaultStageId?: string;
+}
 
 const emptyCliente = {
   nome: "", email: "", empresa: "", cpfCnpj: "", telefone: "",
   cep: "", estado: "", cidade: "", endereco: "", numero: "", bairro: "", complemento: "",
 };
 
-export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, defaultConsultorId, dynamicEtiquetas = [], pipelines = [], stages = [], defaultPipelineId, defaultStageId }: Props) {
-  const [nome, setNome] = useState("");
-  const [descricao, setDescricao] = useState("");
+export function NovoProjetoModal({
+  open, onOpenChange, consultores, onSubmit,
+  defaultConsultorId, pipelines = [], stages = [],
+  defaultPipelineId, defaultStageId,
+}: Props) {
+  const [search, setSearch] = useState("");
   const [consultorId, setConsultorId] = useState(defaultConsultorId || "");
-  const [etiqueta, setEtiqueta] = useState("");
-  const [notas, setNotas] = useState("");
-  const [selectedPipelineId, setSelectedPipelineId] = useState(defaultPipelineId || "");
-  const [selectedStageId, setSelectedStageId] = useState(defaultStageId || "");
-  const [cliente, setCliente] = useState(emptyCliente);
-  const [selectedClienteId, setSelectedClienteId] = useState<string | undefined>();
-  const [errors, setErrors] = useState<Record<string, boolean>>({});
-  const [similares, setSimilares] = useState<{ id: string; nome: string; telefone: string; email: string | null }[]>([]);
+  const [valor, setValor] = useState(0);
+  const [selectedCliente, setSelectedCliente] = useState<ClienteResult | null>(null);
+  const [resultados, setResultados] = useState<ClienteResult[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [projetoExistente, setProjetoExistente] = useState<ProjetoExistente | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Reset on open
   useEffect(() => {
     if (open) {
+      setSearch("");
       setConsultorId(defaultConsultorId || "");
-      const pid = defaultPipelineId || pipelines[0]?.id || "";
-      setSelectedPipelineId(pid);
-      // Auto-select first stage (e.g. "Prospecção") when no explicit default
-      if (defaultStageId) {
-        setSelectedStageId(defaultStageId);
-      } else if (pid) {
-        const firstStage = stages
-          .filter(s => s.pipeline_id === pid && !s.is_closed)
-          .sort((a, b) => a.position - b.position)[0];
-        setSelectedStageId(firstStage?.id || "");
-      } else {
-        setSelectedStageId("");
-      }
+      setValor(0);
+      setSelectedCliente(null);
+      setResultados([]);
+      setProjetoExistente(null);
     }
-  }, [open, defaultConsultorId, defaultPipelineId, defaultStageId, pipelines, stages]);
+  }, [open, defaultConsultorId]);
 
-  const filteredStages = useMemo(() => {
-    if (!selectedPipelineId) return [];
-    return stages
-      .filter(s => s.pipeline_id === selectedPipelineId)
-      .sort((a, b) => a.position - b.position);
-  }, [selectedPipelineId, stages]);
+  // Auto-select first pipeline/stage
+  const resolvedPipelineId = defaultPipelineId || pipelines[0]?.id || "";
+  const resolvedStageId = useMemo(() => {
+    if (defaultStageId) return defaultStageId;
+    if (!resolvedPipelineId) return "";
+    const first = stages
+      .filter(s => s.pipeline_id === resolvedPipelineId && !s.is_closed)
+      .sort((a, b) => a.position - b.position)[0];
+    return first?.id || "";
+  }, [defaultStageId, resolvedPipelineId, stages]);
 
-  const etiquetaGroups = useMemo(() => {
-    const groups = new Map<string, DynamicEtiqueta[]>();
-    dynamicEtiquetas.forEach(e => {
-      const arr = groups.get(e.grupo) || [];
-      arr.push(e);
-      groups.set(e.grupo, arr);
-    });
-    return groups;
-  }, [dynamicEtiquetas]);
-
-  const updateCliente = useCallback((field: string, value: string) => {
-    setCliente(prev => ({ ...prev, [field]: value }));
-    setSelectedClienteId(undefined); // User is typing manually, clear selection
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }));
-  }, [errors]);
-
+  // Search clients
   useEffect(() => {
-    const term = cliente.nome.trim();
-    if (term.length < 2) { setSimilares([]); return; }
+    const term = search.trim();
+    if (term.length < 2) { setResultados([]); return; }
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -168,487 +132,219 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
           .select("id, nome, telefone, email")
           .ilike("nome", `%${term}%`)
           .limit(8);
-        setSimilares(data ?? []);
-      } catch { setSimilares([]); }
+        setResultados(data ?? []);
+      } catch { setResultados([]); }
       finally { setBuscando(false); }
-    }, 400);
+    }, 350);
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [cliente.nome]);
+  }, [search]);
 
-  const { lookup: lookupCep } = useCepLookup();
+  // Check duplicate project when client is selected
+  useEffect(() => {
+    if (!selectedCliente) { setProjetoExistente(null); return; }
+    let cancelled = false;
 
-  const buscarCep = useCallback(async (cepRaw: string) => {
-    setBuscandoCep(true);
-    const result = await lookupCep(cepRaw);
-    if (result) {
-      setCliente(prev => ({
-        ...prev,
-        estado: result.estado || prev.estado,
-        cidade: result.cidade || prev.cidade,
-        bairro: result.bairro || prev.bairro,
-        endereco: result.rua || prev.endereco,
-        complemento: result.complemento || prev.complemento,
-      }));
-    }
-    setBuscandoCep(false);
-  }, [lookupCep]);
+    (async () => {
+      const { data } = await supabase
+        .from("projetos")
+        .select("id, codigo")
+        .eq("cliente_id", selectedCliente.id)
+        .in("status", ["criado", "aguardando_documentacao", "em_analise", "aprovado", "em_instalacao"])
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setProjetoExistente(data as ProjetoExistente | null);
+    })();
 
-  const handleCepChange = useCallback((raw: string) => {
-    let v = raw.replace(/\D/g, "").slice(0, 8);
-    if (v.length > 5) v = `${v.slice(0,5)}-${v.slice(5)}`;
-    updateCliente("cep", v);
-    if (v.replace(/\D/g, "").length === 8) buscarCep(v);
-  }, [updateCliente, buscarCep]);
+    return () => { cancelled = true; };
+  }, [selectedCliente]);
+
+  const handleSelectCliente = useCallback((c: ClienteResult) => {
+    setSelectedCliente(c);
+    setSearch(c.nome);
+  }, []);
+
+  const handleClearCliente = useCallback(() => {
+    setSelectedCliente(null);
+    setSearch("");
+    setProjetoExistente(null);
+  }, []);
+
+  const canSubmit = !!selectedCliente && !projetoExistente && !submitting;
 
   const handleSubmit = async () => {
-    const newErrors: Record<string, boolean> = {};
-    if (!cliente.nome.trim()) newErrors["cliente.nome"] = true;
-    if (!cliente.telefone.trim()) newErrors["cliente.telefone"] = true;
-    if (cliente.cpfCnpj && cliente.cpfCnpj.replace(/\D/g, "").length >= 11) {
-      // CpfCnpjInput handles validation visually; skip manual check here
-    }
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-
+    if (!canSubmit || !selectedCliente) return;
     setSubmitting(true);
     try {
-      await onSubmit?.({ nome: nome.trim() || cliente.nome.trim(), descricao, consultorId, etiqueta, notas, pipelineId: selectedPipelineId || undefined, stageId: selectedStageId || undefined, clienteId: selectedClienteId, cliente });
-      setNome(""); setDescricao(""); setConsultorId(""); setEtiqueta(""); setNotas(""); setSelectedPipelineId(""); setSelectedStageId("");
-      setCliente(emptyCliente); setSelectedClienteId(undefined); setErrors({}); setSimilares([]);
+      await onSubmit?.({
+        nome: selectedCliente.nome,
+        consultorId,
+        valor: valor > 0 ? valor : undefined,
+        pipelineId: resolvedPipelineId || undefined,
+        stageId: resolvedStageId || undefined,
+        clienteId: selectedCliente.id,
+        // backward compat
+        descricao: "",
+        etiqueta: "",
+        notas: "",
+        cliente: emptyCliente,
+      });
       onOpenChange(false);
-    } finally { setSubmitting(false); }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] lg:max-w-[1060px] max-h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl flex flex-col border-2 border-border/60 shadow-2xl bg-card w-full">
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* Header */}
-        <DialogHeader className="px-6 pt-5 pb-4 border-b-2 border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 shrink-0">
-          <DialogTitle className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2.5">
-            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
-              <FolderKanban className="h-4.5 w-4.5 text-primary" />
-            </div>
-            Novo projeto
-          </DialogTitle>
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FolderKanban className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Novo Projeto
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Selecione o cliente para criar um novo projeto
+            </p>
+          </div>
         </DialogHeader>
 
         {/* Body */}
-        <ScrollArea className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[1fr_1fr_220px] lg:gap-0">
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-5 space-y-5">
+            {/* Campo 1: Cliente (obrigatório) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Cliente <span className="text-destructive">*</span>
+              </Label>
 
-            {/* ── Coluna 1: Projeto ── */}
-            <div className="space-y-3.5 lg:pr-5">
-              <SectionHeader icon={<Users className="h-3.5 w-3.5" />} label="Projeto" color="primary" />
-
-              <Field label="Nome do projeto" htmlFor="projeto-nome">
-                <Input
-                  id="projeto-nome"
-                  placeholder="Nome do projeto"
-                  value={nome}
-                  onChange={e => setNome(autoCapitalize(e.target.value))}
-                  className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
-                />
-              </Field>
-
-              <Field label="Descrição" htmlFor="projeto-descricao">
-                <Textarea
-                  id="projeto-descricao"
-                  placeholder="Escreva aqui..."
-                  value={descricao}
-                  onChange={e => setDescricao(e.target.value)}
-                  className="text-sm min-h-[64px] resize-y bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
-                />
-              </Field>
-
-              <Field label="Consultor">
-                <Select value={consultorId} onValueChange={setConsultorId}>
-                  <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
-                    <SelectValue placeholder="Automático (você)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {consultores.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!consultorId && <p className="text-[11px] text-muted-foreground mt-0.5">Se não selecionado, será atribuído a você automaticamente.</p>}
-              </Field>
-
-              {pipelines.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FloatingSelect
-                    label="Funil"
-                    icon={<Layers className="h-4 w-4" />}
-                    value={selectedPipelineId}
-                    onValueChange={(v) => {
-                      setSelectedPipelineId(v);
-                        const firstStage = stages
-                          .filter(s => s.pipeline_id === v && !s.is_closed)
-                          .sort((a, b) => a.position - b.position)[0];
-                        setSelectedStageId(firstStage?.id || "");
-                    }}
-                    options={pipelines.map(p => ({ value: p.id, label: p.name }))}
-                    placeholder="Selecione o funil"
-                  />
-                  <FloatingSelect
-                    label="Etapa"
-                    icon={<GitBranch className="h-4 w-4" />}
-                    value={selectedStageId}
-                    onValueChange={setSelectedStageId}
-                    options={filteredStages.map(s => ({ value: s.id, label: s.name }))}
-                    placeholder={selectedPipelineId ? "Selecione a etapa" : "Selecione o funil primeiro"}
-                  />
-                </div>
-              )}
-
-              <Field label="Etiqueta">
-                <Select value={etiqueta} onValueChange={setEtiqueta}>
-                  <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
-                    <SelectValue placeholder="Selecione">
-                      {etiqueta && (() => {
-                        const found = dynamicEtiquetas.find(e => e.id === etiqueta || e.nome === etiqueta);
-                        return found ? (
-                          <span
-                            className="text-[10px] font-bold rounded-full px-2 py-0.5 text-white"
-                            style={{ backgroundColor: found.cor }}
-                          >
-                            {found.icon ? `${found.icon} ` : ""}{found.short || found.nome}
-                          </span>
-                        ) : null;
-                      })()}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from(etiquetaGroups.entries()).map(([grupo, items]) => (
-                      <SelectGroup key={grupo}>
-                        <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                          {grupo}
-                        </SelectLabel>
-                        {items.map(et => (
-                          <SelectItem key={et.id} value={et.id}>
-                            <span
-                              className="text-[10px] font-bold rounded-full px-2 py-0.5 text-white mr-2"
-                              style={{ backgroundColor: et.cor }}
-                            >
-                              {et.icon ? `${et.icon} ` : ""}{et.short || et.nome.substring(0, 3).toUpperCase()}
-                            </span>
-                            {et.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-
-              <Field label="Notas" htmlFor="projeto-notas">
-                <Textarea
-                  id="projeto-notas"
-                  placeholder="Notas do projeto..."
-                  value={notas}
-                  onChange={e => setNotas(e.target.value)}
-                  className="text-sm min-h-[56px] resize-none bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
-                />
-              </Field>
-            </div>
-
-            {/* ── Coluna 2: Cliente ── */}
-            <div className="space-y-3.5 lg:border-l-2 lg:border-r-2 lg:border-border/40 lg:px-5">
-              <SectionHeader icon={<Phone className="h-3.5 w-3.5" />} label="Cliente" color="secondary" />
-
-              <Field label="Nome do cliente *" error={errors["cliente.nome"]} htmlFor="cliente-nome">
-                <Input
-                  id="cliente-nome"
-                  placeholder="Digite o nome do cliente"
-                  value={cliente.nome}
-                  onChange={e => updateCliente("nome", autoCapitalize(e.target.value))}
-                  className={cn(
-                    "h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors",
-                    errors["cliente.nome"] && "border-destructive ring-1 ring-destructive/30 bg-destructive/5"
-                  )}
-                />
-                {errors["cliente.nome"] && (
-                  <p className="text-[11px] text-destructive mt-0.5 font-medium">Nome é obrigatório</p>
-                )}
-              </Field>
-
-              <Field label="Email" htmlFor="cliente-email">
-                <EmailInput
-                  id="cliente-email"
-                  value={cliente.email}
-                  onChange={(v) => updateCliente("email", v)}
-                  className="h-9 text-sm"
-                />
-              </Field>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Empresa" htmlFor="cliente-empresa">
-                  <Input
-                    id="cliente-empresa"
-                    placeholder="Nome da empresa"
-                    value={cliente.empresa}
-                    onChange={e => updateCliente("empresa", autoCapitalize(e.target.value))}
-                    className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
-                  />
-                </Field>
-                <Field label="">
-                  <CpfCnpjInput
-                    value={cliente.cpfCnpj}
-                    onChange={(val) => updateCliente("cpfCnpj", val)}
-                    label="CPF/CNPJ"
-                    showValidation
-                    className=""
-                  />
-                </Field>
-              </div>
-
-              <Field label="Telefone *" error={errors["cliente.telefone"]} htmlFor="cliente-telefone">
-                <Input
-                  id="cliente-telefone"
-                  placeholder="(00) 00000-0000"
-                  value={cliente.telefone}
-                  onChange={e => {
-                    let v = e.target.value.replace(/\D/g, "").slice(0, 11);
-                    if (v.length > 6) v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
-                    else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
-                    updateCliente("telefone", v);
-                  }}
-                  className={cn(
-                    "h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors",
-                    errors["cliente.telefone"] && "border-destructive ring-1 ring-destructive/30 bg-destructive/5"
-                  )}
-                />
-                {errors["cliente.telefone"] && (
-                  <p className="text-[11px] text-destructive mt-0.5 font-medium">Telefone é obrigatório</p>
-                )}
-              </Field>
-
-              {/* Endereço sub-section */}
-              <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-3 mt-1">
-                <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <MapPin className="h-3 w-3 text-primary/60" /> Endereço
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-2.5">
-                  <Field label="CEP" htmlFor="cliente-cep">
-                    <div className="relative">
-                      <Input
-                        id="cliente-cep"
-                        placeholder="00000-000"
-                        value={cliente.cep}
-                        onChange={e => handleCepChange(e.target.value)}
-                        className="h-8 text-xs pr-7 bg-card border-border/50"
-                      />
-                      {buscandoCep && (
-                        <Loader2 className="absolute right-2 top-1.5 h-3.5 w-3.5 animate-spin text-primary/50" />
-                      )}
-                    </div>
-                  </Field>
-                  <Field label="Bairro" htmlFor="cliente-bairro">
-                    <Input
-                      id="cliente-bairro"
-                      placeholder="Bairro"
-                      value={cliente.bairro}
-                      onChange={e => updateCliente("bairro", autoCapitalize(e.target.value))}
-                      className="h-8 text-xs bg-card border-border/50"
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  <Field label="Estado *">
-                    <Select
-                      value={cliente.estado}
-                      onValueChange={(v) => {
-                        updateCliente("estado", v);
-                        updateCliente("cidade", "");
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs bg-card border-border/50">
-                        <SelectValue placeholder="UF" />
-                      </SelectTrigger>
-                      <SelectContent className="z-50 bg-popover border border-border shadow-lg max-h-[280px]">
-                        {BRAZIL_STATES.map(s => (
-                          <SelectItem key={s.value} value={s.value} className="text-xs">
-                            {s.value}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Cidade *">
-                    <Select
-                      value={cliente.cidade}
-                      onValueChange={(v) => updateCliente("cidade", v)}
-                      disabled={!cliente.estado}
-                    >
-                      <SelectTrigger className="h-8 text-xs bg-card border-border/50">
-                        <SelectValue placeholder={cliente.estado ? "Selecione a cidade" : "Selecione o estado"} />
-                      </SelectTrigger>
-                      <SelectContent className="z-50 bg-popover border border-border shadow-lg max-h-[280px]">
-                        {(() => {
-                          const cities = CITIES_BY_STATE[cliente.estado] || [];
-                          const allCities = cliente.cidade && !cities.includes(cliente.cidade)
-                            ? [cliente.cidade, ...cities]
-                            : cities;
-                          return allCities.map(city => (
-                            <SelectItem key={city} value={city} className="text-xs">
-                              {city}
-                            </SelectItem>
-                          ));
-                        })()}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-[1fr_64px] gap-2.5">
-                  <Field label="Endereço" htmlFor="cliente-endereco">
-                    <Input
-                      id="cliente-endereco"
-                      placeholder="Rua, Avenida..."
-                      value={cliente.endereco}
-                      onChange={e => updateCliente("endereco", autoCapitalize(e.target.value))}
-                      className="h-8 text-xs bg-card border-border/50"
-                    />
-                  </Field>
-                  <Field label="Nº" htmlFor="cliente-numero">
-                    <Input
-                      id="cliente-numero"
-                      placeholder="Nº"
-                      value={cliente.numero}
-                      onChange={e => updateCliente("numero", e.target.value)}
-                      className="h-8 text-xs bg-card border-border/50"
-                    />
-                  </Field>
-                </div>
-
-                <Field label="Complemento" htmlFor="cliente-complemento">
-                  <Input
-                    id="cliente-complemento"
-                    placeholder="Apto, Bloco..."
-                    value={cliente.complemento}
-                    onChange={e => updateCliente("complemento", autoCapitalize(e.target.value))}
-                    className="h-8 text-xs bg-card border-border/50"
-                  />
-                </Field>
-              </div>
-            </div>
-
-            {/* ── Coluna 3: Similares ── */}
-            <div className="space-y-3 lg:pl-5">
-              <SectionHeader icon={<Search className="h-3.5 w-3.5" />} label="Clientes similares" color="warning" />
-
-              {buscando ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary/40" />
-                </div>
-              ) : similares.length > 0 ? (
-                <div className="space-y-1.5">
-                  {similares.map(c => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedClienteId(c.id);
-                        setCliente(prev => ({
-                          ...prev,
-                          nome: c.nome,
-                          telefone: c.telefone || prev.telefone,
-                          email: c.email || prev.email,
-                        }));
-                      }}
-                      className={cn(
-                        "w-full text-left rounded-lg border p-2.5 hover:border-primary/40 hover:bg-primary/5 transition-all space-y-0.5 group",
-                        selectedClienteId === c.id
-                          ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                          : "border-border/50 bg-muted/30"
-                      )}
-                    >
-                      <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                        {c.nome}
-                        {selectedClienteId === c.id && <span className="ml-1.5 text-[10px] text-primary font-bold">✓ Selecionado</span>}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                        {c.telefone && (
-                          <span className="flex items-center gap-0.5">
-                            <Phone className="h-2.5 w-2.5" />
-                            {c.telefone}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+              {selectedCliente ? (
+                <div className="flex items-center gap-2 rounded-lg border border-primary bg-primary/5 p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{selectedCliente.nome}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {selectedCliente.telefone}{selectedCliente.email ? ` · ${selectedCliente.email}` : ""}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleClearCliente} className="shrink-0 text-xs h-7">
+                    Trocar
+                  </Button>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <div className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center mb-2">
-                    <Search className="h-4 w-4 text-muted-foreground/50" />
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      placeholder="Buscar cliente pelo nome..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9 h-10"
+                      autoFocus
+                    />
+                    {buscando && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {cliente.nome.trim().length >= 2
-                      ? "Nenhum cliente similar encontrado"
-                      : "Digite o nome do cliente para buscar"}
-                  </p>
+
+                  {/* Results */}
+                  {resultados.length > 0 && (
+                    <div className="rounded-lg border border-border max-h-[200px] overflow-y-auto">
+                      {resultados.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => handleSelectCliente(c)}
+                          className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-b-0"
+                        >
+                          <p className="text-sm font-medium text-foreground truncate">{c.nome}</p>
+                          <p className="text-xs text-muted-foreground truncate">{c.telefone}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {search.trim().length >= 2 && !buscando && resultados.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-3">
+                      Nenhum cliente encontrado
+                    </p>
+                  )}
                 </div>
               )}
+
+              {/* Inline duplicate warning */}
+              {projetoExistente && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-warning/50 bg-warning/10 p-3">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground">
+                      Este cliente já tem o projeto {projetoExistente.codigo}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Não é possível criar outro projeto enquanto houver um em andamento.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Campo 2: Consultor (obrigatório) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Consultor responsável <span className="text-destructive">*</span>
+              </Label>
+              <Select value={consultorId} onValueChange={setConsultorId}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Selecione o consultor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {consultores.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!consultorId && (
+                <p className="text-[11px] text-muted-foreground">
+                  Se não selecionado, será atribuído a você automaticamente.
+                </p>
+              )}
+            </div>
+
+            {/* Campo 3: Valor estimado (opcional) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Valor estimado <span className="text-muted-foreground/60">(opcional)</span>
+              </Label>
+              <CurrencyInput
+                value={valor}
+                onChange={setValor}
+                className="h-10"
+              />
             </div>
           </div>
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t-2 border-border/40 bg-muted/20 shrink-0">
+        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
-            className="text-sm h-9 px-5"
           >
-            Fechar
+            Cancelar
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting}
-            className="text-sm px-7 h-9 rounded-xl shadow-sm"
+            disabled={!canSubmit}
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-            {submitting ? "Cadastrando..." : "Cadastrar"}
+            {submitting ? "Criando..." : "Criar projeto"}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/* ── Sub-components ── */
-
-function SectionHeader({ icon, label, color }: { icon: React.ReactNode; label: string; color: "primary" | "secondary" | "warning" }) {
-  const colorMap = {
-    primary: "text-primary bg-primary/10 border-primary/20",
-    secondary: "text-secondary bg-secondary/10 border-secondary/20",
-    warning: "text-warning bg-warning/10 border-warning/20",
-  };
-  return (
-    <div className="flex items-center gap-2 pb-1">
-      <div className={cn("flex items-center justify-center h-6 w-6 rounded-md border", colorMap[color])}>
-        {icon}
-      </div>
-      <h3 className={cn("text-xs font-bold uppercase tracking-wider", `text-${color}`)}>
-        {label}
-      </h3>
-    </div>
-  );
-}
-
-function Field({ label, error, htmlFor, children }: { label: string; error?: boolean; htmlFor?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      {label && (
-        <Label htmlFor={htmlFor} className={cn("text-[11px] font-semibold tracking-wide", error ? "text-destructive" : "text-muted-foreground")}>
-          {label}
-        </Label>
-      )}
-      {children}
-    </div>
   );
 }
