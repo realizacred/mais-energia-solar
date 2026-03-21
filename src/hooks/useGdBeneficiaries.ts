@@ -20,6 +20,9 @@ export interface GdBeneficiary {
   end_date: string | null;
   is_active: boolean;
   notes: string | null;
+  priority_order: number | null;
+  allow_overflow_in: boolean;
+  allow_overflow_out: boolean;
   created_at: string;
   updated_at: string;
 }
