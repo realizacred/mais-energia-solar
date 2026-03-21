@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DollarSign, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { DollarSign, AlertTriangle, TrendingUp, TrendingDown, Upload, X } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 
 interface Comissao {
   id: string;
@@ -62,6 +63,9 @@ export function BulkPaymentDialog({
   onUpdate,
 }: BulkPaymentDialogProps) {
   const [saving, setSaving] = useState(false);
+  const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     forma_pagamento: "",
     data_pagamento: new Date().toISOString().split("T")[0],
@@ -86,15 +90,37 @@ export function BulkPaymentDialog({
   const valorPagoNum = formData.valor_pago ? parseFloat(formData.valor_pago) : totalAReceber;
   const diferenca = valorPagoNum - totalAReceber;
   
-  // Reset valor_pago when dialog opens
+  // Reset when dialog opens
   useEffect(() => {
     if (open) {
       setFormData(prev => ({
         ...prev,
         valor_pago: totalAReceber.toFixed(2),
       }));
+      setComprovanteFile(null);
     }
   }, [open, totalAReceber]);
+
+  const uploadComprovante = async (): Promise<string | null> => {
+    if (!comprovanteFile) return null;
+    setUploading(true);
+    try {
+      const tid = await getCurrentTenantId();
+      if (!tid) throw new Error("Tenant não encontrado");
+      const ext = comprovanteFile.name.split(".").pop()?.toLowerCase() || "pdf";
+      const fileName = tenantPath(tid, "comissoes", `${Date.now()}.${ext}`);
+      const { error: uploadError } = await supabase.storage
+        .from("comprovantes")
+        .upload(fileName, comprovanteFile, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: signedData } = await supabase.storage
+        .from("comprovantes")
+        .createSignedUrl(fileName, 86400 * 365);
+      return signedData?.signedUrl || null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +142,9 @@ export function BulkPaymentDialog({
     setSaving(true);
 
     try {
+      // Upload comprovante if present
+      const comprovanteUrl = await uploadComprovante();
+
       // Calculate how to distribute the payment across commissions
       let valorRestante = valorPagoNum;
       const payments: { comissao_id: string; valor_pago: number }[] = [];
@@ -141,7 +170,6 @@ export function BulkPaymentDialog({
 
       // If there's extra value (advance/credit), add to the last commission or first one
       if (valorRestante > 0 && comissoes.length > 0) {
-        // Create a credit entry - we'll add to existing payment or create new one
         const targetComissao = comissoes[0];
         const existingPayment = payments.find(p => p.comissao_id === targetComissao.id);
         if (existingPayment) {
@@ -170,10 +198,27 @@ export function BulkPaymentDialog({
           forma_pagamento: formData.forma_pagamento,
           data_pagamento: formData.data_pagamento,
           observacoes: observacoesFinais,
+          comprovante_url: comprovanteUrl,
         }))
       );
 
       if (error) throw error;
+
+      // Update status of fully paid commissions
+      for (const comissao of comissoesOrdenadas) {
+        const payment = payments.find(p => p.comissao_id === comissao.id);
+        if (payment && payment.valor_pago >= comissao.saldo) {
+          await supabase
+            .from("comissoes")
+            .update({ status: "pago", updated_at: new Date().toISOString() })
+            .eq("id", comissao.id);
+        } else if (payment) {
+          await supabase
+            .from("comissoes")
+            .update({ status: "parcial", updated_at: new Date().toISOString() })
+            .eq("id", comissao.id);
+        }
+      }
 
       let mensagem = `Pagamento de ${formatCurrency(valorPagoNum)} registrado!`;
       if (diferenca > 0) {
@@ -199,15 +244,22 @@ export function BulkPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Pagamento em Lote
-          </DialogTitle>
+      <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <DollarSign className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Pagamento em Lote
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Registre pagamento para comissões selecionadas
+            </p>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
           {/* Multi-vendor warning */}
           {isMultiVendor && (
             <Alert variant="destructive">
@@ -270,7 +322,7 @@ export function BulkPaymentDialog({
 
           {/* Form */}
           {!isMultiVendor && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="bulk-payment-form" onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="valor_pago">Valor a Pagar *</Label>
                 <Input
@@ -288,7 +340,7 @@ export function BulkPaymentDialog({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Forma de Pagamento *</Label>
                   <Select
@@ -320,6 +372,50 @@ export function BulkPaymentDialog({
                 </div>
               </div>
 
+              {/* Comprovante upload */}
+              <div className="space-y-2">
+                <Label>Comprovante (opcional)</Label>
+                {comprovanteFile ? (
+                  <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30">
+                    <Upload className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm text-foreground truncate flex-1">{comprovanteFile.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 shrink-0"
+                      onClick={() => {
+                        setComprovanteFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4" />
+                    Anexar comprovante
+                  </Button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setComprovanteFile(file);
+                  }}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="observacoes">Observações</Label>
                 <Textarea
@@ -330,22 +426,25 @@ export function BulkPaymentDialog({
                   rows={2}
                 />
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={saving || !formData.forma_pagamento || valorPagoNum <= 0}
-                >
-                  {saving && <Spinner size="sm" className="mr-2" />}
-                  Pagar {formatCurrency(valorPagoNum)}
-                </Button>
-              </div>
             </form>
           )}
         </div>
+
+        {!isMultiVendor && (
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              type="submit"
+              form="bulk-payment-form"
+              disabled={saving || uploading || !formData.forma_pagamento || valorPagoNum <= 0}
+            >
+              {(saving || uploading) && <Spinner size="sm" className="mr-2" />}
+              Pagar {formatCurrency(valorPagoNum)}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
