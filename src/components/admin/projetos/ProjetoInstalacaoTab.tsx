@@ -223,7 +223,7 @@ function ChecklistCard({
             </div>
           )}
         </CardHeader>
-      </button>
+      </Button>
 
       {isExpanded && (
         <CardContent className="space-y-1 pt-0">

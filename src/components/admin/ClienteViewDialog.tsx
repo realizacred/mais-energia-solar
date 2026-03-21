@@ -150,7 +150,7 @@ function DocumentThumbnail({ path, onClick }: { path: string; onClick: () => voi
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
         <Eye className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
       </div>
-    </button>
+    </Button>
   );
 }
 

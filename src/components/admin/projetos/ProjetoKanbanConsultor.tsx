@@ -96,7 +96,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                     <span className="text-[11px] font-mono font-semibold text-success">{formatBRL(col.totalValor)}</span>
                     <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
                   </div>
-                </button>
+                </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="space-y-2 pt-2 pb-1">
