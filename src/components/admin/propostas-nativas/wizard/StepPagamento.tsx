@@ -503,9 +503,9 @@ export function StepPagamento({
 
           {/* Sub-tab for UCs */}
           <div className="border-b border-border/30 pb-0">
-            <button className="text-xs font-medium border-b-2 border-primary pb-2 px-3 text-foreground">
+            <Button variant="ghost" className="text-xs font-medium border-b-2 border-primary pb-2 px-3 text-foreground h-auto rounded-none">
               1. Unidade
-            </button>
+            </Button>
           </div>
 
           {/* Table */}
