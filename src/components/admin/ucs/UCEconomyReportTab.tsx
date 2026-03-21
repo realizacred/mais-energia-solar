@@ -218,10 +218,15 @@ export function UCEconomyReportTab({ unitId }: Props) {
   return (
     <div className="space-y-4">
       {/* Year selector */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" /> Relatório de Economia
         </h3>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting} className="gap-1.5 text-xs">
+            <Download className="w-3.5 h-3.5" />
+            {exporting ? "Gerando..." : "Exportar PDF"}
+          </Button>
         <Select value={selectedYear} onValueChange={setSelectedYear}>
           <SelectTrigger className="w-[120px]">
             <SelectValue />
