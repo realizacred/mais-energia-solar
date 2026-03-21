@@ -128,21 +128,34 @@ export function UCInvoicesTab({ unitId }: Props) {
 
   const handleFileUploadOnly = async (file: File) => {
     setUploading(true);
+    setUploadProgress(10);
+    setUploadStep("Enviando PDF...");
     try {
+      setUploadProgress(30);
       const pdfUrl = await uploadPdf(file);
+      setUploadProgress(60);
+      setUploadStep("Registrando fatura...");
       await invoiceService.create({
         unit_id: unitId,
         reference_month: new Date().getMonth() + 1,
         reference_year: new Date().getFullYear(),
         pdf_file_url: pdfUrl,
         source: "manual",
+        status: "received",
       } as any);
+      setUploadProgress(100);
+      setUploadStep("Concluído!");
       qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
-      toast({ title: "PDF da fatura importado" });
+      toast({ title: "PDF da fatura importado com sucesso" });
     } catch (err: any) {
+      console.error("[UCInvoicesTab] Erro no upload/insert:", err);
       toast({ title: "Erro no upload", description: err?.message, variant: "destructive" });
     } finally {
-      setUploading(false);
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+        setUploadStep("");
+      }, 1200);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
