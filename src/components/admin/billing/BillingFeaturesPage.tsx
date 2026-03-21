@@ -414,7 +414,7 @@ export default function BillingFeaturesPage() {
       <PageHeader
         icon={CreditCard}
         title="Planos e Features"
-        subtitle="Gerencie monetização, módulos liberados e acesso por tenant"
+        description="Gerencie monetização, módulos liberados e acesso por tenant"
       />
 
       {/* KPI Cards §27 */}
