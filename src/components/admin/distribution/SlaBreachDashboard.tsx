@@ -24,9 +24,9 @@ export function SlaBreachDashboard() {
   const queryClient = useQueryClient();
 
   const handleResolve = async (breachId: string) => {
-    const { error } = await supabase
-      .from("sla_breaches")
-      .update({ resolvido: true, resolvido_em: new Date().toISOString() })
+    const { error } = await (supabase as any)
+      .from("wa_sla_alerts")
+      .update({ resolved: true, resolved_at: new Date().toISOString() })
       .eq("id", breachId);
 
     if (error) {

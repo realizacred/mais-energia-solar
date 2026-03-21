@@ -135,19 +135,37 @@ export function useDistributionLog(limit = 50) {
   });
 }
 
-// ── SLA Breaches Hook ────────────────────────────────
+// ── SLA Breaches Hook (reads from wa_sla_alerts) ─────
 export function useSlaBreaches() {
   return useQuery({
     queryKey: ["sla-breaches"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sla_breaches")
-        .select("*, lead:leads(nome, lead_code, telefone), consultor:consultores(nome)")
-        .eq("resolvido", false)
+      const { data, error } = await (supabase as any)
+        .from("wa_sla_alerts")
+        .select("id, tenant_id, conversation_id, tipo, assigned_to, ai_summary, tempo_sem_resposta_minutos, acknowledged, escalated, escalated_at, resolved, resolved_at, created_at, wa_conversations(cliente_nome, lead_id)")
+        .eq("resolved", false)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw error;
-      return (data || []) as unknown as SlaBreach[];
+      // Map to SlaBreach-compatible shape for the dashboard
+      return ((data || []) as any[]).map((a: any) => ({
+        id: a.id,
+        tenant_id: a.tenant_id,
+        lead_id: a.wa_conversations?.lead_id || null,
+        consultor_id: a.assigned_to,
+        sla_rule_id: null,
+        tipo: a.tipo || "resposta",
+        minutos_limite: 0,
+        minutos_real: a.tempo_sem_resposta_minutos,
+        escalado: a.escalated || false,
+        escalado_para: null,
+        resolvido: a.resolved || false,
+        resolvido_em: a.resolved_at,
+        created_at: a.created_at,
+        ai_summary: a.ai_summary,
+        lead: { nome: a.wa_conversations?.cliente_nome || "—", lead_code: null, telefone: "" },
+        vendedor: { nome: "" },
+      })) as SlaBreach[];
     },
     staleTime: 30 * 1000,
   });
