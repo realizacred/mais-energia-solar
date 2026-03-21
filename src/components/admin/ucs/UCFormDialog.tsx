@@ -30,6 +30,8 @@ const EMPTY_FORM = {
   codigo_uc: "", nome: "", tipo_uc: "consumo", concessionaria_id: "",
   classificacao_grupo: "", classificacao_subgrupo: "", modalidade_tarifaria: "",
   observacoes: "", ativo: true,
+  papel_gd: "none", categoria_gd: "", email_fatura: "", leitura_automatica_email: false,
+  cliente_id: "",
 };
 
 const EMPTY_ADDRESS: AddressData = {
