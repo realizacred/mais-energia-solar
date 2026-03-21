@@ -188,8 +188,8 @@ export function PendingDocumentationWidget({
           Clique em um lead para completar a documentação e converter
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="max-h-[350px]">
+      <CardContent className="flex-1 min-h-0 flex flex-col">
+        <ScrollArea className="flex-1 min-h-0 max-h-[320px]">
           <div className="space-y-2">
             {leads.map((lead) => {
               const daysWaiting = getDaysWaiting(lead.updated_at);

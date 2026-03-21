@@ -203,8 +203,8 @@ export function FollowUpNotifications({
           Leads sem contato há mais de {diasAlerta} dias
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="max-h-[300px]">
+      <CardContent className="flex-1 min-h-0 flex flex-col">
+        <ScrollArea className="flex-1 min-h-0 max-h-[320px]">
           <div className="space-y-2">
             {leads.map((lead) => (
               <div
