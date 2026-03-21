@@ -146,7 +146,15 @@ export function derivePlantStatus(input: PlantStatusInput): DerivedPlantStatus {
   }
 
   // Rule 3 (daytime): Provider explicitly says "offline"/"no_communication"
+  // BUT: if the plant generated energy today, it IS online — the stale provider
+  // status from last night's sync should NOT override real generation data.
   if (providerOffline) {
+    if (input.energy_today_kwh > 0) {
+      return {
+        uiStatus: "online",
+        reason: `Gerou ${input.energy_today_kwh.toFixed(1)} kWh hoje (status do provedor desatualizado)`,
+      };
+    }
     return {
       uiStatus: "offline",
       reason: "Provedor confirma offline / sem comunicação",

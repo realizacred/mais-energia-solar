@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Plug, RefreshCw, Trash2, Wifi, WifiOff, Plus, ChevronDown } from "lucide-react";
+import { Plug, RefreshCw, Trash2, Wifi, WifiOff, Plus, ChevronDown, AlertTriangle } from "lucide-react";
 import { listIntegrations, syncProvider, disconnectProvider } from "@/services/monitoring/monitorService";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -30,6 +30,7 @@ export default function MonitorSettings() {
   const { data: integrations = [], isLoading } = useQuery({
     queryKey: ["monitor-integrations"],
     queryFn: listIntegrations,
+    staleTime: 1000 * 60 * 5, // §23: 5 min
   });
 
   const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
@@ -87,6 +88,32 @@ export default function MonitorSettings() {
       <MonitorNav />
 
       <GrowattV1ConfigCard />
+
+      {/* Reconnect alert for integrations with expired sessions */}
+      {(() => {
+        const expiredIntegrations = integrations.filter((i: any) => i.sync_error && /reconect|expirad|expired|failed.*login/i.test(i.sync_error));
+        if (expiredIntegrations.length === 0) return null;
+        return (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Reconexão necessária</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {expiredIntegrations.map((i: any) => getProviderLabel(i.provider)).join(", ")}
+                {" "}— sessão expirada ou credenciais inválidas. Reconecte para retomar a sincronização.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2 border-destructive text-destructive hover:bg-destructive/10"
+                onClick={() => navigate("/admin/catalogo-integracoes")}
+              >
+                Reconectar
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
 
       {integrations.length === 0 ? (
         <EmptyState
@@ -151,6 +178,7 @@ function IntegrationRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const isActive = integration.status === "active" || integration.status === "connected";
+  const hasExpiredError = integration.sync_error && /reconect|expirad|expired|failed.*login/i.test(integration.sync_error);
   const providerLabel = getProviderLabel(integration.provider);
 
   return (
@@ -169,6 +197,12 @@ function IntegrationRow({
                 ? `Última sync ${formatDistanceToNow(new Date(integration.last_sync_at), { addSuffix: true, locale: ptBR })}`
                 : "Nunca sincronizado"}
             </p>
+            {hasExpiredError && (
+              <p className="text-xs text-destructive mt-0.5 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Sessão expirada — reconexão necessária
+              </p>
+            )}
           </div>
         </div>
 
