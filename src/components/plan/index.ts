@@ -3,3 +3,4 @@ export { UpsellBanner } from "./UpsellBanner";
 export { LimitReachedDialog } from "./LimitReachedDialog";
 export { usePlanGuard } from "./PlanGuard";
 export { FeatureGate } from "./FeatureGate";
+export { UpgradeModal } from "./UpgradeModal";
