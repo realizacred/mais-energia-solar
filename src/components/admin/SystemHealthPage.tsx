@@ -34,6 +34,111 @@ const INTEGRATION_LABELS: Record<string, string> = {
   pagamentos: "Pagamentos (Asaas)",
   automacoes: "Automações",
   evolution_api: "Evolution API",
+  supabase: "Supabase (Banco de Dados)",
+  edge_functions: "Edge Functions",
+  storage: "Storage (Arquivos)",
+  email: "E-mail (SMTP)",
+  cron_jobs: "Cron Jobs",
+  monitoramento_solar: "Monitoramento Solar",
+  aneel: "ANEEL (Sync)",
+  tuya: "Tuya (Medidores IoT)",
+};
+
+/** Orientação por integração — exibida para ajudar o admin */
+const INTEGRATION_GUIDANCE: Record<string, { description: string; whenDown: string; configPath?: string }> = {
+  whatsapp: {
+    description: "Envio e recebimento de mensagens via Evolution API.",
+    whenDown: "Verifique a instância em Catálogo de Integrações > Instâncias WhatsApp. Reconecte o QR Code se necessário.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  openai: {
+    description: "IA para geração de textos, resumos e análises.",
+    whenDown: "Verifique a chave API nas configurações de IA. Confirme se o saldo da conta OpenAI está ativo.",
+    configPath: "/admin/ai-config",
+  },
+  google_gemini: {
+    description: "IA alternativa do Google para geração de conteúdo.",
+    whenDown: "Verifique a chave API do Gemini nas configurações de IA.",
+    configPath: "/admin/ai-config",
+  },
+  google_calendar: {
+    description: "Sincronização de compromissos com Google Agenda.",
+    whenDown: "Reconecte a conta Google em Integrações. Verifique se o token OAuth não expirou.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  google_maps: {
+    description: "Geocodificação e mapas para endereços de clientes.",
+    whenDown: "Verifique a chave API do Google Maps. Confirme se a API Geocoding está habilitada no console do Google.",
+  },
+  solarmarket: {
+    description: "Importação de clientes e projetos do SolarMarket.",
+    whenDown: "Verifique as credenciais de acesso ao SolarMarket nas configurações.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  meta_facebook: {
+    description: "Campanhas e leads do Meta/Facebook Ads.",
+    whenDown: "Verifique o token de acesso em Config Meta/Facebook. Tokens expiram a cada 60 dias.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  instagram: {
+    description: "Integração com perfil e leads do Instagram.",
+    whenDown: "Reconecte a conta Instagram via Meta Business. Verifique permissões do app.",
+  },
+  webhooks: {
+    description: "Recebimento de eventos externos via webhook.",
+    whenDown: "Verifique os endpoints configurados e se o serviço externo está enviando corretamente.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  pagamentos: {
+    description: "Gateway de pagamento Asaas (boleto, pix, cartão).",
+    whenDown: "Verifique a chave API do Asaas e o webhook de retorno no painel Asaas.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  automacoes: {
+    description: "Automações de mensagens e follow-up.",
+    whenDown: "Verifique se a instância WhatsApp está conectada e se as regras de automação estão ativas.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  evolution_api: {
+    description: "API de conexão WhatsApp (instâncias, QR Code, envio).",
+    whenDown: "Verifique se o servidor Evolution API está online. Teste a URL base da API.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  supabase: {
+    description: "Banco de dados, autenticação e APIs do backend.",
+    whenDown: "Verifique o status do projeto Supabase em app.supabase.com. Pode ser manutenção programada.",
+  },
+  edge_functions: {
+    description: "Funções serverless para lógica de backend.",
+    whenDown: "Verifique os logs das Edge Functions no painel Supabase. Redeploy pode ser necessário.",
+  },
+  storage: {
+    description: "Armazenamento de arquivos, imagens e documentos.",
+    whenDown: "Verifique as políticas de bucket e o espaço disponível no Storage do Supabase.",
+  },
+  email: {
+    description: "Envio de e-mails transacionais e notificações.",
+    whenDown: "Verifique as configurações SMTP e se o serviço de e-mail está ativo.",
+  },
+  cron_jobs: {
+    description: "Tarefas agendadas (sincronização, limpeza, relatórios).",
+    whenDown: "Acesse a página de Cron Jobs para verificar quais tarefas estão atrasadas.",
+    configPath: "/admin/cron-jobs",
+  },
+  monitoramento_solar: {
+    description: "Dados de geração solar dos provedores (Solarman, SolarEdge, etc).",
+    whenDown: "Verifique as credenciais dos provedores em Integrações de Monitoramento.",
+    configPath: "/admin/catalogo-integracoes",
+  },
+  aneel: {
+    description: "Sincronização de dados regulatórios da ANEEL.",
+    whenDown: "A API da ANEEL pode estar fora do ar. Verifique o último sync em Cron Jobs.",
+    configPath: "/admin/cron-jobs",
+  },
+  tuya: {
+    description: "Leitura de medidores IoT via plataforma Tuya.",
+    whenDown: "Verifique as credenciais Tuya e se os dispositivos estão online no app Tuya Smart.",
+  },
 };
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "destructive" | "muted"> = {
