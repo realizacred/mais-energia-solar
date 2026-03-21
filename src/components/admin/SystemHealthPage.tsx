@@ -359,21 +359,23 @@ export default function SystemHealthPage() {
         <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
           <div>
             <CardTitle className="text-base font-semibold text-foreground">Integrações</CardTitle>
-            <p className="text-sm text-muted-foreground mt-0.5">Status de conexão de todas as integrações</p>
+            <p className="text-sm text-muted-foreground mt-0.5">Clique em uma integração para ver orientações de configuração e solução</p>
           </div>
           <Server className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent className="pt-4 p-0">
           {isLoading ? (
             <div className="p-4 space-y-2">
-              {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
             </div>
           ) : (
             <div className="rounded-lg overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="font-semibold text-foreground w-[30px]" />
                     <TableHead className="font-semibold text-foreground">Integração</TableHead>
+                    <TableHead className="font-semibold text-foreground">Descrição</TableHead>
                     <TableHead className="font-semibold text-foreground">Status</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Latência</TableHead>
                     <TableHead className="font-semibold text-foreground">Último Check</TableHead>
@@ -381,40 +383,111 @@ export default function SystemHealthPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {integrations.map((row) => (
-                    <TableRow key={row.id} className="hover:bg-muted/30 transition-colors align-middle">
-                      <TableCell className="font-medium text-foreground">
-                        {INTEGRATION_LABELS[row.integration_name] || row.integration_name}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge variant={STATUS_VARIANT[row.status] || "muted"} dot>
-                          {STATUS_LABEL[row.status] || row.status}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                        {row.latency_ms != null ? `${row.latency_ms}ms` : "—"}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {row.last_check_at
-                          ? formatDistanceToNow(new Date(row.last_check_at), { addSuffix: true, locale: ptBR })
-                          : "nunca"}
-                      </TableCell>
-                      <TableCell className="max-w-[250px]">
-                        {row.error_message ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-xs text-destructive truncate block" title={row.error_message}>
-                                {row.error_message}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm">{row.error_message}</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                  {integrations.map((row) => {
+                    const guidance = INTEGRATION_GUIDANCE[row.integration_name];
+                    const isExpanded = expandedRow === row.id;
+                    const hasIssue = row.status === "degraded" || row.status === "down" || row.status === "not_configured";
+
+                    return (
+                      <React.Fragment key={row.id}>
+                        <TableRow
+                          className={cn(
+                            "hover:bg-muted/30 transition-colors align-middle cursor-pointer",
+                            hasIssue && "bg-destructive/5",
+                          )}
+                          onClick={() => setExpandedRow(isExpanded ? null : row.id)}
+                        >
+                          <TableCell className="w-[30px] pr-0">
+                            {isExpanded
+                              ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                              : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            }
+                          </TableCell>
+                          <TableCell className="font-medium text-foreground">
+                            {INTEGRATION_LABELS[row.integration_name] || row.integration_name}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                            {guidance?.description || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge variant={STATUS_VARIANT[row.status] || "muted"} dot>
+                              {STATUS_LABEL[row.status] || row.status}
+                            </StatusBadge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm text-muted-foreground">
+                            {row.latency_ms != null ? `${row.latency_ms}ms` : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {row.last_check_at
+                              ? formatDistanceToNow(new Date(row.last_check_at), { addSuffix: true, locale: ptBR })
+                              : "nunca"}
+                          </TableCell>
+                          <TableCell className="max-w-[250px]">
+                            {row.error_message ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs text-destructive truncate block" title={row.error_message}>
+                                    {row.error_message}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-sm">{row.error_message}</TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Expanded guidance row */}
+                        {isExpanded && guidance && (
+                          <TableRow className="bg-muted/30 hover:bg-muted/30">
+                            <TableCell colSpan={7} className="p-0">
+                              <div className="px-6 py-4 space-y-3">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center shrink-0 mt-0.5">
+                                    <BookOpen className="w-4 h-4 text-info" />
+                                  </div>
+                                  <div className="space-y-2 flex-1">
+                                    <p className="text-sm font-medium text-foreground">O que é</p>
+                                    <p className="text-sm text-muted-foreground">{guidance.description}</p>
+                                  </div>
+                                </div>
+
+                                {hasIssue && (
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center shrink-0 mt-0.5">
+                                      <HelpCircle className="w-4 h-4 text-warning" />
+                                    </div>
+                                    <div className="space-y-2 flex-1">
+                                      <p className="text-sm font-medium text-foreground">Como resolver</p>
+                                      <p className="text-sm text-muted-foreground">{guidance.whenDown}</p>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {guidance.configPath && (
+                                  <div className="flex items-center gap-2 pt-1">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-2 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.location.href = guidance.configPath!;
+                                      }}
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                      Ir para configuração
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                      </React.Fragment>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
