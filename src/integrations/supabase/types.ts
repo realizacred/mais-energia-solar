@@ -11998,6 +11998,50 @@ export type Database = {
           },
         ]
       }
+      planos_servico: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          tenant_id: string
+          tipo: string | null
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          tenant_id: string
+          tipo?: string | null
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planos_servico_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           code: string
@@ -20525,6 +20569,7 @@ export type Database = {
           concessionaria_nome: string | null
           created_at: string
           created_by: string | null
+          dia_vencimento: number | null
           email_fatura: string | null
           endereco: Json
           id: string
@@ -20534,7 +20579,9 @@ export type Database = {
           nome: string
           observacoes: string | null
           papel_gd: string
+          plano_servico_id: string | null
           proxima_leitura_data: string | null
+          servico_cobranca_ativo: boolean | null
           simulacao_id: string | null
           status: string
           tenant_id: string
@@ -20544,6 +20591,7 @@ export type Database = {
           ultima_leitura_kwh_103: number | null
           updated_at: string
           updated_by: string | null
+          valor_mensalidade: number | null
         }
         Insert: {
           categoria_gd?: string | null
@@ -20555,6 +20603,7 @@ export type Database = {
           concessionaria_nome?: string | null
           created_at?: string
           created_by?: string | null
+          dia_vencimento?: number | null
           email_fatura?: string | null
           endereco?: Json
           id?: string
@@ -20564,7 +20613,9 @@ export type Database = {
           nome: string
           observacoes?: string | null
           papel_gd?: string
+          plano_servico_id?: string | null
           proxima_leitura_data?: string | null
+          servico_cobranca_ativo?: boolean | null
           simulacao_id?: string | null
           status?: string
           tenant_id?: string
@@ -20574,6 +20625,7 @@ export type Database = {
           ultima_leitura_kwh_103?: number | null
           updated_at?: string
           updated_by?: string | null
+          valor_mensalidade?: number | null
         }
         Update: {
           categoria_gd?: string | null
@@ -20585,6 +20637,7 @@ export type Database = {
           concessionaria_nome?: string | null
           created_at?: string
           created_by?: string | null
+          dia_vencimento?: number | null
           email_fatura?: string | null
           endereco?: Json
           id?: string
@@ -20594,7 +20647,9 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           papel_gd?: string
+          plano_servico_id?: string | null
           proxima_leitura_data?: string | null
+          servico_cobranca_ativo?: boolean | null
           simulacao_id?: string | null
           status?: string
           tenant_id?: string
@@ -20604,6 +20659,7 @@ export type Database = {
           ultima_leitura_kwh_103?: number | null
           updated_at?: string
           updated_by?: string | null
+          valor_mensalidade?: number | null
         }
         Relationships: [
           {
@@ -20618,6 +20674,13 @@ export type Database = {
             columns: ["concessionaria_id"]
             isOneToOne: false
             referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_consumidoras_plano_servico_id_fkey"
+            columns: ["plano_servico_id"]
+            isOneToOne: false
+            referencedRelation: "planos_servico"
             referencedColumns: ["id"]
           },
           {
