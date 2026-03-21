@@ -171,7 +171,7 @@ export function PendingDocumentationWidget({
   }
 
   return (
-    <Card className="border-l-[3px] border-l-warning bg-card">
+    <Card className="border-l-[3px] border-l-warning bg-card flex flex-col h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
