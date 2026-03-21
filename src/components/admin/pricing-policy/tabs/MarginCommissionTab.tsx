@@ -310,7 +310,7 @@ export function MarginCommissionTab() {
               </Select>
             </div>
             {commissionForm.commission_type === "percentage" && (
-              <div className="space-y-1.5"><Label className="text-xs">Taxa (%)</Label><Input type="number" step="0.1" value={commissionForm.parameters.rate ?? 5} onChange={(e) => setCommissionForm((f) => ({ ...f, parameters: { rate: parseFloat(e.target.value) || 0 } }))} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">Percentual (%)</Label><Input type="number" step="0.1" value={commissionForm.parameters.percentual ?? 5} onChange={(e) => setCommissionForm((f) => ({ ...f, parameters: { ...f.parameters, percentual: parseFloat(e.target.value) || 0 } }))} /></div>
             )}
             {commissionForm.commission_type === "fixed" && (
               <div className="space-y-1.5"><Label className="text-xs">Valor (R$)</Label><Input type="number" step="0.01" value={commissionForm.parameters.amount ?? 500} onChange={(e) => setCommissionForm((f) => ({ ...f, parameters: { amount: parseFloat(e.target.value) || 0 } }))} /></div>
