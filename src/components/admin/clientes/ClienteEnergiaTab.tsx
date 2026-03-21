@@ -42,6 +42,7 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
   let refYear = brasilNow.getFullYear();
   if (refMonth === 0) { refMonth = 12; refYear--; }
   const { data: energiaResumo } = useClienteEnergiaResumo(clienteId, refYear, refMonth);
+  const { data: creditData } = useClienteCreditBalance(clienteId);
 
   const concMap = new Map(concessionarias.map((c) => [c.id, c]));
 
