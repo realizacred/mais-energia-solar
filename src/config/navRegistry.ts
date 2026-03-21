@@ -196,6 +196,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
 
   // ── 15. Administração (cont.) ──
   { nav_key: "cron-jobs", label_default: "Tarefas Agendadas", group_default: "Administração", order_default: 55, icon: "Timer", description: "Status das tarefas cron do sistema", keywords: ["cron", "agendamento", "tarefa", "job", "scheduler"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "planos-features", label_default: "Planos e Features", group_default: "Administração", order_default: 56, icon: "CreditCard", description: "Gestão de planos, features e acesso por tenant", keywords: ["plano", "feature", "billing", "monetização", "assinatura", "acesso"], criticality: "normal", permission: "admin_only" },
 ];
 
 // ─── SECTION DEFAULTS ────────────────────────────────────────

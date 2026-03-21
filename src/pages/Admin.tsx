@@ -670,6 +670,7 @@ export default function Admin() {
                 <Route path="data-reset" element={<DataResetManager />} />
                 <Route path="backup" element={<BackupRestorePage />} />
                 <Route path="permissoes" element={<RolePermissionsManager />} />
+                <Route path="planos-features" element={<BillingFeaturesPage />} />
                 
                 <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
                 <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
