@@ -172,24 +172,24 @@ export function PendingDocumentationWidget({
 
   return (
     <Card className="border-l-[3px] border-l-warning bg-card flex flex-col h-full">
-      <CardHeader className="pb-3">
+      <CardHeader className="py-3 px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-              <FileWarning className="h-4 w-4 text-warning" />
+            <div className="w-7 h-7 rounded-md bg-warning/10 flex items-center justify-center">
+              <FileWarning className="h-3.5 w-3.5 text-warning" />
             </div>
-            <CardTitle className="text-base">Aguardando Documentação</CardTitle>
-            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
+            <CardTitle className="text-sm font-semibold">Aguardando Documentação</CardTitle>
+            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px] h-5">
               {leads.length}
             </Badge>
           </div>
         </div>
-        <CardDescription>
+        <CardDescription className="text-xs">
           Clique em um lead para completar a documentação e converter
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 flex flex-col">
-        <ScrollArea className="flex-1 min-h-0 max-h-[320px]">
+      <CardContent className="flex-1 min-h-0 flex flex-col px-4 pt-0 pb-3">
+        <ScrollArea className="flex-1 min-h-0 max-h-[200px]">
           <div className="space-y-2">
             {leads.map((lead) => {
               const daysWaiting = getDaysWaiting(lead.updated_at);
