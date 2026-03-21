@@ -242,7 +242,9 @@ export function GdEnergyMonthly({ groupId }: Props) {
                     <TableHead className="font-semibold text-foreground text-right">%</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Consumo</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Alocado</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Saldo Ant.</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Compensado</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Usado Saldo</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Sobra</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Déficit</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Economia</TableHead>
