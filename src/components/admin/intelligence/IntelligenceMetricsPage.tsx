@@ -75,6 +75,7 @@ export function IntelligenceMetricsPage() {
   }));
 
   return (
+    <FeatureGate featureKey="alerta_performance">
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
