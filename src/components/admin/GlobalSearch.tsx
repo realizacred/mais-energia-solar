@@ -170,7 +170,7 @@ export function GlobalSearch() {
               >
                 <FolderKanban className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{projeto.nome}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{projeto.codigo}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {projeto.status ?? ""} {projeto.potencia_kwp ? `· ${projeto.potencia_kwp} kWp` : ""}
                   </p>
