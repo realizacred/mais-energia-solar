@@ -328,7 +328,7 @@ export function UCOverviewTab({
       </Card>
 
       {/* SEÇÃO 3 — Status dos Dispositivos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
         {/* Card Medidor */}
         <Card>
           <CardHeader className="pb-2">
