@@ -39,6 +39,25 @@ Deno.serve(async (req) => {
   };
 
   try {
+    // ── Auto-recover stuck 'sending' messages (>15min) ──
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { data: stuckRecovered, error: recoverErr } = await supabase
+      .from("wa_outbox")
+      .update({
+        status: "failed",
+        error_message: "Timeout automático — ficou em sending por mais de 15 minutos",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("status", "sending")
+      .lt("updated_at", fifteenMinAgo)
+      .select("id");
+
+    if (recoverErr) {
+      console.warn("[process-wa-outbox] Failed to recover stuck messages:", recoverErr.message);
+    } else if (stuckRecovered && stuckRecovered.length > 0) {
+      console.log(`[process-wa-outbox] Auto-recovered ${stuckRecovered.length} stuck messages`);
+    }
+
     // ── Step 1: Find all connected instances with pending outbox items ──
     const { data: instances, error: instErr } = await supabase
       .from("wa_instances")
