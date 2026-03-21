@@ -516,6 +516,10 @@ Deno.serve(async (req) => {
     if (!isAdmin) {
       const denial = await enforceFeature(supabase, tenantId, "ai_insights", corsHeaders, { userId: user.id });
       if (denial) return denial;
+
+      // Usage limit check
+      const limitDenial = await enforceUsageLimit(supabase, tenantId, "max_ai_insights_month", corsHeaders, { userId: user.id });
+      if (limitDenial) return limitDenial;
     }
 
     const body = await req.json();

@@ -51,6 +51,13 @@ serve(async (req: Request) => {
         continue;
       }
 
+      // Usage limit check per tenant
+      const limitCheck = await checkUsageLimit(supabase, auto.tenant_id, "max_automations");
+      if (!limitCheck.allowed) {
+        console.log(`[pipeline-automations] Skipping auto ${auto.id} — tenant ${auto.tenant_id} automations limit reached (${limitCheck.current_value}/${limitCheck.limit_value})`);
+        continue;
+      }
+
       const cutoffDate = new Date(Date.now() - auto.tempo_horas * 60 * 60 * 1000).toISOString();
 
       // Find deals in the trigger stage that haven't moved since the cutoff
