@@ -70,6 +70,7 @@ const UCDetailPage = lazy(() => import("@/components/admin/ucs/UCDetailPage"));
 const MetersListPage = lazy(() => import("@/components/admin/meters/MetersListPage"));
 const MeterDetailPage = lazy(() => import("@/components/admin/meters/MeterDetailPage"));
 const FaturasEnergiaPage = lazy(() => import("@/components/admin/faturas/FaturasEnergiaPage"));
+const InvoiceReviewPage = lazy(() => import("@/components/admin/faturas/InvoiceReviewPage"));
 const GdGroupsPage = lazy(() => import("@/components/admin/gd/GdGroupsPage").then(m => ({ default: m.GdGroupsPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
@@ -619,6 +620,7 @@ export default function Admin() {
                 
                 {/* Faturas de Energia */}
                 <Route path="faturas-energia" element={<FaturasEnergiaPage />} />
+                <Route path="faturas-energia/revisao" element={<InvoiceReviewPage />} />
                 <Route path="gd-rateio" element={<GdGroupsPage />} />
                 
                 {/* Unidades Consumidoras */}

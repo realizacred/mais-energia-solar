@@ -3,11 +3,12 @@
  * Consolidated view of all invoices with filters, upload, Gmail integration.
  */
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { invoiceService } from "@/services/invoiceService";
 import { useStartInvoiceImport } from "@/hooks/useInvoiceImport";
+import { useInvoicesList, useInvoiceKPIs } from "@/hooks/useInvoicesList";
+import { invoiceService } from "@/services/invoiceService";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { ImportJobsPanel } from "./ImportJobsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2,
-  Upload, Search, MoreHorizontal, Trash2, ExternalLink, Filter,
+  Upload, Search, MoreHorizontal, Trash2, ExternalLink, AlertTriangle,
+  ChevronLeft, ChevronRight, FileSearch,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
@@ -54,6 +56,10 @@ export default function FaturasEnergiaPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterYear, setFilterYear] = useState("all");
   const [searchText, setSearchText] = useState("");
+  const [page, setPage] = useState(0);
+
+  // Reset page when filters change
+  useEffect(() => { setPage(0); }, [filterUC, filterStatus, filterYear, searchText]);
 
   // Gmail redirect toast
   useEffect(() => {
@@ -95,14 +101,33 @@ export default function FaturasEnergiaPage() {
     staleTime: STALE,
   });
 
-  // All invoices (central view)
-  const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
-    queryKey: ["central_invoices", filterUC, filterStatus, filterYear],
-    queryFn: () => invoiceService.listAll({
-      unit_id: filterUC !== "all" ? filterUC : undefined,
-      status: filterStatus !== "all" ? filterStatus : undefined,
-      reference_year: filterYear !== "all" ? Number(filterYear) : undefined,
-    }),
+  // Paginated invoices
+  const filters = {
+    unit_id: filterUC !== "all" ? filterUC : undefined,
+    status: filterStatus !== "all" ? filterStatus : undefined,
+    reference_year: filterYear !== "all" ? Number(filterYear) : undefined,
+    search: searchText || undefined,
+  };
+  const { data: invoicesResult, isLoading: loadingInvoices } = useInvoicesList(filters, page);
+  const invoices = invoicesResult?.data || [];
+  const totalCount = invoicesResult?.totalCount || 0;
+  const pageSize = invoicesResult?.pageSize || 50;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // KPIs
+  const { data: kpis } = useInvoiceKPIs();
+
+  // Years for filter (from a lightweight query)
+  const { data: years = [] } = useQuery({
+    queryKey: ["invoice_years"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("unit_invoices")
+        .select("reference_year")
+        .order("reference_year", { ascending: false });
+      const unique = [...new Set((data || []).map((d: any) => d.reference_year))];
+      return unique as number[];
+    },
     staleTime: STALE,
   });
 
@@ -113,6 +138,7 @@ export default function FaturasEnergiaPage() {
       toast({ title: "Fatura excluída" });
       qc.invalidateQueries({ queryKey: ["central_invoices"] });
       qc.invalidateQueries({ queryKey: ["unit_invoices"] });
+      qc.invalidateQueries({ queryKey: ["invoice_kpis"] });
       setDeleteId(null);
     },
     onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
@@ -120,21 +146,6 @@ export default function FaturasEnergiaPage() {
 
   const isConnected = !!gmailConfig?.is_active;
   const connectedEmail = (gmailConfig?.settings as any)?.email;
-
-  // Filter by search
-  const filtered = invoices.filter((inv: any) => {
-    if (!searchText) return true;
-    const s = searchText.toLowerCase();
-    const ucName = inv.units_consumidoras?.nome?.toLowerCase() || "";
-    const ucCode = inv.units_consumidoras?.codigo_uc?.toLowerCase() || "";
-    const conc = inv.units_consumidoras?.concessionaria_nome?.toLowerCase() || "";
-    return ucName.includes(s) || ucCode.includes(s) || conc.includes(s);
-  });
-
-  // KPI
-  const totalFaturas = filtered.length;
-  const totalValor = filtered.reduce((s: number, i: any) => s + (Number(i.total_amount) || 0), 0);
-  const years = [...new Set(invoices.map((i: any) => i.reference_year))].sort((a, b) => b - a);
 
   async function handleConnect() {
     try {
@@ -181,6 +192,7 @@ export default function FaturasEnergiaPage() {
       if (result.duplicate > 0) parts.push(`${result.duplicate} duplicada(s)`);
       if (result.errors > 0) parts.push(`${result.errors} erro(s)`);
       toast({ title: parts.join(", ") || "Importação concluída" });
+      qc.invalidateQueries({ queryKey: ["invoice_kpis"] });
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err?.message, variant: "destructive" });
     } finally {
@@ -193,58 +205,72 @@ export default function FaturasEnergiaPage() {
       <PageHeader
         icon={FileText}
         title="Central de Faturas"
-        description="Visão consolidada de todas as faturas de energia"
+        description="Gestão e importação inteligente de faturas"
+        actions={
+          <Link to="/admin/faturas-energia/revisao">
+            <Button variant="outline" size="sm">
+              <FileSearch className="w-4 h-4 mr-1" /> Revisão
+            </Button>
+          </Link>
+        }
       />
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{totalFaturas}</p>
-              <p className="text-sm text-muted-foreground mt-1">Total de faturas</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{kpis?.totalCount ?? 0}</p>
+              <p className="text-sm text-muted-foreground mt-1">Total faturas</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-l-[3px] border-l-success bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
-              <Building2 className="w-5 h-5" />
+              <Upload className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalValor)}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">Valor total</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{kpis?.monthImported ?? 0}</p>
+              <p className="text-sm text-muted-foreground mt-1">Importadas (mês)</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
-              <Mail className="w-5 h-5" />
+              <Copy className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                {isConnected ? "Ativo" : "Inativo"}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">Gmail</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{kpis?.monthDuplicate ?? 0}</p>
+              <p className="text-sm text-muted-foreground mt-1">Duplicadas (mês)</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-destructive bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{kpis?.monthErrors ?? 0}</p>
+              <p className="text-sm text-muted-foreground mt-1">Erros (mês)</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
-              <Upload className="w-5 h-5" />
+              <Building2 className="w-5 h-5" />
             </div>
             <div>
               <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                {filtered.filter((i: any) => i.source === "upload").length}
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact" }).format(kpis?.totalValor ?? 0)}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">Upload manual</p>
+              <p className="text-sm text-muted-foreground mt-1">Valor total</p>
             </div>
           </CardContent>
         </Card>
@@ -290,6 +316,9 @@ export default function FaturasEnergiaPage() {
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <FileText className="w-4 h-4" /> Faturas
+            {totalCount > 0 && (
+              <span className="text-xs font-normal text-muted-foreground">({totalCount})</span>
+            )}
           </CardTitle>
           <div className="flex items-center gap-2">
             <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleUploadPdf} multiple />
@@ -347,86 +376,117 @@ export default function FaturasEnergiaPage() {
                 <Skeleton key={i} className="h-12 w-full rounded-lg" />
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : invoices.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">Nenhuma fatura encontrada</p>
               <p className="text-xs text-muted-foreground mt-1">Importe PDFs ou conecte o Gmail para receber faturas automaticamente</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="text-xs font-semibold text-foreground">UC</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">Concessionária</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">Referência</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground text-right">Valor</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground text-right">Consumo</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">Vencimento</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">Origem</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">Status</TableHead>
-                    <TableHead className="w-[50px]" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((inv: any) => (
-                    <TableRow key={inv.id} className="hover:bg-muted/30">
-                      <TableCell className="text-sm font-medium">
-                        {inv.units_consumidoras?.nome || "—"}
-                        <span className="block text-xs text-muted-foreground font-mono">{inv.units_consumidoras?.codigo_uc}</span>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{inv.units_consumidoras?.concessionaria_nome || "—"}</TableCell>
-                      <TableCell className="text-sm">
-                        {MONTH_LABELS[inv.reference_month] || inv.reference_month}/{inv.reference_year}
-                      </TableCell>
-                      <TableCell className="text-sm text-right font-mono">
-                        {inv.total_amount != null
-                          ? `R$ ${Number(inv.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-sm text-right font-mono">
-                        {inv.energy_consumed_kwh != null ? `${Number(inv.energy_consumed_kwh).toLocaleString("pt-BR")} kWh` : "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {inv.source === "upload" ? "Upload" : inv.source === "email" ? "E-mail" : inv.source || "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`text-xs ${
-                          inv.status === "processed" ? "bg-success/10 text-success border-success/20" :
-                          inv.status === "error" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                          ""
-                        }`}>
-                          {inv.status || "pendente"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {inv.pdf_file_url && (
-                              <DropdownMenuItem onClick={() => window.open(inv.pdf_file_url, "_blank")}>
-                                <ExternalLink className="w-4 h-4 mr-2" /> Ver PDF
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(inv.id)}>
-                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+            <>
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="text-xs font-semibold text-foreground">UC</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">Concessionária</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">Referência</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground text-right">Valor</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground text-right">Consumo</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">Vencimento</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">Origem</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">Status</TableHead>
+                      <TableHead className="w-[50px]" />
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {invoices.map((inv: any) => (
+                      <TableRow key={inv.id} className="hover:bg-muted/30">
+                        <TableCell className="text-sm font-medium">
+                          {inv.units_consumidoras?.nome || "—"}
+                          <span className="block text-xs text-muted-foreground font-mono">{inv.units_consumidoras?.codigo_uc}</span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{inv.units_consumidoras?.concessionaria_nome || "—"}</TableCell>
+                        <TableCell className="text-sm">
+                          {MONTH_LABELS[inv.reference_month] || inv.reference_month}/{inv.reference_year}
+                        </TableCell>
+                        <TableCell className="text-sm text-right font-mono">
+                          {inv.total_amount != null
+                            ? `R$ ${Number(inv.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-right font-mono">
+                          {inv.energy_consumed_kwh != null ? `${Number(inv.energy_consumed_kwh).toLocaleString("pt-BR")} kWh` : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {inv.source === "upload" ? "Upload" : inv.source === "email" ? "E-mail" : inv.source || "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`text-xs ${
+                            inv.status === "processed" ? "bg-success/10 text-success border-success/20" :
+                            inv.status === "error" ? "bg-destructive/10 text-destructive border-destructive/20" :
+                            ""
+                          }`}>
+                            {inv.status || "pendente"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {inv.pdf_file_url && (
+                                <DropdownMenuItem onClick={() => window.open(inv.pdf_file_url, "_blank")}>
+                                  <ExternalLink className="w-4 h-4 mr-2" /> Ver PDF
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(inv.id)}>
+                                <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                  <p className="text-xs text-muted-foreground">
+                    Página {page + 1} de {totalPages} ({totalCount} faturas)
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      disabled={page === 0}
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      disabled={page >= totalPages - 1}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
