@@ -581,6 +581,7 @@ export default function Admin() {
                 <Route path="ucs/:id" element={<UCDetailPage />} />
                 
                 {/* Financeiro */}
+                <Route path="financeiro-dashboard" element={<FinanceiroDashboard />} />
                 <Route path="recebimentos" element={<RecebimentosManager />} />
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
