@@ -445,6 +445,15 @@ export default function UCDetailPage() {
               servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
             />
 
+            {/* Histórico de Cobranças */}
+            <UCBillingHistoryCard
+              unitId={uc.id}
+              clienteId={(uc as any).cliente_id || null}
+              tenantId={uc.tenant_id}
+              valorMensalidade={(uc as any).valor_mensalidade || null}
+              diaVencimento={(uc as any).dia_vencimento || null}
+            />
+
             {/* Faturas por E-mail */}
             <UCBillingSettingsTab unitId={uc.id} />
 
