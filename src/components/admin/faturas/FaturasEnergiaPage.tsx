@@ -1,12 +1,12 @@
 /**
  * FaturasEnergiaPage — Automatic energy billing via Gmail integration.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2,
+  Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2, Upload,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
@@ -26,6 +26,8 @@ export default function FaturasEnergiaPage() {
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
   const [disconnecting, setDisconnecting] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Show toast on redirect from OAuth callback
   useEffect(() => {
@@ -160,6 +162,45 @@ export default function FaturasEnergiaPage() {
     return `${code}@faturas.maisenergiasolar.com.br`;
   }
 
+  async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast({ title: "Formato inválido", description: "Selecione um arquivo PDF", variant: "destructive" });
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
+        body: { pdf_base64: base64, source: "upload" },
+      });
+
+      if (error) throw error;
+
+      if (data?.parsed) {
+        const p = data.parsed;
+        toast({
+          title: "✅ Fatura processada",
+          description: `UC ${p.numero_uc || "N/A"} — Consumo: ${p.consumo_kwh ?? "N/A"} kWh — Valor: R$ ${p.valor_total ?? "N/A"}`,
+        });
+        qc.invalidateQueries({ queryKey: ["unit_invoices"] });
+      } else if (data?.error) {
+        toast({ title: "Erro no processamento", description: data.error, variant: "destructive" });
+      } else {
+        toast({ title: "Fatura enviada para processamento" });
+        qc.invalidateQueries({ queryKey: ["unit_invoices"] });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.message || "Falha ao processar PDF", variant: "destructive" });
+    } finally {
+      setUploadingPdf(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -201,15 +242,50 @@ export default function FaturasEnergiaPage() {
               </Button>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">
-                  Conecte sua conta Gmail para receber faturas de energia automaticamente.
-                </p>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Conecte sua conta Gmail</p>
+                  <p className="text-xs text-muted-foreground">Autorize o acesso para receber faturas automaticamente</p>
+                </div>
+                <Button size="sm" onClick={handleConnect}>
+                  <Mail className="w-4 h-4 mr-1" /> Conectar Gmail
+                </Button>
               </div>
-              <Button size="sm" onClick={handleConnect}>
-                <Mail className="w-4 h-4 mr-1" /> Conectar Gmail
-              </Button>
+
+              {/* Onboarding steps */}
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <p className="text-xs font-semibold text-foreground">Como funciona em 3 passos:</p>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">1</div>
+                  <div>
+                    <p className="text-xs font-medium text-foreground">Conecte sua conta Gmail</p>
+                    <p className="text-xs text-muted-foreground">Clique no botão acima para autorizar o acesso à caixa de entrada</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center shrink-0">2</div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Cadastre o e-mail de cada UC na concessionária</p>
+                    <p className="text-xs text-muted-foreground">Vá em cada UC → Configurações → Faturas por e-mail e copie o e-mail gerado</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center shrink-0">3</div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Pronto! Faturas chegam automaticamente</p>
+                    <p className="text-xs text-muted-foreground">O sistema verifica sua caixa a cada hora, extrai os dados e notifica o cliente</p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground mb-1.5">Concessionárias suportadas:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {["CEMIG","Energisa","COPEL","CPFL","Enel","Light","CELESC","Equatorial"].map(c => (
+                      <Badge key={c} variant="outline" className="text-xs bg-muted text-muted-foreground">{c}</Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
@@ -294,10 +370,28 @@ export default function FaturasEnergiaPage() {
 
       {/* Section 3 — Received Invoices */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
             <FileText className="w-4 h-4" /> Faturas Recebidas
           </CardTitle>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleUploadPdf}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPdf}
+            >
+              {uploadingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+              Processar PDF
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingInvoices ? (
