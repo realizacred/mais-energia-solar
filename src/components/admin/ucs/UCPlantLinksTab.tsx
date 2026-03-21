@@ -177,7 +177,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
               updated_at: plant?.last_seen_at || null,
               power_kw: null,
               energy_today_kwh: energyToday,
-              provider_status: plant?.state,
+              provider_status: null, // monitor_plants.state is geographic, not operational
             });
             const statusLabel: Record<PlantUiStatus, string> = { online: "Online", standby: "Standby", offline: "Offline" };
             const statusClass: Record<PlantUiStatus, string> = {
