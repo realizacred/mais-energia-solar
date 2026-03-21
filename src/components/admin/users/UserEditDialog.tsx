@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
