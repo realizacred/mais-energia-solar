@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClientLinkedPlants } from "./monitoring-v2/ClientLinkedPlants";
+import { ClienteEnergiaTab } from "./clientes/ClienteEnergiaTab";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
