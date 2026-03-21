@@ -9,7 +9,7 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Timer, RefreshCw, CheckCircle2, XCircle, AlertTriangle, Clock, Loader2 } from "lucide-react";
+import { Timer, RefreshCw, CheckCircle2, XCircle, AlertTriangle, Clock, Loader2, Info } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
