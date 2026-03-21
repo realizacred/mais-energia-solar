@@ -32,7 +32,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify JWT
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authErr } = await anonClient.auth.getUser(token);
@@ -43,7 +42,6 @@ serve(async (req) => {
       });
     }
 
-    // Get tenant
     const { data: profile } = await supabase
       .from("profiles")
       .select("tenant_id")
@@ -67,7 +65,6 @@ serve(async (req) => {
       });
     }
 
-    // Determine which groups to calculate
     let groupIds: string[] = [];
     if (gd_group_id) {
       groupIds = [gd_group_id];
@@ -104,6 +101,170 @@ serve(async (req) => {
   }
 });
 
+// ─── Generation Source Resolver (server-side) ───────────────────
+
+async function resolveGenerationSource(
+  supabase: any,
+  ucGeradoraId: string,
+  year: number,
+  month: number
+) {
+  // Priority 1: Meter readings
+  const meterResult = await getMeterGeneration(supabase, ucGeradoraId, year, month);
+  if (meterResult) return meterResult;
+
+  // Priority 2: Monitoring daily readings
+  const monResult = await getMonitoringGeneration(supabase, ucGeradoraId, year, month);
+  if (monResult) return monResult;
+
+  // Priority 3: Invoice
+  const invResult = await getInvoiceGeneration(supabase, ucGeradoraId, year, month);
+  if (invResult) return invResult;
+
+  // Priority 4: Missing
+  return {
+    generation_kwh: 0,
+    generator_consumption_kwh: 0,
+    source_type: "missing",
+    source_id: null,
+    confidence: "missing",
+    notes: "Nenhuma fonte de geração encontrada",
+    status: "missing_generation",
+  };
+}
+
+async function getMeterGeneration(supabase: any, ucId: string, year: number, month: number) {
+  const { data: links } = await supabase
+    .from("unit_meter_links")
+    .select("meter_device_id")
+    .eq("unit_id", ucId)
+    .eq("is_active", true);
+  if (!links?.length) return null;
+
+  const meterIds = links.map((l: any) => l.meter_device_id);
+  const startDate = new Date(year, month - 1, 1).toISOString();
+  const endDate = new Date(year, month, 1).toISOString();
+
+  const { data: readings } = await supabase
+    .from("meter_readings")
+    .select("energy_export_kwh, energy_import_kwh, meter_device_id")
+    .in("meter_device_id", meterIds)
+    .gte("measured_at", startDate)
+    .lt("measured_at", endDate);
+
+  if (!readings?.length) return null;
+
+  const groups = new Map<string, number[]>();
+  for (const r of readings) {
+    const v = Number(r.energy_export_kwh);
+    if (isNaN(v) || v === 0) continue;
+    if (!groups.has(r.meter_device_id)) groups.set(r.meter_device_id, []);
+    groups.get(r.meter_device_id)!.push(v);
+  }
+
+  let totalExport = 0;
+  let bestId: string | null = null;
+  for (const [id, vals] of groups) {
+    if (vals.length < 2) continue;
+    const delta = Math.max(...vals) - Math.min(...vals);
+    if (delta > 0) { totalExport += delta; bestId = id; }
+  }
+  if (totalExport <= 0) return null;
+
+  const importGroups = new Map<string, number[]>();
+  for (const r of readings) {
+    const v = Number(r.energy_import_kwh);
+    if (isNaN(v) || v === 0) continue;
+    if (!importGroups.has(r.meter_device_id)) importGroups.set(r.meter_device_id, []);
+    importGroups.get(r.meter_device_id)!.push(v);
+  }
+  let totalImport = 0;
+  for (const vals of importGroups.values()) {
+    if (vals.length >= 2) totalImport += Math.max(...vals) - Math.min(...vals);
+  }
+
+  return {
+    generation_kwh: Math.round(totalExport * 100) / 100,
+    generator_consumption_kwh: Math.round(totalImport * 100) / 100,
+    source_type: "meter",
+    source_id: bestId,
+    confidence: "high",
+    notes: `Medidor: ${readings.length} leituras`,
+    status: "complete",
+  };
+}
+
+async function getMonitoringGeneration(supabase: any, ucId: string, year: number, month: number) {
+  const { data: plantLinks } = await supabase
+    .from("unit_plant_links")
+    .select("plant_id")
+    .eq("unit_id", ucId)
+    .eq("is_active", true);
+  if (!plantLinks?.length) return null;
+
+  const plantIds = plantLinks.map((l: any) => l.plant_id);
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
+
+  const { data: daily } = await supabase
+    .from("monitor_readings_daily")
+    .select("energy_kwh, plant_id")
+    .in("plant_id", plantIds)
+    .gte("date", startDate)
+    .lte("date", endDate);
+
+  if (!daily?.length) return null;
+
+  let total = 0;
+  let bestPlant: string | null = null;
+  for (const r of daily) {
+    const v = Number(r.energy_kwh);
+    if (!isNaN(v) && v > 0) { total += v; bestPlant = r.plant_id; }
+  }
+  if (total <= 0) return null;
+
+  const daysWithData = daily.filter((r: any) => Number(r.energy_kwh) > 0).length;
+  const confidence = daysWithData >= lastDay * 0.9 ? "high" : daysWithData >= lastDay * 0.5 ? "medium" : "low";
+
+  return {
+    generation_kwh: Math.round(total * 100) / 100,
+    generator_consumption_kwh: 0,
+    source_type: "monitoring",
+    source_id: bestPlant,
+    confidence,
+    notes: `Monitoramento: ${daysWithData}/${lastDay} dias`,
+    status: "complete",
+  };
+}
+
+async function getInvoiceGeneration(supabase: any, ucId: string, year: number, month: number) {
+  const { data: invoice } = await supabase
+    .from("unit_invoices")
+    .select("id, energy_consumed_kwh, energy_injected_kwh, compensated_kwh")
+    .eq("unit_id", ucId)
+    .eq("reference_year", year)
+    .eq("reference_month", month)
+    .maybeSingle();
+
+  if (!invoice) return null;
+  const gen = Number(invoice.energy_injected_kwh ?? invoice.compensated_kwh ?? 0);
+  const cons = Number(invoice.energy_consumed_kwh ?? 0);
+  if (gen <= 0 && cons <= 0) return null;
+
+  return {
+    generation_kwh: gen,
+    generator_consumption_kwh: cons,
+    source_type: "invoice",
+    source_id: invoice.id,
+    confidence: gen > 0 ? "medium" : "low",
+    notes: gen > 0 ? "Fatura: energia injetada" : "Fatura: sem geração",
+    status: gen > 0 ? "complete" : "partial",
+  };
+}
+
+// ─── Main Calculation ───────────────────────────────────────────
+
 async function calculateGroupMonth(
   supabase: any,
   gdGroupId: string,
@@ -111,7 +272,6 @@ async function calculateGroupMonth(
   month: number,
   recalculate: boolean
 ) {
-  // Load group
   const { data: group, error: gErr } = await supabase
     .from("gd_groups")
     .select("id, tenant_id, uc_geradora_id, status")
@@ -119,7 +279,6 @@ async function calculateGroupMonth(
     .single();
   if (gErr || !group) throw new Error(`Group not found: ${gdGroupId}`);
 
-  // Check existing
   if (!recalculate) {
     const { data: existing } = await supabase
       .from("gd_monthly_snapshots")
@@ -131,20 +290,9 @@ async function calculateGroupMonth(
     if (existing?.calculation_status === "complete") return existing;
   }
 
-  // Get generation from invoice
-  const { data: genInvoice } = await supabase
-    .from("unit_invoices")
-    .select("id, energy_consumed_kwh, energy_injected_kwh, compensated_kwh")
-    .eq("unit_id", group.uc_geradora_id)
-    .eq("reference_year", year)
-    .eq("reference_month", month)
-    .maybeSingle();
+  // Resolve generation with multi-source hierarchy
+  const genSource = await resolveGenerationSource(supabase, group.uc_geradora_id, year, month);
 
-  const generation_kwh = Number(genInvoice?.energy_injected_kwh ?? genInvoice?.compensated_kwh ?? 0);
-  const generator_consumption_kwh = Number(genInvoice?.energy_consumed_kwh ?? 0);
-  const genStatus = !genInvoice ? "missing_generation" : generation_kwh > 0 ? "complete" : "partial";
-
-  // Get beneficiaries
   const { data: bens = [] } = await supabase
     .from("gd_group_beneficiaries")
     .select("id, uc_beneficiaria_id, allocation_percent, is_active")
@@ -156,7 +304,7 @@ async function calculateGroupMonth(
   const allocations: any[] = [];
 
   for (const ben of bens) {
-    const allocated_kwh = Math.round(generation_kwh * (ben.allocation_percent / 100) * 100) / 100;
+    const allocated_kwh = Math.round(genSource.generation_kwh * (ben.allocation_percent / 100) * 100) / 100;
 
     const { data: benInvoice } = await supabase
       .from("unit_invoices")
@@ -192,12 +340,9 @@ async function calculateGroupMonth(
     });
   }
 
-  let calcStatus = "complete";
-  if (genStatus === "missing_generation") calcStatus = "missing_generation";
-  else if (hasMissing) calcStatus = "missing_beneficiary_invoice";
-  else if (genStatus === "partial") calcStatus = "partial";
+  let calcStatus = genSource.status;
+  if (calcStatus === "complete" && hasMissing) calcStatus = "missing_beneficiary_invoice";
 
-  // Upsert snapshot
   const { data: snapshot, error: snapErr } = await supabase
     .from("gd_monthly_snapshots")
     .upsert({
@@ -205,13 +350,17 @@ async function calculateGroupMonth(
       tenant_id: group.tenant_id,
       reference_year: year,
       reference_month: month,
-      generation_kwh,
-      generator_consumption_kwh,
+      generation_kwh: genSource.generation_kwh,
+      generator_consumption_kwh: genSource.generator_consumption_kwh,
       total_allocated_kwh: Math.round(totalAllocated * 100) / 100,
       total_compensated_kwh: Math.round(totalCompensated * 100) / 100,
       total_surplus_kwh: Math.round(totalSurplus * 100) / 100,
       total_deficit_kwh: Math.round(totalDeficit * 100) / 100,
       calculation_status: calcStatus,
+      generation_source_type: genSource.source_type,
+      generation_source_id: genSource.source_id,
+      generation_source_confidence: genSource.confidence,
+      generation_source_notes: genSource.notes,
       updated_at: new Date().toISOString(),
     }, { onConflict: "gd_group_id,reference_year,reference_month" })
     .select("*")
@@ -219,7 +368,6 @@ async function calculateGroupMonth(
 
   if (snapErr) throw new Error(`Snapshot error: ${snapErr.message}`);
 
-  // Upsert allocations
   for (const alloc of allocations) {
     await supabase
       .from("gd_monthly_allocations")
@@ -232,7 +380,6 @@ async function calculateGroupMonth(
       }, { onConflict: "snapshot_id,uc_beneficiaria_id" });
   }
 
-  // Update credit balances
   for (const alloc of allocations) {
     if (alloc.surplus_kwh > 0) {
       const { data: existing } = await supabase
