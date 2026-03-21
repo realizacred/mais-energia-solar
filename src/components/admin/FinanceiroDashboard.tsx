@@ -30,6 +30,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { useNavigate } from "react-router-dom";
 import { formatBRL } from "@/lib/formatters";
 import {
   useFinanceiroKpis,
