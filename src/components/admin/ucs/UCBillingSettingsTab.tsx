@@ -262,7 +262,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
             </div>
           )}
 
-          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="w-full sm:w-auto">
+          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isDirty} className="w-full sm:w-auto">
             {saveMut.isPending ? "Salvando..." : "Salvar Configurações"}
           </Button>
         </CardContent>
