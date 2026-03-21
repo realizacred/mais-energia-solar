@@ -45,9 +45,9 @@ export default function FaturasEnergiaPage() {
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
   const [disconnecting, setDisconnecting] = useState(false);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const importMutation = useStartInvoiceImport();
 
   // Filters
   const [filterUC, setFilterUC] = useState("all");
