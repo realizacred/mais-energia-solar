@@ -178,24 +178,31 @@ async function processInvoice(
   }
 
   // ── 5. Upsert unit_invoices ──
+  // Map bandeira to valid enum value
+  let bandeira: string | null = null;
+  if (parsed.bandeira_tarifaria) {
+    const raw = parsed.bandeira_tarifaria.toLowerCase();
+    if (raw.includes('verde')) bandeira = 'verde';
+    else if (raw.includes('amarela')) bandeira = 'amarela';
+    else if (raw.includes('vermelha') && raw.includes('2')) bandeira = 'vermelha_2';
+    else if (raw.includes('vermelha')) bandeira = 'vermelha_1';
+  }
+
   const invoicePayload: any = {
     tenant_id: tenantId,
-    month: mes,
-    year: ano,
-    amount_brl: parsed.valor_total,
-    consumption_kwh: parsed.consumo_kwh,
-    tariff_te_kwh: parsed.tarifa_energia_kwh,
-    tariff_tusd_kwh: parsed.tarifa_fio_b_kwh,
-    icms_percentage: parsed.icms_percentual,
-    bandeira_tarifaria: parsed.bandeira_tarifaria,
+    reference_month: mes,
+    reference_year: ano,
+    total_amount: parsed.valor_total,
+    energy_consumed_kwh: parsed.consumo_kwh,
+    current_balance_kwh: parsed.saldo_gd,
+    bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
-    pdf_url: pdfUrl,
+    pdf_file_url: pdfUrl,
     source,
     source_message_id: source_message_id || null,
     status: 'received',
-    saldo_gd_kwh: parsed.saldo_gd,
-    parsing_confidence: parsed.confidence,
-    raw_extracted_data: parsed,
+    demanda_contratada_kw: parsed.demanda_contratada_kw,
+    raw_extraction: parsed,
   };
 
   if (resolvedUnitId) {
