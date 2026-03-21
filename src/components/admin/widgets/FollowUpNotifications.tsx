@@ -177,7 +177,7 @@ export function FollowUpNotifications({
   const criticalCount = leads.filter(l => l.daysWithoutContact >= 7).length;
 
   return (
-    <Card className={criticalCount > 0 ? "border-l-[3px] border-l-destructive bg-card" : "border-l-[3px] border-l-warning bg-card"}>
+    <Card className={`flex flex-col h-full ${criticalCount > 0 ? "border-l-[3px] border-l-destructive bg-card" : "border-l-[3px] border-l-warning bg-card"}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
