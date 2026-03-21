@@ -383,8 +383,9 @@ export async function calculateGdMonth(
     }
   }
 
-  // 3. Resolve generation source (SSOT — meter > monitoring > invoice > missing)
-  const genSource = await resolveGenerationSourceForMonth(group.uc_geradora_id, year, month);
+  // 3. Collect all generation sources for reconciliation + resolve best
+  const allSources = await collectAllGenerationSources(group.uc_geradora_id, year, month);
+  const genSource = allSources.selected;
 
   // 4. Get active beneficiaries
   const { data: bens = [] } = await supabase
