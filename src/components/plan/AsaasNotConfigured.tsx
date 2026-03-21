@@ -5,6 +5,7 @@
 import { useNavigate } from "react-router-dom";
 import { CreditCard, Settings } from "lucide-react";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { useAsaasNotConfiguredTracking } from "@/hooks/useAsaasTracking";
 
 interface AsaasNotConfiguredProps {
   /** Contextual hint about what the user tried to do */
