@@ -654,6 +654,20 @@ export function ComissoesManager() {
                             <TableCell className="text-center">{getStatusBadge(comissao.status)}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
+                                {comissao.status !== "pago" && saldoRestante > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+                                    title="Pagar individual"
+                                    onClick={() => {
+                                      setSelectedComissao(comissao);
+                                      setPayDirectOpen(true);
+                                    }}
+                                  >
+                                    <DollarSign className="h-4 w-4 text-success" />
+                                  </Button>
+                                )}
                                 <Button
                                   size="sm"
                                   variant="ghost"
