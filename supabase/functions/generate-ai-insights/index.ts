@@ -418,6 +418,14 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Usage limit check per tenant
+          const limitCheck = await checkUsageLimit(supabase, tenant.id, "max_ai_insights_month");
+          if (!limitCheck.allowed) {
+            console.log(`[generate-ai-insights] CRON: Skipping tenant ${tenant.nome} — ai_insights limit reached (${limitCheck.current_value}/${limitCheck.limit_value})`);
+            results.push({ tenant: tenant.nome, success: false, error: "limit_exceeded" });
+            continue;
+          }
+
           const result = await generateInsightForTenant(
             supabase,
             tenant.id,
