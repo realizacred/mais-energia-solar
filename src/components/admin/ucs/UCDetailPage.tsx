@@ -329,6 +329,11 @@ export default function UCDetailPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="monitoramento" className="space-y-6">
+            <UCMeterTab unitId={uc.id} />
+            <UCPlantLinksTab unitId={uc.id} />
+          </TabsContent>
+
           <TabsContent value="faturas">
             <UCInvoicesTab unitId={uc.id} />
           </TabsContent>
