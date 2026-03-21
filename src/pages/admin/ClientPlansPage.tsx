@@ -2,14 +2,14 @@
  * ClientPlansPage — Client-facing plans comparison page.
  * §26 header, §12 skeleton, §1 semantic colors only.
  */
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Check, X, Star, Zap } from "lucide-react";
-import { usePublicPlans, type PublicPlan } from "@/hooks/usePublicPlans";
+import { usePlanPricing, trackPricingEvent, type PricedPlan } from "@/hooks/usePlanPricing";
 import { useTenantPlan } from "@/hooks/useTenantPlan";
 import { UpgradeModal } from "@/components/plan/UpgradeModal";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
