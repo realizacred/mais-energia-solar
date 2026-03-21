@@ -62,6 +62,8 @@ export interface GdMonthlyAllocation {
   compensated_kwh: number;
   surplus_kwh: number;
   deficit_kwh: number;
+  prior_balance_kwh: number;
+  used_from_balance_kwh: number;
   estimated_savings_brl: number | null;
   source_invoice_id: string | null;
   created_at: string;
@@ -392,6 +394,8 @@ export async function calculateGdMonth(
     compensated_kwh: number;
     surplus_kwh: number;
     deficit_kwh: number;
+    prior_balance_kwh: number;
+    used_from_balance_kwh: number;
     estimated_savings_brl: number | null;
     source_invoice_id: string | null;
   }> = [];
@@ -402,9 +406,22 @@ export async function calculateGdMonth(
 
     if (benConsumption.missing) hasMissingInvoice = true;
 
-    const compensated_kwh = Math.min(allocated_kwh, benConsumption.consumed_kwh);
-    const surplus_kwh = Math.max(allocated_kwh - benConsumption.consumed_kwh, 0);
-    const deficit_kwh = Math.max(benConsumption.consumed_kwh - allocated_kwh, 0);
+    // Fetch prior credit balance for this UC in this group
+    const { data: priorBalance } = await (supabase as any)
+      .from("gd_credit_balances")
+      .select("balance_kwh")
+      .eq("gd_group_id", gdGroupId)
+      .eq("uc_id", ben.uc_beneficiaria_id)
+      .maybeSingle();
+    const prior_balance_kwh = Math.round(Number(priorBalance?.balance_kwh || 0) * 100) / 100;
+
+    // Smart balance: total_available = allocated + prior balance
+    const total_available = allocated_kwh + prior_balance_kwh;
+    const compensated_kwh = Math.min(total_available, benConsumption.consumed_kwh);
+    const used_from_balance_kwh = Math.min(prior_balance_kwh, Math.max(benConsumption.consumed_kwh - allocated_kwh, 0));
+    const new_balance = Math.round(Math.max(total_available - benConsumption.consumed_kwh, 0) * 100) / 100;
+    const surplus_kwh = Math.round(Math.max(allocated_kwh - benConsumption.consumed_kwh, 0) * 100) / 100;
+    const deficit_kwh = Math.round(Math.max(benConsumption.consumed_kwh - total_available, 0) * 100) / 100;
     const savings = estimateSavings(compensated_kwh, benConsumption.consumed_kwh, benConsumption.total_amount);
 
     totalAllocated += allocated_kwh;
@@ -420,9 +437,12 @@ export async function calculateGdMonth(
       compensated_kwh,
       surplus_kwh,
       deficit_kwh,
+      prior_balance_kwh,
+      used_from_balance_kwh: Math.round(used_from_balance_kwh * 100) / 100,
       estimated_savings_brl: savings,
       source_invoice_id: benConsumption.invoice_id,
-    });
+      _new_balance: new_balance, // internal, used for credit update
+    } as any);
   }
 
   // 6. Determine status
@@ -471,37 +491,36 @@ export async function calculateGdMonth(
       );
   }
 
-  // 9. Update credit balances for surplus
+  // 9. Update credit balances (idempotent: set new_balance directly)
   for (const alloc of allocations) {
-    if (alloc.surplus_kwh > 0) {
-      const { data: existing } = await (supabase as any)
-        .from("gd_credit_balances")
-        .select("id, balance_kwh")
-        .eq("gd_group_id", gdGroupId)
-        .eq("uc_id", alloc.uc_beneficiaria_id)
-        .maybeSingle();
+    const newBalance = (alloc as any)._new_balance as number;
+    const { data: existing } = await (supabase as any)
+      .from("gd_credit_balances")
+      .select("id")
+      .eq("gd_group_id", gdGroupId)
+      .eq("uc_id", alloc.uc_beneficiaria_id)
+      .maybeSingle();
 
-      if (existing) {
-        await (supabase as any)
-          .from("gd_credit_balances")
-          .update({
-            balance_kwh: Number(existing.balance_kwh) + alloc.surplus_kwh,
-            last_reference_year: year,
-            last_reference_month: month,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
-      } else {
-        await (supabase as any)
-          .from("gd_credit_balances")
-          .insert({
-            gd_group_id: gdGroupId,
-            uc_id: alloc.uc_beneficiaria_id,
-            balance_kwh: alloc.surplus_kwh,
-            last_reference_year: year,
-            last_reference_month: month,
-          });
-      }
+    if (existing) {
+      await (supabase as any)
+        .from("gd_credit_balances")
+        .update({
+          balance_kwh: newBalance,
+          last_reference_year: year,
+          last_reference_month: month,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+    } else if (newBalance > 0) {
+      await (supabase as any)
+        .from("gd_credit_balances")
+        .insert({
+          gd_group_id: gdGroupId,
+          uc_id: alloc.uc_beneficiaria_id,
+          balance_kwh: newBalance,
+          last_reference_year: year,
+          last_reference_month: month,
+        });
     }
   }
 

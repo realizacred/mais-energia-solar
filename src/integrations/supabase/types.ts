@@ -4999,12 +4999,14 @@ export type Database = {
           estimated_savings_brl: number | null
           gd_group_id: string
           id: string
+          prior_balance_kwh: number
           snapshot_id: string
           source_invoice_id: string | null
           surplus_kwh: number
           tenant_id: string
           uc_beneficiaria_id: string
           updated_at: string
+          used_from_balance_kwh: number
         }
         Insert: {
           allocated_kwh?: number
@@ -5016,12 +5018,14 @@ export type Database = {
           estimated_savings_brl?: number | null
           gd_group_id: string
           id?: string
+          prior_balance_kwh?: number
           snapshot_id: string
           source_invoice_id?: string | null
           surplus_kwh?: number
           tenant_id?: string
           uc_beneficiaria_id: string
           updated_at?: string
+          used_from_balance_kwh?: number
         }
         Update: {
           allocated_kwh?: number
@@ -5033,12 +5037,14 @@ export type Database = {
           estimated_savings_brl?: number | null
           gd_group_id?: string
           id?: string
+          prior_balance_kwh?: number
           snapshot_id?: string
           source_invoice_id?: string | null
           surplus_kwh?: number
           tenant_id?: string
           uc_beneficiaria_id?: string
           updated_at?: string
+          used_from_balance_kwh?: number
         }
         Relationships: [
           {

@@ -242,7 +242,9 @@ export function GdEnergyMonthly({ groupId }: Props) {
                     <TableHead className="font-semibold text-foreground text-right">%</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Consumo</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Alocado</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Saldo Ant.</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Compensado</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Usado Saldo</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Sobra</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Déficit</TableHead>
                     <TableHead className="font-semibold text-foreground text-right">Economia</TableHead>
@@ -265,8 +267,18 @@ export function GdEnergyMonthly({ groupId }: Props) {
                         <TableCell className="text-right font-mono text-sm">
                           {Number(a.allocated_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
                         </TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {Number(a.prior_balance_kwh || 0) > 0 ? (
+                            <span className="text-info">{Number(a.prior_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className="text-right font-mono text-sm text-success">
                           {Number(a.compensated_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {Number(a.used_from_balance_kwh || 0) > 0 ? (
+                            <span className="text-info">{Number(a.used_from_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>
+                          ) : "—"}
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">
                           {Number(a.surplus_kwh) > 0 ? (
