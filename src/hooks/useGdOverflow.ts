@@ -126,3 +126,5 @@ export function useToggleGdBeneficiaryOverflow() {
         }
       } catch { /* non-blocking */ }
     },
+  });
+}
