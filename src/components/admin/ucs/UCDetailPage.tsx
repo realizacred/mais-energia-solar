@@ -40,7 +40,7 @@ import { UCEconomyReportTab } from "./UCEconomyReportTab";
 import { formatDateTime } from "@/lib/dateUtils";
 
 const UC_TYPE_LABELS: Record<string, string> = {
-  consumo: "Consumo",
+  consumo: "Beneficiária",
   gd_geradora: "GD Geradora",
   mista: "Mista",
   beneficiaria: "Beneficiária",

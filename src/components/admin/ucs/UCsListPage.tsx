@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 const UC_TYPE_LABELS: Record<string, string> = {
-  consumo: "Consumo",
+  consumo: "Beneficiária",
   gd_geradora: "GD Geradora",
   mista: "Mista",
   beneficiaria: "Beneficiária",
@@ -200,9 +200,9 @@ export default function UCsListPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os tipos</SelectItem>
-            <SelectItem value="consumo">Consumo</SelectItem>
-            <SelectItem value="gd_geradora">GD Geradora</SelectItem>
             <SelectItem value="beneficiaria">Beneficiária</SelectItem>
+            <SelectItem value="gd_geradora">GD Geradora</SelectItem>
+            <SelectItem value="mista">Mista</SelectItem>
           </SelectContent>
         </Select>
       </div>
