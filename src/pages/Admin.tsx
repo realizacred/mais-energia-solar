@@ -153,6 +153,7 @@ const CommercialDashboardPage = lazy(() => import("@/components/admin/billing/Co
 const SystemHealthPage = lazy(() => import("@/components/admin/SystemHealthPage"));
 const CronJobsPage = lazy(() => import("@/components/admin/CronJobsPage"));
 const AsaasIntegrationPage = lazy(() => import("@/pages/admin/AsaasIntegrationPage"));
+const PlanoServicoManager = lazy(() => import("@/components/admin/PlanoServicoManager"));
 const ClientPlansPage = lazy(() => import("@/pages/admin/ClientPlansPage"));
 const AsaasConversionPage = lazy(() => import("@/pages/admin/AsaasConversionPage"));
 const PricingDashboardPage = lazy(() => import("@/pages/admin/PricingDashboardPage"));
