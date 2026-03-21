@@ -310,6 +310,11 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                     <p className="text-sm text-foreground">{group.notes}</p>
                   </div>
                 )}
+
+                {/* Energy Monthly Section */}
+                {group && (
+                  <GdEnergyMonthly groupId={group.id} />
+                )}
               </>
             )}
           </div>

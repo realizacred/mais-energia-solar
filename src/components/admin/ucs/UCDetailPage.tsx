@@ -145,9 +145,10 @@ export default function UCDetailPage() {
         </div>
       </div>
 
-      {/* GD Info */}
-      <div className="mx-4 md:mx-6 mt-3">
+      {/* GD Info + Energy Summary */}
+      <div className="mx-4 md:mx-6 mt-3 space-y-3">
         <UCGdInfoCard ucId={id!} />
+        <UCEnergySummary ucId={id!} />
       </div>
 
       {/* Tabs */}
