@@ -489,22 +489,22 @@ export function StepConsumptionIntelligence({
           <span>Consumo Médio Total</span>
           <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
         </div>
-        <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
+        <Button variant="ghost" onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group h-auto p-0">
           <Pencil className="h-3.5 w-3.5" />
           <span>Potência Ideal</span>
           <span className="font-bold text-foreground">
             T: {potenciaIdealByTopo.tradicional.toFixed(2)} | M: {potenciaIdealByTopo.microinversor.toFixed(2)} | O: {potenciaIdealByTopo.otimizador.toFixed(2)}
           </span>
           <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
-        <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
+        </Button>
+        <Button variant="ghost" onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group h-auto p-0">
           <Zap className="h-3.5 w-3.5" />
           <span>Fator de Geração</span>
           <span className="font-bold text-foreground">
             T: {getTopoConfig("tradicional").fator_geracao.toFixed(2)} | M: {getTopoConfig("microinversor").fator_geracao.toFixed(2)} | O: {getTopoConfig("otimizador").fator_geracao.toFixed(2)}
           </span>
           <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
+        </Button>
       </div>
 
       {/* ─── Tabs + actions */}
