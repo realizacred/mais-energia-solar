@@ -1,12 +1,12 @@
 /**
  * FaturasEnergiaPage — Automatic energy billing via Gmail integration.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2,
+  Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2, Upload,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
