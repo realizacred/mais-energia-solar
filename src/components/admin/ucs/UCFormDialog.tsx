@@ -27,7 +27,7 @@ const GRUPOS = ["A1", "A2", "A3", "A3a", "A4", "AS", "B1", "B2", "B3", "B4"];
 const MODALIDADES = ["Convencional", "Horossazonal Branca", "Horossazonal Verde", "Horossazonal Azul"];
 
 const EMPTY_FORM = {
-  codigo_uc: "", nome: "", tipo_uc: "consumo", concessionaria_id: "",
+  codigo_uc: "", nome: "", tipo_uc: "beneficiaria", concessionaria_id: "",
   classificacao_grupo: "", classificacao_subgrupo: "", modalidade_tarifaria: "",
   observacoes: "", ativo: true,
   papel_gd: "none", categoria_gd: "", email_fatura: "", leitura_automatica_email: false,
