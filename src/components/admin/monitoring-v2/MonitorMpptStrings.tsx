@@ -829,7 +829,7 @@ function AlertRow({ alert }: { alert: StringAlert }) {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11px] text-muted-foreground">
           <span className="font-medium">{alert.alert_type.replace(/_/g, " ")}</span>
           <span>•</span>
-          <span>{new Date(alert.detected_at).toLocaleString("pt-BR")}</span>
+          <span>{new Date(alert.detected_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</span>
           {alert.resolved_at && (
             <>
               <span>•</span>
