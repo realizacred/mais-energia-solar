@@ -502,8 +502,40 @@ export function useDealPipeline() {
     if (error) {
       toast({ title: "Erro ao mover deal", description: error.message, variant: "destructive" });
       fetchAll();
+      return;
     }
-  }, [toast, fetchAll]);
+
+    // Sync project stage when deal moves to a terminal stage (Ganho/Perdido)
+    const targetStage = stages.find(s => s.id === stageId);
+    if (targetStage?.is_closed) {
+      try {
+        const { data: deal } = await supabase
+          .from("deals")
+          .select("projeto_id")
+          .eq("id", dealId)
+          .maybeSingle();
+
+        if (deal?.projeto_id) {
+          const targetEtapaNome = targetStage.is_won ? "Ganho" : "Perdido";
+          const { data: etapa } = await supabase
+            .from("projeto_etapas")
+            .select("id")
+            .eq("nome", targetEtapaNome)
+            .limit(1)
+            .maybeSingle();
+
+          if (etapa) {
+            await supabase
+              .from("projetos")
+              .update({ etapa_id: etapa.id, updated_at: new Date().toISOString() } as any)
+              .eq("id", deal.projeto_id);
+          }
+        }
+      } catch (syncErr) {
+        console.warn("[moveDealToStage] Erro ao sincronizar projeto:", syncErr);
+      }
+    }
+  }, [toast, fetchAll, stages]);
 
   const moveDealToOwner = useCallback(async (dealId: string, ownerId: string) => {
     const consultor = consultores.find(c => c.id === ownerId);
