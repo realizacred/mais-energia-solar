@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { GlobalSearch } from "@/components/admin/GlobalSearch";
 import { TrialBanner } from "@/components/plan";
 import { TourProvider } from "@/components/tour";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
