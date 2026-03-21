@@ -26,6 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from "@/hooks/use-toast";
 import { UCBillingSettingsTab } from "./UCBillingSettingsTab";
 import { UCServicePlanCard } from "./UCServicePlanCard";
+import { UCBillingHistoryCard } from "./UCBillingHistoryCard";
 import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
@@ -442,6 +443,15 @@ export default function UCDetailPage() {
               valorMensalidade={(uc as any).valor_mensalidade || null}
               diaVencimento={(uc as any).dia_vencimento || null}
               servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
+            />
+
+            {/* Histórico de Cobranças */}
+            <UCBillingHistoryCard
+              unitId={uc.id}
+              clienteId={(uc as any).cliente_id || null}
+              tenantId={uc.tenant_id}
+              valorMensalidade={(uc as any).valor_mensalidade || null}
+              diaVencimento={(uc as any).dia_vencimento || null}
             />
 
             {/* Faturas por E-mail */}

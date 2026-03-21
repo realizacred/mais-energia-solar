@@ -79,3 +79,89 @@ export function useUcBillingKpis() {
     staleTime: STALE_TIME,
   });
 }
+
+/** Cobranças (recebimentos) linked to a specific UC */
+export interface UcCobrancaRow {
+  id: string;
+  valor_total: number;
+  descricao: string | null;
+  status: string;
+  data_acordo: string;
+  created_at: string;
+  parcelas: { id: string; valor: number; data_vencimento: string; status: string }[];
+}
+
+export function useUcCobrancas(unitId: string | null) {
+  return useQuery({
+    queryKey: ["uc_cobrancas", unitId],
+    queryFn: async () => {
+      if (!unitId) return [];
+      const { data, error } = await supabase
+        .from("recebimentos")
+        .select(`
+          id, valor_total, descricao, status, data_acordo, created_at,
+          parcelas(id, valor, data_vencimento, status)
+        ` as any)
+        .eq("unit_id", unitId)
+        .order("created_at", { ascending: false })
+        .limit(24);
+      if (error) throw error;
+      return (data ?? []) as unknown as UcCobrancaRow[];
+    },
+    staleTime: STALE_TIME,
+    enabled: !!unitId,
+  });
+}
+
+/** Create a manual charge for a UC */
+export function useCreateUcCobranca() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      tenant_id: string;
+      cliente_id: string | null;
+      unit_id: string;
+      valor: number;
+      descricao: string;
+      dia_vencimento: number;
+    }) => {
+      const now = new Date();
+      const dueDate = new Date(now.getFullYear(), now.getMonth(), payload.dia_vencimento);
+      if (dueDate < now) dueDate.setMonth(dueDate.getMonth() + 1);
+
+      // Create recebimento
+      const { data: rec, error: recErr } = await supabase
+        .from("recebimentos")
+        .insert({
+          tenant_id: payload.tenant_id,
+          cliente_id: payload.cliente_id,
+          unit_id: payload.unit_id,
+          valor_total: payload.valor,
+          numero_parcelas: 1,
+          forma_pagamento_acordada: "boleto",
+          data_acordo: now.toISOString(),
+          status: "pendente",
+          descricao: payload.descricao,
+        } as any)
+        .select("id")
+        .single();
+      if (recErr) throw recErr;
+
+      // Create parcela
+      const { error: parErr } = await supabase
+        .from("parcelas")
+        .insert({
+          recebimento_id: (rec as any).id,
+          tenant_id: payload.tenant_id,
+          numero_parcela: 1,
+          valor: payload.valor,
+          data_vencimento: dueDate.toISOString().split("T")[0],
+          status: "pendente",
+        } as any);
+      if (parErr) throw parErr;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["uc_cobrancas", vars.unit_id] });
+    },
+  });
+}

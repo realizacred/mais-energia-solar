@@ -16969,6 +16969,7 @@ export type Database = {
           projeto_id: string | null
           status: string
           tenant_id: string
+          unit_id: string | null
           updated_at: string
           valor_total: number
         }
@@ -16983,6 +16984,7 @@ export type Database = {
           projeto_id?: string | null
           status?: string
           tenant_id?: string
+          unit_id?: string | null
           updated_at?: string
           valor_total: number
         }
@@ -16997,6 +16999,7 @@ export type Database = {
           projeto_id?: string | null
           status?: string
           tenant_id?: string
+          unit_id?: string | null
           updated_at?: string
           valor_total?: number
         }
@@ -17020,6 +17023,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
             referencedColumns: ["id"]
           },
         ]
