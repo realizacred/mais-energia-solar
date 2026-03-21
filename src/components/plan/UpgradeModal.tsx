@@ -39,6 +39,8 @@ export function UpgradeModal({
     (p) => p.is_active && p.code !== currentPlanCode && p.price_monthly > 0,
   );
 
+  const isAsaasNotConfigured = (createCharge.error as any)?.code === "asaas_not_configured";
+
   const handleConfirm = async () => {
     if (!selectedPlanId) return;
 
