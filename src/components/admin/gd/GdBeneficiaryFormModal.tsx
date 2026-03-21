@@ -194,7 +194,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
                 <Select value={form.uc_beneficiaria_id} onValueChange={set("uc_beneficiaria_id")}>
                   <SelectTrigger><SelectValue placeholder="Selecione a UC..." /></SelectTrigger>
                   <SelectContent>
-                    {ucs.map((u) => (
+                    {availableUcs.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.codigo_uc} — {u.nome}
                       </SelectItem>
