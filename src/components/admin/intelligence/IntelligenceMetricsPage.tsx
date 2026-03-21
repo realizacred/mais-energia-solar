@@ -4,6 +4,7 @@ import { BarChart3, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIntelligenceMetrics } from "@/hooks/useIntelligenceMetrics";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { FeatureGate } from "@/components/plan/FeatureGate";
 
 const TEMP_COLORS: Record<string, string> = {
   quente: "hsl(var(--destructive))",
