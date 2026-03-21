@@ -678,14 +678,15 @@ Deno.serve(async (req) => {
             } as any, { onConflict: "meter_device_id" });
 
             // Insert reading
-            await supabase.from("meter_readings").insert({
-              meter_device_id: meter.id, measured_at: now,
+            const { error: readingErr } = await supabase.from("meter_readings").insert({
+              meter_device_id: meter.id, tenant_id: meter.tenant_id, measured_at: now,
               voltage_v: reading.voltage_v, current_a: reading.current_a,
               power_w: reading.power_w, power_factor: reading.power_factor,
               energy_import_kwh: reading.energy_import_kwh,
               energy_export_kwh: reading.energy_export_kwh,
               raw_payload: { dps, device_info: deviceInfo },
             } as any);
+            if (readingErr) console.error(`[tuya-proxy] reading insert error:`, readingErr.message);
 
             // Update meter device
             await supabase.from("meter_devices").update({
