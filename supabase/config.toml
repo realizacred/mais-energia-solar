@@ -314,3 +314,6 @@ verify_jwt = false
 
 [functions.notify-plant-offline]
 verify_jwt = false
+
+[functions.lead-scoring-cron]
+verify_jwt = false
