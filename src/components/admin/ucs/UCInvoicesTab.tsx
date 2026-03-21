@@ -143,6 +143,16 @@ export function UCInvoicesTab({ unitId }: Props) {
     onError: (err: any) => toast({ title: "Erro ao registrar fatura", description: err?.message, variant: "destructive" }),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => invoiceService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
+      toast({ title: "Fatura excluída com sucesso" });
+      setDeleteTarget(null);
+    },
+    onError: (err: any) => toast({ title: "Erro ao excluir fatura", description: err?.message, variant: "destructive" }),
+  });
+
   const handleFileUploadOnly = async (file: File) => {
     setUploading(true);
     setUploadProgress(10);
