@@ -46,7 +46,7 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
   const { data: energiaResumo } = useClienteEnergiaResumo(clienteId, refYear, refMonth);
   const { data: creditData } = useClienteCreditBalance(clienteId);
   const { data: reconciliations = [] } = useClienteReconciliationSummary(clienteId, refYear, refMonth);
-  const recMap = new Map(reconciliations.map((r: any) => [r.gd_group_id, r]));
+  const recMap = new Map(reconciliations.map((r: any) => [r.gd_group_id, r as { status: "ok" | "warning" | "critical" }]));
 
   const concMap = new Map(concessionarias.map((c) => [c.id, c]));
 
