@@ -343,7 +343,27 @@ export default function MeterDetailPage() {
   const currentVal = latestStatus?.current_a;
   const energyVal = latestStatus?.energy_import_kwh;
 
-  // Leitura inicial values from meter
+  /** Contextual voltage color based on ANEEL limits for 127V/220V networks */
+  function getVoltageColor(v: number): "success" | "warning" | "destructive" | "info" {
+    // Auto-detect network: if voltage > 170V it's 220V network
+    if (v > 170) {
+      if (v >= 201 && v <= 231) return "success";
+      if ((v >= 191 && v < 201) || (v > 231 && v <= 240)) return "warning";
+      return "destructive";
+    }
+    // 127V network
+    if (v >= 110 && v <= 133) return "success";
+    if ((v >= 100 && v < 110) || (v > 133 && v <= 139)) return "warning";
+    return "destructive";
+  }
+
+  function getVoltageIndicator(v: number): string {
+    const color = getVoltageColor(v);
+    if (color === "success") return " ✓";
+    if (color === "warning") return " ⚠️";
+    return " ⚠️ Crítica";
+  }
+
   const leituraInicial03 = Number((meter as any).leitura_inicial_03) || 0;
   const leituraInicial103 = Number((meter as any).leitura_inicial_103) || 0;
   const energiaRelogio = leituraInicial03 > 0 && energyVal != null ? energyVal + leituraInicial03 : null;
