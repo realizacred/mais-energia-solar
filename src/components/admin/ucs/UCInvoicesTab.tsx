@@ -224,6 +224,20 @@ export function UCInvoicesTab({ unitId }: Props) {
         </div>
       </div>
 
+      {/* Upload progress bar */}
+      {uploading && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex items-center gap-3 py-3 px-4">
+            <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <p className="text-xs font-medium text-foreground">{uploadStep}</p>
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+            <span className="text-xs text-muted-foreground font-mono">{uploadProgress}%</span>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Info card about automatic email */}
       <Card className="border-info/20 bg-info/5">
         <CardContent className="flex items-start gap-3 py-3 px-4">
