@@ -30,6 +30,7 @@ export default function MonitorSettings() {
   const { data: integrations = [], isLoading } = useQuery({
     queryKey: ["monitor-integrations"],
     queryFn: listIntegrations,
+    staleTime: 1000 * 60 * 5, // §23: 5 min
   });
 
   const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
