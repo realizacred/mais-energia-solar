@@ -158,11 +158,42 @@ function ChecklistCard({
     isExpanded ? checklist.id : null,
     isExpanded ? checklist.template_id : null
   );
+  const [downloading, setDownloading] = useState(false);
 
   const totalItems = items.length;
   const doneItems = respostas.filter(r => r.valor_boolean === true).length;
   const progress = totalItems > 0 ? (doneItems / totalItems) * 100 : 0;
   const isConcluido = checklist.status === "concluido";
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Não autenticado");
+
+      const res = await supabase.functions.invoke("generate-installation-report", {
+        body: { checklist_id: checklist.id },
+      });
+      if (res.error) throw new Error(res.error.message || "Erro ao gerar relatório");
+
+      const html = typeof res.data === "string" ? res.data : await res.data?.text?.() || "";
+      if (!html) throw new Error("Relatório vazio");
+
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Relatorio_Instalacao_${checklist.id.slice(0, 8)}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Relatório baixado com sucesso");
+    } catch (err) {
+      console.error("[download-report]", err);
+      toast.error("Falha ao gerar relatório");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <Card className="border-border/60">
