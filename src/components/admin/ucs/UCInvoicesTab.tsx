@@ -13,12 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Upload, Mail, ExternalLink, Eye } from "lucide-react";
+import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
@@ -47,6 +48,8 @@ export function UCInvoicesTab({ unitId }: Props) {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStep, setUploadStep] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     reference_month: new Date().getMonth() + 1,
@@ -125,21 +128,34 @@ export function UCInvoicesTab({ unitId }: Props) {
 
   const handleFileUploadOnly = async (file: File) => {
     setUploading(true);
+    setUploadProgress(10);
+    setUploadStep("Enviando PDF...");
     try {
+      setUploadProgress(30);
       const pdfUrl = await uploadPdf(file);
+      setUploadProgress(60);
+      setUploadStep("Registrando fatura...");
       await invoiceService.create({
         unit_id: unitId,
         reference_month: new Date().getMonth() + 1,
         reference_year: new Date().getFullYear(),
         pdf_file_url: pdfUrl,
         source: "manual",
+        status: "received",
       } as any);
+      setUploadProgress(100);
+      setUploadStep("Concluído!");
       qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
-      toast({ title: "PDF da fatura importado" });
+      toast({ title: "PDF da fatura importado com sucesso" });
     } catch (err: any) {
+      console.error("[UCInvoicesTab] Erro no upload/insert:", err);
       toast({ title: "Erro no upload", description: err?.message, variant: "destructive" });
     } finally {
-      setUploading(false);
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+        setUploadStep("");
+      }, 1200);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -207,6 +223,20 @@ export function UCInvoicesTab({ unitId }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* Upload progress bar */}
+      {uploading && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex items-center gap-3 py-3 px-4">
+            <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <p className="text-xs font-medium text-foreground">{uploadStep}</p>
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+            <span className="text-xs text-muted-foreground font-mono">{uploadProgress}%</span>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Info card about automatic email */}
       <Card className="border-info/20 bg-info/5">
