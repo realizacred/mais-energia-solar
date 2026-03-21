@@ -150,6 +150,9 @@ export function GdEnergyMonthly({ groupId }: Props) {
         </div>
       ) : (
         <>
+          {/* Generation Source */}
+          <GdGenerationSourceCard snapshot={snapshot} />
+
           {/* Status badge */}
           <div className="flex items-center gap-2">
             <Badge variant={statusInfo?.variant || "outline"} className="text-xs">
