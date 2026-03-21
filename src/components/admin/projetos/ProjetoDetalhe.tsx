@@ -893,53 +893,6 @@ function GerenciamentoTab({
     return <CalendarDays className="h-3 w-3 text-secondary" />;
   };
 
-// ─── Recebimento CTA (won deals) ────────────
-function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
-  dealId: string; customerId: string | null; customerName: string; navigate: ReturnType<typeof useNavigate>;
-}) {
-  const [hasRecebimento, setHasRecebimento] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!customerId) return;
-    supabase
-      .from("recebimentos")
-      .select("id", { count: "exact", head: true })
-      .eq("cliente_id", customerId)
-      .then(({ count }) => setHasRecebimento((count ?? 0) > 0));
-  }, [customerId]);
-
-  if (hasRecebimento === null) return null;
-  if (hasRecebimento) return null;
-
-  return (
-    <Card className="mb-2 border-l-[3px] border-l-success">
-      <CardContent className="flex items-center gap-4 p-4">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
-          <DollarSign className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">Criar recebimento para este projeto</p>
-          <p className="text-xs text-muted-foreground">Nenhum recebimento vinculado a {customerName || "este cliente"}</p>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="shrink-0 gap-1.5 border-success/30 text-success hover:bg-success/10"
-          onClick={() => {
-            const params = new URLSearchParams();
-            if (customerId) params.set("cliente_id", customerId);
-            params.set("deal_id", dealId);
-            navigate(`/admin/recebimentos?${params.toString()}`);
-          }}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Criar
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
 
   const activityTypeLabels: Record<string, string> = {
     task: "Tarefa",
