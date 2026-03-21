@@ -269,18 +269,41 @@ export function NotificationConfigAdmin() {
         </motion.div>
       ))}
 
-      {/* Info */}
-      <div className="flex items-start gap-3 p-4 rounded-lg bg-info/5 border border-info/20">
-        <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-medium text-foreground">Como funciona?</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Estas configurações controlam quais eventos geram push notifications para a equipe.
-            Cada membro pode ainda configurar seus próprios dispositivos e horários silenciosos
-            individualmente nas configurações de WhatsApp ou no portal do consultor.
-          </p>
-        </div>
-      </div>
+      {/* Info — Como funciona */}
+      <Card className="bg-info/5 border-info/20">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Como funciona o sistema de notificações?</p>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
+                <li>As configurações acima controlam <strong>notificações push</strong> para toda a equipe do tenant.</li>
+                <li><strong>Consultores</strong> recebem apenas alertas dos seus próprios leads e conversas.</li>
+                <li><strong>Admins e Gerentes</strong> recebem visibilidade global de todos os alertas.</li>
+                <li>Push notifications funcionam no <strong>app PWA instalado</strong> — no navegador, aparecem como notificações do sistema.</li>
+                <li>Desativar uma notificação aqui <strong>desativa para toda a empresa</strong>, não apenas para você.</li>
+              </ul>
+            </div>
+          </div>
+
+          <Separator className="bg-info/20" />
+
+          <div className="flex items-start gap-3">
+            <Bell className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Notificações automáticas (sempre ativas)</p>
+              <p className="text-xs text-muted-foreground">Além das configuráveis acima, o sistema envia automaticamente:</p>
+              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                <li><strong>Parcelas vencidas</strong> — alerta WhatsApp diário (09h) para clientes com parcelas em atraso</li>
+                <li><strong>Agendamentos</strong> — lembrete automático antes de compromissos</li>
+                <li><strong>Alertas de usina</strong> — notificação quando uma usina solar para de gerar</li>
+                <li><strong>SLA de atendimento</strong> — alerta quando tempo de resposta ultrapassa o configurado</li>
+              </ul>
+              <p className="text-xs text-muted-foreground/70 italic">Essas notificações não podem ser desativadas individualmente nesta tela.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Save */}
       {hasChanges && (
