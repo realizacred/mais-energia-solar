@@ -273,7 +273,7 @@ export async function getClienteFinancialSummary(clienteId: string): Promise<Cli
     allocs = data;
   }
 
-  const snapshotMap = new Map(snapshots.map((s: any) => [s.id, s]));
+  const snapshotMap = new Map<string, any>(snapshots.map((s: any) => [s.id, s]));
   let totalSavings = 0;
   let currentMonthSavings = 0;
   let totalCompensated = 0;
