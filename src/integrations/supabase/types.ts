@@ -23122,6 +23122,7 @@ export type Database = {
       normalize_wa_jid: { Args: { raw_jid: string }; Returns: string }
       preview_seed_data: { Args: never; Returns: Json }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
+      purge_old_payloads: { Args: never; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
       registrar_view_proposta: {
