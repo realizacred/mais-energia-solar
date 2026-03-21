@@ -11753,6 +11753,47 @@ export type Database = {
           },
         ]
       }
+      price_variant_history: {
+        Row: {
+          conversion_rate: number
+          created_at: string
+          id: string
+          new_weight: number
+          old_weight: number
+          upgrades: number
+          variant_id: string
+          views: number
+        }
+        Insert: {
+          conversion_rate?: number
+          created_at?: string
+          id?: string
+          new_weight: number
+          old_weight: number
+          upgrades?: number
+          variant_id: string
+          views?: number
+        }
+        Update: {
+          conversion_rate?: number
+          created_at?: string
+          id?: string
+          new_weight?: number
+          old_weight?: number
+          upgrades?: number
+          variant_id?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_variant_history_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "price_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_variants: {
         Row: {
           created_at: string
