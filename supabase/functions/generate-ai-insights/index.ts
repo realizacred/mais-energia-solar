@@ -504,10 +504,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Backend entitlement check (admin bypass already validated above via roles)
+    if (!isAdmin) {
+      const denial = await enforceFeature(supabase, tenantId, "ai_insights", corsHeaders, { userId: user.id });
+      if (denial) return denial;
+    }
+
     const body = await req.json();
     const { insight_type = "daily_summary", filters = {} } = body;
 
     const result = await generateInsightForTenant(supabase, tenantId, insight_type, filters, user.id);
+    if (result.success) {
+      await trackUsage(supabase, tenantId, "ai_insights", 1, { userId: user.id, source: "manual" });
+    }
 
     if (!result.success) {
       return new Response(JSON.stringify({ error: result.error }), {
