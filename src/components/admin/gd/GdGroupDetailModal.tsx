@@ -23,6 +23,7 @@ import { gdService } from "@/services/gdService";
 import { GdBeneficiaryFormModal } from "./GdBeneficiaryFormModal";
 import { formatDate } from "@/lib/dateUtils";
 import { GdEnergyMonthly } from "./GdEnergyMonthly";
+import { GdEnergyReport } from "./GdEnergyReport";
 
 interface Props {
   open: boolean;
@@ -315,6 +316,11 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                 {/* Energy Monthly Section */}
                 {group && (
                   <GdEnergyMonthly groupId={group.id} />
+                )}
+
+                {/* Energy Report / History */}
+                {group && (
+                  <GdEnergyReport groupId={group.id} />
                 )}
               </>
             )}
