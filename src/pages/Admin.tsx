@@ -724,6 +724,7 @@ export default function Admin() {
                 <Route path="permissoes" element={<RolePermissionsManager />} />
                 <Route path="planos-features" element={<BillingFeaturesPage />} />
                 <Route path="planos" element={<ClientPlansPage />} />
+                <Route path="planos-servico" element={<PlanoServicoManager />} />
                 <Route path="dashboard-comercial" element={<CommercialDashboardPage />} />
                 <Route path="pricing" element={<PricingDashboardPage />} />
                 
