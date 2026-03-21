@@ -172,24 +172,24 @@ export function PendingDocumentationWidget({
 
   return (
     <Card className="border-l-[3px] border-l-warning bg-card flex flex-col h-full">
-      <CardHeader className="pb-3">
+      <CardHeader className="py-3 px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-              <FileWarning className="h-4 w-4 text-warning" />
+            <div className="w-7 h-7 rounded-md bg-warning/10 flex items-center justify-center">
+              <FileWarning className="h-3.5 w-3.5 text-warning" />
             </div>
-            <CardTitle className="text-base">Aguardando Documentação</CardTitle>
-            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
+            <CardTitle className="text-sm font-semibold">Aguardando Documentação</CardTitle>
+            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px] h-5">
               {leads.length}
             </Badge>
           </div>
         </div>
-        <CardDescription>
+        <CardDescription className="text-xs">
           Clique em um lead para completar a documentação e converter
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 flex flex-col">
-        <ScrollArea className="flex-1 min-h-0 max-h-[320px]">
+      <CardContent className="flex-1 min-h-0 flex flex-col px-4 pt-0 pb-3">
+        <ScrollArea className="flex-1 min-h-0 max-h-[200px]">
           <div className="space-y-2">
             {leads.map((lead) => {
               const daysWaiting = getDaysWaiting(lead.updated_at);
@@ -198,32 +198,32 @@ export function PendingDocumentationWidget({
               return (
                 <div
                   key={lead.id}
-                  className="flex flex-col p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors cursor-pointer group"
+                  className="flex flex-col py-2 px-3 border rounded-md bg-background hover:bg-muted/50 transition-colors cursor-pointer group"
                   onClick={() => handleClick(lead)}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="bg-warning/10 rounded-full p-2">
-                        <User className="h-4 w-4 text-warning" />
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="bg-warning/10 rounded-full p-1.5">
+                        <User className="h-3.5 w-3.5 text-warning" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{lead.nome}</p>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <p className="text-sm font-medium truncate">{lead.nome}</p>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
+                            <MapPin className="h-2.5 w-2.5" />
                             {lead.cidade}/{lead.estado}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
+                            <Phone className="h-2.5 w-2.5" />
                             {lead.telefone}
                           </span>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {getUrgencyBadge(daysWaiting)}
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-warning transition-colors" />
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-warning transition-colors" />
                     </div>
                   </div>
                   

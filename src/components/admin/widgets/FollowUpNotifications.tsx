@@ -178,59 +178,59 @@ export function FollowUpNotifications({
 
   return (
     <Card className={`flex flex-col h-full ${criticalCount > 0 ? "border-l-[3px] border-l-destructive bg-card" : "border-l-[3px] border-l-warning bg-card"}`}>
-      <CardHeader className="pb-3">
+      <CardHeader className="py-3 px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {criticalCount > 0 ? (
-              <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+              <div className="w-7 h-7 rounded-md bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Bell className="h-4 w-4 text-warning" />
+              <div className="w-7 h-7 rounded-md bg-warning/10 flex items-center justify-center">
+                <Bell className="h-3.5 w-3.5 text-warning" />
               </div>
             )}
-            <CardTitle className="text-base">Follow-up Pendente</CardTitle>
+            <CardTitle className="text-sm font-semibold">Follow-up Pendente</CardTitle>
             <Badge 
               variant="outline"
-              className={criticalCount > 0 ? "bg-destructive/10 text-destructive border-destructive/20 text-xs" : "bg-warning/10 text-warning border-warning/20 text-xs"}
+              className={criticalCount > 0 ? "bg-destructive/10 text-destructive border-destructive/20 text-[10px] h-5" : "bg-warning/10 text-warning border-warning/20 text-[10px] h-5"}
             >
               {leads.length}
             </Badge>
           </div>
         </div>
-        <CardDescription>
+        <CardDescription className="text-xs">
           Leads sem contato há mais de {diasAlerta} dias
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 flex flex-col">
-        <ScrollArea className="flex-1 min-h-0 max-h-[320px]">
+      <CardContent className="flex-1 min-h-0 flex flex-col px-4 pt-0 pb-3">
+        <ScrollArea className="flex-1 min-h-0 max-h-[200px]">
           <div className="space-y-2">
             {leads.map((lead) => (
               <div
                 key={lead.id}
-                className={`flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors cursor-pointer ${
+                className={`flex items-center justify-between py-2 px-3 border rounded-md bg-background hover:bg-muted/50 transition-colors cursor-pointer ${
                   lead.daysWithoutContact >= 7 ? "border-l-4 border-l-destructive" : ""
                 }`}
                 onClick={() => onLeadClick?.(lead)}
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className={`rounded-full p-2 ${
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className={`rounded-full p-1.5 ${
                     lead.daysWithoutContact >= 7 
                       ? "bg-destructive/10" 
                       : "bg-warning/10"
                   }`}>
-                    <User className={`h-4 w-4 ${
+                    <User className={`h-3.5 w-3.5 ${
                       lead.daysWithoutContact >= 7 
                         ? "text-destructive" 
                         : "text-warning"
                     }`} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{lead.nome}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <p className="text-sm font-medium truncate">{lead.nome}</p>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
+                        <Phone className="h-2.5 w-2.5" />
                         {lead.telefone}
                       </span>
                       {lead.consultor && (
@@ -240,9 +240,9 @@ export function FollowUpNotifications({
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {getPriorityBadge(lead.daysWithoutContact)}
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
               </div>
             ))}
