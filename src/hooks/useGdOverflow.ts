@@ -4,6 +4,8 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { enqueueGdRecalc } from "@/services/energia/gdAutomationService";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 const STALE_TIME = 1000 * 60 * 5;
 
@@ -55,8 +57,30 @@ export function useUpdateGdBeneficiaryPriority() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async (_, vars) => {
       qc.invalidateQueries({ queryKey: ["gd_group_beneficiaries"] });
+      // Enqueue recalc for current month
+      try {
+        const { tenantId } = await getCurrentTenantId();
+        const { data: ben } = await supabase
+          .from("gd_group_beneficiaries")
+          .select("gd_group_id")
+          .eq("id", vars.id)
+          .single();
+        if (ben) {
+          const now = new Date();
+          await enqueueGdRecalc({
+            tenantId,
+            gdGroupId: ben.gd_group_id,
+            referenceYear: now.getFullYear(),
+            referenceMonth: now.getMonth() + 1,
+            triggerType: "allocation_change",
+            triggerEntityType: "gd_group",
+            triggerEntityId: ben.gd_group_id,
+          });
+          qc.invalidateQueries({ queryKey: ["gd_recalc_queue"] });
+        }
+      } catch { /* non-blocking */ }
     },
   });
 }
@@ -78,8 +102,29 @@ export function useToggleGdBeneficiaryOverflow() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async (_, vars) => {
       qc.invalidateQueries({ queryKey: ["gd_group_beneficiaries"] });
+      try {
+        const { tenantId } = await getCurrentTenantId();
+        const { data: ben } = await supabase
+          .from("gd_group_beneficiaries")
+          .select("gd_group_id")
+          .eq("id", vars.id)
+          .single();
+        if (ben) {
+          const now = new Date();
+          await enqueueGdRecalc({
+            tenantId,
+            gdGroupId: ben.gd_group_id,
+            referenceYear: now.getFullYear(),
+            referenceMonth: now.getMonth() + 1,
+            triggerType: "allocation_change",
+            triggerEntityType: "gd_group",
+            triggerEntityId: ben.gd_group_id,
+          });
+          qc.invalidateQueries({ queryKey: ["gd_recalc_queue"] });
+        }
+      } catch { /* non-blocking */ }
     },
   });
 }
