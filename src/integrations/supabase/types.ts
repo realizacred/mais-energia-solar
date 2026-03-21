@@ -19317,6 +19317,59 @@ export type Database = {
           },
         ]
       }
+      upsell_events: {
+        Row: {
+          created_at: string
+          current_value: number
+          id: string
+          limit_value: number
+          metric_key: string
+          notification_channel: string | null
+          notified_at: string | null
+          percentage: number
+          resolved_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          limit_value?: number
+          metric_key: string
+          notification_channel?: string | null
+          notified_at?: string | null
+          percentage?: number
+          resolved_at?: string | null
+          status: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          limit_value?: number
+          metric_key?: string
+          notification_channel?: string | null
+          notified_at?: string | null
+          percentage?: number
+          resolved_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upsell_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_counters: {
         Row: {
           created_at: string
