@@ -624,6 +624,7 @@ export default function Admin() {
                 <Route path="faturas-energia" element={<FaturasEnergiaPage />} />
                 <Route path="faturas-energia/revisao" element={<InvoiceReviewPage />} />
                 <Route path="gd-rateio" element={<GdGroupsPage />} />
+                <Route path="alertas-energia" element={<EnergyAlertsPage />} />
                 
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />
