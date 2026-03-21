@@ -302,6 +302,11 @@ function ProjetoDetalheContent() {
         </Card>
       )}
 
+      {/* ── Recebimento CTA for won deals ── */}
+      {deal.status === "won" && activeTab === "gerenciamento" && (
+        <RecebimentoCTA dealId={deal.id} customerId={deal.customer_id} customerName={customerName} navigate={navigate} />
+      )}
+
       {/* ── Tab Content ── */}
       <AnimatePresence mode="wait">
         <motion.div
