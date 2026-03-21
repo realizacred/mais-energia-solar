@@ -1,7 +1,7 @@
 /**
  * UCBillingSettingsTab — Billing email settings + service config for a UC.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceService, type BillingEmailSettings, type BillingNotificationChannel } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
