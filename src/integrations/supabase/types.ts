@@ -5084,6 +5084,10 @@ export type Database = {
           created_at: string
           gd_group_id: string
           generation_kwh: number
+          generation_source_confidence: string
+          generation_source_id: string | null
+          generation_source_notes: string | null
+          generation_source_type: string
           generator_consumption_kwh: number
           id: string
           notes: string | null
@@ -5101,6 +5105,10 @@ export type Database = {
           created_at?: string
           gd_group_id: string
           generation_kwh?: number
+          generation_source_confidence?: string
+          generation_source_id?: string | null
+          generation_source_notes?: string | null
+          generation_source_type?: string
           generator_consumption_kwh?: number
           id?: string
           notes?: string | null
@@ -5118,6 +5126,10 @@ export type Database = {
           created_at?: string
           gd_group_id?: string
           generation_kwh?: number
+          generation_source_confidence?: string
+          generation_source_id?: string | null
+          generation_source_notes?: string | null
+          generation_source_type?: string
           generator_consumption_kwh?: number
           id?: string
           notes?: string | null
