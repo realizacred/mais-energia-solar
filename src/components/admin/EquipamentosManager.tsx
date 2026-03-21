@@ -466,7 +466,7 @@ export function EquipamentosManager() {
 
       {/* Transformador Dialog */}
       <Dialog open={transformadorDialogOpen} onOpenChange={setTransformadorDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[90vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingTransformador ? "Editar Transformador" : "Novo Transformador"}

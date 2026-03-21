@@ -27,9 +27,9 @@ export function PageHeader({ icon: Icon, title, description, actions, className,
           {helpText && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-muted transition-colors duration-200" aria-label="Ajuda">
+                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" aria-label="Ajuda">
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-xs text-xs leading-relaxed">
                 {helpText}

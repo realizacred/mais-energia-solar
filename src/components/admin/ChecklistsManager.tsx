@@ -223,7 +223,7 @@
  
      {/* View Dialog */}
      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-       <DialogContent className="max-w-2xl max-h-[90vh]">
+       <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh]">
          <DialogHeader>
            <DialogTitle className="flex items-center gap-2">
              <ClipboardCheck className="h-5 w-5" />
