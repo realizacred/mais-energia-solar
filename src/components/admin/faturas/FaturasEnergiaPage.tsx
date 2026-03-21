@@ -1,25 +1,42 @@
 /**
- * FaturasEnergiaPage — Automatic energy billing via Gmail integration.
+ * FaturasEnergiaPage — Central de Faturas de Energia.
+ * Consolidated view of all invoices with filters, upload, Gmail integration.
  */
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invoiceService } from "@/services/invoiceService";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2, Upload,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2,
+  Upload, Search, MoreHorizontal, Trash2, ExternalLink, Filter,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 
-const STALE_NORMAL = 1000 * 60 * 5;
+const STALE = 1000 * 60 * 5;
+
+const MONTH_LABELS = [
+  "", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+  "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+];
 
 export default function FaturasEnergiaPage() {
   const { toast } = useToast();
@@ -28,23 +45,26 @@ export default function FaturasEnergiaPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Show toast on redirect from OAuth callback
+  // Filters
+  const [filterUC, setFilterUC] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterYear, setFilterYear] = useState("all");
+  const [searchText, setSearchText] = useState("");
+
+  // Gmail redirect toast
   useEffect(() => {
     const gmailParam = searchParams.get("gmail");
     if (gmailParam === "conectado") {
       toast({ title: "Gmail conectado com sucesso!" });
       qc.invalidateQueries({ queryKey: ["gmail_config"] });
     } else if (gmailParam === "erro") {
-      toast({
-        title: "Erro ao conectar Gmail",
-        description: searchParams.get("reason") || "Tente novamente",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao conectar Gmail", description: searchParams.get("reason") || "Tente novamente", variant: "destructive" });
     }
   }, [searchParams]);
 
-  // Fetch Gmail integration config
+  // Gmail config
   const { data: gmailConfig, isLoading: loadingConfig } = useQuery({
     queryKey: ["gmail_config"],
     queryFn: async () => {
@@ -56,77 +76,77 @@ export default function FaturasEnergiaPage() {
         .maybeSingle();
       return data;
     },
-    staleTime: STALE_NORMAL,
+    staleTime: STALE,
   });
 
-  // Fetch UCs
-  const { data: ucs = [], isLoading: loadingUCs } = useQuery({
-    queryKey: ["ucs_for_faturas"],
+  // UCs for filter
+  const { data: ucs = [] } = useQuery({
+    queryKey: ["ucs_for_faturas_central"],
     queryFn: async () => {
       const { data } = await supabase
         .from("units_consumidoras")
-        .select("id, nome, codigo_uc, concessionaria_id, concessionaria_nome")
+        .select("id, nome, codigo_uc, concessionaria_nome")
         .eq("is_archived", false)
         .order("nome");
       return data || [];
     },
-    staleTime: STALE_NORMAL,
+    staleTime: STALE,
   });
 
-  // Fetch unit_invoices if table exists
+  // All invoices (central view)
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
-    queryKey: ["unit_invoices"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("unit_invoices" as any)
-        .select("*")
-        .order("reference_month", { ascending: false })
-        .limit(50);
-      if (error) return [];
-      return data || [];
+    queryKey: ["central_invoices", filterUC, filterStatus, filterYear],
+    queryFn: () => invoiceService.listAll({
+      unit_id: filterUC !== "all" ? filterUC : undefined,
+      status: filterStatus !== "all" ? filterStatus : undefined,
+      reference_year: filterYear !== "all" ? Number(filterYear) : undefined,
+    }),
+    staleTime: STALE,
+  });
+
+  // Delete mutation
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => invoiceService.delete(id),
+    onSuccess: () => {
+      toast({ title: "Fatura excluída" });
+      qc.invalidateQueries({ queryKey: ["central_invoices"] });
+      qc.invalidateQueries({ queryKey: ["unit_invoices"] });
+      setDeleteId(null);
     },
-    staleTime: STALE_NORMAL,
+    onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
   });
 
   const isConnected = !!gmailConfig?.is_active;
   const connectedEmail = (gmailConfig?.settings as any)?.email;
 
+  // Filter by search
+  const filtered = invoices.filter((inv: any) => {
+    if (!searchText) return true;
+    const s = searchText.toLowerCase();
+    const ucName = inv.units_consumidoras?.nome?.toLowerCase() || "";
+    const ucCode = inv.units_consumidoras?.codigo_uc?.toLowerCase() || "";
+    const conc = inv.units_consumidoras?.concessionaria_nome?.toLowerCase() || "";
+    return ucName.includes(s) || ucCode.includes(s) || conc.includes(s);
+  });
+
+  // KPI
+  const totalFaturas = filtered.length;
+  const totalValor = filtered.reduce((s: number, i: any) => s + (Number(i.total_amount) || 0), 0);
+  const years = [...new Set(invoices.map((i: any) => i.reference_year))].sort((a, b) => b - a);
+
   async function handleConnect() {
     try {
-      const { data, error } = await supabase.functions.invoke("gmail-oauth", {
-        body: {},
-        method: "GET",
-      });
-
-      // supabase.functions.invoke doesn't support query params easily,
-      // so we construct the URL manually
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
-
-      if (!token) {
-        toast({ title: "Erro", description: "Você precisa estar logado", variant: "destructive" });
-        return;
-      }
-
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!token) { toast({ title: "Erro", description: "Você precisa estar logado", variant: "destructive" }); return; }
       const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=auth_url`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-
       const result = await resp.json();
-
-      if (result.auth_url) {
-        window.location.href = result.auth_url;
-      } else {
-        toast({ title: "Erro", description: result.error || "Falha ao gerar URL", variant: "destructive" });
-      }
-    } catch (err: any) {
-      toast({ title: "Erro", description: err?.message, variant: "destructive" });
-    }
+      if (result.auth_url) { window.location.href = result.auth_url; }
+      else { toast({ title: "Erro", description: result.error || "Falha ao gerar URL", variant: "destructive" }); }
+    } catch (err: any) { toast({ title: "Erro", description: err?.message, variant: "destructive" }); }
   }
 
   async function handleDisconnect() {
@@ -135,67 +155,40 @@ export default function FaturasEnergiaPage() {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
       await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=disconnect`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-
       toast({ title: "Gmail desconectado" });
       qc.invalidateQueries({ queryKey: ["gmail_config"] });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err?.message, variant: "destructive" });
-    } finally {
-      setDisconnecting(false);
-    }
-  }
-
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Copiado!", description: text });
-  }
-
-  function generateEmail(concessionariaNome: string | null): string {
-    if (!concessionariaNome) return "configure-a-concessionaria@faturas.maisenergiasolar.com.br";
-    const slug = concessionariaNome.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    return `${slug}@faturas.maisenergiasolar.com.br`;
+    } catch (err: any) { toast({ title: "Erro", description: err?.message, variant: "destructive" }); }
+    finally { setDisconnecting(false); }
   }
 
   async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      toast({ title: "Formato inválido", description: "Selecione um arquivo PDF", variant: "destructive" });
-      return;
-    }
+    const files = e.target.files;
+    if (!files?.length) return;
     setUploadingPdf(true);
+    let processed = 0;
+    let errors = 0;
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-      const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
-        body: { pdf_base64: base64, source: "upload" },
-      });
-
-      if (error) throw error;
-
-      if (data?.parsed) {
-        const p = data.parsed;
-        toast({
-          title: "✅ Fatura processada",
-          description: `UC ${p.numero_uc || "N/A"} — Consumo: ${p.consumo_kwh ?? "N/A"} kWh — Valor: R$ ${p.valor_total ?? "N/A"}`,
+      for (const file of Array.from(files)) {
+        if (file.type !== "application/pdf") { errors++; continue; }
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
+          body: { pdf_base64: base64, source: "upload" },
         });
+        if (error || data?.error) { errors++; } else { processed++; }
+      }
+      if (processed > 0) {
+        toast({ title: `${processed} fatura(s) processada(s)${errors > 0 ? `, ${errors} erro(s)` : ""}` });
+        qc.invalidateQueries({ queryKey: ["central_invoices"] });
         qc.invalidateQueries({ queryKey: ["unit_invoices"] });
-      } else if (data?.error) {
-        toast({ title: "Erro no processamento", description: data.error, variant: "destructive" });
-      } else {
-        toast({ title: "Fatura enviada para processamento" });
-        qc.invalidateQueries({ queryKey: ["unit_invoices"] });
+      } else if (errors > 0) {
+        toast({ title: `${errors} erro(s) no processamento`, variant: "destructive" });
       }
     } catch (err: any) {
-      toast({ title: "Erro", description: err?.message || "Falha ao processar PDF", variant: "destructive" });
+      toast({ title: "Erro", description: err?.message, variant: "destructive" });
     } finally {
       setUploadingPdf(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -205,12 +198,66 @@ export default function FaturasEnergiaPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={Mail}
-        title="Faturas de Energia"
-        description="Recebimento automático de faturas por e-mail"
+        icon={FileText}
+        title="Central de Faturas"
+        description="Visão consolidada de todas as faturas de energia"
       />
 
-      {/* Section 1 — Gmail Connection */}
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{totalFaturas}</p>
+              <p className="text-sm text-muted-foreground mt-1">Total de faturas</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-success bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalValor)}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Valor total</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+              <Mail className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
+                {isConnected ? "Ativo" : "Inativo"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Gmail</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
+              <Upload className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
+                {filtered.filter((i: any) => i.source === "upload").length}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Upload manual</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gmail connection card (compact) */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -219,235 +266,165 @@ export default function FaturasEnergiaPage() {
         </CardHeader>
         <CardContent>
           {loadingConfig ? (
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-40" />
-              <Skeleton className="h-6 w-32" />
-            </div>
+            <Skeleton className="h-10 w-60" />
           ) : isConnected ? (
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <Badge className="bg-success/10 text-success border-success/20">
-                  <CheckCircle className="w-3 h-3 mr-1" /> Gmail conectado
+                  <CheckCircle className="w-3 h-3 mr-1" /> Conectado
                 </Badge>
                 <span className="text-sm text-muted-foreground">{connectedEmail}</span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-destructive text-destructive hover:bg-destructive/10"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
-              >
+              <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10" onClick={handleDisconnect} disabled={disconnecting}>
                 {disconnecting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Unplug className="w-4 h-4 mr-1" />}
                 Desconectar
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Conecte sua conta Gmail</p>
-                  <p className="text-xs text-muted-foreground">Autorize o acesso para receber faturas automaticamente</p>
-                </div>
-                <Button size="sm" onClick={handleConnect}>
-                  <Mail className="w-4 h-4 mr-1" /> Conectar Gmail
-                </Button>
-              </div>
-
-              {/* Onboarding steps */}
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
-                <p className="text-xs font-semibold text-foreground">Como funciona em 3 passos:</p>
-                <div className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">1</div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground">Conecte sua conta Gmail</p>
-                    <p className="text-xs text-muted-foreground">Clique no botão acima para autorizar o acesso à caixa de entrada</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center shrink-0">2</div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">Cadastre o e-mail de cada UC na concessionária</p>
-                    <p className="text-xs text-muted-foreground">Vá em cada UC → Configurações → Faturas por e-mail e copie o e-mail gerado</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center shrink-0">3</div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">Pronto! Faturas chegam automaticamente</p>
-                    <p className="text-xs text-muted-foreground">O sistema verifica sua caixa a cada hora, extrai os dados e notifica o cliente</p>
-                  </div>
-                </div>
-                <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-1.5">Concessionárias suportadas:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {["CEMIG","Energisa","COPEL","CPFL","Enel","Light","CELESC","Equatorial"].map(c => (
-                      <Badge key={c} variant="outline" className="text-xs bg-muted text-muted-foreground">{c}</Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-muted-foreground flex-1">Conecte sua conta Gmail para receber faturas automaticamente</p>
+              <Button size="sm" onClick={handleConnect}><Mail className="w-4 h-4 mr-1" /> Conectar Gmail</Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Section 2 — UC Emails */}
+      {/* Filters + Table */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Building2 className="w-4 h-4" /> E-mails das UCs
+            <FileText className="w-4 h-4" /> Faturas
           </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Cadastre o e-mail abaixo no site da concessionária. Todas as UCs da mesma concessionária compartilham o mesmo e-mail.
-            As faturas enviadas para estes endereços serão processadas automaticamente.
-          </p>
-
-          {loadingUCs ? (
-            <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full rounded-lg" />
-              ))}
-            </div>
-          ) : ucs.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic py-4 text-center">
-              Nenhuma UC cadastrada. Cadastre unidades consumidoras primeiro.
-            </p>
-          ) : (() => {
-            // Group UCs by concessionária
-            const grouped = new Map<string, { email: string; concessionaria: string; ucs: typeof ucs }>();
-            for (const uc of ucs) {
-              const conc = (uc as any).concessionaria_nome || "Sem concessionária";
-              if (!grouped.has(conc)) {
-                grouped.set(conc, { email: generateEmail((uc as any).concessionaria_nome), concessionaria: conc, ucs: [] });
-              }
-              grouped.get(conc)!.ucs.push(uc);
-            }
-            return (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                      <TableHead className="text-xs font-semibold text-foreground">Concessionária</TableHead>
-                      <TableHead className="text-xs font-semibold text-foreground">E-mail para cadastro</TableHead>
-                      <TableHead className="text-xs font-semibold text-foreground">UCs vinculadas</TableHead>
-                      <TableHead className="text-xs font-semibold text-foreground">Status</TableHead>
-                      <TableHead className="w-[60px]" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Array.from(grouped.values()).map((group) => (
-                      <TableRow key={group.concessionaria} className="hover:bg-muted/30">
-                        <TableCell className="text-sm font-medium text-foreground">{group.concessionaria}</TableCell>
-                        <TableCell>
-                          <span className="text-sm font-mono text-primary">{group.email}</span>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {group.ucs.map((uc: any) => uc.nome || uc.codigo_uc).join(", ")}
-                        </TableCell>
-                        <TableCell>
-                          {isConnected ? (
-                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
-                              Integração ativa
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
-                              Pendente
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => copyToClipboard(group.email)}
-                            title="Copiar e-mail"
-                          >
-                            <Copy className="w-4 h-4 text-muted-foreground" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
-
-      {/* Section 3 — Received Invoices */}
-      <Card>
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <FileText className="w-4 h-4" /> Faturas Recebidas
-          </CardTitle>
-          <div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={handleUploadPdf}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPdf}
-            >
+          <div className="flex items-center gap-2">
+            <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleUploadPdf} multiple />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadingPdf}>
               {uploadingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-              Processar PDF
+              Importar PDF
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Filters row */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+              <Input
+                placeholder="Buscar por UC, código ou concessionária..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <Select value={filterUC} onValueChange={setFilterUC}>
+              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="UC" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as UCs</SelectItem>
+                {ucs.map((uc: any) => (
+                  <SelectItem key={uc.id} value={uc.id}>{uc.codigo_uc} — {uc.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="processed">Processada</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="error">Erro</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterYear} onValueChange={setFilterYear}>
+              <SelectTrigger className="w-[120px] h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {years.map((y: number) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Table */}
           {loadingInvoices ? (
             <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => (
+              {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full rounded-lg" />
               ))}
             </div>
-          ) : invoices.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic py-6 text-center">
-              Nenhuma fatura recebida ainda. Conecte o Gmail e cadastre os e-mails nas concessionárias.
-            </p>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">Nenhuma fatura encontrada</p>
+              <p className="text-xs text-muted-foreground mt-1">Importe PDFs ou conecte o Gmail para receber faturas automaticamente</p>
+            </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-lg border border-border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="text-xs font-semibold text-foreground">UC</TableHead>
                     <TableHead className="text-xs font-semibold text-foreground">Concessionária</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">Mês Ref.</TableHead>
+                    <TableHead className="text-xs font-semibold text-foreground">Referência</TableHead>
                     <TableHead className="text-xs font-semibold text-foreground text-right">Valor</TableHead>
+                    <TableHead className="text-xs font-semibold text-foreground text-right">Consumo</TableHead>
                     <TableHead className="text-xs font-semibold text-foreground">Vencimento</TableHead>
+                    <TableHead className="text-xs font-semibold text-foreground">Origem</TableHead>
                     <TableHead className="text-xs font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="w-[50px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices.map((inv: any) => (
+                  {filtered.map((inv: any) => (
                     <TableRow key={inv.id} className="hover:bg-muted/30">
-                      <TableCell className="text-sm">{inv.unit_name || inv.unit_id}</TableCell>
-                      <TableCell className="text-sm">{inv.concessionaria || "—"}</TableCell>
-                      <TableCell className="text-sm">{inv.reference_month || "—"}</TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {inv.units_consumidoras?.nome || "—"}
+                        <span className="block text-xs text-muted-foreground font-mono">{inv.units_consumidoras?.codigo_uc}</span>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{inv.units_consumidoras?.concessionaria_nome || "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        {MONTH_LABELS[inv.reference_month] || inv.reference_month}/{inv.reference_year}
+                      </TableCell>
                       <TableCell className="text-sm text-right font-mono">
                         {inv.total_amount != null
                           ? `R$ ${Number(inv.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {inv.due_date
-                          ? formatDate(inv.due_date)
-                          : "—"}
+                      <TableCell className="text-sm text-right font-mono">
+                        {inv.energy_consumed_kwh != null ? `${Number(inv.energy_consumed_kwh).toLocaleString("pt-BR")} kWh` : "—"}
                       </TableCell>
+                      <TableCell className="text-sm">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
+                          {inv.source === "upload" ? "Upload" : inv.source === "email" ? "E-mail" : inv.source || "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-xs ${
+                          inv.status === "processed" ? "bg-success/10 text-success border-success/20" :
+                          inv.status === "error" ? "bg-destructive/10 text-destructive border-destructive/20" :
+                          ""
+                        }`}>
                           {inv.status || "pendente"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {inv.pdf_file_url && (
+                              <DropdownMenuItem onClick={() => window.open(inv.pdf_file_url, "_blank")}>
+                                <ExternalLink className="w-4 h-4 mr-2" /> Ver PDF
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(inv.id)}>
+                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -457,6 +434,25 @@ export default function FaturasEnergiaPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir fatura?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é permanente e não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteId && deleteMut.mutate(deleteId)}
+            >
+              {deleteMut.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
