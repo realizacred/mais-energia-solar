@@ -28,11 +28,18 @@ interface Props {
   existingBeneficiaries: GdBeneficiary[];
 }
 
-export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, existingBeneficiaries }: Props) {
+export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradoraId, existingBeneficiaries }: Props) {
   const { toast } = useToast();
   const saveBen = useSaveGdBeneficiary();
   const { data: ucs = [] } = useUCsList();
   const { data: concessionarias = [] } = useConcessionarias();
+
+  // Filter out the generator UC and already-linked active beneficiaries
+  const existingUcIds = new Set(existingBeneficiaries.filter(b => b.is_active).map(b => b.uc_beneficiaria_id));
+  const availableUcs = useMemo(() => 
+    ucs.filter(u => u.id !== ucGeradoraId && !existingUcIds.has(u.id)),
+    [ucs, ucGeradoraId, existingBeneficiaries]
+  );
 
   const [createNew, setCreateNew] = useState(false);
   const [form, setForm] = useState({
