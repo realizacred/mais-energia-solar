@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 interface AlertConfig {
+  nominal_voltage: 127 | 220;
   min_voltage: number;
   max_voltage: number;
   max_power: number;
@@ -40,9 +42,15 @@ interface AlertConfig {
   energy_alerts_enabled: boolean;
 }
 
+const VOLTAGE_PRESETS = {
+  127: { min: 110, max: 133 },
+  220: { min: 201, max: 231 },
+} as const;
+
 const DEFAULTS: AlertConfig = {
-  min_voltage: 200,
-  max_voltage: 240,
+  nominal_voltage: 127,
+  min_voltage: 110,
+  max_voltage: 133,
   max_power: 10000,
   max_current: 63,
   max_temperature: 85,
@@ -185,9 +193,30 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
             enabled={config.overvoltage_alerts_enabled}
             onToggle={(v) => setConfig(c => ({ ...c, overvoltage_alerts_enabled: v }))}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <ConfigInput label="Tensão Mínima (V)" value={config.min_voltage} onChange={(v) => setConfig(c => ({ ...c, min_voltage: v }))} />
-              <ConfigInput label="Tensão Máxima (V)" value={config.max_voltage} onChange={(v) => setConfig(c => ({ ...c, max_voltage: v }))} />
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Tensão Nominal da Rede</label>
+                <Select
+                  value={String(config.nominal_voltage)}
+                  onValueChange={(v) => {
+                    const nominal = Number(v) as 127 | 220;
+                    const preset = VOLTAGE_PRESETS[nominal];
+                    setConfig(c => ({ ...c, nominal_voltage: nominal, min_voltage: preset.min, max_voltage: preset.max }));
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="127">127V (Monofásico)</SelectItem>
+                    <SelectItem value="220">220V (Bifásico/Trifásico)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <ConfigInput label="Tensão Mínima (V)" value={config.min_voltage} onChange={(v) => setConfig(c => ({ ...c, min_voltage: v }))} />
+                <ConfigInput label="Tensão Máxima (V)" value={config.max_voltage} onChange={(v) => setConfig(c => ({ ...c, max_voltage: v }))} />
+              </div>
             </div>
           </AlertSection>
 
