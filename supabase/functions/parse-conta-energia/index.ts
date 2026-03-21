@@ -318,7 +318,157 @@ function extractFromText(text: string): ExtractedData {
   };
 }
 
-// ── LAYER 2: OpenAI fallback for missing fields ──────────────────────────────
+// ── LAYER 2: AI full extraction from PDF base64 (multimodal) ─────────────────
+
+async function aiFullExtractFromPdf(
+  pdfBase64: string,
+): Promise<ExtractedData | null> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    console.warn("[parse-conta-energia] LOVABLE_API_KEY not available, skipping AI full extraction");
+    return null;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `Você é um extrator especializado de dados de faturas de energia elétrica brasileiras. 
+Analise o PDF da fatura e extraia TODOS os campos usando a tool fornecida.
+Números decimais: use ponto como separador (ex: 1234.56).
+Datas: formato DD/MM/YYYY.
+Se não encontrar um campo, retorne null.
+Seja preciso — nunca invente dados.`
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:application/pdf;base64,${pdfBase64}`,
+                },
+              },
+              {
+                type: "text",
+                text: "Extraia todos os dados desta fatura de energia elétrica brasileira.",
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_invoice_data",
+              description: "Extract all fields from a Brazilian energy bill PDF",
+              parameters: {
+                type: "object",
+                properties: {
+                  concessionaria_nome: { type: "string", description: "Nome da concessionária (CEMIG, CPFL, Enel, etc.)" },
+                  cliente_nome: { type: "string", description: "Nome do titular da conta" },
+                  endereco: { type: "string", description: "Endereço completo do imóvel" },
+                  cidade: { type: "string", description: "Cidade" },
+                  estado: { type: "string", description: "UF (sigla de 2 letras)" },
+                  numero_uc: { type: "string", description: "Número/código da unidade consumidora" },
+                  consumo_kwh: { type: "number", description: "Consumo em kWh" },
+                  tarifa_energia_kwh: { type: "number", description: "Tarifa de energia (TE) em R$/kWh" },
+                  tarifa_fio_b_kwh: { type: "number", description: "TUSD/Fio B em R$/kWh" },
+                  valor_total: { type: "number", description: "Valor total da fatura em R$" },
+                  icms_percentual: { type: "number", description: "ICMS em %" },
+                  pis_valor: { type: "number", description: "PIS em R$" },
+                  cofins_valor: { type: "number", description: "COFINS em R$" },
+                  bandeira_tarifaria: { type: "string", description: "Bandeira: verde, amarela, vermelha patamar 1, vermelha patamar 2" },
+                  classe_consumo: { type: "string", description: "Classe: Residencial, Comercial, Industrial, Rural" },
+                  tipo_ligacao: { type: "string", description: "monofasico, bifasico ou trifasico" },
+                  mes_referencia: { type: "string", description: "Mês de referência (ex: MAR/2026, 03/2026)" },
+                  demanda_contratada_kw: { type: "number", description: "Demanda contratada em kW" },
+                  vencimento: { type: "string", description: "Data de vencimento DD/MM/YYYY" },
+                  proxima_leitura_data: { type: "string", description: "Data da próxima leitura DD/MM/YYYY" },
+                  saldo_gd: { type: "number", description: "Saldo de geração distribuída em kWh" },
+                  saldo_gd_acumulado: { type: "number", description: "Saldo GD acumulado em kWh" },
+                  leitura_anterior_03: { type: "number", description: "Leitura anterior registro 03 (energia ativa)" },
+                  leitura_atual_03: { type: "number", description: "Leitura atual registro 03 (energia ativa)" },
+                  leitura_anterior_103: { type: "number", description: "Leitura anterior registro 103 (energia injetada)" },
+                  leitura_atual_103: { type: "number", description: "Leitura atual registro 103 (energia injetada)" },
+                },
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "extract_invoice_data" } },
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.warn(`[parse-conta-energia] AI full extraction failed: ${response.status} ${errText}`);
+      return null;
+    }
+
+    const aiResult = await response.json();
+    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall?.function?.arguments) return null;
+
+    const fields = JSON.parse(toolCall.function.arguments);
+
+    return {
+      concessionaria_nome: fields.concessionaria_nome || null,
+      cliente_nome: fields.cliente_nome || null,
+      endereco: fields.endereco || null,
+      cidade: fields.cidade || null,
+      estado: fields.estado || null,
+      consumo_kwh: fields.consumo_kwh ?? null,
+      tarifa_energia_kwh: fields.tarifa_energia_kwh ?? null,
+      tarifa_fio_b_kwh: fields.tarifa_fio_b_kwh ?? null,
+      valor_total: fields.valor_total ?? null,
+      icms_percentual: fields.icms_percentual ?? null,
+      pis_valor: fields.pis_valor ?? null,
+      cofins_valor: fields.cofins_valor ?? null,
+      bandeira_tarifaria: fields.bandeira_tarifaria || null,
+      classe_consumo: fields.classe_consumo || null,
+      tipo_ligacao: fields.tipo_ligacao || null,
+      mes_referencia: fields.mes_referencia || null,
+      demanda_contratada_kw: fields.demanda_contratada_kw ?? null,
+      numero_uc: fields.numero_uc || null,
+      vencimento: fields.vencimento || null,
+      proxima_leitura_data: fields.proxima_leitura_data || null,
+      saldo_gd: fields.saldo_gd ?? null,
+      saldo_gd_acumulado: fields.saldo_gd_acumulado ?? null,
+      leitura_anterior_03: fields.leitura_anterior_03 ?? null,
+      leitura_atual_03: fields.leitura_atual_03 ?? null,
+      leitura_anterior_103: fields.leitura_anterior_103 ?? null,
+      leitura_atual_103: fields.leitura_atual_103 ?? null,
+      confidence: 85,
+      ai_fallback_used: true,
+      raw_fields: { ai_full_extraction: "true" },
+    };
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      console.warn("[parse-conta-energia] AI full extraction timeout");
+    } else {
+      console.error("[parse-conta-energia] AI full extraction error:", err);
+    }
+    return null;
+  }
+}
+
+// ── LAYER 3: AI text-based fallback for missing fields ───────────────────────
 
 async function aiExtractMissingFields(
   text: string,
@@ -340,7 +490,6 @@ async function aiExtractMissingFields(
   }
 
   try {
-    // Use only first 4000 chars to keep costs low
     const truncatedText = text.substring(0, 4000);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
@@ -402,7 +551,6 @@ async function aiExtractMissingFields(
     const aiFields = JSON.parse(toolCall.function.arguments);
     const result = { ...regexResult, ai_fallback_used: true };
 
-    // Only fill in what regex missed
     if (!result.proxima_leitura_data && aiFields.proxima_leitura_data) {
       result.proxima_leitura_data = aiFields.proxima_leitura_data;
       result.raw_fields['ai_proxima_leitura'] = aiFields.proxima_leitura_data;
@@ -467,19 +615,54 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text, use_ai_fallback = true } = body;
+    const { text, pdf_base64, use_ai_fallback = true } = body;
 
-    if (!text || typeof text !== 'string') {
-      return new Response(JSON.stringify({ error: 'Campo "text" é obrigatório' }),
+    if (!text && !pdf_base64) {
+      return new Response(JSON.stringify({ error: 'Campo "text" ou "pdf_base64" é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Layer 1: Regex
-    let extracted = extractFromText(text);
+    let extracted: ExtractedData | null = null;
 
-    // Layer 2: AI fallback (only if enabled and fields are missing)
-    if (use_ai_fallback) {
+    // Strategy 1: If we have text, try regex first
+    if (text && typeof text === 'string' && text.length >= 50) {
+      extracted = extractFromText(text);
+      console.log(`[parse-conta-energia] Regex confidence: ${extracted.confidence}`);
+    }
+
+    // Strategy 2: If regex confidence is low (< 30) or no text, use AI multimodal on PDF
+    if (pdf_base64 && (!extracted || extracted.confidence < 30)) {
+      console.log("[parse-conta-energia] Low regex confidence or no text, using AI multimodal extraction");
+      const aiResult = await aiFullExtractFromPdf(pdf_base64);
+      if (aiResult) {
+        // If we had partial regex, merge (AI takes precedence for nulls)
+        if (extracted) {
+          for (const key of Object.keys(aiResult) as Array<keyof ExtractedData>) {
+            if (key === 'raw_fields' || key === 'confidence' || key === 'ai_fallback_used') continue;
+            if ((extracted[key] === null || extracted[key] === undefined) && aiResult[key] !== null) {
+              (extracted as any)[key] = aiResult[key];
+            }
+          }
+          extracted.ai_fallback_used = true;
+          extracted.confidence = Math.max(extracted.confidence, aiResult.confidence);
+          extracted.raw_fields = { ...extracted.raw_fields, ...aiResult.raw_fields };
+        } else {
+          extracted = aiResult;
+        }
+      }
+    }
+
+    // Strategy 3: If still no good result but we have text, try text-based AI fallback
+    if (extracted && use_ai_fallback && text) {
       extracted = await aiExtractMissingFields(text, extracted);
+    }
+
+    // If nothing worked at all
+    if (!extracted) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Não foi possível extrair dados da fatura. O PDF pode estar escaneado ou protegido.',
+      }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({

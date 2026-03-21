@@ -94,23 +94,16 @@ async function processInvoice(
   }
 
   // ── 1. Decode PDF & extract text ──
-  // Note: PDF text extraction in edge functions is limited.
-  // We pass the base64 to parse-conta-energia which expects text.
-  // For now, we'll try a basic text extraction from PDF bytes.
   const pdfBytes = Uint8Array.from(atob(pdf_base64), c => c.charCodeAt(0));
   const pdfText = extractTextFromPdfBytes(pdfBytes);
 
-  if (!pdfText || pdfText.length < 50) {
-    return new Response(JSON.stringify({ error: 'Não foi possível extrair texto do PDF. Arquivo pode estar escaneado.' }),
-      { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
-
-  // ── 2. Call parse-conta-energia ──
-  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, true, 25000);
+  // ── 2. Call parse-conta-energia (with PDF base64 for AI multimodal fallback) ──
+  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, pdf_base64, true, 30000);
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
-    const regexOnlyAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, false, 10000);
+    // Retry without AI text fallback but still with PDF base64
+    const regexOnlyAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, pdf_base64, false, 15000);
     if (regexOnlyAttempt.ok && regexOnlyAttempt.body?.success) {
       parseResult = regexOnlyAttempt.body;
     } else {
@@ -300,6 +293,7 @@ async function callParseContaEnergia(
   supabaseUrl: string,
   serviceRoleKey: string,
   text: string,
+  pdfBase64: string,
   useAiFallback: boolean,
   timeoutMs: number,
 ) {
@@ -307,13 +301,23 @@ async function callParseContaEnergia(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const payload: Record<string, any> = {
+      text: text || "",
+      use_ai_fallback: useAiFallback,
+    };
+
+    // Include PDF base64 for AI multimodal extraction when text is poor
+    if (!text || text.length < 200) {
+      payload.pdf_base64 = pdfBase64;
+    }
+
     const response = await fetch(`${supabaseUrl}/functions/v1/parse-conta-energia`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text, use_ai_fallback: useAiFallback }),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     });
 
