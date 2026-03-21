@@ -15586,6 +15586,7 @@ export type Database = {
           forma_pagamento_acordada: string
           id: string
           numero_parcelas: number
+          projeto_id: string | null
           status: string
           tenant_id: string
           updated_at: string
@@ -15599,6 +15600,7 @@ export type Database = {
           forma_pagamento_acordada: string
           id?: string
           numero_parcelas?: number
+          projeto_id?: string | null
           status?: string
           tenant_id?: string
           updated_at?: string
@@ -15612,6 +15614,7 @@ export type Database = {
           forma_pagamento_acordada?: string
           id?: string
           numero_parcelas?: number
+          projeto_id?: string | null
           status?: string
           tenant_id?: string
           updated_at?: string
@@ -15623,6 +15626,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
           {
