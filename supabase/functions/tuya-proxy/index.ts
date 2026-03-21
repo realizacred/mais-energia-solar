@@ -226,14 +226,15 @@ async function handleCronSync(supabase: any): Promise<Response> {
           } as any, { onConflict: "meter_device_id" });
           if (upsertErr) console.error(`[tuya-proxy] upsert error:`, upsertErr.message);
 
-          await supabase.from("meter_readings").insert({
-            meter_device_id: meter.id, measured_at: now,
+          const { error: readingErr } = await supabase.from("meter_readings").insert({
+            meter_device_id: meter.id, tenant_id: meter.tenant_id, measured_at: now,
             voltage_v: reading.voltage_v, current_a: reading.current_a,
             power_w: reading.power_w, power_factor: reading.power_factor,
             energy_import_kwh: reading.energy_import_kwh,
             energy_export_kwh: reading.energy_export_kwh,
             raw_payload: { dps, device_info: deviceInfo },
           } as any);
+          if (readingErr) console.error(`[tuya-proxy] reading insert error:`, readingErr.message);
 
           await supabase.from("meter_devices").update({
             online_status: online,
@@ -297,6 +298,22 @@ function buildReading(dps: any[]): Record<string, any> {
   };
 
   for (const dp of dps) {
+    // Decode Base64-encoded pa_instant (voltage, current, power per phase)
+    if ((dp.code === "pa_instant" || dp.code === "phase_a") && typeof dp.value === "string" && dp.value.length > 4) {
+      try {
+        const raw = Uint8Array.from(atob(dp.value), c => c.charCodeAt(0));
+        if (raw.length >= 8) {
+          // Structure: [V_hi V_lo 0x00 I_hi I_lo 0x00 P_hi P_lo ...]
+          const voltageRaw = (raw[0] << 8) | raw[1];
+          const currentRaw = (raw[3] << 8) | raw[4];
+          const powerRaw = (raw[6] << 8) | raw[7];
+          if (reading.voltage_v === null && voltageRaw > 0) reading.voltage_v = voltageRaw * 0.1;
+          if (reading.current_a === null && currentRaw > 0) reading.current_a = currentRaw * 0.001;
+          if (reading.power_w === null && powerRaw > 0) reading.power_w = powerRaw;
+        }
+      } catch (_) { /* skip malformed base64 */ }
+      continue;
+    }
     const field = DPS_MAP[dp.code];
     if (!field) continue;
     const numVal = typeof dp.value === "number" ? dp.value : (typeof dp.value === "string" && !isNaN(Number(dp.value)) ? Number(dp.value) : null);
@@ -677,14 +694,15 @@ Deno.serve(async (req) => {
             } as any, { onConflict: "meter_device_id" });
 
             // Insert reading
-            await supabase.from("meter_readings").insert({
-              meter_device_id: meter.id, measured_at: now,
+            const { error: readingErr } = await supabase.from("meter_readings").insert({
+              meter_device_id: meter.id, tenant_id: meter.tenant_id, measured_at: now,
               voltage_v: reading.voltage_v, current_a: reading.current_a,
               power_w: reading.power_w, power_factor: reading.power_factor,
               energy_import_kwh: reading.energy_import_kwh,
               energy_export_kwh: reading.energy_export_kwh,
               raw_payload: { dps, device_info: deviceInfo },
             } as any);
+            if (readingErr) console.error(`[tuya-proxy] reading insert error:`, readingErr.message);
 
             // Update meter device
             await supabase.from("meter_devices").update({
