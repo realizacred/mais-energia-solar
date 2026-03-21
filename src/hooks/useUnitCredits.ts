@@ -83,3 +83,28 @@ export function useDeleteUnitCredit() {
     },
   });
 }
+
+/** Linked plants for a UC (used in credit dialog) */
+export function useUcLinkedPlants(unitId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["uc_plant_links_for_credit", unitId],
+    queryFn: async () => {
+      const { data: links, error: linksErr } = await supabase
+        .from("unit_plant_links")
+        .select("plant_id")
+        .eq("unit_id", unitId!)
+        .eq("is_active", true);
+      if (linksErr) throw linksErr;
+      if (!links?.length) return [];
+      const plantIds = links.map((l) => l.plant_id);
+      const { data: plants, error: plantsErr } = await supabase
+        .from("monitor_plants")
+        .select("id, name")
+        .in("id", plantIds);
+      if (plantsErr) throw plantsErr;
+      return (plants ?? []) as Array<{ id: string; name: string }>;
+    },
+    staleTime: STALE_TIME,
+    enabled: enabled && !!unitId,
+  });
+}
