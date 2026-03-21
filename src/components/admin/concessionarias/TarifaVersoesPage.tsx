@@ -76,10 +76,7 @@ interface DiffEntry {
 // ─── Helpers ───
 
 function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("pt-BR", {
-    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-  });
+  return formatDateTime(iso);
 }
 
 function formatVal(v: number | null) {
