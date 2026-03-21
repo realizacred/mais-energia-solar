@@ -373,7 +373,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
   return (
     <>
       <Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5 text-primary" />
