@@ -22,15 +22,152 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  CreditCard, Package, Users, Settings2, Zap, Lock, Unlock,
+  CreditCard, Package, Users, Settings2, Zap, Lock, Unlock, Star, Pencil,
 } from "lucide-react";
 import { useBillingPlans, useSaveBillingPlan, useToggleBillingPlan, type BillingPlan } from "@/hooks/useBillingPlans";
 import { useFeatureCatalog, useSaveFeatureFlag, useToggleFeatureFlag, type FeatureFlag } from "@/hooks/useFeatureCatalog";
 import { usePlanFeatures, useTogglePlanFeature } from "@/hooks/usePlanFeatures";
+import { usePlanLimitsAdmin, useUpsertPlanLimit } from "@/hooks/usePlanLimitsAdmin";
 import { useTenantSubscriptionsAdmin, useUpdateSubscription } from "@/hooks/useTenantSubscriptions";
 import { useTenantFeatureOverridesAdmin, useUpsertTenantOverride, useDeleteTenantOverride } from "@/hooks/useTenantFeatureOverrides";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/dateUtils";
+
+// ─── EDIT PLAN MODAL ─────────────────────────────────────────
+
+function EditPlanModal({ plan, onClose }: { plan: BillingPlan; onClose: () => void }) {
+  const saveMut = useSaveBillingPlan();
+  const { toast } = useToast();
+  const [form, setForm] = useState({
+    name: plan.name,
+    description: plan.description ?? "",
+    price_monthly: plan.price_monthly,
+    price_yearly: plan.price_yearly ?? 0,
+    is_popular: plan.is_popular,
+    sort_order: plan.sort_order,
+  });
+
+  const handleSave = async () => {
+    try {
+      await saveMut.mutateAsync({
+        id: plan.id,
+        code: plan.code,
+        name: form.name,
+        description: form.description || null,
+        price_monthly: form.price_monthly,
+        price_yearly: form.price_yearly || null,
+        is_popular: form.is_popular,
+        sort_order: form.sort_order,
+      } as any);
+      toast({ title: "Plano atualizado!" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Pencil className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Editar Plano</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Ajuste preço, descrição e destaque</p>
+          </div>
+        </DialogHeader>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label>Código</Label>
+              <Input value={plan.code} disabled className="font-mono" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descrição</Label>
+              <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Preço Mensal (R$)</Label>
+                <Input type="number" value={form.price_monthly} onChange={(e) => setForm({ ...form, price_monthly: Number(e.target.value) })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Preço Anual (R$)</Label>
+                <Input type="number" value={form.price_yearly} onChange={(e) => setForm({ ...form, price_yearly: Number(e.target.value) })} />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={form.is_popular} onCheckedChange={(v) => setForm({ ...form, is_popular: v })} />
+              <Label>Plano Recomendado</Label>
+            </div>
+          </div>
+        </ScrollArea>
+        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+          <Button variant="outline" onClick={onClose} disabled={saveMut.isPending}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saveMut.isPending || !form.name}>
+            {saveMut.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── PLAN LIMITS PANEL ───────────────────────────────────────
+
+function PlanLimitsPanel({ planId, planName, onClose }: { planId: string; planName: string; onClose: () => void }) {
+  const { data: limits = [], isLoading } = usePlanLimitsAdmin(planId);
+  const upsertMut = useUpsertPlanLimit();
+  const { toast } = useToast();
+
+  const handleChange = (limitKey: string, value: number) => {
+    upsertMut.mutate(
+      { planId, limitKey, limitValue: value },
+      { onSuccess: () => toast({ title: `Limite ${limitKey} atualizado!` }) },
+    );
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm">Limites do plano: {planName}</CardTitle>
+        <Button variant="ghost" size="sm" onClick={onClose}>Fechar</Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}</div>
+        ) : limits.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum limite configurado.</p>
+        ) : (
+          <div className="space-y-3">
+            {limits.map((l) => (
+              <div key={l.id} className="flex items-center justify-between gap-4 p-2 rounded-lg hover:bg-muted/30">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">{l.limit_key}</p>
+                </div>
+                <Input
+                  type="number"
+                  className="w-28 text-right font-mono"
+                  defaultValue={l.limit_value}
+                  onBlur={(e) => {
+                    const val = Number(e.target.value);
+                    if (val !== l.limit_value) handleChange(l.limit_key, val);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 // ─── PLANS TAB ───────────────────────────────────────────────
 
@@ -38,6 +175,8 @@ function PlansTab() {
   const { data: plans = [], isLoading } = useBillingPlans();
   const toggleMut = useToggleBillingPlan();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [limitsForPlanId, setLimitsForPlanId] = useState<string | null>(null);
+  const [editPlan, setEditPlan] = useState<BillingPlan | null>(null);
 
   if (isLoading) return <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div>;
   if (!plans.length) return <EmptyState icon={CreditCard} title="Nenhum plano cadastrado" description="Planos serão criados automaticamente pelo sistema." />;
@@ -52,13 +191,22 @@ function PlansTab() {
             <TableHead className="font-semibold text-foreground text-right">Mensal</TableHead>
             <TableHead className="font-semibold text-foreground text-right">Anual</TableHead>
             <TableHead className="font-semibold text-foreground">Status</TableHead>
-            <TableHead className="font-semibold text-foreground">Features</TableHead>
+            <TableHead className="font-semibold text-foreground">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {plans.map((p) => (
-            <TableRow key={p.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedPlanId(p.id)}>
-              <TableCell className="font-medium text-foreground">{p.name}</TableCell>
+            <TableRow key={p.id} className="hover:bg-muted/30">
+              <TableCell className="font-medium text-foreground">
+                <div className="flex items-center gap-2">
+                  {p.name}
+                  {p.is_popular && (
+                    <Badge className="bg-primary/10 text-primary border-primary/20 text-xs gap-1">
+                      <Star className="w-3 h-3" /> Recomendado
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
               <TableCell><Badge variant="outline" className="text-xs font-mono">{p.code}</Badge></TableCell>
               <TableCell className="text-right font-mono">R$ {Number(p.price_monthly).toFixed(2)}</TableCell>
               <TableCell className="text-right font-mono">{p.price_yearly ? `R$ ${Number(p.price_yearly).toFixed(2)}` : "—"}</TableCell>
@@ -66,9 +214,17 @@ function PlansTab() {
                 <Switch checked={p.is_active} onCheckedChange={(v) => toggleMut.mutate({ id: p.id, is_active: v })} />
               </TableCell>
               <TableCell>
-                <Button variant="outline" size="sm" className="text-xs" onClick={(e) => { e.stopPropagation(); setSelectedPlanId(p.id); }}>
-                  Gerenciar Features
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => setEditPlan(p)}>
+                    <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-xs" onClick={() => setSelectedPlanId(p.id)}>
+                    Features
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-xs" onClick={() => setLimitsForPlanId(p.id)}>
+                    Limites
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -78,6 +234,12 @@ function PlansTab() {
       {selectedPlanId && (
         <PlanFeaturesPanel planId={selectedPlanId} planName={plans.find((p) => p.id === selectedPlanId)?.name ?? ""} onClose={() => setSelectedPlanId(null)} />
       )}
+
+      {limitsForPlanId && (
+        <PlanLimitsPanel planId={limitsForPlanId} planName={plans.find((p) => p.id === limitsForPlanId)?.name ?? ""} onClose={() => setLimitsForPlanId(null)} />
+      )}
+
+      {editPlan && <EditPlanModal plan={editPlan} onClose={() => setEditPlan(null)} />}
     </div>
   );
 }
@@ -413,8 +575,8 @@ export default function BillingFeaturesPage() {
     <div className="space-y-6">
       <PageHeader
         icon={CreditCard}
-        title="Planos e Features"
-        description="Gerencie monetização, módulos liberados e acesso por tenant"
+        title="Planos e Precificação"
+        description="Gerencie estrutura comercial do sistema"
       />
 
       {/* KPI Cards §27 */}
@@ -428,7 +590,7 @@ export default function BillingFeaturesPage() {
             <StatCard icon={CreditCard} label="Planos ativos" value={activePlans} color="primary" />
             <StatCard icon={Package} label="Features ativas" value={activeFeatures} color="info" />
             <StatCard icon={Users} label="Assinaturas ativas" value={activeSubs} color="success" />
-            <StatCard icon={Settings2} label="Total features" value={features.length} color="muted" />
+            <StatCard icon={Zap} label="Total features" value={features.length} color="warning" />
           </>
         )}
       </div>
