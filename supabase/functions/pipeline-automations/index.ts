@@ -44,6 +44,13 @@ serve(async (req: Request) => {
     let totalErrors = 0;
 
     for (const auto of automations) {
+      // Entitlement check per tenant
+      const entitlement = await checkFeatureAccess(supabase, auto.tenant_id, "automacoes");
+      if (!entitlement.has_access) {
+        console.log(`[pipeline-automations] Skipping auto ${auto.id} — tenant ${auto.tenant_id} has no automacoes access`);
+        continue;
+      }
+
       const cutoffDate = new Date(Date.now() - auto.tempo_horas * 60 * 60 * 1000).toISOString();
 
       // Find deals in the trigger stage that haven't moved since the cutoff
