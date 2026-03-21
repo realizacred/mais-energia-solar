@@ -331,7 +331,7 @@ export default function GotenbergConfigPanel() {
               )}
               {testResult.tested_at && (
                 <p className="text-[10px] text-muted-foreground">
-                  Testado em: {new Date(testResult.tested_at).toLocaleString("pt-BR")}
+                  Testado em: {new Date(testResult.tested_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                 </p>
               )}
             </div>
