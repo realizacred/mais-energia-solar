@@ -76,6 +76,11 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         modalidade_tarifaria: editingUC.modalidade_tarifaria || "",
         observacoes: editingUC.observacoes || "",
         ativo: editingUC.status === "active",
+        papel_gd: editingUC.papel_gd || "none",
+        categoria_gd: editingUC.categoria_gd || "",
+        email_fatura: editingUC.email_fatura || "",
+        leitura_automatica_email: editingUC.leitura_automatica_email ?? false,
+        cliente_id: editingUC.cliente_id || "",
       });
       setAddress({
         cep: end.cep || "", rua: end.logradouro || end.rua || "",
