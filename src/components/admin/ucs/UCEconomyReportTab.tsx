@@ -3,7 +3,8 @@
  * Shows how much the client saved with solar energy (compensated kWh × tariff).
  * §27: KPI cards, §5: Recharts, §23: staleTime.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, type UnitInvoice } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
