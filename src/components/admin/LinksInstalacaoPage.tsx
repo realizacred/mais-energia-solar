@@ -192,6 +192,61 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
           </Card>
         </TabsContent>
 
+        {/* ── Tab: Área do Cliente ── */}
+        <TabsContent value="cliente">
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader className="border-b border-border pb-3">
+              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                <Sun className="h-5 w-5 text-primary" />
+                Links Públicos para Clientes
+              </CardTitle>
+              <CardDescription>
+                Páginas públicas destinadas aos clientes de energia solar. Envie estes links para seus clientes acessarem serviços específicos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4">
+              <PwaAppRow
+                icon={<Calculator className="h-5 w-5 text-primary" />}
+                label="☀️ Simulador Solar"
+                url={calculadoraUrl}
+                copiedId={copiedId}
+                copyKey="calc"
+                onCopy={handleCopy}
+                bgClass="bg-primary/10"
+              />
+              <p className="text-xs text-muted-foreground px-1">Simulador público de economia com energia solar. Gera estimativa de investimento e retorno.</p>
+
+              <PwaAppRow
+                icon={<ClipboardCheck className="h-5 w-5 text-info" />}
+                label="📋 Checklist do Cliente"
+                url={checklistUrl}
+                copiedId={copiedId}
+                copyKey="checklist"
+                onCopy={handleCopy}
+                bgClass="bg-info/10"
+              />
+              <p className="text-xs text-muted-foreground px-1">Formulário para o cliente preencher dados e enviar documentos necessários para o projeto.</p>
+
+              <PwaAppRow
+                icon={<Star className="h-5 w-5 text-warning" />}
+                label="⭐ Avaliação do Serviço"
+                url={avaliacaoUrl}
+                copiedId={copiedId}
+                copyKey="avaliacao"
+                onCopy={handleCopy}
+                bgClass="bg-warning/10"
+              />
+              <p className="text-xs text-muted-foreground px-1">Página para o cliente avaliar o atendimento e a instalação após o serviço.</p>
+
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-3 mt-4">
+                <p className="text-xs text-muted-foreground">
+                  <strong>💡 Dica:</strong> Links de proposta (<code className="text-xs">/proposta/:token</code>) e UC pública (<code className="text-xs">/uc/:token</code>) são gerados automaticamente pelo sistema para cada cliente — não precisam ser criados manualmente.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* ── Tab: App PWA ── */}
         <TabsContent value="pwa">
           <div className="space-y-6">
