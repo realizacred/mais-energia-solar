@@ -185,13 +185,13 @@ function PlanCard({
         )}
         <div className="flex items-baseline gap-1">
           <span className="text-3xl font-bold text-foreground">
-            R$ {Number(plan.price_monthly).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
+            R$ {Number(plan.resolved_price_monthly).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
           </span>
           <span className="text-sm text-muted-foreground">/mês</span>
         </div>
-        {plan.price_yearly != null && plan.price_yearly > 0 && (
+        {plan.resolved_price_yearly != null && plan.resolved_price_yearly > 0 && (
           <p className="text-xs text-muted-foreground mt-1">
-            ou R$ {Number(plan.price_yearly).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/ano
+            ou R$ {Number(plan.resolved_price_yearly).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/ano
           </p>
         )}
       </div>
