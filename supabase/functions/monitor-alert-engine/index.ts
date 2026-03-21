@@ -10,7 +10,7 @@
  * - Explicit tenant_id on all inserts, service_role key verified
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkFeatureAccess } from "../_shared/entitlement.ts";
+import { checkFeatureAccess, checkUsageLimit, trackUsage } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -112,6 +112,14 @@ Deno.serve(async (req) => {
           console.log(`[alert-engine] Skipping tenant=${tenantId} — alerta_performance not in plan`);
           continue;
         }
+
+        // Usage limit check
+        const limitCheck = await checkUsageLimit(sb, tenantId, "max_performance_alerts");
+        if (!limitCheck.allowed) {
+          console.log(`[alert-engine] Skipping tenant=${tenantId} — alerts limit reached (${limitCheck.current_value}/${limitCheck.limit_value})`);
+          continue;
+        }
+
         await processAlertsTenant(sb, tenantId, stats);
       } catch (err) {
         console.error(`[alert-engine] tenant=${tenantId} error:`, err);
@@ -403,6 +411,8 @@ async function processAlertsTenant(
           }
         } else {
           stats.opened++;
+          // Track usage for billing
+          await trackUsage(sb, tenantId, "alertas_performance", 1, { source: "monitor-alert-engine" });
         }
       } catch (err) {
         console.error(`[alert-engine] event insert error:`, err);

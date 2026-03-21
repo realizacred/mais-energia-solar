@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { sanitizeError } from "../_shared/error-utils.ts";
-import { checkFeatureAccess, trackUsage } from "../_shared/entitlement.ts";
+import { checkFeatureAccess, checkUsageLimit, trackUsage } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,6 +48,13 @@ serve(async (req: Request) => {
       const entitlement = await checkFeatureAccess(supabase, auto.tenant_id, "automacoes");
       if (!entitlement.has_access) {
         console.log(`[pipeline-automations] Skipping auto ${auto.id} — tenant ${auto.tenant_id} has no automacoes access`);
+        continue;
+      }
+
+      // Usage limit check per tenant
+      const limitCheck = await checkUsageLimit(supabase, auto.tenant_id, "max_automations");
+      if (!limitCheck.allowed) {
+        console.log(`[pipeline-automations] Skipping auto ${auto.id} — tenant ${auto.tenant_id} automations limit reached (${limitCheck.current_value}/${limitCheck.limit_value})`);
         continue;
       }
 

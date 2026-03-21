@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { enforceFeature, trackUsage } from "../_shared/entitlement.ts";
+import { enforceFeature, enforceUsageLimit, checkUsageLimit, trackUsage } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -418,6 +418,14 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Usage limit check per tenant
+          const limitCheck = await checkUsageLimit(supabase, tenant.id, "max_ai_insights_month");
+          if (!limitCheck.allowed) {
+            console.log(`[generate-ai-insights] CRON: Skipping tenant ${tenant.nome} — ai_insights limit reached (${limitCheck.current_value}/${limitCheck.limit_value})`);
+            results.push({ tenant: tenant.nome, success: false, error: "limit_exceeded" });
+            continue;
+          }
+
           const result = await generateInsightForTenant(
             supabase,
             tenant.id,
@@ -508,6 +516,10 @@ Deno.serve(async (req) => {
     if (!isAdmin) {
       const denial = await enforceFeature(supabase, tenantId, "ai_insights", corsHeaders, { userId: user.id });
       if (denial) return denial;
+
+      // Usage limit check
+      const limitDenial = await enforceUsageLimit(supabase, tenantId, "max_ai_insights_month", corsHeaders, { userId: user.id });
+      if (limitDenial) return limitDenial;
     }
 
     const body = await req.json();
