@@ -152,7 +152,7 @@ function PlanCard({
   allFeatureKeys,
   onUpgrade,
 }: {
-  plan: PublicPlan;
+  plan: PricedPlan;
   isCurrent: boolean;
   allFeatureKeys: string[];
   onUpgrade: () => void;
