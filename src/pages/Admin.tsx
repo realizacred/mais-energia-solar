@@ -82,6 +82,7 @@ const IntelligenceMetricsPage = lazy(() => import("@/components/admin/intelligen
 const IntelligenceAlertsPage = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceAlertsPage })));
 const EngenhariaFinanceiraConfig = lazy(() => import("@/components/admin/EngenhariaFinanceiraConfig").then(m => ({ default: m.EngenhariaFinanceiraConfig })));
 const CommercialDirectorDashboard = lazy(() => import("@/components/admin/director").then(m => ({ default: m.CommercialDirectorDashboard })));
+const ConsultorDashboard = lazy(() => import("@/pages/ConsultorDashboard"));
 
 const TasksSlaDashboard = lazy(() => import("@/components/admin/tasks").then(m => ({ default: m.TasksSlaDashboard })));
 const WaInbox = lazy(() => import("@/components/admin/inbox/WaInbox").then(m => ({ default: m.WaInbox })));
