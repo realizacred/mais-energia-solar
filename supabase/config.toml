@@ -132,6 +132,8 @@ verify_jwt = false
 [functions.google-calendar-integration]
 verify_jwt = false
 
+[functions.generate-installation-report]
+verify_jwt = false
 
 [functions.resolve-wa-channel]
 verify_jwt = false

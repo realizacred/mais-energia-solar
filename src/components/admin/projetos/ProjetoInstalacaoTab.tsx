@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, ClipboardList, AlertCircle, Plus, ChevronDown, ChevronUp, Camera, X, MessageSquare, CheckCircle2 } from "lucide-react";
+import { Check, ClipboardList, AlertCircle, Plus, ChevronDown, ChevronUp, Camera, X, MessageSquare, CheckCircle2, FileDown, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/dateUtils";
 import { StorageFileGallery } from "@/components/ui-kit/StorageFileGallery";
@@ -156,11 +158,42 @@ function ChecklistCard({
     isExpanded ? checklist.id : null,
     isExpanded ? checklist.template_id : null
   );
+  const [downloading, setDownloading] = useState(false);
 
   const totalItems = items.length;
   const doneItems = respostas.filter(r => r.valor_boolean === true).length;
   const progress = totalItems > 0 ? (doneItems / totalItems) * 100 : 0;
   const isConcluido = checklist.status === "concluido";
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Não autenticado");
+
+      const res = await supabase.functions.invoke("generate-installation-report", {
+        body: { checklist_id: checklist.id },
+      });
+      if (res.error) throw new Error(res.error.message || "Erro ao gerar relatório");
+
+      const html = typeof res.data === "string" ? res.data : await res.data?.text?.() || "";
+      if (!html) throw new Error("Relatório vazio");
+
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Relatorio_Instalacao_${checklist.id.slice(0, 8)}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Relatório baixado com sucesso");
+    } catch (err) {
+      console.error("[download-report]", err);
+      toast.error("Falha ao gerar relatório");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <Card className="border-border/60">
@@ -225,6 +258,18 @@ function ChecklistCard({
                   {doneItems}/{totalItems} concluídos
                 </span>
                 <div className="flex items-center gap-2">
+                  {isConcluido && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadReport}
+                      disabled={downloading}
+                      className="gap-1.5"
+                    >
+                      {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                      Relatório PDF
+                    </Button>
+                  )}
                   {doneItems < totalItems && (
                     <div className="flex items-center gap-1.5">
                       <AlertCircle className="h-3.5 w-3.5 text-warning" />
