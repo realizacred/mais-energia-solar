@@ -50,14 +50,12 @@ Deno.serve(async (req) => {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(
-        authHeader.replace('Bearer ', '')
-      );
-      if (claimsErr || !claimsData?.claims?.sub) {
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData?.user?.id) {
         return new Response(JSON.stringify({ error: 'Não autorizado' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      const userId = claimsData.claims.sub;
+      const userId = userData.user.id;
 
       const { data: profile } = await admin
         .from('profiles')
@@ -178,24 +176,31 @@ async function processInvoice(
   }
 
   // ── 5. Upsert unit_invoices ──
+  // Map bandeira to valid enum value
+  let bandeira: string | null = null;
+  if (parsed.bandeira_tarifaria) {
+    const raw = parsed.bandeira_tarifaria.toLowerCase();
+    if (raw.includes('verde')) bandeira = 'verde';
+    else if (raw.includes('amarela')) bandeira = 'amarela';
+    else if (raw.includes('vermelha') && raw.includes('2')) bandeira = 'vermelha_2';
+    else if (raw.includes('vermelha')) bandeira = 'vermelha_1';
+  }
+
   const invoicePayload: any = {
     tenant_id: tenantId,
-    month: mes,
-    year: ano,
-    amount_brl: parsed.valor_total,
-    consumption_kwh: parsed.consumo_kwh,
-    tariff_te_kwh: parsed.tarifa_energia_kwh,
-    tariff_tusd_kwh: parsed.tarifa_fio_b_kwh,
-    icms_percentage: parsed.icms_percentual,
-    bandeira_tarifaria: parsed.bandeira_tarifaria,
+    reference_month: mes,
+    reference_year: ano,
+    total_amount: parsed.valor_total,
+    energy_consumed_kwh: parsed.consumo_kwh,
+    current_balance_kwh: parsed.saldo_gd,
+    bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
-    pdf_url: pdfUrl,
+    pdf_file_url: pdfUrl,
     source,
     source_message_id: source_message_id || null,
     status: 'received',
-    saldo_gd_kwh: parsed.saldo_gd,
-    parsing_confidence: parsed.confidence,
-    raw_extracted_data: parsed,
+    demanda_contratada_kw: parsed.demanda_contratada_kw,
+    raw_extraction: parsed,
   };
 
   if (resolvedUnitId) {
@@ -204,14 +209,12 @@ async function processInvoice(
 
   const { data: invoice, error: invoiceErr } = await admin
     .from('unit_invoices')
-    .upsert(invoicePayload, {
-      onConflict: resolvedUnitId ? 'unit_id,month,year' : undefined,
-    })
+    .insert(invoicePayload)
     .select('id')
     .maybeSingle();
 
   if (invoiceErr) {
-    console.error("[process-fatura-pdf] Invoice upsert error:", invoiceErr);
+    console.error("[process-fatura-pdf] Invoice insert error:", invoiceErr);
   }
 
   // ── 6. Update UC with reading data ──
