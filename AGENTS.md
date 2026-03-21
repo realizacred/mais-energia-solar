@@ -782,6 +782,12 @@ AP-12 FORMULÁRIO SEM ZOD/REACT-HOOK-FORM
     🔍 Detectar: grep -rn "useState.*set.*value\|onChange.*set" src/components/ | grep -i "form"
     💥 Consequência: Validação inconsistente, código verboso, bugs de estado
 
+AP-13 DATA/HORA SEM FUSO BRASÍLIA
+    ❌ Errado: new Date(timestamp).toLocaleString("pt-BR") — mostra UTC no cloud
+    ✅ Certo: new Date(timestamp).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    🔍 Detectar: grep -rn 'toLocaleString\|toLocaleTimeString\|toLocaleDateString' src/ | grep -v 'timeZone'
+    💥 Consequência: Horários aparecem +3h adiantados no preview e deploy (Lovable roda em UTC)
+
 # =============================================================================
 # BLOCO 5 — DECISÕES ARQUITETURAIS (DA-XX)
 # POR QUE fizemos assim? QUANDO quebrar a regra?
