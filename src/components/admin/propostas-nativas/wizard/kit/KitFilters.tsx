@@ -17,10 +17,10 @@ interface FilterSection {
 function CollapsibleFilter({ label, open, onToggle, children }: FilterSection) {
   return (
     <div className="space-y-2">
-      <button onClick={onToggle} className="flex items-center justify-between w-full text-xs font-bold text-foreground">
+      <Button variant="ghost" onClick={onToggle} className="flex items-center justify-between w-full text-xs font-bold text-foreground h-auto p-0">
         {label}
         {open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-      </button>
+      </Button>
       {open && children}
     </div>
   );
