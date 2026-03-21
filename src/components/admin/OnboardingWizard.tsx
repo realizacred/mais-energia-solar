@@ -118,9 +118,13 @@ export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: Onb
     setLoading(true);
     try {
       const { error } = await supabase.from("leads").insert({
-        tenant_id: tenantId,
         nome: lead.nome.trim(),
         telefone: lead.telefone.trim(),
+        cidade: "A definir",
+        estado: "SP",
+        area: "residencial",
+        consumo_previsto: 300,
+        media_consumo: 300,
       });
       if (error) throw error;
       toast.success("Lead cadastrado!");
