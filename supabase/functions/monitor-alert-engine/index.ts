@@ -112,6 +112,14 @@ Deno.serve(async (req) => {
           console.log(`[alert-engine] Skipping tenant=${tenantId} — alerta_performance not in plan`);
           continue;
         }
+
+        // Usage limit check
+        const limitCheck = await checkUsageLimit(sb, tenantId, "max_performance_alerts");
+        if (!limitCheck.allowed) {
+          console.log(`[alert-engine] Skipping tenant=${tenantId} — alerts limit reached (${limitCheck.current_value}/${limitCheck.limit_value})`);
+          continue;
+        }
+
         await processAlertsTenant(sb, tenantId, stats);
       } catch (err) {
         console.error(`[alert-engine] tenant=${tenantId} error:`, err);
