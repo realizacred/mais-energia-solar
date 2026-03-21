@@ -559,6 +559,7 @@ export default function Admin() {
                 <Route path="checklists" element={<ChecklistsManager />} />
                 <Route path="avaliacoes" element={<AvaliacoesManager />} />
                 <Route path="servicos" element={<ServicosManager />} />
+                <Route path="visitas-tecnicas" element={<VisitasCalendario />} />
                 <Route path="documentos" element={<DocumentosPage />} />
                 <Route path="documentos-assinaturas" element={<DocumentosPage />} />
                 
