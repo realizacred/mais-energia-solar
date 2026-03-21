@@ -41,8 +41,7 @@ const SENTIMENT_CONFIG = {
 };
 
 export function FollowupAiInsightsPanel({ conversationId, clienteNome }: Props) {
-  const { hasFeature } = useTenantPlan();
-  const hasAi = hasFeature("ai_followup");
+  const { hasAccess: hasAi, isLoading: aiLoading } = useFeatureAccess("ai_followup");
   const { generateMessage, classifyUrgency, suggestTiming, summarize, getState } = useFollowupIntelligence();
 
   const msgState = getState(conversationId, "generate_message");
