@@ -191,7 +191,11 @@ export default function FaturasEnergiaPage() {
       if (result.success > 0) parts.push(`${result.success} importada(s)`);
       if (result.duplicate > 0) parts.push(`${result.duplicate} duplicada(s)`);
       if (result.errors > 0) parts.push(`${result.errors} erro(s)`);
-      toast({ title: parts.join(", ") || "Importação concluída" });
+      toast({
+        title: parts.join(", ") || "Importação concluída",
+        description: result.firstError || undefined,
+        variant: result.errors > 0 && result.success === 0 ? "destructive" : undefined,
+      });
       qc.invalidateQueries({ queryKey: ["invoice_kpis"] });
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err?.message, variant: "destructive" });

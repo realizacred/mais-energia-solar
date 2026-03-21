@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -177,9 +178,13 @@ export function UCInvoicesTab({ unitId }: Props) {
           unit_id: unitId,
           source: "upload",
         },
+        headers: { "x-client-timeout": "120" },
       });
 
-      if (error) throw error;
+      if (error) {
+        const parsedError = await parseInvokeError(error);
+        throw new Error(parsedError.message || "Erro ao processar fatura");
+      }
       if (data?.error) throw new Error(data.error);
 
       setUploadProgress(90);
