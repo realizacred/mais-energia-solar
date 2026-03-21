@@ -65,7 +65,7 @@ export default function FaturasEnergiaPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("units_consumidoras")
-        .select("id, nome, codigo_uc, concessionaria_id")
+        .select("id, nome, codigo_uc, concessionaria_id, concessionaria_nome")
         .eq("is_archived", false)
         .order("nome");
       return data || [];
@@ -157,9 +157,10 @@ export default function FaturasEnergiaPage() {
     toast({ title: "Copiado!", description: text });
   }
 
-  function generateEmail(codigoUC: string | null): string {
-    const code = (codigoUC || "sem-codigo").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-    return `${code}@faturas.maisenergiasolar.com.br`;
+  function generateEmail(concessionariaNome: string | null): string {
+    if (!concessionariaNome) return "configure-a-concessionaria@faturas.maisenergiasolar.com.br";
+    const slug = concessionariaNome.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    return `${slug}@faturas.maisenergiasolar.com.br`;
   }
 
   async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
@@ -300,7 +301,7 @@ export default function FaturasEnergiaPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Cadastre o e-mail abaixo no site da concessionária para cada UC do cliente.
+            Cadastre o e-mail abaixo no site da concessionária. Todas as UCs da mesma concessionária compartilham o mesmo e-mail.
             As faturas enviadas para estes endereços serão processadas automaticamente.
           </p>
 
@@ -314,27 +315,37 @@ export default function FaturasEnergiaPage() {
             <p className="text-sm text-muted-foreground italic py-4 text-center">
               Nenhuma UC cadastrada. Cadastre unidades consumidoras primeiro.
             </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="text-xs font-semibold text-foreground">UC</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">Código</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">E-mail para cadastro</TableHead>
-                    <TableHead className="text-xs font-semibold text-foreground">Status</TableHead>
-                    <TableHead className="w-[60px]" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ucs.map((uc: any) => {
-                    const email = generateEmail(uc.codigo_uc);
-                    return (
-                      <TableRow key={uc.id} className="hover:bg-muted/30">
-                        <TableCell className="text-sm font-medium text-foreground">{uc.nome}</TableCell>
-                        <TableCell className="text-sm font-mono text-muted-foreground">{uc.codigo_uc || "—"}</TableCell>
+          ) : (() => {
+            // Group UCs by concessionária
+            const grouped = new Map<string, { email: string; concessionaria: string; ucs: typeof ucs }>();
+            for (const uc of ucs) {
+              const conc = (uc as any).concessionaria_nome || "Sem concessionária";
+              if (!grouped.has(conc)) {
+                grouped.set(conc, { email: generateEmail((uc as any).concessionaria_nome), concessionaria: conc, ucs: [] });
+              }
+              grouped.get(conc)!.ucs.push(uc);
+            }
+            return (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="text-xs font-semibold text-foreground">Concessionária</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">E-mail para cadastro</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">UCs vinculadas</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">Status</TableHead>
+                      <TableHead className="w-[60px]" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from(grouped.values()).map((group) => (
+                      <TableRow key={group.concessionaria} className="hover:bg-muted/30">
+                        <TableCell className="text-sm font-medium text-foreground">{group.concessionaria}</TableCell>
                         <TableCell>
-                          <span className="text-sm font-mono text-primary">{email}</span>
+                          <span className="text-sm font-mono text-primary">{group.email}</span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {group.ucs.map((uc: any) => uc.nome || uc.codigo_uc).join(", ")}
                         </TableCell>
                         <TableCell>
                           {isConnected ? (
@@ -352,19 +363,19 @@ export default function FaturasEnergiaPage() {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => copyToClipboard(email)}
+                            onClick={() => copyToClipboard(group.email)}
                             title="Copiar e-mail"
                           >
                             <Copy className="w-4 h-4 text-muted-foreground" />
                           </Button>
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
