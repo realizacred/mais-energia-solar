@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, Wifi, WifiOff, AlertTriangle, Clock, Zap, Server, RefreshCw, MessageSquare, CheckCircle2 } from "lucide-react";
+import { Activity, Wifi, WifiOff, AlertTriangle, Clock, Zap, Server, RefreshCw, MessageSquare, CheckCircle2, Info, ExternalLink, ChevronDown, ChevronUp, HelpCircle, BookOpen } from "lucide-react";
 import { useSystemHealth, type HealthRow } from "@/hooks/useSystemHealth";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
