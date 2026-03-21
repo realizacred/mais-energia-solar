@@ -10,6 +10,8 @@ import { useClienteUCs, useClienteGdGroups, useClienteInvoiceSummary } from "@/h
 import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { useClienteEnergiaResumo } from "@/hooks/useGdEnergyEngine";
 import { useClienteCreditBalance } from "@/hooks/useGdEnergyReport";
+import { useClienteReconciliationSummary } from "@/hooks/useGdReconciliation";
+import { ReconciliationStatusBadge } from "@/components/admin/gd/GdReconciliationCard";
 
 interface Props {
   clienteId: string;
@@ -43,6 +45,8 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
   if (refMonth === 0) { refMonth = 12; refYear--; }
   const { data: energiaResumo } = useClienteEnergiaResumo(clienteId, refYear, refMonth);
   const { data: creditData } = useClienteCreditBalance(clienteId);
+  const { data: reconciliations = [] } = useClienteReconciliationSummary(clienteId, refYear, refMonth);
+  const recMap = new Map<string, { status: "ok" | "warning" | "critical" }>(reconciliations.map((r: any) => [r.gd_group_id, { status: r.status }]));
 
   const concMap = new Map(concessionarias.map((c) => [c.id, c]));
 
@@ -230,6 +234,10 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
                       <Badge variant={g.status === "active" ? "default" : "secondary"} className="text-[10px]">
                         {g.status === "active" ? "Ativo" : "Inativo"}
                       </Badge>
+                      {(() => {
+                        const rec = recMap.get(g.id);
+                        return rec ? <ReconciliationStatusBadge status={rec.status} /> : null;
+                      })()}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                       {ucGeradora && (

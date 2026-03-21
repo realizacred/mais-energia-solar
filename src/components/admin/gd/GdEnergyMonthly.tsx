@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GdGenerationSourceCard } from "./GdGenerationSourceCard";
+import { GdReconciliationCard } from "./GdReconciliationCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -150,8 +151,9 @@ export function GdEnergyMonthly({ groupId }: Props) {
         </div>
       ) : (
         <>
-          {/* Generation Source */}
+          {/* Generation Source + Reconciliation */}
           <GdGenerationSourceCard snapshot={snapshot} />
+          <GdReconciliationCard groupId={groupId} year={year} month={month} />
 
           {/* Status badge */}
           <div className="flex items-center gap-2">

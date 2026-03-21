@@ -4853,6 +4853,82 @@ export type Database = {
           },
         ]
       }
+      gd_generation_reconciliation: {
+        Row: {
+          created_at: string
+          diff_percent: number
+          gd_group_id: string
+          id: string
+          invoice_kwh: number | null
+          meter_kwh: number | null
+          monitoring_kwh: number | null
+          notes: string | null
+          reference_month: number
+          reference_year: number
+          selected_source: string
+          snapshot_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          diff_percent?: number
+          gd_group_id: string
+          id?: string
+          invoice_kwh?: number | null
+          meter_kwh?: number | null
+          monitoring_kwh?: number | null
+          notes?: string | null
+          reference_month: number
+          reference_year: number
+          selected_source?: string
+          snapshot_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          diff_percent?: number
+          gd_group_id?: string
+          id?: string
+          invoice_kwh?: number | null
+          meter_kwh?: number | null
+          monitoring_kwh?: number | null
+          notes?: string | null
+          reference_month?: number
+          reference_year?: number
+          selected_source?: string
+          snapshot_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_generation_reconciliation_gd_group_id_fkey"
+            columns: ["gd_group_id"]
+            isOneToOne: false
+            referencedRelation: "gd_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_generation_reconciliation_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "gd_monthly_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_generation_reconciliation_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gd_group_beneficiaries: {
         Row: {
           allocation_percent: number

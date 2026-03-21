@@ -2,8 +2,10 @@
  * gdEnergyEngine — SSOT engine for GD monthly energy calculation.
  * SRP: Calculate generation, allocation, compensation, surplus, deficit, and savings.
  * Phase 2.2: Multi-source generation resolver (meter > monitoring > invoice > missing).
+ * Phase 2.x: Source reconciliation (meter vs monitoring vs invoice).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { buildReconciliation, upsertReconciliation } from "./gdReconciliation";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -270,6 +272,38 @@ async function getInvoiceGenerationForMonth(
 // ─── Central Resolver (SSOT) ────────────────────────────────────
 
 /**
+ * Collect all three source values for reconciliation.
+ * Returns individual results (may be null) + the selected best.
+ */
+export async function collectAllGenerationSources(
+  ucGeradoraId: string,
+  year: number,
+  month: number
+): Promise<{
+  meter: GenerationSourceResult | null;
+  monitoring: GenerationSourceResult | null;
+  invoice: GenerationSourceResult | null;
+  selected: GenerationSourceResult;
+}> {
+  const meter = await getMeterGenerationForMonth(ucGeradoraId, year, month);
+  const monitoring = await getMonitoringGenerationForMonth(ucGeradoraId, year, month);
+  const invoice = await getInvoiceGenerationForMonth(ucGeradoraId, year, month);
+
+  // Priority: meter > monitoring > invoice > missing
+  const selected = meter || monitoring || invoice || {
+    generation_kwh: 0,
+    generator_consumption_kwh: 0,
+    source_type: "missing" as GenerationSourceType,
+    source_id: null,
+    confidence: "missing" as GenerationConfidence,
+    notes: "Nenhuma fonte de geração encontrada",
+    status: "missing_generation" as CalculationStatus,
+  };
+
+  return { meter, monitoring, invoice, selected };
+}
+
+/**
  * Resolve the best generation source for a GD group in a given month.
  * Priority: meter > monitoring > invoice > missing.
  */
@@ -278,28 +312,8 @@ export async function resolveGenerationSourceForMonth(
   year: number,
   month: number
 ): Promise<GenerationSourceResult> {
-  // Priority 1: Meter
-  const meterSource = await getMeterGenerationForMonth(ucGeradoraId, year, month);
-  if (meterSource) return meterSource;
-
-  // Priority 2: Monitoring
-  const monitoringSource = await getMonitoringGenerationForMonth(ucGeradoraId, year, month);
-  if (monitoringSource) return monitoringSource;
-
-  // Priority 3: Invoice
-  const invoiceSource = await getInvoiceGenerationForMonth(ucGeradoraId, year, month);
-  if (invoiceSource) return invoiceSource;
-
-  // Priority 4: Missing
-  return {
-    generation_kwh: 0,
-    generator_consumption_kwh: 0,
-    source_type: "missing",
-    source_id: null,
-    confidence: "missing",
-    notes: "Nenhuma fonte de geração encontrada",
-    status: "missing_generation",
-  };
+  const { selected } = await collectAllGenerationSources(ucGeradoraId, year, month);
+  return selected;
 }
 
 // ─── Beneficiary Consumption ────────────────────────────────────
@@ -369,8 +383,9 @@ export async function calculateGdMonth(
     }
   }
 
-  // 3. Resolve generation source (SSOT — meter > monitoring > invoice > missing)
-  const genSource = await resolveGenerationSourceForMonth(group.uc_geradora_id, year, month);
+  // 3. Collect all generation sources for reconciliation + resolve best
+  const allSources = await collectAllGenerationSources(group.uc_geradora_id, year, month);
+  const genSource = allSources.selected;
 
   // 4. Get active beneficiaries
   const { data: bens = [] } = await supabase
@@ -475,6 +490,19 @@ export async function calculateGdMonth(
     .single();
 
   if (snapErr) throw new Error(`Erro ao salvar snapshot: ${snapErr.message}`);
+
+  // 7.5. Reconciliation: compare all three sources and persist
+  try {
+    const reconciliation = buildReconciliation(
+      allSources.meter?.generation_kwh ?? null,
+      allSources.monitoring?.generation_kwh ?? null,
+      allSources.invoice?.generation_kwh ?? null,
+      genSource.source_type
+    );
+    await upsertReconciliation(gdGroupId, snapshot.id, year, month, reconciliation);
+  } catch (recErr) {
+    console.error("Reconciliation upsert error (non-blocking):", recErr);
+  }
 
   // 8. Upsert allocations
   for (const alloc of allocations) {
