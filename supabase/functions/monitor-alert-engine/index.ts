@@ -10,7 +10,7 @@
  * - Explicit tenant_id on all inserts, service_role key verified
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkFeatureAccess } from "../_shared/entitlement.ts";
+import { checkFeatureAccess, checkUsageLimit, trackUsage } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
