@@ -33,19 +33,21 @@ Deno.serve(async (req) => {
 
     const items: ReadinessItem[] = [];
 
-    // 1. Check payment gateway config (API key)
-    const { data: gwConfig } = await supabase
-      .from("payment_gateway_config")
-      .select("id, api_key, environment, is_active")
-      .eq("provider", "asaas")
-      .maybeSingle();
+    // 1. Check Asaas API key from integration_configs (secure)
+    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { getAsaasKey } = await import("../_shared/get-asaas-key.ts");
+    const asaasKey = await getAsaasKey(supabaseAdmin, profile.tenant_id);
 
-    if (!gwConfig || !gwConfig.api_key) {
-      items.push({ key: "api_key", label: "Credenciais Asaas", status: "red", message: "API Key não configurada. Vá em Configurações → Pagamentos." });
-    } else if (!gwConfig.is_active) {
+    const gwConfig = asaasKey
+      ? await supabaseAdmin.from("payment_gateway_config").select("is_active, environment").eq("provider", "asaas").eq("tenant_id", profile.tenant_id).maybeSingle().then(r => r.data)
+      : null;
+
+    if (!asaasKey) {
+      items.push({ key: "api_key", label: "Credenciais Asaas", status: "red", message: "API Key não configurada. Vá em Configurações → Integração Asaas." });
+    } else if (!gwConfig?.is_active) {
       items.push({ key: "api_key", label: "Credenciais Asaas", status: "yellow", message: "API Key configurada mas integração desativada." });
     } else {
-      items.push({ key: "api_key", label: "Credenciais Asaas", status: "green", message: `Conectado (${gwConfig.environment})` });
+      items.push({ key: "api_key", label: "Credenciais Asaas", status: "green", message: `Conectado (${gwConfig.environment || "sandbox"})` });
     }
 
     // 2. Check fiscal settings

@@ -25,19 +25,15 @@ Deno.serve(async (req) => {
     const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user.id).single();
     if (!profile?.tenant_id) return new Response(JSON.stringify({ error: "No tenant" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Get API key from payment_gateway_config
-    const { data: gwConfig } = await supabaseAdmin
-      .from("payment_gateway_config")
-      .select("api_key, environment")
-      .eq("tenant_id", profile.tenant_id)
-      .eq("provider", "asaas")
-      .eq("is_active", true)
-      .maybeSingle();
+    // Get Asaas key from integration_configs (secure)
+    const { getAsaasKey } = await import("../_shared/get-asaas-key.ts");
+    const asaasKey = await getAsaasKey(supabaseAdmin, profile.tenant_id);
 
-    if (!gwConfig?.api_key) {
-      return new Response(JSON.stringify({ error: "Asaas não configurado ou desativado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!asaasKey) {
+      return new Response(JSON.stringify({ error: "asaas_not_configured" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const gwConfig = { api_key: asaasKey.apiKey, environment: asaasKey.environment };
     const baseUrl = gwConfig.environment === "production" ? "https://api.asaas.com/v3" : "https://sandbox.asaas.com/api/v3";
 
     // Fetch municipal services from Asaas

@@ -47,17 +47,15 @@ Deno.serve(async (req) => {
     const { parcela_id } = await req.json();
     if (!parcela_id) return jsonResponse({ error: "parcela_id é obrigatório" }, 400);
 
-    // ── Gateway config ──
-    const { data: gwConfig } = await supabase
-      .from("payment_gateway_config")
-      .select("api_key, environment, is_active")
-      .eq("tenant_id", tenantId)
-      .eq("provider", "asaas")
-      .maybeSingle();
+    // ── Get Asaas key from integration_configs (secure) ──
+    const { getAsaasKey } = await import("../_shared/get-asaas-key.ts");
+    const asaasKey = await getAsaasKey(supabaseAdmin, tenantId);
 
-    if (!gwConfig?.is_active || !gwConfig.api_key) {
-      return jsonResponse({ error: "Integração Asaas não está ativa. Configure em Configurações → Pagamentos." }, 400);
+    if (!asaasKey) {
+      return jsonResponse({ error: "asaas_not_configured", message: "Integração Asaas não configurada. Acesse Configurações → Integração Asaas." }, 400);
     }
+
+    const gwConfig = { api_key: asaasKey.apiKey, environment: asaasKey.environment, is_active: true };
 
     // ── Parcela + Recebimento + Cliente ──
     const { data: parcela, error: parcErr } = await supabase
