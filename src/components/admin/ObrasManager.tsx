@@ -629,14 +629,15 @@ export function ObrasManager() {
               {availableSuggestedTags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {availableSuggestedTags.map((tag) => (
-                    <button
+                    <Button
                       key={tag}
                       type="button"
+                      variant="outline"
                       onClick={() => addTag(tag)}
-                      className="px-2 py-0.5 text-[10px] rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      className="px-2 py-0.5 text-[10px] rounded-full h-auto"
                     >
                       + {tag}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}

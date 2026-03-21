@@ -596,14 +596,15 @@ function ChatView({
             <PopoverContent side="top" align="start" className="w-72 p-2">
               <div className="grid grid-cols-9 gap-0.5">
                 {EMOJI_GRID.map((emoji) => (
-                  <button
+                  <Button
                     key={emoji}
+                    variant="ghost"
                     onClick={() => insertEmoji(emoji)}
-                    className="text-lg hover:scale-125 transition-transform p-1 rounded hover:bg-muted/60"
+                    className="text-lg hover:scale-125 transition-transform p-1 rounded hover:bg-muted/60 h-auto w-auto"
                     type="button"
                   >
                     {emoji}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </PopoverContent>
