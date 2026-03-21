@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Download, ExternalLink, MessageCircle, Share, Smartphone, MoreVertical, Users, Check, Wrench, QrCode, Link2 } from "lucide-react";
+import { Copy, Download, ExternalLink, MessageCircle, Share, Smartphone, MoreVertical, Users, Check, Wrench, QrCode, Link2, Sun, ClipboardCheck, Star, Calculator } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useQuery } from "@tanstack/react-query";
