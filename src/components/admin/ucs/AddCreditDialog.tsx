@@ -3,8 +3,6 @@
  * §25-S1: Modal template. RB-07: w-[90vw].
  */
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +24,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useCreateUnitCredit, type CreateCreditPayload } from "@/hooks/useUnitCredits";
+import { useCreateUnitCredit, useUcLinkedPlants, type CreateCreditPayload } from "@/hooks/useUnitCredits";
 
 interface Props {
   open: boolean;
@@ -44,35 +42,13 @@ const POSTOS_TARIFARIOS = [
 export function AddCreditDialog({ open, onOpenChange, unitId, tenantId }: Props) {
   const { toast } = useToast();
   const createCredit = useCreateUnitCredit();
+  const { data: linkedPlants } = useUcLinkedPlants(unitId, open);
 
   const [quantidade, setQuantidade] = useState("");
   const [dataVigencia, setDataVigencia] = useState("");
   const [postoTarifario, setPostoTarifario] = useState("fora_ponta");
   const [plantId, setPlantId] = useState<string | null>(null);
   const [observacoes, setObservacoes] = useState("");
-
-  // Fetch linked plants for "Usina de origem" dropdown
-  const { data: linkedPlants } = useQuery({
-    queryKey: ["uc_plant_links_for_credit", unitId],
-    queryFn: async () => {
-      const { data: links, error: linksErr } = await supabase
-        .from("unit_plant_links")
-        .select("plant_id")
-        .eq("unit_id", unitId)
-        .eq("is_active", true);
-      if (linksErr) throw linksErr;
-      if (!links?.length) return [];
-      const plantIds = links.map((l) => l.plant_id);
-      const { data: plants, error: plantsErr } = await supabase
-        .from("monitor_plants")
-        .select("id, name")
-        .in("id", plantIds);
-      if (plantsErr) throw plantsErr;
-      return (plants ?? []) as Array<{ id: string; name: string }>;
-    },
-    staleTime: 1000 * 60 * 5,
-    enabled: open && !!unitId,
-  });
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -101,7 +77,7 @@ export function AddCreditDialog({ open, onOpenChange, unitId, tenantId }: Props)
       tenant_id: tenantId,
       plant_id: plantId,
       quantidade_kwh: qty,
-      data_vigencia: `${dataVigencia}-01`, // Input is YYYY-MM, store as first of month
+      data_vigencia: `${dataVigencia}-01`,
       posto_tarifario: postoTarifario,
       observacoes: observacoes.trim() || null,
     };
