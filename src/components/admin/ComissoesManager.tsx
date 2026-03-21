@@ -293,7 +293,7 @@ export function ComissoesManager() {
       consultor_id: "",
       descricao: "",
       valor_base: "",
-      percentual_comissao: "2.0",
+      percentual_comissao: "3.0",
       mes_referencia: currentDate.getMonth() + 1,
       ano_referencia: currentDate.getFullYear(),
       observacoes: "",
