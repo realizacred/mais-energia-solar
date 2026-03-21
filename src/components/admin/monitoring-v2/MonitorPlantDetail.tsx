@@ -79,10 +79,11 @@ export default function MonitorPlantDetail() {
     }
   };
 
-  const { data: plant, isLoading } = useQuery({
+  const { data: plant, isLoading, error: plantError } = useQuery({
     queryKey: ["monitor-plant-detail", plantId],
     queryFn: () => getPlantDetail(plantId!),
     enabled: !!plantId,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: devices = [] } = useQuery({
@@ -120,7 +121,22 @@ export default function MonitorPlantDetail() {
   });
 
   if (isLoading) return <LoadingState message="Carregando usina..." />;
-  if (!plant) return <EmptyState icon={Sun} title="Usina não encontrada" />;
+  if (plantError) return (
+    <EmptyState
+      icon={AlertTriangle}
+      title="Erro ao carregar usina"
+      description={(plantError as any)?.message || "Não foi possível carregar os dados da usina. Tente novamente."}
+      action={{ label: "Voltar", onClick: () => navigate("/admin/monitoramento/usinas") }}
+    />
+  );
+  if (!plant) return (
+    <EmptyState
+      icon={Sun}
+      title="Usina não encontrada"
+      description="A usina solicitada não foi encontrada ou não está disponível."
+      action={{ label: "Voltar", onClick: () => navigate("/admin/monitoramento/usinas") }}
+    />
+  );
 
   // ── Status coherence: plant status MUST match device reality ──
   // If ALL devices offline → plant offline. If ANY device online → plant online.
