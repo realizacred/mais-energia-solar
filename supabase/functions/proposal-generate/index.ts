@@ -715,6 +715,60 @@ Deno.serve(async (req) => {
 
     // ── 6b. FLATTEN ITEM FINANCIALS BY CATEGORY ─────────────
     const flatItensFinanceiros = flattenItensFinanceirosPorCategoria(enrichedItens, venda.margem_percentual);
+    // ── 6c. AI JUSTIFICATIVA TÉCNICA ────────────────────────
+    let aiJustificativa: string | null = null;
+    try {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY) {
+        const tipoTelhado = body.ucs[0]?.tipo_telhado || "não informado";
+        const cidade = body.ucs[0]?.cidade || "não informada";
+        const estado = body.ucs[0]?.estado || "";
+        const paybackAnos = calcResult.paybackAnos;
+        const econAnual = calcResult.economiaPrimeiroAno;
+        const roi25 = calcResult.roi25Anos;
+
+        const aiPrompt = `Você é um especialista em energia solar fotovoltaica. Gere uma justificativa técnica personalizada e persuasiva (máximo 4 parágrafos) para uma proposta comercial.
+
+Dados do projeto:
+- Localização: ${cidade}/${estado}
+- Consumo mensal: ${consumoTotal} kWh
+- Tipo de telhado: ${tipoTelhado}
+- Potência do sistema: ${potenciaKwp} kWp
+- Investimento: R$ ${valorTotal.toFixed(2)}
+- Economia mensal estimada: R$ ${round2(economiaMensal).toFixed(2)}
+- Economia anual: R$ ${econAnual.toFixed(2)}
+- Payback: ${paybackAnos} anos
+- ROI em 25 anos: R$ ${roi25.toFixed(2)}
+- VPL: R$ ${calcResult.vpl.toFixed(2)}
+- TIR: ${calcResult.tir.toFixed(1)}%
+
+Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno financeiro comparado a investimentos tradicionais (poupança, CDB), e projeção de valorização do imóvel. Tom: profissional e confiante.`;
+
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: "Você é um consultor especialista em energia solar fotovoltaica no Brasil. Responda em português brasileiro." },
+              { role: "user", content: aiPrompt },
+            ],
+          }),
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          aiJustificativa = aiData?.choices?.[0]?.message?.content ?? null;
+        } else {
+          console.warn("[proposal-generate] AI justificativa failed:", aiResponse.status);
+        }
+      }
+    } catch (aiErr: any) {
+      console.warn("[proposal-generate] AI justificativa error (non-blocking):", aiErr?.message);
+    }
 
     // ── 7. SNAPSHOT IMUTÁVEL ────────────────────────────────
     const snapshot = {
