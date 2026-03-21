@@ -506,6 +506,7 @@ export default function Admin() {
 
           <SistemaInstallBanner />
           <TrialBanner />
+          <UpsellBanner />
           <FeatureDiscoveryLayer />
           <main className={`flex-1 admin-content overflow-x-hidden animate-fade-in ${isInboxLayout ? "min-h-0 overflow-y-hidden" : ""}`}>
             <Suspense fallback={<LoadingSpinner />}>
