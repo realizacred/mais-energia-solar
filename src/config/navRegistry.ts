@@ -128,8 +128,9 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   // ── 9. IA ──
   { nav_key: "diretor", label_default: "Copilot IA", group_default: "IA", order_default: 0, icon: "Sparkles", description: "Análises inteligentes e sugestões automáticas", keywords: ["IA", "copilot", "sugestão", "automático", "inteligência", "assistente"], criticality: "normal", permission: "all" },
   { nav_key: "ai-config", label_default: "Configuração de IA", group_default: "IA", order_default: 1, icon: "Brain", description: "Modelo, temperatura e regras de IA", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "openai-config", label_default: "Config OpenAI", group_default: "IA", order_default: 5, icon: "Brain", description: "Chave de API e configurações OpenAI", keywords: ["openai", "gpt", "api", "chave", "token"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "gemini-config", label_default: "Config Gemini", group_default: "IA", order_default: 6, icon: "Sparkles", description: "Chave de API e configurações Google Gemini", keywords: ["gemini", "google", "api", "chave", "modelo"], criticality: "normal", permission: "admin_only" },
 
-  // ── 10. Energia ──
   { nav_key: "ucs", label_default: "Unidades Consumidoras", group_default: "Energia", order_default: 0, icon: "Building2", description: "Gestão de UCs", keywords: ["UC", "unidade", "consumidora", "energia", "concessionária"], criticality: "normal", permission: "admin_only" },
   { nav_key: "monitoramento", label_default: "Monitoramento Solar", group_default: "Energia", order_default: 1, icon: "BarChart3", description: "Dashboard de monitoramento solar em tempo real", keywords: ["monitoramento", "solar", "dashboard", "energia", "geração", "usina"], criticality: "normal", permission: "admin_only", separator: true },
   { nav_key: "monitoramento/usinas", label_default: "Usinas", group_default: "Energia", order_default: 2, icon: "Sun", description: "Mapa e lista de usinas fotovoltaicas", keywords: ["usina", "planta", "mapa", "lista", "solar"], criticality: "normal", permission: "admin_only" },
