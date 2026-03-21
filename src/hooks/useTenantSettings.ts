@@ -5,6 +5,7 @@ export type TenantConfig = {
   crm?: {
     block_duplicate_clients?: boolean;
     required_fields?: string[];
+    unique_fields?: string[];
   };
   branding?: {
     ai_name?: string;
