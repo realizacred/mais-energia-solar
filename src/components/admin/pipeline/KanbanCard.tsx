@@ -27,10 +27,14 @@ import {
   Trophy,
   XCircle,
   DollarSign,
+  Flame,
+  Thermometer,
+  Snowflake,
 } from "lucide-react";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatBRLCompact } from "@/lib/formatters";
+import { useLeadScoresMap } from "@/hooks/useLeadScoresMap";
 
 interface Lead {
   id: string;
@@ -77,6 +81,9 @@ export function KanbanCard({
   onWin,
   onLose,
 }: KanbanCardProps) {
+  const { data: scoresMap } = useLeadScoresMap();
+  const leadScore = scoresMap?.get(lead.id);
+
   const kwp = lead.potencia_kwp || estimateKwp(lead.media_consumo);
   const valor = lead.valor_projeto || estimateValue(kwp);
 
@@ -108,9 +115,14 @@ export function KanbanCard({
       <div className="space-y-1.5">
         {/* Line 1: Lead code + urgency badge */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-mono text-muted-foreground">
-            {lead.lead_code || "—"}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-mono text-muted-foreground">
+              {lead.lead_code || "—"}
+            </span>
+            {leadScore && (
+              <ScoreBadge score={leadScore.score} nivel={leadScore.nivel} />
+            )}
+          </div>
           <div className="flex items-center gap-1">
             {isInactive && (
               <Badge className="text-[10px] h-4 bg-destructive/10 text-destructive border-destructive/20">
@@ -176,6 +188,29 @@ export function KanbanCard({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/** Score badge — hot/warm/cold */
+function ScoreBadge({ score, nivel }: { score: number; nivel: "hot" | "warm" | "cold" }) {
+  const config = {
+    hot: { icon: Flame, className: "bg-destructive/10 text-destructive border-destructive/20" },
+    warm: { icon: Thermometer, className: "bg-warning/10 text-warning border-warning/20" },
+    cold: { icon: Snowflake, className: "bg-muted text-muted-foreground border-border" },
+  }[nivel];
+  const Icon = config.icon;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge className={cn("text-[10px] h-4 gap-0.5 cursor-default", config.className)}>
+            <Icon className="w-2.5 h-2.5" />
+            {score}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>Score: {score}/100 ({nivel})</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
