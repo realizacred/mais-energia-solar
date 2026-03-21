@@ -3,5 +3,6 @@ export { UpsellBanner } from "./UpsellBanner";
 export { LimitReachedDialog } from "./LimitReachedDialog";
 export { usePlanGuard } from "./PlanGuard";
 export { FeatureGate } from "./FeatureGate";
+export { IntegrationGate } from "./IntegrationGate";
 export { UpgradeModal } from "./UpgradeModal";
 export { AsaasNotConfigured } from "./AsaasNotConfigured";
