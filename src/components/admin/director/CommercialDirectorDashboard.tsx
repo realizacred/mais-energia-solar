@@ -21,6 +21,7 @@ export function CommercialDirectorDashboard() {
   const insights = useAiInsights();
 
   return (
+    <FeatureGate featureKey="ai_insights">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
