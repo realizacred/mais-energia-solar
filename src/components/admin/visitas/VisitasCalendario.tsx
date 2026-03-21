@@ -33,6 +33,21 @@ const STATUS_COLORS: Record<string, string> = {
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+/** Open Google Calendar with pre-filled event data */
+function openGoogleCalendar(visita: { data_hora: string; duracao_minutos?: number | null; endereco?: string | null; observacoes?: string | null }) {
+  const start = new Date(visita.data_hora);
+  const end = new Date(start.getTime() + (visita.duracao_minutos || 60) * 60000);
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `Visita Técnica${visita.endereco ? " — " + visita.endereco : ""}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: visita.observacoes || "Visita técnica agendada pelo sistema",
+    location: visita.endereco || "",
+  });
+  window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, "_blank");
+}
+
 export function VisitasCalendario() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
