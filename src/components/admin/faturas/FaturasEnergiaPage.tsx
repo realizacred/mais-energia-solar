@@ -370,10 +370,28 @@ export default function FaturasEnergiaPage() {
 
       {/* Section 3 — Received Invoices */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
             <FileText className="w-4 h-4" /> Faturas Recebidas
           </CardTitle>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleUploadPdf}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPdf}
+            >
+              {uploadingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+              Processar PDF
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingInvoices ? (
