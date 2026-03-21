@@ -143,6 +143,7 @@ const CommercialDashboardPage = lazy(() => import("@/components/admin/billing/Co
 const SystemHealthPage = lazy(() => import("@/components/admin/SystemHealthPage"));
 const CronJobsPage = lazy(() => import("@/components/admin/CronJobsPage"));
 const AsaasIntegrationPage = lazy(() => import("@/pages/admin/AsaasIntegrationPage"));
+const AsaasConversionPage = lazy(() => import("@/pages/admin/AsaasConversionPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const PostSaleDashboardPage = lazy(() => import("@/components/admin/post-sale/PostSaleDashboard"));
 const PostSaleVisitsPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitsList"));
