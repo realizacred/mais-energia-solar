@@ -409,9 +409,9 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">Consumo *</Label>
-                <button onClick={() => onOpenMesAMes("consumo")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                <Button variant="link" onClick={() => onOpenMesAMes("consumo")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5 h-auto p-0">
                   mês a mês <Edit2 className="h-2.5 w-2.5" />
-                </button>
+                </Button>
               </div>
               <div className="relative">
                 <Input type="number" min={0} value={uc.consumo_mensal || ""} onChange={e => onUpdate("consumo_mensal", Number(e.target.value))} className="h-8 text-xs pr-10" />
