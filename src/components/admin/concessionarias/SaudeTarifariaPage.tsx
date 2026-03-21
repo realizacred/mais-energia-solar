@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { formatDate } from "@/lib/dateUtils";
 import {
   Activity, AlertTriangle, CheckCircle2, XCircle, Clock, Shield,
   Lightbulb, TrendingUp, ChevronDown, ChevronRight, RefreshCw,
