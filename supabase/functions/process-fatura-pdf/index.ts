@@ -293,6 +293,7 @@ async function callParseContaEnergia(
   supabaseUrl: string,
   serviceRoleKey: string,
   text: string,
+  pdfBase64: string,
   useAiFallback: boolean,
   timeoutMs: number,
 ) {
@@ -300,13 +301,23 @@ async function callParseContaEnergia(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const payload: Record<string, any> = {
+      text: text || "",
+      use_ai_fallback: useAiFallback,
+    };
+
+    // Include PDF base64 for AI multimodal extraction when text is poor
+    if (!text || text.length < 200) {
+      payload.pdf_base64 = pdfBase64;
+    }
+
     const response = await fetch(`${supabaseUrl}/functions/v1/parse-conta-energia`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text, use_ai_fallback: useAiFallback }),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     });
 
