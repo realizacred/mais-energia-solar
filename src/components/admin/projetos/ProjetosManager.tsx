@@ -251,6 +251,24 @@ export function ProjetosManager() {
             return;
           }
 
+          // ✅ 3.5) Guard: verificar se já existe projeto ativo para este cliente
+          const { data: existente } = await supabase
+            .from("projetos")
+            .select("id, codigo")
+            .eq("cliente_id", customerId)
+            .in("status", ["criado", "aguardando_documentacao", "em_analise", "aprovado", "em_instalacao"])
+            .limit(1)
+            .maybeSingle();
+
+          if (existente) {
+            toast({
+              title: "Projeto já existe",
+              description: `Este cliente já tem o projeto ${existente.codigo || "em andamento"}. Abra-o pelo kanban.`,
+              variant: "destructive",
+            });
+            return;
+          }
+
           // ✅ 4) Cria o projeto/deal vinculando o cliente certo
           const result = await createDeal({
             title: data.nome || data.cliente.nome,
