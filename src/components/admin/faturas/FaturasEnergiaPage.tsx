@@ -162,6 +162,45 @@ export default function FaturasEnergiaPage() {
     return `${code}@faturas.maisenergiasolar.com.br`;
   }
 
+  async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast({ title: "Formato inválido", description: "Selecione um arquivo PDF", variant: "destructive" });
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
+        body: { pdf_base64: base64, source: "upload" },
+      });
+
+      if (error) throw error;
+
+      if (data?.parsed) {
+        const p = data.parsed;
+        toast({
+          title: "✅ Fatura processada",
+          description: `UC ${p.numero_uc || "N/A"} — Consumo: ${p.consumo_kwh ?? "N/A"} kWh — Valor: R$ ${p.valor_total ?? "N/A"}`,
+        });
+        qc.invalidateQueries({ queryKey: ["unit_invoices"] });
+      } else if (data?.error) {
+        toast({ title: "Erro no processamento", description: data.error, variant: "destructive" });
+      } else {
+        toast({ title: "Fatura enviada para processamento" });
+        qc.invalidateQueries({ queryKey: ["unit_invoices"] });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.message || "Falha ao processar PDF", variant: "destructive" });
+    } finally {
+      setUploadingPdf(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
