@@ -589,9 +589,9 @@ function ChatView({
           {/* Emoji picker */}
           <Popover>
             <PopoverTrigger asChild>
-              <button className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
+              <Button variant="ghost" size="icon" className="p-1.5 h-auto w-auto rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
                 <Smile className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </PopoverTrigger>
             <PopoverContent side="top" align="start" className="w-72 p-2">
               <div className="grid grid-cols-9 gap-0.5">
