@@ -632,6 +632,7 @@ export default function Admin() {
                 <Route path="automacoes-energia" element={<GdAutomationPage />} />
                 <Route path="financeiro-energia" element={<EnergyFinancialPage />} />
                 <Route path="painel-cliente-energia" element={<ClienteEnergiaDashboardPage />} />
+                <Route path="integracoes-email" element={<EmailIntegrationsPage />} />
                 
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />

@@ -183,7 +183,7 @@ function AccountFormModal({ open, onOpenChange, initial }: AccountFormProps) {
               </div>
               <div className="space-y-2">
                 <Label>Finalidade</Label>
-                <Select value={form.account_role} onValueChange={v => setForm(f => ({ ...f, account_role: v }))}>
+                <Select value={form.account_role} onValueChange={v => setForm(f => ({ ...f, account_role: v as "invoices" | "operational" | "support" }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="invoices">Faturas</SelectItem>
