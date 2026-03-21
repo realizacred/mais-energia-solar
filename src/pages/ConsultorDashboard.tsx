@@ -2,6 +2,7 @@
  * ConsultorDashboard — Personalized consultant dashboard.
  * §26: Header. §27: KPI cards. §4: Tables. §12: Skeletons. §23: staleTime. RB-13: Brasília.
  */
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useConsultorDashboard } from "@/hooks/useConsultorDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { User, Flame, CalendarClock, FileText, Phone, CheckCircle2, AlertTriangle } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { User, Flame, CalendarClock, FileText, Phone, CheckCircle2, AlertTriangle, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
