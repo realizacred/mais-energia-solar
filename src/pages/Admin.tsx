@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Menu, ShieldAlert } from "lucide-react";
 import { SistemaInstallBanner } from "@/components/pwa/SistemaInstallBanner";
@@ -24,6 +24,9 @@ import { AgendaSheet } from "@/components/admin/AgendaSheet";
 import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 import { HelpDropdown } from "@/components/admin/HelpDropdown";
 import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
+import { useOnboardingStatus } from "@/hooks/useOnboarding";
+import { OnboardingWizard } from "@/components/admin/OnboardingWizard";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 // Lazy load admin sub-pages for better code splitting
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
@@ -377,6 +380,22 @@ export default function Admin() {
   const location = useLocation();
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Resolve tenant for onboarding check
+  useEffect(() => {
+    if (!user?.id) return;
+    getCurrentTenantId().then(({ tenantId: tid }) => setTenantId(tid)).catch(() => {});
+  }, [user?.id]);
+
+  const { data: onboardingStatus } = useOnboardingStatus(tenantId);
+
+  useEffect(() => {
+    if (onboardingStatus && !onboardingStatus.onboarding_completed && hasAccess) {
+      setShowOnboarding(true);
+    }
+  }, [onboardingStatus, hasAccess]);
 
   // Derive active tab from URL path
   const activeTab = useMemo(() => {
@@ -512,6 +531,14 @@ export default function Admin() {
           <TrialBanner />
           <UpsellBanner />
           <FeatureDiscoveryLayer />
+          {tenantId && (
+            <OnboardingWizard
+              open={showOnboarding}
+              onOpenChange={setShowOnboarding}
+              tenantId={tenantId}
+              userName={user?.email?.split("@")[0]}
+            />
+          )}
           <main className={`flex-1 admin-content overflow-x-hidden animate-fade-in ${isInboxLayout ? "min-h-0 overflow-y-hidden" : ""}`}>
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>

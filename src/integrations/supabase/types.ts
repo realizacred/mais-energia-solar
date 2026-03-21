@@ -18879,6 +18879,8 @@ export type Database = {
           id: string
           inscricao_estadual: string | null
           nome: string
+          onboarding_completed: boolean
+          onboarding_step: number
           owner_user_id: string | null
           plano: string
           slug: string
@@ -18902,6 +18904,8 @@ export type Database = {
           id?: string
           inscricao_estadual?: string | null
           nome: string
+          onboarding_completed?: boolean
+          onboarding_step?: number
           owner_user_id?: string | null
           plano?: string
           slug: string
@@ -18925,6 +18929,8 @@ export type Database = {
           id?: string
           inscricao_estadual?: string | null
           nome?: string
+          onboarding_completed?: boolean
+          onboarding_step?: number
           owner_user_id?: string | null
           plano?: string
           slug?: string
