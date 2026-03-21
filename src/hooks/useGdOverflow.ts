@@ -4,6 +4,8 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { enqueueGdRecalc } from "@/services/energia/gdAutomationService";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 const STALE_TIME = 1000 * 60 * 5;
 
