@@ -1290,5 +1290,5 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - Nunca "aproveitar" para refatorar código adjacente
 
 # =============================================================================
-# FIM DO AGENTS.md v2.0
+# FIM DO AGENTS.md v2.1
 # =============================================================================
