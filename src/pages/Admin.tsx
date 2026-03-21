@@ -470,6 +470,7 @@ export default function Admin() {
     <SidebarProvider style={{ "--sidebar-width": "18rem" } as React.CSSProperties}>
       <TourProvider>
       <div className={`${isInboxLayout ? "h-[100dvh] overflow-hidden" : "min-h-screen"} flex w-full bg-background`}>
+        <GlobalSearch />
         <AdminSidebar
           activeTab={activeTab}
           userEmail={user?.email}
