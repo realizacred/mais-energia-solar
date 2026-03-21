@@ -29,6 +29,13 @@ const TOUR_STEPS: Record<string, Step[]> = {
       placement: "bottom",
       disableBeacon: true,
     },
+    {
+      target: "[data-tour='novo-lead']",
+      content: "Clique aqui para adicionar um novo lead ao sistema manualmente.",
+      title: "➕ Novo Lead",
+      placement: "bottom",
+      disableBeacon: true,
+    },
   ],
   "/admin/projetos": [
     {
@@ -52,7 +59,7 @@ const TOUR_STEPS: Record<string, Step[]> = {
     {
       target: "[data-tour='page-header']",
       content: "Central de atendimento via WhatsApp. Responda mensagens, atribua conversas e acompanhe o histórico.",
-      title: "💬 Atendimento",
+      title: "💬 Atendimento WhatsApp",
       placement: "bottom",
       disableBeacon: true,
     },
@@ -98,6 +105,33 @@ const TOUR_STEPS: Record<string, Step[]> = {
       target: "[data-tour='page-header']",
       content: "Defina metas mensais e veja o ranking da equipe em tempo real para estimular resultados.",
       title: "🏆 Metas & Ranking",
+      placement: "bottom",
+      disableBeacon: true,
+    },
+  ],
+  "/admin/propostas": [
+    {
+      target: "[data-tour='page-header']",
+      content: "Gere propostas personalizadas com apenas alguns cliques e envie diretamente ao cliente.",
+      title: "📋 Propostas",
+      placement: "bottom",
+      disableBeacon: true,
+    },
+  ],
+  "/admin/monitoramento": [
+    {
+      target: "[data-tour='page-header']",
+      content: "Acompanhe em tempo real todas as usinas solares instaladas, com status, geração e alertas.",
+      title: "☀️ Monitoramento Solar",
+      placement: "bottom",
+      disableBeacon: true,
+    },
+  ],
+  "/admin/diretor": [
+    {
+      target: "[data-tour='page-header']",
+      content: "Insights de IA e métricas executivas para visão estratégica da operação.",
+      title: "📊 Dashboard Executivo",
       placement: "bottom",
       disableBeacon: true,
     },
