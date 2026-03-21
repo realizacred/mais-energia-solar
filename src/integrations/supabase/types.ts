@@ -10973,6 +10973,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
+          is_popular: boolean
           name: string
           price_monthly: number
           price_yearly: number | null
@@ -10986,6 +10987,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_popular?: boolean
           name: string
           price_monthly?: number
           price_yearly?: number | null
@@ -10999,6 +11001,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_popular?: boolean
           name?: string
           price_monthly?: number
           price_yearly?: number | null
