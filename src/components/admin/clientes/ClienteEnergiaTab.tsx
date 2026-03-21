@@ -234,9 +234,10 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
                       <Badge variant={g.status === "active" ? "default" : "secondary"} className="text-[10px]">
                         {g.status === "active" ? "Ativo" : "Inativo"}
                       </Badge>
-                      {recMap.has(g.id) && (
-                        <ReconciliationStatusBadge status={recMap.get(g.id)!.status} />
-                      )}
+                      {(() => {
+                        const rec = recMap.get(g.id);
+                        return rec ? <ReconciliationStatusBadge status={rec.status} /> : null;
+                      })()}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                       {ucGeradora && (
