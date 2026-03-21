@@ -384,7 +384,9 @@ export default function UCDetailPage() {
           </TabsContent>
 
           <TabsContent value="comparativo">
-            <UCComparativoTab unitId={uc.id} simulacaoId={(uc as any).simulacao_id ?? null} />
+            <FeatureGate featureKey="comparativo_uc">
+              <UCComparativoTab unitId={uc.id} simulacaoId={(uc as any).simulacao_id ?? null} />
+            </FeatureGate>
           </TabsContent>
 
           {plantId && (
