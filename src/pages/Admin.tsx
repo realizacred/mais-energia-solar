@@ -72,6 +72,7 @@ const MeterDetailPage = lazy(() => import("@/components/admin/meters/MeterDetail
 const FaturasEnergiaPage = lazy(() => import("@/components/admin/faturas/FaturasEnergiaPage"));
 const InvoiceReviewPage = lazy(() => import("@/components/admin/faturas/InvoiceReviewPage"));
 const GdGroupsPage = lazy(() => import("@/components/admin/gd/GdGroupsPage").then(m => ({ default: m.GdGroupsPage })));
+const EnergyAlertsPage = lazy(() => import("@/components/admin/energia/EnergyAlertsPage").then(m => ({ default: m.EnergyAlertsPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
