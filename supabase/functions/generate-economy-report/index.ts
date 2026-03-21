@@ -40,6 +40,10 @@ Deno.serve(async (req) => {
     const { unit_id } = await req.json();
     if (!unit_id) throw new Error("unit_id required");
 
+    // Backend entitlement check
+    const denial = await enforceFeature(supabase, tenantId, "relatorio_mensal_pdf", corsHeaders, { userId: user.id });
+    if (denial) return denial;
+
     // 1. Fetch UC
     const { data: uc, error: ucErr } = await supabase
       .from("units")
