@@ -24,6 +24,7 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   groupId: string;
+  ucGeradoraId?: string;
   existingBeneficiaries: GdBeneficiary[];
 }
 
