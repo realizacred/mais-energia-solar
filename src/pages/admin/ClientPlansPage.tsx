@@ -129,7 +129,10 @@ export default function ClientPlansPage() {
             plan={plan}
             isCurrent={plan.code === currentPlanCode}
             allFeatureKeys={allFeatureKeys}
-            onUpgrade={() => setUpgradeOpen(true)}
+            onUpgrade={() => {
+              trackPricingEvent("plan_click", plan.id, plan.variant_id);
+              setUpgradeOpen(true);
+            }}
           />
         ))}
       </div>
