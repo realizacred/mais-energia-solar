@@ -112,18 +112,25 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
 
       {/* §29 Tabs after header */}
       <Tabs defaultValue="form" className="w-full">
-        <TabsList className="w-full grid grid-cols-3">
+        <TabsList className="w-full grid grid-cols-4">
           <TabsTrigger value="form" className="gap-1.5 text-xs sm:text-sm">
             <Users className="h-3.5 w-3.5" />
-            Formulário
+            <span className="hidden sm:inline">Formulário</span>
+            <span className="sm:hidden">Form</span>
           </TabsTrigger>
           <TabsTrigger value="whatsapp" className="gap-1.5 text-xs sm:text-sm">
             <MessageCircle className="h-3.5 w-3.5" />
             WhatsApp
           </TabsTrigger>
+          <TabsTrigger value="cliente" className="gap-1.5 text-xs sm:text-sm">
+            <Sun className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Área do Cliente</span>
+            <span className="sm:hidden">Cliente</span>
+          </TabsTrigger>
           <TabsTrigger value="pwa" className="gap-1.5 text-xs sm:text-sm">
             <Smartphone className="h-3.5 w-3.5" />
-            App PWA
+            <span className="hidden sm:inline">App PWA</span>
+            <span className="sm:hidden">App</span>
           </TabsTrigger>
         </TabsList>
 
