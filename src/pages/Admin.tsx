@@ -139,6 +139,7 @@ const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const BillingFeaturesPage = lazy(() => import("@/components/admin/billing/BillingFeaturesPage"));
+const CommercialDashboardPage = lazy(() => import("@/components/admin/billing/CommercialDashboardPage"));
 const SystemHealthPage = lazy(() => import("@/components/admin/SystemHealthPage"));
 const CronJobsPage = lazy(() => import("@/components/admin/CronJobsPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
@@ -671,6 +672,7 @@ export default function Admin() {
                 <Route path="backup" element={<BackupRestorePage />} />
                 <Route path="permissoes" element={<RolePermissionsManager />} />
                 <Route path="planos-features" element={<BillingFeaturesPage />} />
+                <Route path="dashboard-comercial" element={<CommercialDashboardPage />} />
                 
                 <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
                 <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
