@@ -3,7 +3,8 @@
  * Shows how much the client saved with solar energy (compensated kWh × tariff).
  * §27: KPI cards, §5: Recharts, §23: staleTime.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, type UnitInvoice } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +19,9 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Line, ComposedChart,
 } from "recharts";
-import { TrendingUp, DollarSign, Zap, Leaf, BarChart3 } from "lucide-react";
+import { TrendingUp, DollarSign, Zap, Leaf, BarChart3, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   unitId: string;
@@ -63,6 +66,42 @@ const DEFAULT_TARIFF = 0.85;
 
 export function UCEconomyReportTab({ unitId }: Props) {
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [exporting, setExporting] = useState(false);
+  const { toast } = useToast();
+
+  const handleExportPdf = useCallback(async () => {
+    setExporting(true);
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session?.access_token) throw new Error("Não autenticado");
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/generate-economy-report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ unit_id: unitId }),
+        }
+      );
+      if (!res.ok) throw new Error("Erro ao gerar relatório");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio-economia-${unitId.slice(0, 8)}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Relatório exportado!" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  }, [unitId, toast]);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["unit_invoices", unitId],
@@ -179,10 +218,15 @@ export function UCEconomyReportTab({ unitId }: Props) {
   return (
     <div className="space-y-4">
       {/* Year selector */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" /> Relatório de Economia
         </h3>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={exporting} className="gap-1.5 text-xs">
+            <Download className="w-3.5 h-3.5" />
+            {exporting ? "Gerando..." : "Exportar PDF"}
+          </Button>
         <Select value={selectedYear} onValueChange={setSelectedYear}>
           <SelectTrigger className="w-[120px]">
             <SelectValue />
@@ -193,6 +237,7 @@ export function UCEconomyReportTab({ unitId }: Props) {
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       {/* KPI Cards — §27 */}
