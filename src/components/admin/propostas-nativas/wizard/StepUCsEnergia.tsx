@@ -438,11 +438,11 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
             <div className="flex items-center gap-4 text-xs">
               <span className="text-primary">
                 Tarifa: R${(uc.tarifa_distribuidora || 0).toFixed(5)}
-                <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                <Button variant="ghost" size="icon" className="ml-1 inline-flex h-auto w-auto p-0" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></Button>
               </span>
               <span className="text-primary">
                 FioB: R${(uc.tarifa_fio_b || 0).toFixed(5)}
-                <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                <Button variant="ghost" size="icon" className="ml-1 inline-flex h-auto w-auto p-0" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></Button>
               </span>
             </div>
           )}
