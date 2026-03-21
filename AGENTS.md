@@ -119,6 +119,16 @@ RB-12 NÃO MODIFICAR src/components/ui/
     Motivo: shadcn/ui base, atualizações sobrescrevem mudanças
     Exceções permitidas: switch.tsx, slider.tsx (tokens semânticos)
 
+RB-13 FUSO HORÁRIO BRASÍLIA OBRIGATÓRIO
+    O sistema opera exclusivamente no fuso de Brasília (America/Sao_Paulo, UTC-3).
+    NUNCA use: toLocaleString("pt-BR") sem timeZone — em ambientes cloud (preview, SSR) o fuso padrão é UTC.
+    SEMPRE use: toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    SEMPRE use: toLocaleTimeString("pt-BR", { ..., timeZone: "America/Sao_Paulo" })
+    SEMPRE use: toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    Para date-fns: Usar helpers de src/services/monitoring/plantStatusEngine.ts (getTodayBrasilia, isBrasiliaNight, etc.)
+    Para Edge Functions (Deno): Usar new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    Motivo: Preview do Lovable roda em UTC — horários aparecem +3h adiantados se não forçar o fuso.
+
 # =============================================================================
 # BLOCO 2 — BOAS PRÁTICAS (RECOMENDADO, NÃO BLOQUEANTE)
 # =============================================================================
