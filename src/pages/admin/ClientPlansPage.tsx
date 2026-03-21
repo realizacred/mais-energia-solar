@@ -165,7 +165,7 @@ function PlanCard({
           <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
           {isPopular && (
             <Badge className="bg-primary text-primary-foreground text-xs gap-1">
-              <Star className="w-3 h-3" /> Mais popular
+              <Star className="w-3 h-3" /> ⭐ Mais popular
             </Badge>
           )}
         </div>
