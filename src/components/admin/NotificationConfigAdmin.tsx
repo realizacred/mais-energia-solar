@@ -237,16 +237,19 @@ export function NotificationConfigAdmin() {
                 return (
                   <div key={type.key}>
                     <div className="flex items-center justify-between py-3 px-1">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 p-2 rounded-lg bg-primary/10">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="mt-0.5 p-2 rounded-lg bg-primary/10 shrink-0">
                           <Icon className="h-4 w-4 text-primary" />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <Label htmlFor={type.key} className="text-sm font-medium text-foreground cursor-pointer">
                             {type.label}
                           </Label>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {type.description}
+                          </p>
+                          <p className="text-xs text-muted-foreground/70 mt-1 italic">
+                            💡 {type.howItWorks}
                           </p>
                         </div>
                       </div>
@@ -254,6 +257,7 @@ export function NotificationConfigAdmin() {
                         id={type.key}
                         checked={config[type.key] as boolean}
                         onCheckedChange={() => handleToggle(type.key)}
+                        className="shrink-0 ml-3"
                       />
                     </div>
                     {idx < arr.length - 1 && <Separator />}
