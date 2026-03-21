@@ -93,7 +93,6 @@ interface NewUserForm {
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  super_admin: { label: "Super Admin", color: "bg-destructive/10 text-destructive border-destructive/20", icon: ShieldAlert },
   admin: { label: "Administrador", color: "bg-destructive/10 text-destructive border-destructive/20", icon: ShieldAlert },
   gerente: { label: "Gerente", color: "bg-warning/10 text-warning border-warning/20", icon: ShieldCheck },
   consultor: { label: "Consultor", color: "bg-info/10 text-info border-info/20", icon: Users },
