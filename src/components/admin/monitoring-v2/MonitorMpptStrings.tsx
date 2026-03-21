@@ -834,7 +834,7 @@ function AlertRow({ alert }: { alert: StringAlert }) {
             <>
               <span>•</span>
               <span className="text-success font-medium">
-                Resolvido: {new Date(alert.resolved_at).toLocaleString("pt-BR")}
+                Resolvido: {new Date(alert.resolved_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
               </span>
             </>
           )}

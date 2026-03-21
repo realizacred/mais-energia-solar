@@ -546,7 +546,7 @@ export function WhatsAppAutomationConfig() {
                         {getStatusBadge(msg.status)}
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(msg.created_at).toLocaleString("pt-BR")}
+                        {new Date(msg.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                       </span>
                     </div>
                     <p className="text-sm">{msg.telefone}</p>

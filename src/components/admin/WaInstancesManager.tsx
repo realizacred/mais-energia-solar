@@ -247,7 +247,7 @@ export function WaInstancesManager() {
                   {inst.last_sync_at && (
                     <div className="text-xs text-muted-foreground space-y-0.5 border-t pt-2 mt-1">
                       <p className="font-medium">Última sincronização:</p>
-                      <p>{new Date(inst.last_sync_at).toLocaleString("pt-BR")}</p>
+                      <p>{new Date(inst.last_sync_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>
                       <p>{inst.last_sync_conversations || 0} conversas · {inst.last_sync_messages || 0} mensagens</p>
                     </div>
                   )}

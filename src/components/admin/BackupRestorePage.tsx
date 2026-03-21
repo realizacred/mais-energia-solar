@@ -60,6 +60,7 @@ function formatFileSize(bytes: number | null): string {
 function formatDateBR(dateStr: string | null): string {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
