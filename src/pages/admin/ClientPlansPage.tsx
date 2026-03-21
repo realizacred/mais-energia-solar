@@ -111,7 +111,7 @@ export default function ClientPlansPage() {
       <PageHeader
         icon={Sparkles}
         title="Escolha o plano ideal para seu negócio"
-        description="Cresça com automação, inteligência e controle"
+        description="Aumente suas vendas, automatize processos e tenha controle total da sua operação solar."
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
