@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { enforceFeature, trackUsage } from "../_shared/entitlement.ts";
+import { enforceFeature, enforceUsageLimit, trackUsage } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
