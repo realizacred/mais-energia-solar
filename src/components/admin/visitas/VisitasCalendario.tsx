@@ -257,6 +257,15 @@ export function VisitasCalendario() {
                             <span className="truncate">{v.endereco}</span>
                           </div>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] text-muted-foreground hover:text-primary mt-1"
+                          onClick={(e) => { e.stopPropagation(); openGoogleCalendar(v); }}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Google Calendar
+                        </Button>
                       </div>
                     ))}
                   </div>
