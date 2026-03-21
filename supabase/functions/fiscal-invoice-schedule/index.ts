@@ -64,19 +64,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get API key
-    const { data: gwConfig } = await supabaseAdmin
-      .from("payment_gateway_config")
-      .select("api_key, environment")
-      .eq("tenant_id", profile.tenant_id)
-      .eq("provider", "asaas")
-      .eq("is_active", true)
-      .maybeSingle();
+    // Get Asaas key from integration_configs (secure)
+    const { getAsaasKey } = await import("../_shared/get-asaas-key.ts");
+    const asaasKey = await getAsaasKey(supabaseAdmin, profile.tenant_id);
 
-    if (!gwConfig?.api_key) {
-      return new Response(JSON.stringify({ error: "Asaas não configurado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!asaasKey) {
+      return new Response(JSON.stringify({ error: "asaas_not_configured" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const gwConfig = { api_key: asaasKey.apiKey, environment: asaasKey.environment };
     const baseUrl = gwConfig.environment === "production" ? "https://api.asaas.com/v3" : "https://sandbox.asaas.com/api/v3";
 
     // Build Asaas payload

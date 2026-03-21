@@ -514,36 +514,28 @@ async function checkWebhooks(admin: any, tenantId: string): Promise<CheckResult>
 
 async function checkPaymentGateway(admin: any, tenantId: string): Promise<CheckResult> {
   try {
-    const { data: config } = await admin
-      .from("payment_gateway_config")
-      .select("id, provider, environment, api_key, is_active")
-      .eq("tenant_id", tenantId)
-      .eq("is_active", true)
-      .maybeSingle();
+    const { getAsaasKey } = await import("../_shared/get-asaas-key.ts");
+    const asaasKey = await getAsaasKey(admin, tenantId);
 
-    if (!config) {
-      return { integration_name: "pagamentos", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Gateway de pagamento não configurado" } };
-    }
-
-    if (!config.api_key) {
-      return { integration_name: "pagamentos", status: "down", latency_ms: null, error_message: "API key não configurada", details: { provider: config.provider, environment: config.environment } };
+    if (!asaasKey) {
+      return { integration_name: "pagamentos", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Chave Asaas não configurada em integration_configs" } };
     }
 
     // Test Asaas API connectivity
-    const baseUrl = config.environment === "production"
+    const baseUrl = asaasKey.environment === "production"
       ? "https://api.asaas.com/v3"
       : "https://sandbox.asaas.com/api/v3";
 
     const start = Date.now();
     const res = await fetch(`${baseUrl}/finance/balance`, {
-      headers: { access_token: config.api_key },
+      headers: { access_token: asaasKey.apiKey },
       signal: AbortSignal.timeout(10000),
     });
     const latency = Date.now() - start;
 
     if (res.ok) {
       await res.text();
-      return { integration_name: "pagamentos", status: "healthy", latency_ms: latency, error_message: null, details: { provider: config.provider, environment: config.environment } };
+      return { integration_name: "pagamentos", status: "healthy", latency_ms: latency, error_message: null, details: { provider: "asaas", environment: asaasKey.environment } };
     }
 
     const errText = await res.text();
@@ -552,7 +544,7 @@ async function checkPaymentGateway(admin: any, tenantId: string): Promise<CheckR
       status: res.status === 401 ? "down" : "degraded",
       latency_ms: latency,
       error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
-      details: { provider: config.provider, environment: config.environment },
+      details: { provider: "asaas", environment: asaasKey.environment },
     };
   } catch (err: any) {
     return { integration_name: "pagamentos", status: "down", latency_ms: null, error_message: err.message, details: {} };
