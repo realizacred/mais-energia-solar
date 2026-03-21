@@ -30,6 +30,7 @@ import { UCOverviewTab } from "./UCOverviewTab";
 import { UCHistoricoTab } from "./UCHistoricoTab";
 import { UCEconomyReportTab } from "./UCEconomyReportTab";
 import { UCComparativoTab } from "./UCComparativoTab";
+import { FeatureGate } from "@/components/plan/FeatureGate";
 import { UCShareLinkButton } from "./UCShareLinkButton";
 import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
