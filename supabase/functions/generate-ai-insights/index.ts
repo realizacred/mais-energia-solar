@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { enforceFeature, trackUsage } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -409,6 +410,14 @@ Deno.serve(async (req) => {
 
       for (const tenant of tenants) {
         try {
+          // Entitlement check per tenant — skip if feature not available
+          const denial = await enforceFeature(supabase, tenant.id, "ai_insights", corsHeaders, { skipAudit: true });
+          if (denial) {
+            console.log(`[generate-ai-insights] CRON: Skipping tenant ${tenant.nome} — ai_insights not in plan`);
+            results.push({ tenant: tenant.nome, success: false, error: "feature_not_available" });
+            continue;
+          }
+
           const result = await generateInsightForTenant(
             supabase,
             tenant.id,
@@ -416,6 +425,9 @@ Deno.serve(async (req) => {
             { auto: true, source: "cron" },
             null
           );
+          if (result.success) {
+            await trackUsage(supabase, tenant.id, "ai_insights", 1, { source: "cron" });
+          }
           results.push({ tenant: tenant.nome, ...result });
         } catch (err: any) {
           console.error(`[generate-ai-insights] CRON error for tenant ${tenant.nome}:`, err.message);
@@ -492,10 +504,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Backend entitlement check (admin bypass already validated above via roles)
+    if (!isAdmin) {
+      const denial = await enforceFeature(supabase, tenantId, "ai_insights", corsHeaders, { userId: user.id });
+      if (denial) return denial;
+    }
+
     const body = await req.json();
     const { insight_type = "daily_summary", filters = {} } = body;
 
     const result = await generateInsightForTenant(supabase, tenantId, insight_type, filters, user.id);
+    if (result.success) {
+      await trackUsage(supabase, tenantId, "ai_insights", 1, { userId: user.id, source: "manual" });
+    }
 
     if (!result.success) {
       return new Response(JSON.stringify({ error: result.error }), {

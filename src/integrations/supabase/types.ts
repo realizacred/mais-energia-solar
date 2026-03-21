@@ -22599,6 +22599,10 @@ export type Database = {
         Returns: boolean
       }
       canonicalize_phone_br: { Args: { raw_phone: string }; Returns: string }
+      check_feature_access: {
+        Args: { _feature_key: string; _tenant_id: string }
+        Returns: Json
+      }
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
       check_rate_limit: {
         Args: {

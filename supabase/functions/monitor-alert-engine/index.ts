@@ -10,6 +10,7 @@
  * - Explicit tenant_id on all inserts, service_role key verified
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkFeatureAccess } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,6 +106,12 @@ Deno.serve(async (req) => {
 
     for (const tenantId of tenantIds) {
       try {
+        // Check if tenant has alerta_performance feature
+        const entitlement = await checkFeatureAccess(sb, tenantId, "alerta_performance");
+        if (!entitlement.has_access) {
+          console.log(`[alert-engine] Skipping tenant=${tenantId} — alerta_performance not in plan`);
+          continue;
+        }
         await processAlertsTenant(sb, tenantId, stats);
       } catch (err) {
         console.error(`[alert-engine] tenant=${tenantId} error:`, err);

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { sanitizeError } from "../_shared/error-utils.ts";
+import { checkFeatureAccess, trackUsage } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +44,13 @@ serve(async (req: Request) => {
     let totalErrors = 0;
 
     for (const auto of automations) {
+      // Entitlement check per tenant
+      const entitlement = await checkFeatureAccess(supabase, auto.tenant_id, "automacoes");
+      if (!entitlement.has_access) {
+        console.log(`[pipeline-automations] Skipping auto ${auto.id} — tenant ${auto.tenant_id} has no automacoes access`);
+        continue;
+      }
+
       const cutoffDate = new Date(Date.now() - auto.tempo_horas * 60 * 60 * 1000).toISOString();
 
       // Find deals in the trigger stage that haven't moved since the cutoff
@@ -118,6 +126,7 @@ serve(async (req: Request) => {
           });
 
           totalProcessed++;
+          await trackUsage(supabase, auto.tenant_id, "automacoes_executadas", 1, { source: "pipeline-automations" });
 
           // Update automation execution counter
           await supabase
