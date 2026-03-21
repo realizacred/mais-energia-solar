@@ -11753,6 +11753,47 @@ export type Database = {
           },
         ]
       }
+      price_variants: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          plan_id: string
+          price_monthly: number
+          price_yearly: number | null
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          plan_id: string
+          price_monthly?: number
+          price_yearly?: number | null
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          plan_id?: string
+          price_monthly?: number
+          price_yearly?: number | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_variants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_config: {
         Row: {
           comissao_gerente_percent: number | null
@@ -18627,6 +18668,52 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_price_variant: {
+        Row: {
+          assigned_at: string
+          id: string
+          plan_id: string
+          tenant_id: string
+          variant_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          id?: string
+          plan_id: string
+          tenant_id: string
+          variant_id: string
+        }
+        Update: {
+          assigned_at?: string
+          id?: string
+          plan_id?: string
+          tenant_id?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_price_variant_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_price_variant_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_price_variant_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "price_variants"
             referencedColumns: ["id"]
           },
         ]
