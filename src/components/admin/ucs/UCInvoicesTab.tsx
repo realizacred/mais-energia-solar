@@ -231,7 +231,15 @@ export function UCInvoicesTab({ unitId }: Props) {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleFileUploadOnly(file);
+              if (file) {
+                const MAX_SIZE_MB = 10;
+                if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                  toast({ title: `Arquivo muito grande (máx ${MAX_SIZE_MB}MB)`, description: "Reduza o tamanho do PDF antes de importar.", variant: "destructive" });
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                  return;
+                }
+                handleFileUploadOnly(file);
+              }
             }}
           />
           <Button
