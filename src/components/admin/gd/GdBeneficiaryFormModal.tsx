@@ -74,6 +74,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
         return;
       }
       try {
+        const { tenantId } = await getCurrentTenantId();
         const conc = concessionarias.find(c => c.id === newUc.concessionaria_id);
         const created = await unitService.create({
           nome: newUc.nome.trim(),
@@ -84,6 +85,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
           concessionaria_nome: conc?.nome || null,
           email_fatura: newUc.email_fatura.trim() || null,
           status: "active",
+          tenant_id: tenantId,
         } as any);
         ucId = created.id;
       } catch (err: any) {
