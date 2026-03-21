@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sun, CheckCircle, XCircle, Loader2, Clock, ArrowRight, AlertTriangle, FileText, User, Briefcase, FolderKanban, Copy } from "lucide-react";
 import type { SmProposal } from "@/hooks/useSolarMarket";
 import { cn } from "@/lib/utils";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 // ─── Constants ──────────────────────────────────────────
 
@@ -183,7 +184,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const stageInfo = proposal ? (STAGE_MAP[proposal.status?.toLowerCase() ?? ""] ?? DEFAULT_STAGE) : DEFAULT_STAGE;
 
   const addLog = useCallback((msg: string) => {
-    setLogs(prev => [...prev, `[${new Date().toLocaleTimeString("pt-BR")}] ${msg}`]);
+    setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
   }, []);
 
   const resetState = useCallback(() => {
@@ -393,7 +394,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                 <div>
                   <p className="font-medium text-warning">Já migrada</p>
                   <p className="text-xs text-muted-foreground">
-                    Proposta canônica: {existingCanonical.id?.slice(0, 8)}... — Status: {existingCanonical.status} — {new Date(existingCanonical.created_at).toLocaleDateString("pt-BR")}
+                    Proposta canônica: {existingCanonical.id?.slice(0, 8)}... — Status: {existingCanonical.status} — {formatDate(existingCanonical.created_at)}
                   </p>
                 </div>
               </div>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 const FERIADOS_NACIONAIS_BR = [
   { data: "01-01", nome: "Confraternização Universal" },
@@ -202,7 +203,7 @@ export function HolidaysConfig({ tenantId }: { tenantId: string }) {
               <div key={f.id} className="flex items-center justify-between p-2 rounded-lg border border-border/60 bg-background hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-mono text-muted-foreground w-24">
-                    {new Date(f.data + "T12:00:00").toLocaleDateString("pt-BR")}
+                    {formatDate(f.data + "T12:00:00")}
                   </span>
                   <span className="text-sm">{f.nome}</span>
                   <Badge variant="secondary" className={`text-[10px] ${tipoColor(f.tipo)}`}>

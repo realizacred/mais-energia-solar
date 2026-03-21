@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { formatDate } from "@/lib/dateUtils";
 import {
   Activity, AlertTriangle, CheckCircle2, XCircle, Clock, Shield,
   Lightbulb, TrendingUp, ChevronDown, ChevronRight, RefreshCw,
@@ -46,12 +47,7 @@ interface HealthStats {
 
 // ─── Helpers ───
 
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("pt-BR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
-}
+// Local formatDate removed — using imported formatDate from dateUtils
 
 function alertIcon(tipo: AlertItem["tipo"]) {
   switch (tipo) {

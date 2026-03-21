@@ -31,6 +31,7 @@ import { UCHistoricoTab } from "./UCHistoricoTab";
 import { UCEconomyReportTab } from "./UCEconomyReportTab";
 import { UCShareLinkButton } from "./UCShareLinkButton";
 import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Consumo",
@@ -293,7 +294,7 @@ export default function UCDetailPage() {
                             <TableCell className="text-sm">
                               <div className="flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                                {new Date(c.data_vigencia).toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" })}
+                                {formatDateTime(c.data_vigencia, { month: "2-digit", year: "numeric" })}
                               </div>
                             </TableCell>
                             <TableCell className="text-sm font-mono font-medium">

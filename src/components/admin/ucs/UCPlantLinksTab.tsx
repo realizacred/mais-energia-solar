@@ -17,6 +17,7 @@ import { Link2, Plus, Trash2, Sun, ArrowRight, Zap, Activity } from "lucide-reac
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { derivePlantStatus, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   unitId: string;
@@ -256,7 +257,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
             {inactiveLinks.map(link => (
               <div key={link.id} className="flex items-center justify-between text-xs text-muted-foreground border-b pb-1.5">
                 <span>{RELATION_LABELS[link.relation_type] || link.relation_type}</span>
-                <span>{new Date(link.started_at).toLocaleDateString("pt-BR")} → {link.ended_at ? new Date(link.ended_at).toLocaleDateString("pt-BR") : "—"}</span>
+                <span>{formatDate(link.started_at)} → {link.ended_at ? formatDate(link.ended_at) : "—"}</span>
               </div>
             ))}
           </CardContent>

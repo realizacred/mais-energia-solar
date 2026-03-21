@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { SmProject } from "@/hooks/useSolarMarket";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   project: SmProject | null;
@@ -111,7 +112,7 @@ export function SmProjectDetailDialog({ project, open, onOpenChange }: Props) {
               <Field label="Estado" value={project.state} />
               <Field label="Tipo Instalação" value={project.installation_type} />
               <Field label="Consumo Energético" value={project.energy_consumption?.toString()} />
-              <Field label="Criado em" value={project.sm_created_at ? new Date(project.sm_created_at).toLocaleDateString("pt-BR") : null} />
+              <Field label="Criado em" value={project.sm_created_at ? formatDate(project.sm_created_at) : null} />
             </div>
           </div>
 

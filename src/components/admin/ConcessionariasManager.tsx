@@ -46,6 +46,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Concessionaria {
   id: string;
@@ -852,7 +853,7 @@ export function ConcessionariasManager() {
                           const monthsAgo = Math.floor((Date.now() - syncDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
                           const isRecent = monthsAgo < 6;
                           const isOutdated = monthsAgo >= 12;
-                          const dateStr = syncDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+                          const dateStr = formatDateTime(syncDate, { day: "2-digit", month: "2-digit", year: "2-digit" });
                           return (
                             <Badge
                               variant="outline"

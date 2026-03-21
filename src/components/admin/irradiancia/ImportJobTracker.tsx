@@ -21,6 +21,7 @@ import {
   cancelImportJob,
 } from "@/services/solar-datasets-api";
 import { toast } from "sonner";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 // ─── Status config ───────────────────────────────────────────
 
@@ -161,9 +162,7 @@ function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJ
 
   const formatTimestamp = (ts: string | null) => {
     if (!ts) return "—";
-    return new Date(ts).toLocaleString("pt-BR", {
-      day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
-    });
+    return formatDateTime(ts);
   };
 
   const elapsed = job.started_at
@@ -297,7 +296,7 @@ function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJ
                   {logs.map((log) => (
                     <div key={log.id} className="flex gap-2">
                       <span className="text-muted-foreground/60 shrink-0">
-                        {new Date(log.timestamp).toLocaleTimeString("pt-BR")}
+                        {formatTime(log.timestamp)}
                       </span>
                       <span className={`uppercase w-10 shrink-0 ${LOG_LEVEL_COLORS[log.level] ?? ""}`}>
                         [{log.level}]

@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, FileText, Upload, Mail, ExternalLink, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -255,7 +256,7 @@ export function UCInvoicesTab({ unitId }: Props) {
               {invoices.map((inv) => (
                 <TableRow key={inv.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="font-medium text-foreground">{MONTHS[inv.reference_month - 1]}/{inv.reference_year}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{inv.due_date ? new Date(inv.due_date).toLocaleDateString("pt-BR") : "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
                   <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toFixed(2)}` : "—"}</TableCell>
                   <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)} kWh` : "—"}</TableCell>
                   <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)} kWh` : "—"}</TableCell>

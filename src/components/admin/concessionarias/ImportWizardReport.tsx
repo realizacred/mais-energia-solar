@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { ImportReports } from "./importReportGenerator";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface ImportWizardReportProps {
   reports: ImportReports;
@@ -44,7 +45,7 @@ export function ImportWizardReport({ reports, onClose }: ImportWizardReportProps
       "Relatório de Importação ANEEL",
       `Arquivo: ${resumo.nomeArquivo}`,
       `Tipo: ${resumo.tipoArquivo}`,
-      `Data: ${new Date(resumo.dataImportacao).toLocaleString("pt-BR")}`,
+      `Data: ${formatDateTime(resumo.dataImportacao)}`,
       "",
       "== RESUMO ==",
       `Linhas lidas: ${resumo.totalLinhasLidas}`,

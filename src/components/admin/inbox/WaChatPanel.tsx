@@ -67,6 +67,7 @@ import { WaAppointmentModal } from "./WaAppointmentModal";
 import { WaOrcamentosDrawer } from "./WaOrcamentosDrawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 function formatPhone(phone: string | null | undefined): string {
   if (!phone) return "";
@@ -735,7 +736,7 @@ export function WaChatPanel({
                         {msg.content?.slice(0, 30) || msg.media_mime_type || "Arquivo"}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        {new Date(msg.created_at).toLocaleDateString("pt-BR")}
+                        {formatDate(msg.created_at)}
                       </p>
                     </div>
                     <Download className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />

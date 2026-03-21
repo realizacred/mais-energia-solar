@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send } from "lucide-react";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   unitId: string;
@@ -99,7 +100,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), dia);
     const nextDate = thisMonth > now ? thisMonth : new Date(now.getFullYear(), now.getMonth() + 1, dia);
-    return nextDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+    return formatDateTime(nextDate, { day: "2-digit", month: "long", year: "numeric" });
   })();
 
   return (
@@ -302,7 +303,7 @@ function LastAlertInfo({ unitId }: { unitId: string }) {
         {lastAlert ? (
           <>
             Último alerta: <span className="font-medium text-foreground">
-              {new Date(lastAlert.sent_at).toLocaleDateString("pt-BR")}
+              {formatDate(lastAlert.sent_at)}
             </span>
             {" — "}
             <StatusBadge variant={lastAlert.status === "sent" ? "success" : lastAlert.status === "failed" ? "destructive" : "warning"} className="text-xs">

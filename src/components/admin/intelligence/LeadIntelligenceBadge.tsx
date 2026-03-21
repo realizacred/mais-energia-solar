@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface LeadIntelligenceBadgeProps {
   temperamento: "quente" | "morno" | "frio" | "congelado" | null;
@@ -50,7 +51,7 @@ export function LeadIntelligenceBadge({ temperamento, urgenciaScore, dorPrincipa
           <p className="font-medium capitalize">{temperamento || "Sem análise"}</p>
           {urgenciaScore != null && <p>Urgência: {urgenciaScore}/100</p>}
           {dorPrincipal && <p>Dor: {dorPrincipal}</p>}
-          {ultimaAnalise && <p className="text-muted-foreground">Análise: {new Date(ultimaAnalise).toLocaleDateString("pt-BR")}</p>}
+          {ultimaAnalise && <p className="text-muted-foreground">Análise: {formatDate(ultimaAnalise)}</p>}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

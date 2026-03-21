@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface FieldDef {
   id: string;
@@ -237,6 +238,6 @@ function getDisplayValue(field: FieldDef, val: FieldValue | undefined): string {
   if (!val) return "—";
   if (field.field_type === "boolean") return val.value_boolean ? "Sim" : "Não";
   if (field.field_type === "number" || field.field_type === "currency") return val.value_number != null ? String(val.value_number) : "—";
-  if (field.field_type === "date") return val.value_date ? new Date(val.value_date).toLocaleDateString("pt-BR") : "—";
+  if (field.field_type === "date") return val.value_date ? formatDate(val.value_date) : "—";
   return val.value_text || "—";
 }

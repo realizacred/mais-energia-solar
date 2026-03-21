@@ -14,6 +14,7 @@ import { ActionLink } from "./ActionLink";
 import { cn } from "@/lib/utils";
 import { useWhatsAppTemplates } from "@/hooks/useProposalTemplates";
 import { renderTemplate, SAMPLE_TEMPLATE_VARS } from "@/utils/templateRenderer";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface ProposalActionCardsProps {
   // Dimensionamento
@@ -160,7 +161,7 @@ export function ProposalActionCards({
               className="text-[10px] text-muted-foreground h-auto p-0 pt-1 flex items-center gap-1 hover:text-primary transition-colors"
             >
               <CalendarDays className="h-3 w-3" />
-              Validade da proposta: {new Date(validoAte).toLocaleDateString("pt-BR")}
+              Validade da proposta: {formatDate(validoAte)}
             </Button>
           )}
 

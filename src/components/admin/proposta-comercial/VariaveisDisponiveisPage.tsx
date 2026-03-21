@@ -18,6 +18,7 @@ import {
 } from "@/lib/variablesCatalog";
 import { supabase } from "@/integrations/supabase/client";
 import { AuditTabContent } from "./AuditTabContent";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 /* ── Tiny copy button ───────────────────────────────────── */
 function CopyButton({ text }: { text: string }) {
@@ -321,7 +322,7 @@ export function VariaveisDisponiveisPage() {
               if (colType === "number") {
                 expressao = `// Tipo: number\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nreturn typeof val === "number" ? val : 0;`;
               } else if (colType === "date") {
-                expressao = `// Tipo: date — formato DD/MM/YYYY\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn d.toLocaleDateString("pt-BR");`;
+                expressao = `// Tipo: date — formato DD/MM/YYYY\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn formatDate(d);`;
               } else if (colType === "boolean") {
                 expressao = `// Tipo: boolean\nreturn snapshot?.${suggested.table}?.${suggested.column} ? "Sim" : "Não";`;
               }

@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProposalTemplates, useEmailTemplates } from "@/hooks/useProposalTemplates";
 import { formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -685,7 +686,7 @@ export function StepDocumento({
             </Button>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
-              Validade da proposta: {validade ? new Date(validade + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+              Validade da proposta: {validade ? formatDate(validade + "T12:00:00") : "—"}
             </div>
           </div>
         </div>

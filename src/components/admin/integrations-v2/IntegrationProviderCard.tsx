@@ -21,6 +21,7 @@ const CATEGORY_FALLBACK_ICONS: Record<IntegrationCategory, React.ElementType> = 
 import { cn } from "@/lib/utils";
 import type { IntegrationProvider, ConnectionStatus } from "@/services/integrations/types";
 import { getProviderIconUrl } from "@/services/integrations/iconMap";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   provider: IntegrationProvider;
@@ -195,7 +196,7 @@ export function IntegrationProviderCard({
           {lastSync && (
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {new Date(lastSync).toLocaleDateString("pt-BR")}
+              {formatDate(lastSync)}
             </span>
           )}
         </div>

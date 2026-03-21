@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { TuyaDeviceDPs } from "./TuyaDeviceDPs";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   configId: string;
@@ -160,7 +161,7 @@ export function TuyaSyncActions({ configId, configName }: Props) {
                     </span>
                   </div>
                   <span className="text-muted-foreground shrink-0 ml-2">
-                    {log.started_at ? new Date(log.started_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
+                    {log.started_at ? formatDateTime(log.started_at) : "—"}
                   </span>
                 </div>
               ))}

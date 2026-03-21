@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/drawer";
 import { OrcamentoViewDialog } from "@/components/admin/leads/OrcamentoViewDialog";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface WaOrcamentosDrawerProps {
   open: boolean;
@@ -215,7 +216,7 @@ export function WaOrcamentosDrawer({
                         </span>
                         <span className="flex items-center gap-1 ml-auto">
                           <Calendar className="h-3 w-3" />
-                          {(() => { try { return format(new Date(orc.created_at), "dd/MM/yy", { locale: ptBR }); } catch { return new Date(orc.created_at).toLocaleDateString("pt-BR"); } })()}
+                          {(() => { try { return format(new Date(orc.created_at), "dd/MM/yy", { locale: ptBR }); } catch { return formatDate(orc.created_at); } })()}
                         </span>
                       </div>
                     </button>

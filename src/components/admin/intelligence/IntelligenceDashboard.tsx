@@ -10,6 +10,7 @@ import { RevenueForecast } from "./RevenueForecast";
 import { ScoringConfigPanel } from "./ScoringConfigPanel";
 import { ScoreDistributionChart } from "./ScoreDistributionChart";
 import { ReaquecimentoOpportunitiesList } from "./ReaquecimentoOpportunitiesList";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 export function IntelligenceDashboard() {
   const { leads, statuses, loading: leadsLoading } = useLeads({ pageSize: 500 });
@@ -60,7 +61,7 @@ export function IntelligenceDashboard() {
                 <>
                   {scores.length} leads analisados
                   {lastScored && (
-                    <> · Atualizado {lastScored.toLocaleDateString("pt-BR")} às {lastScored.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</>
+                    <> · Atualizado {formatDate(lastScored)} às {formatTime(lastScored)}</>
                   )}
                 </>
               ) : (

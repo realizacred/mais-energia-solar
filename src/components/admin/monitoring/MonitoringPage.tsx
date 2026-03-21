@@ -24,6 +24,7 @@ import { SelectPlantsModal } from "./SelectPlantsModal";
 import { PlantsTable } from "./PlantsTable";
 import { PlantsMap } from "./PlantsMap";
 import { cn } from "@/lib/utils";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 type TabFilter = "all" | "active" | "inactive";
 
@@ -237,7 +238,7 @@ export default function MonitoringPage() {
                         {integration?.last_sync_at && (
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Clock className="h-3 w-3" />
-                            <span>{new Date(integration.last_sync_at).toLocaleDateString("pt-BR")}</span>
+                            <span>{formatDate(integration.last_sync_at)}</span>
                           </div>
                         )}
                       </div>

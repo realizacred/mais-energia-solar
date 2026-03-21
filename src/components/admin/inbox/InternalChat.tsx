@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { formatTime } from "@/lib/dateUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -539,10 +540,7 @@ function ChatView({
                       }`}
                     >
                       <span className="text-[10px]">
-                        {new Date(msg.created_at).toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatTime(msg.created_at)}
                       </span>
                       {isMe && (
                         <CheckCheck className="h-3.5 w-3.5 text-info" />
