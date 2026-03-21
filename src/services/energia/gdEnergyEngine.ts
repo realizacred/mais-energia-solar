@@ -556,7 +556,7 @@ export async function calculateGdMonth(
   }
 
   // 9. Update credit balances (idempotent: set new_balance directly)
-  for (const alloc of allocations) {
+  for (const alloc of finalAllocations) {
     const newBalance = (alloc as any)._new_balance as number;
     const { data: existing } = await (supabase as any)
       .from("gd_credit_balances")
