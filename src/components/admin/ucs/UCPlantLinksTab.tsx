@@ -69,8 +69,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
       const { data } = await (supabase as any)
         .from("monitor_plants")
         .select("id, name, installed_power_kwp, state, last_seen_at, lat, lng")
-        .order("name")
-        .limit(100);
+        .order("name");
       return data || [];
     },
     staleTime: 1000 * 60 * 5,
