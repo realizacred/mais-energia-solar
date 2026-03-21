@@ -1,13 +1,14 @@
 /**
  * UCDetailPage — Full detail page for a Unidade Consumidora.
  * Route: /admin/ucs/:id
- * Cadastral only — monitoring lives in Monitoramento module.
+ * All UC features: overview, monitoring, GD, invoices, comparativo, economy, config.
  */
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unitService, type UCRecord } from "@/services/unitService";
+import { meterService } from "@/services/meterService";
 import { useUnitCredits, useDeleteUnitCredit } from "@/hooks/useUnitCredits";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
@@ -15,7 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ArrowLeft, Zap, FileText, Settings, Edit, Trash2, Plus, Calendar, MoreHorizontal, Activity } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Building2, ArrowLeft, Zap, FileText, Settings, Edit, Trash2, Plus,
+  Calendar, MoreHorizontal, Activity, BarChart3, TrendingUp, DollarSign, Gauge
+} from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +33,10 @@ import { UCGdInfoCard } from "./UCGdInfoCard";
 import { UCEnergySummary } from "./UCEnergySummary";
 import { UCMeterTab } from "./UCMeterTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
+import { UCOverviewTab } from "./UCOverviewTab";
+import { UCComparativoTab } from "./UCComparativoTab";
+import { UCHistoricoTab } from "./UCHistoricoTab";
+import { UCEconomyReportTab } from "./UCEconomyReportTab";
 import { formatDateTime } from "@/lib/dateUtils";
 
 const UC_TYPE_LABELS: Record<string, string> = {
@@ -65,6 +74,56 @@ export default function UCDetailPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Resolve linked meter
+  const { data: meterLinks = [] } = useQuery({
+    queryKey: ["unit_meter_links", id],
+    queryFn: () => meterService.getLinksForUnit(id!),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+  });
+  const activeLink = meterLinks.find(l => l.is_active);
+  const activeMeterIdResolved = activeLink?.meter_device_id ?? null;
+
+  const { data: activeMeter } = useQuery({
+    queryKey: ["meter_device", activeMeterIdResolved],
+    queryFn: () => meterService.getById(activeMeterIdResolved!),
+    enabled: !!activeMeterIdResolved,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Resolve linked plant
+  const { data: plantLinks = [] } = useQuery({
+    queryKey: ["unit_plant_links", id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("unit_plant_links")
+        .select("id, plant_id, relation_type, is_active")
+        .eq("unit_id", id!)
+        .eq("is_active", true);
+      return data || [];
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+  });
+  const activePlantLink = plantLinks[0];
+  const activePlantId = activePlantLink?.plant_id ?? null;
+
+  const { data: activePlant } = useQuery({
+    queryKey: ["monitor_plant_for_uc", activePlantId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("monitor_plants")
+        .select("id, name, installed_power_kwp, legacy_plant_id, last_seen_at")
+        .eq("id", activePlantId!)
+        .single();
+      return data;
+    },
+    enabled: !!activePlantId,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const solarPlantId = activePlant?.legacy_plant_id ?? null;
+
   const { data: credits = [] } = useUnitCredits(id ?? null);
   const deleteCredit = useDeleteUnitCredit();
 
@@ -81,8 +140,14 @@ export default function UCDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 flex justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="p-4 md:p-6 space-y-4">
+        <Skeleton className="h-8 w-24" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -153,12 +218,69 @@ export default function UCDetailPage() {
 
       {/* Tabs */}
       <div className="p-4 md:p-6 space-y-4">
-        <Tabs defaultValue="config" className="space-y-4">
+        <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
-            <TabsTrigger value="monitoramento" className="gap-1"><Activity className="w-3.5 h-3.5" /> Monitoramento</TabsTrigger>
+            <TabsTrigger value="overview" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
+            <TabsTrigger value="monitoramento" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Medidor</TabsTrigger>
+            <TabsTrigger value="usinas" className="gap-1"><Activity className="w-3.5 h-3.5" /> Usinas</TabsTrigger>
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
+            <TabsTrigger value="historico" className="gap-1"><Calendar className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
+            <TabsTrigger value="comparativo" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Comparativo</TabsTrigger>
+            <TabsTrigger value="economia" className="gap-1"><DollarSign className="w-3.5 h-3.5" /> Economia</TabsTrigger>
+            <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
           </TabsList>
+
+          {/* === VISÃO GERAL === */}
+          <TabsContent value="overview" className="space-y-6">
+            <UCOverviewTab
+              ucId={uc.id}
+              meterId={activeMeterIdResolved}
+              plantId={activePlantId}
+              solarPlantId={solarPlantId}
+              meterName={activeMeter?.name ?? null}
+              meterOnline={activeMeter?.online_status ?? null}
+              plantName={activePlant?.name ?? null}
+              plantCapacityKwp={activePlant?.installed_power_kwp ?? null}
+            />
+          </TabsContent>
+
+          {/* === MEDIDOR === */}
+          <TabsContent value="monitoramento" className="space-y-6">
+            <UCMeterTab unitId={uc.id} />
+          </TabsContent>
+
+          {/* === USINAS === */}
+          <TabsContent value="usinas" className="space-y-6">
+            <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
+          </TabsContent>
+
+          {/* === FATURAS === */}
+          <TabsContent value="faturas">
+            <UCInvoicesTab unitId={uc.id} />
+          </TabsContent>
+
+          {/* === HISTÓRICO === */}
+          <TabsContent value="historico" className="space-y-6">
+            <UCHistoricoTab
+              ucId={uc.id}
+              meterId={activeMeterIdResolved}
+              plantId={activePlantId}
+              solarPlantId={solarPlantId}
+            />
+          </TabsContent>
+
+          {/* === COMPARATIVO === */}
+          <TabsContent value="comparativo" className="space-y-6">
+            <UCComparativoTab
+              unitId={uc.id}
+              simulacaoId={(uc as any).simulacao_id ?? null}
+            />
+          </TabsContent>
+
+          {/* === ECONOMIA === */}
+          <TabsContent value="economia" className="space-y-6">
+            <UCEconomyReportTab unitId={uc.id} />
+          </TabsContent>
 
           {/* === CONFIGURAÇÕES TAB === */}
           <TabsContent value="config" className="space-y-6">
@@ -329,15 +451,6 @@ export default function UCDetailPage() {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="monitoramento" className="space-y-6">
-            <UCMeterTab unitId={uc.id} />
-            <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
-          </TabsContent>
-
-          <TabsContent value="faturas">
-            <UCInvoicesTab unitId={uc.id} />
           </TabsContent>
         </Tabs>
       </div>
