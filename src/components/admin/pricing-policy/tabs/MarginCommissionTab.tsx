@@ -304,7 +304,7 @@ export function MarginCommissionTab() {
             <div className="space-y-1.5"><Label className="text-xs">Descrição</Label><Input value={commissionForm.description} onChange={(e) => setCommissionForm((f) => ({ ...f, description: e.target.value }))} className="text-sm" /></div>
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo</Label>
-              <Select value={commissionForm.commission_type} onValueChange={(v) => setCommissionForm((f) => ({ ...f, commission_type: v, parameters: v === "percentage" ? { rate: 5 } : v === "fixed" ? { amount: 500 } : {} }))}>
+              <Select value={commissionForm.commission_type} onValueChange={(v) => setCommissionForm((f) => ({ ...f, commission_type: v, parameters: v === "percentage" ? { percentual: 5 } : v === "fixed" ? { amount: 500 } : {} }))}>
                 <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{COMMISSION_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
               </Select>
