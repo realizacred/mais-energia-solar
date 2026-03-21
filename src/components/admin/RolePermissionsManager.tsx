@@ -25,6 +25,11 @@ import {
   Zap,
   Brain,
   ClipboardList,
+  Sun,
+  Globe,
+  Package,
+  Trophy,
+  Sparkles,
 } from "lucide-react";
 
 // ═══ Module definitions ═══
@@ -46,8 +51,7 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
     icon: <BarChart3 className="h-4 w-4" />,
     modules: [
       { key: "dashboard", label: "Dashboard", description: "Painel analítico geral" },
-      { key: "performance", label: "Performance", description: "Métricas de desempenho" },
-      { key: "inteligencia", label: "Inteligência IA", description: "Insights e diretor comercial" },
+      { key: "performance", label: "Performance", description: "Métricas de desempenho e ranking" },
     ],
   },
   {
@@ -60,6 +64,20 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
       { key: "propostas", label: "Propostas", description: "Propostas comerciais" },
       { key: "projetos", label: "Projetos", description: "Gestão de projetos" },
       { key: "distribuicao", label: "Distribuição", description: "Config de distribuição de leads" },
+      { key: "sla-breaches", label: "SLA & Breaches", description: "Leads com tempo de resposta excedido" },
+      { key: "proposta-comercial", label: "Editor de Proposta", description: "Editor visual de templates" },
+      { key: "validacao", label: "Validação", description: "Validação de vendas" },
+      { key: "aprovacao", label: "Aprovações", description: "Aprovar novos usuários e acessos" },
+    ],
+  },
+  {
+    label: "Inteligência Comercial",
+    icon: <Brain className="h-4 w-4" />,
+    modules: [
+      { key: "inteligencia", label: "Inteligência IA", description: "Scoring e previsão de receita" },
+      { key: "inteligencia-alertas", label: "Alertas Inteligentes", description: "Alertas de preço e urgência" },
+      { key: "inteligencia-metricas", label: "Métricas de Inteligência", description: "Conversão por temperamento" },
+      { key: "inteligencia-config", label: "Config Inteligência", description: "Thresholds e detecção" },
     ],
   },
   {
@@ -69,8 +87,9 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
       { key: "inbox", label: "Inbox WhatsApp", description: "Conversas e mensagens" },
       { key: "contatos", label: "Contatos", description: "Agenda de contatos" },
       { key: "respostas-rapidas", label: "Respostas Rápidas", description: "Templates de mensagem" },
-      { key: "followup-wa", label: "Follow-up WA", description: "Regras de follow-up automático" },
-      { key: "wa-etiquetas", label: "Etiquetas", description: "Tags de conversas" },
+      { key: "followup-wa", label: "Regras Follow-up WA", description: "Automação de follow-up" },
+      { key: "wa-etiquetas", label: "Etiquetas WA", description: "Tags de conversas" },
+      { key: "metricas-atendimento", label: "Métricas Atendimento", description: "Performance por consultor" },
     ],
   },
   {
@@ -79,48 +98,106 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
     modules: [
       { key: "clientes", label: "Clientes", description: "Base de clientes" },
       { key: "checklists", label: "Checklists", description: "Checklists de cliente" },
-      { key: "avaliacoes", label: "Avaliações", description: "Satisfação do cliente" },
-      { key: "documentos", label: "Documentos", description: "Documentos do cliente" },
+      { key: "avaliacoes", label: "Avaliações NPS", description: "Satisfação do cliente" },
+      { key: "documentos", label: "Documentos", description: "Documentos e assinaturas" },
+    ],
+  },
+  {
+    label: "Pós-Venda",
+    icon: <Wrench className="h-4 w-4" />,
+    modules: [
+      { key: "pos-venda", label: "Dashboard Pós-Venda", description: "Visão geral e preventivas" },
+      { key: "pos-venda-visitas", label: "Preventivas", description: "Visitas técnicas" },
+      { key: "pos-venda-planos", label: "Planos Manutenção", description: "Planos por projeto" },
+      { key: "pos-venda-checklists", label: "Checklists Pós-Venda", description: "Templates de inspeção" },
+      { key: "pos-venda-upsell", label: "Oportunidades", description: "Vendas adicionais e upgrades" },
+    ],
+  },
+  {
+    label: "Operações",
+    icon: <Package className="h-4 w-4" />,
+    modules: [
+      { key: "instaladores", label: "Instaladores", description: "Equipe de instalação" },
+      { key: "servicos", label: "Agenda de Serviços", description: "Visitas e agendamentos" },
+      { key: "estoque", label: "Estoque", description: "Materiais e insumos" },
+      { key: "tarefas", label: "Tarefas & SLA", description: "Controle de pendências" },
+      { key: "visitas-tecnicas", label: "Visitas Técnicas", description: "Calendário de visitas" },
     ],
   },
   {
     label: "Financeiro",
     icon: <DollarSign className="h-4 w-4" />,
     modules: [
+      { key: "financeiro-dashboard", label: "Dashboard Financeiro", description: "Visão consolidada" },
       { key: "recebimentos", label: "Recebimentos", description: "Controle de recebimentos" },
       { key: "comissoes", label: "Comissões", description: "Comissões dos consultores" },
       { key: "inadimplencia", label: "Inadimplência", description: "Gestão de inadimplentes" },
       { key: "fiscal", label: "Fiscal", description: "Notas e impostos" },
+      { key: "financiamento", label: "Financiamentos", description: "Bancos, taxas e simulações" },
+      { key: "engenharia", label: "Premissas Fiscais", description: "ICMS, fio B, payback" },
+      { key: "politica-precos", label: "Política de Preços", description: "Regras de precificação" },
     ],
   },
   {
-    label: "Operações",
-    icon: <Wrench className="h-4 w-4" />,
+    label: "Energia",
+    icon: <Sun className="h-4 w-4" />,
     modules: [
-      { key: "instaladores", label: "Instaladores", description: "Equipe de instalação" },
-      { key: "servicos", label: "Serviços", description: "Serviços prestados" },
-      { key: "validacao", label: "Validação", description: "Validação de vendas" },
+      { key: "ucs", label: "Unidades Consumidoras", description: "Gestão de UCs" },
+      { key: "monitoramento", label: "Monitoramento Solar", description: "Dashboard de usinas" },
+      { key: "faturas-energia", label: "Faturas de Energia", description: "Recebimento automático" },
+      { key: "gd-rateio", label: "GD e Rateio", description: "Geração distribuída e créditos" },
+      { key: "saude-tarifaria", label: "Saúde Tarifária", description: "Alertas e governança de tarifas" },
+      { key: "medidores", label: "Medidores", description: "Dispositivos IoT" },
+    ],
+  },
+  {
+    label: "Equipe",
+    icon: <Trophy className="h-4 w-4" />,
+    modules: [
+      { key: "vendedores", label: "Consultores", description: "Gestão de consultores" },
+      { key: "gamificacao", label: "Gamificação", description: "Metas e ranking" },
+      { key: "usuarios", label: "Usuários", description: "Gestão de usuários" },
+    ],
+  },
+  {
+    label: "IA",
+    icon: <Sparkles className="h-4 w-4" />,
+    modules: [
+      { key: "diretor", label: "Copilot IA", description: "Análises e sugestões automáticas" },
+      { key: "ai-config", label: "Config de IA", description: "Modelo e regras de IA" },
+    ],
+  },
+  {
+    label: "Site",
+    icon: <Globe className="h-4 w-4" />,
+    modules: [
+      { key: "site-config", label: "Conteúdo & Visual", description: "Branding e identidade" },
+      { key: "site-servicos", label: "Serviços do Site", description: "Página institucional" },
+      { key: "obras", label: "Portfólio", description: "Galeria de projetos" },
     ],
   },
   {
     label: "Cadastros",
     icon: <Settings className="h-4 w-4" />,
     modules: [
-      { key: "vendedores", label: "Consultores", description: "Gestão de consultores" },
-      { key: "usuarios", label: "Usuários", description: "Gestão de usuários" },
-      { key: "equipamentos", label: "Equipamentos", description: "Módulos, inversores, baterias" },
-      { key: "concessionarias", label: "Concessionárias", description: "Cadastro de concessionárias" },
-      { key: "config", label: "Configurações", description: "Calculadora e premissas" },
+      { key: "equipamentos", label: "Equipamentos", description: "Disjuntores e transformadores" },
+      { key: "modulos", label: "Módulos Fotovoltaicos", description: "Catálogo de painéis" },
+      { key: "inversores-cadastro", label: "Inversores", description: "Catálogo de inversores" },
+      { key: "baterias", label: "Baterias", description: "Catálogo de baterias" },
+      { key: "fornecedores", label: "Fornecedores", description: "Distribuidores e fabricantes" },
+      { key: "concessionarias", label: "Concessionárias", description: "Distribuidoras de energia" },
+      { key: "config", label: "Calculadora Solar", description: "Parâmetros de cálculo" },
+      { key: "premissas", label: "Premissas", description: "Parâmetros financeiros e técnicos" },
     ],
   },
   {
     label: "Integrações",
     icon: <Zap className="h-4 w-4" />,
     modules: [
+      { key: "catalogo-integracoes", label: "Catálogo Integrações", description: "Integrações disponíveis" },
       { key: "wa-instances", label: "Instâncias WA", description: "Conexões WhatsApp" },
       { key: "whatsapp", label: "Automação WA", description: "Configuração de automação" },
-      { key: "webhooks", label: "Webhooks", description: "Integrações externas" },
-      { key: "integracoes", label: "Integrações", description: "Serviços conectados" },
+      { key: "integracao-asaas", label: "Integração Asaas", description: "Cobrança automática" },
     ],
   },
 ];
@@ -144,151 +221,157 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 // ═══ Default permissions (when no DB record exists) ═══
+// Helper: generate defaults for all modules from categories
+function buildDefaults(overrides: Record<string, { view: boolean; edit: boolean }>): Record<string, { view: boolean; edit: boolean }> {
+  const allModules = MODULE_CATEGORIES.flatMap(c => c.modules);
+  const result: Record<string, { view: boolean; edit: boolean }> = {};
+  for (const mod of allModules) {
+    result[mod.key] = overrides[mod.key] || { view: false, edit: false };
+  }
+  return result;
+}
+
 const DEFAULT_PERMISSIONS: Record<string, Record<string, { view: boolean; edit: boolean }>> = {
-  gerente: {
+  gerente: buildDefaults({
+    // Visão Geral
     dashboard: { view: true, edit: false },
     performance: { view: true, edit: false },
-    inteligencia: { view: true, edit: false },
+    // Comercial
     leads: { view: true, edit: true },
     pipeline: { view: true, edit: true },
     followup: { view: true, edit: true },
     propostas: { view: true, edit: true },
     projetos: { view: true, edit: true },
     distribuicao: { view: true, edit: true },
+    "sla-breaches": { view: true, edit: false },
+    "proposta-comercial": { view: true, edit: true },
+    validacao: { view: true, edit: true },
+    aprovacao: { view: true, edit: true },
+    // Inteligência
+    inteligencia: { view: true, edit: false },
+    "inteligencia-alertas": { view: true, edit: false },
+    "inteligencia-metricas": { view: true, edit: false },
+    "inteligencia-config": { view: false, edit: false },
+    // Atendimento
     inbox: { view: true, edit: true },
     contatos: { view: true, edit: true },
     "respostas-rapidas": { view: true, edit: true },
     "followup-wa": { view: true, edit: true },
     "wa-etiquetas": { view: true, edit: true },
+    "metricas-atendimento": { view: true, edit: false },
+    // Clientes
     clientes: { view: true, edit: true },
     checklists: { view: true, edit: true },
     avaliacoes: { view: true, edit: false },
     documentos: { view: true, edit: true },
+    // Pós-Venda
+    "pos-venda": { view: true, edit: false },
+    "pos-venda-visitas": { view: true, edit: true },
+    "pos-venda-planos": { view: true, edit: true },
+    "pos-venda-checklists": { view: true, edit: true },
+    "pos-venda-upsell": { view: true, edit: true },
+    // Operações
+    instaladores: { view: true, edit: true },
+    servicos: { view: true, edit: true },
+    estoque: { view: true, edit: true },
+    tarefas: { view: true, edit: true },
+    "visitas-tecnicas": { view: true, edit: true },
+    // Financeiro
+    "financeiro-dashboard": { view: true, edit: false },
     recebimentos: { view: true, edit: false },
     comissoes: { view: true, edit: false },
     inadimplencia: { view: true, edit: false },
     fiscal: { view: true, edit: false },
-    instaladores: { view: true, edit: true },
-    servicos: { view: true, edit: true },
-    validacao: { view: true, edit: true },
+    financiamento: { view: true, edit: false },
+    engenharia: { view: true, edit: false },
+    "politica-precos": { view: true, edit: false },
+    // Energia
+    ucs: { view: true, edit: true },
+    monitoramento: { view: true, edit: false },
+    "faturas-energia": { view: true, edit: false },
+    "gd-rateio": { view: true, edit: false },
+    "saude-tarifaria": { view: true, edit: false },
+    medidores: { view: true, edit: false },
+    // Equipe
     vendedores: { view: true, edit: true },
+    gamificacao: { view: true, edit: false },
     usuarios: { view: true, edit: false },
+    // IA
+    diretor: { view: true, edit: false },
+    "ai-config": { view: false, edit: false },
+    // Site
+    "site-config": { view: true, edit: false },
+    "site-servicos": { view: true, edit: false },
+    obras: { view: true, edit: false },
+    // Cadastros
     equipamentos: { view: true, edit: true },
+    modulos: { view: true, edit: true },
+    "inversores-cadastro": { view: true, edit: true },
+    baterias: { view: true, edit: true },
+    fornecedores: { view: true, edit: true },
     concessionarias: { view: true, edit: true },
     config: { view: true, edit: false },
+    premissas: { view: true, edit: false },
+    // Integrações
+    "catalogo-integracoes": { view: true, edit: false },
     "wa-instances": { view: true, edit: false },
     whatsapp: { view: true, edit: false },
-    webhooks: { view: false, edit: false },
-    integracoes: { view: true, edit: false },
-  },
-  consultor: {
-    dashboard: { view: false, edit: false },
-    performance: { view: false, edit: false },
-    inteligencia: { view: false, edit: false },
+    "integracao-asaas": { view: true, edit: false },
+  }),
+  consultor: buildDefaults({
     leads: { view: true, edit: true },
     pipeline: { view: true, edit: false },
     followup: { view: true, edit: true },
     propostas: { view: true, edit: true },
     projetos: { view: true, edit: false },
-    distribuicao: { view: false, edit: false },
     inbox: { view: true, edit: true },
     contatos: { view: true, edit: true },
     "respostas-rapidas": { view: true, edit: false },
-    "followup-wa": { view: false, edit: false },
     "wa-etiquetas": { view: true, edit: false },
     clientes: { view: true, edit: true },
     checklists: { view: true, edit: true },
-    avaliacoes: { view: false, edit: false },
     documentos: { view: true, edit: true },
-    recebimentos: { view: false, edit: false },
-    comissoes: { view: false, edit: false },
-    inadimplencia: { view: false, edit: false },
-    fiscal: { view: false, edit: false },
-    instaladores: { view: false, edit: false },
-    servicos: { view: false, edit: false },
-    validacao: { view: false, edit: false },
-    vendedores: { view: false, edit: false },
-    usuarios: { view: false, edit: false },
+    "pos-venda": { view: true, edit: false },
+    "pos-venda-visitas": { view: true, edit: false },
+    tarefas: { view: true, edit: true },
     equipamentos: { view: true, edit: false },
-    concessionarias: { view: false, edit: false },
-    config: { view: false, edit: false },
-    "wa-instances": { view: false, edit: false },
-    whatsapp: { view: false, edit: false },
-    webhooks: { view: false, edit: false },
-    integracoes: { view: false, edit: false },
-  },
-  instalador: {
-    dashboard: { view: false, edit: false },
-    performance: { view: false, edit: false },
-    inteligencia: { view: false, edit: false },
-    leads: { view: false, edit: false },
-    pipeline: { view: false, edit: false },
-    followup: { view: false, edit: false },
-    propostas: { view: false, edit: false },
+    diretor: { view: true, edit: false },
+    inteligencia: { view: true, edit: false },
+    "inteligencia-alertas": { view: true, edit: false },
+  }),
+  instalador: buildDefaults({
     projetos: { view: true, edit: false },
-    distribuicao: { view: false, edit: false },
-    inbox: { view: false, edit: false },
-    contatos: { view: false, edit: false },
-    "respostas-rapidas": { view: false, edit: false },
-    "followup-wa": { view: false, edit: false },
-    "wa-etiquetas": { view: false, edit: false },
     clientes: { view: true, edit: false },
     checklists: { view: true, edit: true },
-    avaliacoes: { view: false, edit: false },
     documentos: { view: true, edit: false },
-    recebimentos: { view: false, edit: false },
-    comissoes: { view: false, edit: false },
-    inadimplencia: { view: false, edit: false },
-    fiscal: { view: false, edit: false },
-    instaladores: { view: false, edit: false },
     servicos: { view: true, edit: true },
-    validacao: { view: false, edit: false },
-    vendedores: { view: false, edit: false },
-    usuarios: { view: false, edit: false },
+    "visitas-tecnicas": { view: true, edit: true },
+    "pos-venda": { view: true, edit: false },
+    "pos-venda-visitas": { view: true, edit: true },
+    "pos-venda-checklists": { view: true, edit: true },
+    tarefas: { view: true, edit: true },
     equipamentos: { view: true, edit: false },
-    concessionarias: { view: false, edit: false },
-    config: { view: false, edit: false },
-    "wa-instances": { view: false, edit: false },
-    whatsapp: { view: false, edit: false },
-    webhooks: { view: false, edit: false },
-    integracoes: { view: false, edit: false },
-  },
-  financeiro: {
+  }),
+  financeiro: buildDefaults({
     dashboard: { view: true, edit: false },
-    performance: { view: false, edit: false },
-    inteligencia: { view: false, edit: false },
     leads: { view: true, edit: false },
     pipeline: { view: true, edit: false },
-    followup: { view: false, edit: false },
     propostas: { view: true, edit: false },
     projetos: { view: true, edit: false },
-    distribuicao: { view: false, edit: false },
-    inbox: { view: false, edit: false },
-    contatos: { view: false, edit: false },
-    "respostas-rapidas": { view: false, edit: false },
-    "followup-wa": { view: false, edit: false },
-    "wa-etiquetas": { view: false, edit: false },
     clientes: { view: true, edit: false },
-    checklists: { view: false, edit: false },
-    avaliacoes: { view: false, edit: false },
     documentos: { view: true, edit: false },
+    validacao: { view: true, edit: true },
+    "financeiro-dashboard": { view: true, edit: false },
     recebimentos: { view: true, edit: true },
     comissoes: { view: true, edit: true },
     inadimplencia: { view: true, edit: true },
     fiscal: { view: true, edit: true },
-    instaladores: { view: false, edit: false },
-    servicos: { view: false, edit: false },
-    validacao: { view: true, edit: true },
+    financiamento: { view: true, edit: true },
+    engenharia: { view: true, edit: false },
+    "politica-precos": { view: true, edit: false },
     vendedores: { view: true, edit: false },
-    usuarios: { view: false, edit: false },
-    equipamentos: { view: false, edit: false },
-    concessionarias: { view: false, edit: false },
-    config: { view: false, edit: false },
-    "wa-instances": { view: false, edit: false },
-    whatsapp: { view: false, edit: false },
-    webhooks: { view: false, edit: false },
-    integracoes: { view: false, edit: false },
-  },
+    "integracao-asaas": { view: true, edit: true },
+  }),
 };
 
 type PermState = Record<string, Record<string, { view: boolean; edit: boolean }>>;
@@ -438,8 +521,10 @@ export function RolePermissionsManager() {
       {/* Role tabs */}
       <div className="flex gap-2 flex-wrap">
         {EDITABLE_ROLES.map((role) => (
-          <button
+          <Button
             key={role}
+            variant="ghost"
+            size="sm"
             onClick={() => setActiveRole(role)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               activeRole === role
@@ -448,7 +533,7 @@ export function RolePermissionsManager() {
             }`}
           >
             {ROLE_LABELS[role]}
-          </button>
+          </Button>
         ))}
       </div>
 
