@@ -112,13 +112,11 @@ function StatusBadge({ status }: { status: string }) {
 
 export function FinanceiroDashboard() {
   const navigate = useNavigate();
-  const { tenantId } = useTenantId();
-  const tid = tenantId || "";
 
-  const { data: kpis, isLoading: kpisLoading } = useFinanceiroKpis(tid);
-  const { data: recebimentos, isLoading: recLoading } = useRecebimentosRecentes(tid);
-  const { data: comissoes, isLoading: comLoading } = useComissoesRecentes(tid);
-  const { data: chartData, isLoading: chartLoading } = useFinanceiroMensal(tid);
+  const { data: kpis, isLoading: kpisLoading } = useFinanceiroKpis();
+  const { data: recebimentos, isLoading: recLoading } = useRecebimentosRecentes();
+  const { data: comissoes, isLoading: comLoading } = useComissoesRecentes();
+  const { data: chartData, isLoading: chartLoading } = useFinanceiroMensal();
 
   const isEmpty = !kpisLoading && kpis && kpis.receita_total === 0 && kpis.comissoes_pagas === 0 && kpis.comissoes_pendentes === 0;
 
