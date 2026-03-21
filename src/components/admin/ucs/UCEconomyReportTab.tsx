@@ -19,7 +19,9 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Line, ComposedChart,
 } from "recharts";
-import { TrendingUp, DollarSign, Zap, Leaf, BarChart3 } from "lucide-react";
+import { TrendingUp, DollarSign, Zap, Leaf, BarChart3, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   unitId: string;
