@@ -326,6 +326,9 @@ export function BackupRestorePage() {
         </CardContent>
       </Card>
 
+      {/* Storage Management */}
+      <StorageManagementSection />
+
       {/* Info Card */}
       <Card className="bg-muted/30 border-border">
         <CardContent className="p-4">
