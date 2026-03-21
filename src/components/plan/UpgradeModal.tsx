@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Sparkles, Check, Loader2 } from "lucide-react";
 import { useBillingPlans, type BillingPlan } from "@/hooks/useBillingPlans";
 import { useCreateUpgradeCharge } from "@/hooks/useBillingUpgrade";
+import { AsaasNotConfigured } from "./AsaasNotConfigured";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -37,6 +38,8 @@ export function UpgradeModal({
   const upgradePlans = plans.filter(
     (p) => p.is_active && p.code !== currentPlanCode && p.price_monthly > 0,
   );
+
+  const isAsaasNotConfigured = (createCharge.error as any)?.code === "asaas_not_configured";
 
   const handleConfirm = async () => {
     if (!selectedPlanId) return;
@@ -68,7 +71,9 @@ export function UpgradeModal({
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-5 space-y-3">
-            {plansLoading ? (
+            {isAsaasNotConfigured ? (
+              <AsaasNotConfigured context="upgrade" className="min-h-[200px] py-8" />
+            ) : plansLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="h-20 w-full rounded-lg" />

@@ -49,6 +49,12 @@ export function useCreateUpgradeCharge() {
         { body: { plan_id: planId } },
       );
       if (error) throw error;
+      // Surface asaas_not_configured as typed error
+      if (data?.error === "asaas_not_configured") {
+        const e = new Error(data.message || "Integração Asaas não configurada");
+        (e as any).code = "asaas_not_configured";
+        throw e;
+      }
       if (data?.error) throw new Error(data.error);
       return data as {
         success: boolean;
@@ -67,6 +73,8 @@ export function useCreateUpgradeCharge() {
       }
     },
     onError: (err: Error) => {
+      // Don't toast for asaas_not_configured — handled by UI
+      if ((err as any).code === "asaas_not_configured") return;
       toast.error(err.message || "Erro ao criar cobrança");
     },
   });
