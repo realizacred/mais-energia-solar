@@ -562,6 +562,117 @@ export type Database = {
           },
         ]
       }
+      billing_charges: {
+        Row: {
+          asaas_charge_id: string | null
+          billing_customer_id: string | null
+          created_at: string
+          due_date: string
+          id: string
+          invoice_url: string | null
+          paid_at: string | null
+          payment_link: string | null
+          plan_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          asaas_charge_id?: string | null
+          billing_customer_id?: string | null
+          created_at?: string
+          due_date: string
+          id?: string
+          invoice_url?: string | null
+          paid_at?: string | null
+          payment_link?: string | null
+          plan_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          asaas_charge_id?: string | null
+          billing_customer_id?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          invoice_url?: string | null
+          paid_at?: string | null
+          payment_link?: string | null
+          plan_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_charges_billing_customer_id_fkey"
+            columns: ["billing_customer_id"]
+            isOneToOne: false
+            referencedRelation: "billing_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_charges_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_charges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_customers: {
+        Row: {
+          asaas_customer_id: string
+          cpf_cnpj: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          tenant_id: string
+        }
+        Insert: {
+          asaas_customer_id: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          tenant_id: string
+        }
+        Update: {
+          asaas_customer_id?: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_webhook_events: {
         Row: {
           created_at: string
