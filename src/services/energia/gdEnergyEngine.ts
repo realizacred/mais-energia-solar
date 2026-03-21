@@ -532,19 +532,27 @@ export async function calculateGdMonth(
     console.error("Reconciliation upsert error (non-blocking):", recErr);
   }
 
-  // 8. Upsert allocations
-  for (const alloc of allocations) {
+  // 8. Upsert allocations (using overflow-adjusted versions)
+  for (const alloc of finalAllocations) {
+    const { _new_balance, ...allocData } = alloc as any;
     await (supabase as any)
       .from("gd_monthly_allocations")
       .upsert(
         {
           snapshot_id: snapshot.id,
           gd_group_id: gdGroupId,
-          ...alloc,
+          ...allocData,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "snapshot_id,uc_beneficiaria_id" }
       );
+  }
+
+  // 8.5. Persist overflow transfers (Phase 2.4)
+  try {
+    await persistOverflowTransfers(snapshot.id, gdGroupId, overflowResult.transfers);
+  } catch (ovErr) {
+    console.error("Overflow persist error (non-blocking):", ovErr);
   }
 
   // 9. Update credit balances (idempotent: set new_balance directly)
