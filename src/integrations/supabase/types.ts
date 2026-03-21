@@ -19609,19 +19609,24 @@ export type Database = {
       }
       units_consumidoras: {
         Row: {
+          categoria_gd: string | null
           classificacao_grupo: string | null
           classificacao_subgrupo: string | null
+          cliente_id: string | null
           codigo_uc: string
           concessionaria_id: string | null
           concessionaria_nome: string | null
           created_at: string
           created_by: string | null
+          email_fatura: string | null
           endereco: Json
           id: string
           is_archived: boolean
+          leitura_automatica_email: boolean
           modalidade_tarifaria: string | null
           nome: string
           observacoes: string | null
+          papel_gd: string
           proxima_leitura_data: string | null
           simulacao_id: string | null
           status: string
@@ -19634,19 +19639,24 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          categoria_gd?: string | null
           classificacao_grupo?: string | null
           classificacao_subgrupo?: string | null
+          cliente_id?: string | null
           codigo_uc: string
           concessionaria_id?: string | null
           concessionaria_nome?: string | null
           created_at?: string
           created_by?: string | null
+          email_fatura?: string | null
           endereco?: Json
           id?: string
           is_archived?: boolean
+          leitura_automatica_email?: boolean
           modalidade_tarifaria?: string | null
           nome: string
           observacoes?: string | null
+          papel_gd?: string
           proxima_leitura_data?: string | null
           simulacao_id?: string | null
           status?: string
@@ -19659,19 +19669,24 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          categoria_gd?: string | null
           classificacao_grupo?: string | null
           classificacao_subgrupo?: string | null
+          cliente_id?: string | null
           codigo_uc?: string
           concessionaria_id?: string | null
           concessionaria_nome?: string | null
           created_at?: string
           created_by?: string | null
+          email_fatura?: string | null
           endereco?: Json
           id?: string
           is_archived?: boolean
+          leitura_automatica_email?: boolean
           modalidade_tarifaria?: string | null
           nome?: string
           observacoes?: string | null
+          papel_gd?: string
           proxima_leitura_data?: string | null
           simulacao_id?: string | null
           status?: string
@@ -19684,6 +19699,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "units_consumidoras_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "units_consumidoras_concessionaria_id_fkey"
             columns: ["concessionaria_id"]

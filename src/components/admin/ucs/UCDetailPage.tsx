@@ -34,6 +34,18 @@ const UC_TYPE_LABELS: Record<string, string> = {
   beneficiaria: "Beneficiária",
 };
 
+const PAPEL_GD_LABELS: Record<string, string> = {
+  none: "Nenhum",
+  geradora: "Geradora",
+  beneficiaria: "Beneficiária",
+};
+
+const CATEGORIA_GD_LABELS: Record<string, string> = {
+  gd1: "GD I",
+  gd2: "GD II",
+  gd3: "GD III",
+};
+
 export default function UCDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -188,6 +200,26 @@ export default function UCDetailPage() {
                     <span>{uc.observacoes}</span>
                   </div>
                 )}
+                <div className="flex gap-1">
+                  <span className="text-muted-foreground min-w-[120px]">Papel GD:</span>
+                  <span>{PAPEL_GD_LABELS[uc.papel_gd] || uc.papel_gd || "Nenhum"}</span>
+                </div>
+                {uc.categoria_gd && (
+                  <div className="flex gap-1">
+                    <span className="text-muted-foreground min-w-[120px]">Categoria GD:</span>
+                    <span>{CATEGORIA_GD_LABELS[uc.categoria_gd] || uc.categoria_gd}</span>
+                  </div>
+                )}
+                {uc.email_fatura && (
+                  <div className="flex gap-1">
+                    <span className="text-muted-foreground min-w-[120px]">E-mail Fatura:</span>
+                    <span>{uc.email_fatura}</span>
+                  </div>
+                )}
+                <div className="flex gap-1">
+                  <span className="text-muted-foreground min-w-[120px]">Leitura Auto:</span>
+                  <Badge variant="outline" className="text-xs">{uc.leitura_automatica_email ? "Ativa" : "Inativa"}</Badge>
+                </div>
               </CardContent>
             </Card>
 

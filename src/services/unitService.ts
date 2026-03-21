@@ -9,7 +9,7 @@ export interface UCRecord {
   tenant_id: string;
   codigo_uc: string;
   nome: string;
-  tipo_uc: "consumo" | "gd_geradora" | "beneficiaria";
+  tipo_uc: "consumo" | "gd_geradora" | "beneficiaria" | "mista";
   concessionaria_id: string | null;
   concessionaria_nome: string | null;
   classificacao_grupo: string | null;
@@ -19,11 +19,16 @@ export interface UCRecord {
   observacoes: string | null;
   status: string;
   is_archived: boolean;
+  papel_gd: "none" | "geradora" | "beneficiaria";
+  categoria_gd: "gd1" | "gd2" | "gd3" | null;
+  email_fatura: string | null;
+  leitura_automatica_email: boolean;
+  cliente_id: string | null;
   created_at: string;
   updated_at: string;
 }
 
-const UC_SELECT_COLS = `id, tenant_id, codigo_uc, nome, tipo_uc, concessionaria_id, concessionaria_nome, classificacao_grupo, classificacao_subgrupo, modalidade_tarifaria, endereco, observacoes, status, is_archived, created_at, updated_at`;
+const UC_SELECT_COLS = `id, tenant_id, codigo_uc, nome, tipo_uc, concessionaria_id, concessionaria_nome, classificacao_grupo, classificacao_subgrupo, modalidade_tarifaria, endereco, observacoes, status, is_archived, papel_gd, categoria_gd, email_fatura, leitura_automatica_email, cliente_id, created_at, updated_at`;
 
 export const unitService = {
   async list(filters?: { tipo_uc?: string; is_archived?: boolean; search?: string }) {

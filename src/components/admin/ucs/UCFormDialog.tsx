@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { unitService, type UCRecord } from "@/services/unitService";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, MapPin, Zap, FileText } from "lucide-react";
+import { Loader2, MapPin, Zap, FileText, Sun, Mail } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 
@@ -30,6 +30,8 @@ const EMPTY_FORM = {
   codigo_uc: "", nome: "", tipo_uc: "consumo", concessionaria_id: "",
   classificacao_grupo: "", classificacao_subgrupo: "", modalidade_tarifaria: "",
   observacoes: "", ativo: true,
+  papel_gd: "none", categoria_gd: "", email_fatura: "", leitura_automatica_email: false,
+  cliente_id: "",
 };
 
 const EMPTY_ADDRESS: AddressData = {
@@ -51,6 +53,15 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes_select_uc"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true).order("nome");
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   useEffect(() => {
     if (!open) return;
     if (editingUC) {
@@ -65,6 +76,11 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         modalidade_tarifaria: editingUC.modalidade_tarifaria || "",
         observacoes: editingUC.observacoes || "",
         ativo: editingUC.status === "active",
+        papel_gd: editingUC.papel_gd || "none",
+        categoria_gd: editingUC.categoria_gd || "",
+        email_fatura: editingUC.email_fatura || "",
+        leitura_automatica_email: editingUC.leitura_automatica_email ?? false,
+        cliente_id: editingUC.cliente_id || "",
       });
       setAddress({
         cep: end.cep || "", rua: end.logradouro || end.rua || "",
@@ -103,6 +119,11 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         modalidade_tarifaria: form.modalidade_tarifaria || null,
         observacoes: form.observacoes || null,
         status: form.ativo ? "active" : "inactive",
+        papel_gd: form.papel_gd,
+        categoria_gd: form.categoria_gd || null,
+        email_fatura: form.email_fatura.trim() || null,
+        leitura_automatica_email: form.leitura_automatica_email,
+        cliente_id: form.cliente_id || null,
         endereco: {
           cep: address.cep, logradouro: address.rua, numero: address.numero,
           complemento: address.complemento, bairro: address.bairro,
@@ -232,7 +253,73 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
           </div>
 
-          {/* Row 2: Endereço — §13 AddressFields */}
+          {/* Row 2: GD + Faturamento + Cliente */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* GD */}
+            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <Sun className="w-3.5 h-3.5 text-primary" />
+                Geração Distribuída
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs">Papel GD</Label>
+                  <Select value={form.papel_gd} onValueChange={set("papel_gd")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      <SelectItem value="geradora">Geradora</SelectItem>
+                      <SelectItem value="beneficiaria">Beneficiária</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs">Categoria GD</Label>
+                  <Select value={form.categoria_gd || "none"} onValueChange={(v) => setForm(f => ({ ...f, categoria_gd: v === "none" ? "" : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
+                      <SelectItem value="gd1">GD I</SelectItem>
+                      <SelectItem value="gd2">GD II</SelectItem>
+                      <SelectItem value="gd3">GD III</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+
+            {/* Faturamento */}
+            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-primary" />
+                Faturamento
+              </p>
+              <div className="space-y-4">
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs">Cliente</Label>
+                  <Select value={form.cliente_id || "none"} onValueChange={(v) => setForm(f => ({ ...f, cliente_id: v === "none" ? "" : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o cliente..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {clientes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs">E-mail da Fatura</Label>
+                  <Input type="email" value={form.email_fatura} onChange={set("email_fatura")} placeholder="fatura@email.com" autoComplete="off" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Leitura automática por e-mail</Label>
+                  <Switch checked={form.leitura_automatica_email} onCheckedChange={(v) => setForm(f => ({ ...f, leitura_automatica_email: v }))} />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Row 3: Endereço — §13 AddressFields */}
           <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5 text-primary" />
