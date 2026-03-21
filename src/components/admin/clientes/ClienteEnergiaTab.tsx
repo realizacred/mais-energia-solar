@@ -119,7 +119,7 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
 
       {/* GD Energy Monthly Summary */}
       {energiaResumo && energiaResumo.totalCompensated > 0 && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <Card className="border-l-[3px] border-l-success bg-card shadow-sm">
             <CardContent className="flex items-center gap-3 p-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
@@ -146,6 +146,21 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
               </div>
             </CardContent>
           </Card>
+          {creditData && creditData.total_balance_kwh > 0 && (
+            <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
+              <CardContent className="flex items-center gap-3 p-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-foreground leading-none">
+                    {creditData.total_balance_kwh.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">kWh Saldo Crédito</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
       {ucs.length > 0 && (

@@ -317,6 +317,11 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                 {group && (
                   <GdEnergyMonthly groupId={group.id} />
                 )}
+
+                {/* Energy Report / History */}
+                {group && (
+                  <GdEnergyReport groupId={group.id} />
+                )}
               </>
             )}
           </div>
