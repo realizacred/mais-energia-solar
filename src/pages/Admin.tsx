@@ -242,6 +242,7 @@ const VariaveisCustomPage = lazy(() =>
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
 const TAB_TITLES: Record<string, string> = {
+  "meu-painel": "Meu Painel",
   dashboard: "Painel geral",
   inteligencia: "Inteligência comercial",
   diretor: "Assistente IA",
