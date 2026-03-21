@@ -59,6 +59,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
       if (error) throw error;
       return (data || []) as PlantLink[];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   // Get monitoring plants as the "usinas" source
