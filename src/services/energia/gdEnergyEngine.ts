@@ -507,6 +507,7 @@ export async function calculateGdMonth(
     generation_source_id: genSource.source_id,
     generation_source_confidence: genSource.confidence,
     generation_source_notes: genSource.notes,
+    total_overflow_kwh: Math.round(overflowResult.total_overflow_kwh * 100) / 100,
     updated_at: new Date().toISOString(),
   };
 
