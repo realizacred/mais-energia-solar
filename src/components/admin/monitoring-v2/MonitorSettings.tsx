@@ -89,6 +89,32 @@ export default function MonitorSettings() {
 
       <GrowattV1ConfigCard />
 
+      {/* Reconnect alert for integrations with expired sessions */}
+      {(() => {
+        const expiredIntegrations = integrations.filter((i: any) => i.sync_error && /reconect|expirad|expired|failed.*login/i.test(i.sync_error));
+        if (expiredIntegrations.length === 0) return null;
+        return (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Reconexão necessária</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {expiredIntegrations.map((i: any) => getProviderLabel(i.provider)).join(", ")}
+                {" "}— sessão expirada ou credenciais inválidas. Reconecte para retomar a sincronização.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2 border-destructive text-destructive hover:bg-destructive/10"
+                onClick={() => navigate("/admin/catalogo-integracoes")}
+              >
+                Reconectar
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
+
       {integrations.length === 0 ? (
         <EmptyState
           icon={Plug}
