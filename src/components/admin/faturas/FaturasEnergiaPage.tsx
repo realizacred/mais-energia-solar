@@ -169,30 +169,21 @@ export default function FaturasEnergiaPage() {
   async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files?.length) return;
-    setUploadingPdf(true);
-    let processed = 0;
-    let errors = 0;
+    const fileArray = Array.from(files).filter((f) => f.type === "application/pdf");
+    if (fileArray.length === 0) {
+      toast({ title: "Apenas arquivos PDF são aceitos", variant: "destructive" });
+      return;
+    }
     try {
-      for (const file of Array.from(files)) {
-        if (file.type !== "application/pdf") { errors++; continue; }
-        const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-        const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
-          body: { pdf_base64: base64, source: "upload" },
-        });
-        if (error || data?.error) { errors++; } else { processed++; }
-      }
-      if (processed > 0) {
-        toast({ title: `${processed} fatura(s) processada(s)${errors > 0 ? `, ${errors} erro(s)` : ""}` });
-        qc.invalidateQueries({ queryKey: ["central_invoices"] });
-        qc.invalidateQueries({ queryKey: ["unit_invoices"] });
-      } else if (errors > 0) {
-        toast({ title: `${errors} erro(s) no processamento`, variant: "destructive" });
-      }
+      const result = await importMutation.mutateAsync({ files: fileArray });
+      const parts: string[] = [];
+      if (result.success > 0) parts.push(`${result.success} importada(s)`);
+      if (result.duplicate > 0) parts.push(`${result.duplicate} duplicada(s)`);
+      if (result.errors > 0) parts.push(`${result.errors} erro(s)`);
+      toast({ title: parts.join(", ") || "Importação concluída" });
     } catch (err: any) {
-      toast({ title: "Erro", description: err?.message, variant: "destructive" });
+      toast({ title: "Erro na importação", description: err?.message, variant: "destructive" });
     } finally {
-      setUploadingPdf(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
