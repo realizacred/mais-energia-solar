@@ -331,7 +331,7 @@ export default function GotenbergConfigPanel() {
               )}
               {testResult.tested_at && (
                 <p className="text-[10px] text-muted-foreground">
-                  Testado em: {new Date(testResult.tested_at).toLocaleString("pt-BR")}
+                  Testado em: {new Date(testResult.tested_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                 </p>
               )}
             </div>
@@ -341,7 +341,7 @@ export default function GotenbergConfigPanel() {
           {!testResult && form.last_health_at && (
             <div className="rounded-lg border border-border bg-muted/20 p-3">
               <p className="text-xs text-muted-foreground mb-2">
-                Último teste: {new Date(form.last_health_at).toLocaleString("pt-BR")}
+                Último teste: {new Date(form.last_health_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
               </p>
               {form.last_health && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

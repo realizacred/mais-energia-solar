@@ -276,7 +276,7 @@ export function InstagramConfig() {
           {/* Last sync info */}
           {config.ultima_sincronizacao && (
             <p className="text-sm text-muted-foreground">
-              Última sincronização: {new Date(config.ultima_sincronizacao).toLocaleString("pt-BR")}
+              Última sincronização: {new Date(config.ultima_sincronizacao).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
             </p>
           )}
 

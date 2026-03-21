@@ -183,7 +183,7 @@ export default function CronJobsPage() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="text-xs font-mono">
-                                {new Date(job.lastExecution.started_at).toLocaleString("pt-BR")}
+                                {new Date(job.lastExecution.started_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                               </p>
                             </TooltipContent>
                           </Tooltip>
