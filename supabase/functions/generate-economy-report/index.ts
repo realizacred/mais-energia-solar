@@ -44,6 +44,10 @@ Deno.serve(async (req) => {
     const denial = await enforceFeature(supabase, tenantId, "relatorio_mensal_pdf", corsHeaders, { userId: user.id });
     if (denial) return denial;
 
+    // Usage limit check
+    const limitDenial = await enforceUsageLimit(supabase, tenantId, "max_reports_pdf_month", corsHeaders, { userId: user.id });
+    if (limitDenial) return limitDenial;
+
     // 1. Fetch UC
     const { data: uc, error: ucErr } = await supabase
       .from("units")

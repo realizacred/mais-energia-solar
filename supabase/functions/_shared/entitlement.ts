@@ -83,6 +83,84 @@ export async function enforceFeature(
 }
 
 /**
+ * Check usage limit for a tenant against their plan's limits.
+ * Uses the backend-friendly DB function (no auth.uid dependency).
+ */
+export interface UsageLimitResult {
+  allowed: boolean;
+  current_value: number;
+  limit_value: number;
+  remaining: number;
+}
+
+export async function checkUsageLimit(
+  supabase: any,
+  tenantId: string,
+  metricKey: string,
+  delta: number = 1,
+): Promise<UsageLimitResult> {
+  const { data, error } = await supabase.rpc("check_usage_limit_backend", {
+    _tenant_id: tenantId,
+    _metric_key: metricKey,
+    _delta: delta,
+  });
+
+  if (error) {
+    console.error(`[entitlement] checkUsageLimit error for ${metricKey}:`, error.message);
+    // Fail open — don't block if limit check fails
+    return { allowed: true, current_value: 0, limit_value: -1, remaining: -1 };
+  }
+
+  const row = data?.[0] ?? { allowed: true, current_value: 0, limit_value: -1, remaining: -1 };
+  return row as UsageLimitResult;
+}
+
+/**
+ * Check usage limit and return a denial Response if exceeded.
+ * Returns null if within limits.
+ */
+export async function enforceUsageLimit(
+  supabase: any,
+  tenantId: string,
+  metricKey: string,
+  corsHeaders: Record<string, string>,
+  options?: { userId?: string; delta?: number },
+): Promise<Response | null> {
+  const result = await checkUsageLimit(supabase, tenantId, metricKey, options?.delta ?? 1);
+
+  if (result.allowed) return null;
+
+  // Log denial
+  try {
+    await supabase.from("audit_feature_access_log").insert({
+      tenant_id: tenantId,
+      user_id: options?.userId ?? null,
+      feature_key: metricKey,
+      access_result: "limit_exceeded",
+      reason: `${result.current_value}/${result.limit_value}`,
+    });
+  } catch (e) {
+    console.error("[entitlement] Audit log error:", e);
+  }
+
+  console.log(`[entitlement] LIMIT EXCEEDED: tenant=${tenantId} metric=${metricKey} ${result.current_value}/${result.limit_value}`);
+
+  return new Response(
+    JSON.stringify({
+      error: "limit_exceeded",
+      message: "Limite do plano atingido",
+      metric_key: metricKey,
+      current: result.current_value,
+      limit: result.limit_value,
+    }),
+    {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
+}
+
+/**
  * Increment usage counter for a metric key (fire-and-forget).
  * Creates or updates the monthly counter in usage_counters.
  */
