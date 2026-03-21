@@ -128,9 +128,10 @@ export const invoiceService = {
       if (error) throw error;
       result = data as BillingEmailSettings;
     } else {
+      const { tenantId } = await getCurrentTenantId();
       const { data, error } = await supabase
         .from(BILLING_TABLE)
-        .insert({ ...safeInput, unit_id: unitId } as any)
+        .insert({ ...safeInput, unit_id: unitId, tenant_id: tenantId } as any)
         .select(BILLING_COLS)
         .single();
       if (error) throw error;
