@@ -435,6 +435,15 @@ export default function UCDetailPage() {
               </CardContent>
             </Card>
 
+            {/* Plano de Serviço / Cobrança */}
+            <UCServicePlanCard
+              unitId={uc.id}
+              planoServicoId={(uc as any).plano_servico_id || null}
+              valorMensalidade={(uc as any).valor_mensalidade || null}
+              diaVencimento={(uc as any).dia_vencimento || null}
+              servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
+            />
+
             {/* Faturas por E-mail */}
             <UCBillingSettingsTab unitId={uc.id} />
 
