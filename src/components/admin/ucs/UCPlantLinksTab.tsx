@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link2, Plus, Trash2, Sun, ArrowRight, Zap, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { derivePlantStatus, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
+import { derivePlantStatus, type PlantUiStatus, getTodayBrasilia } from "@/services/monitoring/plantStatusEngine";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
@@ -59,6 +59,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
       if (error) throw error;
       return (data || []) as PlantLink[];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   // Get monitoring plants as the "usinas" source
@@ -88,7 +89,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
         .in("id", activePlantIds);
       const legacyIds = (plantRows || []).map((p: any) => p.legacy_plant_id).filter(Boolean);
       if (legacyIds.length === 0) return [];
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getTodayBrasilia();
       const { data } = await supabase
         .from("solar_plant_metrics_daily")
         .select("plant_id, energy_kwh, date")
@@ -176,7 +177,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
               updated_at: plant?.last_seen_at || null,
               power_kw: null,
               energy_today_kwh: energyToday,
-              provider_status: plant?.state,
+              provider_status: null, // monitor_plants.state is geographic, not operational
             });
             const statusLabel: Record<PlantUiStatus, string> = { online: "Online", standby: "Standby", offline: "Offline" };
             const statusClass: Record<PlantUiStatus, string> = {
