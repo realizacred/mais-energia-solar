@@ -19,6 +19,7 @@ import { useUCsList } from "@/hooks/useFormSelects";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { gdService } from "@/services/gdService";
 import { unitService } from "@/services/unitService";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 interface Props {
   open: boolean;
