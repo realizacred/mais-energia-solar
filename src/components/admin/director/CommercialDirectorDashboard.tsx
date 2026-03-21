@@ -64,5 +64,6 @@ export function CommercialDirectorDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+    </FeatureGate>
   );
 }
