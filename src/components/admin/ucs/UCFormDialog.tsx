@@ -169,7 +169,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                     <SelectContent>
                       <SelectItem value="consumo">Consumo</SelectItem>
                       <SelectItem value="gd_geradora">GD Geradora</SelectItem>
-                      <SelectItem value="beneficiaria">Beneficiária</SelectItem>
+                      <SelectItem value="mista">Mista (Geradora + Consumo)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
