@@ -503,11 +503,11 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
               <div className="flex gap-4 text-xs">
                 <span className="text-primary">
                   Consumo: R${(uc.demanda_consumo_rs || 0).toFixed(2)}
-                  <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                  <Button variant="ghost" size="icon" className="ml-1 inline-flex h-auto w-auto p-0" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></Button>
                 </span>
                 <span className="text-primary">
                   Geração: R${(uc.demanda_geracao_rs || 0).toFixed(2)}
-                  <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                  <Button variant="ghost" size="icon" className="ml-1 inline-flex h-auto w-auto p-0" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></Button>
                 </span>
               </div>
             </div>
