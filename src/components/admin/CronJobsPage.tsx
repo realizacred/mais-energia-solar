@@ -70,8 +70,8 @@ export default function CronJobsPage() {
             <Timer className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Tarefas Agendadas</h1>
-            <p className="text-sm text-muted-foreground">Status das 14 tarefas cron do sistema</p>
+            <h1 className="text-xl font-bold text-foreground">Tarefas Agendadas (Cron Jobs)</h1>
+            <p className="text-sm text-muted-foreground">Tarefas automáticas que rodam em segundo plano para manter o sistema funcionando</p>
           </div>
         </div>
         <Button
@@ -83,6 +83,38 @@ export default function CronJobsPage() {
           Atualizar
         </Button>
       </div>
+
+      {/* Explanation Card */}
+      <Card className="bg-info/5 border-info/20">
+        <CardContent className="p-4 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center shrink-0 mt-0.5">
+            <Info className="w-4 h-4 text-info" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">O que são Tarefas Agendadas?</p>
+            <p className="text-sm text-muted-foreground">
+              São processos automáticos que rodam periodicamente sem intervenção manual. Eles sincronizam dados externos 
+              (WhatsApp, SolarMarket, ANEEL, Meta Ads), processam filas de mensagens, verificam a saúde das integrações 
+              e executam automações do pipeline comercial. Esta página é apenas de <strong>monitoramento</strong> — 
+              as tarefas são gerenciadas pelo sistema e não precisam de configuração manual.
+            </p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                <span><strong>OK</strong> = executou com sucesso dentro do intervalo esperado</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <AlertTriangle className="w-3.5 h-3.5 text-warning" />
+                <span><strong>Atrasado</strong> = não executou no dobro do tempo esperado</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <XCircle className="w-3.5 h-3.5 text-destructive" />
+                <span><strong>Falhou</strong> = última execução retornou erro</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPI Cards §27 */}
       {isLoading ? (
@@ -129,7 +161,8 @@ export default function CronJobsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-semibold text-foreground w-[220px]">Tarefa</TableHead>
+                <TableHead className="font-semibold text-foreground w-[250px]">Tarefa</TableHead>
+                <TableHead className="font-semibold text-foreground">O que faz</TableHead>
                 <TableHead className="font-semibold text-foreground w-[100px]">Intervalo</TableHead>
                 <TableHead className="font-semibold text-foreground w-[120px]">Status</TableHead>
                 <TableHead className="font-semibold text-foreground">Última Execução</TableHead>
@@ -142,21 +175,13 @@ export default function CronJobsPage() {
                 const cfg = STATUS_CONFIG[job.computedStatus];
                 const Icon = cfg.icon;
                 return (
-                  <TableRow key={job.definition.name} className="hover:bg-muted/30 transition-colors">
+                  <TableRow key={job.definition.name} className="hover:bg-muted/30 transition-colors align-middle">
                     <TableCell>
-                      <TooltipProvider delayDuration={400}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{job.definition.label}</p>
-                              <p className="text-xs text-muted-foreground font-mono">{job.definition.name}</p>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            <p className="max-w-[200px] text-xs">{job.definition.description}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <p className="text-sm font-medium text-foreground">{job.definition.label}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{job.definition.name}</p>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-xs text-muted-foreground">{job.definition.description}</p>
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground font-mono">
