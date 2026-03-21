@@ -306,7 +306,9 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
               <TabsTrigger value="projetos" className="flex-1 text-xs">
                 Projetos {projetos.length > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{projetos.length}</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="ucs" className="flex-1 text-xs">UCs</TabsTrigger>
+              <TabsTrigger value="energia" className="flex-1 text-xs">
+                <Sun className="w-3 h-3 mr-1" /> Energia
+              </TabsTrigger>
               <TabsTrigger value="docs" className="flex-1 text-xs">
                 Docs {totalDocs > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{totalDocs}</Badge>}
               </TabsTrigger>
