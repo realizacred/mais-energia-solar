@@ -118,4 +118,9 @@ export const invoiceService = {
 
     return result;
   },
+
+  async delete(invoiceId: string) {
+    const { error } = await supabase.from("unit_invoices").delete().eq("id", invoiceId);
+    if (error) throw error;
+  },
 };

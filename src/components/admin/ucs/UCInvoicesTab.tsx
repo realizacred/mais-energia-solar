@@ -19,7 +19,23 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2 } from "lucide-react";
+import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2, Trash2, MoreHorizontal } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
@@ -47,6 +63,7 @@ export function UCInvoicesTab({ unitId }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStep, setUploadStep] = useState<string>("");
@@ -124,6 +141,16 @@ export function UCInvoicesTab({ unitId }: Props) {
       toast({ title: "Fatura registrada com sucesso" });
     },
     onError: (err: any) => toast({ title: "Erro ao registrar fatura", description: err?.message, variant: "destructive" }),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => invoiceService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
+      toast({ title: "Fatura excluída com sucesso" });
+      setDeleteTarget(null);
+    },
+    onError: (err: any) => toast({ title: "Erro ao excluir fatura", description: err?.message, variant: "destructive" }),
   });
 
   const handleFileUploadOnly = async (file: File) => {
@@ -340,13 +367,28 @@ export function UCInvoicesTab({ unitId }: Props) {
                     </StatusBadge>
                   </TableCell>
                   <TableCell>
-                    {inv.pdf_file_url && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                        <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
-                          <Eye className="w-4 h-4 text-primary" />
-                        </a>
-                      </Button>
-                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {inv.pdf_file_url && (
+                          <DropdownMenuItem asChild>
+                            <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
+                              <Eye className="w-4 h-4 mr-2" /> Ver PDF
+                            </a>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteTarget(inv.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -475,6 +517,28 @@ export function UCInvoicesTab({ unitId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir fatura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A fatura será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && deleteMut.mutate(deleteTarget)}
+              disabled={deleteMut.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMut.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
