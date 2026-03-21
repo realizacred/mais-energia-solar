@@ -1,0 +1,251 @@
+/**
+ * GdGroupDetailModal — Detail view of a GD Group with beneficiaries.
+ * §25-S1: w-[90vw] mandatory.
+ */
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sun, Building2, Users, Plus, Trash2, AlertTriangle, CheckCircle2, Zap, User } from "lucide-react";
+import { useGdGroupById } from "@/hooks/useGdGroups";
+import { useGdBeneficiaries, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
+import { useConcessionarias } from "@/hooks/useConcessionarias";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { gdService } from "@/services/gdService";
+import { GdBeneficiaryFormModal } from "./GdBeneficiaryFormModal";
+import { formatDate } from "@/lib/dateUtils";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  groupId: string;
+}
+
+export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
+  const { toast } = useToast();
+  const { data: group, isLoading: loadingGroup } = useGdGroupById(groupId);
+  const { data: beneficiaries = [], isLoading: loadingBen } = useGdBeneficiaries(groupId);
+  const { data: concessionarias = [] } = useConcessionarias();
+  const deleteBen = useDeleteGdBeneficiary();
+  const [addBenOpen, setAddBenOpen] = useState(false);
+
+  const { data: ucs = [] } = useQuery({
+    queryKey: ["ucs_for_gd_detail"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("units_consumidoras")
+        .select("id, nome, codigo_uc")
+        .eq("is_archived", false);
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes_for_gd_detail"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true);
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const ucMap = new Map(ucs.map((u: any) => [u.id, u]));
+  const concMap = new Map(concessionarias.map((c) => [c.id, c]));
+  const clienteMap = new Map(clientes.map((c: any) => [c.id, c]));
+
+  const { valid: allocationValid, totalPercent } = gdService.validateAllocationSum(
+    beneficiaries.map((b) => ({ allocation_percent: b.allocation_percent, is_active: b.is_active }))
+  );
+
+  async function handleDeleteBen(id: string) {
+    try {
+      await deleteBen.mutateAsync(id);
+      toast({ title: "Beneficiária removida" });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover", description: err?.message, variant: "destructive" });
+    }
+  }
+
+  const ucGeradora = group ? ucMap.get(group.uc_geradora_id) : null;
+  const conc = group ? concMap.get(group.concessionaria_id) : null;
+  const cliente = group?.cliente_id ? clienteMap.get(group.cliente_id) : null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Sun className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              {loadingGroup ? <Skeleton className="h-5 w-40" /> : group?.nome || "Grupo GD"}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Detalhes do grupo de geração distribuída</p>
+          </div>
+        </DialogHeader>
+
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-5 space-y-5">
+            {loadingGroup ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* Info Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">UC Geradora</p>
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {ucGeradora ? `${ucGeradora.codigo_uc} — ${ucGeradora.nome}` : "—"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">Concessionária</p>
+                        <p className="text-sm font-medium text-foreground truncate">{conc?.nome || "—"}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">Cliente</p>
+                        <p className="text-sm font-medium text-foreground truncate">{cliente?.nome || "Não vinculado"}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Allocation Summary */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-foreground">Beneficiárias</span>
+                    <Badge variant="outline" className="text-xs">{beneficiaries.filter(b => b.is_active).length}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {allocationValid ? (
+                      <Badge className="text-xs bg-success/10 text-success border-success/20">
+                        <CheckCircle2 className="w-3 h-3 mr-1" /> {totalPercent}%
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs border-warning text-warning">
+                        <AlertTriangle className="w-3 h-3 mr-1" /> {totalPercent}% (deve ser 100%)
+                      </Badge>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => setAddBenOpen(true)}>
+                      <Plus className="w-4 h-4 mr-1" /> Adicionar
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Beneficiaries Table */}
+                {loadingBen ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : beneficiaries.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground">Nenhuma beneficiária vinculada</p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                          <TableHead className="font-semibold text-foreground">UC Beneficiária</TableHead>
+                          <TableHead className="font-semibold text-foreground text-right">Percentual</TableHead>
+                          <TableHead className="font-semibold text-foreground">Vigência</TableHead>
+                          <TableHead className="font-semibold text-foreground">Status</TableHead>
+                          <TableHead className="w-[50px]" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {beneficiaries.map((b) => {
+                          const uc = ucMap.get(b.uc_beneficiaria_id);
+                          return (
+                            <TableRow key={b.id} className="hover:bg-muted/30 transition-colors">
+                              <TableCell className="font-medium text-foreground">
+                                {uc ? `${uc.codigo_uc} — ${uc.nome}` : b.uc_beneficiaria_id}
+                              </TableCell>
+                              <TableCell className="text-right font-mono text-sm">
+                                {Number(b.allocation_percent).toFixed(2)}%
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {b.start_date ? formatDate(b.start_date) : "—"} 
+                                {b.end_date ? ` até ${formatDate(b.end_date)}` : ""}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={b.is_active ? "default" : "secondary"} className="text-xs">
+                                  {b.is_active ? "Ativo" : "Inativo"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleDeleteBen(b.id)}
+                                  disabled={deleteBen.isPending}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {group?.notes && (
+                  <div className="rounded-lg bg-muted/30 p-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
+                    <p className="text-sm text-foreground">{group.notes}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+
+      <GdBeneficiaryFormModal
+        open={addBenOpen}
+        onOpenChange={setAddBenOpen}
+        groupId={groupId}
+        existingBeneficiaries={beneficiaries}
+      />
+    </Dialog>
+  );
+}
