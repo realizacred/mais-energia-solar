@@ -382,6 +382,10 @@ export default function UCDetailPage() {
             <UCEconomyReportTab unitId={uc.id} />
           </TabsContent>
 
+          <TabsContent value="comparativo">
+            <UCComparativoTab unitId={uc.id} simulacaoId={(uc as any).simulacao_id ?? null} />
+          </TabsContent>
+
           {plantId && (
             <TabsContent value="relatorios">
               <PlantGenerationReport plantId={plantId} />
