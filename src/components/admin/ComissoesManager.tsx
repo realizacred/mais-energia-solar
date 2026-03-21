@@ -113,6 +113,7 @@ export function ComissoesManager() {
   const [selectedComissao, setSelectedComissao] = useState<Comissao | null>(null);
   const [pagamentosDialogOpen, setPagamentosDialogOpen] = useState(false);
   const [bulkPaymentOpen, setBulkPaymentOpen] = useState(false);
+  const [payDirectOpen, setPayDirectOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeView, setActiveView] = useState<"lista" | "relatorios">("lista");
 
