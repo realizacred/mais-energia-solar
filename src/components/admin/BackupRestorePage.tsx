@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { StorageManagementSection } from "./StorageManagementSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -324,6 +325,9 @@ export function BackupRestorePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Storage Management */}
+      <StorageManagementSection />
 
       {/* Info Card */}
       <Card className="bg-muted/30 border-border">
