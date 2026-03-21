@@ -678,6 +678,7 @@ export default function Admin() {
                 <Route path="backup" element={<BackupRestorePage />} />
                 <Route path="permissoes" element={<RolePermissionsManager />} />
                 <Route path="planos-features" element={<BillingFeaturesPage />} />
+                <Route path="planos" element={<ClientPlansPage />} />
                 <Route path="dashboard-comercial" element={<CommercialDashboardPage />} />
                 
                 <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
