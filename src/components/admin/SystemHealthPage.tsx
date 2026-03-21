@@ -249,17 +249,18 @@ export default function SystemHealthPage() {
 
       {/* KPI Cards — §27 */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
             <Card key={i} className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-32" /></Card>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { icon: overallIcon, label: "Status Geral", value: overallLabel, variant: overallVariant },
             { icon: Wifi, label: "Conectadas", value: String(healthy), variant: "success" as const },
             { icon: AlertTriangle, label: "Degradadas", value: String(degraded), variant: degraded > 0 ? "warning" as const : "muted" as const },
+            { icon: WifiOff, label: "Não Configuradas", value: String(notConfigured), variant: notConfigured > 0 ? "muted" as const : "success" as const },
             { icon: Zap, label: "Latência Média", value: avgLatency ? `${avgLatency}ms` : "—", variant: (avgLatency && avgLatency > 1000) ? "warning" as const : "success" as const },
           ].map((kpi, i) => (
             <motion.div key={kpi.label} custom={i} initial="hidden" animate="visible" variants={cardVariants}>
