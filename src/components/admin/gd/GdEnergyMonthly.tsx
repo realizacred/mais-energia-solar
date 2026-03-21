@@ -151,8 +151,9 @@ export function GdEnergyMonthly({ groupId }: Props) {
         </div>
       ) : (
         <>
-          {/* Generation Source */}
+          {/* Generation Source + Reconciliation */}
           <GdGenerationSourceCard snapshot={snapshot} />
+          <GdReconciliationCard groupId={groupId} year={year} month={month} />
 
           {/* Status badge */}
           <div className="flex items-center gap-2">
