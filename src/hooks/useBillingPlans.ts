@@ -17,6 +17,7 @@ export interface BillingPlan {
   price_yearly: number | null;
   is_active: boolean;
   is_default: boolean;
+  is_popular: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
