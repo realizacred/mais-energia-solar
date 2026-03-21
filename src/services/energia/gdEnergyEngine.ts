@@ -391,7 +391,7 @@ export async function calculateGdMonth(
   // 4. Get active beneficiaries
   const { data: bens = [] } = await supabase
     .from("gd_group_beneficiaries")
-    .select("id, uc_beneficiaria_id, allocation_percent, is_active")
+    .select("id, uc_beneficiaria_id, allocation_percent, is_active, priority_order, allow_overflow_in, allow_overflow_out")
     .eq("gd_group_id", gdGroupId)
     .eq("is_active", true);
 
