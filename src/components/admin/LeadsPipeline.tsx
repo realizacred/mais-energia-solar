@@ -452,12 +452,7 @@ export default function LeadsPipeline() {
 
         <TabsContent value="automations" className="mt-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PipelineAutomations
-              statuses={statuses}
-              onApplyAutomation={(rule) => {
-                toast({ title: "Automação aplicada", description: `Regra "${rule.name}" executada com sucesso.` });
-              }}
-            />
+            <PipelineAutomations />
             <Card className="rounded-xl">
               <CardHeader>
                 <CardTitle className="text-base">Alertas ativos</CardTitle>
