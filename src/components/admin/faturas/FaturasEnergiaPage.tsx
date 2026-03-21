@@ -250,6 +250,9 @@ export default function FaturasEnergiaPage() {
         </Card>
       </div>
 
+      {/* Import Jobs Panel */}
+      <ImportJobsPanel />
+
       {/* Gmail connection card (compact) */}
       <Card>
         <CardHeader className="pb-3">
