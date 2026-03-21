@@ -36,6 +36,7 @@ const FinanciamentoConfig = lazy(() => import("@/components/admin/FinanciamentoC
 const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
 const ClientesManager = lazy(() => import("@/components/admin/ClientesManager").then(m => ({ default: m.ClientesManager })));
 const RecebimentosManager = lazy(() => import("@/components/admin/RecebimentosManager").then(m => ({ default: m.RecebimentosManager })));
+const FinanceiroDashboard = lazy(() => import("@/components/admin/FinanceiroDashboard").then(m => ({ default: m.FinanceiroDashboard })));
 const InstagramConfig = lazy(() => import("@/components/admin/InstagramConfig").then(m => ({ default: m.InstagramConfig })));
 const UsuariosManager = lazy(() => import("@/components/admin/UsuariosManager").then(m => ({ default: m.UsuariosManager })));
 const EquipamentosManager = lazy(() => import("@/components/admin/EquipamentosManager").then(m => ({ default: m.EquipamentosManager })));
@@ -259,6 +260,7 @@ const TAB_TITLES: Record<string, string> = {
   avaliacoes: "Satisfação (NPS)",
   instaladores: "Equipe técnica",
   servicos: "Agenda de serviços",
+  "financeiro-dashboard": "Financeiro",
   recebimentos: "Contas a receber",
   inadimplencia: "Inadimplência",
   comissoes: "Comissões",
@@ -579,6 +581,7 @@ export default function Admin() {
                 <Route path="ucs/:id" element={<UCDetailPage />} />
                 
                 {/* Financeiro */}
+                <Route path="financeiro-dashboard" element={<FinanceiroDashboard />} />
                 <Route path="recebimentos" element={<RecebimentosManager />} />
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
