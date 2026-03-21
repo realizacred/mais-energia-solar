@@ -388,7 +388,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
             </div>
           </DialogHeader>
 
-          <div className="space-y-5 py-2">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
             {/* Nome */}
             <div className="space-y-2">
               <Label htmlFor="edit-nome">Nome completo</Label>
