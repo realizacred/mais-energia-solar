@@ -663,13 +663,34 @@ export function useDealPipeline() {
       return null;
     }
 
+    // ✅ Create linked projeto record and set projeto_id on the deal
+    if (data?.id) {
+      const { data: projeto } = await supabase
+        .from("projetos")
+        .insert({
+          tenant_id: undefined, // auto from RLS default
+          cliente_id: params.customerId,
+          consultor_id: ownerId,
+          deal_id: data.id,
+          status: "criado",
+        } as any)
+        .select("id")
+        .single();
+
+      if (projeto?.id) {
+        await supabase
+          .from("deals")
+          .update({ projeto_id: projeto.id } as any)
+          .eq("id", data.id);
+      }
+    }
+
     toast({ title: "Projeto criado com sucesso!" });
 
     // Ensure deal is also in Comercial pipeline (mandatory)
     if (data?.id) {
       const comercialPipeline = pipelines.find(p => p.name.toLowerCase() === "comercial");
       if (comercialPipeline && pipeId !== comercialPipeline.id) {
-        // Find first open stage of Comercial
         const comercialStages = stages
           .filter(s => s.pipeline_id === comercialPipeline.id && !s.is_closed)
           .sort((a, b) => a.position - b.position);
