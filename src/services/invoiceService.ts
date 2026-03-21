@@ -65,7 +65,9 @@ export const invoiceService = {
   },
 
   async create(input: Partial<UnitInvoice>) {
-    const { data, error } = await supabase.from("unit_invoices").insert(input as any).select(INVOICE_COLS).single();
+    const { tenantId } = await getCurrentTenantId();
+    const payload = { ...input, tenant_id: tenantId };
+    const { data, error } = await supabase.from("unit_invoices").insert(payload as any).select(INVOICE_COLS).single();
     if (error) throw error;
     return data as UnitInvoice;
   },
