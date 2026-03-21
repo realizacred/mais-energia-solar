@@ -39,6 +39,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
     canal_notificacao: "whatsapp" as BillingNotificationChannel,
     servico_fatura_ativo: false,
   });
+  const initialFormRef = useRef<typeof form | null>(null);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["billing_settings", unitId],
