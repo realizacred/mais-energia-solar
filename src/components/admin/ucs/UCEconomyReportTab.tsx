@@ -66,6 +66,42 @@ const DEFAULT_TARIFF = 0.85;
 
 export function UCEconomyReportTab({ unitId }: Props) {
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [exporting, setExporting] = useState(false);
+  const { toast } = useToast();
+
+  const handleExportPdf = useCallback(async () => {
+    setExporting(true);
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session?.access_token) throw new Error("Não autenticado");
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/generate-economy-report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ unit_id: unitId }),
+        }
+      );
+      if (!res.ok) throw new Error("Erro ao gerar relatório");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio-economia-${unitId.slice(0, 8)}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Relatório exportado!" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  }, [unitId, toast]);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["unit_invoices", unitId],
