@@ -35,7 +35,7 @@ export function GdGroupFormModal({ open, onOpenChange, editingGroup }: Props) {
         .from("units_consumidoras")
         .select("id, nome, codigo_uc, tipo_uc, concessionaria_id")
         .eq("is_archived", false)
-        .in("tipo_uc", ["gd_geradora"] as any)
+        .in("tipo_uc", ["gd_geradora", "mista"] as any)
         .order("nome");
       return data || [];
     },

@@ -174,7 +174,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                   </Select>
                 </div>
                 <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Concessionária</Label>
+                  <Label className="text-xs">Concessionária <span className="text-destructive">*</span></Label>
                   <Select value={form.concessionaria_id} onValueChange={set("concessionaria_id")}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
