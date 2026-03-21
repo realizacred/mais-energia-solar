@@ -7076,6 +7076,145 @@ export type Database = {
           },
         ]
       }
+      invoice_import_job_items: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_name: string
+          id: string
+          invoice_id: string | null
+          job_id: string
+          parser_summary_json: Json | null
+          reference_month: number | null
+          reference_year: number | null
+          status: string
+          tenant_id: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_name: string
+          id?: string
+          invoice_id?: string | null
+          job_id: string
+          parser_summary_json?: Json | null
+          reference_month?: number | null
+          reference_year?: number | null
+          status?: string
+          tenant_id?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          invoice_id?: string | null
+          job_id?: string
+          parser_summary_json?: Json | null
+          reference_month?: number | null
+          reference_year?: number | null
+          status?: string
+          tenant_id?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_import_job_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "unit_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_import_job_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_import_job_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_import_job_items_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_import_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duplicate_count: number
+          error_count: number
+          finished_at: string | null
+          id: string
+          processed_files: number
+          source: string
+          started_at: string | null
+          status: string
+          success_count: number
+          summary_json: Json | null
+          tenant_id: string
+          total_files: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duplicate_count?: number
+          error_count?: number
+          finished_at?: string | null
+          id?: string
+          processed_files?: number
+          source?: string
+          started_at?: string | null
+          status?: string
+          success_count?: number
+          summary_json?: Json | null
+          tenant_id?: string
+          total_files?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duplicate_count?: number
+          error_count?: number
+          finished_at?: string | null
+          id?: string
+          processed_files?: number
+          source?: string
+          started_at?: string | null
+          status?: string
+          success_count?: number
+          summary_json?: Json | null
+          tenant_id?: string
+          total_files?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_import_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       irradiacao_por_estado: {
         Row: {
           created_at: string
