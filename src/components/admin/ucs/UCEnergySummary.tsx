@@ -70,7 +70,7 @@ export function UCEnergySummary({ ucId }: Props) {
             <Badge variant="outline" className="text-xs">
               <Users className="w-3 h-3 mr-1" /> Beneficiária
             </Badge>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <div className="rounded-lg border border-border p-3">
                 <p className="text-xs text-muted-foreground">Consumo</p>
                 <p className="text-sm font-bold font-mono">{Number(asBeneficiary.consumed_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
@@ -83,6 +83,12 @@ export function UCEnergySummary({ ucId }: Props) {
                 <p className="text-xs text-muted-foreground">Compensado</p>
                 <p className="text-sm font-bold font-mono text-success">{Number(asBeneficiary.compensated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
               </div>
+              {Number(asBeneficiary.used_from_balance_kwh || 0) > 0 && (
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs text-muted-foreground">Usado do Saldo</p>
+                  <p className="text-sm font-bold font-mono text-info">{Number(asBeneficiary.used_from_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                </div>
+              )}
               <div className="rounded-lg border border-border p-3">
                 <p className="text-xs text-muted-foreground">Economia Est.</p>
                 <p className="text-sm font-bold font-mono">
