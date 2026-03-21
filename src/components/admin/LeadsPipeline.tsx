@@ -409,14 +409,48 @@ export default function LeadsPipeline() {
         </div>
 
         <TabsContent value="kanban" className="mt-0">
+          {/* Bulk action bar */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 p-3 mb-3 rounded-lg border border-primary/30 bg-primary/5">
+              <Badge variant="outline" className="text-xs">{selectedIds.size} selecionado(s)</Badge>
+              <Select value={bulkStatusId} onValueChange={setBulkStatusId}>
+                <SelectTrigger className="h-8 w-48">
+                  <SelectValue placeholder="Atribuir status..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handleBulkAssign} disabled={!bulkStatusId || bulkLoading}>
+                {bulkLoading ? "Aplicando..." : "Aplicar"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setSelectedIds(new Set()); setBulkStatusId(""); }}>
+                Cancelar
+              </Button>
+            </div>
+          )}
+
           <ScrollArea className="w-full">
             <div className="flex gap-4 pb-4" style={{ minWidth: "max-content" }}>
-              {/* Sem status */}
+              {/* Sem status — highlighted */}
               <div className="w-64 md:w-72 lg:w-80 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, "")}>
-                <ColumnHeader name="Sem status" count={getLeadsByStatus(null).length} value={getColumnValue(null)} />
-                <div className="rounded-b-lg p-2 min-h-[500px] space-y-2.5 border border-t-0 border-border/40 bg-muted/10">
+                <ColumnHeader name="⚠ Sem status" count={getLeadsByStatus(null).length} value={getColumnValue(null)} />
+                <div className="rounded-b-lg p-2 min-h-[500px] space-y-2.5 border border-t-0 border-warning/40 bg-warning/5">
                   {getLeadsByStatus(null).map(lead => (
-                    <KanbanCard key={lead.id} lead={lead} onDragStart={handleDragStart} isDragging={draggedLead?.id === lead.id} onViewDetails={handleViewDetails} onQuickAction={handleQuickAction} onWin={handleWin} onLose={handleLose} />
+                    <div key={lead.id} className="relative">
+                      <div className="absolute top-2 left-2 z-10">
+                        <Checkbox
+                          checked={selectedIds.has(lead.id)}
+                          onCheckedChange={() => toggleSelect(lead.id)}
+                          className="bg-card"
+                        />
+                      </div>
+                      <div className={cn("pl-7", selectedIds.has(lead.id) && "ring-1 ring-primary/40 rounded-lg")}>
+                        <KanbanCard key={lead.id} lead={lead} onDragStart={handleDragStart} isDragging={draggedLead?.id === lead.id} onViewDetails={handleViewDetails} onQuickAction={handleQuickAction} onWin={handleWin} onLose={handleLose} />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
