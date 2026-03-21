@@ -728,6 +728,17 @@ export function ComissoesManager() {
           setSelectedIds(new Set());
         }}
       />
+
+      {/* Individual Pay Direct Dialog */}
+      {selectedComissao && (
+        <PagamentosComissaoDialog
+          open={payDirectOpen}
+          onOpenChange={setPayDirectOpen}
+          comissao={selectedComissao}
+          onUpdate={fetchData}
+          initialShowForm
+        />
+      )}
     </div>
   );
 }
