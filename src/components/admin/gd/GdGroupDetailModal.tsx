@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sun, Building2, Users, Plus, Trash2, AlertTriangle, CheckCircle2, Zap, User } from "lucide-react";
+import { Sun, Building2, Users, Plus, Trash2, AlertTriangle, CheckCircle2, Zap, User, Pencil, FileText } from "lucide-react";
 import { useGdGroupById } from "@/hooks/useGdGroups";
-import { useGdBeneficiaries, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
+import { useGdBeneficiaries, useDeleteGdBeneficiary, useSaveGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +35,7 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
   const { data: beneficiaries = [], isLoading: loadingBen } = useGdBeneficiaries(groupId);
   const { data: concessionarias = [] } = useConcessionarias();
   const deleteBen = useDeleteGdBeneficiary();
+  const saveBen = useSaveGdBeneficiary();
   const [addBenOpen, setAddBenOpen] = useState(false);
 
   const { data: ucs = [] } = useQuery({
@@ -56,10 +59,32 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Fetch invoice counts per beneficiary UC
+  const benUcIds = beneficiaries.map((b) => b.uc_beneficiaria_id);
+  const { data: invoiceCounts = [] } = useQuery({
+    queryKey: ["gd_ben_invoice_counts", benUcIds],
+    queryFn: async () => {
+      if (benUcIds.length === 0) return [];
+      const { data } = await supabase
+        .from("unit_invoices")
+        .select("unit_id")
+        .in("unit_id", benUcIds);
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: benUcIds.length > 0,
+  });
+
+  const invoiceCountMap = new Map<string, number>();
+  invoiceCounts.forEach((inv: any) => {
+    invoiceCountMap.set(inv.unit_id, (invoiceCountMap.get(inv.unit_id) || 0) + 1);
+  });
+
   const ucMap = new Map(ucs.map((u: any) => [u.id, u]));
   const concMap = new Map(concessionarias.map((c) => [c.id, c]));
   const clienteMap = new Map(clientes.map((c: any) => [c.id, c]));
 
+  const activeBens = beneficiaries.filter((b) => b.is_active);
   const { valid: allocationValid, totalPercent } = gdService.validateAllocationSum(
     beneficiaries.map((b) => ({ allocation_percent: b.allocation_percent, is_active: b.is_active }))
   );
@@ -70,6 +95,15 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
       toast({ title: "Beneficiária removida" });
     } catch (err: any) {
       toast({ title: "Erro ao remover", description: err?.message, variant: "destructive" });
+    }
+  }
+
+  async function handleToggleActive(b: GdBeneficiary) {
+    try {
+      await saveBen.mutateAsync({ id: b.id, gd_group_id: b.gd_group_id, uc_beneficiaria_id: b.uc_beneficiaria_id, allocation_percent: b.allocation_percent, is_active: !b.is_active });
+      toast({ title: b.is_active ? "Beneficiária desativada" : "Beneficiária ativada" });
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar", description: err?.message, variant: "destructive" });
     }
   }
 
@@ -85,9 +119,16 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
             <Sun className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
-            <DialogTitle className="text-base font-semibold text-foreground">
-              {loadingGroup ? <Skeleton className="h-5 w-40" /> : group?.nome || "Grupo GD"}
-            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                {loadingGroup ? <Skeleton className="h-5 w-40" /> : group?.nome || "Grupo GD"}
+              </DialogTitle>
+              {group && (
+                <Badge variant={group.status === "active" ? "default" : "secondary"} className="text-xs">
+                  {group.status === "active" ? "Ativo" : "Inativo"}
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground mt-0.5">Detalhes do grupo de geração distribuída</p>
           </div>
         </DialogHeader>
@@ -143,27 +184,48 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                   </Card>
                 </div>
 
-                {/* Allocation Summary */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold text-foreground">Beneficiárias</span>
-                    <Badge variant="outline" className="text-xs">{beneficiaries.filter(b => b.is_active).length}</Badge>
+                {/* Allocation Summary Bar */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-foreground">Beneficiárias</span>
+                      <Badge variant="outline" className="text-xs">{activeBens.length} ativas</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {allocationValid ? (
+                        <Badge className="text-xs bg-success/10 text-success border-success/20">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> {totalPercent}%
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs border-warning text-warning">
+                          <AlertTriangle className="w-3 h-3 mr-1" /> {totalPercent}% (deve ser 100%)
+                        </Badge>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => setAddBenOpen(true)}>
+                        <Plus className="w-4 h-4 mr-1" /> Adicionar
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {allocationValid ? (
-                      <Badge className="text-xs bg-success/10 text-success border-success/20">
-                        <CheckCircle2 className="w-3 h-3 mr-1" /> {totalPercent}%
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs border-warning text-warning">
-                        <AlertTriangle className="w-3 h-3 mr-1" /> {totalPercent}% (deve ser 100%)
-                      </Badge>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => setAddBenOpen(true)}>
-                      <Plus className="w-4 h-4 mr-1" /> Adicionar
-                    </Button>
-                  </div>
+
+                  {/* Visual progress bar for allocation */}
+                  {activeBens.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Progress value={Math.min(totalPercent, 100)} className="h-2" />
+                      <div className="flex flex-wrap gap-2">
+                        {activeBens.map((b) => {
+                          const uc = ucMap.get(b.uc_beneficiaria_id);
+                          return (
+                            <div key={b.id} className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                              <span className="truncate max-w-[120px]">{uc?.codigo_uc || "UC"}</span>
+                              <span className="font-mono font-medium text-foreground">{Number(b.allocation_percent).toFixed(1)}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Beneficiaries Table */}
@@ -174,8 +236,12 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                     ))}
                   </div>
                 ) : beneficiaries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-muted-foreground">Nenhuma beneficiária vinculada</p>
+                  <div className="text-center py-8 space-y-2">
+                    <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto">
+                      <Users className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Nenhuma beneficiária vinculada</p>
+                    <p className="text-xs text-muted-foreground">Adicione UCs existentes como beneficiárias deste grupo</p>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-border overflow-hidden">
@@ -185,13 +251,15 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                           <TableHead className="font-semibold text-foreground">UC Beneficiária</TableHead>
                           <TableHead className="font-semibold text-foreground text-right">Percentual</TableHead>
                           <TableHead className="font-semibold text-foreground">Vigência</TableHead>
-                          <TableHead className="font-semibold text-foreground">Status</TableHead>
+                          <TableHead className="font-semibold text-foreground text-center">Faturas</TableHead>
+                          <TableHead className="font-semibold text-foreground text-center">Ativo</TableHead>
                           <TableHead className="w-[50px]" />
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {beneficiaries.map((b) => {
                           const uc = ucMap.get(b.uc_beneficiaria_id);
+                          const invCount = invoiceCountMap.get(b.uc_beneficiaria_id) || 0;
                           return (
                             <TableRow key={b.id} className="hover:bg-muted/30 transition-colors">
                               <TableCell className="font-medium text-foreground">
@@ -201,13 +269,21 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                                 {Number(b.allocation_percent).toFixed(2)}%
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
-                                {b.start_date ? formatDate(b.start_date) : "—"} 
+                                {b.start_date ? formatDate(b.start_date) : "—"}
                                 {b.end_date ? ` até ${formatDate(b.end_date)}` : ""}
                               </TableCell>
-                              <TableCell>
-                                <Badge variant={b.is_active ? "default" : "secondary"} className="text-xs">
-                                  {b.is_active ? "Ativo" : "Inativo"}
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className="text-xs">
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  {invCount}
                                 </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Switch
+                                  checked={b.is_active}
+                                  onCheckedChange={() => handleToggleActive(b)}
+                                  disabled={saveBen.isPending}
+                                />
                               </TableCell>
                               <TableCell>
                                 <Button
