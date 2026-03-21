@@ -10,6 +10,8 @@ import { useClienteUCs, useClienteGdGroups, useClienteInvoiceSummary } from "@/h
 import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { useClienteEnergiaResumo } from "@/hooks/useGdEnergyEngine";
 import { useClienteCreditBalance } from "@/hooks/useGdEnergyReport";
+import { useClienteReconciliationSummary } from "@/hooks/useGdReconciliation";
+import { ReconciliationStatusBadge } from "@/components/admin/gd/GdReconciliationCard";
 
 interface Props {
   clienteId: string;
