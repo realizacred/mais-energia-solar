@@ -23,6 +23,7 @@ import { gdService } from "@/services/gdService";
 import { GdBeneficiaryFormModal } from "./GdBeneficiaryFormModal";
 import { formatDate } from "@/lib/dateUtils";
 import { GdEnergyMonthly } from "./GdEnergyMonthly";
+import { GdEnergyReport } from "./GdEnergyReport";
 
 interface Props {
   open: boolean;
