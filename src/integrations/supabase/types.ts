@@ -322,6 +322,36 @@ export type Database = {
           },
         ]
       }
+      audit_feature_access_log: {
+        Row: {
+          access_result: string
+          created_at: string
+          feature_key: string
+          id: string
+          reason: string | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_result: string
+          created_at?: string
+          feature_key: string
+          id?: string
+          reason?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_result?: string
+          created_at?: string
+          feature_key?: string
+          id?: string
+          reason?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           acao: string
@@ -3837,6 +3867,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_flags_catalog: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          feature_key: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          feature_key: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          feature_key?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       financiamento_api_config: {
         Row: {
@@ -18077,6 +18140,51 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tenant_feature_overrides: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature_id: string
+          id: string
+          reason: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled: boolean
+          feature_id: string
+          id?: string
+          reason?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature_id?: string
+          id?: string
+          reason?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_feature_overrides_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flags_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_feature_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_feriados: {
         Row: {
