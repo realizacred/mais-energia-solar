@@ -557,7 +557,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                       <PhoneInput
                         id="edit-telefone"
                         value={editTelefone}
-                        onChange={(e) => setEditTelefone(e.target.value)}
+                        onChange={(v) => setEditTelefone(v)}
                         placeholder="(00) 00000-0000"
                         className="h-8 text-sm"
                       />
