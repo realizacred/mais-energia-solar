@@ -681,6 +681,7 @@ export default function Admin() {
                 <Route path="planos-features" element={<BillingFeaturesPage />} />
                 <Route path="planos" element={<ClientPlansPage />} />
                 <Route path="dashboard-comercial" element={<CommercialDashboardPage />} />
+                <Route path="pricing" element={<PricingDashboardPage />} />
                 
                 <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
                 <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
