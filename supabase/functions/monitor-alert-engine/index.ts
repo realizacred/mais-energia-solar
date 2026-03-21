@@ -106,6 +106,12 @@ Deno.serve(async (req) => {
 
     for (const tenantId of tenantIds) {
       try {
+        // Check if tenant has alerta_performance feature
+        const entitlement = await checkFeatureAccess(sb, tenantId, "alerta_performance");
+        if (!entitlement.has_access) {
+          console.log(`[alert-engine] Skipping tenant=${tenantId} — alerta_performance not in plan`);
+          continue;
+        }
         await processAlertsTenant(sb, tenantId, stats);
       } catch (err) {
         console.error(`[alert-engine] tenant=${tenantId} error:`, err);
