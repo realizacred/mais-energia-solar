@@ -380,6 +380,22 @@ export default function Admin() {
   const location = useLocation();
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Resolve tenant for onboarding check
+  useEffect(() => {
+    if (!user?.id) return;
+    getCurrentTenantId().then(({ tenantId: tid }) => setTenantId(tid)).catch(() => {});
+  }, [user?.id]);
+
+  const { data: onboardingStatus } = useOnboardingStatus(tenantId);
+
+  useEffect(() => {
+    if (onboardingStatus && !onboardingStatus.onboarding_completed && hasAccess) {
+      setShowOnboarding(true);
+    }
+  }, [onboardingStatus, hasAccess]);
 
   // Derive active tab from URL path
   const activeTab = useMemo(() => {
