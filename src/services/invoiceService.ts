@@ -53,6 +53,22 @@ const BILLING_COLS = `id, unit_id, billing_capture_email, forward_to_email, emai
 const BILLING_TABLE = "unit_billing_email_settings";
 
 export const invoiceService = {
+  /** List all invoices across all UCs (for central view) */
+  async listAll(filters?: { unit_id?: string; status?: string; reference_year?: number; limit?: number }) {
+    let q = supabase
+      .from("unit_invoices")
+      .select(`${INVOICE_COLS}, units_consumidoras!inner(nome, codigo_uc, concessionaria_nome, cliente_id)`)
+      .order("reference_year", { ascending: false })
+      .order("reference_month", { ascending: false });
+    if (filters?.unit_id) q = q.eq("unit_id", filters.unit_id);
+    if (filters?.status) q = q.eq("status", filters.status);
+    if (filters?.reference_year) q = q.eq("reference_year", filters.reference_year);
+    q = q.limit(filters?.limit ?? 200);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data as (UnitInvoice & { units_consumidoras: { nome: string; codigo_uc: string; concessionaria_nome: string | null; cliente_id: string | null } })[];
+  },
+
   async listByUnit(unitId: string) {
     const { data, error } = await supabase
       .from("unit_invoices")
@@ -62,6 +78,19 @@ export const invoiceService = {
       .order("reference_month", { ascending: false });
     if (error) throw error;
     return data as UnitInvoice[];
+  },
+
+  /** Check if a duplicate invoice exists */
+  async checkDuplicate(unitId: string, refMonth: number, refYear: number): Promise<boolean> {
+    const { data } = await supabase
+      .from("unit_invoices")
+      .select("id")
+      .eq("unit_id", unitId)
+      .eq("reference_month", refMonth)
+      .eq("reference_year", refYear)
+      .neq("status", "deleted")
+      .limit(1);
+    return (data?.length ?? 0) > 0;
   },
 
   async create(input: Partial<UnitInvoice>) {
