@@ -69,6 +69,8 @@ export interface GdMonthlyAllocation {
   used_from_balance_kwh: number;
   estimated_savings_brl: number | null;
   source_invoice_id: string | null;
+  overflow_received_kwh: number;
+  overflow_ceded_kwh: number;
   created_at: string;
   updated_at: string;
 }
