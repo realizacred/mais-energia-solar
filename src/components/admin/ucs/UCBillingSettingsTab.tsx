@@ -1,7 +1,7 @@
 /**
  * UCBillingSettingsTab — Billing email settings + service config for a UC.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceService, type BillingEmailSettings, type BillingNotificationChannel } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
     canal_notificacao: "whatsapp" as BillingNotificationChannel,
     servico_fatura_ativo: false,
   });
+  const initialFormRef = useRef<typeof form | null>(null);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["billing_settings", unitId],
@@ -48,7 +49,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
 
   useEffect(() => {
     if (settings) {
-      setForm({
+      const initial = {
         billing_capture_email: settings.billing_capture_email || "",
         forward_to_email: settings.forward_to_email || "",
         pdf_password: "",
@@ -58,9 +59,16 @@ export function UCBillingSettingsTab({ unitId }: Props) {
         dias_antecedencia_alerta: String(settings.dias_antecedencia_alerta ?? 1),
         canal_notificacao: settings.canal_notificacao || "whatsapp",
         servico_fatura_ativo: settings.servico_fatura_ativo ?? false,
-      });
+      };
+      setForm(initial);
+      initialFormRef.current = initial;
     }
   }, [settings]);
+
+  const isDirty = useMemo(() => {
+    if (!initialFormRef.current) return false;
+    return JSON.stringify(form) !== JSON.stringify(initialFormRef.current);
+  }, [form]);
 
   const saveMut = useMutation({
     mutationFn: () => invoiceService.upsertBillingSettings(unitId, {
@@ -254,7 +262,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
             </div>
           )}
 
-          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="w-full sm:w-auto">
+          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isDirty} className="w-full sm:w-auto">
             {saveMut.isPending ? "Salvando..." : "Salvar Configurações"}
           </Button>
         </CardContent>
