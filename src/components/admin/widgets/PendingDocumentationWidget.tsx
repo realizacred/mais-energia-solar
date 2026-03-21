@@ -153,7 +153,7 @@ export function PendingDocumentationWidget({
 
   if (leads.length === 0) {
     return (
-      <Card className="border-dashed">
+      <Card className="border-dashed flex flex-col h-full">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <FileWarning className="h-5 w-5 text-muted-foreground" />
@@ -171,7 +171,7 @@ export function PendingDocumentationWidget({
   }
 
   return (
-    <Card className="border-l-[3px] border-l-warning bg-card">
+    <Card className="border-l-[3px] border-l-warning bg-card flex flex-col h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -188,8 +188,8 @@ export function PendingDocumentationWidget({
           Clique em um lead para completar a documentação e converter
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="max-h-[350px]">
+      <CardContent className="flex-1 min-h-0 flex flex-col">
+        <ScrollArea className="flex-1 min-h-0 max-h-[320px]">
           <div className="space-y-2">
             {leads.map((lead) => {
               const daysWaiting = getDaysWaiting(lead.updated_at);

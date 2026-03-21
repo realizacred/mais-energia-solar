@@ -156,7 +156,7 @@ export function FollowUpNotifications({
 
   if (leads.length === 0) {
     return (
-      <Card className="border-dashed border-primary/20">
+      <Card className="border-dashed border-primary/20 flex flex-col h-full">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Bell className="h-5 w-5 text-muted-foreground" />
@@ -177,7 +177,7 @@ export function FollowUpNotifications({
   const criticalCount = leads.filter(l => l.daysWithoutContact >= 7).length;
 
   return (
-    <Card className={criticalCount > 0 ? "border-l-[3px] border-l-destructive bg-card" : "border-l-[3px] border-l-warning bg-card"}>
+    <Card className={`flex flex-col h-full ${criticalCount > 0 ? "border-l-[3px] border-l-destructive bg-card" : "border-l-[3px] border-l-warning bg-card"}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -203,8 +203,8 @@ export function FollowUpNotifications({
           Leads sem contato há mais de {diasAlerta} dias
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="max-h-[300px]">
+      <CardContent className="flex-1 min-h-0 flex flex-col">
+        <ScrollArea className="flex-1 min-h-0 max-h-[320px]">
           <div className="space-y-2">
             {leads.map((lead) => (
               <div
