@@ -45,6 +45,8 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
   if (refMonth === 0) { refMonth = 12; refYear--; }
   const { data: energiaResumo } = useClienteEnergiaResumo(clienteId, refYear, refMonth);
   const { data: creditData } = useClienteCreditBalance(clienteId);
+  const { data: reconciliations = [] } = useClienteReconciliationSummary(clienteId, refYear, refMonth);
+  const recMap = new Map(reconciliations.map((r: any) => [r.gd_group_id, r]));
 
   const concMap = new Map(concessionarias.map((c) => [c.id, c]));
 
