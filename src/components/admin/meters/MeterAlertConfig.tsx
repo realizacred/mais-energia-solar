@@ -22,6 +22,7 @@ interface Props {
 }
 
 interface AlertConfig {
+  nominal_voltage: 127 | 220;
   min_voltage: number;
   max_voltage: number;
   max_power: number;
