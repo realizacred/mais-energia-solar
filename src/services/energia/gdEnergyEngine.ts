@@ -1,6 +1,7 @@
 /**
  * gdEnergyEngine — SSOT engine for GD monthly energy calculation.
  * SRP: Calculate generation, allocation, compensation, surplus, deficit, and savings.
+ * Phase 2.2: Multi-source generation resolver (meter > monitoring > invoice > missing).
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,6 +14,19 @@ export type CalculationStatus =
   | "missing_beneficiary_invoice"
   | "inconsistent"
   | "pending";
+
+export type GenerationSourceType = "meter" | "monitoring" | "invoice" | "missing";
+export type GenerationConfidence = "high" | "medium" | "low" | "missing";
+
+export interface GenerationSourceResult {
+  generation_kwh: number;
+  generator_consumption_kwh: number;
+  source_type: GenerationSourceType;
+  source_id: string | null;
+  confidence: GenerationConfidence;
+  notes: string | null;
+  status: CalculationStatus;
+}
 
 export interface GdMonthlySnapshot {
   id: string;
@@ -27,6 +41,10 @@ export interface GdMonthlySnapshot {
   total_surplus_kwh: number;
   total_deficit_kwh: number;
   calculation_status: CalculationStatus;
+  generation_source_type: GenerationSourceType;
+  generation_source_id: string | null;
+  generation_source_confidence: GenerationConfidence;
+  generation_source_notes: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -61,13 +79,6 @@ export interface GdCreditBalance {
   updated_at: string;
 }
 
-interface GroupData {
-  id: string;
-  tenant_id: string;
-  uc_geradora_id: string;
-  status: string;
-}
-
 interface BeneficiaryData {
   id: string;
   uc_beneficiaria_id: string;
@@ -75,26 +86,159 @@ interface BeneficiaryData {
   is_active: boolean;
 }
 
-interface InvoiceData {
-  id: string;
-  unit_id: string;
-  energy_consumed_kwh: number | null;
-  energy_injected_kwh: number | null;
-  compensated_kwh: number | null;
-  total_amount: number | null;
-}
-
-// ─── Source Resolution ───────────────────────────────────────────
+// ─── Source Resolution Functions ──────────────────────────────────
 
 /**
- * Get generation for a UC geradora in a given month.
- * Priority: 1) invoice energy_injected_kwh, 2) invoice compensated_kwh as proxy, 3) 0
+ * Priority 1: Get generation from meter readings linked to the UC geradora.
+ * Uses meter_readings.energy_export_kwh aggregated for the month.
  */
-async function getGenerationSource(
+async function getMeterGenerationForMonth(
   ucGeradoraId: string,
   year: number,
   month: number
-): Promise<{ generation_kwh: number; consumption_kwh: number; status: CalculationStatus; invoice_id: string | null }> {
+): Promise<GenerationSourceResult | null> {
+  // Find active meter linked to this UC
+  const { data: links } = await (supabase as any)
+    .from("unit_meter_links")
+    .select("meter_device_id")
+    .eq("unit_id", ucGeradoraId)
+    .eq("is_active", true);
+
+  if (!links || links.length === 0) return null;
+
+  const meterIds = links.map((l: any) => l.meter_device_id);
+
+  // Get date range for the month
+  const startDate = new Date(year, month - 1, 1).toISOString();
+  const endDate = new Date(year, month, 1).toISOString();
+
+  // Aggregate energy_export_kwh for the month from meter_readings
+  const { data: readings } = await (supabase as any)
+    .from("meter_readings")
+    .select("energy_export_kwh, energy_import_kwh, meter_device_id")
+    .in("meter_device_id", meterIds)
+    .gte("measured_at", startDate)
+    .lt("measured_at", endDate)
+    .order("measured_at", { ascending: false });
+
+  if (!readings || readings.length === 0) return null;
+
+  // For cumulative meters, use max - min of export readings
+  // Group by meter and find delta
+  const meterGroups = new Map<string, number[]>();
+  for (const r of readings) {
+    const val = Number(r.energy_export_kwh);
+    if (isNaN(val) || val === 0) continue;
+    if (!meterGroups.has(r.meter_device_id)) meterGroups.set(r.meter_device_id, []);
+    meterGroups.get(r.meter_device_id)!.push(val);
+  }
+
+  let totalExport = 0;
+  let bestMeterId: string | null = null;
+  for (const [meterId, values] of meterGroups) {
+    if (values.length < 2) continue;
+    const delta = Math.max(...values) - Math.min(...values);
+    if (delta > 0) {
+      totalExport += delta;
+      bestMeterId = meterId;
+    }
+  }
+
+  if (totalExport <= 0) return null;
+
+  // Also get import for consumption estimate
+  const importGroups = new Map<string, number[]>();
+  for (const r of readings) {
+    const val = Number(r.energy_import_kwh);
+    if (isNaN(val) || val === 0) continue;
+    if (!importGroups.has(r.meter_device_id)) importGroups.set(r.meter_device_id, []);
+    importGroups.get(r.meter_device_id)!.push(val);
+  }
+  let totalImport = 0;
+  for (const values of importGroups.values()) {
+    if (values.length >= 2) totalImport += Math.max(...values) - Math.min(...values);
+  }
+
+  return {
+    generation_kwh: Math.round(totalExport * 100) / 100,
+    generator_consumption_kwh: Math.round(totalImport * 100) / 100,
+    source_type: "meter",
+    source_id: bestMeterId,
+    confidence: "high",
+    notes: `Medidor: ${readings.length} leituras no mês`,
+    status: "complete",
+  };
+}
+
+/**
+ * Priority 2: Get generation from monitoring (monitor_readings_daily) via plant linked to UC.
+ */
+async function getMonitoringGenerationForMonth(
+  ucGeradoraId: string,
+  year: number,
+  month: number
+): Promise<GenerationSourceResult | null> {
+  // Find plant linked to this UC
+  const { data: plantLinks } = await (supabase as any)
+    .from("unit_plant_links")
+    .select("plant_id")
+    .eq("unit_id", ucGeradoraId)
+    .eq("is_active", true);
+
+  if (!plantLinks || plantLinks.length === 0) return null;
+
+  const plantIds = plantLinks.map((l: any) => l.plant_id);
+
+  // Date range
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
+
+  // Sum daily energy for the month
+  const { data: dailyReadings } = await (supabase as any)
+    .from("monitor_readings_daily")
+    .select("energy_kwh, plant_id")
+    .in("plant_id", plantIds)
+    .gte("date", startDate)
+    .lte("date", endDate);
+
+  if (!dailyReadings || dailyReadings.length === 0) return null;
+
+  let totalEnergy = 0;
+  let bestPlantId: string | null = null;
+  for (const r of dailyReadings) {
+    const val = Number(r.energy_kwh);
+    if (!isNaN(val) && val > 0) {
+      totalEnergy += val;
+      bestPlantId = r.plant_id;
+    }
+  }
+
+  if (totalEnergy <= 0) return null;
+
+  const daysWithData = dailyReadings.filter((r: any) => Number(r.energy_kwh) > 0).length;
+  const daysInMonth = lastDay;
+  const confidence: GenerationConfidence = daysWithData >= daysInMonth * 0.9 ? "high" : daysWithData >= daysInMonth * 0.5 ? "medium" : "low";
+
+  return {
+    generation_kwh: Math.round(totalEnergy * 100) / 100,
+    generator_consumption_kwh: 0, // monitoring doesn't provide consumption directly
+    source_type: "monitoring",
+    source_id: bestPlantId,
+    confidence,
+    notes: `Monitoramento: ${daysWithData}/${daysInMonth} dias com dados`,
+    status: "complete",
+  };
+}
+
+/**
+ * Priority 3: Get generation from UC geradora invoice (fallback).
+ */
+async function getInvoiceGenerationForMonth(
+  ucGeradoraId: string,
+  year: number,
+  month: number
+): Promise<GenerationSourceResult | null> {
   const { data: invoice } = await supabase
     .from("unit_invoices")
     .select("id, energy_consumed_kwh, energy_injected_kwh, compensated_kwh")
@@ -103,25 +247,61 @@ async function getGenerationSource(
     .eq("reference_month", month)
     .maybeSingle();
 
-  if (!invoice) {
-    return { generation_kwh: 0, consumption_kwh: 0, status: "missing_generation", invoice_id: null };
-  }
+  if (!invoice) return null;
 
-  // Priority: energy_injected > compensated as proxy
   const gen = Number(invoice.energy_injected_kwh ?? invoice.compensated_kwh ?? 0);
   const cons = Number(invoice.energy_consumed_kwh ?? 0);
 
+  if (gen <= 0 && cons <= 0) return null;
+
   return {
     generation_kwh: gen,
-    consumption_kwh: cons,
+    generator_consumption_kwh: cons,
+    source_type: "invoice",
+    source_id: invoice.id,
+    confidence: gen > 0 ? "medium" : "low",
+    notes: gen > 0 ? "Fatura: energia injetada" : "Fatura: sem geração registrada",
     status: gen > 0 ? "complete" : "partial",
-    invoice_id: invoice.id,
   };
 }
 
+// ─── Central Resolver (SSOT) ────────────────────────────────────
+
 /**
- * Get consumption for a beneficiary UC in a given month.
+ * Resolve the best generation source for a GD group in a given month.
+ * Priority: meter > monitoring > invoice > missing.
  */
+export async function resolveGenerationSourceForMonth(
+  ucGeradoraId: string,
+  year: number,
+  month: number
+): Promise<GenerationSourceResult> {
+  // Priority 1: Meter
+  const meterSource = await getMeterGenerationForMonth(ucGeradoraId, year, month);
+  if (meterSource) return meterSource;
+
+  // Priority 2: Monitoring
+  const monitoringSource = await getMonitoringGenerationForMonth(ucGeradoraId, year, month);
+  if (monitoringSource) return monitoringSource;
+
+  // Priority 3: Invoice
+  const invoiceSource = await getInvoiceGenerationForMonth(ucGeradoraId, year, month);
+  if (invoiceSource) return invoiceSource;
+
+  // Priority 4: Missing
+  return {
+    generation_kwh: 0,
+    generator_consumption_kwh: 0,
+    source_type: "missing",
+    source_id: null,
+    confidence: "missing",
+    notes: "Nenhuma fonte de geração encontrada",
+    status: "missing_generation",
+  };
+}
+
+// ─── Beneficiary Consumption ────────────────────────────────────
+
 async function getBeneficiaryConsumption(
   ucId: string,
   year: number,
@@ -147,10 +327,6 @@ async function getBeneficiaryConsumption(
   };
 }
 
-/**
- * Estimate savings based on compensated kWh and invoice tariff.
- * tariff_per_kwh = total_amount / energy_consumed_kwh (approximate)
- */
 function estimateSavings(
   compensated_kwh: number,
   consumed_kwh: number,
@@ -163,10 +339,6 @@ function estimateSavings(
 
 // ─── Main Engine ─────────────────────────────────────────────────
 
-/**
- * Calculate GD month for a single group.
- * Upserts snapshot and allocations. Returns the snapshot.
- */
 export async function calculateGdMonth(
   gdGroupId: string,
   year: number,
@@ -183,20 +355,20 @@ export async function calculateGdMonth(
 
   // 2. Check existing snapshot
   if (!recalculate) {
-    const { data: existing } = await supabase
-      .from("gd_monthly_snapshots" as any)
+    const { data: existing } = await (supabase as any)
+      .from("gd_monthly_snapshots")
       .select("*")
       .eq("gd_group_id", gdGroupId)
       .eq("reference_year", year)
       .eq("reference_month", month)
       .maybeSingle();
-    if (existing && (existing as any).calculation_status === "complete") {
-      return existing as unknown as GdMonthlySnapshot;
+    if (existing && existing.calculation_status === "complete") {
+      return existing as GdMonthlySnapshot;
     }
   }
 
-  // 3. Get generation from UC geradora
-  const genSource = await getGenerationSource(group.uc_geradora_id, year, month);
+  // 3. Resolve generation source (SSOT — meter > monitoring > invoice > missing)
+  const genSource = await resolveGenerationSourceForMonth(group.uc_geradora_id, year, month);
 
   // 4. Get active beneficiaries
   const { data: bens = [] } = await supabase
@@ -254,23 +426,25 @@ export async function calculateGdMonth(
   }
 
   // 6. Determine status
-  let calcStatus: CalculationStatus = "complete";
-  if (genSource.status === "missing_generation") calcStatus = "missing_generation";
-  else if (hasMissingInvoice) calcStatus = "missing_beneficiary_invoice";
-  else if (genSource.status === "partial") calcStatus = "partial";
+  let calcStatus: CalculationStatus = genSource.status;
+  if (calcStatus === "complete" && hasMissingInvoice) calcStatus = "missing_beneficiary_invoice";
 
-  // 7. Upsert snapshot
+  // 7. Upsert snapshot with source metadata
   const snapshotPayload = {
     gd_group_id: gdGroupId,
     reference_year: year,
     reference_month: month,
     generation_kwh: genSource.generation_kwh,
-    generator_consumption_kwh: genSource.consumption_kwh,
+    generator_consumption_kwh: genSource.generator_consumption_kwh,
     total_allocated_kwh: Math.round(totalAllocated * 100) / 100,
     total_compensated_kwh: Math.round(totalCompensated * 100) / 100,
     total_surplus_kwh: Math.round(totalSurplus * 100) / 100,
     total_deficit_kwh: Math.round(totalDeficit * 100) / 100,
     calculation_status: calcStatus,
+    generation_source_type: genSource.source_type,
+    generation_source_id: genSource.source_id,
+    generation_source_confidence: genSource.confidence,
+    generation_source_notes: genSource.notes,
     updated_at: new Date().toISOString(),
   };
 
@@ -331,12 +505,9 @@ export async function calculateGdMonth(
     }
   }
 
-  return snapshot as unknown as GdMonthlySnapshot;
+  return snapshot as GdMonthlySnapshot;
 }
 
-/**
- * Calculate all active GD groups for a given month.
- */
 export async function calculateAllActiveGdGroups(
   year: number,
   month: number,
