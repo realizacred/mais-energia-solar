@@ -2,6 +2,7 @@
  * InvoiceService — Canonical service for UC invoices and billing email settings.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 export type BandeiraTarifaria = "verde" | "amarela" | "vermelha_1" | "vermelha_2";
 
