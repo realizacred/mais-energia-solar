@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link2, Copy, Check, Trash2, ExternalLink, Share2 } from "lucide-react";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   unitId: string;
@@ -143,9 +144,9 @@ export function UCShareLinkButton({ unitId }: Props) {
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>
-                Criado em {new Date(activeToken.created_at).toLocaleDateString("pt-BR")}
+                Criado em {formatDate(activeToken.created_at)}
                 {activeToken.last_accessed_at && (
-                  <> · Último acesso: {new Date(activeToken.last_accessed_at).toLocaleDateString("pt-BR")}</>
+                  <> · Último acesso: {formatDate(activeToken.last_accessed_at)}</>
                 )}
               </span>
               <Button

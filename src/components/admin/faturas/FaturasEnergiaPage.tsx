@@ -17,6 +17,7 @@ import {
   Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 const STALE_NORMAL = 1000 * 60 * 5;
 
@@ -335,7 +336,7 @@ export default function FaturasEnergiaPage() {
                       </TableCell>
                       <TableCell className="text-sm">
                         {inv.due_date
-                          ? new Date(inv.due_date).toLocaleDateString("pt-BR")
+                          ? formatDate(inv.due_date)
                           : "—"}
                       </TableCell>
                       <TableCell>

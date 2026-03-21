@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Gauge, Link2, Link2Off, ArrowLeftRight, History, Search, Save, Info } from "lucide-react";
 import { useState, useEffect } from "react";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   unitId: string;
@@ -143,7 +144,7 @@ export function UCMeterTab({ unitId }: Props) {
               {historyLinks.map(link => (
                 <div key={link.id} className="flex items-center justify-between text-xs text-muted-foreground border-b pb-2">
                   <span className="font-mono">{link.meter_device_id.slice(0, 8)}...</span>
-                  <span>{new Date(link.started_at).toLocaleDateString("pt-BR")} → {link.ended_at ? new Date(link.ended_at).toLocaleDateString("pt-BR") : "—"}</span>
+                  <span>{formatDate(link.started_at)} → {link.ended_at ? formatDate(link.ended_at) : "—"}</span>
                 </div>
               ))}
             </div>

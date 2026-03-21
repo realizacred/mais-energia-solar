@@ -32,6 +32,7 @@ import { InfoPill } from "./InfoPill";
 import { ProposalAnalysis } from "./ProposalAnalysis";
 import { ProposalActionCards } from "./ProposalActionCards";
 import { cn } from "@/lib/utils";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any; color: string }> = {
   rascunho: { label: "Rascunho", variant: "secondary", icon: Clock, color: "text-muted-foreground" },
@@ -520,7 +521,7 @@ export function ProposalDetail() {
   const formattedDate = (d: string | null) => {
     if (!d) return null;
     try {
-      return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      return formatDateTime(d);
     } catch { return null; }
   };
 

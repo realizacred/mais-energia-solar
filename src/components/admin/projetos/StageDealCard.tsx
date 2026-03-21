@@ -21,6 +21,7 @@ import {
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import type { DealKanbanCard } from "@/hooks/useDealPipeline";
 import { differenceInDays, differenceInHours } from "date-fns";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface DynamicEtiqueta {
   id: string;
@@ -266,7 +267,7 @@ export function StageDealCard({
                   isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"
                 )}>
                   <Clock className="h-3 w-3" />
-                  {new Date(deal.expected_close_date).toLocaleDateString("pt-BR")}
+                  {formatDate(deal.expected_close_date)}
                   {isOverdue && <span className="text-[8px] uppercase tracking-wide font-bold">Atrasado</span>}
                 </span>
               )}

@@ -21,6 +21,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 const PROVIDER_INFO: Record<string, { label: string; description: string; color: string }> = {
   tuya: { label: "Tuya Smart", description: "Plataforma IoT para medidores inteligentes", color: "bg-primary" },
@@ -124,12 +125,12 @@ export default function ApisPage() {
                       </StatusBadge>
                       {cfg.last_tested_at && (
                         <span className="text-[10px] text-muted-foreground">
-                          Testado: {new Date(cfg.last_tested_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                          Testado: {formatDateTime(cfg.last_tested_at)}
                         </span>
                       )}
                       {cfg.last_sync_at && (
                         <span className="text-[10px] text-muted-foreground">
-                          Sync: {new Date(cfg.last_sync_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                          Sync: {formatDateTime(cfg.last_sync_at)}
                         </span>
                       )}
                       <div className="flex items-center gap-1">

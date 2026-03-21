@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Phone, X, DollarSign, Bot, Sparkles } from "lucide-react";
 import { formatBRL } from "@/lib/formatters";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface AlertCardProps {
   alert: {
@@ -205,7 +206,7 @@ export function IntelligenceAlertCard({ alert, consultorMaxDesconto = 3, gerente
         {/* Resolved state */}
         {alert.resolvido_at && (
           <Badge variant="secondary" className="text-xs">
-            ✅ Resolvido: {new Date(alert.resolvido_at).toLocaleDateString("pt-BR")}
+            ✅ Resolvido: {formatDate(alert.resolvido_at)}
           </Badge>
         )}
       </CardContent>

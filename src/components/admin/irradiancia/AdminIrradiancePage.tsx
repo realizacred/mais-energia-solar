@@ -15,6 +15,7 @@ import {
   Play, Upload, FileText, X, Search, Zap, Shield,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -679,7 +680,7 @@ export function CsvImportPanel() {
                     "text-muted-foreground"
                   }`}>
                     <span className="text-muted-foreground/50 shrink-0">
-                      {new Date(entry.ts).toLocaleTimeString("pt-BR")}
+                      {formatTime(entry.ts)}
                     </span>
                     <span>{entry.msg}</span>
                   </div>

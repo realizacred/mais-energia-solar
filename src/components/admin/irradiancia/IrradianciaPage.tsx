@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { ImportJobTracker } from "./ImportJobTracker";
 import { loadRecentImportJobs, type ImportJob } from "@/services/solar-datasets-api";
 import { ResetSolarDataButton } from "./ResetSolarDataButton";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 const CsvImportPanel = lazy(() => import("./AdminIrradiancePage").then(m => ({ default: m.CsvImportPanel })));
 
@@ -471,7 +472,7 @@ export function IrradianciaPage() {
                             )}
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {new Date(v.ingested_at).toLocaleDateString("pt-BR")}
+                              {formatDate(v.ingested_at)}
                             </span>
                           </div>
                         </div>

@@ -43,6 +43,7 @@ import { ptBR } from "date-fns/locale";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { Input } from "@/components/ui/input";
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from "@/components/ui/select";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 // ─── Pagination hook ────────────────────────────────────
 function usePagination(defaultSize = 100) {
@@ -181,7 +182,7 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-muted-foreground">
-                    {createdAt ? new Date(createdAt).toLocaleDateString("pt-BR") : "—"}
+                    {createdAt ? formatDate(createdAt) : "—"}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">

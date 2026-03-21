@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { FileText, ExternalLink, Globe, Building2 } from "lucide-react";
 import type { Modulo } from "./types";
 import { STATUS_LABELS } from "./types";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   modulo: Modulo | null;
@@ -149,7 +150,7 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
                 )}
                 {m.datasheet_found_at && (
                   <p className="text-xs text-muted-foreground">
-                    Encontrado em: {new Date(m.datasheet_found_at).toLocaleDateString("pt-BR")}
+                    Encontrado em: {formatDate(m.datasheet_found_at)}
                   </p>
                 )}
               </div>

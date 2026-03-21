@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import type { MonitorReadingDaily } from "@/services/monitoring/monitorTypes";
 import { calcExpectedFactor } from "@/services/monitoring/expectedYieldService";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   readings: MonitorReadingDaily[];
@@ -37,7 +38,7 @@ export function MonitorGenerationVsEstimateChart({ readings, plants, hspKwhM2 }:
     const sortedDates = Array.from(byDate.keys()).sort();
     return sortedDates.map((date) => ({
       date,
-      label: new Date(date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      label: formatDateShort(date + "T12:00:00"),
       realizado: Math.round(byDate.get(date)! * 10) / 10,
       projetado: Math.round(dailyEstimate * 10) / 10,
     }));

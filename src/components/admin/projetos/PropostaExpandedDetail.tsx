@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -842,7 +843,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     if (snap?.validade_dias) {
       const d = new Date(latestVersao.created_at);
       d.setDate(d.getDate() + snap.validade_dias);
-      return d.toLocaleDateString("pt-BR");
+      return formatDate(d);
     }
     return null;
   })() : null;
@@ -926,7 +927,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <StatusBadge status={p.status} />
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              Criada em {new Date(p.created_at).toLocaleDateString("pt-BR")}
+              Criada em {formatDate(p.created_at)}
             </p>
           </div>
 
@@ -1161,8 +1162,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                             const userName = log.user_email === "sistema"
                               ? "SISTEMA"
                               : log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
-                            const dateStr = new Date(log.created_at).toLocaleDateString("pt-BR");
-                            const timeStr = new Date(log.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                            const dateStr = formatDate(log.created_at);
+                            const timeStr = formatTime(log.created_at);
 
                             return (
                               <div key={log.id} className="relative flex gap-3 pb-5 last:pb-0">

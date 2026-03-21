@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { FileText, Upload, Loader2, Sparkles, ExternalLink, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
   moduloId?: string;
@@ -116,7 +117,7 @@ export function DatasheetSection({
               )}
               {datasheetFoundAt && (
                 <p className="text-xs text-muted-foreground">
-                  Anexado em {new Date(datasheetFoundAt).toLocaleDateString("pt-BR")}
+                  Anexado em {formatDate(datasheetFoundAt)}
                 </p>
               )}
             </div>

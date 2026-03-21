@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { VARIABLES_CATALOG, replaceVariables } from "@/lib/variablesCatalog";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface TemplatePreviewDialogProps {
   open: boolean;
@@ -131,7 +132,7 @@ async function buildPropostaContext(proposta: PropostaOption): Promise<Record<st
   }
 
   // ── Comercial ──
-  set("comercial.proposta_data", "proposta_data", now.toLocaleDateString("pt-BR"));
+  set("comercial.proposta_data", "proposta_data", formatDate(now));
   set("comercial.proposta_codigo", "proposta_codigo", proposta.codigo);
   const validadeDias = versao?.validade_dias || 15;
   set("comercial.proposta_validade", "proposta_validade",

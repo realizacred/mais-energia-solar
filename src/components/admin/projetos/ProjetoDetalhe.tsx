@@ -47,6 +47,7 @@ import {
   type TabId,
   type EtiquetaItem,
 } from "@/contexts/ProjetoDetalheContext";
+import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
@@ -1081,7 +1082,7 @@ function GerenciamentoTab({
                                 ? "text-destructive font-medium"
                                 : "text-muted-foreground"
                             )}>
-                              {new Date(a.due_date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              {formatDateTime(a.due_date)}
                             </span>
                           )}
                         </div>
@@ -1649,7 +1650,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                     </div>
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">
-                    {orc.cidade && `${orc.cidade}, ${orc.estado}`} • {new Date(orc.created_at).toLocaleDateString("pt-BR")}
+                    {orc.cidade && `${orc.cidade}, ${orc.estado}`} • {formatDate(orc.created_at)}
                   </div>
                 </CardContent>
               </Card>
@@ -1931,7 +1932,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {doc.template_name} • {new Date(doc.created_at).toLocaleDateString("pt-BR")}
+                          {doc.template_name} • {formatDate(doc.created_at)}
                         </p>
                       </div>
                       <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
@@ -1978,7 +1979,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {formatSize(f.metadata?.size)} • {f.created_at ? new Date(f.created_at).toLocaleDateString("pt-BR") : ""}
+                    {formatSize(f.metadata?.size)} • {f.created_at ? formatDate(f.created_at) : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
