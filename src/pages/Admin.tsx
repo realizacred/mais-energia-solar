@@ -82,6 +82,7 @@ const IntelligenceMetricsPage = lazy(() => import("@/components/admin/intelligen
 const IntelligenceAlertsPage = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceAlertsPage })));
 const EngenhariaFinanceiraConfig = lazy(() => import("@/components/admin/EngenhariaFinanceiraConfig").then(m => ({ default: m.EngenhariaFinanceiraConfig })));
 const CommercialDirectorDashboard = lazy(() => import("@/components/admin/director").then(m => ({ default: m.CommercialDirectorDashboard })));
+const ConsultorDashboard = lazy(() => import("@/pages/ConsultorDashboard"));
 
 const TasksSlaDashboard = lazy(() => import("@/components/admin/tasks").then(m => ({ default: m.TasksSlaDashboard })));
 const WaInbox = lazy(() => import("@/components/admin/inbox/WaInbox").then(m => ({ default: m.WaInbox })));
@@ -241,6 +242,7 @@ const VariaveisCustomPage = lazy(() =>
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
 const TAB_TITLES: Record<string, string> = {
+  "meu-painel": "Meu Painel",
   dashboard: "Painel geral",
   inteligencia: "Inteligência comercial",
   diretor: "Assistente IA",
@@ -506,6 +508,7 @@ export default function Admin() {
                 <Route index element={<Navigate to="leads" replace />} />
                 
                 {/* Visão Geral */}
+                <Route path="meu-painel" element={<ConsultorDashboard />} />
                 <Route path="dashboard" element={<AnalyticsDashboard />} />
                 <Route path="performance" element={<PerformanceDashboard />} />
                 <Route path="release" element={<ReleaseChecklist />} />
