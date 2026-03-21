@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { gdService } from "@/services/gdService";
 import { GdBeneficiaryFormModal } from "./GdBeneficiaryFormModal";
 import { formatDate } from "@/lib/dateUtils";
+import { GdEnergyMonthly } from "./GdEnergyMonthly";
 
 interface Props {
   open: boolean;
@@ -309,6 +310,11 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                     <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
                     <p className="text-sm text-foreground">{group.notes}</p>
                   </div>
+                )}
+
+                {/* Energy Monthly Section */}
+                {group && (
+                  <GdEnergyMonthly groupId={group.id} />
                 )}
               </>
             )}

@@ -4798,6 +4798,61 @@ export type Database = {
           },
         ]
       }
+      gd_credit_balances: {
+        Row: {
+          balance_kwh: number
+          gd_group_id: string
+          id: string
+          last_reference_month: number | null
+          last_reference_year: number | null
+          tenant_id: string
+          uc_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance_kwh?: number
+          gd_group_id: string
+          id?: string
+          last_reference_month?: number | null
+          last_reference_year?: number | null
+          tenant_id?: string
+          uc_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance_kwh?: number
+          gd_group_id?: string
+          id?: string
+          last_reference_month?: number | null
+          last_reference_year?: number | null
+          tenant_id?: string
+          uc_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_credit_balances_gd_group_id_fkey"
+            columns: ["gd_group_id"]
+            isOneToOne: false
+            referencedRelation: "gd_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_credit_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_credit_balances_uc_id_fkey"
+            columns: ["uc_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gd_group_beneficiaries: {
         Row: {
           allocation_percent: number
@@ -4929,6 +4984,165 @@ export type Database = {
             columns: ["uc_geradora_id"]
             isOneToOne: false
             referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gd_monthly_allocations: {
+        Row: {
+          allocated_kwh: number
+          allocation_percent: number
+          compensated_kwh: number
+          consumed_kwh: number
+          created_at: string
+          deficit_kwh: number
+          estimated_savings_brl: number | null
+          gd_group_id: string
+          id: string
+          snapshot_id: string
+          source_invoice_id: string | null
+          surplus_kwh: number
+          tenant_id: string
+          uc_beneficiaria_id: string
+          updated_at: string
+        }
+        Insert: {
+          allocated_kwh?: number
+          allocation_percent?: number
+          compensated_kwh?: number
+          consumed_kwh?: number
+          created_at?: string
+          deficit_kwh?: number
+          estimated_savings_brl?: number | null
+          gd_group_id: string
+          id?: string
+          snapshot_id: string
+          source_invoice_id?: string | null
+          surplus_kwh?: number
+          tenant_id?: string
+          uc_beneficiaria_id: string
+          updated_at?: string
+        }
+        Update: {
+          allocated_kwh?: number
+          allocation_percent?: number
+          compensated_kwh?: number
+          consumed_kwh?: number
+          created_at?: string
+          deficit_kwh?: number
+          estimated_savings_brl?: number | null
+          gd_group_id?: string
+          id?: string
+          snapshot_id?: string
+          source_invoice_id?: string | null
+          surplus_kwh?: number
+          tenant_id?: string
+          uc_beneficiaria_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_monthly_allocations_gd_group_id_fkey"
+            columns: ["gd_group_id"]
+            isOneToOne: false
+            referencedRelation: "gd_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_monthly_allocations_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "gd_monthly_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_monthly_allocations_source_invoice_id_fkey"
+            columns: ["source_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "unit_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_monthly_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_monthly_allocations_uc_beneficiaria_id_fkey"
+            columns: ["uc_beneficiaria_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gd_monthly_snapshots: {
+        Row: {
+          calculation_status: string
+          created_at: string
+          gd_group_id: string
+          generation_kwh: number
+          generator_consumption_kwh: number
+          id: string
+          notes: string | null
+          reference_month: number
+          reference_year: number
+          tenant_id: string
+          total_allocated_kwh: number
+          total_compensated_kwh: number
+          total_deficit_kwh: number
+          total_surplus_kwh: number
+          updated_at: string
+        }
+        Insert: {
+          calculation_status?: string
+          created_at?: string
+          gd_group_id: string
+          generation_kwh?: number
+          generator_consumption_kwh?: number
+          id?: string
+          notes?: string | null
+          reference_month: number
+          reference_year: number
+          tenant_id?: string
+          total_allocated_kwh?: number
+          total_compensated_kwh?: number
+          total_deficit_kwh?: number
+          total_surplus_kwh?: number
+          updated_at?: string
+        }
+        Update: {
+          calculation_status?: string
+          created_at?: string
+          gd_group_id?: string
+          generation_kwh?: number
+          generator_consumption_kwh?: number
+          id?: string
+          notes?: string | null
+          reference_month?: number
+          reference_year?: number
+          tenant_id?: string
+          total_allocated_kwh?: number
+          total_compensated_kwh?: number
+          total_deficit_kwh?: number
+          total_surplus_kwh?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_monthly_snapshots_gd_group_id_fkey"
+            columns: ["gd_group_id"]
+            isOneToOne: false
+            referencedRelation: "gd_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_monthly_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

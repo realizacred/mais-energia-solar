@@ -25,6 +25,7 @@ import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
 import { UCShareLinkButton } from "./UCShareLinkButton";
 import { UCGdInfoCard } from "./UCGdInfoCard";
+import { UCEnergySummary } from "./UCEnergySummary";
 import { UCMeterTab } from "./UCMeterTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { formatDateTime } from "@/lib/dateUtils";
@@ -144,9 +145,10 @@ export default function UCDetailPage() {
         </div>
       </div>
 
-      {/* GD Info */}
-      <div className="mx-4 md:mx-6 mt-3">
+      {/* GD Info + Energy Summary */}
+      <div className="mx-4 md:mx-6 mt-3 space-y-3">
         <UCGdInfoCard ucId={id!} />
+        <UCEnergySummary ucId={id!} />
       </div>
 
       {/* Tabs */}
