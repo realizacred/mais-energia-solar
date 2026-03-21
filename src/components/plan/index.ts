@@ -4,3 +4,4 @@ export { LimitReachedDialog } from "./LimitReachedDialog";
 export { usePlanGuard } from "./PlanGuard";
 export { FeatureGate } from "./FeatureGate";
 export { UpgradeModal } from "./UpgradeModal";
+export { AsaasNotConfigured } from "./AsaasNotConfigured";
