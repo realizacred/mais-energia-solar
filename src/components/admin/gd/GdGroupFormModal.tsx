@@ -14,8 +14,7 @@ import { Sun, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSaveGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useClientesList, useUCsList } from "@/hooks/useFormSelects";
 
 interface Props {
   open: boolean;
@@ -27,29 +26,8 @@ export function GdGroupFormModal({ open, onOpenChange, editingGroup }: Props) {
   const { toast } = useToast();
   const saveGd = useSaveGdGroup();
   const { data: concessionarias = [] } = useConcessionarias();
-
-  const { data: ucsGeradoras = [] } = useQuery({
-    queryKey: ["ucs_geradoras_select"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("units_consumidoras")
-        .select("id, nome, codigo_uc, tipo_uc, concessionaria_id")
-        .eq("is_archived", false)
-        .in("tipo_uc", ["gd_geradora", "mista"] as any)
-        .order("nome");
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes_for_gd_form"],
-    queryFn: async () => {
-      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true).order("nome");
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: ucsGeradoras = [] } = useUCsList({ tipo_uc_in: ["gd_geradora", "mista"] });
+  const { data: clientes = [] } = useClientesList();
 
   const [form, setForm] = useState({
     nome: "", concessionaria_id: "", uc_geradora_id: "", cliente_id: "", notes: "", status: "active",
@@ -146,7 +124,7 @@ export function GdGroupFormModal({ open, onOpenChange, editingGroup }: Props) {
                 <Select value={form.uc_geradora_id} onValueChange={set("uc_geradora_id")}>
                   <SelectTrigger><SelectValue placeholder="Selecione UC geradora..." /></SelectTrigger>
                   <SelectContent>
-                    {ucsGeradoras.map((u: any) => (
+                    {ucsGeradoras.map((u) => (
                       <SelectItem key={u.id} value={u.id}>{u.codigo_uc} — {u.nome}</SelectItem>
                     ))}
                   </SelectContent>
@@ -160,7 +138,7 @@ export function GdGroupFormModal({ open, onOpenChange, editingGroup }: Props) {
                 <Select value={form.cliente_id} onValueChange={set("cliente_id")}>
                   <SelectTrigger><SelectValue placeholder="Opcional..." /></SelectTrigger>
                   <SelectContent>
-                    {clientes.map((c: any) => (
+                    {clientes.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                     ))}
                   </SelectContent>

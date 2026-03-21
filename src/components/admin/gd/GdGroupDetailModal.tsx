@@ -12,10 +12,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sun, Building2, Users, Plus, Trash2, AlertTriangle, CheckCircle2, Zap, User, Pencil, FileText } from "lucide-react";
+import { Sun, Building2, Users, Plus, Trash2, AlertTriangle, CheckCircle2, Zap, User, FileText } from "lucide-react";
 import { useGdGroupById } from "@/hooks/useGdGroups";
 import { useGdBeneficiaries, useDeleteGdBeneficiary, useSaveGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
+import { useClientesList, useUCsList } from "@/hooks/useFormSelects";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,30 +37,11 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
   const { data: group, isLoading: loadingGroup } = useGdGroupById(groupId);
   const { data: beneficiaries = [], isLoading: loadingBen } = useGdBeneficiaries(groupId);
   const { data: concessionarias = [] } = useConcessionarias();
+  const { data: ucs = [] } = useUCsList();
+  const { data: clientes = [] } = useClientesList();
   const deleteBen = useDeleteGdBeneficiary();
   const saveBen = useSaveGdBeneficiary();
   const [addBenOpen, setAddBenOpen] = useState(false);
-
-  const { data: ucs = [] } = useQuery({
-    queryKey: ["ucs_for_gd_detail"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("units_consumidoras")
-        .select("id, nome, codigo_uc")
-        .eq("is_archived", false);
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes_for_gd_detail"],
-    queryFn: async () => {
-      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true);
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
 
   // Fetch invoice counts per beneficiary UC
   const benUcIds = beneficiaries.map((b) => b.uc_beneficiaria_id);
@@ -82,9 +64,9 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
     invoiceCountMap.set(inv.unit_id, (invoiceCountMap.get(inv.unit_id) || 0) + 1);
   });
 
-  const ucMap = new Map(ucs.map((u: any) => [u.id, u]));
+  const ucMap = new Map(ucs.map((u) => [u.id, u]));
   const concMap = new Map(concessionarias.map((c) => [c.id, c]));
-  const clienteMap = new Map(clientes.map((c: any) => [c.id, c]));
+  const clienteMap = new Map(clientes.map((c) => [c.id, c]));
 
   const activeBens = beneficiaries.filter((b) => b.is_active);
   const { valid: allocationValid, totalPercent } = gdService.validateAllocationSum(
@@ -195,7 +177,11 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                       <Badge variant="outline" className="text-xs">{activeBens.length} ativas</Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                      {allocationValid ? (
+                      {beneficiaries.length === 0 ? (
+                        <Badge variant="outline" className="text-xs border-warning text-warning">
+                          <AlertTriangle className="w-3 h-3 mr-1" /> Sem beneficiárias
+                        </Badge>
+                      ) : allocationValid ? (
                         <Badge className="text-xs bg-success/10 text-success border-success/20">
                           <CheckCircle2 className="w-3 h-3 mr-1" /> {totalPercent}%
                         </Badge>
@@ -243,7 +229,10 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                       <Users className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <p className="text-sm font-medium text-foreground">Nenhuma beneficiária vinculada</p>
-                    <p className="text-xs text-muted-foreground">Adicione UCs existentes como beneficiárias deste grupo</p>
+                    <p className="text-xs text-muted-foreground">Adicione UCs existentes ou crie novas como beneficiárias</p>
+                    <Button size="sm" variant="outline" onClick={() => setAddBenOpen(true)}>
+                      <Plus className="w-4 h-4 mr-1" /> Adicionar beneficiária
+                    </Button>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-border overflow-hidden">
