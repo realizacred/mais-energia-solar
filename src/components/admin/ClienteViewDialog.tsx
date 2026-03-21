@@ -19,7 +19,7 @@ import {
 import {
   User, Phone, Mail, MapPin, Zap, DollarSign, Calendar, FileText,
   ExternalLink, Eye, FolderOpen, MessageSquare, Clock, ArrowRight,
-  TrendingDown, Send, ChevronRight,
+  TrendingDown, Send, ChevronRight, Sun,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import {
