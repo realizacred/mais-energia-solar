@@ -336,7 +336,7 @@ export async function getEnergyFinancialRanking(limit = 10): Promise<{
   // Aggregate by group
   const groupTotals = new Map<string, { savings: number; compensated: number }>();
   for (const a of allAllocs) {
-    const groupId = snapshotGroupMap.get(a.snapshot_id);
+    const groupId = snapshotGroupMap.get(a.snapshot_id as string);
     if (!groupId) continue;
     const cur = groupTotals.get(groupId) || { savings: 0, compensated: 0 };
     cur.savings += Number(a.estimated_savings_brl || 0);
