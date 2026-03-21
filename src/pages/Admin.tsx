@@ -143,6 +143,7 @@ const CommercialDashboardPage = lazy(() => import("@/components/admin/billing/Co
 const SystemHealthPage = lazy(() => import("@/components/admin/SystemHealthPage"));
 const CronJobsPage = lazy(() => import("@/components/admin/CronJobsPage"));
 const AsaasIntegrationPage = lazy(() => import("@/pages/admin/AsaasIntegrationPage"));
+const AsaasConversionPage = lazy(() => import("@/pages/admin/AsaasConversionPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const PostSaleDashboardPage = lazy(() => import("@/components/admin/post-sale/PostSaleDashboard"));
 const PostSaleVisitsPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitsList"));
@@ -649,6 +650,7 @@ export default function Admin() {
                 <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="integracao-asaas" element={<AsaasIntegrationPage />} />
+                <Route path="asaas-conversao" element={<AsaasConversionPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
                 <Route path="solarmarket-config" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
