@@ -118,7 +118,7 @@ export function MarginCommissionTab() {
   // ── Commission CRUD ──
   function openCommissionCreate() {
     setCommissionEditId(null);
-    setCommissionForm({ name: "", description: "", commission_type: "percentage", parameters: { rate: 5 }, is_active: true });
+    setCommissionForm({ name: "", description: "", commission_type: "percentage", parameters: { percentual: 5 }, is_active: true });
     setCommissionDialog(true);
   }
   function openCommissionEdit(c: CommissionPlan) {
