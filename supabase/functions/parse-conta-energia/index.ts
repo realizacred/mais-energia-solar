@@ -615,19 +615,54 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text, use_ai_fallback = true } = body;
+    const { text, pdf_base64, use_ai_fallback = true } = body;
 
-    if (!text || typeof text !== 'string') {
-      return new Response(JSON.stringify({ error: 'Campo "text" é obrigatório' }),
+    if (!text && !pdf_base64) {
+      return new Response(JSON.stringify({ error: 'Campo "text" ou "pdf_base64" é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Layer 1: Regex
-    let extracted = extractFromText(text);
+    let extracted: ExtractedData | null = null;
 
-    // Layer 2: AI fallback (only if enabled and fields are missing)
-    if (use_ai_fallback) {
+    // Strategy 1: If we have text, try regex first
+    if (text && typeof text === 'string' && text.length >= 50) {
+      extracted = extractFromText(text);
+      console.log(`[parse-conta-energia] Regex confidence: ${extracted.confidence}`);
+    }
+
+    // Strategy 2: If regex confidence is low (< 30) or no text, use AI multimodal on PDF
+    if (pdf_base64 && (!extracted || extracted.confidence < 30)) {
+      console.log("[parse-conta-energia] Low regex confidence or no text, using AI multimodal extraction");
+      const aiResult = await aiFullExtractFromPdf(pdf_base64);
+      if (aiResult) {
+        // If we had partial regex, merge (AI takes precedence for nulls)
+        if (extracted) {
+          for (const key of Object.keys(aiResult) as Array<keyof ExtractedData>) {
+            if (key === 'raw_fields' || key === 'confidence' || key === 'ai_fallback_used') continue;
+            if ((extracted[key] === null || extracted[key] === undefined) && aiResult[key] !== null) {
+              (extracted as any)[key] = aiResult[key];
+            }
+          }
+          extracted.ai_fallback_used = true;
+          extracted.confidence = Math.max(extracted.confidence, aiResult.confidence);
+          extracted.raw_fields = { ...extracted.raw_fields, ...aiResult.raw_fields };
+        } else {
+          extracted = aiResult;
+        }
+      }
+    }
+
+    // Strategy 3: If still no good result but we have text, try text-based AI fallback
+    if (extracted && use_ai_fallback && text) {
       extracted = await aiExtractMissingFields(text, extracted);
+    }
+
+    // If nothing worked at all
+    if (!extracted) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Não foi possível extrair dados da fatura. O PDF pode estar escaneado ou protegido.',
+      }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({
