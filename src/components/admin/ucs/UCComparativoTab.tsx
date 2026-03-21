@@ -337,10 +337,15 @@ function LinkSimulacaoModal({ open, onOpenChange, unitId }: { open: boolean; onO
                 <SelectContent>
                   {versoes.map((v) => {
                     const snap = v.snapshot as any;
-                    const clienteNome = snap?.clienteNome ?? snap?.cliente_nome ?? "—";
+                    const clienteNome = snap?.clienteNome ?? snap?.cliente_nome ?? snap?.nome_cliente ?? "";
+                    const dateStr = v.created_at ? new Date(v.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
+                    const vNum = v.versao_numero ? `v${v.versao_numero}` : "";
+                    const kwp = Number(v.potencia_kwp || 0).toLocaleString("pt-BR");
+                    const kwh = Number(v.geracao_mensal || 0).toLocaleString("pt-BR");
+                    const label = [clienteNome, vNum, dateStr].filter(Boolean).join(" · ");
                     return (
                       <SelectItem key={v.id} value={v.id}>
-                        {clienteNome} — {Number(v.potencia_kwp || 0).toLocaleString("pt-BR")} kWp — {Number(v.geracao_mensal || 0).toLocaleString("pt-BR")} kWh/mês
+                        {label || "Proposta"} — {kwp} kWp — {kwh} kWh/mês
                       </SelectItem>
                     );
                   })}
