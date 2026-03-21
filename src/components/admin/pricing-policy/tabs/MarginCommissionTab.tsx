@@ -64,7 +64,7 @@ export function MarginCommissionTab() {
   // Commission dialog
   const [commissionDialog, setCommissionDialog] = useState(false);
   const [commissionEditId, setCommissionEditId] = useState<string | null>(null);
-  const [commissionForm, setCommissionForm] = useState<{ name: string; description: string; commission_type: string; parameters: Record<string, any>; is_active: boolean }>({ name: "", description: "", commission_type: "percentage", parameters: { rate: 5 }, is_active: true });
+  const [commissionForm, setCommissionForm] = useState<{ name: string; description: string; commission_type: string; parameters: Record<string, any>; is_active: boolean }>({ name: "", description: "", commission_type: "percentage", parameters: { percentual: 5 }, is_active: true });
   const [commissionSaving, setCommissionSaving] = useState(false);
 
   const loadAll = useCallback(async () => {
@@ -118,7 +118,7 @@ export function MarginCommissionTab() {
   // ── Commission CRUD ──
   function openCommissionCreate() {
     setCommissionEditId(null);
-    setCommissionForm({ name: "", description: "", commission_type: "percentage", parameters: { rate: 5 }, is_active: true });
+    setCommissionForm({ name: "", description: "", commission_type: "percentage", parameters: { percentual: 5 }, is_active: true });
     setCommissionDialog(true);
   }
   function openCommissionEdit(c: CommissionPlan) {
@@ -304,13 +304,13 @@ export function MarginCommissionTab() {
             <div className="space-y-1.5"><Label className="text-xs">Descrição</Label><Input value={commissionForm.description} onChange={(e) => setCommissionForm((f) => ({ ...f, description: e.target.value }))} className="text-sm" /></div>
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo</Label>
-              <Select value={commissionForm.commission_type} onValueChange={(v) => setCommissionForm((f) => ({ ...f, commission_type: v, parameters: v === "percentage" ? { rate: 5 } : v === "fixed" ? { amount: 500 } : {} }))}>
+              <Select value={commissionForm.commission_type} onValueChange={(v) => setCommissionForm((f) => ({ ...f, commission_type: v, parameters: v === "percentage" ? { percentual: 5 } : v === "fixed" ? { amount: 500 } : {} }))}>
                 <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{COMMISSION_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             {commissionForm.commission_type === "percentage" && (
-              <div className="space-y-1.5"><Label className="text-xs">Taxa (%)</Label><Input type="number" step="0.1" value={commissionForm.parameters.rate ?? 5} onChange={(e) => setCommissionForm((f) => ({ ...f, parameters: { rate: parseFloat(e.target.value) || 0 } }))} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">Percentual (%)</Label><Input type="number" step="0.1" value={commissionForm.parameters.percentual ?? 5} onChange={(e) => setCommissionForm((f) => ({ ...f, parameters: { ...f.parameters, percentual: parseFloat(e.target.value) || 0 } }))} /></div>
             )}
             {commissionForm.commission_type === "fixed" && (
               <div className="space-y-1.5"><Label className="text-xs">Valor (R$)</Label><Input type="number" step="0.01" value={commissionForm.parameters.amount ?? 500} onChange={(e) => setCommissionForm((f) => ({ ...f, parameters: { amount: parseFloat(e.target.value) || 0 } }))} /></div>
