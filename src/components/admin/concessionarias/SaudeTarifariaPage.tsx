@@ -47,9 +47,7 @@ interface HealthStats {
 
 // ─── Helpers ───
 
-function formatDateLocal(iso: string | null) {
-  return formatDate(iso);
-}
+// Local formatDate removed — using imported formatDate from dateUtils
 
 function alertIcon(tipo: AlertItem["tipo"]) {
   switch (tipo) {

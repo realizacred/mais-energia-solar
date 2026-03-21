@@ -84,7 +84,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
     topologia: topologia || "Tradicional",
     precoTotal,
     precoWp,
-    updatedAt: new Date().toLocaleDateString("pt-BR"),
+    updatedAt: formatDate(new Date()),
   };
 }
 

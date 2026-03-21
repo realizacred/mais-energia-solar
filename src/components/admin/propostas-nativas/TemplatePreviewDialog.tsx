@@ -136,7 +136,7 @@ async function buildPropostaContext(proposta: PropostaOption): Promise<Record<st
   set("comercial.proposta_codigo", "proposta_codigo", proposta.codigo);
   const validadeDias = versao?.validade_dias || 15;
   set("comercial.proposta_validade", "proposta_validade",
-    new Date(now.getTime() + validadeDias * 86400000).toLocaleDateString("pt-BR"));
+    formatDate(new Date(now.getTime() + validadeDias * 86400000)));
   if (consultor) {
     set("comercial.consultor_nome", "consultor_nome", consultor.nome);
     set("comercial.consultor_telefone", "consultor_telefone", consultor.telefone);

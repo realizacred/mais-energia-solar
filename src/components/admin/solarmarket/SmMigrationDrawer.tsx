@@ -184,7 +184,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const stageInfo = proposal ? (STAGE_MAP[proposal.status?.toLowerCase() ?? ""] ?? DEFAULT_STAGE) : DEFAULT_STAGE;
 
   const addLog = useCallback((msg: string) => {
-    setLogs(prev => [...prev, `[${new Date().toLocaleTimeString("pt-BR")}] ${msg}`]);
+    setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
   }, []);
 
   const resetState = useCallback(() => {
