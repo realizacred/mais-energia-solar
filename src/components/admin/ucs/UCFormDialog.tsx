@@ -253,7 +253,73 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
           </div>
 
-          {/* Row 2: Endereço — §13 AddressFields */}
+          {/* Row 2: GD + Faturamento + Cliente */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* GD */}
+            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <Sun className="w-3.5 h-3.5 text-primary" />
+                Geração Distribuída
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs">Papel GD</Label>
+                  <Select value={form.papel_gd} onValueChange={set("papel_gd")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      <SelectItem value="geradora">Geradora</SelectItem>
+                      <SelectItem value="beneficiaria">Beneficiária</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs">Categoria GD</Label>
+                  <Select value={form.categoria_gd || "none"} onValueChange={(v) => setForm(f => ({ ...f, categoria_gd: v === "none" ? "" : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
+                      <SelectItem value="gd1">GD I</SelectItem>
+                      <SelectItem value="gd2">GD II</SelectItem>
+                      <SelectItem value="gd3">GD III</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+
+            {/* Faturamento */}
+            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-primary" />
+                Faturamento
+              </p>
+              <div className="space-y-4">
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs">Cliente</Label>
+                  <Select value={form.cliente_id || "none"} onValueChange={(v) => setForm(f => ({ ...f, cliente_id: v === "none" ? "" : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o cliente..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {clientes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs">E-mail da Fatura</Label>
+                  <Input type="email" value={form.email_fatura} onChange={set("email_fatura")} placeholder="fatura@email.com" autoComplete="off" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Leitura automática por e-mail</Label>
+                  <Switch checked={form.leitura_automatica_email} onCheckedChange={(v) => setForm(f => ({ ...f, leitura_automatica_email: v }))} />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Row 3: Endereço — §13 AddressFields */}
           <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5 text-primary" />
