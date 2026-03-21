@@ -2,14 +2,14 @@
  * ClientPlansPage — Client-facing plans comparison page.
  * §26 header, §12 skeleton, §1 semantic colors only.
  */
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Check, X, Star, Zap } from "lucide-react";
-import { usePublicPlans, type PublicPlan } from "@/hooks/usePublicPlans";
+import { usePlanPricing, trackPricingEvent, type PricedPlan } from "@/hooks/usePlanPricing";
 import { useTenantPlan } from "@/hooks/useTenantPlan";
 import { UpgradeModal } from "@/components/plan/UpgradeModal";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
@@ -67,11 +67,19 @@ function formatLimitValue(v: number): string {
 }
 
 export default function ClientPlansPage() {
-  const { data: plans = [], isLoading } = usePublicPlans();
+  const { data: plans, isLoading } = usePlanPricing();
   const { subscription } = useTenantPlan();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const viewTracked = useRef(false);
 
   const currentPlanCode = subscription?.plan_code ?? null;
+
+  // Track page view once plans load
+  useEffect(() => {
+    if (viewTracked.current || !plans.length) return;
+    viewTracked.current = true;
+    plans.forEach((p) => trackPricingEvent("plan_view", p.id, p.variant_id));
+  }, [plans]);
 
   // Collect all feature keys across all plans, ordered
   const allFeatureKeys = Array.from(
@@ -121,7 +129,10 @@ export default function ClientPlansPage() {
             plan={plan}
             isCurrent={plan.code === currentPlanCode}
             allFeatureKeys={allFeatureKeys}
-            onUpgrade={() => setUpgradeOpen(true)}
+            onUpgrade={() => {
+              trackPricingEvent("plan_click", plan.id, plan.variant_id);
+              setUpgradeOpen(true);
+            }}
           />
         ))}
       </div>
@@ -141,7 +152,7 @@ function PlanCard({
   allFeatureKeys,
   onUpgrade,
 }: {
-  plan: PublicPlan;
+  plan: PricedPlan;
   isCurrent: boolean;
   allFeatureKeys: string[];
   onUpgrade: () => void;
@@ -174,13 +185,13 @@ function PlanCard({
         )}
         <div className="flex items-baseline gap-1">
           <span className="text-3xl font-bold text-foreground">
-            R$ {Number(plan.price_monthly).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
+            R$ {Number(plan.resolved_price_monthly).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
           </span>
           <span className="text-sm text-muted-foreground">/mês</span>
         </div>
-        {plan.price_yearly != null && plan.price_yearly > 0 && (
+        {plan.resolved_price_yearly != null && plan.resolved_price_yearly > 0 && (
           <p className="text-xs text-muted-foreground mt-1">
-            ou R$ {Number(plan.price_yearly).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/ano
+            ou R$ {Number(plan.resolved_price_yearly).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/ano
           </p>
         )}
       </div>
