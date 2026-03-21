@@ -24133,7 +24133,7 @@ export type Database = {
       tenant_status: "active" | "suspended" | "disabled" | "pending"
       tipo_parcela_enum: "entrada" | "regular" | "intermediaria" | "final"
       tipo_sistema_inversor: "ON_GRID" | "HIBRIDO" | "OFF_GRID"
-      uc_type: "consumo" | "gd_geradora" | "beneficiaria"
+      uc_type: "consumo" | "gd_geradora" | "beneficiaria" | "mista"
       venda_status_enum:
         | "rascunho"
         | "pendente"
@@ -24428,7 +24428,7 @@ export const Constants = {
       tenant_status: ["active", "suspended", "disabled", "pending"],
       tipo_parcela_enum: ["entrada", "regular", "intermediaria", "final"],
       tipo_sistema_inversor: ["ON_GRID", "HIBRIDO", "OFF_GRID"],
-      uc_type: ["consumo", "gd_geradora", "beneficiaria"],
+      uc_type: ["consumo", "gd_geradora", "beneficiaria", "mista"],
       venda_status_enum: [
         "rascunho",
         "pendente",
