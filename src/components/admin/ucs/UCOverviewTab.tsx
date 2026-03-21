@@ -1,7 +1,7 @@
 /**
  * UCOverviewTab — Dashboard overview for a UC.
  * Shows KPI cards, generation vs consumption chart, device status, recent invoices, timeline.
- * §27: KPI cards, §5: Recharts, §4: empty states, §23: staleTime.
+ * §27: KPI cards via StatCard, §5: Recharts, §4: empty states, §23: staleTime.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,10 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatCard } from "@/components/ui-kit/StatCard";
 import {
   Zap, Sun, BarChart3, Calendar, Battery, Activity,
-  Gauge, ArrowRight, FileText, Clock, BarChart2, Link2
+  Gauge, ArrowRight, FileText, Clock, BarChart2
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
