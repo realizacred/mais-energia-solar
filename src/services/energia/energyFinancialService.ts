@@ -422,7 +422,7 @@ export async function getEnergyFinancialHistory(months = 12): Promise<MonthlyFin
     .select("snapshot_id, estimated_savings_brl, compensated_kwh")
     .in("snapshot_id", snapshotIds);
 
-  const snapshotMap = new Map(snapshots.map((s: any) => [s.id, s]));
+  const snapshotMap = new Map<string, any>(snapshots.map((s: any) => [s.id, s]));
   const monthMap = new Map<string, { savings: number; compensated: number; year: number; month: number }>();
 
   for (const a of allocs) {
