@@ -42,35 +42,40 @@ const NOTIFICATION_TYPES = [
   {
     key: "notify_new_lead" as const,
     label: "Novo Lead",
-    description: "Notificar quando um novo lead é cadastrado no sistema.",
+    description: "Alerta push quando um novo lead entra pelo formulário de captação (/v/:slug) ou é cadastrado manualmente.",
+    howItWorks: "Consultor responsável e admins recebem notificação instantânea. O lead já aparece no pipeline.",
     icon: Users,
     category: "Eventos Comerciais",
   },
   {
     key: "notify_new_orcamento" as const,
-    label: "Novo Orçamento",
-    description: "Notificar quando uma nova proposta/orçamento é gerada.",
+    label: "Novo Orçamento / Proposta",
+    description: "Alerta quando uma proposta comercial é gerada ou atualizada no sistema.",
+    howItWorks: "O consultor dono do lead e os admins recebem push. Útil para acompanhar o fluxo de vendas.",
     icon: FileText,
     category: "Eventos Comerciais",
   },
   {
     key: "notify_wa_message" as const,
-    label: "Mensagem WhatsApp",
-    description: "Notificar quando uma nova mensagem é recebida no WhatsApp.",
+    label: "Mensagem WhatsApp Recebida",
+    description: "Push notification quando o cliente envia uma mensagem pelo WhatsApp.",
+    howItWorks: "Apenas o consultor responsável pela conversa recebe. Se não houver responsável, admins são notificados.",
     icon: MessageCircle,
     category: "Comunicação",
   },
   {
     key: "notify_lead_idle" as const,
-    label: "Lead Parado",
-    description: "Alertar quando um lead não recebeu contato há mais de 2 horas.",
+    label: "Lead Parado (Sem Contato)",
+    description: "Alerta quando um lead está há mais de 2 horas sem receber nenhum contato da equipe.",
+    howItWorks: "Ajuda a evitar que leads fiquem esquecidos no funil. O consultor responsável é notificado.",
     icon: Clock,
     category: "Inteligência Operacional",
   },
   {
     key: "notify_conversation_idle" as const,
-    label: "Conversa Esquecida",
-    description: "Alertar quando um cliente enviou mensagem e ninguém respondeu.",
+    label: "Conversa Sem Resposta",
+    description: "Alerta quando um cliente enviou mensagem no WhatsApp e ninguém da equipe respondeu.",
+    howItWorks: "Monitora SLA de atendimento. Se ultrapassar o tempo configurado, o responsável e o gerente recebem alerta.",
     icon: MessageSquare,
     category: "Inteligência Operacional",
   },
@@ -232,16 +237,19 @@ export function NotificationConfigAdmin() {
                 return (
                   <div key={type.key}>
                     <div className="flex items-center justify-between py-3 px-1">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 p-2 rounded-lg bg-primary/10">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="mt-0.5 p-2 rounded-lg bg-primary/10 shrink-0">
                           <Icon className="h-4 w-4 text-primary" />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <Label htmlFor={type.key} className="text-sm font-medium text-foreground cursor-pointer">
                             {type.label}
                           </Label>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {type.description}
+                          </p>
+                          <p className="text-xs text-muted-foreground/70 mt-1 italic">
+                            💡 {type.howItWorks}
                           </p>
                         </div>
                       </div>
@@ -249,6 +257,7 @@ export function NotificationConfigAdmin() {
                         id={type.key}
                         checked={config[type.key] as boolean}
                         onCheckedChange={() => handleToggle(type.key)}
+                        className="shrink-0 ml-3"
                       />
                     </div>
                     {idx < arr.length - 1 && <Separator />}
@@ -260,18 +269,41 @@ export function NotificationConfigAdmin() {
         </motion.div>
       ))}
 
-      {/* Info */}
-      <div className="flex items-start gap-3 p-4 rounded-lg bg-info/5 border border-info/20">
-        <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-medium text-foreground">Como funciona?</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Estas configurações controlam quais eventos geram push notifications para a equipe.
-            Cada membro pode ainda configurar seus próprios dispositivos e horários silenciosos
-            individualmente nas configurações de WhatsApp ou no portal do consultor.
-          </p>
-        </div>
-      </div>
+      {/* Info — Como funciona */}
+      <Card className="bg-info/5 border-info/20">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Como funciona o sistema de notificações?</p>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
+                <li>As configurações acima controlam <strong>notificações push</strong> para toda a equipe do tenant.</li>
+                <li><strong>Consultores</strong> recebem apenas alertas dos seus próprios leads e conversas.</li>
+                <li><strong>Admins e Gerentes</strong> recebem visibilidade global de todos os alertas.</li>
+                <li>Push notifications funcionam no <strong>app PWA instalado</strong> — no navegador, aparecem como notificações do sistema.</li>
+                <li>Desativar uma notificação aqui <strong>desativa para toda a empresa</strong>, não apenas para você.</li>
+              </ul>
+            </div>
+          </div>
+
+          <Separator className="bg-info/20" />
+
+          <div className="flex items-start gap-3">
+            <Bell className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Notificações automáticas (sempre ativas)</p>
+              <p className="text-xs text-muted-foreground">Além das configuráveis acima, o sistema envia automaticamente:</p>
+              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                <li><strong>Parcelas vencidas</strong> — alerta WhatsApp diário (09h) para clientes com parcelas em atraso</li>
+                <li><strong>Agendamentos</strong> — lembrete automático antes de compromissos</li>
+                <li><strong>Alertas de usina</strong> — notificação quando uma usina solar para de gerar</li>
+                <li><strong>SLA de atendimento</strong> — alerta quando tempo de resposta ultrapassa o configurado</li>
+              </ul>
+              <p className="text-xs text-muted-foreground/70 italic">Essas notificações não podem ser desativadas individualmente nesta tela.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Save */}
       {hasChanges && (
