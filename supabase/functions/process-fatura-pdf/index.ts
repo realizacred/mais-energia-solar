@@ -211,14 +211,12 @@ async function processInvoice(
 
   const { data: invoice, error: invoiceErr } = await admin
     .from('unit_invoices')
-    .upsert(invoicePayload, {
-      onConflict: resolvedUnitId ? 'unit_id,month,year' : undefined,
-    })
+    .insert(invoicePayload)
     .select('id')
     .maybeSingle();
 
   if (invoiceErr) {
-    console.error("[process-fatura-pdf] Invoice upsert error:", invoiceErr);
+    console.error("[process-fatura-pdf] Invoice insert error:", invoiceErr);
   }
 
   // ── 6. Update UC with reading data ──
