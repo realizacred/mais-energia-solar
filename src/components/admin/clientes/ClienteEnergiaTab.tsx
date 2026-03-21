@@ -115,7 +115,37 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
         </Card>
       </div>
 
-      {/* UCs List */}
+      {/* GD Energy Monthly Summary */}
+      {energiaResumo && energiaResumo.totalCompensated > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-l-[3px] border-l-success bg-card shadow-sm">
+            <CardContent className="flex items-center gap-3 p-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
+                <ArrowDownUp className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground leading-none">
+                  {energiaResumo.totalCompensated.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">kWh Compensados</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
+            <CardContent className="flex items-center gap-3 p-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground leading-none">
+                  {energiaResumo.totalSavings.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Economia Est.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       {ucs.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
