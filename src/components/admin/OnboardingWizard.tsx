@@ -125,6 +125,8 @@ export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: Onb
         area: "residencial",
         consumo_previsto: 300,
         media_consumo: 300,
+        rede_atendimento: "monofasica",
+        tipo_telhado: "ceramico",
       }]);
       if (error) throw error;
       toast.success("Lead cadastrado!");
