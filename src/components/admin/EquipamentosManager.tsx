@@ -424,7 +424,7 @@ export function EquipamentosManager() {
 
       {/* Disjuntor Dialog */}
       <Dialog open={disjuntorDialogOpen} onOpenChange={setDisjuntorDialogOpen}>
-        <DialogContent>
+         <DialogContent className="w-[90vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingDisjuntor ? "Editar Disjuntor" : "Novo Disjuntor"}
