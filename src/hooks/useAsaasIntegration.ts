@@ -16,7 +16,6 @@ export interface AsaasConfig {
   tenant_id: string;
   provider: string;
   environment: string;
-  api_key: string;
   is_active: boolean;
   metadata: Record<string, any> | null;
   created_at: string;
@@ -43,11 +42,31 @@ export function useAsaasConfig() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payment_gateway_config")
-        .select("*")
+        .select("id, tenant_id, provider, environment, is_active, metadata, created_at, updated_at")
         .eq("provider", "asaas")
         .maybeSingle();
       if (error) throw error;
       return data as AsaasConfig | null;
+    },
+    staleTime: STALE_CONFIG,
+    enabled: !!user,
+  });
+}
+
+/** Check if Asaas API key is configured in integration_configs (secure storage) */
+export function useAsaasKeyConfigured() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [QK, "key-configured"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("integration_configs")
+        .select("id, is_active")
+        .eq("service_key", "asaas_api_key")
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
     },
     staleTime: STALE_CONFIG,
     enabled: !!user,
@@ -86,11 +105,19 @@ export function useSaveAsaasConfig() {
       const { tenantId } = await getCurrentTenantId();
       if (!tenantId) throw new Error("Tenant não encontrado");
 
+      // 1. Save API key securely via edge function (never in payment_gateway_config)
+      if (payload.api_key && payload.api_key.trim().length > 0) {
+        const { error: secretError } = await supabase.functions.invoke("set-asaas-secret", {
+          body: { api_key: payload.api_key },
+        });
+        if (secretError) throw new Error(secretError.message || "Erro ao salvar chave");
+      }
+
+      // 2. Save config (without api_key) in payment_gateway_config
       if (payload.existingId) {
         const { error } = await supabase
           .from("payment_gateway_config")
           .update({
-            api_key: payload.api_key,
             environment: payload.environment,
             is_active: payload.is_active,
             updated_at: new Date().toISOString(),
@@ -103,7 +130,7 @@ export function useSaveAsaasConfig() {
           .insert({
             tenant_id: tenantId,
             provider: "asaas",
-            api_key: payload.api_key,
+            api_key: "", // empty — key stored in integration_configs
             environment: payload.environment,
             is_active: payload.is_active,
           });
