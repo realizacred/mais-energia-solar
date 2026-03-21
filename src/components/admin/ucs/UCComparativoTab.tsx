@@ -1,6 +1,6 @@
 /**
  * UCComparativoTab — Estimated vs real generation comparison.
- * §27: KPI cards, §5: Recharts, §12: Skeleton, §25: Modal.
+ * §27: KPI cards, §5: Recharts, §12: Skeleton, §25: Modal, §4: Table shadcn.
  */
 import { useState } from "react";
 import { useUnitComparativo, usePropostaVersoesForLink, useLinkSimulacao } from "@/hooks/useUnitComparativo";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,6 @@ import {
 } from "recharts";
 import { BarChart3, TrendingUp, TrendingDown, Activity, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
 interface Props {
   unitId: string;
   simulacaoId: string | null;
@@ -225,41 +225,39 @@ export function UCComparativoTab({ unitId, simulacaoId }: Props) {
           <CardTitle className="text-sm">Detalhamento por Mês</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/50">
-                  <th className="text-left font-semibold text-foreground px-4 py-2 text-xs">Mês</th>
-                  <th className="text-right font-semibold text-foreground px-4 py-2 text-xs">Estimado</th>
-                  <th className="text-right font-semibold text-foreground px-4 py-2 text-xs">Real</th>
-                  <th className="text-right font-semibold text-foreground px-4 py-2 text-xs">Diferença</th>
-                  <th className="text-right font-semibold text-foreground px-4 py-2 text-xs">Performance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.meses.map((m) => {
-                  const c = perfColor(m.performance_pct);
-                  return (
-                    <tr key={m.month} className="border-t border-border hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-2 font-medium text-foreground">{m.mes}</td>
-                      <td className="px-4 py-2 text-right font-mono text-muted-foreground">{m.estimado_kwh.toLocaleString("pt-BR")} kWh</td>
-                      <td className="px-4 py-2 text-right font-mono">{m.real_kwh.toLocaleString("pt-BR")} kWh</td>
-                      <td className="px-4 py-2 text-right font-mono">
-                        <span className={m.diferenca_kwh >= 0 ? "text-success" : "text-destructive"}>
-                          {m.diferenca_kwh >= 0 ? "+" : ""}{m.diferenca_kwh.toLocaleString("pt-BR")} kWh
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <Badge variant="outline" className={`text-xs ${c.text}`}>
-                          {m.performance_pct}%
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground text-xs">Mês</TableHead>
+                <TableHead className="font-semibold text-foreground text-xs text-right">Estimado</TableHead>
+                <TableHead className="font-semibold text-foreground text-xs text-right">Real</TableHead>
+                <TableHead className="font-semibold text-foreground text-xs text-right">Diferença</TableHead>
+                <TableHead className="font-semibold text-foreground text-xs text-right">Performance</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.meses.map((m) => {
+                const c = perfColor(m.performance_pct);
+                return (
+                  <TableRow key={m.month} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-medium text-foreground">{m.mes}</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">{m.estimado_kwh.toLocaleString("pt-BR")} kWh</TableCell>
+                    <TableCell className="text-right font-mono">{m.real_kwh.toLocaleString("pt-BR")} kWh</TableCell>
+                    <TableCell className="text-right font-mono">
+                      <span className={m.diferenca_kwh >= 0 ? "text-success" : "text-destructive"}>
+                        {m.diferenca_kwh >= 0 ? "+" : ""}{m.diferenca_kwh.toLocaleString("pt-BR")} kWh
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="outline" className={`text-xs ${c.text}`}>
+                        {m.performance_pct}%
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
