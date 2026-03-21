@@ -575,12 +575,12 @@ export function UsuariosManager() {
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {user.created_at
-                          ? format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })
+                          ? new Date(user.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
                           : "—"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {user.last_sign_in_at
-                          ? format(new Date(user.last_sign_in_at), "dd/MM/yy HH:mm", { locale: ptBR })
+                          ? new Date(user.last_sign_in_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })
                           : "Nunca"}
                       </TableCell>
                       <TableCell className="text-right">

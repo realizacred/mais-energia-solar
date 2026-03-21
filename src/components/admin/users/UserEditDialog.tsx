@@ -553,7 +553,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                       <Phone className="w-3 h-3" /> Telefone
                     </Label>
                     <div className="flex gap-2">
-                      <Input
+                      <PhoneInput
                         id="edit-telefone"
                         value={editTelefone}
                         onChange={(e) => setEditTelefone(e.target.value)}
