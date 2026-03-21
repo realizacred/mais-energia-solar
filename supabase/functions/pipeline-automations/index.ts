@@ -126,6 +126,7 @@ serve(async (req: Request) => {
           });
 
           totalProcessed++;
+          await trackUsage(supabase, auto.tenant_id, "automacoes_executadas", 1, { source: "pipeline-automations" });
 
           // Update automation execution counter
           await supabase
