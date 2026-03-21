@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { unitService, type UCRecord } from "@/services/unitService";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, MapPin, Zap, FileText } from "lucide-react";
+import { Loader2, MapPin, Zap, FileText, Sun, Mail } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 
