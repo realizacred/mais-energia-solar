@@ -154,6 +154,7 @@ export default function UCDetailPage() {
         <Tabs defaultValue="config" className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
+            <TabsTrigger value="monitoramento" className="gap-1"><Activity className="w-3.5 h-3.5" /> Monitoramento</TabsTrigger>
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
           </TabsList>
 
