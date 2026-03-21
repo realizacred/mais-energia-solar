@@ -178,6 +178,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function SystemHealthPage() {
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const {
     integrations, outboxStats, healthy, degraded, down, notConfigured,
