@@ -76,6 +76,7 @@ const EnergyAlertsPage = lazy(() => import("@/components/admin/energia/EnergyAle
 const GdAutomationPage = lazy(() => import("@/components/admin/energia/GdAutomationPage").then(m => ({ default: m.GdAutomationPage })));
 const EnergyFinancialPage = lazy(() => import("@/components/admin/energia/EnergyFinancialPage").then(m => ({ default: m.EnergyFinancialPage })));
 const ClienteEnergiaDashboardPage = lazy(() => import("@/components/admin/energia/ClienteEnergiaDashboardPage").then(m => ({ default: m.ClienteEnergiaDashboardPage })));
+const EmailIntegrationsPage = lazy(() => import("@/components/admin/email/EmailIntegrationsPage").then(m => ({ default: m.EmailIntegrationsPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
@@ -631,6 +632,7 @@ export default function Admin() {
                 <Route path="automacoes-energia" element={<GdAutomationPage />} />
                 <Route path="financeiro-energia" element={<EnergyFinancialPage />} />
                 <Route path="painel-cliente-energia" element={<ClienteEnergiaDashboardPage />} />
+                <Route path="integracoes-email" element={<EmailIntegrationsPage />} />
                 
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />
