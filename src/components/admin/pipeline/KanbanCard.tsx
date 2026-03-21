@@ -115,9 +115,14 @@ export function KanbanCard({
       <div className="space-y-1.5">
         {/* Line 1: Lead code + urgency badge */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-mono text-muted-foreground">
-            {lead.lead_code || "—"}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-mono text-muted-foreground">
+              {lead.lead_code || "—"}
+            </span>
+            {leadScore && (
+              <ScoreBadge score={leadScore.score} nivel={leadScore.nivel} />
+            )}
+          </div>
           <div className="flex items-center gap-1">
             {isInactive && (
               <Badge className="text-[10px] h-4 bg-destructive/10 text-destructive border-destructive/20">
