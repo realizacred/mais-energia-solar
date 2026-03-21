@@ -331,7 +331,7 @@ export default function UCDetailPage() {
 
           <TabsContent value="monitoramento" className="space-y-6">
             <UCMeterTab unitId={uc.id} />
-            <UCPlantLinksTab unitId={uc.id} />
+            <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
           </TabsContent>
 
           <TabsContent value="faturas">
