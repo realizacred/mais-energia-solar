@@ -38,6 +38,7 @@ function formatDateBR(d: string | null) {
 
 export default function AsaasIntegrationPage() {
   const { data: config, isLoading: loadingConfig } = useAsaasConfig();
+  const { data: isKeyConfigured } = useAsaasKeyConfigured();
   const { data: events, isLoading: loadingEvents } = useAsaasWebhookEvents();
   const saveMutation = useSaveAsaasConfig();
   const testMutation = useTestAsaasConnection();
