@@ -56,4 +56,15 @@ export const gdService = {
   isValidPercent(percent: number): boolean {
     return percent > 0 && percent <= 100;
   },
+
+  /**
+   * Validate concessionária compatibility between group and UC.
+   */
+  isConcessionariaCompatible(
+    groupConcessionariaId: string,
+    ucConcessionariaId: string | null
+  ): boolean {
+    if (!ucConcessionariaId) return true; // UC without concessionária is allowed
+    return groupConcessionariaId === ucConcessionariaId;
+  },
 };
