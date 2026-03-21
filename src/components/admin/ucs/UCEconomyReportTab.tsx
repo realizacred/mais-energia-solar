@@ -237,6 +237,7 @@ export function UCEconomyReportTab({ unitId }: Props) {
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       {/* KPI Cards — §27 */}
