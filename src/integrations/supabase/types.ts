@@ -19132,6 +19132,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           proxima_leitura_data: string | null
+          simulacao_id: string | null
           status: string
           tenant_id: string
           tipo_uc: Database["public"]["Enums"]["uc_type"]
@@ -19156,6 +19157,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           proxima_leitura_data?: string | null
+          simulacao_id?: string | null
           status?: string
           tenant_id?: string
           tipo_uc?: Database["public"]["Enums"]["uc_type"]
@@ -19180,6 +19182,7 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           proxima_leitura_data?: string | null
+          simulacao_id?: string | null
           status?: string
           tenant_id?: string
           tipo_uc?: Database["public"]["Enums"]["uc_type"]
