@@ -164,7 +164,7 @@ export function GlobalSearch() {
             {projetosData.slice(0, 8).map((projeto) => (
               <CommandItem
                 key={projeto.id}
-                value={`projeto-${projeto.nome}-${projeto.status ?? ""}`}
+                value={`projeto-${projeto.codigo}-${projeto.status ?? ""}-${projeto.cidade_instalacao ?? ""}`}
                 onSelect={() => handleSelectProjeto(projeto.id)}
                 className="flex items-center gap-2 cursor-pointer"
               >
