@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { gdService } from "@/services/gdService";
 import { GdBeneficiaryFormModal } from "./GdBeneficiaryFormModal";
 import { formatDate } from "@/lib/dateUtils";
+import { GdEnergyMonthly } from "./GdEnergyMonthly";
 
 interface Props {
   open: boolean;
