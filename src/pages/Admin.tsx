@@ -351,6 +351,7 @@ const TAB_TITLES: Record<string, string> = {
   medidores: "Medidores",
   ucs: "Unidades Consumidoras",
   "faturas-energia": "Faturas de Energia",
+  "gd-rateio": "GD e Rateio de Créditos",
 };
 
 /** N8n placeholder component */
