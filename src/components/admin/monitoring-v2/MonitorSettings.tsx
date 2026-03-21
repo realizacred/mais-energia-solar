@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Plug, RefreshCw, Trash2, Wifi, WifiOff, Plus, ChevronDown } from "lucide-react";
+import { Plug, RefreshCw, Trash2, Wifi, WifiOff, Plus, ChevronDown, AlertTriangle } from "lucide-react";
 import { listIntegrations, syncProvider, disconnectProvider } from "@/services/monitoring/monitorService";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
