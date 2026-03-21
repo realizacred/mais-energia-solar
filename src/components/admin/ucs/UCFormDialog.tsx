@@ -119,6 +119,11 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         modalidade_tarifaria: form.modalidade_tarifaria || null,
         observacoes: form.observacoes || null,
         status: form.ativo ? "active" : "inactive",
+        papel_gd: form.papel_gd,
+        categoria_gd: form.categoria_gd || null,
+        email_fatura: form.email_fatura.trim() || null,
+        leitura_automatica_email: form.leitura_automatica_email,
+        cliente_id: form.cliente_id || null,
         endereco: {
           cep: address.cep, logradouro: address.rua, numero: address.numero,
           complemento: address.complemento, bairro: address.bairro,
