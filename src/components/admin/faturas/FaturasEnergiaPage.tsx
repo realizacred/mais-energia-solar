@@ -290,8 +290,8 @@ export default function FaturasEnergiaPage() {
           </CardTitle>
           <div className="flex items-center gap-2">
             <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleUploadPdf} multiple />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadingPdf}>
-              {uploadingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
+              {importMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
               Importar PDF
             </Button>
           </div>
