@@ -23,6 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   useAsaasConfig,
+  useAsaasKeyConfigured,
   useAsaasWebhookEvents,
   useSaveAsaasConfig,
   useTestAsaasConnection,
@@ -37,6 +38,7 @@ function formatDateBR(d: string | null) {
 
 export default function AsaasIntegrationPage() {
   const { data: config, isLoading: loadingConfig } = useAsaasConfig();
+  const { data: isKeyConfigured } = useAsaasKeyConfigured();
   const { data: events, isLoading: loadingEvents } = useAsaasWebhookEvents();
   const saveMutation = useSaveAsaasConfig();
   const testMutation = useTestAsaasConnection();
@@ -49,13 +51,12 @@ export default function AsaasIntegrationPage() {
 
   // Initialize form from config once loaded
   if (config && !initialized) {
-    setFormKey(config.api_key || "");
     setFormEnv((config.environment as "sandbox" | "production") || "sandbox");
     setFormActive(config.is_active);
     setInitialized(true);
   }
 
-  const isConfigured = !!config?.api_key;
+  const isConfigured = !!isKeyConfigured;
   const isConnected = config?.is_active && isConfigured;
   const lastEvent = events?.[0];
   const lastError = events?.find((e) => e.status === "error");

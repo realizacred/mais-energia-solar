@@ -88,24 +88,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Get Asaas config (per-tenant from payment_gateway_config) ──
-    const { data: gwConfig } = await supabaseAdmin
-      .from("payment_gateway_config")
-      .select("api_key, environment, is_active")
-      .eq("tenant_id", tenantId)
-      .eq("provider", "asaas")
-      .maybeSingle();
+    // ── Get Asaas API key (secure: integration_configs → legacy → env) ──
+    const { getAsaasKey } = await import("../_shared/get-asaas-key.ts");
+    const asaasKey = await getAsaasKey(supabaseAdmin, tenantId);
 
-    // Fallback: try global ASAAS config for SaaS billing
-    let apiKey = gwConfig?.api_key;
-    let environment = gwConfig?.environment || "sandbox";
-
-    if (!apiKey) {
-      apiKey = Deno.env.get("ASAAS_BILLING_API_KEY");
-      environment = Deno.env.get("ASAAS_BILLING_ENV") || "sandbox";
-    }
-
-    if (!apiKey) {
+    if (!asaasKey) {
       return jsonResponse(
         {
           error:
@@ -114,6 +101,9 @@ Deno.serve(async (req) => {
         400,
       );
     }
+
+    const apiKey = asaasKey.apiKey;
+    const environment = asaasKey.environment;
 
     const baseUrl =
       environment === "production"
