@@ -26,6 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from "@/hooks/use-toast";
 import { UCBillingSettingsTab } from "./UCBillingSettingsTab";
 import { UCServicePlanCard } from "./UCServicePlanCard";
+import { UCBillingHistoryCard } from "./UCBillingHistoryCard";
 import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
