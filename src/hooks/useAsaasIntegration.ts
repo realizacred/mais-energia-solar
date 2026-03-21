@@ -138,7 +138,10 @@ export function useSaveAsaasConfig() {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [QK] }),
+    onSuccess: () => {
+      trackAsaasConfigured();
+      qc.invalidateQueries({ queryKey: [QK] });
+    },
   });
 }
 
