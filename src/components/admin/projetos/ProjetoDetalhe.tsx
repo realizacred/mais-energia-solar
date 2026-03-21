@@ -1894,7 +1894,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Checklist de Documentos desabilitado temporariamente */}
+      <ProjetoDocChecklist dealId={dealId} />
 
       {/* Generated Documents */}
       <div className="space-y-4">

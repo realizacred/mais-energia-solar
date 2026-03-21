@@ -125,9 +125,10 @@ export function StageDealCard({
   const stagnation = getStagnationLevel(deal.last_stage_change);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
 
-  // Doc checklist desabilitado temporariamente
-  const docTotal = 0;
-  const docDone = 0;
+  // Doc checklist from deal.doc_checklist JSONB
+  const DOC_KEYS = ["rg_cnh", "conta_luz", "iptu_imovel", "fotos", "autorizacao_art", "contrato_assinado"];
+  const docTotal = deal.doc_checklist ? DOC_KEYS.length : 0;
+  const docDone = deal.doc_checklist ? DOC_KEYS.filter(k => !!deal.doc_checklist![k]).length : 0;
   const isOverdue = deal.expected_close_date && new Date(deal.expected_close_date) < new Date();
 
   // Determine border class — priority: won > lost > critical > warning > etiqueta > proposal status
