@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Sparkles, Check, Loader2 } from "lucide-react";
 import { useBillingPlans, type BillingPlan } from "@/hooks/useBillingPlans";
 import { useCreateUpgradeCharge } from "@/hooks/useBillingUpgrade";
+import { AsaasNotConfigured } from "./AsaasNotConfigured";
 
 interface UpgradeModalProps {
   open: boolean;
