@@ -1020,7 +1020,7 @@ function GerenciamentoTab({
             </Card>
           )}
 
-          <ProjetoDocChecklist dealId={dealId} />
+          <ProjetoDocChecklist dealId={deal.id} />
         </div>
 
         {/* ── RIGHT WORK AREA (70%) ── */}
