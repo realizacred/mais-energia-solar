@@ -74,6 +74,7 @@ const InvoiceReviewPage = lazy(() => import("@/components/admin/faturas/InvoiceR
 const GdGroupsPage = lazy(() => import("@/components/admin/gd/GdGroupsPage").then(m => ({ default: m.GdGroupsPage })));
 const EnergyAlertsPage = lazy(() => import("@/components/admin/energia/EnergyAlertsPage").then(m => ({ default: m.EnergyAlertsPage })));
 const GdAutomationPage = lazy(() => import("@/components/admin/energia/GdAutomationPage").then(m => ({ default: m.GdAutomationPage })));
+const EnergyFinancialPage = lazy(() => import("@/components/admin/energia/EnergyFinancialPage").then(m => ({ default: m.EnergyFinancialPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
@@ -627,6 +628,7 @@ export default function Admin() {
                 <Route path="gd-rateio" element={<GdGroupsPage />} />
                 <Route path="alertas-energia" element={<EnergyAlertsPage />} />
                 <Route path="automacoes-energia" element={<GdAutomationPage />} />
+                <Route path="financeiro-energia" element={<EnergyFinancialPage />} />
                 
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />
