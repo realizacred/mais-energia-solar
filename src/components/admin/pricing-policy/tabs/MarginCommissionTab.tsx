@@ -64,7 +64,7 @@ export function MarginCommissionTab() {
   // Commission dialog
   const [commissionDialog, setCommissionDialog] = useState(false);
   const [commissionEditId, setCommissionEditId] = useState<string | null>(null);
-  const [commissionForm, setCommissionForm] = useState<{ name: string; description: string; commission_type: string; parameters: Record<string, any>; is_active: boolean }>({ name: "", description: "", commission_type: "percentage", parameters: { rate: 5 }, is_active: true });
+  const [commissionForm, setCommissionForm] = useState<{ name: string; description: string; commission_type: string; parameters: Record<string, any>; is_active: boolean }>({ name: "", description: "", commission_type: "percentage", parameters: { percentual: 5 }, is_active: true });
   const [commissionSaving, setCommissionSaving] = useState(false);
 
   const loadAll = useCallback(async () => {
