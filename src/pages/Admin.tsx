@@ -264,6 +264,7 @@ const TAB_TITLES: Record<string, string> = {
   avaliacoes: "Satisfação (NPS)",
   instaladores: "Equipe técnica",
   servicos: "Agenda de serviços",
+  "visitas-tecnicas": "Visitas técnicas",
   "financeiro-dashboard": "Financeiro",
   recebimentos: "Contas a receber",
   inadimplencia: "Inadimplência",
