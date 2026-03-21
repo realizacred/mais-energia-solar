@@ -178,6 +178,7 @@ function IntegrationRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const isActive = integration.status === "active" || integration.status === "connected";
+  const hasExpiredError = integration.sync_error && /reconect|expirad|expired|failed.*login/i.test(integration.sync_error);
   const providerLabel = getProviderLabel(integration.provider);
 
   return (
