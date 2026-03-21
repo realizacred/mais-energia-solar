@@ -173,7 +173,7 @@ function AccountFormModal({ open, onOpenChange, initial }: AccountFormProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Provedor</Label>
-                <Select value={form.provider_type} onValueChange={v => setForm(f => ({ ...f, provider_type: v }))}>
+                <Select value={form.provider_type} onValueChange={v => setForm(f => ({ ...f, provider_type: v as "gmail" | "imap" }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="gmail">Gmail (OAuth)</SelectItem>
