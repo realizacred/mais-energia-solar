@@ -298,6 +298,22 @@ function buildReading(dps: any[]): Record<string, any> {
   };
 
   for (const dp of dps) {
+    // Decode Base64-encoded pa_instant (voltage, current, power per phase)
+    if (dp.code === "pa_instant" && typeof dp.value === "string" && dp.value.length > 4) {
+      try {
+        const raw = Uint8Array.from(atob(dp.value), c => c.charCodeAt(0));
+        if (raw.length >= 10) {
+          const voltageRaw = (raw[0] << 8) | raw[1];   // 0.1V scale
+          const currentRaw = (raw[2] << 8) | raw[3];    // 0.001A scale
+          const powerRaw = (raw[4] << 8) | raw[5];      // 1W scale
+          if (reading.voltage_v === null && voltageRaw > 0) reading.voltage_v = voltageRaw * 0.1;
+          if (reading.current_a === null && currentRaw > 0) reading.current_a = currentRaw * 0.001;
+          // power_w might already be set from power_total DP — only fill if null
+          if (reading.power_w === null && powerRaw > 0) reading.power_w = powerRaw;
+        }
+      } catch (_) { /* skip malformed base64 */ }
+      continue;
+    }
     const field = DPS_MAP[dp.code];
     if (!field) continue;
     const numVal = typeof dp.value === "number" ? dp.value : (typeof dp.value === "string" && !isNaN(Number(dp.value)) ? Number(dp.value) : null);
