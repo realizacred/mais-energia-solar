@@ -188,111 +188,61 @@ export function UCOverviewTab({
 
   return (
     <div className="space-y-6">
-      {/* SEÇÃO 1 — KPI Cards §27 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Potência atual */}
-        <Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              {loadingMeter ? <Skeleton className="h-8 w-24" /> : (
-                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                  {meterStatus?.power_w != null ? `${Number(meterStatus.power_w).toLocaleString("pt-BR")}` : "—"}
-                  <span className="text-sm font-normal text-muted-foreground ml-1">W</span>
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground mt-1">Potência Atual</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* SEÇÃO 1 — KPI Cards §27 via StatCard */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {loadingMeter ? (
+          <Card className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-20" /></Card>
+        ) : (
+          <StatCard
+            icon={Zap}
+            label="Potência Atual"
+            value={meterStatus?.power_w != null ? `${Number(meterStatus.power_w).toLocaleString("pt-BR")} W` : "—"}
+            color="primary"
+          />
+        )}
 
-        {/* Status */}
-        <Card className={`border-l-[3px] ${meterOnline === "online" || meterStatus?.online_status === "online" ? "border-l-success" : "border-l-destructive"} bg-card shadow-sm hover:shadow-md transition-shadow`}>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${meterOnline === "online" || meterStatus?.online_status === "online" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-              <Activity className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className={`text-xs ${meterStatus?.online_status === "online" ? "border-success text-success" : "border-destructive text-destructive"}`}>
-                  Medidor: {meterStatus?.online_status || meterOnline || "—"}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">Status do Sistema</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={Activity}
+          label="Status do Sistema"
+          value={meterStatus?.online_status === "online" || meterOnline === "online" ? "Online" : "Offline"}
+          color={meterStatus?.online_status === "online" || meterOnline === "online" ? "success" : "destructive"}
+        />
 
-        {/* Geração hoje */}
-        <Card className="border-l-[3px] border-l-warning bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
-              <Sun className="w-5 h-5" />
-            </div>
-            <div>
-              {loadingPlantMetrics ? <Skeleton className="h-8 w-24" /> : (
-                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                  {todayGeneration ? Number(todayGeneration.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "0,0"}
-                  <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground mt-1">Geração Hoje</p>
-            </div>
-          </CardContent>
-        </Card>
+        {loadingPlantMetrics ? (
+          <Card className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-20" /></Card>
+        ) : (
+          <StatCard
+            icon={Sun}
+            label="Geração Hoje"
+            value={todayGeneration ? `${Number(todayGeneration.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "0,0 kWh"}
+            color="warning"
+          />
+        )}
 
-        {/* Consumo acumulado */}
-        <Card className="border-l-[3px] border-l-info bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
-              <BarChart3 className="w-5 h-5" />
-            </div>
-            <div>
-              {loadingMeter ? <Skeleton className="h-8 w-24" /> : (
-                <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                  {meterStatus?.energy_import_kwh != null ? Number(meterStatus.energy_import_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—"}
-                  <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground mt-1">Consumo Acumulado</p>
-            </div>
-          </CardContent>
-        </Card>
+        {loadingMeter ? (
+          <Card className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-20" /></Card>
+        ) : (
+          <StatCard
+            icon={BarChart3}
+            label="Consumo Acumulado"
+            value={meterStatus?.energy_import_kwh != null ? `${Number(meterStatus.energy_import_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}
+            color="info"
+          />
+        )}
 
-        {/* Próxima leitura */}
-        <Card className={`border-l-[3px] ${proximaDias != null && proximaDias < 7 ? "border-l-warning" : "border-l-muted"} bg-card shadow-sm hover:shadow-md transition-shadow`}>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${proximaDias != null && proximaDias < 7 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                {proximaLeituraData
-                  ? format(parseISO(proximaLeituraData), "dd/MM/yyyy")
-                  : "Não agendada"}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">Próxima Leitura</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={Calendar}
+          label="Próxima Leitura"
+          value={proximaLeituraData ? format(parseISO(proximaLeituraData), "dd/MM/yyyy") : "Não agendada"}
+          color={proximaDias != null && proximaDias < 7 ? "warning" : "muted"}
+        />
 
-        {/* Saldo GD */}
-        <Card className="border-l-[3px] border-l-success bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
-              <Battery className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                {saldoGD != null ? Number(saldoGD).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—"}
-                <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">Saldo GD</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={Battery}
+          label="Saldo GD"
+          value={saldoGD != null ? `${Number(saldoGD).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}
+          color="success"
+        />
       </div>
 
       {/* SEÇÃO 2 — Gráfico Geração vs Consumo vs Injeção */}
