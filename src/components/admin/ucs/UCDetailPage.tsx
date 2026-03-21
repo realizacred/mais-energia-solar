@@ -1,8 +1,7 @@
 /**
  * UCDetailPage — Full detail page for a Unidade Consumidora.
  * Route: /admin/ucs/:id
- * Improved with prominent header banner, restructured Config tab.
- * Tarefa: meter/plant links fetched once here, passed as props.
+ * Cadastral only — monitoring lives in Monitoramento module.
  */
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -16,25 +15,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ArrowLeft, MapPin, Zap, FileText, Settings, Gauge, Link2, History, Edit, Trash2, Mail, Lock, Sun, Plus, Calendar, MoreHorizontal, BarChart3, TrendingUp, Activity } from "lucide-react";
+import { Building2, ArrowLeft, Zap, FileText, Settings, Edit, Trash2, Plus, Calendar, MoreHorizontal } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { UCMeterTab } from "./UCMeterTab";
 import { UCBillingSettingsTab } from "./UCBillingSettingsTab";
 import { UCInvoicesTab } from "./UCInvoicesTab";
-import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
-import { UCOverviewTab } from "./UCOverviewTab";
-import { UCHistoricoTab } from "./UCHistoricoTab";
-import { UCEconomyReportTab } from "./UCEconomyReportTab";
-import { UCComparativoTab } from "./UCComparativoTab";
-import { FeatureGate } from "@/components/plan/FeatureGate";
 import { UCShareLinkButton } from "./UCShareLinkButton";
-import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
-import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { UCGdInfoCard } from "./UCGdInfoCard";
+import { formatDateTime } from "@/lib/dateUtils";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Consumo",
@@ -60,56 +51,6 @@ export default function UCDetailPage() {
 
   const { data: credits = [] } = useUnitCredits(id ?? null);
   const deleteCredit = useDeleteUnitCredit();
-
-  // §23: Fetch meter link ONCE here, pass as props
-  const { data: meterLink } = useQuery({
-    queryKey: ["uc_meter_link", id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("unit_meter_links")
-        .select("meter_device_id, meter_devices(id, name, online_status)")
-        .eq("unit_id", id!)
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!id,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  // §23: Fetch plant link ONCE here, pass as props
-  // No FK from unit_plant_links to monitor_plants, so fetch in two steps
-  const { data: plantLink } = useQuery({
-    queryKey: ["uc_plant_link", id],
-    queryFn: async () => {
-      const { data: link } = await supabase
-        .from("unit_plant_links")
-        .select("plant_id")
-        .eq("unit_id", id!)
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-      if (!link?.plant_id) return null;
-
-      const { data: plant } = await supabase
-        .from("monitor_plants")
-        .select("id, name, installed_power_kwp, legacy_plant_id")
-        .eq("id", link.plant_id)
-        .maybeSingle();
-
-      return { plant_id: link.plant_id, monitor_plants: plant };
-    },
-    enabled: !!id,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const meterId = (meterLink as any)?.meter_device_id ?? null;
-  const meterDevice = (meterLink as any)?.meter_devices ?? null;
-  const plantId = (plantLink as any)?.plant_id ?? null;
-  const plantDevice = (plantLink as any)?.monitor_plants ?? null;
-  // solar_plants.id for metrics queries (resolved via legacy_plant_id)
-  const solarPlantId = plantDevice?.legacy_plant_id ?? null;
 
   const totalCreditoAdicionado = credits.reduce((sum, c) => sum + Number(c.quantidade_kwh), 0);
 
@@ -195,33 +136,11 @@ export default function UCDetailPage() {
 
       {/* Tabs */}
       <div className="p-4 md:p-6 space-y-4">
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs defaultValue="config" className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="overview" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Overview</TabsTrigger>
             <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
-            <TabsTrigger value="medidor" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Medidor</TabsTrigger>
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
-            <TabsTrigger value="usinas" className="gap-1"><Link2 className="w-3.5 h-3.5" /> Usinas</TabsTrigger>
-            <TabsTrigger value="economia" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Economia</TabsTrigger>
-            <TabsTrigger value="comparativo" className="gap-1"><Activity className="w-3.5 h-3.5" /> Comparativo</TabsTrigger>
-            {plantId && <TabsTrigger value="relatorios" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Relatórios</TabsTrigger>}
-            <TabsTrigger value="historico" className="gap-1"><History className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
           </TabsList>
-
-          {/* === OVERVIEW TAB (replaces "Geral") === */}
-          <TabsContent value="overview">
-            <UCOverviewTab
-              ucId={uc.id}
-              meterId={meterId}
-              plantId={plantId}
-              solarPlantId={solarPlantId}
-              meterName={meterDevice?.name}
-              meterOnline={meterDevice?.online_status}
-              plantName={plantDevice?.name}
-              plantCapacityKwp={plantDevice?.installed_power_kwp}
-              proximaLeituraData={(uc as any).proxima_leitura_data}
-            />
-          </TabsContent>
 
           {/* === CONFIGURAÇÕES TAB === */}
           <TabsContent value="config" className="space-y-6">
@@ -256,6 +175,18 @@ export default function UCDetailPage() {
                   <span className="text-muted-foreground min-w-[120px]">Modalidade:</span>
                   <span>{uc.modalidade_tarifaria || "—"}</span>
                 </div>
+                {enderecoStr && (
+                  <div className="flex gap-1">
+                    <span className="text-muted-foreground min-w-[120px]">Endereço:</span>
+                    <span>{enderecoStr}</span>
+                  </div>
+                )}
+                {uc.observacoes && (
+                  <div className="flex gap-1">
+                    <span className="text-muted-foreground min-w-[120px]">Observações:</span>
+                    <span>{uc.observacoes}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -343,17 +274,6 @@ export default function UCDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Vincular usina */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2"><Sun className="w-4 h-4" /> Instalar Usina</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">Selecione a usina que deseja vincular, apenas usinas sem lista de compensação serão listadas.</p>
-                <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
-              </CardContent>
-            </Card>
-
             {/* Faturas por E-mail */}
             <UCBillingSettingsTab unitId={uc.id} />
 
@@ -373,43 +293,8 @@ export default function UCDetailPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="medidor">
-            <UCMeterTab unitId={uc.id} />
-          </TabsContent>
-
           <TabsContent value="faturas">
             <UCInvoicesTab unitId={uc.id} />
-          </TabsContent>
-
-          <TabsContent value="usinas">
-            <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
-          </TabsContent>
-
-          <TabsContent value="economia">
-            <FeatureGate featureKey="relatorio_mensal_pdf">
-              <UCEconomyReportTab unitId={uc.id} />
-            </FeatureGate>
-          </TabsContent>
-
-          <TabsContent value="comparativo">
-            <FeatureGate featureKey="comparativo_uc">
-              <UCComparativoTab unitId={uc.id} simulacaoId={(uc as any).simulacao_id ?? null} />
-            </FeatureGate>
-          </TabsContent>
-
-          {plantId && (
-            <TabsContent value="relatorios">
-              <PlantGenerationReport plantId={plantId} />
-            </TabsContent>
-          )}
-
-          <TabsContent value="historico">
-            <UCHistoricoTab
-              ucId={uc.id}
-              meterId={meterId}
-              plantId={plantId}
-              solarPlantId={solarPlantId}
-            />
           </TabsContent>
         </Tabs>
       </div>
