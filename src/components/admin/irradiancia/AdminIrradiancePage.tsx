@@ -680,7 +680,7 @@ export function CsvImportPanel() {
                     "text-muted-foreground"
                   }`}>
                     <span className="text-muted-foreground/50 shrink-0">
-                      {formatTime(entry.ts)}
+                      {formatTime(new Date(entry.ts))}
                     </span>
                     <span>{entry.msg}</span>
                   </div>
