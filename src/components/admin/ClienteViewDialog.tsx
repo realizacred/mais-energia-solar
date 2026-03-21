@@ -462,8 +462,9 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 )}
               </TabsContent>
 
-              {/* ABA 4 — Unidades Consumidoras */}
-              <TabsContent value="ucs" className="mt-0">
+              {/* ABA 4 — Energia (UCs + GD + Faturas) */}
+              <TabsContent value="energia" className="mt-0 space-y-4">
+                <ClienteEnergiaTab clienteId={cliente.id} />
                 <ClientLinkedPlants clientId={cliente.id} />
               </TabsContent>
 
