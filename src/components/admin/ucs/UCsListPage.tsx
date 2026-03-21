@@ -23,6 +23,7 @@ import { motion } from "framer-motion";
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Consumo",
   gd_geradora: "GD Geradora",
+  mista: "Mista",
   beneficiaria: "Beneficiária",
 };
 
