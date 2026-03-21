@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ArrowLeft, Zap, FileText, Settings, Edit, Trash2, Plus, Calendar, MoreHorizontal } from "lucide-react";
+import { Building2, ArrowLeft, Zap, FileText, Settings, Edit, Trash2, Plus, Calendar, MoreHorizontal, Activity } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,8 @@ import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
 import { UCShareLinkButton } from "./UCShareLinkButton";
 import { UCGdInfoCard } from "./UCGdInfoCard";
+import { UCMeterTab } from "./UCMeterTab";
+import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { formatDateTime } from "@/lib/dateUtils";
 
 const UC_TYPE_LABELS: Record<string, string> = {
@@ -152,6 +154,7 @@ export default function UCDetailPage() {
         <Tabs defaultValue="config" className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
+            <TabsTrigger value="monitoramento" className="gap-1"><Activity className="w-3.5 h-3.5" /> Monitoramento</TabsTrigger>
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
           </TabsList>
 
@@ -324,6 +327,11 @@ export default function UCDetailPage() {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="monitoramento" className="space-y-6">
+            <UCMeterTab unitId={uc.id} />
+            <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
           </TabsContent>
 
           <TabsContent value="faturas">
