@@ -367,13 +367,28 @@ export function UCInvoicesTab({ unitId }: Props) {
                     </StatusBadge>
                   </TableCell>
                   <TableCell>
-                    {inv.pdf_file_url && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                        <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
-                          <Eye className="w-4 h-4 text-primary" />
-                        </a>
-                      </Button>
-                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {inv.pdf_file_url && (
+                          <DropdownMenuItem asChild>
+                            <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
+                              <Eye className="w-4 h-4 mr-2" /> Ver PDF
+                            </a>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteTarget(inv.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
