@@ -191,6 +191,29 @@ export function KanbanCard({
   );
 }
 
+/** Score badge — hot/warm/cold */
+function ScoreBadge({ score, nivel }: { score: number; nivel: "hot" | "warm" | "cold" }) {
+  const config = {
+    hot: { icon: Flame, className: "bg-destructive/10 text-destructive border-destructive/20" },
+    warm: { icon: Thermometer, className: "bg-warning/10 text-warning border-warning/20" },
+    cold: { icon: Snowflake, className: "bg-muted text-muted-foreground border-border" },
+  }[nivel];
+  const Icon = config.icon;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge className={cn("text-[10px] h-4 gap-0.5 cursor-default", config.className)}>
+            <Icon className="w-2.5 h-2.5" />
+            {score}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>Score: {score}/100 ({nivel})</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 /** Extracted dropdown menu to keep the main component clean */
 function KanbanCardMenu({
   lead,
