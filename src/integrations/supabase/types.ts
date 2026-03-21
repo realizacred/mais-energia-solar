@@ -4798,6 +4798,141 @@ export type Database = {
           },
         ]
       }
+      gd_group_beneficiaries: {
+        Row: {
+          allocation_percent: number
+          allocation_type: string
+          created_at: string
+          end_date: string | null
+          gd_group_id: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          start_date: string | null
+          tenant_id: string
+          uc_beneficiaria_id: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_percent?: number
+          allocation_type?: string
+          created_at?: string
+          end_date?: string | null
+          gd_group_id: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          start_date?: string | null
+          tenant_id?: string
+          uc_beneficiaria_id: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_percent?: number
+          allocation_type?: string
+          created_at?: string
+          end_date?: string | null
+          gd_group_id?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          start_date?: string | null
+          tenant_id?: string
+          uc_beneficiaria_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_group_beneficiaries_gd_group_id_fkey"
+            columns: ["gd_group_id"]
+            isOneToOne: false
+            referencedRelation: "gd_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_group_beneficiaries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_group_beneficiaries_uc_beneficiaria_id_fkey"
+            columns: ["uc_beneficiaria_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gd_groups: {
+        Row: {
+          cliente_id: string | null
+          concessionaria_id: string
+          created_at: string
+          id: string
+          nome: string
+          notes: string | null
+          status: string
+          tenant_id: string
+          uc_geradora_id: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          concessionaria_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          notes?: string | null
+          status?: string
+          tenant_id?: string
+          uc_geradora_id: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          concessionaria_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          notes?: string | null
+          status?: string
+          tenant_id?: string
+          uc_geradora_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_groups_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_groups_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_groups_uc_geradora_id_fkey"
+            columns: ["uc_geradora_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_documents: {
         Row: {
           cliente_id: string | null

@@ -34,6 +34,7 @@ import { FeatureGate } from "@/components/plan/FeatureGate";
 import { UCShareLinkButton } from "./UCShareLinkButton";
 import { PlantGenerationReport } from "@/components/admin/monitoring-v2/reports/PlantGenerationReport";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { UCGdInfoCard } from "./UCGdInfoCard";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Consumo",
@@ -185,6 +186,11 @@ export default function UCDetailPage() {
             </StatusBadge>
           </div>
         </div>
+      </div>
+
+      {/* GD Info */}
+      <div className="mx-4 md:mx-6 mt-3">
+        <UCGdInfoCard ucId={id!} />
       </div>
 
       {/* Tabs */}

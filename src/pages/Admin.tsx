@@ -70,6 +70,7 @@ const UCDetailPage = lazy(() => import("@/components/admin/ucs/UCDetailPage"));
 const MetersListPage = lazy(() => import("@/components/admin/meters/MetersListPage"));
 const MeterDetailPage = lazy(() => import("@/components/admin/meters/MeterDetailPage"));
 const FaturasEnergiaPage = lazy(() => import("@/components/admin/faturas/FaturasEnergiaPage"));
+const GdGroupsPage = lazy(() => import("@/components/admin/gd/GdGroupsPage").then(m => ({ default: m.GdGroupsPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
@@ -350,6 +351,7 @@ const TAB_TITLES: Record<string, string> = {
   medidores: "Medidores",
   ucs: "Unidades Consumidoras",
   "faturas-energia": "Faturas de Energia",
+  "gd-rateio": "GD e Rateio de Créditos",
 };
 
 /** N8n placeholder component */
@@ -617,6 +619,7 @@ export default function Admin() {
                 
                 {/* Faturas de Energia */}
                 <Route path="faturas-energia" element={<FaturasEnergiaPage />} />
+                <Route path="gd-rateio" element={<GdGroupsPage />} />
                 
                 {/* Unidades Consumidoras */}
                 <Route path="ucs" element={<UCsListPage />} />
