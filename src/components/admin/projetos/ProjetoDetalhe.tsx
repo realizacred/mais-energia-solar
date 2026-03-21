@@ -192,7 +192,7 @@ function ProjetoDetalheContent() {
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
       {/* ── Breadcrumbs ── */}
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-        <button onClick={onBack} className="hover:text-foreground transition-colors">Projetos</button>
+        <Button variant="link" onClick={onBack} className="hover:text-foreground transition-colors h-auto p-0 text-xs text-muted-foreground">Projetos</Button>
         <ChevronRight className="h-3 w-3" />
         <span className="text-foreground font-medium">{projectCode}</span>
       </div>
