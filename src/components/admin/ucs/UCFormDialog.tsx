@@ -53,6 +53,15 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes_select_uc"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true).order("nome");
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   useEffect(() => {
     if (!open) return;
     if (editingUC) {
