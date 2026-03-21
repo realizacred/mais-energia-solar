@@ -19,7 +19,23 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2 } from "lucide-react";
+import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2, Trash2, MoreHorizontal } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
