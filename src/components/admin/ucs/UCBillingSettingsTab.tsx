@@ -49,7 +49,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
 
   useEffect(() => {
     if (settings) {
-      setForm({
+      const initial = {
         billing_capture_email: settings.billing_capture_email || "",
         forward_to_email: settings.forward_to_email || "",
         pdf_password: "",
@@ -59,9 +59,16 @@ export function UCBillingSettingsTab({ unitId }: Props) {
         dias_antecedencia_alerta: String(settings.dias_antecedencia_alerta ?? 1),
         canal_notificacao: settings.canal_notificacao || "whatsapp",
         servico_fatura_ativo: settings.servico_fatura_ativo ?? false,
-      });
+      };
+      setForm(initial);
+      initialFormRef.current = initial;
     }
   }, [settings]);
+
+  const isDirty = useMemo(() => {
+    if (!initialFormRef.current) return false;
+    return JSON.stringify(form) !== JSON.stringify(initialFormRef.current);
+  }, [form]);
 
   const saveMut = useMutation({
     mutationFn: () => invoiceService.upsertBillingSettings(unitId, {
