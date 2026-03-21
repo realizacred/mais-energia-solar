@@ -491,37 +491,36 @@ export async function calculateGdMonth(
       );
   }
 
-  // 9. Update credit balances for surplus
+  // 9. Update credit balances (idempotent: set new_balance directly)
   for (const alloc of allocations) {
-    if (alloc.surplus_kwh > 0) {
-      const { data: existing } = await (supabase as any)
-        .from("gd_credit_balances")
-        .select("id, balance_kwh")
-        .eq("gd_group_id", gdGroupId)
-        .eq("uc_id", alloc.uc_beneficiaria_id)
-        .maybeSingle();
+    const newBalance = (alloc as any)._new_balance as number;
+    const { data: existing } = await (supabase as any)
+      .from("gd_credit_balances")
+      .select("id")
+      .eq("gd_group_id", gdGroupId)
+      .eq("uc_id", alloc.uc_beneficiaria_id)
+      .maybeSingle();
 
-      if (existing) {
-        await (supabase as any)
-          .from("gd_credit_balances")
-          .update({
-            balance_kwh: Number(existing.balance_kwh) + alloc.surplus_kwh,
-            last_reference_year: year,
-            last_reference_month: month,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
-      } else {
-        await (supabase as any)
-          .from("gd_credit_balances")
-          .insert({
-            gd_group_id: gdGroupId,
-            uc_id: alloc.uc_beneficiaria_id,
-            balance_kwh: alloc.surplus_kwh,
-            last_reference_year: year,
-            last_reference_month: month,
-          });
-      }
+    if (existing) {
+      await (supabase as any)
+        .from("gd_credit_balances")
+        .update({
+          balance_kwh: newBalance,
+          last_reference_year: year,
+          last_reference_month: month,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+    } else if (newBalance > 0) {
+      await (supabase as any)
+        .from("gd_credit_balances")
+        .insert({
+          gd_group_id: gdGroupId,
+          uc_id: alloc.uc_beneficiaria_id,
+          balance_kwh: newBalance,
+          last_reference_year: year,
+          last_reference_month: month,
+        });
     }
   }
 

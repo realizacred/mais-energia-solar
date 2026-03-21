@@ -267,8 +267,18 @@ export function GdEnergyMonthly({ groupId }: Props) {
                         <TableCell className="text-right font-mono text-sm">
                           {Number(a.allocated_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
                         </TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {Number(a.prior_balance_kwh || 0) > 0 ? (
+                            <span className="text-info">{Number(a.prior_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className="text-right font-mono text-sm text-success">
                           {Number(a.compensated_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {Number(a.used_from_balance_kwh || 0) > 0 ? (
+                            <span className="text-info">{Number(a.used_from_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>
+                          ) : "—"}
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">
                           {Number(a.surplus_kwh) > 0 ? (
