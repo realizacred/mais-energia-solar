@@ -25,10 +25,21 @@ interface Props {
 }
 
 export function DirectorOverview({ insights }: Props) {
+  const navigate = useNavigate();
   const { getLatestByType, generateInsight, generating } = insights;
   const latest = getLatestByType("daily_summary");
   const payload = latest?.payload;
   const isGenerating = generating === "daily_summary";
+
+  // Pipeline adoption alert
+  const [leadStats, setLeadStats] = useState<{ total: number; semStatus: number } | null>(null);
+  useEffect(() => {
+    (async () => {
+      const { count: total } = await supabase.from("leads").select("id", { count: "exact", head: true }).is("deleted_at", null);
+      const { count: semStatus } = await supabase.from("leads").select("id", { count: "exact", head: true }).is("deleted_at", null).is("status_id", null);
+      setLeadStats({ total: total || 0, semStatus: semStatus || 0 });
+    })();
+  }, []);
 
   const trendIcon = (t: string) => {
     if (t === "up") return <TrendingUp className="h-4 w-4 text-success" />;
