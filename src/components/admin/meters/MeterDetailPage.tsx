@@ -466,8 +466,8 @@ export default function MeterDetailPage() {
         <StatCard
           icon={Activity}
           label="Tensão"
-          value={voltageVal != null ? `${voltageVal.toFixed(1)} V` : "—"}
-          color="info"
+          value={voltageVal != null ? `${voltageVal.toFixed(1)} V${getVoltageIndicator(voltageVal)}` : "—"}
+          color={voltageVal != null ? getVoltageColor(voltageVal) : "info"}
         />
         <StatCard
           icon={Gauge}
