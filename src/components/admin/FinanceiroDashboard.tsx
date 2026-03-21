@@ -31,8 +31,6 @@ import {
   Legend,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
-import { formatBRL } from "@/lib/formatters";
-import { useTenantId } from "@/hooks/useTenantId";
 import {
   useFinanceiroKpis,
   useRecebimentosRecentes,

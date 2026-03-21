@@ -34,17 +34,16 @@ export interface ComissaoRow {
   consultor_nome?: string;
 }
 
-export function useFinanceiroKpis(tenantId: string) {
+export function useFinanceiroKpis() {
   return useQuery({
-    queryKey: ["financeiro-kpis", tenantId],
+    queryKey: ["financeiro-kpis"],
     queryFn: async () => {
       const [recResult, comResult, parcResult] = await Promise.all([
-        supabase.from("recebimentos").select("valor_total, status").eq("tenant_id", tenantId),
-        supabase.from("comissoes").select("valor_comissao, status").eq("tenant_id", tenantId),
+        supabase.from("recebimentos").select("valor_total, status"),
+        supabase.from("comissoes").select("valor_comissao, status"),
         supabase
           .from("parcelas")
           .select("valor, status, data_vencimento")
-          .eq("tenant_id", tenantId)
           .eq("status", "pendente")
           .lt("data_vencimento", new Date().toISOString().split("T")[0]),
       ]);
@@ -63,18 +62,16 @@ export function useFinanceiroKpis(tenantId: string) {
       } as FinanceiroKpis;
     },
     staleTime: STALE_TIME,
-    enabled: !!tenantId,
   });
 }
 
-export function useRecebimentosRecentes(tenantId: string) {
+export function useRecebimentosRecentes() {
   return useQuery({
-    queryKey: ["financeiro-recebimentos-recentes", tenantId],
+    queryKey: ["financeiro-recebimentos-recentes"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recebimentos")
         .select("id, cliente_id, valor_total, numero_parcelas, status, created_at, clientes(nome)")
-        .eq("tenant_id", tenantId)
         .order("created_at", { ascending: false })
         .limit(10);
       if (error) throw error;
@@ -84,18 +81,16 @@ export function useRecebimentosRecentes(tenantId: string) {
       })) as RecebimentoRow[];
     },
     staleTime: STALE_TIME,
-    enabled: !!tenantId,
   });
 }
 
-export function useComissoesRecentes(tenantId: string) {
+export function useComissoesRecentes() {
   return useQuery({
-    queryKey: ["financeiro-comissoes-recentes", tenantId],
+    queryKey: ["financeiro-comissoes-recentes"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comissoes")
         .select("id, consultor_id, descricao, valor_base, percentual_comissao, valor_comissao, status, created_at, consultores(nome)")
-        .eq("tenant_id", tenantId)
         .order("created_at", { ascending: false })
         .limit(10);
       if (error) throw error;
@@ -105,7 +100,6 @@ export function useComissoesRecentes(tenantId: string) {
       })) as ComissaoRow[];
     },
     staleTime: STALE_TIME,
-    enabled: !!tenantId,
   });
 }
 
@@ -115,21 +109,21 @@ export interface MonthlyFinanceiro {
   comissoes: number;
 }
 
-export function useFinanceiroMensal(tenantId: string) {
+export function useFinanceiroMensal() {
   return useQuery({
-    queryKey: ["financeiro-mensal", tenantId],
+    queryKey: ["financeiro-mensal"],
     queryFn: async () => {
       const now = new Date();
-      const months: MonthlyFinanceiro[] = [];
       const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
       const [recResult, comResult] = await Promise.all([
-        supabase.from("recebimentos").select("valor_total, created_at").eq("tenant_id", tenantId),
-        supabase.from("comissoes").select("valor_comissao, mes_referencia, ano_referencia").eq("tenant_id", tenantId),
+        supabase.from("recebimentos").select("valor_total, created_at"),
+        supabase.from("comissoes").select("valor_comissao, mes_referencia, ano_referencia"),
       ]);
 
       const recs = recResult.data || [];
       const coms = comResult.data || [];
+      const months: MonthlyFinanceiro[] = [];
 
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -153,6 +147,5 @@ export function useFinanceiroMensal(tenantId: string) {
       return months;
     },
     staleTime: STALE_TIME,
-    enabled: !!tenantId,
   });
 }
