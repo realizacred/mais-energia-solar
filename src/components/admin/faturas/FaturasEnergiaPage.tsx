@@ -157,9 +157,10 @@ export default function FaturasEnergiaPage() {
     toast({ title: "Copiado!", description: text });
   }
 
-  function generateEmail(codigoUC: string | null): string {
-    const code = (codigoUC || "sem-codigo").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-    return `${code}@faturas.maisenergiasolar.com.br`;
+  function generateEmail(concessionariaNome: string | null): string {
+    if (!concessionariaNome) return "configure-a-concessionaria@faturas.maisenergiasolar.com.br";
+    const slug = concessionariaNome.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    return `${slug}@faturas.maisenergiasolar.com.br`;
   }
 
   async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
