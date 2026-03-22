@@ -101,8 +101,14 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
 
   useEffect(() => {
     const ac = metadata?.alert_config;
-    if (ac) setConfig({ ...DEFAULTS, ...ac });
+    if (ac) {
+      const merged = { ...DEFAULTS, ...ac };
+      setConfig(merged);
+      setBaseline(merged);
+    }
   }, [metadata]);
+
+  const isDirty = useMemo(() => JSON.stringify(config) !== JSON.stringify(baseline), [config, baseline]);
 
   async function handleSave() {
     setSaving(true);
