@@ -62,7 +62,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const [showPassword, setShowPassword] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [fetchedLeads, setFetchedLeads] = useState<{ consultor: string | null }[]>([]);
+  const [_unusedFetchedLeads, _setFetchedLeads] = useState<{ consultor: string | null }[]>([]);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
