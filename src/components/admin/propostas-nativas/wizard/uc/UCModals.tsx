@@ -390,7 +390,7 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, geracaoMensal, onS
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="text-muted-foreground">
-                          {alloc.toLocaleString("pt-BR")} / {cap.toLocaleString("pt-BR")} kWh
+                          {formatNumberBR(alloc)} / {formatNumberBR(cap)} kWh
                         </span>
                         <span className={`font-semibold ${isCapped ? "text-warning" : "text-secondary"}`}>
                           {preview.percentual[i]}%
