@@ -3,6 +3,7 @@
  * §27: KPI cards, §5: Recharts, §12: Skeleton, §25: Modal, §4: Table shadcn.
  */
 import { useState } from "react";
+import { formatNumberBR } from "@/lib/formatters";
 import { useUnitComparativo, usePropostaVersoesForLink, useLinkSimulacao } from "@/hooks/useUnitComparativo";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
