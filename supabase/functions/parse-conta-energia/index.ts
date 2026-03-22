@@ -697,6 +697,7 @@ Seja preciso — nunca invente dados.`
                   energia_injetada_kwh: { type: "number", description: "Energia injetada total no período em kWh" },
                   energia_compensada_kwh: { type: "number", description: "Energia compensada (créditos utilizados) em kWh" },
                   categoria_gd: { type: "string", description: "Categoria de geração distribuída: GD_I (microgeração), GD_II (minigeração), GD_III" },
+                  modalidade_tarifaria: { type: "string", description: "Modalidade tarifária: Convencional, Branca, Horosazonal Verde, Horosazonal Azul" },
                 },
                 additionalProperties: false,
               },
