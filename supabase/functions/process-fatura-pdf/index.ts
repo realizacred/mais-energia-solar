@@ -1079,6 +1079,21 @@ function runGdConsistencyChecks(current: GdData, previous: GdData | null) {
   return { checks, overallLevel, score };
 }
 
+// ── Ownership validation ──
+function normalizeIdentifier(raw: string | null | undefined): string {
+  if (!raw) return "";
+  return raw.replace(/[\s\-\/\\.\,\;\:\#\*\(\)]/g, "").replace(/[^\w]/g, "").toLowerCase().trim();
+}
+
+function validateOwnership(extracted: string | null | undefined, expected: string | null | undefined): { status: "valid" | "mismatch" | "unknown"; score: number } {
+  const normExtracted = normalizeIdentifier(extracted);
+  const normExpected = normalizeIdentifier(expected);
+  if (!normExtracted || !normExpected) return { status: "unknown", score: 0 };
+  if (normExtracted === normExpected) return { status: "valid", score: 100 };
+  if (normExtracted.includes(normExpected) || normExpected.includes(normExtracted)) return { status: "valid", score: 80 };
+  return { status: "mismatch", score: 0 };
+}
+
 // ── Log extraction run ──
 async function logExtractionRun(
   admin: any,
@@ -1095,6 +1110,10 @@ async function logExtractionRun(
   missingFields: string[],
   confidenceScore?: number | null,
   parserVersion?: string | null,
+  ownershipStatus?: string | null,
+  ownershipScore?: number | null,
+  identifierExtracted?: string | null,
+  identifierMatched?: boolean | null,
 ) {
   try {
     await admin.from('invoice_extraction_runs').insert({
@@ -1113,6 +1132,10 @@ async function logExtractionRun(
       confidence_score: confidenceScore ?? null,
       started_at: new Date().toISOString(),
       finished_at: new Date().toISOString(),
+      ownership_validation_status: ownershipStatus || null,
+      ownership_validation_score: ownershipScore ?? null,
+      identifier_extracted: identifierExtracted || null,
+      identifier_matched: identifierMatched ?? null,
     });
   } catch (err) {
     console.warn("[process-fatura-pdf] Failed to log extraction run:", err);
