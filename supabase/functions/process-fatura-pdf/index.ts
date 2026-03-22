@@ -247,6 +247,12 @@ async function processInvoice(
 
   console.log(`[process-fatura-pdf] Ownership: extracted=${identifierExtracted}, expected=${identifierExpected}, status=${ownershipResult.status}, score=${ownershipResult.score}`);
 
+  // ── Derive reference month/year early (needed by ownership mismatch path too) ──
+  const now = new Date();
+  const ano = parsed.mes_referencia ? extractYear(parsed.mes_referencia, now.getFullYear()) : now.getFullYear();
+  const mes = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, now.getMonth() + 1) : now.getMonth() + 1;
+  const ucCode = ucData?.codigo_uc || parsed.numero_uc || 'unknown';
+
   if (ownershipResult.status === 'mismatch') {
     // Block automatic assignment on mismatch
     console.warn(`[process-fatura-pdf] OWNERSHIP MISMATCH — extracted: ${identifierExtracted}, expected: ${identifierExpected}`);
@@ -302,10 +308,6 @@ async function processInvoice(
 
   // ── 6. Upload PDF to Storage ──
   let pdfUrl: string | null = null;
-  const now = new Date();
-  const ano = parsed.mes_referencia ? extractYear(parsed.mes_referencia, now.getFullYear()) : now.getFullYear();
-  const mes = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, now.getMonth() + 1) : now.getMonth() + 1;
-  const ucCode = ucData?.codigo_uc || parsed.numero_uc || 'unknown';
   const storagePath = `${tenantId}/${ano}/${String(mes).padStart(2, '0')}/${ucCode}.pdf`;
 
   const { error: uploadErr } = await admin.storage
