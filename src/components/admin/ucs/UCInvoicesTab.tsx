@@ -38,9 +38,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
-import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
-import { getEdgeFunctionAuthHeaders } from "@/lib/edgeFunctionAuth";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 

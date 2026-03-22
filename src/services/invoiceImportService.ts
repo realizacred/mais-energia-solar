@@ -150,18 +150,10 @@ export const invoiceImportService = {
     try {
       const pdfStoragePath = await uploadInvoiceTempPdf(file);
 
-      // Call edge function
-      const headers = await getEdgeFunctionAuthHeaders({ "x-client-timeout": "120" });
-      const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
+      const data = await invokeEdgeFunction<any>("process-fatura-pdf", {
         body: { pdf_storage_path: pdfStoragePath, unit_id: unitId, source: "upload" },
-        headers,
+        headers: { "x-client-timeout": "120" },
       });
-
-      if (error) {
-        const parsedError = await parseInvokeError(error);
-        throw new Error(parsedError.message || "Erro ao processar fatura");
-      }
-      if (data?.error) throw new Error(data.error);
 
       const parsed = data?.data?.parsed;
       const invoiceId = data?.data?.invoice_id;
