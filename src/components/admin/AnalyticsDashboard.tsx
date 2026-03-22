@@ -1,56 +1,26 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SalesFunnel, VendorPerformance, ConversionMetrics } from "@/components/admin/analytics";
 import { RevenueForecastWidget } from "@/components/admin/widgets/RevenueForecastWidget";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import { BarChart3, Users, TrendingUp, Target } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Lead {
-  id: string;
-  nome: string;
-  estado: string;
-  cidade: string;
-  media_consumo: number;
-  consultor: string | null;
-  created_at: string;
-  status_id: string | null;
-}
-
-interface LeadStatus {
-  id: string;
-  nome: string;
-  cor: string;
-  ordem: number;
-}
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAnalyticsLeads, useAnalyticsLeadStatuses, type AnalyticsLead, type AnalyticsLeadStatus } from "@/hooks/useAnalyticsDashboard";
 
 interface AnalyticsDashboardProps {
-  leads?: Lead[];
-  statuses?: LeadStatus[];
+  leads?: AnalyticsLead[];
+  statuses?: AnalyticsLeadStatus[];
 }
 
 export default function AnalyticsDashboard({ leads: propLeads, statuses: propStatuses }: AnalyticsDashboardProps) {
-  const [fetchedLeads, setFetchedLeads] = useState<Lead[]>([]);
-  const [fetchedStatuses, setFetchedStatuses] = useState<LeadStatus[]>([]);
+  const { data: fetchedLeads, isLoading: loadingLeads } = useAnalyticsLeads();
+  const { data: fetchedStatuses, isLoading: loadingStatuses } = useAnalyticsLeadStatuses();
 
-  // Fetch own data if no props provided
-  useEffect(() => {
-    if (!propLeads || !propStatuses) {
-      const fetchData = async () => {
-        const [leadsRes, statusesRes] = await Promise.all([
-          supabase.from("leads").select("id, nome, estado, cidade, media_consumo, consultor, created_at, status_id").is("deleted_at", null).order("created_at", { ascending: false }),
-          supabase.from("lead_status").select("id, nome, cor, ordem, probabilidade_peso, motivo_perda_obrigatorio").order("ordem"),
-        ]);
-        if (leadsRes.data) setFetchedLeads(leadsRes.data);
-        if (statusesRes.data) setFetchedStatuses(statusesRes.data);
-      };
-      fetchData();
-    }
-  }, [propLeads, propStatuses]);
+  const leads = propLeads || fetchedLeads || [];
+  const statuses = propStatuses || fetchedStatuses || [];
+  const isLoading = !propLeads && !propStatuses && (loadingLeads || loadingStatuses);
 
-  const leads = propLeads || fetchedLeads;
-  const statuses = propStatuses || fetchedStatuses;
   // Summary stats
   const summaryStats = useMemo(() => {
     const now = new Date();
@@ -63,8 +33,6 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
       return d >= lastMonth && d < thisMonth;
     }).length;
     
-    // Proportional growth: normalize last month's count to the same
-    // number of elapsed days so early-month comparisons are fair.
     const dayOfMonth = now.getDate();
     const daysInLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
     const proportionalLastMonth = lastMonthLeads > 0
@@ -94,9 +62,28 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
     };
   }, [leads, statuses]);
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="p-5">
+              <Skeleton className="h-8 w-24 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </Card>
+          ))}
+        </div>
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* KPI Cards — Structural blue default, orange only for revenue */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         <Card className="border-l-[3px] border-l-secondary bg-card">
           <CardContent className="flex items-center gap-4 p-5">
