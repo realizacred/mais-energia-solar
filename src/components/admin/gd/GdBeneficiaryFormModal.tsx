@@ -41,8 +41,12 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
     ucs.filter(u => u.id !== ucGeradoraId && !existingUcIds.has(u.id)),
     [ucs, ucGeradoraId, existingBeneficiaries]
   );
+  const noAvailableUcs = availableUcs.length === 0;
 
   const [createNew, setCreateNew] = useState(false);
+  // Auto-enable create mode when no UCs available
+  const effectiveCreateNew = createNew || noAvailableUcs;
+
   const [form, setForm] = useState({
     uc_beneficiaria_id: "",
     allocation_percent: "",
