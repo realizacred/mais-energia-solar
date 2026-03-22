@@ -510,7 +510,7 @@ function extractEnergisa(text: string): ExtractedData | null {
   }
 
   if (consumoKwh == null || consumoSuspeito) {
-    const compactSummaryMatch = flatText.match(/DIC\s+KWH\s+INJ\s+Ponta\s+Ponta\s+((?:\d+(?:\.\d{3})*,\d{2}\s*){2,8})/i);
+    const compactSummaryMatch = flatText.match(/DIC\s+KWH\s+INJ\s+Ponta\s+Ponta\s+((?:\d+(?:\.\d{3})*,\d{2}\s*){2,12})/i);
     if (compactSummaryMatch) {
       const numbers = extractLocalizedNumberTokens(compactSummaryMatch[1]);
       compactSummaryNumbers = numbers;
