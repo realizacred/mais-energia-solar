@@ -608,7 +608,7 @@ function TimelineSection({ ucId, meterId, plantId }: { ucId: string; meterId?: s
           <div>
             <p className="text-sm text-foreground">{ev.label}</p>
             <p className="text-xs text-muted-foreground">
-              {format(new Date(ev.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              {new Date(ev.date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
             </p>
           </div>
         </div>
