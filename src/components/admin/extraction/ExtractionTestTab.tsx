@@ -17,6 +17,7 @@ import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 import { useExtractionConfigs, type ExtractionConfig } from "@/hooks/useExtractionConfigs";
 import { ExtractionHelpHint } from "./ExtractionHelpHint";
+import type { ExtractionConfigPrefill } from "./ExtractionConfigModal";
 
 interface UcDetectionResult {
   tipo_uc_detectado: "consumo" | "geradora" | "beneficiaria" | "mista" | "indefinida";
