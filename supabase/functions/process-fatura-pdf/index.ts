@@ -12,11 +12,13 @@ interface ProcessRequest {
   unit_id?: string;
   pdf_base64?: string;
   pdf_storage_path?: string;
-  source: 'email' | 'upload';
+  source?: 'email' | 'manual' | 'import' | 'api' | 'upload';
   source_message_id?: string;
   email_address?: string;
   tenant_id?: string; // Required for service_role callers
 }
+
+type InvoiceSource = 'email' | 'manual' | 'import' | 'api';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -89,6 +91,7 @@ async function processInvoice(
   serviceRoleKey: string
 ) {
   const { pdf_base64, pdf_storage_path, unit_id, source, source_message_id, email_address } = body;
+  const invoiceSource = normalizeInvoiceSource(source);
 
   if (!pdf_base64 && !pdf_storage_path) {
     return new Response(JSON.stringify({ error: 'pdf_base64 ou pdf_storage_path obrigatório' }),
@@ -165,6 +168,13 @@ async function processInvoice(
     ucData = uc;
   }
 
+  if (!resolvedUnitId) {
+    return new Response(JSON.stringify({
+      error: 'Não foi possível vincular a fatura a uma UC.',
+      details: { numero_uc: parsed.numero_uc ?? null },
+    }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   // ── 4. Upload PDF to Storage ──
   let pdfUrl: string | null = null;
   const now = new Date();
@@ -193,8 +203,7 @@ async function processInvoice(
     console.warn("[process-fatura-pdf] Upload error:", uploadErr);
   }
 
-  // ── 5. Upsert unit_invoices ──
-  // Map bandeira to valid enum value
+  // ── 5. Insert unit_invoices ──
   let bandeira: string | null = null;
   if (parsed.bandeira_tarifaria) {
     const raw = parsed.bandeira_tarifaria.toLowerCase();
@@ -206,6 +215,7 @@ async function processInvoice(
 
   const invoicePayload: any = {
     tenant_id: tenantId,
+    unit_id: resolvedUnitId,
     reference_month: mes,
     reference_year: ano,
     total_amount: parsed.valor_total,
@@ -214,16 +224,12 @@ async function processInvoice(
     bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
     pdf_file_url: pdfUrl,
-    source,
+    source: invoiceSource,
     source_message_id: source_message_id || null,
     status: 'received',
     demanda_contratada_kw: parsed.demanda_contratada_kw,
     raw_extraction: parsed,
   };
-
-  if (resolvedUnitId) {
-    invoicePayload.unit_id = resolvedUnitId;
-  }
 
   const { data: invoice, error: invoiceErr } = await admin
     .from('unit_invoices')
@@ -231,37 +237,39 @@ async function processInvoice(
     .select('id')
     .maybeSingle();
 
-  if (invoiceErr) {
+  if (invoiceErr || !invoice?.id) {
     console.error("[process-fatura-pdf] Invoice insert error:", invoiceErr);
+    return new Response(JSON.stringify({
+      error: 'Falha ao salvar fatura extraída.',
+      details: invoiceErr?.message || 'Insert retornou vazio',
+    }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   // ── 6. Update UC with reading data ──
-  if (resolvedUnitId) {
-    const ucUpdate: any = {};
-    if (parsed.proxima_leitura_data) ucUpdate.proxima_leitura_data = parseDateBR(parsed.proxima_leitura_data);
-    if (parsed.leitura_atual_03 != null) {
-      ucUpdate.ultima_leitura_data = now.toISOString().split('T')[0];
-      ucUpdate.ultima_leitura_kwh_03 = parsed.leitura_atual_03;
-    }
-    if (parsed.leitura_atual_103 != null) {
-      ucUpdate.ultima_leitura_kwh_103 = parsed.leitura_atual_103;
-    }
+  const ucUpdate: any = {};
+  if (parsed.proxima_leitura_data) ucUpdate.proxima_leitura_data = parseDateBR(parsed.proxima_leitura_data);
+  if (parsed.leitura_atual_03 != null) {
+    ucUpdate.ultima_leitura_data = now.toISOString().split('T')[0];
+    ucUpdate.ultima_leitura_kwh_03 = parsed.leitura_atual_03;
+  }
+  if (parsed.leitura_atual_103 != null) {
+    ucUpdate.ultima_leitura_kwh_103 = parsed.leitura_atual_103;
+  }
 
-    if (Object.keys(ucUpdate).length > 0) {
-      await admin
-        .from('units_consumidoras')
-        .update(ucUpdate)
-        .eq('id', resolvedUnitId)
-        .eq('tenant_id', tenantId);
-    }
-
-    // Update billing settings status
+  if (Object.keys(ucUpdate).length > 0) {
     await admin
-      .from('unit_billing_email_settings')
-      .update({ setup_status: 'active' })
-      .eq('unit_id', resolvedUnitId)
+      .from('units_consumidoras')
+      .update(ucUpdate)
+      .eq('id', resolvedUnitId)
       .eq('tenant_id', tenantId);
   }
+
+  // Update billing settings status
+  await admin
+    .from('unit_billing_email_settings')
+    .update({ setup_status: 'active' })
+    .eq('unit_id', resolvedUnitId)
+    .eq('tenant_id', tenantId);
 
   // ── 7. WhatsApp notification ──
   if (ucData?.cliente_id) {
@@ -307,9 +315,10 @@ async function processInvoice(
     data: {
       parsed,
       unit_id: resolvedUnitId,
-      invoice_id: invoice?.id || null,
+      invoice_id: invoice.id,
       pdf_url: pdfUrl,
       uc_found: !!ucData,
+      source: invoiceSource,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
@@ -374,45 +383,59 @@ async function callParseContaEnergia(
 // ── Helpers ──
 
 function extractTextFromPdfBytes(bytes: Uint8Array): string {
-  // Basic text extraction from PDF: find text between stream markers
-  // This is a simplified approach — works for text-based PDFs, not scanned
+  const MAX_DECODE_BYTES = 1_000_000;
+  const MAX_OUTPUT_CHARS = 10_000;
+  const MAX_STREAMS = 40;
   const decoder = new TextDecoder('latin1');
-  const raw = decoder.decode(bytes);
-  
+  const sample = bytes.byteLength > MAX_DECODE_BYTES ? bytes.subarray(0, MAX_DECODE_BYTES) : bytes;
+  const raw = decoder.decode(sample);
+
   const textChunks: string[] = [];
-  
-  // Extract text from PDF streams
-  const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
-  let match;
-  while ((match = streamRegex.exec(raw)) !== null) {
-    const content = match[1];
-    // Look for text operators: Tj, TJ, '
-    const textOps = content.match(/\(([^)]*)\)\s*Tj/g);
-    if (textOps) {
+  let collectedChars = 0;
+  let match: RegExpExecArray | null;
+
+  // PDFs grandes ou escaneados tendem a estourar CPU sem trazer texto útil.
+  const shouldInspectStreams = sample.byteLength <= 750_000;
+
+  if (shouldInspectStreams) {
+    const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+    let streamCount = 0;
+
+    while ((match = streamRegex.exec(raw)) !== null && streamCount < MAX_STREAMS && collectedChars < MAX_OUTPUT_CHARS) {
+      streamCount += 1;
+      const content = match[1];
+
+      const textOps = content.match(/\(([^)]*)\)\s*Tj/g) ?? [];
       for (const op of textOps) {
         const textMatch = op.match(/\(([^)]*)\)/);
-        if (textMatch) textChunks.push(textMatch[1]);
+        if (!textMatch?.[1]) continue;
+        textChunks.push(textMatch[1]);
+        collectedChars += textMatch[1].length;
+        if (collectedChars >= MAX_OUTPUT_CHARS) break;
       }
-    }
-    // TJ array operator
-    const tjArrays = content.match(/\[(.*?)\]\s*TJ/gs);
-    if (tjArrays) {
+
+      if (collectedChars >= MAX_OUTPUT_CHARS) break;
+
+      const tjArrays = content.match(/\[(.*?)\]\s*TJ/gs) ?? [];
       for (const arr of tjArrays) {
         const parts = arr.match(/\(([^)]*)\)/g);
-        if (parts) {
-          textChunks.push(parts.map(p => p.slice(1, -1)).join(''));
-        }
+        if (!parts?.length) continue;
+        const joined = parts.map((part) => part.slice(1, -1)).join('');
+        textChunks.push(joined);
+        collectedChars += joined.length;
+        if (collectedChars >= MAX_OUTPUT_CHARS) break;
       }
     }
   }
 
-  // Also try to find readable text directly
-  const readableText = raw.replace(/[^\x20-\x7EÀ-ú\n\r\t]/g, ' ')
+  const readableText = raw
+    .replace(/[^\x20-\x7EÀ-ú\n\r\t]/g, ' ')
     .replace(/\s{3,}/g, ' ')
-    .trim();
+    .trim()
+    .slice(0, MAX_OUTPUT_CHARS);
 
-  const combined = textChunks.join(' ') + '\n' + readableText;
-  return combined.substring(0, 10000); // Limit to 10k chars
+  const combined = `${textChunks.join(' ')}\n${readableText}`.trim();
+  return combined.slice(0, MAX_OUTPUT_CHARS);
 }
 
 function parseDateBR(dateStr: string): string | null {
@@ -454,4 +477,15 @@ function uint8ToBase64(bytes: Uint8Array): string {
     binary += String.fromCharCode(...chunk);
   }
   return btoa(binary);
+}
+
+function normalizeInvoiceSource(source?: string): InvoiceSource {
+  const normalized = (source || '').toLowerCase();
+
+  if (normalized === 'upload' || normalized === 'import') return 'import';
+  if (normalized === 'email') return 'email';
+  if (normalized === 'manual') return 'manual';
+  if (normalized === 'api') return 'api';
+
+  return 'import';
 }
