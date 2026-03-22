@@ -284,7 +284,7 @@ export function UCInvoicesTab({ unitId }: Props) {
 
       setUploadProgress(100);
       setUploadStep("Concluído!");
-      qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
+      invalidateAllUcQueries();
 
       if (fieldsExtracted.length > 0) {
         toast({ title: "Fatura importada e processada", description: `Dados extraídos: ${fieldsExtracted.join(", ")}` });

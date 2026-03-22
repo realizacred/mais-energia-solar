@@ -299,6 +299,7 @@ export default function UCDetailPage() {
               meterOnline={activeMeter?.online_status ?? null}
               plantName={activePlant?.name ?? null}
               plantCapacityKwp={activePlant?.installed_power_kwp ?? null}
+              proximaLeituraData={proximaLeituraData ?? null}
             />
           </TabsContent>
 
