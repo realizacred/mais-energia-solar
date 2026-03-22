@@ -1,0 +1,182 @@
+/**
+ * useExtractionConfigs — Hooks for invoice extraction configuration per concessionária.
+ * §16: Queries only in hooks. §23: staleTime mandatory.
+ */
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export type ExtractionStrategyMode = "native" | "provider" | "auto";
+export type ExtractionRunStatus = "success" | "partial" | "failed" | "needs_ocr";
+
+export interface ExtractionConfig {
+  id: string;
+  tenant_id: string;
+  concessionaria_id: string | null;
+  concessionaria_code: string;
+  concessionaria_nome: string;
+  strategy_mode: ExtractionStrategyMode;
+  native_enabled: boolean;
+  provider_enabled: boolean;
+  provider_name: string | null;
+  provider_endpoint_key: string | null;
+  provider_requires_base64: boolean;
+  provider_requires_password: boolean;
+  fallback_enabled: boolean;
+  required_fields: string[];
+  optional_fields: string[];
+  parser_version: string | null;
+  active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExtractionRun {
+  id: string;
+  tenant_id: string;
+  config_id: string | null;
+  invoice_id: string | null;
+  uc_id: string | null;
+  concessionaria_code: string;
+  strategy_used: ExtractionStrategyMode;
+  provider_used: string | null;
+  parser_version: string | null;
+  status: ExtractionRunStatus;
+  error_reason: string | null;
+  required_fields_found: string[];
+  required_fields_missing: string[];
+  response_excerpt: Record<string, unknown> | null;
+  confidence_score: number | null;
+  started_at: string;
+  finished_at: string | null;
+  created_at: string;
+}
+
+const STALE_TIME = 1000 * 60 * 5;
+const QUERY_KEY = "extraction_configs" as const;
+const RUNS_KEY = "extraction_runs" as const;
+
+export function useExtractionConfigs() {
+  return useQuery({
+    queryKey: [QUERY_KEY],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("invoice_extraction_configs")
+        .select("*")
+        .order("concessionaria_nome");
+      if (error) throw error;
+      return (data || []) as unknown as ExtractionConfig[];
+    },
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useExtractionConfigById(id: string | null) {
+  return useQuery({
+    queryKey: [QUERY_KEY, "detail", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("invoice_extraction_configs")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data as unknown as ExtractionConfig;
+    },
+    staleTime: STALE_TIME,
+    enabled: !!id,
+  });
+}
+
+export function useSaveExtractionConfig() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: Partial<ExtractionConfig> & { concessionaria_code: string; concessionaria_nome: string }) => {
+      const { id, tenant_id, created_at, updated_at, ...rest } = payload as any;
+
+      if (id) {
+        const { data, error } = await supabase
+          .from("invoice_extraction_configs")
+          .update({ ...rest, updated_at: new Date().toISOString() })
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { data, error } = await supabase
+          .from("invoice_extraction_configs")
+          .insert(rest)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEY] });
+    },
+  });
+}
+
+export function useDeleteExtractionConfig() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("invoice_extraction_configs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEY] });
+    },
+  });
+}
+
+export function useExtractionRuns(configId?: string, limit = 50) {
+  return useQuery({
+    queryKey: [RUNS_KEY, configId, limit],
+    queryFn: async () => {
+      let query = supabase
+        .from("invoice_extraction_runs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (configId) {
+        query = query.eq("config_id", configId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as unknown as ExtractionRun[];
+    },
+    staleTime: 1000 * 30,
+  });
+}
+
+export function useExtractionRunStats() {
+  return useQuery({
+    queryKey: [RUNS_KEY, "stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("invoice_extraction_runs")
+        .select("status, strategy_used")
+        .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+      if (error) throw error;
+
+      const runs = data || [];
+      return {
+        total: runs.length,
+        success: runs.filter(r => r.status === "success").length,
+        partial: runs.filter(r => r.status === "partial").length,
+        failed: runs.filter(r => r.status === "failed").length,
+        nativeUsed: runs.filter(r => r.strategy_used === "native").length,
+        providerUsed: runs.filter(r => r.strategy_used === "provider").length,
+      };
+    },
+    staleTime: STALE_TIME,
+  });
+}
