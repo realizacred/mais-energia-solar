@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
   }
 
   const isServiceRole = authHeader === `Bearer ${serviceRoleKey}`;
+  const jwt = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
   let tenantId: string | null = null;
 
   // Admin client for DB operations
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: userData, error: userError } = await userClient.auth.getUser();
+      const { data: userData, error: userError } = await userClient.auth.getUser(jwt);
       if (userError || !userData?.user?.id) {
         console.error("[process-fatura-pdf] Auth failed:", userError?.message);
         return new Response(JSON.stringify({ error: 'Não autorizado' }),
