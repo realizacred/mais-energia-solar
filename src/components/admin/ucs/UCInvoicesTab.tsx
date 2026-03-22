@@ -40,6 +40,7 @@ import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
+import { invalidateUcQueries } from "@/lib/invalidateUcQueries";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
