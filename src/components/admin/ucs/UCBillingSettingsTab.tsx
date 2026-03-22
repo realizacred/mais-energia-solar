@@ -74,6 +74,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
       servico_fatura_ativo: form.servico_fatura_ativo,
     } as any),
     onSuccess: () => {
+      commitBaseline();
       qc.invalidateQueries({ queryKey: ["billing_settings", unitId] });
       toast({ title: "Configurações salvas" });
     },
