@@ -10,7 +10,8 @@ const corsHeaders = {
 
 interface ProcessRequest {
   unit_id?: string;
-  pdf_base64: string;
+  pdf_base64?: string;
+  pdf_storage_path?: string;
   source: 'email' | 'upload';
   source_message_id?: string;
   email_address?: string;
@@ -86,24 +87,43 @@ async function processInvoice(
   supabaseUrl: string,
   serviceRoleKey: string
 ) {
-  const { pdf_base64, unit_id, source, source_message_id, email_address } = body;
+  const { pdf_base64, pdf_storage_path, unit_id, source, source_message_id, email_address } = body;
 
-  if (!pdf_base64) {
-    return new Response(JSON.stringify({ error: 'pdf_base64 obrigatório' }),
+  if (!pdf_base64 && !pdf_storage_path) {
+    return new Response(JSON.stringify({ error: 'pdf_base64 ou pdf_storage_path obrigatório' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  // ── 1. Decode PDF & extract text ──
-  const pdfBytes = Uint8Array.from(atob(pdf_base64), c => c.charCodeAt(0));
+  // ── 1. Load PDF bytes ──
+  let pdfBytes: Uint8Array;
+  let normalizedPdfBase64 = pdf_base64 || null;
+
+  if (pdf_storage_path) {
+    const { data: downloadData, error: downloadErr } = await admin.storage
+      .from('faturas-energia')
+      .download(pdf_storage_path);
+
+    if (downloadErr || !downloadData) {
+      return new Response(JSON.stringify({ error: 'Não foi possível ler o PDF enviado para processamento' }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    pdfBytes = new Uint8Array(await downloadData.arrayBuffer());
+    normalizedPdfBase64 = normalizedPdfBase64 || uint8ToBase64(pdfBytes);
+  } else {
+    pdfBytes = Uint8Array.from(atob(pdf_base64!), c => c.charCodeAt(0));
+    normalizedPdfBase64 = pdf_base64!;
+  }
+
   const pdfText = extractTextFromPdfBytes(pdfBytes);
 
   // ── 2. Call parse-conta-energia (with PDF base64 for AI multimodal fallback) ──
-  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, pdf_base64, true, 30000);
+  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, normalizedPdfBase64, true, 30000);
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
     // Retry without AI text fallback but still with PDF base64
-    const regexOnlyAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, pdf_base64, false, 15000);
+    const regexOnlyAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, normalizedPdfBase64, false, 15000);
     if (regexOnlyAttempt.ok && regexOnlyAttempt.body?.success) {
       parseResult = regexOnlyAttempt.body;
     } else {
@@ -164,6 +184,10 @@ async function processInvoice(
       .from('faturas-energia')
       .createSignedUrl(storagePath, 86400);
     pdfUrl = signedData?.signedUrl || null;
+
+    if (pdf_storage_path && pdf_storage_path !== storagePath) {
+      await admin.storage.from('faturas-energia').remove([pdf_storage_path]);
+    }
   } else {
     console.warn("[process-fatura-pdf] Upload error:", uploadErr);
   }
@@ -419,4 +443,14 @@ function extractMonth(mesRef: string, fallback: number): number {
   const match = mesRef.match(/^(\d{2})\//);
   if (match) return parseInt(match[1]);
   return fallback;
+}
+
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
 }
