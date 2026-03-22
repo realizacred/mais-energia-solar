@@ -423,6 +423,12 @@ async function processInvoice(
     consistency_checks_json: gdChecks.checks,
     consistency_warnings_json: gdChecks.checks.filter((c: any) => c.level === 'warning'),
     consistency_errors_json: gdChecks.checks.filter((c: any) => c.level === 'error'),
+    // Ownership validation
+    ownership_validation_status: ownershipResult.status,
+    ownership_validation_score: ownershipResult.score,
+    identifier_extracted: identifierExtracted,
+    identifier_expected: identifierExpected,
+    needs_manual_assignment: ownershipResult.status === 'unknown',
   };
 
   const { data: invoice, error: invoiceErr } = await admin
