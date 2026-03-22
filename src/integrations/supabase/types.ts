@@ -20332,7 +20332,11 @@ export type Database = {
           file_size_bytes: number | null
           has_file: boolean
           id: string
+          last_parsed_at: string | null
           multa_ultrapassagem: number | null
+          parser_version: string | null
+          parsing_error_reason: string | null
+          parsing_status: string
           pdf_file_url: string | null
           previous_balance_kwh: number | null
           raw_extraction: Json
@@ -20363,7 +20367,11 @@ export type Database = {
           file_size_bytes?: number | null
           has_file?: boolean
           id?: string
+          last_parsed_at?: string | null
           multa_ultrapassagem?: number | null
+          parser_version?: string | null
+          parsing_error_reason?: string | null
+          parsing_status?: string
           pdf_file_url?: string | null
           previous_balance_kwh?: number | null
           raw_extraction?: Json
@@ -20394,7 +20402,11 @@ export type Database = {
           file_size_bytes?: number | null
           has_file?: boolean
           id?: string
+          last_parsed_at?: string | null
           multa_ultrapassagem?: number | null
+          parser_version?: string | null
+          parsing_error_reason?: string | null
+          parsing_status?: string
           pdf_file_url?: string | null
           previous_balance_kwh?: number | null
           raw_extraction?: Json

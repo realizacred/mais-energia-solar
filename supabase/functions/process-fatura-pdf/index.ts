@@ -16,6 +16,8 @@ interface ProcessRequest {
   source_message_id?: string;
   email_address?: string;
   tenant_id?: string; // Required for service_role callers
+  force_reprocess?: boolean;
+  invoice_id?: string; // For reprocessing existing invoice
 }
 
 type InvoiceSource = 'email' | 'manual' | 'import' | 'api';
@@ -90,8 +92,13 @@ async function processInvoice(
   supabaseUrl: string,
   serviceRoleKey: string
 ) {
-  const { pdf_base64, pdf_storage_path, unit_id, source, source_message_id, email_address } = body;
+  const { pdf_base64, pdf_storage_path, unit_id, source, source_message_id, email_address, force_reprocess, invoice_id } = body;
   const invoiceSource = normalizeInvoiceSource(source);
+
+  // ── Reprocess mode: load existing invoice PDF ──
+  if (force_reprocess && invoice_id) {
+    return await reprocessInvoice(admin, invoice_id, tenantId, supabaseUrl, serviceRoleKey);
+  }
 
   if (!pdf_base64 && !pdf_storage_path) {
     return new Response(JSON.stringify({ error: 'pdf_base64 ou pdf_storage_path obrigatório' }),
@@ -126,10 +133,12 @@ async function processInvoice(
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
+    // Save failed parsing status if we have an invoice_id
     return new Response(JSON.stringify({
       error: 'Falha ao parsear fatura (parser determinístico)',
       details: parseResult || null,
       extraction_method: 'deterministic',
+      parsing_status: 'failed',
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
@@ -240,6 +249,10 @@ async function processInvoice(
     status: 'received',
     demanda_contratada_kw: parsed.demanda_contratada_kw,
     raw_extraction: parsed,
+    parsing_status: 'success',
+    parser_version: parsed.parser_version || null,
+    last_parsed_at: new Date().toISOString(),
+    parsing_error_reason: null,
   };
 
   const { data: invoice, error: invoiceErr } = await admin
@@ -402,6 +415,164 @@ async function processInvoice(
       pdf_url: pdfUrl,
       uc_found: !!ucData,
       source: invoiceSource,
+    },
+  }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+}
+
+// ── Reprocess existing invoice ──
+async function reprocessInvoice(
+  admin: any,
+  invoiceId: string,
+  tenantId: string,
+  supabaseUrl: string,
+  serviceRoleKey: string
+) {
+  // 1. Fetch existing invoice
+  const { data: invoice, error: invErr } = await admin
+    .from('unit_invoices')
+    .select('id, unit_id, pdf_file_url, raw_extraction, tenant_id')
+    .eq('id', invoiceId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+
+  if (invErr || !invoice) {
+    return new Response(JSON.stringify({ error: 'Fatura não encontrada' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  // 2. Try to find PDF in storage to re-extract text
+  // Find the storage path from pdf_file_url or try known patterns
+  const { data: ucData } = await admin
+    .from('units_consumidoras')
+    .select('id, codigo_uc')
+    .eq('id', invoice.unit_id)
+    .maybeSingle();
+
+  // Try downloading the PDF from storage
+  let pdfText = '';
+  let pdfFound = false;
+
+  // List possible storage paths
+  const raw = invoice.raw_extraction as Record<string, any> | null;
+  const refMonth = raw?.mes_referencia || '';
+  const ucCode = ucData?.codigo_uc || raw?.numero_uc || 'unknown';
+  
+  // Try to reconstruct storage path
+  const possiblePaths: string[] = [];
+  if (raw?.mes_referencia) {
+    const year = extractYear(raw.mes_referencia, new Date().getFullYear());
+    const month = extractMonth(raw.mes_referencia, new Date().getMonth() + 1);
+    possiblePaths.push(`${tenantId}/${year}/${String(month).padStart(2, '0')}/${ucCode}.pdf`);
+  }
+
+  for (const path of possiblePaths) {
+    const { data: dlData, error: dlErr } = await admin.storage
+      .from('faturas-energia')
+      .download(path);
+    if (!dlErr && dlData) {
+      const bytes = new Uint8Array(await dlData.arrayBuffer());
+      pdfText = extractTextFromPdfBytes(bytes);
+      pdfFound = true;
+      break;
+    }
+  }
+
+  // If no PDF found in storage, try using raw text from raw_extraction
+  if (!pdfFound && raw?.texto_bruto) {
+    pdfText = raw.texto_bruto;
+  }
+
+  if (!pdfText || pdfText.length < 20) {
+    await admin.from('unit_invoices').update({
+      parsing_status: 'failed',
+      parsing_error_reason: 'PDF não encontrado no storage para reprocessamento',
+      last_parsed_at: new Date().toISOString(),
+    }).eq('id', invoiceId);
+
+    return new Response(JSON.stringify({
+      error: 'PDF não encontrado para reprocessamento. O texto extraído é insuficiente.',
+      parsing_status: 'failed',
+    }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  // 3. Re-parse
+  const parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
+  const parseResult = parseAttempt.body;
+
+  if (!parseAttempt.ok || !parseResult?.success) {
+    await admin.from('unit_invoices').update({
+      parsing_status: 'failed',
+      parsing_error_reason: parseResult?.error || 'Parser retornou erro',
+      last_parsed_at: new Date().toISOString(),
+      parser_version: parseResult?.data?.parser_version || null,
+    }).eq('id', invoiceId);
+
+    return new Response(JSON.stringify({
+      error: 'Reprocessamento falhou',
+      details: parseResult || null,
+      parsing_status: 'failed',
+    }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  const parsed = parseResult.data;
+
+  // 4. Calculate derived fields
+  let energyInjected = parsed.energia_injetada_kwh ?? null;
+  if (energyInjected === null && parsed.leitura_atual_103 != null && parsed.leitura_anterior_103 != null) {
+    energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
+  }
+  const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
+
+  let bandeira: string | null = null;
+  if (parsed.bandeira_tarifaria) {
+    const rawB = parsed.bandeira_tarifaria.toLowerCase();
+    if (rawB.includes('verde')) bandeira = 'verde';
+    else if (rawB.includes('amarela')) bandeira = 'amarela';
+    else if (rawB.includes('vermelha') && rawB.includes('2')) bandeira = 'vermelha_2';
+    else if (rawB.includes('vermelha')) bandeira = 'vermelha_1';
+  }
+
+  // 5. Update the invoice
+  const updatePayload: any = {
+    total_amount: parsed.valor_total,
+    energy_consumed_kwh: parsed.consumo_kwh,
+    energy_injected_kwh: energyInjected,
+    compensated_kwh: parsed.energia_compensada_kwh ?? null,
+    current_balance_kwh: currentBalance,
+    bandeira_tarifaria: bandeira,
+    due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
+    demanda_contratada_kw: parsed.demanda_contratada_kw,
+    raw_extraction: parsed,
+    parsing_status: 'success',
+    parser_version: parsed.parser_version || null,
+    last_parsed_at: new Date().toISOString(),
+    parsing_error_reason: null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: updateErr } = await admin
+    .from('unit_invoices')
+    .update(updatePayload)
+    .eq('id', invoiceId);
+
+  if (updateErr) {
+    console.error("[process-fatura-pdf] Reprocess update error:", updateErr);
+    return new Response(JSON.stringify({
+      error: 'Falha ao atualizar fatura reprocessada',
+      details: updateErr.message,
+    }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  console.log(`[process-fatura-pdf] Reprocessed invoice ${invoiceId} — parser v${parsed.parser_version}, confidence: ${parsed.confidence}`);
+
+  return new Response(JSON.stringify({
+    success: true,
+    data: {
+      parsed,
+      invoice_id: invoiceId,
+      unit_id: invoice.unit_id,
+      reprocessed: true,
+      parser_version: parsed.parser_version,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
