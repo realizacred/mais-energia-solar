@@ -410,29 +410,19 @@ async function callParseContaEnergia(
   supabaseUrl: string,
   serviceRoleKey: string,
   text: string,
-  pdfBase64: string,
-  useAiFallback: boolean,
   timeoutMs: number,
 ) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const payload: Record<string, any> = {
-      text: text || "",
-      use_ai_fallback: useAiFallback,
-    };
-
-    // Sempre envie o PDF base64 para permitir fallback multimodal quando o texto extraído vier parcial ou ruidoso.
-    payload.pdf_base64 = pdfBase64;
-
     const response = await fetch(`${supabaseUrl}/functions/v1/parse-conta-energia`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ text: text || "" }),
       signal: controller.signal,
     });
 
@@ -448,11 +438,7 @@ async function callParseContaEnergia(
     if (err?.name === 'AbortError') {
       return {
         ok: false,
-        body: {
-          error: useAiFallback
-            ? 'Timeout ao extrair dados com IA; tentando modo rápido.'
-            : 'Tempo esgotado ao extrair dados da fatura.',
-        },
+        body: { error: 'Tempo esgotado ao extrair dados da fatura.' },
       };
     }
     throw err;
