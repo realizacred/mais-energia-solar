@@ -220,7 +220,7 @@ async function processInvoice(
   if (!resolvedUnitId && parsed.numero_uc) {
     const { data: uc } = await admin
       .from('units_consumidoras')
-      .select('id, codigo_uc, cliente_id, unit_identifier, unit_identifier_type')
+      .select('id, codigo_uc, cliente_id, unit_identifier, unit_identifier_type, tipo_uc, papel_gd')
       .eq('tenant_id', tenantId)
       .eq('codigo_uc', parsed.numero_uc)
       .maybeSingle();
@@ -234,11 +234,24 @@ async function processInvoice(
   if (resolvedUnitId && !ucData) {
     const { data: uc } = await admin
       .from('units_consumidoras')
-      .select('id, codigo_uc, cliente_id, unit_identifier, unit_identifier_type')
+      .select('id, codigo_uc, cliente_id, unit_identifier, unit_identifier_type, tipo_uc, papel_gd')
       .eq('id', resolvedUnitId)
       .eq('tenant_id', tenantId)
       .maybeSingle();
     ucData = uc;
+  }
+
+  // ── 5a. Resolve required fields by UC context (geradora vs beneficiária) ──
+  if (ucData && extractionConfig) {
+    const isGeradora = ucData.tipo_uc === 'gd_geradora' || ucData.papel_gd === 'geradora';
+    const contextFields = isGeradora
+      ? extractionConfig.required_fields_geradora
+      : extractionConfig.required_fields_beneficiaria;
+    
+    if (contextFields && Array.isArray(contextFields) && contextFields.length > 0) {
+      requiredFields = contextFields;
+      console.log(`[process-fatura-pdf] Using context-aware required fields (${isGeradora ? 'geradora' : 'beneficiária'}): ${requiredFields.join(', ')}`);
+    }
   }
 
   // ── 5b. Ownership validation ──
