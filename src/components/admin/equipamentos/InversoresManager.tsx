@@ -1,8 +1,13 @@
 import { useState, useMemo } from "react";
 import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  useInversoresCatalogo,
+  useSalvarInversor,
+  useDeletarInversor,
+  useToggleInversor,
+  type Inversor,
+} from "@/hooks/useInversoresCatalogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
