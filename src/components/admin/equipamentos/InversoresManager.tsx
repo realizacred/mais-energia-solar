@@ -54,6 +54,22 @@ export function InversoresManager() {
   const deleteMutation = useDeletarInversor();
   const toggleMutation = useToggleInversor();
 
+  const fabricantes = useMemo(() => {
+    const set = new Set(inversores.map((i) => i.fabricante));
+    return Array.from(set).sort();
+  }, [inversores]);
+
+  const filtered = inversores.filter((i) => {
+    const matchSearch = !search ||
+      `${i.fabricante} ${i.modelo}`.toLowerCase().includes(search.toLowerCase());
+    const matchAtivo = filterAtivo === "all" || (filterAtivo === "ativo" ? i.ativo : !i.ativo);
+    const matchFab = filterFabricante === "all" || i.fabricante === filterFabricante;
+    const matchTipo = filterTipo === "all" || i.tipo === filterTipo;
+    return matchSearch && matchAtivo && matchFab && matchTipo;
+  });
+
+  const isGlobal = (i: Inversor) => i.tenant_id === null;
+
   const openDialog = (inv?: Inversor) => {
     if (inv) {
       setEditing(inv);
