@@ -124,7 +124,7 @@ export default function UCDetailPage() {
       return data || [];
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
   const activePlantLink = plantLinks[0];
   const activePlantId = activePlantLink?.plant_id ?? null;
