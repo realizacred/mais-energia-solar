@@ -149,6 +149,7 @@ export function AiFollowupSettingsPanel() {
         setHasRecord(true);
       }
 
+      setBaseline(settings);
       toast({ title: "Configurações de IA salvas" });
       fetchSettings();
     } catch (err: any) {
