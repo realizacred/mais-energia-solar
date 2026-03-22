@@ -1,5 +1,5 @@
 import { useMetaAdsData } from "@/hooks/useMetaAdsData";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatIntegerBR } from "@/lib/formatters";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -150,11 +150,11 @@ export default function MetaDashboardPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
             <StatCard icon={DollarSign} label="Investimento" value={formatBRL(metrics.spend)} />
-            <StatCard icon={Eye} label="Alcance" value={metrics.reach.toLocaleString("pt-BR")} />
-            <StatCard icon={BarChart2} label="Impressões" value={metrics.impressions.toLocaleString("pt-BR")} />
-            <StatCard icon={MousePointerClick} label="Cliques" value={metrics.clicks.toLocaleString("pt-BR")} />
+            <StatCard icon={Eye} label="Alcance" value={formatIntegerBR(metrics.reach)} />
+            <StatCard icon={BarChart2} label="Impressões" value={formatIntegerBR(metrics.impressions)} />
+            <StatCard icon={MousePointerClick} label="Cliques" value={formatIntegerBR(metrics.clicks)} />
             <StatCard icon={TrendingUp} label="CTR" value={`${metrics.ctr.toFixed(2)}%`} />
-            <StatCard icon={Users} label="Leads" value={metrics.leads.toLocaleString("pt-BR")} />
+            <StatCard icon={Users} label="Leads" value={formatIntegerBR(metrics.leads)} />
             <StatCard icon={Target} label="CPL" value={formatBRL(metrics.cpl)} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

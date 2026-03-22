@@ -43,6 +43,7 @@ import {
 import { motion } from "framer-motion";
 import { useBackupRestore } from "@/hooks/useBackupRestore";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { formatIntegerBR } from "@/lib/formatters";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ElementType }> = {
   completed: { label: "Concluído", className: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
@@ -188,7 +189,7 @@ export function BackupRestorePage() {
             </div>
             <div>
               <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                {totalRows.toLocaleString("pt-BR")}
+                {formatIntegerBR(totalRows)}
               </p>
               <p className="text-sm text-muted-foreground mt-1">Registros no último backup</p>
             </div>
@@ -259,7 +260,7 @@ export function BackupRestorePage() {
                               <TooltipTrigger asChild>
                                 <span className="cursor-help underline decoration-dotted">
                                   {log.tables_included?.length || 0} tabelas
-                                  {totalTableRows > 0 && ` · ${totalTableRows.toLocaleString("pt-BR")} reg.`}
+                                  {totalTableRows > 0 && ` · ${formatIntegerBR(totalTableRows)} reg.`}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="max-w-xs">

@@ -59,6 +59,18 @@ export function formatNumberBR(value: number | null | undefined): string {
 }
 
 /**
+ * Format integer as Brazilian locale without decimals: "1.234"
+ * Returns "—" for null/undefined/NaN.
+ */
+export function formatIntegerBR(value: number | null | undefined): string {
+  if (value == null || isNaN(value)) return "—";
+  return Math.round(value).toLocaleString("pt-BR", {
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+  });
+}
+
+/**
  * Parse a Brazilian-formatted number string to a JS number.
  * Handles: "1.234,56" → 1234.56, "99.999,99" → 99999.99
  */

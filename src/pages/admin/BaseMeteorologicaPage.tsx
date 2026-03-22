@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -254,7 +255,7 @@ export function BaseMeteorologicaPage() {
       });
       if (error) throw error;
       toast.success("Versão ativada!", {
-        description: `${((data as any)?.row_count ?? 0).toLocaleString("pt-BR")} pontos disponíveis.`,
+        description: `${formatIntegerBR((data as any)?.row_count ?? 0)} pontos disponíveis.`,
       });
       loadData();
       auditReload();
@@ -305,7 +306,7 @@ export function BaseMeteorologicaPage() {
         <StatusCard
           icon={<MapPin className="h-4 w-4" />}
           label="Total de pontos carregados"
-          value={totalPoints.toLocaleString("pt-BR")}
+          value={formatIntegerBR(totalPoints)}
           detail={`${versions.filter(v => v.status === "active").length} versão(ões) ativa(s)`}
           color={totalPoints > 0 ? "text-primary" : "text-muted-foreground"}
         />
@@ -424,7 +425,7 @@ export function BaseMeteorologicaPage() {
                       <div className="text-right shrink-0">
                         {active && (
                           <div className="text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground">{(active.row_count ?? 0).toLocaleString("pt-BR")}</span> pontos
+                            <span className="font-medium text-foreground">{formatIntegerBR(active.row_count ?? 0)}</span> pontos
                             <br />
                             <span className="text-[10px] font-mono">{active.version_tag}</span>
                           </div>
@@ -473,7 +474,7 @@ export function BaseMeteorologicaPage() {
                     <CardTitle className="text-sm">{ds.label}</CardTitle>
                     {active && (
                       <Badge className="bg-success/10 text-success border-success/30 text-[10px]">
-                        Ativo — {(active.row_count ?? 0).toLocaleString("pt-BR")} pts
+                        Ativo — {formatIntegerBR(active.row_count ?? 0)} pts
                       </Badge>
                     )}
                   </div>
@@ -519,7 +520,7 @@ export function BaseMeteorologicaPage() {
                 <AuditMetric value={auditDatasets.length} label="Datasets registrados" color="text-primary" />
                 <AuditMetric value={auditVersions.filter(v => v.status === "active").length} label="Versões ativas" color="text-success" />
                 <AuditMetric value={auditVersions.filter(v => v.status === "processing").length} label="Em processamento" color="text-warning" />
-                <AuditMetric value={auditVersions.reduce((sum, v) => sum + v.row_count, 0).toLocaleString("pt-BR")} label="Total de pontos" color="text-primary" />
+                <AuditMetric value={formatIntegerBR(auditVersions.reduce((sum, v) => sum + v.row_count, 0))} label="Total de pontos" color="text-primary" />
               </div>
             </CardContent>
           </Card>
@@ -585,13 +586,13 @@ export function BaseMeteorologicaPage() {
 
                             if (intg) {
                               if (intg.actual_points === v.row_count && v.row_count > 0) {
-                                checks.push({ label: "Pontos", status: "ok", detail: `${v.row_count.toLocaleString("pt-BR")} pontos verificados ✓` });
+                                checks.push({ label: "Pontos", status: "ok", detail: `${formatIntegerBR(v.row_count)} pontos verificados ✓` });
                               } else if (isProcessing) {
-                                checks.push({ label: "Pontos", status: "info", detail: `${intg.actual_points.toLocaleString("pt-BR")} pontos importados até agora` });
+                                checks.push({ label: "Pontos", status: "info", detail: `${formatIntegerBR(intg.actual_points)} pontos importados até agora` });
                               } else if (v.row_count === 0) {
                                 checks.push({ label: "Pontos", status: "error", detail: "Nenhum ponto importado", action: "Recomece a importação" });
                               } else {
-                                checks.push({ label: "Pontos", status: "warning", detail: `Divergência: registrado ${v.row_count.toLocaleString("pt-BR")}, encontrado ${intg.actual_points.toLocaleString("pt-BR")}` });
+                                checks.push({ label: "Pontos", status: "warning", detail: `Divergência: registrado ${formatIntegerBR(v.row_count)}, encontrado ${formatIntegerBR(intg.actual_points)}` });
                               }
 
                               if (intg.min_lat != null && !isProcessing) {

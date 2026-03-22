@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -213,7 +214,7 @@ export function DataResetManager() {
                       <CardTitle className="text-sm font-semibold text-foreground">{seg.label}</CardTitle>
                     </div>
                     <Badge variant={total > 0 ? "secondary" : "outline"} className="text-xs font-mono">
-                      {total.toLocaleString("pt-BR")} reg.
+                      {formatIntegerBR(total)} reg.
                     </Badge>
                   </div>
                 </CardHeader>
@@ -253,7 +254,7 @@ export function DataResetManager() {
                     {selected.size} segmento{selected.size > 1 ? "s" : ""} selecionado{selected.size > 1 ? "s" : ""}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {selectedTotal.toLocaleString("pt-BR")} registros serão apagados permanentemente
+                    {formatIntegerBR(selectedTotal)} registros serão apagados permanentemente
                   </p>
                 </div>
               </div>
@@ -294,7 +295,7 @@ export function DataResetManager() {
                     .filter((s) => selected.has(s.key))
                     .map((s) => (
                       <li key={s.key}>
-                        {s.label} ({totalRecords(s.tables).toLocaleString("pt-BR")} registros)
+                        {s.label} ({formatIntegerBR(totalRecords(s.tables))} registros)
                       </li>
                     ))}
                 </ul>

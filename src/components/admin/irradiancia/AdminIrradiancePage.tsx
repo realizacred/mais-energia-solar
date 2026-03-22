@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -361,7 +362,7 @@ export function CsvImportPanel() {
 
       const chunks = chunkArray(points, CHUNK_SIZE);
       setProgress({ current: 0, total: points.length });
-      log("info", `Enviando ${points.length.toLocaleString("pt-BR")} pontos em ${chunks.length} chunks...`);
+      log("info", `Enviando ${formatIntegerBR(points.length)} pontos em ${chunks.length} chunks...`);
 
       for (let i = 0; i < chunks.length; i++) {
         if (abortRef.current) {
@@ -397,13 +398,13 @@ export function CsvImportPanel() {
         setProgress({ current: sent, total: points.length });
 
         if (i % 10 === 0 || i === chunks.length - 1) {
-          log("info", `Chunk ${i + 1}/${chunks.length} OK (${sent.toLocaleString("pt-BR")} pontos)`);
+          log("info", `Chunk ${i + 1}/${chunks.length} OK (${formatIntegerBR(sent)} pontos)`);
         }
 
         await new Promise(r => setTimeout(r, 10));
       }
 
-      log("success", `✅ Todos os ${points.length.toLocaleString("pt-BR")} pontos enviados!`);
+      log("success", `✅ Todos os ${formatIntegerBR(points.length)} pontos enviados!`);
 
       log("info", "Verificando contagem no banco...");
       const { count } = await supabase
@@ -412,11 +413,11 @@ export function CsvImportPanel() {
         .eq("version_id", versionId);
 
       setPointsLoaded(count ?? 0);
-      log("success", `Confirmado no banco: ${(count ?? 0).toLocaleString("pt-BR")} pontos para esta versão.`);
+      log("success", `Confirmado no banco: ${formatIntegerBR(count ?? 0)} pontos para esta versão.`);
 
       setState("done");
       toast.success("Upload concluído!", {
-        description: `${(count ?? 0).toLocaleString("pt-BR")} pontos carregados.`,
+        description: `${formatIntegerBR(count ?? 0)} pontos carregados.`,
       });
     } catch (e: any) {
       log("error", `Erro: ${e.message}`);
@@ -442,7 +443,7 @@ export function CsvImportPanel() {
       if (error) throw error;
       const res = data as any;
       setActivateResult({ row_count: res?.row_count ?? pointsLoaded ?? 0 });
-      toast.success("Versão ativada!", { description: `${(res?.row_count ?? 0).toLocaleString("pt-BR")} pontos.` });
+      toast.success("Versão ativada!", { description: `${formatIntegerBR(res?.row_count ?? 0)} pontos.` });
       log("success", `✅ Versão ativada! row_count=${res?.row_count}`);
     } catch (e: any) {
       toast.error("Erro ao ativar", { description: e.message });
@@ -565,10 +566,10 @@ export function CsvImportPanel() {
           {validation && (
             <div className="rounded-md border border-border p-3 space-y-2 text-xs">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div><span className="text-muted-foreground">GHI:</span> {validation.ghiCount.toLocaleString("pt-BR")} pts</div>
-                <div><span className="text-muted-foreground">DHI:</span> {validation.dhiCount.toLocaleString("pt-BR")} pts</div>
-                <div><span className="text-muted-foreground">DNI:</span> {validation.dniCount.toLocaleString("pt-BR")} pts</div>
-                <div><span className="text-muted-foreground">Mesclados:</span> {validation.mergedCount.toLocaleString("pt-BR")} pts</div>
+                <div><span className="text-muted-foreground">GHI:</span> {formatIntegerBR(validation.ghiCount)} pts</div>
+                <div><span className="text-muted-foreground">DHI:</span> {formatIntegerBR(validation.dhiCount)} pts</div>
+                <div><span className="text-muted-foreground">DNI:</span> {formatIntegerBR(validation.dniCount)} pts</div>
+                <div><span className="text-muted-foreground">Mesclados:</span> {formatIntegerBR(validation.mergedCount)} pts</div>
               </div>
               <div className="flex gap-3 flex-wrap">
                 <span>Unidade: <strong>{validation.unitDetected}</strong></span>
@@ -604,7 +605,7 @@ export function CsvImportPanel() {
           {state === "uploading" && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Enviados {progress.current.toLocaleString("pt-BR")} de {progress.total.toLocaleString("pt-BR")}</span>
+                <span>Enviados {formatIntegerBR(progress.current)} de {formatIntegerBR(progress.total)}</span>
                 <span>{progressPct}%</span>
               </div>
               <Progress value={progressPct} className="h-2" />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,7 @@ export function ResetSolarDataButton({ onComplete }: Props) {
       const result = data as unknown as ResetResult;
 
       toast.success("🧹 Base meteorológica limpa!", {
-        description: `Pontos: ${result.deleted.points.toLocaleString("pt-BR")} | Cache: ${result.deleted.cache.toLocaleString("pt-BR")} | POA: ${result.deleted.poa.toLocaleString("pt-BR")}`,
+        description: `Pontos: ${formatIntegerBR(result.deleted.points)} | Cache: ${formatIntegerBR(result.deleted.cache)} | POA: ${formatIntegerBR(result.deleted.poa)}`,
         duration: 10000,
       });
 

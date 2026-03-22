@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,7 +92,7 @@ export function IrradianciaPage() {
 
         if (data.status === "active") {
           toast.success("✅ Importação concluída!", {
-            description: `${datasetCode}: ${(data.row_count ?? 0).toLocaleString("pt-BR")} pontos importados com sucesso.`,
+            description: `${datasetCode}: ${formatIntegerBR(data.row_count ?? 0)} pontos importados com sucesso.`,
             duration: 10000,
           });
           setImportingVersions((prev) => {
@@ -405,7 +406,7 @@ export function IrradianciaPage() {
                         {processingVersion && expected && (
                           <div className="space-y-1">
                             <div className="flex justify-between text-[10px] text-muted-foreground">
-                              <span>{current.toLocaleString("pt-BR")} / {expected.toLocaleString("pt-BR")} pontos</span>
+                              <span>{formatIntegerBR(current)} / {formatIntegerBR(expected)} pontos</span>
                               <span className="font-medium">{percent}%</span>
                             </div>
                             <Progress value={percent} className="h-2" />
@@ -584,13 +585,13 @@ export function IrradianciaPage() {
                           // 2. Row count
                           if (intg) {
                             if (intg.actual_points === v.row_count && v.row_count > 0) {
-                              checks.push({ label: "Pontos", status: "ok", detail: `${v.row_count.toLocaleString("pt-BR")} pontos verificados ✓` });
+                              checks.push({ label: "Pontos", status: "ok", detail: `${formatIntegerBR(v.row_count)} pontos verificados ✓` });
                             } else if (isProcessing) {
-                              checks.push({ label: "Pontos", status: "info", detail: `${intg.actual_points.toLocaleString("pt-BR")} pontos importados até agora (importação em andamento)` });
+                              checks.push({ label: "Pontos", status: "info", detail: `${formatIntegerBR(intg.actual_points)} pontos importados até agora (importação em andamento)` });
                             } else if (v.row_count === 0) {
                               checks.push({ label: "Pontos", status: "error", detail: "Nenhum ponto importado", action: "Recomece a importação" });
                             } else {
-                              checks.push({ label: "Pontos", status: "warning", detail: `Divergência: registrado ${v.row_count.toLocaleString("pt-BR")}, encontrado ${intg.actual_points.toLocaleString("pt-BR")}`, action: "Pode indicar importação interrompida. Recomece." });
+                              checks.push({ label: "Pontos", status: "warning", detail: `Divergência: registrado ${formatIntegerBR(v.row_count)}, encontrado ${formatIntegerBR(intg.actual_points)}`, action: "Pode indicar importação interrompida. Recomece." });
                             }
                           }
 

@@ -26,6 +26,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
+import { formatIntegerBR } from "@/lib/formatters";
 
 interface AuditLog {
   id: string;
@@ -198,7 +199,7 @@ export function AuditLogsViewer() {
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{totalCount.toLocaleString("pt-BR")}</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{formatIntegerBR(totalCount)}</p>
               <p className="text-sm text-muted-foreground mt-1">Total de registros</p>
             </div>
           </CardContent>
@@ -285,7 +286,7 @@ export function AuditLogsViewer() {
         <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
           <CardTitle className="text-base font-semibold text-foreground">Registros de Auditoria</CardTitle>
           <span className="text-sm text-muted-foreground">
-            {totalCount.toLocaleString("pt-BR")} registros
+            {formatIntegerBR(totalCount)} registros
             {totalPages > 1 && ` • Página ${page + 1} de ${totalPages}`}
           </span>
         </CardHeader>

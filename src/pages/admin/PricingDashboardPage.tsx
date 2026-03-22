@@ -18,6 +18,7 @@ import {
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { DollarSign, Eye, MousePointer, TrendingUp, FlaskConical } from "lucide-react";
 import { usePricingDashboard, type VariantMetrics } from "@/hooks/usePricingDashboard";
+import { formatIntegerBR } from "@/lib/formatters";
 import { usePriceVariantsAdmin, useTogglePriceVariant } from "@/hooks/usePriceVariantsAdmin";
 import { useBillingPlans } from "@/hooks/useBillingPlans";
 
@@ -63,9 +64,9 @@ export default function PricingDashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard icon={Eye} label="Views" value={totalViews.toLocaleString("pt-BR")} color="primary" />
-        <KpiCard icon={MousePointer} label="Clicks" value={totalClicks.toLocaleString("pt-BR")} color="warning" />
-        <KpiCard icon={TrendingUp} label="Upgrades" value={totalUpgrades.toLocaleString("pt-BR")} color="success" />
+        <KpiCard icon={Eye} label="Views" value={formatIntegerBR(totalViews)} color="primary" />
+        <KpiCard icon={MousePointer} label="Clicks" value={formatIntegerBR(totalClicks)} color="warning" />
+        <KpiCard icon={TrendingUp} label="Upgrades" value={formatIntegerBR(totalUpgrades)} color="success" />
         <KpiCard icon={DollarSign} label="Conversão" value={`${conversionRate}%`} color="primary" />
       </div>
 
