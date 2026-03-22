@@ -217,7 +217,7 @@ async function processInvoice(
   if (!resolvedUnitId && parsed.numero_uc) {
     const { data: uc } = await admin
       .from('units_consumidoras')
-      .select('id, codigo_uc, cliente_id')
+      .select('id, codigo_uc, cliente_id, unit_identifier, unit_identifier_type')
       .eq('tenant_id', tenantId)
       .eq('codigo_uc', parsed.numero_uc)
       .maybeSingle();
@@ -231,11 +231,65 @@ async function processInvoice(
   if (resolvedUnitId && !ucData) {
     const { data: uc } = await admin
       .from('units_consumidoras')
-      .select('id, codigo_uc, cliente_id')
+      .select('id, codigo_uc, cliente_id, unit_identifier, unit_identifier_type')
       .eq('id', resolvedUnitId)
       .eq('tenant_id', tenantId)
       .maybeSingle();
     ucData = uc;
+  }
+
+  // ── 5b. Ownership validation ──
+  const identifierField = extractionConfig?.identifier_field || 'numero_uc';
+  const identifierExtracted = parsed[identifierField] || parsed.numero_uc || null;
+  const identifierExpected = ucData?.unit_identifier || ucData?.codigo_uc || null;
+  const ownershipResult = validateOwnership(identifierExtracted, identifierExpected);
+
+  console.log(`[process-fatura-pdf] Ownership: extracted=${identifierExtracted}, expected=${identifierExpected}, status=${ownershipResult.status}, score=${ownershipResult.score}`);
+
+  if (ownershipResult.status === 'mismatch') {
+    // Block automatic assignment on mismatch
+    console.warn(`[process-fatura-pdf] OWNERSHIP MISMATCH — extracted: ${identifierExtracted}, expected: ${identifierExpected}`);
+
+    if (resolvedUnitId) {
+      // Save invoice but mark as needs_manual_assignment
+      const invoicePayloadMismatch: any = {
+        tenant_id: tenantId,
+        unit_id: resolvedUnitId,
+        reference_month: mes,
+        reference_year: ano,
+        total_amount: parsed.valor_total,
+        energy_consumed_kwh: parsed.consumo_kwh,
+        raw_extraction: parsed,
+        parsing_status: extractionStatus,
+        parser_version: parsed.parser_version || null,
+        last_parsed_at: new Date().toISOString(),
+        source: invoiceSource,
+        status: 'pending_review',
+        needs_manual_assignment: true,
+        ownership_validation_status: 'mismatch',
+        ownership_validation_score: 0,
+        identifier_extracted: identifierExtracted,
+        identifier_expected: identifierExpected,
+        parsing_error_reason: `Titularidade divergente: extraído "${identifierExtracted}" ≠ esperado "${identifierExpected}"`,
+      };
+
+      const { data: mismatchInvoice } = await admin
+        .from('unit_invoices')
+        .insert(invoicePayloadMismatch)
+        .select('id')
+        .maybeSingle();
+
+      await logExtractionRun(admin, tenantId, extractionConfig?.id, mismatchInvoice?.id || null, resolvedUnitId, detectedConc || 'unknown', strategyMode, 'failed', `Ownership mismatch: ${identifierExtracted} ≠ ${identifierExpected}`, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version, 'mismatch', 0, identifierExtracted, false);
+
+      return new Response(JSON.stringify({
+        error: 'Titularidade da fatura não confere com a UC.',
+        ownership_validation: ownershipResult,
+        identifier_extracted: identifierExtracted,
+        identifier_expected: identifierExpected,
+        invoice_id: mismatchInvoice?.id,
+        needs_manual_assignment: true,
+      }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
   }
 
   if (!resolvedUnitId) {
@@ -369,6 +423,12 @@ async function processInvoice(
     consistency_checks_json: gdChecks.checks,
     consistency_warnings_json: gdChecks.checks.filter((c: any) => c.level === 'warning'),
     consistency_errors_json: gdChecks.checks.filter((c: any) => c.level === 'error'),
+    // Ownership validation
+    ownership_validation_status: ownershipResult.status,
+    ownership_validation_score: ownershipResult.score,
+    identifier_extracted: identifierExtracted,
+    identifier_expected: identifierExpected,
+    needs_manual_assignment: ownershipResult.status === 'unknown',
   };
 
   const { data: invoice, error: invoiceErr } = await admin
@@ -386,7 +446,7 @@ async function processInvoice(
   }
 
   // ── 10. Log extraction run ──
-  await logExtractionRun(admin, tenantId, extractionConfig?.id, invoice.id, resolvedUnitId, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version);
+  await logExtractionRun(admin, tenantId, extractionConfig?.id, invoice.id, resolvedUnitId, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version, ownershipResult.status, ownershipResult.score, identifierExtracted, ownershipResult.status === 'valid');
 
   // ── 11. Update UC with reading data + enrich from first invoice ──
   const ucUpdate: any = {};
@@ -513,6 +573,9 @@ async function processInvoice(
       source: invoiceSource,
       extraction_status: extractionStatus,
       gd_consistency: gdChecks,
+      ownership_validation: ownershipResult,
+      identifier_extracted: identifierExtracted,
+      identifier_expected: identifierExpected,
       config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome } : null,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -1019,6 +1082,21 @@ function runGdConsistencyChecks(current: GdData, previous: GdData | null) {
   return { checks, overallLevel, score };
 }
 
+// ── Ownership validation ──
+function normalizeIdentifier(raw: string | null | undefined): string {
+  if (!raw) return "";
+  return raw.replace(/[\s\-\/\\.\,\;\:\#\*\(\)]/g, "").replace(/[^\w]/g, "").toLowerCase().trim();
+}
+
+function validateOwnership(extracted: string | null | undefined, expected: string | null | undefined): { status: "valid" | "mismatch" | "unknown"; score: number } {
+  const normExtracted = normalizeIdentifier(extracted);
+  const normExpected = normalizeIdentifier(expected);
+  if (!normExtracted || !normExpected) return { status: "unknown", score: 0 };
+  if (normExtracted === normExpected) return { status: "valid", score: 100 };
+  if (normExtracted.includes(normExpected) || normExpected.includes(normExtracted)) return { status: "valid", score: 80 };
+  return { status: "mismatch", score: 0 };
+}
+
 // ── Log extraction run ──
 async function logExtractionRun(
   admin: any,
@@ -1035,6 +1113,10 @@ async function logExtractionRun(
   missingFields: string[],
   confidenceScore?: number | null,
   parserVersion?: string | null,
+  ownershipStatus?: string | null,
+  ownershipScore?: number | null,
+  identifierExtracted?: string | null,
+  identifierMatched?: boolean | null,
 ) {
   try {
     await admin.from('invoice_extraction_runs').insert({
@@ -1053,6 +1135,10 @@ async function logExtractionRun(
       confidence_score: confidenceScore ?? null,
       started_at: new Date().toISOString(),
       finished_at: new Date().toISOString(),
+      ownership_validation_status: ownershipStatus || null,
+      ownership_validation_score: ownershipScore ?? null,
+      identifier_extracted: identifierExtracted || null,
+      identifier_matched: identifierMatched ?? null,
     });
   } catch (err) {
     console.warn("[process-fatura-pdf] Failed to log extraction run:", err);
