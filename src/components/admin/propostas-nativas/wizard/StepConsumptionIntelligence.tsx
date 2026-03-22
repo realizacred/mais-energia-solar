@@ -819,7 +819,7 @@ function EquipamentosPreFilter({ pd, consumoTotal, potenciaIdealByTopo }: {
           <p className="text-sm font-semibold">Pré-filtro de Equipamentos</p>
         </div>
         <p className="text-xs text-muted-foreground">
-          Com base no consumo de <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh/mês</span> e
+          Com base no consumo de <span className="font-bold text-foreground">{formatNumberBR(consumoTotal)} kWh/mês</span> e
           topologias selecionadas ({activeTopos.map(t => TOPOLOGIA_LABELS[t]).join(", ")}),
           o sistema filtrará equipamentos compatíveis na faixa de <span className="font-bold text-foreground">{potMin.toFixed(2)}</span> a <span className="font-bold text-foreground">{potMax.toFixed(2)} kWp</span>.
         </p>
