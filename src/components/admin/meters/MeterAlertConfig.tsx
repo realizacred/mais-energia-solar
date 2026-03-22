@@ -298,7 +298,7 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
           </div>
 
           <div className="flex justify-end pt-2">
-            <Button size="sm" onClick={handleSave} disabled={saving}>
+            <Button size="sm" onClick={handleSave} disabled={saving || !isDirty}>
               {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
               Salvar Configurações
             </Button>
