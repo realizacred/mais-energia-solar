@@ -458,6 +458,25 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
+  // Fallback: INJ row for injection from structured table
+  if (leituraAnterior103 == null || leituraAtual103 == null) {
+    const injTableMatch = flatText.match(/INJ\s+(?:Ponta|Fora\s+de\s+Ponta)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)(?:\s+[\d.,]*)*?\s+([\d.,]+)/i);
+    if (injTableMatch) {
+      const atu103 = parseNum(injTableMatch[1]);
+      const ant103 = parseNum(injTableMatch[2]);
+      const medido103 = parseNum(injTableMatch[4]);
+      if (Number.isFinite(atu103) && Number.isFinite(ant103)) {
+        if (leituraAtual103 == null) { leituraAtual103 = atu103; fieldResults['leitura_atual_103'] = makeField(atu103, 'regex:ESTRUTURA_INJ_TABLE', true); }
+        if (leituraAnterior103 == null) { leituraAnterior103 = ant103; fieldResults['leitura_anterior_103'] = makeField(ant103, 'regex:ESTRUTURA_INJ_TABLE', true); }
+        if (energiaInjetada == null && Number.isFinite(medido103)) {
+          energiaInjetada = medido103;
+          fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:ESTRUTURA_INJ_TABLE', true);
+          confidence += 10;
+        }
+      }
+    }
+  }
+
   // Second medidor code for injection
   const medidorInjMatch = flatText.match(/(?:medidor|registro)\s*(?:103|inje[çc][ãa]o)[:\s]*(\d{4,})/i);
   if (medidorInjMatch) {
