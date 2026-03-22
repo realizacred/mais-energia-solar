@@ -30,9 +30,12 @@ const DEFAULTS: AutoReplyData = {
 
 export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
   const [config, setConfig] = useState<AutoReplyData>(DEFAULTS);
+  const [baseline, setBaseline] = useState<AutoReplyData>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
+
+  const isDirty = useMemo(() => JSON.stringify(config) !== JSON.stringify(baseline), [config, baseline]);
 
   useEffect(() => { loadConfig(); }, [tenantId]);
 
