@@ -145,7 +145,23 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   // Default relation type based on UC type
   const defaultRelation = ucTipo === "gd_geradora" ? "geradora" : "beneficiaria";
 
-  if (isLoading) return <div className="py-8 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
+  if (isLoading) return (
+    <div className="space-y-3">
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-32 w-full rounded-lg" />
+      <Skeleton className="h-32 w-full rounded-lg" />
+    </div>
+  );
+
+  if (isError) return (
+    <div className="text-center py-8 space-y-2">
+      <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+        <Sun className="w-6 h-6 text-destructive" />
+      </div>
+      <p className="text-sm text-destructive">Erro ao carregar vínculos de usinas</p>
+      <p className="text-xs text-muted-foreground">Tente recarregar a página</p>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
