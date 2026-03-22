@@ -23,7 +23,7 @@ import {
   useDeleteExtractionConfig,
   type ExtractionConfig,
 } from "@/hooks/useExtractionConfigs";
-import { ExtractionConfigModal } from "./ExtractionConfigModal";
+import { ExtractionConfigModal, type ExtractionConfigPrefill } from "./ExtractionConfigModal";
 import { ExtractionTestTab } from "./ExtractionTestTab";
 import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
 import { LayoutLearningTab } from "./LayoutLearningTab";
