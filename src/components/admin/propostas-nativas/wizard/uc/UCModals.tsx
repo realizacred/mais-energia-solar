@@ -277,8 +277,8 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, geracaoMensal, onS
           <div className="rounded-md bg-muted/50 p-3 space-y-1">
             <p className="text-xs font-medium">Resumo</p>
             <div className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
-              <span>Consumo total: <strong>{totalConsumo.toLocaleString("pt-BR")} kWh</strong></span>
-              <span>Geração mensal: <strong>{geracaoMensal.toLocaleString("pt-BR")} kWh</strong></span>
+              <span>Consumo total: <strong>{formatNumberBR(totalConsumo)} kWh</strong></span>
+              <span>Geração mensal: <strong>{formatNumberBR(geracaoMensal)} kWh</strong></span>
             </div>
           </div>
 
