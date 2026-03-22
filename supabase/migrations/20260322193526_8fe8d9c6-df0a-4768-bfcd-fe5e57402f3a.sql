@@ -1,0 +1,1 @@
+DELETE FROM public.invoice_extraction_runs;
