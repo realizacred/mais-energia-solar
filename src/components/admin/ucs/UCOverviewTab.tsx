@@ -228,16 +228,27 @@ export function UCOverviewTab({
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayGeneration = plantMetrics.find((m: any) => m.date === todayStr);
   const latestInvoice = recentInvoices[0];
-  const saldoGD = latestInvoice?.current_balance_kwh ?? latestInvoice?.compensated_kwh ?? null;
+  
+  // Saldo GD: créditos manuais + saldo da última fatura
+  const invoiceSaldo = latestInvoice?.current_balance_kwh ?? 0;
+  const totalCredits = creditSum ?? 0;
+  const saldoGD = (invoiceSaldo + totalCredits) || null;
+
+  // Consumo e Injeção hoje (delta do medidor)
+  const consumoHoje = todayMeterDelta?.consumoHoje ?? null;
+  const injecaoHoje = todayMeterDelta?.injecaoHoje ?? null;
 
   const proximaDias = proximaLeituraData
     ? Math.ceil((new Date(proximaLeituraData).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
 
+  const fmtKwh = (v: number | null) =>
+    v != null ? `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—";
+
   return (
     <div className="space-y-6">
       {/* SEÇÃO 1 — KPI Cards §27 via StatCard */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {loadingMeter ? (
           <Card className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-20" /></Card>
         ) : (
@@ -262,7 +273,7 @@ export function UCOverviewTab({
           <StatCard
             icon={Sun}
             label="Geração Hoje"
-            value={todayGeneration ? `${Number(todayGeneration.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "0,0 kWh"}
+            value={todayGeneration ? fmtKwh(Number(todayGeneration.energy_kwh)) : "0,0 kWh"}
             color="warning"
           />
         )}
@@ -272,11 +283,27 @@ export function UCOverviewTab({
         ) : (
           <StatCard
             icon={BarChart3}
-            label="Consumo Acumulado"
-            value={meterStatus?.energy_import_kwh != null ? `${Number(meterStatus.energy_import_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}
+            label="Consumo Hoje"
+            value={fmtKwh(consumoHoje)}
             color="info"
           />
         )}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <StatCard
+          icon={ArrowUpRight}
+          label="Injeção Hoje"
+          value={fmtKwh(injecaoHoje)}
+          color="warning"
+        />
+
+        <StatCard
+          icon={Battery}
+          label="Saldo GD"
+          value={fmtKwh(saldoGD)}
+          color="success"
+        />
 
         <StatCard
           icon={Calendar}
@@ -286,9 +313,11 @@ export function UCOverviewTab({
         />
 
         <StatCard
-          icon={Battery}
-          label="Saldo GD"
-          value={saldoGD != null ? `${Number(saldoGD).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}
+          icon={ArrowDownRight}
+          label="Sobra do Dia"
+          value={todayGeneration && consumoHoje != null
+            ? fmtKwh(Math.max(0, Number(todayGeneration.energy_kwh) - consumoHoje))
+            : "—"}
           color="success"
         />
       </div>
