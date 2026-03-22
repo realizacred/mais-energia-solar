@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
  * This avoids platform-level 401s when an invoke call needs timeout or extra headers.
  */
 export async function getEdgeFunctionAuthHeaders(extraHeaders?: HeadersInit): Promise<Record<string, string>> {
+  await supabase.auth.refreshSession();
+
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session?.access_token) {

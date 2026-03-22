@@ -51,12 +51,13 @@ Deno.serve(async (req) => {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: userData, error: userErr } = await userClient.auth.getUser();
-      if (userErr || !userData?.user?.id) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims?.sub) {
         return new Response(JSON.stringify({ error: 'Não autorizado' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      const userId = userData.user.id;
+      const userId = claimsData.claims.sub;
 
       const { data: profile } = await admin
         .from('profiles')
