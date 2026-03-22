@@ -199,7 +199,7 @@ export function AuditLogsViewer() {
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{totalCount.toLocaleString("pt-BR")}</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{formatIntegerBR(totalCount)}</p>
               <p className="text-sm text-muted-foreground mt-1">Total de registros</p>
             </div>
           </CardContent>
