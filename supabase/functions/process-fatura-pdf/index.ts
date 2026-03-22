@@ -430,7 +430,7 @@ async function reprocessInvoice(
   // 1. Fetch existing invoice
   const { data: invoice, error: invErr } = await admin
     .from('unit_invoices')
-    .select('id, unit_id, pdf_file_url, raw_extraction, tenant_id')
+    .select('id, unit_id, pdf_file_url, raw_extraction, tenant_id, reference_month, reference_year')
     .eq('id', invoiceId)
     .eq('tenant_id', tenantId)
     .maybeSingle();
@@ -441,31 +441,57 @@ async function reprocessInvoice(
   }
 
   // 2. Try to find PDF in storage to re-extract text
-  // Find the storage path from pdf_file_url or try known patterns
   const { data: ucData } = await admin
     .from('units_consumidoras')
     .select('id, codigo_uc')
     .eq('id', invoice.unit_id)
     .maybeSingle();
 
-  // Try downloading the PDF from storage
   let pdfText = '';
   let pdfFound = false;
 
-  // List possible storage paths
   const raw = invoice.raw_extraction as Record<string, any> | null;
-  const refMonth = raw?.mes_referencia || '';
   const ucCode = ucData?.codigo_uc || raw?.numero_uc || 'unknown';
-  
-  // Try to reconstruct storage path
+
+  // Strategy 1: Extract storage path from pdf_file_url (signed URL contains the path)
   const possiblePaths: string[] = [];
+  if (invoice.pdf_file_url) {
+    try {
+      const urlObj = new URL(invoice.pdf_file_url);
+      // Signed URLs have path like /storage/v1/object/sign/faturas-energia/{tenant}/{year}/{month}/{uc}.pdf
+      const pathMatch = urlObj.pathname.match(/\/faturas-energia\/(.+\.pdf)/);
+      if (pathMatch) {
+        possiblePaths.push(pathMatch[1]);
+      }
+    } catch { /* ignore URL parse errors */ }
+  }
+
+  // Strategy 2: Use invoice's own reference_month/reference_year fields
+  if (invoice.reference_month && invoice.reference_year) {
+    possiblePaths.push(`${tenantId}/${invoice.reference_year}/${String(invoice.reference_month).padStart(2, '0')}/${ucCode}.pdf`);
+  }
+
+  // Strategy 3: Use raw_extraction mes_referencia
   if (raw?.mes_referencia) {
     const year = extractYear(raw.mes_referencia, new Date().getFullYear());
     const month = extractMonth(raw.mes_referencia, new Date().getMonth() + 1);
     possiblePaths.push(`${tenantId}/${year}/${String(month).padStart(2, '0')}/${ucCode}.pdf`);
   }
 
-  for (const path of possiblePaths) {
+  // Strategy 4: List files in tenant folder to find any matching UC PDF
+  if (!possiblePaths.length && ucCode !== 'unknown') {
+    // Try current year/month as last resort
+    const now = new Date();
+    for (let m = now.getMonth() + 1; m >= 1; m--) {
+      possiblePaths.push(`${tenantId}/${now.getFullYear()}/${String(m).padStart(2, '0')}/${ucCode}.pdf`);
+    }
+  }
+
+  // Deduplicate paths
+  const uniquePaths = [...new Set(possiblePaths)];
+  console.log(`[process-fatura-pdf] Reprocess: trying ${uniquePaths.length} storage paths for invoice ${invoiceId}`);
+
+  for (const path of uniquePaths) {
     const { data: dlData, error: dlErr } = await admin.storage
       .from('faturas-energia')
       .download(path);
@@ -473,25 +499,28 @@ async function reprocessInvoice(
       const bytes = new Uint8Array(await dlData.arrayBuffer());
       pdfText = extractTextFromPdfBytes(bytes);
       pdfFound = true;
+      console.log(`[process-fatura-pdf] Reprocess: PDF found at ${path}`);
       break;
     }
   }
 
-  // If no PDF found in storage, try using raw text from raw_extraction
+  // Fallback: try using raw text from raw_extraction
   if (!pdfFound && raw?.texto_bruto) {
     pdfText = raw.texto_bruto;
+    console.log(`[process-fatura-pdf] Reprocess: using texto_bruto from raw_extraction`);
   }
 
   if (!pdfText || pdfText.length < 20) {
     await admin.from('unit_invoices').update({
       parsing_status: 'failed',
-      parsing_error_reason: 'PDF não encontrado no storage para reprocessamento',
+      parsing_error_reason: `PDF não encontrado no storage (tentados ${uniquePaths.length} caminhos)`,
       last_parsed_at: new Date().toISOString(),
     }).eq('id', invoiceId);
 
     return new Response(JSON.stringify({
-      error: 'PDF não encontrado para reprocessamento. O texto extraído é insuficiente.',
+      error: 'PDF não encontrado para reprocessamento.',
       parsing_status: 'failed',
+      paths_tried: uniquePaths,
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
