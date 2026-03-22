@@ -48,6 +48,7 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
 
     if (data) {
       setConfig(data);
+      setBaseline(data);
       setExists(true);
     }
     setLoading(false);
