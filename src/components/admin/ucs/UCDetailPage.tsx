@@ -171,44 +171,80 @@ export default function UCDetailPage() {
 
   return (
     <div className="space-y-0">
-      {/* Back button */}
-      <div className="p-4 md:px-6 md:pt-6 pb-0">
+      {/* Back button + Actions row */}
+      <div className="p-4 md:px-6 md:pt-6 pb-0 flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={() => navigate("/admin/ucs")}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
         </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setEditDialogOpen(true)}>
+            <Edit className="w-3.5 h-3.5" /> Editar
+          </Button>
+        </div>
       </div>
 
-      {/* Hero header banner */}
-      <div className="mx-4 md:mx-6 mt-3 rounded-xl bg-gradient-to-r from-card to-muted/30 border shadow-sm p-5 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-            <Building2 className="h-6 w-6 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-6">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Denominação</p>
-              <p className="text-sm font-bold truncate">{uc.nome}</p>
+      {/* Hero header banner — redesigned */}
+      <div className="mx-4 md:mx-6 mt-3 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card shadow-sm overflow-hidden">
+        {/* Accent bar */}
+        <div className="h-1 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+
+        <div className="p-5 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-start gap-4">
+            {/* Icon */}
+            <div className="h-14 w-14 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shrink-0">
+              <Building2 className="h-7 w-7 text-primary" />
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Contrato</p>
-              <p className="text-sm font-bold font-mono">{uc.codigo_uc}</p>
+
+            {/* Main info */}
+            <div className="flex-1 min-w-0">
+              {/* Title row */}
+              <div className="flex items-start gap-3 flex-wrap mb-3">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg font-bold text-foreground truncate">{uc.nome}</h1>
+                  <p className="text-sm text-muted-foreground font-mono mt-0.5">{uc.codigo_uc}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge className="text-xs bg-primary/10 text-primary border-primary/20 font-medium">
+                    {UC_TYPE_LABELS[uc.tipo_uc] || uc.tipo_uc}
+                  </Badge>
+                  <StatusBadge variant={uc.is_archived ? "muted" : uc.status === "active" ? "success" : "warning"} dot>
+                    {uc.is_archived ? "Arquivada" : uc.status === "active" ? "Ativa" : uc.status}
+                  </StatusBadge>
+                </div>
+              </div>
+
+              {/* Detail chips */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Concessionária</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{uc.concessionaria_nome || "—"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-3.5 h-3.5 text-info shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Classificação</p>
+                    <p className="text-sm font-semibold text-foreground">{uc.classificacao_grupo || "—"}{uc.classificacao_subgrupo ? ` / ${uc.classificacao_subgrupo}` : ""}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Gauge className="w-3.5 h-3.5 text-warning shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Modalidade</p>
+                    <p className="text-sm font-semibold text-foreground">{uc.modalidade_tarifaria || "—"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sun className="w-3.5 h-3.5 text-success shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Papel GD</p>
+                    <p className="text-sm font-semibold text-foreground">{PAPEL_GD_LABELS[uc.papel_gd] || uc.papel_gd || "Nenhum"}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Concessionária</p>
-              <p className="text-sm font-bold truncate">{uc.concessionaria_nome || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Classificação</p>
-              <p className="text-sm font-bold">{uc.classificacao_grupo || "—"}{uc.classificacao_subgrupo ? ` - ${uc.classificacao_subgrupo}` : ""}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="outline" className="text-xs">
-              {UC_TYPE_LABELS[uc.tipo_uc] || uc.tipo_uc}
-            </Badge>
-            <StatusBadge variant={uc.is_archived ? "muted" : uc.status === "active" ? "success" : "warning"} dot>
-              {uc.is_archived ? "Arquivada" : uc.status === "active" ? "Ativa" : uc.status}
-            </StatusBadge>
           </div>
         </div>
       </div>
