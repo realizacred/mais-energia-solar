@@ -4,6 +4,7 @@
  * §16: queries in hooks. §4: table pattern. §12: skeleton. §26: headers.
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sun, Users, Plus, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { Sun, Users, Plus, Trash2, Loader2, AlertCircle, ExternalLink } from "lucide-react";
 import { useGdGroupByGenerator, useGdBeneficiaries, useGdBeneficiariesByUC, useSaveGdBeneficiary, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { useSaveGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { unitService, type UCRecord } from "@/services/unitService";
@@ -119,6 +120,7 @@ function GeneratorSection({
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const saveGroup = useSaveGdGroup();
   const saveBeneficiary = useSaveGdBeneficiary();
   const deleteBeneficiary = useDeleteGdBeneficiary();
@@ -279,11 +281,18 @@ function GeneratorSection({
                   {beneficiaries.map((b) => {
                     const ucBen = allUcs.find(u => u.id === b.uc_beneficiaria_id);
                     return (
-                      <TableRow key={b.id} className="hover:bg-muted/30 transition-colors">
+                      <TableRow
+                        key={b.id}
+                        className="hover:bg-muted/30 cursor-pointer transition-colors"
+                        onClick={() => navigate(`/admin/ucs/${b.uc_beneficiaria_id}`)}
+                      >
                         <TableCell className="text-sm text-foreground">
-                          <div>
-                            <p className="font-medium">{ucBen?.nome || "UC desconhecida"}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{ucBen?.codigo_uc || "—"}</p>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium">{ucBen?.nome || "UC desconhecida"}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{ucBen?.codigo_uc || "—"}</p>
+                            </div>
+                            <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">
@@ -299,7 +308,7 @@ function GeneratorSection({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => handleDeleteBeneficiary(b.id)}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteBeneficiary(b.id); }}
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
@@ -400,7 +409,21 @@ function AddBeneficiaryDialog({
                 </SelectContent>
               </Select>
               {availableUcs.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhuma UC disponível para adicionar</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Nenhuma UC disponível para adicionar</p>
+                  <p className="text-xs text-muted-foreground">Cadastre novas UCs primeiro para adicioná-las como beneficiárias</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      onOpenChange(false);
+                      window.location.href = "/admin/ucs";
+                    }}
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Ir para cadastro de UCs
+                  </Button>
+                </div>
               )}
             </div>
 
