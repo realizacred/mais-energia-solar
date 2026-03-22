@@ -226,8 +226,9 @@ async function processInvoice(
   }
 
   // Use saldo_gd_acumulado as current_balance (the total accumulated credit)
-  // saldo_gd is per-period, saldo_gd_acumulado is the running total
+  // saldo_gd is per-period; when unavailable for Energisa, use compensated energy to derive previous balance.
   const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
+  const previousBalance = derivePreviousBalance(parsed);
 
   const invoicePayload: any = {
     tenant_id: tenantId,
@@ -239,9 +240,7 @@ async function processInvoice(
     energy_injected_kwh: energyInjected,
     compensated_kwh: parsed.energia_compensada_kwh ?? null,
     current_balance_kwh: currentBalance,
-    previous_balance_kwh: parsed.saldo_gd_acumulado != null && parsed.saldo_gd != null
-      ? Math.max((parsed.saldo_gd_acumulado - (parsed.saldo_gd ?? 0)), 0)
-      : null,
+    previous_balance_kwh: previousBalance,
     bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
     pdf_file_url: pdfUrl,
@@ -552,6 +551,7 @@ async function reprocessInvoice(
     energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
   }
   const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
+  const previousBalance = derivePreviousBalance(parsed);
   const reprocessedYear = parsed.mes_referencia ? extractYear(parsed.mes_referencia, invoice.reference_year) : invoice.reference_year;
   const reprocessedMonth = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, invoice.reference_month) : invoice.reference_month;
 
@@ -573,9 +573,7 @@ async function reprocessInvoice(
     energy_injected_kwh: energyInjected,
     compensated_kwh: parsed.energia_compensada_kwh ?? null,
     current_balance_kwh: currentBalance,
-    previous_balance_kwh: parsed.saldo_gd_acumulado != null && parsed.saldo_gd != null
-      ? Math.max((parsed.saldo_gd_acumulado - (parsed.saldo_gd ?? 0)), 0)
-      : null,
+    previous_balance_kwh: previousBalance,
     bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
     demanda_contratada_kw: parsed.demanda_contratada_kw,
@@ -739,6 +737,18 @@ function parseDateBR(dateStr: string): string | null {
   const [day, month, year] = parts;
   const fullYear = year.length === 2 ? `20${year}` : year;
   return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+function derivePreviousBalance(parsed: {
+  saldo_gd_acumulado?: number | null;
+  saldo_gd?: number | null;
+  energia_compensada_kwh?: number | null;
+}): number | null {
+  const currentBalance = parsed.saldo_gd_acumulado ?? null;
+  const deductedAmount = parsed.saldo_gd ?? parsed.energia_compensada_kwh ?? null;
+
+  if (currentBalance == null || deductedAmount == null) return null;
+  return Math.max(currentBalance - deductedAmount, 0);
 }
 
 function extractYear(mesRef: string, fallback: number): number {

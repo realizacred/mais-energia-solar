@@ -3,11 +3,11 @@
 // Layer 0: Concessionária-specific parsers (Energisa, etc.)
 // Layer 1: Generic regex fallback
 // NO AI fallback — 100% deterministic, auditable, reproducible
-// Parser version: 3.0.0
+// Parser version: 3.0.2
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
-const PARSER_VERSION = "3.0.1";
+const PARSER_VERSION = "3.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -190,6 +190,14 @@ function extractLocalizedNumberTokens(value: string): number[] {
     .filter((item) => Number.isFinite(item));
 }
 
+function dateToSortableNumber(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const normalized = normalizeDateLike(value);
+  if (!isPlausibleDate(normalized)) return null;
+  const [day, month, year] = normalized.split('/').map(Number);
+  return (year * 10000) + (month * 100) + day;
+}
+
 // ── Meter Row Extraction ────────────────────────────────────────────────────
 
 function extractMeterRow(flatText: string, labelPattern: string) {
@@ -226,6 +234,7 @@ function extractEnergisa(text: string): ExtractedData | null {
   const fieldResults: Record<string, FieldResult> = {};
   const validations: ValidationResult[] = [];
   let confidence = 20;
+  let shouldSwapTariffs = true;
 
   // ── 1. Identificação e Datas ──
 
@@ -370,6 +379,51 @@ function extractEnergisa(text: string): ExtractedData | null {
     if (Number.isFinite(diasCompact) && diasCompact > 0 && diasCompact < 90) {
       diasLeitura = diasCompact;
       fieldResults['dias_leitura'] = makeField(diasCompact, 'regex:LEITURAS_COMPACT', true);
+    }
+  }
+
+  if (!resolvedProximaLeitura || !dataLeituraAnterior || !dataLeituraAtual || diasLeitura == null) {
+    const cicloLeituraMatches = [...flatText.matchAll(/(\d{2}[\/.]\d{2}[\/.]\d{4})\s*(\d{2}[\/.]\d{2}[\/.]\d{4})\s*(\d{1,3})\s*(\d{2}[\/.]\d{2}[\/.]\d{4})/g)];
+    for (const match of cicloLeituraMatches) {
+      const proximaCandidate = normalizeDateLike(match[1]);
+      const anteriorCandidate = normalizeDateLike(match[2]);
+      const diasCandidate = parseInt(match[3], 10);
+      const atualCandidate = normalizeDateLike(match[4]);
+
+      const proximaOrder = dateToSortableNumber(proximaCandidate);
+      const anteriorOrder = dateToSortableNumber(anteriorCandidate);
+      const atualOrder = dateToSortableNumber(atualCandidate);
+
+      if (
+        !proximaOrder || !anteriorOrder || !atualOrder
+        || !(anteriorOrder < atualOrder && atualOrder < proximaOrder)
+        || !Number.isFinite(diasCandidate)
+        || diasCandidate <= 0
+        || diasCandidate > 60
+      ) {
+        continue;
+      }
+
+      raw['ciclo_leitura'] = `${anteriorCandidate}|${atualCandidate}|${diasCandidate}|${proximaCandidate}`;
+
+      if (!dataLeituraAnterior) {
+        dataLeituraAnterior = anteriorCandidate;
+        fieldResults['data_leitura_anterior'] = makeField(anteriorCandidate, 'regex:CICLO_LEITURA_4_TOKENS', true);
+      }
+      if (!dataLeituraAtual) {
+        dataLeituraAtual = atualCandidate;
+        fieldResults['data_leitura_atual'] = makeField(atualCandidate, 'regex:CICLO_LEITURA_4_TOKENS', true);
+      }
+      if (diasLeitura == null) {
+        diasLeitura = diasCandidate;
+        fieldResults['dias_leitura'] = makeField(diasCandidate, 'regex:CICLO_LEITURA_4_TOKENS', true);
+      }
+      if (!resolvedProximaLeitura) {
+        resolvedProximaLeitura = proximaCandidate;
+        fieldResults['proxima_leitura_data'] = makeField(proximaCandidate, 'regex:CICLO_LEITURA_4_TOKENS', true);
+        confidence += 10;
+      }
+      break;
     }
   }
 
@@ -530,6 +584,7 @@ function extractEnergisa(text: string): ExtractedData | null {
   let leituraAnterior103: number | null = null;
   let leituraAtual103: number | null = null;
   let energiaInjetada: number | null = null;
+  let energiaCompensada: number | null = null;
 
   const injectedMeterRow = extractMeterRow(flatText, 'energia\\s+(?:atv\\s+)?injetada(?:\\s+gdi?)?');
   if (injectedMeterRow) {
@@ -615,12 +670,14 @@ function extractEnergisa(text: string): ExtractedData | null {
   }
 
   // Fallback: INJ row for injection from structured table
-  if (leituraAnterior103 == null || leituraAtual103 == null) {
-    const injTableMatch = flatText.match(/INJ\s+(?:Ponta|Fora\s+de\s+Ponta)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)(?:\s+[\d.,]*)*?\s+([\d.,]+)/i);
+  if (leituraAnterior103 == null || leituraAtual103 == null || energiaCompensada == null) {
+    const injTableMatch = flatText.match(/INJ\s+(?:Ponta|Fora\s+de\s+Ponta)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)(?:\s+([\d.,]+))?/i)
+      || flatText.match(/INJ\s+(?:Ponta|Fora\s+de\s+Ponta)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)(?:\s+[\d.,]*)*?\s+([\d.,]+)(?:\s+([\d.,]+))?/i);
     if (injTableMatch) {
       const atu103 = parseNum(injTableMatch[1]);
       const ant103 = parseNum(injTableMatch[2]);
       const medido103 = parseNum(injTableMatch[4]);
+      const compensado103 = injTableMatch[5] ? parseNum(injTableMatch[5]) : null;
       if (Number.isFinite(atu103) && Number.isFinite(ant103)) {
         if (leituraAtual103 == null) { leituraAtual103 = atu103; fieldResults['leitura_atual_103'] = makeField(atu103, 'regex:ESTRUTURA_INJ_TABLE', true); }
         if (leituraAnterior103 == null) { leituraAnterior103 = ant103; fieldResults['leitura_anterior_103'] = makeField(ant103, 'regex:ESTRUTURA_INJ_TABLE', true); }
@@ -628,6 +685,11 @@ function extractEnergisa(text: string): ExtractedData | null {
           energiaInjetada = medido103;
           fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:ESTRUTURA_INJ_TABLE', true);
           confidence += 10;
+        }
+        if (energiaCompensada == null && Number.isFinite(compensado103) && compensado103 >= 0) {
+          energiaCompensada = compensado103;
+          fieldResults['energia_compensada_kwh'] = makeField(energiaCompensada, 'regex:ESTRUTURA_INJ_TABLE', true);
+          confidence += 8;
         }
       }
     }
@@ -668,12 +730,23 @@ function extractEnergisa(text: string): ExtractedData | null {
   }
 
   // Energia compensada
-  let energiaCompensada: number | null = null;
+  if (energiaCompensada == null) {
+    const compensadaItemMatch = flatText.match(/Energia\s+Atv\s+Injetada\s+GDI\s+(\d[\d.,]*)\s+\d[\d.,]*\s+-?\d[\d.,]*/i);
+    if (compensadaItemMatch) {
+      const compensadaItem = parseNum(compensadaItemMatch[1]);
+      if (Number.isFinite(compensadaItem) && compensadaItem >= 0) {
+        energiaCompensada = compensadaItem;
+        fieldResults['energia_compensada_kwh'] = makeField(energiaCompensada, 'regex:ENERGISA_ITEM_INJETADA', true);
+        confidence += 6;
+      }
+    }
+  }
+
   const compPatterns = [
     /energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)/i,
     /compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i,
   ];
-  energiaCompensada = firstMatchNum(flatText, compPatterns);
+  energiaCompensada = energiaCompensada ?? firstMatchNum(flatText, compPatterns);
   if (energiaCompensada != null) {
     fieldResults['energia_compensada_kwh'] = makeField(energiaCompensada, 'regex:COMPENSADA', true);
   }
@@ -748,6 +821,23 @@ function extractEnergisa(text: string): ExtractedData | null {
   // ── 6. Tarifas e Tributos ──
 
   let tarifaEnergia: number | null = null;
+  const energisaTariffTokens = Array.from(new Set(
+    (flatText.match(/\b\d,\d{6}\b/g) ?? [])
+      .map((token) => parseNum(token))
+      .filter((value) => Number.isFinite(value) && value > 0.1 && value < 2)
+      .map((value) => Number(value.toFixed(6)))
+  )).sort((a, b) => a - b);
+
+  if (energisaTariffTokens.length >= 2) {
+    tarifaFioB = energisaTariffTokens[0];
+    tarifaEnergia = energisaTariffTokens[energisaTariffTokens.length - 1];
+    shouldSwapTariffs = false;
+    raw['energisa_tarifas'] = energisaTariffTokens.join('|');
+    fieldResults['tarifa_fio_b_kwh'] = makeField(tarifaFioB, 'regex:ENERGISA_TARIFAS_6_DECIMAIS', true);
+    fieldResults['tarifa_energia_kwh'] = makeField(tarifaEnergia, 'regex:ENERGISA_TARIFAS_6_DECIMAIS', true);
+    confidence += 10;
+  }
+
   const tePatterns = [
     /tarifa\s*(?:de\s*)?energia\s*(?:TE)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
     /TE\s*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
@@ -755,7 +845,7 @@ function extractEnergisa(text: string): ExtractedData | null {
   ];
   for (const p of tePatterns) {
     const m = flatText.match(p);
-    if (m) {
+    if (m && tarifaEnergia == null) {
       const val = parseNum(m[1]);
       if (val > 0.05 && val < 3.0) {
         tarifaEnergia = val;
@@ -766,7 +856,7 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  let tarifaFioB: number | null = null;
+  let tarifaFioB: number | null = tarifaFioB ?? null;
   const tusdPatterns = [
     /TUSD[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
     /uso\s*(?:do\s*)?sistema\s*(?:de\s*)?distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)/i,
@@ -775,7 +865,7 @@ function extractEnergisa(text: string): ExtractedData | null {
   ];
   for (const p of tusdPatterns) {
     const m = flatText.match(p);
-    if (m) {
+    if (m && tarifaFioB == null) {
       const val = parseNum(m[1]);
       if (val > 0.01 && val < 2.0) {
         tarifaFioB = val;
@@ -788,6 +878,34 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   // ICMS
   let icms: number | null = null;
+  const tributosResumoMatch = flatText.match(/PIS\/\s*COFINS\s*\(R\$\)\s*(\d[\d.,]*)\s*(\d[\d.,]*)\s*(\d[\d.,]*)\s*(\d[\d.,]*)\s*(\d[\d.,]*)\s*(\d[\d.,]*)\s*TOTAL:\s*(\d[\d.,]*)/i);
+  let pis: number | null = null;
+  let cofins: number | null = null;
+
+  if (tributosResumoMatch) {
+    const pisValue = parseNum(tributosResumoMatch[1]);
+    const cofinsValue = parseNum(tributosResumoMatch[2]);
+    const icmsAliquota = parseNum(tributosResumoMatch[6]);
+
+    raw['tributos_resumo'] = [
+      tributosResumoMatch[1], tributosResumoMatch[2], tributosResumoMatch[3], tributosResumoMatch[4], tributosResumoMatch[5], tributosResumoMatch[6], tributosResumoMatch[7],
+    ].join('|');
+
+    if (Number.isFinite(pisValue)) {
+      pis = pisValue;
+      fieldResults['pis_valor'] = makeField(pis, 'regex:TRIBUTOS_RESUMO', true);
+    }
+    if (Number.isFinite(cofinsValue)) {
+      cofins = cofinsValue;
+      fieldResults['cofins_valor'] = makeField(cofins, 'regex:TRIBUTOS_RESUMO', true);
+    }
+    if (Number.isFinite(icmsAliquota)) {
+      icms = icmsAliquota;
+      fieldResults['icms_percentual'] = makeField(icms, 'regex:TRIBUTOS_RESUMO', true);
+    }
+    confidence += 10;
+  }
+
   const icmsPatterns = [
     /ICMS[:\s]*(\d[\d.,]*)\s*%/i,
     /al[ií]quota\s*ICMS[:\s]*(\d[\d.,]*)/i,
@@ -795,18 +913,16 @@ function extractEnergisa(text: string): ExtractedData | null {
   ];
   for (const p of icmsPatterns) {
     const m = flatText.match(p);
-    if (m) { icms = parseFloat(m[1].replace(',', '.')); fieldResults['icms_percentual'] = makeField(icms, 'regex:ICMS', true); break; }
+    if (m && icms == null) { icms = parseFloat(m[1].replace(',', '.')); fieldResults['icms_percentual'] = makeField(icms, 'regex:ICMS', true); break; }
   }
 
   // PIS
-  let pis: number | null = null;
   const pisMatch = flatText.match(/PIS[\/\s]*(?:PASEP)?[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (pisMatch) { pis = parseNum(pisMatch[1]); fieldResults['pis_valor'] = makeField(pis, 'regex:PIS', true); }
+  if (pisMatch && pis == null) { pis = parseNum(pisMatch[1]); fieldResults['pis_valor'] = makeField(pis, 'regex:PIS', true); }
 
   // COFINS
-  let cofins: number | null = null;
   const cofinsMatch = flatText.match(/COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (cofinsMatch) { cofins = parseNum(cofinsMatch[1]); fieldResults['cofins_valor'] = makeField(cofins, 'regex:COFINS', true); }
+  if (cofinsMatch && cofins == null) { cofins = parseNum(cofinsMatch[1]); fieldResults['cofins_valor'] = makeField(cofins, 'regex:COFINS', true); }
 
   // ── 7. Demanda (Grupo A) ──
 
@@ -916,7 +1032,7 @@ function extractEnergisa(text: string): ExtractedData | null {
   }
 
   // Heuristic: swap TE/TUSD if inverted
-  if (tarifaEnergia != null && tarifaFioB != null && tarifaEnergia > tarifaFioB && tarifaEnergia > 0.5 && tarifaFioB > 0.05) {
+  if (shouldSwapTariffs && tarifaEnergia != null && tarifaFioB != null && tarifaEnergia > tarifaFioB && tarifaEnergia > 0.5 && tarifaFioB > 0.05) {
     const tmp = tarifaEnergia;
     tarifaEnergia = tarifaFioB;
     tarifaFioB = tmp;
