@@ -3,6 +3,7 @@
  * Consolidated view of all invoices with filters, upload, Gmail integration.
  */
 import { useState, useEffect, useRef } from "react";
+import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { useSearchParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
