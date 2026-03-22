@@ -942,12 +942,13 @@ Deno.serve(async (req) => {
         // If we had partial regex, merge (AI takes precedence for nulls)
         if (extracted) {
           for (const key of Object.keys(aiResult) as Array<keyof ExtractedData>) {
-            if (key === 'raw_fields' || key === 'confidence' || key === 'ai_fallback_used') continue;
+            if (key === 'raw_fields' || key === 'confidence' || key === 'ai_fallback_used' || key === 'ai_model_used') continue;
             if ((extracted[key] === null || extracted[key] === undefined) && aiResult[key] !== null) {
               (extracted as any)[key] = aiResult[key];
             }
           }
           extracted.ai_fallback_used = true;
+          extracted.ai_model_used = aiResult.ai_model_used;
           extracted.confidence = Math.max(extracted.confidence, aiResult.confidence);
           extracted.raw_fields = { ...extracted.raw_fields, ...aiResult.raw_fields };
         } else {
