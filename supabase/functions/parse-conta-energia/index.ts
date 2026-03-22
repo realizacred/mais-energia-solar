@@ -848,6 +848,37 @@ function extractEnergisa(text: string): ExtractedData | null {
     fieldResults['energia_compensada_kwh'] = makeField(energiaCompensada, 'regex:COMPENSADA', true);
   }
 
+  // ── Fallback: calcular energia compensada a partir do custo de disponibilidade ──
+  // Em contas Energisa DANF3E, o texto do item "En Comp s/ICMS" frequentemente fica
+  // ilegível na extração nativa. Quando temos consumo, injeção e tipo de ligação,
+  // compensada = consumo - custo_disponibilidade (30/50/100 kWh por tipo).
+  if (energiaCompensada == null && consumoKwh != null && consumoKwh > 0) {
+    // Determinar tipo de ligação antecipadamente (se ainda não extraído, tentar agora)
+    let tipoLigacaoPreview = tipoLigacao;
+    if (!tipoLigacaoPreview) {
+      if (/trif[áa]sic/i.test(flatText)) tipoLigacaoPreview = 'trifasico';
+      else if (/bif[áa]sic/i.test(flatText)) tipoLigacaoPreview = 'bifasico';
+      else if (/monof[áa]sic/i.test(flatText)) tipoLigacaoPreview = 'monofasico';
+    }
+
+    if (tipoLigacaoPreview && energiaInjetada != null && energiaInjetada > 0) {
+      const custoDisp = tipoLigacaoPreview === 'monofasico' ? 30
+        : tipoLigacaoPreview === 'bifasico' ? 50
+        : tipoLigacaoPreview === 'trifasico' ? 100
+        : null;
+      if (custoDisp != null && consumoKwh > custoDisp) {
+        energiaCompensada = consumoKwh - custoDisp;
+        fieldResults['energia_compensada_kwh'] = makeField(
+          energiaCompensada,
+          'calc:CONSUMO_MINUS_CUSTO_DISP',
+          true,
+          `${consumoKwh} - ${custoDisp} (${tipoLigacaoPreview}) = ${energiaCompensada}`
+        );
+        confidence += 4;
+      }
+    }
+  }
+
   // Categoria GD
   let categoriaGd: string | null = null;
   const gdMatch = flatText.match(/GD[\s_-]*(I{1,3}|1|2|3)\b/i);
