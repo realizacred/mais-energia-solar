@@ -4,9 +4,8 @@
  */
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sun, Users, ExternalLink } from "lucide-react";
+import { Sun, Users } from "lucide-react";
 import { useGdBeneficiariesByUC, useGdGroupByGenerator } from "@/hooks/useGdBeneficiaries";
-import { Link } from "react-router-dom";
 
 interface Props {
   ucId: string;
