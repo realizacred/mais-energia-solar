@@ -319,6 +319,7 @@ Deno.serve(async (req) => {
         .from("email_ingestion_runs")
         .update({
           status: "failed",
+          error_message: errMsg,
           processed_count: processed,
           imported_count: imported,
           duplicate_count: duplicates,

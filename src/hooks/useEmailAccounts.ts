@@ -48,6 +48,7 @@ export interface EmailIngestionRun {
   imported_count: number;
   duplicate_count: number;
   error_count: number;
+  error_message: string | null;
   status: string;
   started_at: string;
   finished_at: string | null;
