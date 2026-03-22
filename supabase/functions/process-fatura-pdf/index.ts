@@ -321,7 +321,17 @@ async function processInvoice(
   // ── 5a.1 Perform field validation NOW (after context is known) ──
   const foundFields = requiredFields.filter((f: string) => parsed[f] != null);
   const missingFields = requiredFields.filter((f: string) => parsed[f] == null);
-  const extractionStatus = missingFields.length === 0 ? 'success' : missingFields.length <= 2 ? 'partial' : 'failed';
+
+  // Determine status based on CORE fields only (not extended config fields)
+  // Config fields (from extraction_configs) can be 20+ which makes everything "failed"
+  const coreRequired = ucContext === 'geradora' || ucContext === 'mista'
+    ? [...BASE_REQUIRED, ...GERADORA_EXTRA]
+    : ucContext === 'beneficiaria' || ucContext === 'consumo'
+      ? BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f))
+      : [...BASE_REQUIRED];
+  const coreMissing = coreRequired.filter((f: string) => parsed[f] == null);
+  const extractionStatus = coreMissing.length === 0 ? 'success' : coreMissing.length <= 2 ? 'partial' : 'failed';
+  console.log(`[process-fatura-pdf] Status: ${extractionStatus} (core missing: ${coreMissing.length}/${coreRequired.length}, config missing: ${missingFields.length}/${requiredFields.length})`);
 
   // ── 5b. Ownership validation ──
   const identifierField = extractionConfig?.identifier_field || 'numero_uc';
