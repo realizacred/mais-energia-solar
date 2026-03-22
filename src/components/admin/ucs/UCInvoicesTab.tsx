@@ -19,7 +19,7 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2, Trash2, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2, Trash2, MoreHorizontal, ChevronDown, ChevronRight, RefreshCw, Bug, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
