@@ -73,9 +73,12 @@ export function AiFollowupSettingsPanel() {
   const { hasFeature } = useTenantPlan();
   const hasAiFollowup = hasFeature("ai_followup");
   const [settings, setSettings] = useState<AiSettings>(DEFAULT_SETTINGS);
+  const [baseline, setBaseline] = useState<AiSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasRecord, setHasRecord] = useState(false);
+
+  const isDirty = useMemo(() => JSON.stringify(settings) !== JSON.stringify(baseline), [settings, baseline]);
 
   useEffect(() => {
     fetchSettings();
