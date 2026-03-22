@@ -551,6 +551,26 @@ function extractFromText(text: string): ExtractedData {
     }
   }
 
+  // Modalidade tarifária
+  let modalidadeTarifaria: string | null = null;
+  const modalidadePatterns = [
+    /modalidade\s*(?:tarif[aá]ria)?\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i,
+    /tarifa[çc][ãa]o\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i,
+    /(convencional|hor[aá]rio?\s*branco|horosazonal\s*(?:verde|azul))/i,
+  ];
+  for (const p of modalidadePatterns) {
+    const m = text.match(p);
+    if (m) {
+      const val = m[1].toLowerCase().trim();
+      if (val.includes('convencional')) modalidadeTarifaria = 'Convencional';
+      else if (val.includes('branca') || val.includes('branco')) modalidadeTarifaria = 'Branca';
+      else if (val.includes('verde')) modalidadeTarifaria = 'Horosazonal Verde';
+      else if (val.includes('azul')) modalidadeTarifaria = 'Horosazonal Azul';
+      raw['modalidade_match'] = m[0];
+      break;
+    }
+  }
+
   confidence = Math.min(confidence, 100);
 
   return {
@@ -583,6 +603,7 @@ function extractFromText(text: string): ExtractedData {
     energia_injetada_kwh: energiaInjetada,
     energia_compensada_kwh: energiaCompensada,
     categoria_gd: categoriaGd,
+    modalidade_tarifaria: modalidadeTarifaria,
     confidence,
     ai_fallback_used: false,
     raw_fields: raw,
