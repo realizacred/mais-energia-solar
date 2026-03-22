@@ -98,6 +98,14 @@ function timeAgo(dateStr: string | null): string {
   return `${days}d atrás`;
 }
 
+interface SiblingUC {
+  unit_id: string;
+  unit_name: string;
+  codigo_uc: string;
+  papel_gd: string | null;
+  token: string;
+}
+
 interface ResolvedUC {
   unit_id: string;
   unit_name: string;
@@ -112,6 +120,7 @@ interface ResolvedUC {
   potencia_kwp?: number | null;
   categoria_gd?: string | null;
   papel_gd?: string | null;
+  siblings?: SiblingUC[];
 }
 
 export default function UCPublica() {
