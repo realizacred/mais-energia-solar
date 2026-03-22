@@ -31,21 +31,49 @@ const POSTOS_TARIFARIOS = [
   { value: "intermediario", label: "Intermediário" },
 ];
 
+const MESES = [
+  { value: "01", label: "Janeiro" },
+  { value: "02", label: "Fevereiro" },
+  { value: "03", label: "Março" },
+  { value: "04", label: "Abril" },
+  { value: "05", label: "Maio" },
+  { value: "06", label: "Junho" },
+  { value: "07", label: "Julho" },
+  { value: "08", label: "Agosto" },
+  { value: "09", label: "Setembro" },
+  { value: "10", label: "Outubro" },
+  { value: "11", label: "Novembro" },
+  { value: "12", label: "Dezembro" },
+];
+
+function getYearOptions() {
+  const currentYear = new Date().getFullYear();
+  const years: string[] = [];
+  for (let y = currentYear + 1; y >= currentYear - 5; y--) {
+    years.push(String(y));
+  }
+  return years;
+}
+
 export function AddCreditDialog({ open, onOpenChange, unitId, tenantId }: Props) {
   const { toast } = useToast();
   const createCredit = useCreateUnitCredit();
   const { data: linkedPlants } = useUcLinkedPlants(unitId, open);
 
+  const now = new Date();
   const [quantidade, setQuantidade] = useState("");
-  const [dataVigencia, setDataVigencia] = useState("");
+  const [mesVigencia, setMesVigencia] = useState(String(now.getMonth() + 1).padStart(2, "0"));
+  const [anoVigencia, setAnoVigencia] = useState(String(now.getFullYear()));
   const [postoTarifario, setPostoTarifario] = useState("fora_ponta");
   const [plantId, setPlantId] = useState<string | null>(null);
   const [observacoes, setObservacoes] = useState("");
 
   useEffect(() => {
     if (open) {
+      const n = new Date();
       setQuantidade("");
-      setDataVigencia("");
+      setMesVigencia(String(n.getMonth() + 1).padStart(2, "0"));
+      setAnoVigencia(String(n.getFullYear()));
       setPostoTarifario("fora_ponta");
       setPlantId(null);
       setObservacoes("");
@@ -58,17 +86,13 @@ export function AddCreditDialog({ open, onOpenChange, unitId, tenantId }: Props)
       toast({ title: "Quantidade inválida", description: "Informe um valor em kWh maior que zero.", variant: "destructive" });
       return;
     }
-    if (!dataVigencia) {
-      toast({ title: "Data obrigatória", description: "Informe a data de vigência.", variant: "destructive" });
-      return;
-    }
 
     const payload: CreateCreditPayload = {
       unit_id: unitId,
       tenant_id: tenantId,
       plant_id: plantId,
       quantidade_kwh: qty,
-      data_vigencia: `${dataVigencia}-01`,
+      data_vigencia: `${anoVigencia}-${mesVigencia}-01`,
       posto_tarifario: postoTarifario,
       observacoes: observacoes.trim() || null,
     };
@@ -110,36 +134,57 @@ export function AddCreditDialog({ open, onOpenChange, unitId, tenantId }: Props)
         />
       </div>
 
-      {/* Data de vigência + Posto tarifário */}
-      <FormGrid>
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium">
-            Data de vigência <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            type="month"
-            value={dataVigencia}
-            onChange={(e) => setDataVigencia(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium">
-            Posto tarifário <span className="text-destructive">*</span>
-          </Label>
-          <Select value={postoTarifario} onValueChange={setPostoTarifario}>
+      {/* Data de vigência (Mês + Ano) */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">
+          Data de vigência <span className="text-destructive">*</span>
+        </Label>
+        <div className="grid grid-cols-2 gap-3">
+          <Select value={mesVigencia} onValueChange={setMesVigencia}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Mês" />
             </SelectTrigger>
             <SelectContent>
-              {POSTOS_TARIFARIOS.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
+              {MESES.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={anoVigencia} onValueChange={setAnoVigencia}>
+            <SelectTrigger>
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
+            <SelectContent>
+              {getYearOptions().map((y) => (
+                <SelectItem key={y} value={y}>
+                  {y}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-      </FormGrid>
+      </div>
+
+      {/* Posto tarifário */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">
+          Posto tarifário <span className="text-destructive">*</span>
+        </Label>
+        <Select value={postoTarifario} onValueChange={setPostoTarifario}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {POSTOS_TARIFARIOS.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Usina de origem */}
       <div className="space-y-1.5">
