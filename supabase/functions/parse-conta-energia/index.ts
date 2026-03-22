@@ -36,6 +36,9 @@ interface ExtractedData {
   leitura_atual_03: number | null;
   leitura_anterior_103: number | null;
   leitura_atual_103: number | null;
+  energia_injetada_kwh: number | null;
+  energia_compensada_kwh: number | null;
+  categoria_gd: string | null;
   confidence: number;
   ai_fallback_used: boolean;
   raw_fields: Record<string, string>;
@@ -283,6 +286,57 @@ function extractFromText(text: string): ExtractedData {
     }
   }
 
+  // Energia injetada kWh (total do período)
+  let energiaInjetada: number | null = null;
+  const injetadaPatterns = [
+    /energia\s*injetada[:\s]*(\d[\d.,]*)\s*kWh/i,
+    /inje[çc][ãa]o[:\s]*(\d[\d.,]*)\s*kWh/i,
+    /energia\s*ativa\s*inje[çc][ãa]o[:\s]*(\d[\d.,]*)/i,
+  ];
+  for (const p of injetadaPatterns) {
+    const m = text.match(p);
+    if (m) { energiaInjetada = parseNum(m[1]); raw['injetada_match'] = m[0]; confidence += 5; break; }
+  }
+  // Fallback: calculate from leitura_103 diff
+  if (energiaInjetada === null && leituraAtual103 != null && leituraAnterior103 != null) {
+    energiaInjetada = Math.max(leituraAtual103 - leituraAnterior103, 0);
+  }
+
+  // Energia compensada kWh
+  let energiaCompensada: number | null = null;
+  const compensadaPatterns = [
+    /energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
+    /compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i,
+    /cr[ée]dito\s*(?:de\s*)?energia\s*compensad[ao][:\s]*(\d[\d.,]*)/i,
+  ];
+  for (const p of compensadaPatterns) {
+    const m = text.match(p);
+    if (m) { energiaCompensada = parseNum(m[1]); raw['compensada_match'] = m[0]; confidence += 5; break; }
+  }
+
+  // Categoria GD (GD_I, GD_II, GD_III)
+  let categoriaGd: string | null = null;
+  const gdPatterns = [
+    /GD[\s_-]*(I{1,3}|1|2|3)\b/i,
+    /microgeração/i,
+    /minigeração/i,
+  ];
+  for (const p of gdPatterns) {
+    const m = text.match(p);
+    if (m) {
+      if (/microgeração/i.test(m[0])) categoriaGd = "GD_I";
+      else if (/minigeração/i.test(m[0])) categoriaGd = "GD_II";
+      else {
+        const num = m[1]?.toUpperCase();
+        if (num === 'I' || num === '1') categoriaGd = "GD_I";
+        else if (num === 'II' || num === '2') categoriaGd = "GD_II";
+        else if (num === 'III' || num === '3') categoriaGd = "GD_III";
+      }
+      raw['categoria_gd_match'] = m[0];
+      break;
+    }
+  }
+
   confidence = Math.min(confidence, 100);
 
   return {
@@ -312,6 +366,9 @@ function extractFromText(text: string): ExtractedData {
     leitura_atual_03: leituraAtual03,
     leitura_anterior_103: leituraAnterior103,
     leitura_atual_103: leituraAtual103,
+    energia_injetada_kwh: energiaInjetada,
+    energia_compensada_kwh: energiaCompensada,
+    categoria_gd: categoriaGd,
     confidence,
     ai_fallback_used: false,
     raw_fields: raw,
@@ -402,6 +459,9 @@ Seja preciso — nunca invente dados.`
                   leitura_atual_03: { type: "number", description: "Leitura atual registro 03 (energia ativa)" },
                   leitura_anterior_103: { type: "number", description: "Leitura anterior registro 103 (energia injetada)" },
                   leitura_atual_103: { type: "number", description: "Leitura atual registro 103 (energia injetada)" },
+                  energia_injetada_kwh: { type: "number", description: "Energia injetada total no período em kWh" },
+                  energia_compensada_kwh: { type: "number", description: "Energia compensada (créditos utilizados) em kWh" },
+                  categoria_gd: { type: "string", description: "Categoria de geração distribuída: GD_I (microgeração), GD_II (minigeração), GD_III" },
                 },
                 additionalProperties: false,
               },
@@ -454,6 +514,9 @@ Seja preciso — nunca invente dados.`
       leitura_atual_03: fields.leitura_atual_03 ?? null,
       leitura_anterior_103: fields.leitura_anterior_103 ?? null,
       leitura_atual_103: fields.leitura_atual_103 ?? null,
+      energia_injetada_kwh: fields.energia_injetada_kwh ?? null,
+      energia_compensada_kwh: fields.energia_compensada_kwh ?? null,
+      categoria_gd: fields.categoria_gd || null,
       confidence: 85,
       ai_fallback_used: true,
       raw_fields: { ai_full_extraction: "true" },
