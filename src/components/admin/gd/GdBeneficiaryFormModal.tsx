@@ -41,8 +41,12 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
     ucs.filter(u => u.id !== ucGeradoraId && !existingUcIds.has(u.id)),
     [ucs, ucGeradoraId, existingBeneficiaries]
   );
+  const noAvailableUcs = availableUcs.length === 0;
 
   const [createNew, setCreateNew] = useState(false);
+  // Auto-enable create mode when no UCs available
+  const effectiveCreateNew = createNew || noAvailableUcs;
+
   const [form, setForm] = useState({
     uc_beneficiaria_id: "",
     allocation_percent: "",
@@ -64,7 +68,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
     let ucId = form.uc_beneficiaria_id;
 
     // Create new UC if toggle is on
-    if (createNew) {
+    if (effectiveCreateNew) {
       if (!newUc.nome.trim() || !newUc.codigo_uc.trim()) {
         toast({ title: "Nome e Código da UC são obrigatórios", variant: "destructive" });
         return;
@@ -120,7 +124,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
         notes: form.notes || null,
         is_active: true,
       });
-      toast({ title: createNew ? "UC criada e vinculada como beneficiária" : "Beneficiária adicionada" });
+      toast({ title: effectiveCreateNew ? "UC criada e vinculada como beneficiária" : "Beneficiária adicionada" });
       setForm({ uc_beneficiaria_id: "", allocation_percent: "", start_date: "", end_date: "", notes: "" });
       setNewUc({ nome: "", codigo_uc: "", concessionaria_id: "", email_fatura: "" });
       setCreateNew(false);
@@ -144,21 +148,28 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
             <p className="text-xs text-muted-foreground mt-0.5">
               Vincule uma UC existente ou crie uma nova como beneficiária
             </p>
+            {noAvailableUcs && (
+              <p className="text-xs text-warning mt-0.5">
+                Nenhuma UC existente disponível — crie uma nova abaixo
+              </p>
+            )}
           </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-5 space-y-4">
-            {/* Toggle: Existing vs New UC */}
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
-              <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4 text-primary" />
-                <Label className="text-xs font-medium">Criar nova UC</Label>
+            {/* Toggle: Existing vs New UC — hidden when no UCs available */}
+            {!noAvailableUcs && (
+              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-primary" />
+                  <Label className="text-xs font-medium">Criar nova UC</Label>
+                </div>
+                <Switch checked={createNew} onCheckedChange={setCreateNew} />
               </div>
-              <Switch checked={createNew} onCheckedChange={setCreateNew} />
-            </div>
+            )}
 
-            {createNew ? (
+            {effectiveCreateNew ? (
               /* New UC inline form */
               <div className="space-y-3 rounded-lg border border-border bg-muted/10 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nova UC Beneficiária</p>
@@ -242,7 +253,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saveBen.isPending}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saveBen.isPending}>
             {saveBen.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {saveBen.isPending ? "Adicionando..." : createNew ? "Criar UC e Vincular" : "Adicionar"}
+            {saveBen.isPending ? "Adicionando..." : effectiveCreateNew ? "Criar UC e Vincular" : "Adicionar"}
           </Button>
         </DialogFooter>
       </DialogContent>
