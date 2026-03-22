@@ -23,6 +23,8 @@ export interface ExtractionConfig {
   provider_requires_password: boolean;
   fallback_enabled: boolean;
   required_fields: string[];
+  required_fields_geradora: string[];
+  required_fields_beneficiaria: string[];
   identifier_field: string | null;
   optional_fields: string[];
   parser_version: string | null;

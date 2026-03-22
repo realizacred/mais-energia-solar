@@ -35,6 +35,8 @@ interface FieldDef {
   key: string;
   label: string;
   description?: string;
+  /** Campo exclusivo de UC geradora (injeção) */
+  geradoraOnly?: boolean;
 }
 
 interface FieldCategory {
@@ -65,18 +67,18 @@ const FIELD_CATEGORIES: FieldCategory[] = [
       { key: "dias_leitura", label: "Dias de Leitura" },
       { key: "leitura_anterior_03", label: "Leitura Anterior (03)", description: "Medidor de consumo" },
       { key: "leitura_atual_03", label: "Leitura Atual (03)", description: "Medidor de consumo" },
-      { key: "leitura_anterior_103", label: "Leitura Anterior (103)", description: "Medidor de injeção" },
-      { key: "leitura_atual_103", label: "Leitura Atual (103)", description: "Medidor de injeção" },
+      { key: "leitura_anterior_103", label: "Leitura Anterior (103)", description: "Medidor de injeção", geradoraOnly: true },
+      { key: "leitura_atual_103", label: "Leitura Atual (103)", description: "Medidor de injeção", geradoraOnly: true },
     ],
   },
   {
     category: "Geração Distribuída (GD)",
     icon: "☀️",
     fields: [
-      { key: "energia_injetada_kwh", label: "Energia Injetada (kWh)" },
+      { key: "energia_injetada_kwh", label: "Energia Injetada (kWh)", geradoraOnly: true },
       { key: "energia_compensada_kwh", label: "Energia Compensada (kWh)" },
-      { key: "saldo_gd_acumulado", label: "Saldo GD Acumulado (kWh)" },
-      { key: "categoria_gd", label: "Categoria GD", description: "Autoconsumo remoto, local, etc." },
+      { key: "saldo_gd_acumulado", label: "Saldo GD Acumulado (kWh)", geradoraOnly: true },
+      { key: "categoria_gd", label: "Categoria GD", description: "Autoconsumo remoto, local, etc.", geradoraOnly: true },
     ],
   },
   {
@@ -99,7 +101,7 @@ const FIELD_CATEGORIES: FieldCategory[] = [
       { key: "modalidade_tarifaria", label: "Modalidade Tarifária" },
       { key: "demanda_contratada_kw", label: "Demanda Contratada (kW)" },
       { key: "medidor_consumo_codigo", label: "Código Medidor Consumo" },
-      { key: "medidor_injecao_codigo", label: "Código Medidor Injeção" },
+      { key: "medidor_injecao_codigo", label: "Código Medidor Injeção", geradoraOnly: true },
       { key: "numero_nota_fiscal", label: "Número da Nota Fiscal" },
     ],
   },
