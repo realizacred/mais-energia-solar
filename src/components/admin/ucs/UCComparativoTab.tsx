@@ -275,7 +275,7 @@ function SimulacaoInfo({ simulacao, onChangeClick }: { simulacao: NonNullable<im
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Potência</p>
-            <p className="font-semibold">{simulacao.potencia_kwp?.toLocaleString("pt-BR") || "—"} kWp</p>
+            <p className="font-semibold">{simulacao.potencia_kwp ? formatNumberBR(simulacao.potencia_kwp) : "—"} kWp</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Geração Mensal Estimada</p>
