@@ -32,6 +32,11 @@ export interface UnitInvoice {
   parsing_error_reason: string | null;
   parser_version: string | null;
   last_parsed_at: string | null;
+  ownership_validation_status: string | null;
+  ownership_validation_score: number | null;
+  identifier_extracted: string | null;
+  identifier_expected: string | null;
+  needs_manual_assignment: boolean;
 }
 
 export type BillingNotificationChannel = "whatsapp" | "email" | "ambos";
