@@ -553,7 +553,7 @@ export function UCOverviewTab({
                         : "—"}
                     </p>
                     <Badge variant="outline" className="text-[10px]">
-                      {inv.status === "processed" ? "Processada" : inv.status === "received" ? "Recebida" : inv.status === "pending" ? "Pendente" : inv.status === "validated" ? "Validada" : inv.status === "error" ? "Erro" : inv.status || "—"}
+                      {inv.status === "processed" ? "Processada" : inv.status === "received" ? "Recebida" : inv.status === "pending" ? "Pendente" : inv.status === "validated" ? "Validada" : inv.status === "error" ? "Erro" : inv.status === "pending_review" ? "Em revisão" : inv.status === "failed" ? "Falhou" : inv.status === "incomplete" ? "Incompleta" : inv.status === "divergent" ? "Divergente" : inv.status || "—"}
                     </Badge>
                   </div>
                 </div>
