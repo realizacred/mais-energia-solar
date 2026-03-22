@@ -8005,6 +8005,164 @@ export type Database = {
           },
         ]
       }
+      invoice_layout_learning_events: {
+        Row: {
+          concessionaria_code: string
+          concessionaria_nome: string
+          created_at: string
+          errors_json: Json | null
+          extraction_status: string
+          file_type: string | null
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          layout_signature: string
+          learning_status: string
+          occurrences_count: number
+          original_filename: string | null
+          parser_used: string | null
+          parser_version: string | null
+          raw_extraction_json: Json | null
+          required_fields_found_json: Json | null
+          required_fields_missing_json: Json | null
+          sample_storage_path: string | null
+          sample_text_excerpt: string | null
+          source_extraction_run_id: string | null
+          source_invoice_id: string | null
+          tenant_id: string
+          updated_at: string
+          warnings_json: Json | null
+        }
+        Insert: {
+          concessionaria_code: string
+          concessionaria_nome?: string
+          created_at?: string
+          errors_json?: Json | null
+          extraction_status?: string
+          file_type?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          layout_signature: string
+          learning_status?: string
+          occurrences_count?: number
+          original_filename?: string | null
+          parser_used?: string | null
+          parser_version?: string | null
+          raw_extraction_json?: Json | null
+          required_fields_found_json?: Json | null
+          required_fields_missing_json?: Json | null
+          sample_storage_path?: string | null
+          sample_text_excerpt?: string | null
+          source_extraction_run_id?: string | null
+          source_invoice_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          warnings_json?: Json | null
+        }
+        Update: {
+          concessionaria_code?: string
+          concessionaria_nome?: string
+          created_at?: string
+          errors_json?: Json | null
+          extraction_status?: string
+          file_type?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          layout_signature?: string
+          learning_status?: string
+          occurrences_count?: number
+          original_filename?: string | null
+          parser_used?: string | null
+          parser_version?: string | null
+          raw_extraction_json?: Json | null
+          required_fields_found_json?: Json | null
+          required_fields_missing_json?: Json | null
+          sample_storage_path?: string | null
+          sample_text_excerpt?: string | null
+          source_extraction_run_id?: string | null
+          source_invoice_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          warnings_json?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_layout_learning_events_source_invoice_id_fkey"
+            columns: ["source_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "unit_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_layout_learning_rules: {
+        Row: {
+          active: boolean
+          concessionaria_code: string
+          created_at: string
+          created_by: string | null
+          extraction_type: string
+          fallback_pattern: string | null
+          field_name: string
+          id: string
+          is_required: boolean
+          last_success_at: string | null
+          last_used_at: string | null
+          layout_signature: string | null
+          notes: string | null
+          pattern: string
+          priority_order: number
+          rule_name: string
+          tenant_id: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          active?: boolean
+          concessionaria_code: string
+          created_at?: string
+          created_by?: string | null
+          extraction_type?: string
+          fallback_pattern?: string | null
+          field_name: string
+          id?: string
+          is_required?: boolean
+          last_success_at?: string | null
+          last_used_at?: string | null
+          layout_signature?: string | null
+          notes?: string | null
+          pattern: string
+          priority_order?: number
+          rule_name: string
+          tenant_id?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          active?: boolean
+          concessionaria_code?: string
+          created_at?: string
+          created_by?: string | null
+          extraction_type?: string
+          fallback_pattern?: string | null
+          field_name?: string
+          id?: string
+          is_required?: boolean
+          last_success_at?: string | null
+          last_used_at?: string | null
+          layout_signature?: string | null
+          notes?: string | null
+          pattern?: string
+          priority_order?: number
+          rule_name?: string
+          tenant_id?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       irradiacao_por_estado: {
         Row: {
           created_at: string
