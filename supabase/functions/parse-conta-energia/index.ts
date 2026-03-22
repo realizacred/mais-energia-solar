@@ -677,8 +677,8 @@ Seja preciso — nunca invente dados.`
                   estado: { type: "string", description: "UF (sigla de 2 letras)" },
                   numero_uc: { type: "string", description: "Número/código da unidade consumidora" },
                   consumo_kwh: { type: "number", description: "Consumo em kWh" },
-                  tarifa_energia_kwh: { type: "number", description: "Tarifa de energia (TE) em R$/kWh" },
-                  tarifa_fio_b_kwh: { type: "number", description: "TUSD/Fio B em R$/kWh" },
+                   tarifa_energia_kwh: { type: "number", description: "Tarifa de energia (TE) em R$/kWh — geralmente o menor valor unitário entre TE e TUSD" },
+                   tarifa_fio_b_kwh: { type: "number", description: "TUSD/Fio B (uso do sistema de distribuição) em R$/kWh — geralmente o maior valor unitário entre TE e TUSD" },
                   valor_total: { type: "number", description: "Valor total da fatura em R$" },
                   icms_percentual: { type: "number", description: "ICMS em %" },
                   pis_valor: { type: "number", description: "PIS em R$" },
@@ -960,6 +960,21 @@ Deno.serve(async (req) => {
     // Strategy 3: If still no good result but we have text, try text-based AI fallback
     if (extracted && use_ai_fallback && text) {
       extracted = await aiExtractMissingFields(text, extracted);
+    }
+
+    // ── Heuristic: swap TE/TUSD if they look inverted ──
+    // In most Brazilian bills, TUSD (Fio B) > TE (Tarifa Energia).
+    // If AI or regex swapped them, correct it.
+    if (extracted && extracted.tarifa_energia_kwh != null && extracted.tarifa_fio_b_kwh != null) {
+      const te = extracted.tarifa_energia_kwh;
+      const tusd = extracted.tarifa_fio_b_kwh;
+      // If TE is significantly larger than TUSD, they're likely swapped
+      if (te > tusd && te > 0.5 && tusd > 0.05) {
+        console.log(`[parse-conta-energia] Swapping TE/TUSD: TE=${te} > TUSD=${tusd} — likely inverted`);
+        extracted.tarifa_energia_kwh = tusd;
+        extracted.tarifa_fio_b_kwh = te;
+        extracted.raw_fields['tariff_swap_applied'] = `TE=${te}→${tusd}, TUSD=${tusd}→${te}`;
+      }
     }
 
     // If nothing worked at all
