@@ -5,6 +5,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+// Tables not yet in generated types — use untyped client
+const db = supabase as any;
+
 export interface LayoutLearningEvent {
   id: string;
   tenant_id: string;
@@ -67,7 +70,7 @@ export function useLayoutLearningEvents(filters?: {
   return useQuery({
     queryKey: [EVENTS_KEY, filters],
     queryFn: async () => {
-      let q = supabase
+      let q = db
         .from("invoice_layout_learning_events")
         .select("*")
         .order("last_seen_at", { ascending: false })
@@ -79,7 +82,7 @@ export function useLayoutLearningEvents(filters?: {
 
       const { data, error } = await q;
       if (error) throw error;
-      return (data || []) as unknown as LayoutLearningEvent[];
+      return (data || []) as LayoutLearningEvent[];
     },
     staleTime: STALE_TIME,
   });
@@ -90,13 +93,13 @@ export function useLayoutLearningEventById(id: string | null) {
     queryKey: [EVENTS_KEY, "detail", id],
     queryFn: async () => {
       if (!id) return null;
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("invoice_layout_learning_events")
         .select("*")
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data as unknown as LayoutLearningEvent;
+      return data as LayoutLearningEvent;
     },
     staleTime: STALE_TIME,
     enabled: !!id,
@@ -107,18 +110,18 @@ export function useLayoutLearningStats() {
   return useQuery({
     queryKey: [EVENTS_KEY, "stats"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("invoice_layout_learning_events")
         .select("learning_status, extraction_status, occurrences_count");
       if (error) throw error;
-      const events = data || [];
+      const events = (data || []) as any[];
       return {
         total: events.length,
-        new_count: events.filter((e: any) => e.learning_status === "new").length,
-        analyzing: events.filter((e: any) => e.learning_status === "analyzing").length,
-        learned: events.filter((e: any) => e.learning_status === "learned").length,
-        ignored: events.filter((e: any) => e.learning_status === "ignored").length,
-        failures: events.filter((e: any) => e.extraction_status === "failed").length,
+        new_count: events.filter(e => e.learning_status === "new").length,
+        analyzing: events.filter(e => e.learning_status === "analyzing").length,
+        learned: events.filter(e => e.learning_status === "learned").length,
+        ignored: events.filter(e => e.learning_status === "ignored").length,
+        failures: events.filter(e => e.extraction_status === "failed").length,
       };
     },
     staleTime: STALE_TIME,
@@ -129,7 +132,7 @@ export function useUpdateLayoutEventStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, learning_status }: { id: string; learning_status: string }) => {
-      const { error } = await supabase
+      const { error } = await db
         .from("invoice_layout_learning_events")
         .update({ learning_status, updated_at: new Date().toISOString() })
         .eq("id", id);
@@ -147,7 +150,7 @@ export function useLayoutLearningRules(concessionariaCode?: string, layoutSignat
   return useQuery({
     queryKey: [RULES_KEY, concessionariaCode, layoutSignature],
     queryFn: async () => {
-      let q = supabase
+      let q = db
         .from("invoice_layout_learning_rules")
         .select("*")
         .order("priority_order", { ascending: true });
@@ -157,7 +160,7 @@ export function useLayoutLearningRules(concessionariaCode?: string, layoutSignat
 
       const { data, error } = await q;
       if (error) throw error;
-      return (data || []) as unknown as LayoutLearningRule[];
+      return (data || []) as LayoutLearningRule[];
     },
     staleTime: STALE_TIME,
   });
@@ -175,7 +178,7 @@ export function useSaveLayoutRule() {
       const { id, tenant_id, created_at, updated_at, usage_count, last_used_at, last_success_at, ...rest } = payload as any;
 
       if (id) {
-        const { data, error } = await supabase
+        const { data, error } = await db
           .from("invoice_layout_learning_rules")
           .update({ ...rest, updated_at: new Date().toISOString() })
           .eq("id", id)
@@ -184,7 +187,7 @@ export function useSaveLayoutRule() {
         if (error) throw error;
         return data;
       } else {
-        const { data, error } = await supabase
+        const { data, error } = await db
           .from("invoice_layout_learning_rules")
           .insert(rest)
           .select()
@@ -203,7 +206,7 @@ export function useDeleteLayoutRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("invoice_layout_learning_rules").delete().eq("id", id);
+      const { error } = await db.from("invoice_layout_learning_rules").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
