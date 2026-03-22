@@ -178,6 +178,8 @@ export function UCInvoicesTab({ unitId }: Props) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStep, setUploadStep] = useState<string>("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [debugInvoice, setDebugInvoice] = useState<UnitInvoice | null>(null);
+  const [reprocessingId, setReprocessingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     reference_month: new Date().getMonth() + 1,
