@@ -351,6 +351,26 @@ function extractEnergisa(text: string): ExtractedData | null {
     if (isPlausibleDate(d2)) { dataLeituraAtual = d2; fieldResults['data_leitura_atual'] = makeField(d2, 'regex:PERIODO_LEITURA', true); }
   }
 
+  const compactLeiturasMatch = flatText.match(/(\d{2}[\/.]\d{2}[\/.]\d{4})\s*Leitura\s+Atual:\s*(\d{2}[\/.]\d{2}[\/.]\d{4})\s*Leitura\s+Anterior:\s*Dias:\s*(\d{1,3})/i)
+    || flatText.match(/Leitura\s+Atual:\s*(\d{2}[\/.]\d{2}[\/.]\d{4})\s*Leitura\s+Anterior:\s*(\d{2}[\/.]\d{2}[\/.]\d{4})\s*Dias:\s*(\d{1,3})/i);
+  if (compactLeiturasMatch) {
+    const dataAtualCompact = normalizeDateLike(compactLeiturasMatch[1]);
+    const dataAnteriorCompact = normalizeDateLike(compactLeiturasMatch[2]);
+    const diasCompact = parseInt(compactLeiturasMatch[3], 10);
+    if (!dataLeituraAtual && isPlausibleDate(dataAtualCompact)) {
+      dataLeituraAtual = dataAtualCompact;
+      fieldResults['data_leitura_atual'] = makeField(dataAtualCompact, 'regex:LEITURAS_COMPACT', true);
+    }
+    if (!dataLeituraAnterior && isPlausibleDate(dataAnteriorCompact)) {
+      dataLeituraAnterior = dataAnteriorCompact;
+      fieldResults['data_leitura_anterior'] = makeField(dataAnteriorCompact, 'regex:LEITURAS_COMPACT', true);
+    }
+    if (Number.isFinite(diasCompact) && diasCompact > 0 && diasCompact < 90) {
+      diasLeitura = diasCompact;
+      fieldResults['dias_leitura'] = makeField(diasCompact, 'regex:LEITURAS_COMPACT', true);
+    }
+  }
+
   // Dias de leitura
   let diasLeitura: number | null = null;
   const diasMatch = flatText.match(/(\d{2,3})\s*dias?\s*(?:de\s*)?(?:leitura|fatura|consumo)/i)
@@ -422,6 +442,7 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
+  let compactSummaryNumbers: number[] | null = null;
   const consumoSuspeito = consumoKwh != null && consumoKwh < 5 && leituraAnterior03 == null && leituraAtual03 == null;
   if (consumoKwh == null || consumoSuspeito) {
     const resumoConsumoMatch = flatText.match(/portalnf3e\s+(\d[\d.,]*)\s+Protocolo\s+de\s+Autoriza[çc][ãa]o/i);
@@ -437,11 +458,27 @@ function extractEnergisa(text: string): ExtractedData | null {
     const compactSummaryMatch = flatText.match(/DIC\s+KWH\s+INJ\s+Ponta\s+Ponta\s+((?:\d+(?:\.\d{3})*,\d{2}\s*){2,8})/i);
     if (compactSummaryMatch) {
       const numbers = extractLocalizedNumberTokens(compactSummaryMatch[1]);
+      compactSummaryNumbers = numbers;
+      raw['dic_kwh_inj_tokens'] = numbers.join('|');
       const compactConsumo = numbers[0] ?? null;
       if (compactConsumo != null && compactConsumo >= 5) {
         consumoKwh = compactConsumo;
         fieldResults['consumo_kwh'] = makeField(consumoKwh, 'regex:CONSUMO_DIC_KWH_INJ', true, consumoSuspeito ? 'Substituiu captura suspeita do fallback genérico' : null);
         confidence += consumoSuspeito ? 8 : 12;
+      }
+      const leituraAtual03Compact = numbers[1] ?? null;
+      const leituraAnterior03Compact = numbers[5] ?? null;
+      if (
+        leituraAtual03Compact != null
+        && leituraAnterior03Compact != null
+        && leituraAtual03Compact >= leituraAnterior03Compact
+        && consumoKwh != null
+        && Math.abs((leituraAtual03Compact - leituraAnterior03Compact) - consumoKwh) <= 1
+      ) {
+        leituraAtual03 = leituraAtual03Compact;
+        leituraAnterior03 = leituraAnterior03Compact;
+        fieldResults['leitura_atual_03'] = makeField(leituraAtual03, 'regex:DIC_KWH_INJ_COMPACT', true);
+        fieldResults['leitura_anterior_03'] = makeField(leituraAnterior03, 'regex:DIC_KWH_INJ_COMPACT', true);
       }
     }
   }
@@ -530,6 +567,27 @@ function extractEnergisa(text: string): ExtractedData | null {
     if (fallbackInjecao != null && fallbackInjecao > 0) {
       energiaInjetada = fallbackInjecao;
       fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:ENERGIA_INJETADA_FALLBACK', true);
+    }
+  }
+
+  if (compactSummaryNumbers && (energiaInjetada == null || leituraAnterior103 == null || leituraAtual103 == null)) {
+    const energiaInjetadaCompact = compactSummaryNumbers[2] ?? null;
+    const leituraAtual103Compact = compactSummaryNumbers[6] ?? null;
+    const leituraAnterior103Compact = compactSummaryNumbers[7] ?? null;
+    if (
+      energiaInjetadaCompact != null
+      && leituraAtual103Compact != null
+      && leituraAnterior103Compact != null
+      && leituraAtual103Compact >= leituraAnterior103Compact
+      && Math.abs((leituraAtual103Compact - leituraAnterior103Compact) - energiaInjetadaCompact) <= 1
+    ) {
+      energiaInjetada = energiaInjetadaCompact;
+      leituraAtual103 = leituraAtual103Compact;
+      leituraAnterior103 = leituraAnterior103Compact;
+      fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:DIC_KWH_INJ_COMPACT', true);
+      fieldResults['leitura_atual_103'] = makeField(leituraAtual103, 'regex:DIC_KWH_INJ_COMPACT', true);
+      fieldResults['leitura_anterior_103'] = makeField(leituraAnterior103, 'regex:DIC_KWH_INJ_COMPACT', true);
+      confidence += 12;
     }
   }
 
