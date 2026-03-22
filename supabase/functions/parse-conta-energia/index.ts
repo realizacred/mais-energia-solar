@@ -1059,10 +1059,21 @@ function extractEnergisa(text: string): ExtractedData | null {
   const ufMatch = flatText.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
   if (ufMatch) estado = ufMatch[1];
 
-  // Cidade
+  // Cidade — Energisa: "Cataguases / MG" ou "Cidade - UF"
   let cidade: string | null = null;
-  const cidadeMatch = flatText.match(/(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i);
-  if (cidadeMatch) cidade = cidadeMatch[1].trim();
+  const cidadePatterns = [
+    /(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i,
+    /([A-Za-zÀ-ú\s]{3,30})\s*\/\s*(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s*[-–]\s*CEP/i,
+    /([A-Za-zÀ-ú\s]{3,30})\s*[-–]\s*(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s*[-–]?\s*CEP/i,
+  ];
+  for (const p of cidadePatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      cidade = m[1].trim();
+      fieldResults['cidade'] = makeField(cidade, 'regex:CIDADE', true);
+      break;
+    }
+  }
 
   // ── VALIDAÇÕES CRUZADAS ──
 
