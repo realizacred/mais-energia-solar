@@ -71,7 +71,7 @@ const MetersListPage = lazy(() => import("@/components/admin/meters/MetersListPa
 const MeterDetailPage = lazy(() => import("@/components/admin/meters/MeterDetailPage"));
 const FaturasEnergiaPage = lazy(() => import("@/components/admin/faturas/FaturasEnergiaPage"));
 const InvoiceReviewPage = lazy(() => import("@/components/admin/faturas/InvoiceReviewPage"));
-const GdGroupsPage = lazy(() => import("@/components/admin/gd/GdGroupsPage").then(m => ({ default: m.GdGroupsPage })));
+// GdGroupsPage removida — funcionalidade migrada para aba Beneficiárias na UC
 const EnergyAlertsPage = lazy(() => import("@/components/admin/energia/EnergyAlertsPage").then(m => ({ default: m.EnergyAlertsPage })));
 const GdAutomationPage = lazy(() => import("@/components/admin/energia/GdAutomationPage").then(m => ({ default: m.GdAutomationPage })));
 const EnergyFinancialPage = lazy(() => import("@/components/admin/energia/EnergyFinancialPage").then(m => ({ default: m.EnergyFinancialPage })));
@@ -358,7 +358,7 @@ const TAB_TITLES: Record<string, string> = {
   medidores: "Medidores",
   ucs: "Unidades Consumidoras",
   "faturas-energia": "Faturas de Energia",
-  "gd-rateio": "GD e Rateio de Créditos",
+  // "gd-rateio" removida — funcionalidade na aba Beneficiárias da UC
   "alertas-energia": "Alertas Energéticos",
 };
 
@@ -628,7 +628,7 @@ export default function Admin() {
                 {/* Faturas de Energia */}
                 <Route path="faturas-energia" element={<FaturasEnergiaPage />} />
                 <Route path="faturas-energia/revisao" element={<InvoiceReviewPage />} />
-                <Route path="gd-rateio" element={<GdGroupsPage />} />
+                {/* gd-rateio removida — funcionalidade na aba Beneficiárias da UC */}
                 <Route path="alertas-energia" element={<EnergyAlertsPage />} />
                 <Route path="automacoes-energia" element={<GdAutomationPage />} />
                 <Route path="financeiro-energia" element={<EnergyFinancialPage />} />
