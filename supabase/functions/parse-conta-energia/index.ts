@@ -36,6 +36,9 @@ interface ExtractedData {
   leitura_atual_03: number | null;
   leitura_anterior_103: number | null;
   leitura_atual_103: number | null;
+  energia_injetada_kwh: number | null;
+  energia_compensada_kwh: number | null;
+  categoria_gd: string | null;
   confidence: number;
   ai_fallback_used: boolean;
   raw_fields: Record<string, string>;
