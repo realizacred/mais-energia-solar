@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
@@ -12,107 +11,43 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Webhook, Plus, Trash2, ExternalLink, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
-
-interface WebhookConfig {
-  id: string;
-  nome: string;
-  url: string;
-  ativo: boolean;
-  eventos: string[];
-  created_at: string;
-}
+import { useWebhookConfigs, useCreateWebhook, useToggleWebhook, useDeleteWebhook } from "@/hooks/useWebhookConfig";
 
 export default function WebhookManager() {
-  const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ nome: "", url: "" });
   const { toast } = useToast();
 
   const webhookEndpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-lead`;
 
-  useEffect(() => {
-    fetchWebhooks();
-  }, []);
+  const { data: webhooks = [], isLoading: loading } = useWebhookConfigs();
+  const createMut = useCreateWebhook();
+  const toggleMut = useToggleWebhook();
+  const deleteMut = useDeleteWebhook();
 
-  const fetchWebhooks = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("webhook_config")
-        .select("id, tenant_id, nome, url, eventos, ativo, created_at, updated_at")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setWebhooks(data || []);
-    } catch (error) {
-      console.error("Erro ao buscar webhooks:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!formData.nome.trim() || !formData.url.trim()) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Preencha todos os campos.", variant: "destructive" });
       return;
     }
-
-    setSaving(true);
-    try {
-      const { error } = await supabase.from("webhook_config").insert({
-        nome: formData.nome.trim(),
-        url: formData.url.trim(),
-        eventos: ["INSERT", "UPDATE"],
-      });
-
-      if (error) throw error;
-
-      toast({ title: "Webhook criado!", description: "O webhook foi configurado com sucesso." });
-      setFormData({ nome: "", url: "" });
-      setIsDialogOpen(false);
-      fetchWebhooks();
-    } catch (error) {
-      console.error("Erro ao criar webhook:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível criar o webhook.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
+    createMut.mutate({ nome: formData.nome.trim(), url: formData.url.trim(), eventos: ["INSERT", "UPDATE"] }, {
+      onSuccess: () => {
+        toast({ title: "Webhook criado!", description: "O webhook foi configurado com sucesso." });
+        setFormData({ nome: "", url: "" });
+        setIsDialogOpen(false);
+      },
+      onError: () => toast({ title: "Erro", description: "Não foi possível criar o webhook.", variant: "destructive" }),
+    });
   };
 
-  const handleToggle = async (id: string, ativo: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("webhook_config")
-        .update({ ativo: !ativo })
-        .eq("id", id);
-
-      if (error) throw error;
-      setWebhooks((prev) =>
-        prev.map((w) => (w.id === id ? { ...w, ativo: !ativo } : w))
-      );
-    } catch (error) {
-      console.error("Erro ao atualizar webhook:", error);
-    }
+  const handleToggle = (id: string, ativo: boolean) => {
+    toggleMut.mutate({ id, ativo: !ativo });
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase.from("webhook_config").delete().eq("id", id);
-      if (error) throw error;
-      setWebhooks((prev) => prev.filter((w) => w.id !== id));
-      toast({ title: "Webhook removido!" });
-    } catch (error) {
-      console.error("Erro ao excluir webhook:", error);
-    }
+  const handleDelete = (id: string) => {
+    deleteMut.mutate(id, {
+      onSuccess: () => toast({ title: "Webhook removido!" }),
+    });
   };
 
   const copyToClipboard = (text: string) => {
@@ -167,8 +102,8 @@ export default function WebhookManager() {
                   placeholder="https://..."
                 />
               </div>
-              <Button onClick={handleCreate} disabled={saving} className="w-full">
-                {saving ? <Spinner size="sm" /> : null}
+              <Button onClick={handleCreate} disabled={createMut.isPending} className="w-full">
+                {createMut.isPending ? <Spinner size="sm" /> : null}
                 Salvar Webhook
               </Button>
             </div>

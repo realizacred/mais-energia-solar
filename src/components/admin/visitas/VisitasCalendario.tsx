@@ -59,14 +59,7 @@ export function VisitasCalendario() {
   const criarVisita = useCriarVisita();
 
   // Fetch consultores for select
-  const { data: consultores = [] } = useQuery({
-    queryKey: ["consultores_list"],
-    queryFn: async () => {
-      const { data } = await supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome");
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 15,
-  });
+  const { data: consultores = [] } = useConsultoresList();
 
   // Form state
   const [form, setForm] = useState({
