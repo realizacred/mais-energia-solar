@@ -401,12 +401,71 @@ function formToJsonPayload(form: ReturnType<typeof buildFormState>) {
   };
 }
 
+// ── JSONB Fields Editor Tab ──
+const JSONB_FIELD_DEFS = [
+  { key: "required_fields_mista", label: "Campos Obrigatórios — Mista" },
+  { key: "required_fields_consumo", label: "Campos Obrigatórios — Consumo" },
+  { key: "desired_fields", label: "Campos Desejados" },
+  { key: "blocking_fields", label: "Campos Bloqueantes" },
+  { key: "geradora_signals", label: "Sinais de Geradora" },
+  { key: "beneficiaria_signals", label: "Sinais de Beneficiária" },
+  { key: "mista_signals", label: "Sinais de Mista" },
+  { key: "layout_rules", label: "Regras de Layout" },
+] as const;
+
+type JsonbFieldKey = typeof JSONB_FIELD_DEFS[number]["key"];
+
+function JsonbFieldEditor({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: unknown;
+  onChange: (parsed: any) => void;
+}) {
+  const [text, setText] = useState(() => JSON.stringify(value, null, 2));
+  const [error, setError] = useState<string | null>(null);
+
+  // Sync external changes
+  useEffect(() => {
+    setText(JSON.stringify(value, null, 2));
+    setError(null);
+  }, [value]);
+
+  const handleChange = (newText: string) => {
+    setText(newText);
+    try {
+      const parsed = JSON.parse(newText);
+      setError(null);
+      onChange(parsed);
+    } catch (e: any) {
+      setError("JSON inválido");
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium text-foreground">{label}</Label>
+      <Textarea
+        value={text}
+        onChange={(e) => handleChange(e.target.value)}
+        rows={4}
+        className="font-mono text-xs min-h-[80px]"
+        spellCheck={false}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: ExtractionConfigModalProps) {
   const saveConfig = useSaveExtractionConfig();
   const [customFieldInput, setCustomFieldInput] = useState("");
   const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
   const [jsonText, setJsonText] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [jsonbErrors, setJsonbErrors] = useState<Set<string>>(new Set());
 
   const [form, setForm] = useState(() => buildFormState(config, prefill));
   const baselineRef = useRef<string>("");
