@@ -159,6 +159,19 @@ interface Props {
 export function UCInvoicesTab({ unitId }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
+
+  /** Invalidate all UC-related queries for instant updates across tabs */
+  const invalidateAllUcQueries = () => {
+    qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
+    qc.invalidateQueries({ queryKey: ["uc_overview_invoices", unitId] });
+    qc.invalidateQueries({ queryKey: ["uc_overview_credit_sum", unitId] });
+    qc.invalidateQueries({ queryKey: ["uc_overview_timeline", unitId] });
+    qc.invalidateQueries({ queryKey: ["uc_proxima_leitura", unitId] });
+    qc.invalidateQueries({ queryKey: ["uc_energia_resumo", unitId] });
+    qc.invalidateQueries({ queryKey: ["uc_detail", unitId] });
+    qc.invalidateQueries({ queryKey: ["gd_monthly_snapshot"] });
+    qc.invalidateQueries({ queryKey: ["gd_credit_balances"] });
+  };
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
