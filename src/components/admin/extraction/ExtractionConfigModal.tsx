@@ -261,52 +261,58 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
   const baselineRef = useRef<string>("");
 
   useEffect(() => {
-    if (config) {
-      setForm({
-        concessionaria_code: config.concessionaria_code,
-        concessionaria_nome: config.concessionaria_nome,
-        concessionaria_id: config.concessionaria_id,
-        strategy_mode: config.strategy_mode,
-        native_enabled: config.native_enabled,
-        provider_enabled: config.provider_enabled,
-        provider_name: config.provider_name || "",
-        provider_endpoint_key: config.provider_endpoint_key || "",
-        provider_requires_base64: config.provider_requires_base64,
-        provider_requires_password: config.provider_requires_password,
-        fallback_enabled: config.fallback_enabled,
-        required_fields: config.required_fields || ["consumo_kwh", "valor_total"],
-        required_fields_geradora: config.required_fields_geradora?.length ? config.required_fields_geradora : config.required_fields || ["consumo_kwh", "valor_total"],
-        required_fields_beneficiaria: config.required_fields_beneficiaria?.length ? config.required_fields_beneficiaria : (config.required_fields || ["consumo_kwh", "valor_total"]).filter((f: string) => !["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"].includes(f)),
-        optional_fields: config.optional_fields || [],
-        identifier_field: config.identifier_field || "numero_uc",
-        parser_version: config.parser_version || "3.0.2",
-        active: config.active,
-        notes: config.notes || "",
-      });
-    } else {
-      setForm({
-        concessionaria_code: "",
-        concessionaria_nome: "",
-        concessionaria_id: null,
-        strategy_mode: "native",
-        native_enabled: true,
-        provider_enabled: false,
-        provider_name: "",
-        provider_endpoint_key: "",
-        provider_requires_base64: false,
-        provider_requires_password: false,
-        fallback_enabled: false,
-        required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
-        required_fields_geradora: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia", "energia_injetada_kwh", "saldo_gd_acumulado"],
-        required_fields_beneficiaria: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
-        optional_fields: [],
-        identifier_field: "numero_uc",
-        parser_version: "3.0.2",
-        active: true,
-        notes: "",
-      });
-    }
+    const newForm = config ? {
+      concessionaria_code: config.concessionaria_code,
+      concessionaria_nome: config.concessionaria_nome,
+      concessionaria_id: config.concessionaria_id,
+      strategy_mode: config.strategy_mode,
+      native_enabled: config.native_enabled,
+      provider_enabled: config.provider_enabled,
+      provider_name: config.provider_name || "",
+      provider_endpoint_key: config.provider_endpoint_key || "",
+      provider_requires_base64: config.provider_requires_base64,
+      provider_requires_password: config.provider_requires_password,
+      fallback_enabled: config.fallback_enabled,
+      required_fields: config.required_fields || ["consumo_kwh", "valor_total"],
+      required_fields_geradora: config.required_fields_geradora?.length ? config.required_fields_geradora : config.required_fields || ["consumo_kwh", "valor_total"],
+      required_fields_beneficiaria: config.required_fields_beneficiaria?.length ? config.required_fields_beneficiaria : (config.required_fields || ["consumo_kwh", "valor_total"]).filter((f: string) => !["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"].includes(f)),
+      optional_fields: config.optional_fields || [],
+      identifier_field: config.identifier_field || "numero_uc",
+      parser_version: config.parser_version || "3.0.2",
+      active: config.active,
+      notes: config.notes || "",
+      custom_fields: [] as FieldDef[],
+    } : {
+      concessionaria_code: "",
+      concessionaria_nome: "",
+      concessionaria_id: null as string | null,
+      strategy_mode: "native" as ExtractionStrategyMode,
+      native_enabled: true,
+      provider_enabled: false,
+      provider_name: "",
+      provider_endpoint_key: "",
+      provider_requires_base64: false,
+      provider_requires_password: false,
+      fallback_enabled: false,
+      required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
+      required_fields_geradora: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia", "energia_injetada_kwh", "saldo_gd_acumulado"],
+      required_fields_beneficiaria: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
+      optional_fields: [] as string[],
+      identifier_field: "numero_uc",
+      parser_version: "3.0.2",
+      active: true,
+      notes: "",
+      custom_fields: [] as FieldDef[],
+    };
+    setForm(newForm);
+    baselineRef.current = JSON.stringify(newForm);
+    setCustomFieldInput("");
   }, [config, open]);
+
+  const isDirty = useMemo(() => {
+    if (!config) return !!form.concessionaria_code; // new: dirty when code filled
+    return JSON.stringify(form) !== baselineRef.current;
+  }, [form, config]);
 
   const toggleRequired = (key: string) => {
     setForm(f => {
