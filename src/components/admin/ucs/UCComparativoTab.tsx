@@ -242,11 +242,11 @@ export function UCComparativoTab({ unitId, simulacaoId }: Props) {
                 return (
                   <TableRow key={m.month} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-medium text-foreground">{m.mes}</TableCell>
-                    <TableCell className="text-right font-mono text-muted-foreground">{m.estimado_kwh.toLocaleString("pt-BR")} kWh</TableCell>
-                    <TableCell className="text-right font-mono">{m.real_kwh.toLocaleString("pt-BR")} kWh</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">{formatNumberBR(m.estimado_kwh)} kWh</TableCell>
+                    <TableCell className="text-right font-mono">{formatNumberBR(m.real_kwh)} kWh</TableCell>
                     <TableCell className="text-right font-mono">
                       <span className={m.diferenca_kwh >= 0 ? "text-success" : "text-destructive"}>
-                        {m.diferenca_kwh >= 0 ? "+" : ""}{m.diferenca_kwh.toLocaleString("pt-BR")} kWh
+                        {m.diferenca_kwh >= 0 ? "+" : ""}{formatNumberBR(m.diferenca_kwh)} kWh
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
