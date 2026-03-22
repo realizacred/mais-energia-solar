@@ -821,6 +821,7 @@ function extractEnergisa(text: string): ExtractedData | null {
   // ── 6. Tarifas e Tributos ──
 
   let tarifaEnergia: number | null = null;
+  let tarifaFioB: number | null = null;
   const energisaTariffTokens = Array.from(new Set(
     (flatText.match(/\b\d,\d{6}\b/g) ?? [])
       .map((token) => parseNum(token))
@@ -856,7 +857,6 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  let tarifaFioB: number | null = tarifaFioB ?? null;
   const tusdPatterns = [
     /TUSD[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
     /uso\s*(?:do\s*)?sistema\s*(?:de\s*)?distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)/i,
