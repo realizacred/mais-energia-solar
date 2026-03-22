@@ -120,6 +120,7 @@ function GeneratorSection({
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const saveGroup = useSaveGdGroup();
   const saveBeneficiary = useSaveGdBeneficiary();
   const deleteBeneficiary = useDeleteGdBeneficiary();
