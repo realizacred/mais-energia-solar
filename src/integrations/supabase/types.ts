@@ -23847,6 +23847,31 @@ export type Database = {
           },
         ]
       }
+      meter_readings_daily: {
+        Row: {
+          consumo_dia_kwh: number | null
+          energy_export_kwh: number | null
+          energy_import_kwh: number | null
+          id: string | null
+          injecao_dia_kwh: number | null
+          measured_at: string | null
+          meter_device_id: string | null
+          power_w: number | null
+          reading_date: string | null
+          readings_count: number | null
+          tenant_id: string | null
+          voltage_v: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_readings_meter_device_id_fkey"
+            columns: ["meter_device_id"]
+            isOneToOne: false
+            referencedRelation: "meter_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_analytics_view: {
         Row: {
           acceptance_date: string | null
