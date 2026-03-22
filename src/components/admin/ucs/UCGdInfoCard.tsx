@@ -51,9 +51,7 @@ export function UCGdInfoCard({ ucId }: Props) {
                 <span className="text-xs text-muted-foreground font-mono">
                   {Number(b.allocation_percent).toFixed(2)}%
                 </span>
-                <Link to={`/admin/gd-rateio?group=${b.gd_groups?.id}`} className="text-xs text-primary hover:underline flex items-center gap-0.5">
-                  Ver grupo <ExternalLink className="w-3 h-3" />
-                </Link>
+                <span className="text-xs text-muted-foreground">Grupo: {b.gd_groups?.nome}</span>
               </div>
             ))}
           </div>
