@@ -127,7 +127,7 @@ async function processInvoice(
     normalizedPdfBase64 = pdf_base64!;
   }
 
-  const pdfText = extractTextFromPdfBytes(pdfBytes);
+  const pdfText = await extractTextFromPdfBytesAsync(pdfBytes);
 
   // ── 2. Call parse-conta-energia (deterministic parser — NO AI) ──
   let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
