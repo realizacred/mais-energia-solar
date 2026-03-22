@@ -1,6 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { formatBRL } from "@/lib/formatters";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useCostComponents, useSaveCostComponent, useDeleteCostComponent, useToggleCostComponent,
+  type CostComponent,
+} from "@/hooks/usePricingPolicy";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
