@@ -133,10 +133,12 @@ async function processInvoice(
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
+    // Save failed parsing status if we have an invoice_id
     return new Response(JSON.stringify({
       error: 'Falha ao parsear fatura (parser determinístico)',
       details: parseResult || null,
       extraction_method: 'deterministic',
+      parsing_status: 'failed',
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
