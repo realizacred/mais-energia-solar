@@ -121,31 +121,20 @@ async function processInvoice(
 
   const pdfText = extractTextFromPdfBytes(pdfBytes);
 
-  // ── 2. Call parse-conta-energia (with PDF base64 for AI multimodal fallback) ──
-  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, normalizedPdfBase64, true, 30000);
+  // ── 2. Call parse-conta-energia (deterministic parser — NO AI) ──
+  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
-    // Retry without AI text fallback but still with PDF base64
-    const regexOnlyAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, normalizedPdfBase64, false, 15000);
-    if (regexOnlyAttempt.ok && regexOnlyAttempt.body?.success) {
-      parseResult = regexOnlyAttempt.body;
-    } else {
-      return new Response(JSON.stringify({
-        error: 'Falha ao parsear fatura',
-        details: parseResult || regexOnlyAttempt.body || null,
-      }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    return new Response(JSON.stringify({
+      error: 'Falha ao parsear fatura (parser determinístico)',
+      details: parseResult || null,
+      extraction_method: 'deterministic',
+    }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const parsed = parseResult.data;
-  
-  // Log AI model used for traceability
-  if (parsed.ai_fallback_used) {
-    console.log(`[process-fatura-pdf] AI model used: ${parsed.ai_model_used || 'unknown'}, confidence: ${parsed.confidence}`);
-  } else {
-    console.log(`[process-fatura-pdf] Regex-only extraction, confidence: ${parsed.confidence}`);
-  }
+  console.log(`[process-fatura-pdf] Deterministic parser v${parsed.parser_version || '?'} (${parsed.parser_used || 'generic'}), confidence: ${parsed.confidence}`);
 
   // ── 3. Resolve UC ──
   let resolvedUnitId = unit_id || null;
