@@ -184,6 +184,10 @@ async function processInvoice(
       .from('faturas-energia')
       .createSignedUrl(storagePath, 86400);
     pdfUrl = signedData?.signedUrl || null;
+
+    if (pdf_storage_path && pdf_storage_path !== storagePath) {
+      await admin.storage.from('faturas-energia').remove([pdf_storage_path]);
+    }
   } else {
     console.warn("[process-fatura-pdf] Upload error:", uploadErr);
   }
