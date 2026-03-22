@@ -852,7 +852,7 @@ async function aiExtractMissingFields(
     if (!toolCall?.function?.arguments) return regexResult;
 
     const aiFields = JSON.parse(toolCall.function.arguments);
-    const result = { ...regexResult, ai_fallback_used: true };
+    const result = { ...regexResult, ai_fallback_used: true, ai_model_used: "google/gemini-2.5-flash-lite" };
 
     if (!result.proxima_leitura_data && aiFields.proxima_leitura_data) {
       result.proxima_leitura_data = aiFields.proxima_leitura_data;
