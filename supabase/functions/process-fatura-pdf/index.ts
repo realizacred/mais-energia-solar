@@ -253,12 +253,39 @@ async function processInvoice(
   const mes = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, now.getMonth() + 1) : now.getMonth() + 1;
   const ucCode = ucData?.codigo_uc || parsed.numero_uc || 'unknown';
 
-  if (ownershipResult.status === 'mismatch') {
-    // Block automatic assignment on mismatch
-    console.warn(`[process-fatura-pdf] OWNERSHIP MISMATCH — extracted: ${identifierExtracted}, expected: ${identifierExpected}`);
+  if (ownershipResult.status === 'mismatch' && resolvedUnitId) {
+    // Check if this UC has any existing invoices (first import = allow & enrich)
+    const { count: existingInvoiceCount } = await admin
+      .from('unit_invoices')
+      .select('id', { count: 'exact', head: true })
+      .eq('unit_id', resolvedUnitId)
+      .eq('tenant_id', tenantId);
 
-    if (resolvedUnitId) {
-      // Save invoice but mark as needs_manual_assignment
+    const isFirstImport = (existingInvoiceCount || 0) === 0;
+
+    if (isFirstImport) {
+      // First import: allow and update UC identifier to match the extracted one
+      console.log(`[process-fatura-pdf] First import for UC ${resolvedUnitId} — allowing mismatch and updating UC identifier from "${identifierExpected}" to "${identifierExtracted}"`);
+
+      if (identifierExtracted) {
+        await admin
+          .from('units_consumidoras')
+          .update({
+            unit_identifier: identifierExtracted,
+            unit_identifier_type: identifierField,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', resolvedUnitId)
+          .eq('tenant_id', tenantId);
+      }
+
+      // Override ownership to valid for first import
+      ownershipResult.status = 'valid';
+      ownershipResult.score = 100;
+    } else {
+      // Has history: block on mismatch
+      console.warn(`[process-fatura-pdf] OWNERSHIP MISMATCH — extracted: ${identifierExtracted}, expected: ${identifierExpected}`);
+
       const invoicePayloadMismatch: any = {
         tenant_id: tenantId,
         unit_id: resolvedUnitId,
