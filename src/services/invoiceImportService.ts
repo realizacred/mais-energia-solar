@@ -147,18 +147,11 @@ export const invoiceImportService = {
     const item = await this.createJobItem(jobId, file.name);
 
     try {
-      // Convert to base64
-      const arrayBuffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const pdfBase64 = btoa(binary);
+      const pdfStoragePath = await uploadInvoiceTempPdf(file);
 
       // Call edge function
       const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
-        body: { pdf_base64: pdfBase64, unit_id: unitId, source: "upload" },
+        body: { pdf_storage_path: pdfStoragePath, unit_id: unitId, source: "upload" },
         headers: { "x-client-timeout": "120" },
       });
 

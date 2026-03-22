@@ -158,24 +158,16 @@ export function UCInvoicesTab({ unitId }: Props) {
   const handleFileUploadOnly = async (file: File) => {
     setUploading(true);
     setUploadProgress(10);
-    setUploadStep("Lendo PDF...");
+    setUploadStep("Enviando PDF...");
     try {
-      // Convert file to base64
-      const arrayBuffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const pdfBase64 = btoa(binary);
+      const pdfStoragePath = await uploadInvoiceTempPdf(file);
 
-      setUploadProgress(30);
+      setUploadProgress(45);
       setUploadStep("Extraindo dados da fatura...");
 
-      // Call process-fatura-pdf edge function which parses, uploads and creates the invoice
       const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
         body: {
-          pdf_base64: pdfBase64,
+          pdf_storage_path: pdfStoragePath,
           unit_id: unitId,
           source: "upload",
         },
