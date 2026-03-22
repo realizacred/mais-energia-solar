@@ -24,6 +24,8 @@ import {
   type ExtractionConfig,
 } from "@/hooks/useExtractionConfigs";
 import { ExtractionConfigModal } from "./ExtractionConfigModal";
+import { ExtractionTestTab } from "./ExtractionTestTab";
+import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -184,7 +186,9 @@ export default function ExtractionCenterPage() {
       <Tabs defaultValue="configs">
         <TabsList>
           <TabsTrigger value="configs">Configurações</TabsTrigger>
-          <TabsTrigger value="runs">Histórico de Extrações</TabsTrigger>
+          <TabsTrigger value="test">Teste de Extração</TabsTrigger>
+          <TabsTrigger value="runs">Histórico</TabsTrigger>
+          <TabsTrigger value="assistant">Assistente</TabsTrigger>
         </TabsList>
 
         <TabsContent value="configs" className="mt-4">
@@ -325,6 +329,10 @@ export default function ExtractionCenterPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="test" className="mt-4">
+          <ExtractionTestTab />
+        </TabsContent>
+
         <TabsContent value="runs" className="mt-4">
           {runsLoading ? (
             <div className="space-y-2">
@@ -385,6 +393,10 @@ export default function ExtractionCenterPage() {
               </Table>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="assistant" className="mt-4">
+          <ExtractionAssistantTab />
         </TabsContent>
       </Tabs>
 

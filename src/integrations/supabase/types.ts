@@ -7774,6 +7774,83 @@ export type Database = {
           },
         ]
       }
+      invoice_extraction_test_runs: {
+        Row: {
+          concessionaria_code: string | null
+          concessionaria_detected: string | null
+          confidence_score: number | null
+          consistency_result: Json | null
+          created_at: string
+          created_by: string | null
+          errors: Json | null
+          fields_found: Json | null
+          fields_missing: Json | null
+          file_type: string | null
+          id: string
+          is_textual: boolean | null
+          parser_used: string | null
+          parser_version: string | null
+          raw_extraction: Json | null
+          recommendation: string | null
+          status: string
+          strategy_used: string | null
+          tenant_id: string
+          warnings: Json | null
+        }
+        Insert: {
+          concessionaria_code?: string | null
+          concessionaria_detected?: string | null
+          confidence_score?: number | null
+          consistency_result?: Json | null
+          created_at?: string
+          created_by?: string | null
+          errors?: Json | null
+          fields_found?: Json | null
+          fields_missing?: Json | null
+          file_type?: string | null
+          id?: string
+          is_textual?: boolean | null
+          parser_used?: string | null
+          parser_version?: string | null
+          raw_extraction?: Json | null
+          recommendation?: string | null
+          status?: string
+          strategy_used?: string | null
+          tenant_id?: string
+          warnings?: Json | null
+        }
+        Update: {
+          concessionaria_code?: string | null
+          concessionaria_detected?: string | null
+          confidence_score?: number | null
+          consistency_result?: Json | null
+          created_at?: string
+          created_by?: string | null
+          errors?: Json | null
+          fields_found?: Json | null
+          fields_missing?: Json | null
+          file_type?: string | null
+          id?: string
+          is_textual?: boolean | null
+          parser_used?: string | null
+          parser_version?: string | null
+          raw_extraction?: Json | null
+          recommendation?: string | null
+          status?: string
+          strategy_used?: string | null
+          tenant_id?: string
+          warnings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_extraction_test_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_import_job_items: {
         Row: {
           created_at: string
@@ -20483,6 +20560,11 @@ export type Database = {
             | Database["public"]["Enums"]["bandeira_tarifaria"]
             | null
           compensated_kwh: number | null
+          consistency_checks_json: Json | null
+          consistency_errors_json: Json | null
+          consistency_score: number | null
+          consistency_status: string | null
+          consistency_warnings_json: Json | null
           created_at: string
           current_balance_kwh: number | null
           demanda_contratada_kw: number | null
@@ -20518,6 +20600,11 @@ export type Database = {
             | Database["public"]["Enums"]["bandeira_tarifaria"]
             | null
           compensated_kwh?: number | null
+          consistency_checks_json?: Json | null
+          consistency_errors_json?: Json | null
+          consistency_score?: number | null
+          consistency_status?: string | null
+          consistency_warnings_json?: Json | null
           created_at?: string
           current_balance_kwh?: number | null
           demanda_contratada_kw?: number | null
@@ -20553,6 +20640,11 @@ export type Database = {
             | Database["public"]["Enums"]["bandeira_tarifaria"]
             | null
           compensated_kwh?: number | null
+          consistency_checks_json?: Json | null
+          consistency_errors_json?: Json | null
+          consistency_score?: number | null
+          consistency_status?: string | null
+          consistency_warnings_json?: Json | null
           created_at?: string
           current_balance_kwh?: number | null
           demanda_contratada_kw?: number | null
