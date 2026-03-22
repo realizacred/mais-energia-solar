@@ -108,16 +108,18 @@ export function useSaveExtractionConfig() {
           .update({ ...rest, updated_at: new Date().toISOString() })
           .eq("id", id)
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
+        if (!data) throw new Error("Não foi possível atualizar. Verifique permissões.");
         return data;
       } else {
         const { data, error } = await supabase
           .from("invoice_extraction_configs")
           .insert(rest)
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
+        if (!data) throw new Error("Não foi possível criar. Verifique permissões.");
         return data;
       }
     },
