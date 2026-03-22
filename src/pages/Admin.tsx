@@ -630,6 +630,7 @@ export default function Admin() {
                 {/* Faturas de Energia */}
                 <Route path="faturas-energia" element={<FaturasEnergiaPage />} />
                 <Route path="faturas-energia/revisao" element={<InvoiceReviewPage />} />
+                <Route path="central-extracao" element={<ExtractionCenterPage />} />
                 {/* gd-rateio removida — funcionalidade na aba Beneficiárias da UC */}
                 <Route path="alertas-energia" element={<EnergyAlertsPage />} />
                 <Route path="automacoes-energia" element={<GdAutomationPage />} />
