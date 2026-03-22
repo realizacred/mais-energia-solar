@@ -128,6 +128,18 @@ export const meterService = {
     return data as MeterReading[];
   },
 
+  /** Daily aggregated readings (one row per day with consumption/injection delta) */
+  async getDailyReadings(meterId: string, limit = 60) {
+    const { data, error } = await supabase
+      .from("meter_readings_daily" as any)
+      .select("id, meter_device_id, reading_date, measured_at, consumo_dia_kwh, injecao_dia_kwh, energy_import_kwh, energy_export_kwh, readings_count")
+      .eq("meter_device_id", meterId)
+      .order("reading_date", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data as any[];
+  },
+
   async getStatusLatest(meterId: string) {
     const { data, error } = await supabase
       .from("meter_status_latest")
