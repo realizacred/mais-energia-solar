@@ -1,5 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,40 +8,17 @@ import { Switch } from "@/components/ui/switch";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { toast } from "@/hooks/use-toast";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Loader2, Percent, Wallet } from "lucide-react";
-
-interface MarginPlan {
-  id: string;
-  name: string;
-  description: string | null;
-  min_margin_percent: number;
-  max_margin_percent: number;
-  default_margin_percent: number;
-  is_active: boolean;
-}
-
-interface CommissionPlan {
-  id: string;
-  name: string;
-  description: string | null;
-  commission_type: "fixed" | "percentage" | "dynamic";
-  parameters: Record<string, any>;
-  is_active: boolean;
-}
+import {
+  useMarginPlans, useSaveMarginPlan, useDeleteMarginPlan,
+  useCommissionPlans, useSaveCommissionPlan, useDeleteCommissionPlan,
+  type MarginPlan, type CommissionPlan,
+} from "@/hooks/usePricingPolicy";
 
 const COMMISSION_TYPES = [
   { value: "fixed", label: "Valor Fixo" },
@@ -51,36 +27,23 @@ const COMMISSION_TYPES = [
 ];
 
 export function MarginCommissionTab() {
-  const [marginPlans, setMarginPlans] = useState<MarginPlan[]>([]);
-  const [commissionPlans, setCommissionPlans] = useState<CommissionPlan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: marginPlans = [], isLoading: loadingMargin } = useMarginPlans();
+  const { data: commissionPlans = [], isLoading: loadingCommission } = useCommissionPlans();
+  const saveMarginMut = useSaveMarginPlan();
+  const deleteMarginMut = useDeleteMarginPlan();
+  const saveCommissionMut = useSaveCommissionPlan();
+  const deleteCommissionMut = useDeleteCommissionPlan();
+  const loading = loadingMargin || loadingCommission;
 
   // Margin dialog
   const [marginDialog, setMarginDialog] = useState(false);
   const [marginEditId, setMarginEditId] = useState<string | null>(null);
   const [marginForm, setMarginForm] = useState({ name: "", description: "", min_margin_percent: 10, max_margin_percent: 50, default_margin_percent: 25, is_active: true });
-  const [marginSaving, setMarginSaving] = useState(false);
 
   // Commission dialog
   const [commissionDialog, setCommissionDialog] = useState(false);
   const [commissionEditId, setCommissionEditId] = useState<string | null>(null);
   const [commissionForm, setCommissionForm] = useState<{ name: string; description: string; commission_type: string; parameters: Record<string, any>; is_active: boolean }>({ name: "", description: "", commission_type: "percentage", parameters: { percentual: 5 }, is_active: true });
-  const [commissionSaving, setCommissionSaving] = useState(false);
-
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    const [mRes, cRes] = await Promise.all([
-      supabase.from("margin_plans").select("id, name, description, min_margin_percent, max_margin_percent, default_margin_percent, is_active").order("created_at"),
-      supabase.from("commission_plans").select("id, name, description, commission_type, parameters, is_active").order("created_at"),
-    ]);
-    if (mRes.error) toast({ title: "Erro", description: mRes.error.message, variant: "destructive" });
-    if (cRes.error) toast({ title: "Erro", description: cRes.error.message, variant: "destructive" });
-    setMarginPlans((mRes.data as unknown as MarginPlan[]) || []);
-    setCommissionPlans((cRes.data as unknown as CommissionPlan[]) || []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { loadAll(); }, [loadAll]);
 
   // ── Margin CRUD ──
   function openMarginCreate() {
@@ -94,25 +57,17 @@ export function MarginCommissionTab() {
     setMarginDialog(true);
   }
   async function saveMargin() {
-    setMarginSaving(true);
     const payload = { name: marginForm.name.trim(), description: marginForm.description || null, min_margin_percent: marginForm.min_margin_percent, max_margin_percent: marginForm.max_margin_percent, default_margin_percent: marginForm.default_margin_percent, is_active: marginForm.is_active };
-    if (marginEditId) {
-      const { error } = await supabase.from("margin_plans").update(payload as any).eq("id", marginEditId);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Plano de margem atualizado" });
-    } else {
-      const { error } = await supabase.from("margin_plans").insert(payload as any);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Plano de margem criado" });
-    }
-    setMarginSaving(false);
-    setMarginDialog(false);
-    loadAll();
+    saveMarginMut.mutate({ id: marginEditId || undefined, data: payload }, {
+      onSuccess: () => { toast({ title: marginEditId ? "Plano de margem atualizado" : "Plano de margem criado" }); setMarginDialog(false); },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   }
-  async function deleteMargin(id: string) {
-    const { error } = await supabase.from("margin_plans").delete().eq("id", id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else { toast({ title: "Plano removido" }); loadAll(); }
+  function deleteMargin(id: string) {
+    deleteMarginMut.mutate(id, {
+      onSuccess: () => toast({ title: "Plano removido" }),
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   }
 
   // ── Commission CRUD ──
@@ -126,27 +81,22 @@ export function MarginCommissionTab() {
     setCommissionForm({ name: c.name, description: c.description || "", commission_type: c.commission_type, parameters: c.parameters, is_active: c.is_active });
     setCommissionDialog(true);
   }
-  async function saveCommission() {
-    setCommissionSaving(true);
+  function saveCommission() {
     const payload = { name: commissionForm.name.trim(), description: commissionForm.description || null, commission_type: commissionForm.commission_type, parameters: commissionForm.parameters, is_active: commissionForm.is_active };
-    if (commissionEditId) {
-      const { error } = await supabase.from("commission_plans").update(payload as any).eq("id", commissionEditId);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Plano de comissão atualizado" });
-    } else {
-      const { error } = await supabase.from("commission_plans").insert(payload as any);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Plano de comissão criado" });
-    }
-    setCommissionSaving(false);
-    setCommissionDialog(false);
-    loadAll();
+    saveCommissionMut.mutate({ id: commissionEditId || undefined, data: payload }, {
+      onSuccess: () => { toast({ title: commissionEditId ? "Plano de comissão atualizado" : "Plano de comissão criado" }); setCommissionDialog(false); },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   }
-  async function deleteCommission(id: string) {
-    const { error } = await supabase.from("commission_plans").delete().eq("id", id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else { toast({ title: "Plano removido" }); loadAll(); }
+  function deleteCommission(id: string) {
+    deleteCommissionMut.mutate(id, {
+      onSuccess: () => toast({ title: "Plano removido" }),
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   }
+
+  const marginSaving = saveMarginMut.isPending;
+  const commissionSaving = saveCommissionMut.isPending;
 
   if (loading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

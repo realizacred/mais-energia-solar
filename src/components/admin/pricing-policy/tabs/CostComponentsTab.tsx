@@ -1,6 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { formatBRL } from "@/lib/formatters";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useCostComponents, useSaveCostComponent, useDeleteCostComponent, useToggleCostComponent,
+  type CostComponent,
+} from "@/hooks/usePricingPolicy";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,16 +24,7 @@ import {
 import { Plus, Pencil, Trash2, Loader2, Layers, GripVertical, Lock, Package, Wrench, Truck, Building2, Receipt, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface CostComponent {
-  id: string;
-  category: string;
-  name: string;
-  calculation_strategy: string;
-  parameters: Record<string, any>;
-  display_order: number;
-  is_active: boolean;
-  description: string | null;
-}
+// CostComponent type imported from hook
 
 interface Props {
   versionId: string;
@@ -92,27 +86,13 @@ const EMPTY_FORM: Omit<CostComponent, "id"> = {
 };
 
 export function CostComponentsTab({ versionId, isReadOnly }: Props) {
-  const [components, setComponents] = useState<CostComponent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: components = [], isLoading: loading } = useCostComponents(versionId);
+  const saveMut = useSaveCostComponent();
+  const deleteMut = useDeleteCostComponent();
+  const toggleMut = useToggleCostComponent();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-
-  const loadComponents = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("pricing_cost_components")
-      .select("id, category, name, calculation_strategy, parameters, display_order, is_active, description")
-      .eq("version_id", versionId)
-      .order("display_order", { ascending: true });
-
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else setComponents((data as unknown as CostComponent[]) || []);
-    setLoading(false);
-  }, [versionId]);
-
-  useEffect(() => { loadComponents(); }, [loadComponents]);
 
   function openCreate() {
     setEditingId(null);
@@ -136,47 +116,32 @@ export function CostComponentsTab({ versionId, isReadOnly }: Props) {
 
   async function handleSave() {
     if (!form.name.trim()) return;
-    setSaving(true);
-
-    const payload = {
-      version_id: versionId,
-      category: form.category,
-      name: form.name.trim(),
-      calculation_strategy: form.calculation_strategy,
-      parameters: form.parameters,
-      display_order: form.display_order,
-      is_active: form.is_active,
-      description: form.description || null,
-    };
-
-    if (editingId) {
-      const { error } = await supabase
-        .from("pricing_cost_components")
-        .update(payload as any)
-        .eq("id", editingId);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Componente atualizado" });
-    } else {
-      const { error } = await supabase
-        .from("pricing_cost_components")
-        .insert(payload as any);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Componente adicionado" });
-    }
-
-    setSaving(false);
-    setDialogOpen(false);
-    loadComponents();
+    saveMut.mutate({
+      id: editingId || undefined,
+      versionId,
+      data: {
+        category: form.category,
+        name: form.name.trim(),
+        calculation_strategy: form.calculation_strategy,
+        parameters: form.parameters,
+        display_order: form.display_order,
+        is_active: form.is_active,
+        description: form.description || null,
+      },
+    }, {
+      onSuccess: () => { toast({ title: editingId ? "Componente atualizado" : "Componente adicionado" }); setDialogOpen(false); },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   }
 
   async function handleDelete(id: string) {
-    const { error } = await supabase.from("pricing_cost_components").delete().eq("id", id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else {
-      toast({ title: "Componente removido" });
-      loadComponents();
-    }
+    deleteMut.mutate({ id, versionId }, {
+      onSuccess: () => toast({ title: "Componente removido" }),
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   }
+
+  const saving = saveMut.isPending;
 
   function renderParameterFields() {
     const strategy = form.calculation_strategy;

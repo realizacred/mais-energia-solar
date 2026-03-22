@@ -1,8 +1,13 @@
 import { useState, useMemo } from "react";
 import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  useInversoresCatalogo,
+  useSalvarInversor,
+  useDeletarInversor,
+  useToggleInversor,
+  type Inversor,
+} from "@/hooks/useInversoresCatalogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,27 +27,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-interface Inversor {
-  id: string;
-  fabricante: string;
-  modelo: string;
-  potencia_nominal_kw: number;
-  tipo: string;
-  tensao_entrada_max_v: number | null;
-  corrente_entrada_max_a: number | null;
-  mppt_count: number | null;
-  strings_por_mppt: number | null;
-  fases: string;
-  tensao_saida_v: number | null;
-  eficiencia_max_percent: number | null;
-  garantia_anos: number | null;
-  peso_kg: number | null;
-  dimensoes_mm: string | null;
-  wifi_integrado: boolean | null;
-  ip_protection: string | null;
-  ativo: boolean;
-  tenant_id: string | null;
-}
+// Inversor type imported from hook
 
 const EMPTY_FORM = {
   fabricante: "", modelo: "", potencia_nominal_kw: "", tipo: "String",
@@ -55,7 +40,6 @@ const EMPTY_FORM = {
 
 export function InversoresManager() {
   const { toast } = useToast();
-  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterAtivo, setFilterAtivo] = useState("all");
   const [filterFabricante, setFilterFabricante] = useState("all");
@@ -65,19 +49,10 @@ export function InversoresManager() {
   const [deleting, setDeleting] = useState<Inversor | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const { data: inversores = [], isLoading } = useQuery({
-    queryKey: ["inversores-catalogo"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inversores_catalogo")
-        .select("id, tenant_id, fabricante, modelo, potencia_nominal_kw, tipo, fases, mppt_count, strings_por_mppt, tensao_entrada_max_v, tensao_saida_v, corrente_entrada_max_a, eficiencia_max_percent, peso_kg, dimensoes_mm, garantia_anos, ip_protection, wifi_integrado, ativo, created_at, updated_at")
-        .order("fabricante")
-        .order("potencia_nominal_kw");
-      if (error) throw error;
-      return data as Inversor[];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: inversores = [], isLoading } = useInversoresCatalogo();
+  const saveMutation = useSalvarInversor();
+  const deleteMutation = useDeletarInversor();
+  const toggleMutation = useToggleInversor();
 
   const fabricantes = useMemo(() => {
     const set = new Set(inversores.map((i) => i.fabricante));
@@ -94,45 +69,6 @@ export function InversoresManager() {
   });
 
   const isGlobal = (i: Inversor) => i.tenant_id === null;
-
-  const saveMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) => {
-      if (editing) {
-        const { error } = await supabase.from("inversores_catalogo").update(payload).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("inversores_catalogo").insert(payload as any);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
-      toast({ title: editing ? "Inversor atualizado" : "Inversor cadastrado" });
-      setDialogOpen(false);
-    },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("inversores_catalogo").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
-      toast({ title: "Inversor excluído" });
-      setDeleting(null);
-    },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase.from("inversores_catalogo").update({ ativo }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["inversores-catalogo"] }),
-  });
 
   const openDialog = (inv?: Inversor) => {
     if (inv) {
@@ -167,22 +103,31 @@ export function InversoresManager() {
       return;
     }
     saveMutation.mutate({
-      fabricante: form.fabricante.trim(),
-      modelo: form.modelo.trim(),
-      potencia_nominal_kw: parseFloat(form.potencia_nominal_kw),
-      tipo: form.tipo,
-      tensao_entrada_max_v: form.tensao_entrada_max_v ? parseInt(form.tensao_entrada_max_v) : null,
-      corrente_entrada_max_a: form.corrente_entrada_max_a ? parseFloat(form.corrente_entrada_max_a) : null,
-      mppt_count: form.mppt_count ? parseInt(form.mppt_count) : null,
-      strings_por_mppt: form.strings_por_mppt ? parseInt(form.strings_por_mppt) : null,
-      fases: form.fases,
-      tensao_saida_v: form.tensao_saida_v ? parseInt(form.tensao_saida_v) : null,
-      eficiencia_max_percent: form.eficiencia_max_percent ? parseFloat(form.eficiencia_max_percent) : null,
-      garantia_anos: form.garantia_anos ? parseInt(form.garantia_anos) : null,
-      peso_kg: form.peso_kg ? parseFloat(form.peso_kg) : null,
-      dimensoes_mm: form.dimensoes_mm || null,
-      wifi_integrado: form.wifi_integrado,
-      ip_protection: form.ip_protection || null,
+      id: editing?.id,
+      data: {
+        fabricante: form.fabricante.trim(),
+        modelo: form.modelo.trim(),
+        potencia_nominal_kw: parseFloat(form.potencia_nominal_kw),
+        tipo: form.tipo,
+        tensao_entrada_max_v: form.tensao_entrada_max_v ? parseInt(form.tensao_entrada_max_v) : null,
+        corrente_entrada_max_a: form.corrente_entrada_max_a ? parseFloat(form.corrente_entrada_max_a) : null,
+        mppt_count: form.mppt_count ? parseInt(form.mppt_count) : null,
+        strings_por_mppt: form.strings_por_mppt ? parseInt(form.strings_por_mppt) : null,
+        fases: form.fases,
+        tensao_saida_v: form.tensao_saida_v ? parseInt(form.tensao_saida_v) : null,
+        eficiencia_max_percent: form.eficiencia_max_percent ? parseFloat(form.eficiencia_max_percent) : null,
+        garantia_anos: form.garantia_anos ? parseInt(form.garantia_anos) : null,
+        peso_kg: form.peso_kg ? parseFloat(form.peso_kg) : null,
+        dimensoes_mm: form.dimensoes_mm || null,
+        wifi_integrado: form.wifi_integrado,
+        ip_protection: form.ip_protection || null,
+      },
+    }, {
+      onSuccess: () => {
+        toast({ title: editing ? "Inversor atualizado" : "Inversor cadastrado" });
+        setDialogOpen(false);
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
     });
   };
 

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Printer } from "lucide-react";
 import { ReciboDialog } from "./recebimentos/ReciboDialog";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useRegistrarPagamento, useDeletarPagamento } from "@/hooks/usePagamentos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +34,6 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Plus,
-  Loader2,
   Trash2,
   DollarSign,
   AlertCircle,
@@ -96,55 +95,12 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-/**
- * After inserting a pagamento, auto-reconcile with pending parcelas.
- * Marks parcelas as "paga" starting from the earliest pending,
- * consuming the payment amount progressively.
- */
-async function reconcilePagamentoWithParcelas(
-  recebimentoId: string,
-  pagamentoId: string,
-  valorPago: number
-) {
-  // Fetch all pending parcelas for this recebimento, ordered by numero_parcela
-  const { data: parcelas, error } = await supabase
-    .from("parcelas")
-    .select("id, numero_parcela, valor, status")
-    .eq("recebimento_id", recebimentoId)
-    .in("status", ["pendente", "atrasada"])
-    .order("numero_parcela", { ascending: true });
-
-  if (error || !parcelas || parcelas.length === 0) return;
-
-  let remaining = valorPago;
-  const parcelasToUpdate: string[] = [];
-
-  for (const parcela of parcelas) {
-    if (remaining <= 0) break;
-
-    // If remaining covers this parcela (within 1 cent tolerance)
-    if (remaining >= parcela.valor - 0.01) {
-      parcelasToUpdate.push(parcela.id);
-      remaining -= parcela.valor;
-    }
-  }
-
-  // Mark matched parcelas as paid and link to pagamento
-  if (parcelasToUpdate.length > 0) {
-    await supabase
-      .from("parcelas")
-      .update({ status: "paga", pagamento_id: pagamentoId })
-      .in("id", parcelasToUpdate);
-  }
-}
-
 export function PagamentosDialog({
   open,
   onOpenChange,
   recebimento,
   onUpdate,
 }: PagamentosDialogProps) {
-  const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [selectedPagamento, setSelectedPagamento] = useState<Pagamento | null>(null);
   const [reciboOpen, setReciboOpen] = useState(false);
@@ -155,6 +111,9 @@ export function PagamentosDialog({
     observacoes: "",
   });
 
+  const registrarMut = useRegistrarPagamento();
+  const deletarMut = useDeletarPagamento();
+
   const pagamentos = recebimento.pagamentos || [];
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor_pago, 0);
   const saldoRestante = recebimento.valor_total - totalPago;
@@ -162,64 +121,30 @@ export function PagamentosDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-
     try {
-      const valorPago = parseFloat(formData.valor_pago);
-
-      const { data: inserted, error } = await supabase
-        .from("pagamentos")
-        .insert({
-          recebimento_id: recebimento.id,
-          valor_pago: valorPago,
-          forma_pagamento: formData.forma_pagamento,
-          data_pagamento: formData.data_pagamento,
-          observacoes: formData.observacoes || null,
-        })
-        .select("id")
-        .single();
-
-      if (error) throw error;
-
-      // Auto-reconcile with pending parcelas
-      if (inserted?.id) {
-        await reconcilePagamentoWithParcelas(recebimento.id, inserted.id, valorPago);
-      }
-
+      await registrarMut.mutateAsync({
+        recebimentoId: recebimento.id,
+        valor_pago: parseFloat(formData.valor_pago),
+        forma_pagamento: formData.forma_pagamento,
+        data_pagamento: formData.data_pagamento,
+        observacoes: formData.observacoes || null,
+      });
       toast({ title: "Pagamento registrado e parcelas atualizadas!" });
       resetForm();
       onUpdate();
-    } catch (error) {
-      console.error("Error saving pagamento:", error);
-      toast({
-        title: "Erro ao registrar pagamento",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+    } catch {
+      toast({ title: "Erro ao registrar pagamento", variant: "destructive" });
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este pagamento? As parcelas vinculadas voltarão a pendente.")) return;
-
     try {
-      // First, unlink any parcelas tied to this pagamento
-      await supabase
-        .from("parcelas")
-        .update({ status: "pendente", pagamento_id: null })
-        .eq("pagamento_id", id);
-
-      const { error } = await supabase.from("pagamentos").delete().eq("id", id);
-      if (error) throw error;
+      await deletarMut.mutateAsync(id);
       toast({ title: "Pagamento excluído e parcelas restauradas!" });
       onUpdate();
-    } catch (error) {
-      console.error("Error deleting pagamento:", error);
-      toast({
-        title: "Erro ao excluir pagamento",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Erro ao excluir pagamento", variant: "destructive" });
     }
   };
 
@@ -241,6 +166,8 @@ export function PagamentosDialog({
     setSelectedPagamento({ ...pagamento, index } as Pagamento & { index: number });
     setReciboOpen(true);
   };
+
+  const saving = registrarMut.isPending;
 
   return (
     <>

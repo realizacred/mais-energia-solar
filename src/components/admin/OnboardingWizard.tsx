@@ -10,8 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useUpdateOnboardingStep, useCompleteOnboarding } from "@/hooks/useOnboarding";
+import {
+  useSaveOnboardingEmpresa,
+  useSaveOnboardingConsultor,
+  useSaveOnboardingLead,
+} from "@/hooks/useOnboardingMutations";
 import {
   Sparkles,
   Building2,
@@ -39,9 +43,11 @@ const STEPS = [
 
 export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: OnboardingWizardProps) {
   const [step, setStep] = useState(0);
-  const [loading, setLoading] = useState(false);
   const updateStep = useUpdateOnboardingStep();
   const completeOnboarding = useCompleteOnboarding();
+  const saveEmpresa = useSaveOnboardingEmpresa();
+  const saveConsultor = useSaveOnboardingConsultor();
+  const saveLead = useSaveOnboardingLead();
 
   // Step 1 — Company
   const [empresa, setEmpresa] = useState({ nome: "", documento: "", telefone: "", cidade: "" });
@@ -51,6 +57,8 @@ export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: Onb
 
   // Step 3 — Lead
   const [lead, setLead] = useState({ nome: "", telefone: "" });
+
+  const loading = saveEmpresa.isPending || saveConsultor.isPending || saveLead.isPending;
 
   const goNext = async () => {
     const next = step + 1;
@@ -65,23 +73,17 @@ export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: Onb
       toast.error("Informe o nome da empresa");
       return;
     }
-    setLoading(true);
     try {
-      const { error } = await supabase
-        .from("tenants")
-        .update({
-          nome: empresa.nome.trim(),
-          documento: empresa.documento.trim() || null,
-          cidade: empresa.cidade.trim() || null,
-        })
-        .eq("id", tenantId);
-      if (error) throw error;
+      await saveEmpresa.mutateAsync({
+        tenantId,
+        nome: empresa.nome.trim(),
+        documento: empresa.documento.trim() || null,
+        cidade: empresa.cidade.trim() || null,
+      });
       toast.success("Empresa salva!");
       goNext();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar empresa");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -90,23 +92,19 @@ export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: Onb
       toast.error("Preencha nome e telefone do consultor");
       return;
     }
-    setLoading(true);
     try {
       const code = consultor.nome.trim().substring(0, 3).toUpperCase() + "01";
-      const { error } = await supabase.from("consultores").insert({
-        tenant_id: tenantId,
+      await saveConsultor.mutateAsync({
+        tenantId,
         nome: consultor.nome.trim(),
         telefone: consultor.telefone.trim(),
         email: consultor.email.trim() || null,
         codigo: code,
       });
-      if (error) throw error;
       toast.success("Consultor adicionado!");
       goNext();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar consultor");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -115,26 +113,15 @@ export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: Onb
       toast.error("Preencha nome e telefone do lead");
       return;
     }
-    setLoading(true);
     try {
-      const { error } = await supabase.from("leads").insert([{
+      await saveLead.mutateAsync({
         nome: lead.nome.trim(),
         telefone: lead.telefone.trim(),
-        cidade: "A definir",
-        estado: "SP",
-        area: "residencial",
-        consumo_previsto: 300,
-        media_consumo: 300,
-        rede_atendimento: "monofasica",
-        tipo_telhado: "ceramico",
-      }]);
-      if (error) throw error;
+      });
       toast.success("Lead cadastrado!");
       goNext();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar lead");
-    } finally {
-      setLoading(false);
     }
   };
 
