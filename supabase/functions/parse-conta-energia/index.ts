@@ -632,7 +632,7 @@ Seja preciso — nunca invente dados.`
               },
               {
                 type: "text",
-                text: "Extraia todos os dados desta fatura de energia elétrica brasileira.",
+                text: "Extraia todos os dados desta fatura de energia elétrica brasileira. É ESSENCIAL extrair: tarifa de energia (TE) em R$/kWh, TUSD/Fio B em R$/kWh, alíquota de ICMS (%), valor de PIS (R$) e valor de COFINS (R$). Procure esses dados na seção de componentes tarifários, detalhamento de tributos, ou na tabela de valores unitários.",
               },
             ],
           },
