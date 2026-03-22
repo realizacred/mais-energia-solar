@@ -133,11 +133,14 @@ function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType;
   );
 }
 
-function SwitchRow({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
+function SwitchRow({ label, description, hint, checked, onChange }: { label: string; description: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3">
       <div className="space-y-1">
-        <p className="text-sm font-medium leading-none text-foreground">{label}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-sm font-medium leading-none text-foreground">{label}</p>
+          {hint && <ExtractionHelpHint text={hint} />}
+        </div>
         <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="shrink-0" />
