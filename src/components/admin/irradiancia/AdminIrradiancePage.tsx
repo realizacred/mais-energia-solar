@@ -398,7 +398,7 @@ export function CsvImportPanel() {
         setProgress({ current: sent, total: points.length });
 
         if (i % 10 === 0 || i === chunks.length - 1) {
-          log("info", `Chunk ${i + 1}/${chunks.length} OK (${sent.toLocaleString("pt-BR")} pontos)`);
+          log("info", `Chunk ${i + 1}/${chunks.length} OK (${formatIntegerBR(sent)} pontos)`);
         }
 
         await new Promise(r => setTimeout(r, 10));
