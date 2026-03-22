@@ -74,7 +74,25 @@ export default function UCDetailPage() {
     queryKey: ["uc_detail", id],
     queryFn: () => unitService.getById(id!),
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // Resolve próxima leitura from latest invoice raw_extraction
+  const { data: proximaLeituraData } = useQuery({
+    queryKey: ["uc_proxima_leitura", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("unit_invoices")
+        .select("raw_extraction")
+        .eq("unit_id", id!)
+        .order("reference_year", { ascending: false })
+        .order("reference_month", { ascending: false })
+        .limit(1);
+      const raw = data?.[0]?.raw_extraction as Record<string, any> | null;
+      return raw?.proxima_leitura ?? raw?.next_reading_date ?? null;
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
   });
 
   // Resolve linked meter
@@ -82,7 +100,7 @@ export default function UCDetailPage() {
     queryKey: ["unit_meter_links", id],
     queryFn: () => meterService.getLinksForUnit(id!),
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
   const activeLink = meterLinks.find(l => l.is_active);
   const activeMeterIdResolved = activeLink?.meter_device_id ?? null;
@@ -91,7 +109,7 @@ export default function UCDetailPage() {
     queryKey: ["meter_device", activeMeterIdResolved],
     queryFn: () => meterService.getById(activeMeterIdResolved!),
     enabled: !!activeMeterIdResolved,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
 
   // Resolve linked plant (use distinct queryKey to avoid collision with UCPlantLinksTab)
@@ -106,7 +124,7 @@ export default function UCDetailPage() {
       return data || [];
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
   const activePlantLink = plantLinks[0];
   const activePlantId = activePlantLink?.plant_id ?? null;
@@ -122,7 +140,7 @@ export default function UCDetailPage() {
       return data;
     },
     enabled: !!activePlantId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
 
   const solarPlantId = activePlant?.legacy_plant_id ?? null;
@@ -281,6 +299,7 @@ export default function UCDetailPage() {
               meterOnline={activeMeter?.online_status ?? null}
               plantName={activePlant?.name ?? null}
               plantCapacityKwp={activePlant?.installed_power_kwp ?? null}
+              proximaLeituraData={proximaLeituraData ?? null}
             />
           </TabsContent>
 

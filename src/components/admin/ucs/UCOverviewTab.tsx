@@ -36,8 +36,8 @@ interface Props {
   proximaLeituraData?: string | null;
 }
 
-const STALE_5M = 1000 * 60 * 5;
-const STALE_2M = 1000 * 60 * 2;
+const STALE_5M = 1000 * 60 * 2; // 2 min for fresher UC data
+const STALE_2M = 1000 * 60 * 1; // 1 min for real-time metrics
 
 // §5: Custom tooltip
 const ChartTooltip = ({ active, payload, label }: any) => {
