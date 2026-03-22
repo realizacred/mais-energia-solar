@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { formatNumberBR } from "@/lib/formatters";
 import { transposeToTiltedPlane } from "@/services/solar-transposition";
 import type { IrradianceSeries } from "@/services/irradiance-provider";
 import { distribuirConsumoPorIrradiacao, hasConsumoMesesPreenchido } from "@/lib/distribuirConsumoPorIrradiacao";
