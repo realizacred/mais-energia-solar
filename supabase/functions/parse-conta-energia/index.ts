@@ -371,14 +371,29 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   // Fallback consumo patterns
   if (consumoKwh == null) {
+    const consumoTableMatch = flatText.match(/Consumo\s+em\s+kWh\s+(\d[\d.,]*)\s+(\d[\d.,]*)\s+(\d[\d.,]*)/i);
+    if (consumoTableMatch) {
+      const quantidade = parseNum(consumoTableMatch[1]);
+      const tarifa = parseNum(consumoTableMatch[2]);
+      const valorLinha = parseNum(consumoTableMatch[3]);
+      if (Number.isFinite(quantidade) && quantidade > 1) {
+        consumoKwh = quantidade;
+        fieldResults['consumo_kwh'] = makeField(consumoKwh, 'regex:CONSUMO_TABLE_ROW', true, `tarifa=${tarifa}; valor=${valorLinha}`);
+        confidence += 15;
+      }
+    }
+  }
+
+  if (consumoKwh == null) {
     const consumoPatterns = [
       /Consumo\s+(?:em\s+)?kWh[:\s]*(\d[\d.,]*)/i,
       /consumo\s*(?:faturado|ativo)?[:\s]*(\d[\d.,]*)\s*(?:,\s*\d+)?\s*kWh/i,
       /consumo\s*(?:ativo|total|mensal)?[:\s]*(\d[\d.,]*)\s*kWh/i,
       /(\d[\d.,]*)\s*kWh\s*(?:consumo|ativo)/i,
     ];
-    consumoKwh = firstMatchNum(flatText, consumoPatterns);
-    if (consumoKwh != null) {
+    const fallbackConsumo = firstMatchNum(flatText, consumoPatterns);
+    if (fallbackConsumo != null && fallbackConsumo > 1) {
+      consumoKwh = fallbackConsumo;
       fieldResults['consumo_kwh'] = makeField(consumoKwh, 'regex:CONSUMO_KWH_FALLBACK', true);
       confidence += 10;
     }
