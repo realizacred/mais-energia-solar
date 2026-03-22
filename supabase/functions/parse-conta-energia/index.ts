@@ -784,8 +784,18 @@ function extractEnergisa(text: string): ExtractedData | null {
   let saldoGdAcumulado: number | null = null;
   const saldoAcumPatterns = [
     /Saldo\s+Acumulado[:\s]*(\d[\d.,]*)/i,
+    // Energisa: "Saldo atual de geração: 1.234,56 kWh"
+    /Saldo\s+atual\s+(?:de\s+)?gera[çc][ãa]o[:\s]*(\d[\d.,]*)/i,
+    // Energisa: "ENERGIA A COMPENSAR  SALDO  1234"
+    /ENERGIA\s+A\s+COMPENSAR\s+SALDO\s+(\d[\d.,]*)/i,
+    // Energisa: "Saldo Mês Anterior 1.234" or "Saldo mês anterior kWh 1234"
+    /Saldo\s+(?:do\s+)?M[eê]s\s+Anterior[:\s]*(?:kWh\s*)?(\d[\d.,]*)/i,
+    // Energisa compact: "Saldo Anterior 1.234,56"
+    /Saldo\s+Anterior[:\s]*(\d[\d.,]*)/i,
     /total\s*(?:de\s*)?cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
     /cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
+    // Energisa: "Saldo Geração 1234"
+    /Saldo\s+(?:de\s+)?Gera[çc][ãa]o[:\s]*(\d[\d.,]*)/i,
   ];
   saldoGdAcumulado = firstMatchNum(flatText, saldoAcumPatterns);
   if (saldoGdAcumulado != null) {
