@@ -1119,8 +1119,8 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   return {
     concessionaria_nome: "Energisa",
-    cliente_nome: null,
-    endereco: null,
+    cliente_nome: clienteNome,
+    endereco,
     cidade,
     estado,
     consumo_kwh: consumoKwh,
@@ -1156,6 +1156,7 @@ function extractEnergisa(text: string): ExtractedData | null {
     demanda_medida_kw: demandaMedida,
     demanda_ultrapassagem_kw: demandaUltrapassagem,
     multa_demanda_valor: multaDemanda,
+    numero_nota_fiscal: numeroNotaFiscal,
     confidence,
     ai_fallback_used: false,
     ai_model_used: null,
