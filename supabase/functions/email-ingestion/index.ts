@@ -285,8 +285,11 @@ Deno.serve(async (req) => {
           }
         }
       } else {
-        // IMAP support — placeholder for future implementation
-        throw new Error("Suporte IMAP será implementado em breve. Use Gmail OAuth por enquanto.");
+        // IMAP requires TCP sockets — not available in Supabase Edge Functions
+        throw new Error(
+          "IMAP não é suportado nas Edge Functions (limitação TCP). " +
+          "Use Gmail OAuth ou configure o encaminhamento automático para uma conta Gmail conectada."
+        );
       }
 
       // Update run as completed
