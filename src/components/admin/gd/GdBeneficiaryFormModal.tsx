@@ -153,20 +153,23 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
                 Nenhuma UC existente disponível — crie uma nova abaixo
               </p>
             )}
+          </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-5 space-y-4">
-            {/* Toggle: Existing vs New UC */}
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
-              <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4 text-primary" />
-                <Label className="text-xs font-medium">Criar nova UC</Label>
+            {/* Toggle: Existing vs New UC — hidden when no UCs available */}
+            {!noAvailableUcs && (
+              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-primary" />
+                  <Label className="text-xs font-medium">Criar nova UC</Label>
+                </div>
+                <Switch checked={createNew} onCheckedChange={setCreateNew} />
               </div>
-              <Switch checked={createNew} onCheckedChange={setCreateNew} />
-            </div>
+            )}
 
-            {createNew ? (
+            {effectiveCreateNew ? (
               /* New UC inline form */
               <div className="space-y-3 rounded-lg border border-border bg-muted/10 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nova UC Beneficiária</p>
