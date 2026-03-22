@@ -23,7 +23,7 @@ import {
   useDeleteExtractionConfig,
   type ExtractionConfig,
 } from "@/hooks/useExtractionConfigs";
-import { ExtractionConfigModal } from "./ExtractionConfigModal";
+import { ExtractionConfigModal, type ExtractionConfigPrefill } from "./ExtractionConfigModal";
 import { ExtractionTestTab } from "./ExtractionTestTab";
 import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
 import { LayoutLearningTab } from "./LayoutLearningTab";
@@ -83,6 +83,7 @@ export default function ExtractionCenterPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editConfig, setEditConfig] = useState<ExtractionConfig | null>(null);
+  const [prefillData, setPrefillData] = useState<ExtractionConfigPrefill | null>(null);
   const [activeTab, setActiveTab] = useState("configs");
 
   const activeConfigs = configs.filter(c => c.active).length;
@@ -96,6 +97,13 @@ export default function ExtractionCenterPage() {
 
   const handleCreate = () => {
     setEditConfig(null);
+    setPrefillData(null);
+    setModalOpen(true);
+  };
+
+  const handleGenerateConfig = (prefill: ExtractionConfigPrefill) => {
+    setEditConfig(null);
+    setPrefillData(prefill);
     setModalOpen(true);
   };
 
@@ -358,7 +366,7 @@ export default function ExtractionCenterPage() {
         </TabsContent>
 
         <TabsContent value="test" className="mt-4">
-          <ExtractionTestTab />
+          <ExtractionTestTab onGenerateConfig={handleGenerateConfig} />
         </TabsContent>
 
         <TabsContent value="learning" className="mt-4">
@@ -436,6 +444,7 @@ export default function ExtractionCenterPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         config={editConfig}
+        prefill={prefillData}
       />
     </div>
   );

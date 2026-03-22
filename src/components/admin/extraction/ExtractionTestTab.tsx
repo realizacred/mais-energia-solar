@@ -3,7 +3,7 @@
  * Accepts PDF/images, calls parse-conta-energia, shows detailed results.
  */
 import { useState, useRef } from "react";
-import { Upload, FileText, CheckCircle2, AlertTriangle, XCircle, Info, Download, Settings2, Cpu, Sparkles } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertTriangle, XCircle, Info, Download, Settings2, Cpu, Sparkles, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 import { useExtractionConfigs, type ExtractionConfig } from "@/hooks/useExtractionConfigs";
 import { ExtractionHelpHint } from "./ExtractionHelpHint";
+import type { ExtractionConfigPrefill } from "./ExtractionConfigModal";
 
 interface UcDetectionResult {
   tipo_uc_detectado: "consumo" | "geradora" | "beneficiaria" | "mista" | "indefinida";
@@ -58,7 +59,11 @@ const STATUS_MAP: Record<string, { icon: typeof CheckCircle2; label: string; col
   needs_ocr: { icon: Info, label: "Precisa OCR", color: "text-info" },
 };
 
-export function ExtractionTestTab() {
+interface ExtractionTestTabProps {
+  onGenerateConfig?: (prefill: ExtractionConfigPrefill) => void;
+}
+
+export function ExtractionTestTab({ onGenerateConfig }: ExtractionTestTabProps = {}) {
   const { data: configs = [] } = useExtractionConfigs();
   const [selectedConc, setSelectedConc] = useState<string>("auto");
   const [file, setFile] = useState<File | null>(null);
@@ -339,9 +344,31 @@ export function ExtractionTestTab() {
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {result.file_type.toUpperCase()} · {result.is_textual ? "Textual" : "Imagem"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {result.file_type.toUpperCase()} · {result.is_textual ? "Textual" : "Imagem"}
+                  </Badge>
+                  {onGenerateConfig && result.concessionaria_detected && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        onGenerateConfig({
+                          concessionaria_code: (result.concessionaria_detected || "").toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
+                          concessionaria_nome: result.concessionaria_detected || "",
+                          fields_found: result.fields_found,
+                          fields_missing: result.fields_missing,
+                          parser_version: result.parser_version,
+                          tipo_uc_detectado: result.uc_detection?.tipo_uc_detectado,
+                        });
+                      }}
+                    >
+                      <PlusCircle className="w-3.5 h-3.5 mr-1" />
+                      Gerar Configuração
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
