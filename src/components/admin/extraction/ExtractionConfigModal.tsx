@@ -190,11 +190,17 @@ function FieldCategorySection({
             return (
               <div key={field.key} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/20 transition-colors">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">{field.label}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm text-foreground">{field.label}</p>
+                    {field.geradoraOnly && (
+                      <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20 px-1 py-0">
+                        Geradora
+                      </Badge>
+                    )}
+                  </div>
                   {field.description && (
                     <p className="text-[11px] text-muted-foreground truncate">{field.description}</p>
                   )}
-                  <p className="text-[10px] font-mono text-muted-foreground/60">{field.key}</p>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
                   <label className="flex items-center gap-1.5 cursor-pointer">
