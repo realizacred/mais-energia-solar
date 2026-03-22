@@ -805,7 +805,7 @@ function extractEnergisa(text: string): ExtractedData | null {
     fieldResults['saldo_gd'] = makeField(saldoGd, 'regex:SALDO_GD', true);
   }
 
-  // Energia compensada
+  // Energia compensada — expanded patterns for Energisa
   if (energiaCompensada == null) {
     const compensadaItemMatch = flatText.match(/Energia\s+Atv\s+Injetada\s+GDI\s+(\d[\d.,]*)\s+\d[\d.,]*\s+-?\d[\d.,]*/i);
     if (compensadaItemMatch) {
@@ -818,12 +818,23 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  const compPatterns = [
-    /energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)/i,
-    /compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i,
-  ];
-  energiaCompensada = energiaCompensada ?? firstMatchNum(flatText, compPatterns);
-  if (energiaCompensada != null) {
+  if (energiaCompensada == null) {
+    const compPatterns = [
+      // Energisa: "En Comp s/ICMS GDI 182,00" or "En Comp c/ICMS GDII 150,00"
+      /En\s+Comp\s+[sc]\/ICMS\s+GDI{0,3}\s+(\d[\d.,]*)/i,
+      // Energisa: "Energia Compensada GD I 182,00" or "Energia Compensada GDII 150"
+      /Energia\s+Compensada\s+GD\s*I{0,3}\s+(\d[\d.,]*)/i,
+      // Energisa: "ENERGIA A COMPENSAR kWh 182,00"
+      /ENERGIA\s+A\s+COMPENSAR\s*(?:kWh)?\s*(\d[\d.,]*)/i,
+      // Generic patterns
+      /energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)/i,
+      /compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i,
+      // Energisa item row: "Energia Compensada GDI  182,00  0,72  -131,04"
+      /Energia\s+Compensada\s+GDI?\s+(\d[\d.,]*)\s+\d[\d.,]*\s+-?\d[\d.,]*/i,
+    ];
+    energiaCompensada = firstMatchNum(flatText, compPatterns);
+  }
+  if (energiaCompensada != null && !fieldResults['energia_compensada_kwh']) {
     fieldResults['energia_compensada_kwh'] = makeField(energiaCompensada, 'regex:COMPENSADA', true);
   }
 
