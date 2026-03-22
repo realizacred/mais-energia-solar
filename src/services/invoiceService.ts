@@ -27,6 +27,7 @@ export interface UnitInvoice {
   ultrapassagem_kw: number | null;
   multa_ultrapassagem: number | null;
   bandeira_tarifaria: BandeiraTarifaria | null;
+  raw_extraction: Record<string, any> | null;
 }
 
 export type BillingNotificationChannel = "whatsapp" | "email" | "ambos";
