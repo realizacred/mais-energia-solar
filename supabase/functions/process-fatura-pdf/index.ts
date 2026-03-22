@@ -611,10 +611,11 @@ async function processInvoice(
   const enrichFields = [
     'categoria_gd', 'concessionaria_nome', 'endereco',
     'classificacao_grupo', 'classificacao_subgrupo', 'modalidade_tarifaria', 'nome',
+    'tipo_ligacao', 'codigo_uc',
   ] as const;
 
   const hasEnrichData = parsed.categoria_gd || parsed.concessionaria_nome || parsed.endereco
-    || parsed.classe_consumo || parsed.cliente_nome;
+    || parsed.classe_consumo || parsed.cliente_nome || parsed.tipo_ligacao || parsed.numero_uc;
 
   if (hasEnrichData) {
     const { data: currentUc } = await admin
@@ -645,6 +646,12 @@ async function processInvoice(
       }
       if (parsed.cliente_nome && !currentUc.nome) {
         ucUpdate.nome = toTitleCase(parsed.cliente_nome);
+      }
+      if (parsed.tipo_ligacao && !currentUc.tipo_ligacao) {
+        ucUpdate.tipo_ligacao = parsed.tipo_ligacao.toLowerCase();
+      }
+      if (parsed.numero_uc && !currentUc.codigo_uc) {
+        ucUpdate.codigo_uc = parsed.numero_uc;
       }
 
       const enrichedKeys = Object.keys(ucUpdate).filter(k => enrichFields.includes(k as any));
