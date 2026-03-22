@@ -151,6 +151,8 @@ export function ExtractionTestTab() {
           raw_extraction: parsed || {},
           field_results: parsed?.field_results || {},
           validations: parsed?.validations || [],
+          uc_detection: testData.uc_detection || null,
+          contexto: testData.contexto || null,
         });
       } else if (data?.success === false && data?.test_mode) {
         setResult({
