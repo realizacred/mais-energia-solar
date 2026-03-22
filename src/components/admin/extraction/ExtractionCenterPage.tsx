@@ -26,6 +26,7 @@ import {
 import { ExtractionConfigModal } from "./ExtractionConfigModal";
 import { ExtractionTestTab } from "./ExtractionTestTab";
 import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
+import { LayoutLearningTab } from "./LayoutLearningTab";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -187,6 +188,7 @@ export default function ExtractionCenterPage() {
         <TabsList>
           <TabsTrigger value="configs">Configurações</TabsTrigger>
           <TabsTrigger value="test">Teste de Extração</TabsTrigger>
+          <TabsTrigger value="learning">Aprendizado de Layouts</TabsTrigger>
           <TabsTrigger value="runs">Histórico</TabsTrigger>
           <TabsTrigger value="assistant">Assistente</TabsTrigger>
         </TabsList>
@@ -331,6 +333,10 @@ export default function ExtractionCenterPage() {
 
         <TabsContent value="test" className="mt-4">
           <ExtractionTestTab />
+        </TabsContent>
+
+        <TabsContent value="learning" className="mt-4">
+          <LayoutLearningTab />
         </TabsContent>
 
         <TabsContent value="runs" className="mt-4">
