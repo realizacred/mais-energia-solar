@@ -499,6 +499,20 @@ async function processInvoice(
     ucUpdate.ultima_leitura_kwh_103 = parsed.leitura_atual_103;
   }
 
+  // ── Helper: Title Case for names ──
+  function toTitleCase(str: string): string {
+    const lowerWords = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'na', 'no', 'nas', 'nos', 'para', 'por', 'com']);
+    return str
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word, i) => {
+        if (i > 0 && lowerWords.has(word)) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(' ');
+  }
+
   // Enrich UC from first invoice — only fill empty fields, never overwrite
   const enrichFields = [
     'categoria_gd', 'concessionaria_nome', 'endereco',
@@ -517,10 +531,12 @@ async function processInvoice(
 
     if (currentUc) {
       if (parsed.categoria_gd && !currentUc.categoria_gd) ucUpdate.categoria_gd = parsed.categoria_gd;
-      if (parsed.concessionaria_nome && !currentUc.concessionaria_nome) ucUpdate.concessionaria_nome = parsed.concessionaria_nome;
+      if (parsed.concessionaria_nome && !currentUc.concessionaria_nome) {
+        ucUpdate.concessionaria_nome = toTitleCase(parsed.concessionaria_nome);
+      }
       if (!currentUc.endereco) {
         const parts = [parsed.endereco, parsed.cidade, parsed.estado].filter(Boolean);
-        if (parts.length > 0) ucUpdate.endereco = parts.join(', ');
+        if (parts.length > 0) ucUpdate.endereco = parts.map(p => toTitleCase(p)).join(', ');
       }
       if (parsed.classe_consumo && !currentUc.classificacao_grupo) {
         const grupoMatch = parsed.classe_consumo.match(/^([AB]\d?)/i);
@@ -528,10 +544,14 @@ async function processInvoice(
       }
       if (parsed.classe_consumo && !currentUc.classificacao_subgrupo) {
         const subMatch = parsed.classe_consumo.replace(/^[AB]\d?\s*[-:]?\s*/i, '').trim();
-        if (subMatch) ucUpdate.classificacao_subgrupo = subMatch;
+        if (subMatch) ucUpdate.classificacao_subgrupo = toTitleCase(subMatch);
       }
-      if (parsed.modalidade_tarifaria && !currentUc.modalidade_tarifaria) ucUpdate.modalidade_tarifaria = parsed.modalidade_tarifaria;
-      if (parsed.cliente_nome && !currentUc.nome) ucUpdate.nome = parsed.cliente_nome;
+      if (parsed.modalidade_tarifaria && !currentUc.modalidade_tarifaria) {
+        ucUpdate.modalidade_tarifaria = toTitleCase(parsed.modalidade_tarifaria);
+      }
+      if (parsed.cliente_nome && !currentUc.nome) {
+        ucUpdate.nome = toTitleCase(parsed.cliente_nome);
+      }
 
       const enrichedKeys = Object.keys(ucUpdate).filter(k => enrichFields.includes(k as any));
       if (enrichedKeys.length > 0) console.log(`[process-fatura-pdf] UC enriched from invoice: ${enrichedKeys.join(', ')}`);
