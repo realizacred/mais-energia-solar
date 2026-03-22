@@ -169,10 +169,14 @@ export function UCInvoicesTab({ unitId }: Props) {
         body: {
           pdf_storage_path: pdfStoragePath,
           unit_id: unitId,
-          source: "upload",
+          source: "import",
         },
         headers: { "x-client-timeout": "120" },
       });
+
+      if (!data?.data?.invoice_id) {
+        throw new Error("Os dados foram extraídos, mas a fatura não foi salva.");
+      }
 
       setUploadProgress(90);
       setUploadStep("Finalizando...");
@@ -228,6 +232,7 @@ export function UCInvoicesTab({ unitId }: Props) {
     manual: "Manual",
     email: "E-mail",
     gmail: "Gmail",
+    import: "Importação PDF",
     upload: "Upload",
   };
 

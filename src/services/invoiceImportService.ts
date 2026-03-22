@@ -150,13 +150,17 @@ export const invoiceImportService = {
       const pdfStoragePath = await uploadInvoiceTempPdf(file);
 
       const data = await invokeEdgeFunction<any>("process-fatura-pdf", {
-        body: { pdf_storage_path: pdfStoragePath, unit_id: unitId, source: "upload" },
+        body: { pdf_storage_path: pdfStoragePath, unit_id: unitId, source: "import" },
         headers: { "x-client-timeout": "120" },
       });
 
       const parsed = data?.data?.parsed;
       const invoiceId = data?.data?.invoice_id;
       const resolvedUnitId = data?.data?.unit_id;
+
+      if (!invoiceId) {
+        throw new Error("Os dados foram extraídos, mas a fatura não foi salva.");
+      }
 
       // Check duplicate
       if (resolvedUnitId && parsed) {
