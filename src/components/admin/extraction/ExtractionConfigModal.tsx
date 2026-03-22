@@ -31,9 +31,9 @@ const DEFAULT_REQUIRED_FIELDS = ["consumo_kwh", "valor_total", "referencia_mes",
 
 function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
-    <Card className="bg-card border-border">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2 mb-1">
+    <Card className="border-border bg-card shadow-sm">
+      <CardContent className="space-y-4 p-4">
+        <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
             <Icon className="w-3.5 h-3.5 text-primary" />
           </div>
@@ -47,12 +47,12 @@ function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType;
 
 function SwitchRow({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between py-1.5">
-      <div>
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+    <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-3">
+      <div className="space-y-1">
+        <p className="text-sm font-medium leading-none text-foreground">{label}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <Switch checked={checked} onCheckedChange={onChange} className="shrink-0" />
     </div>
   );
 }
@@ -156,7 +156,7 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="w-[90vw] max-w-[1100px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* Header */}
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -172,22 +172,18 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
           </div>
         </DialogHeader>
 
-        {/* Body — 2-column grid layout */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-5">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-            {/* LEFT COLUMN */}
-            <div className="space-y-4">
-              {/* Concessionária */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="space-y-4 p-5">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <SectionCard icon={Settings2} title="Concessionária">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Nome</Label>
                     <Input
                       value={form.concessionaria_nome}
                       onChange={e => setForm(f => ({ ...f, concessionaria_nome: e.target.value }))}
                       placeholder="Energisa, Light, Cemig..."
-                      className="h-9"
+                      className="h-10"
                       disabled={!!config}
                     />
                   </div>
@@ -197,23 +193,22 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                       value={form.concessionaria_code}
                       onChange={e => setForm(f => ({ ...f, concessionaria_code: e.target.value }))}
                       placeholder="energisa, light, cemig..."
-                      className="h-9"
+                      className="h-10"
                       disabled={!!config}
                     />
                   </div>
                 </div>
               </SectionCard>
 
-              {/* Estratégia */}
               <SectionCard icon={Cpu} title="Estratégia de Extração">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Modo</Label>
                     <Select
                       value={form.strategy_mode}
                       onValueChange={(v) => setForm(f => ({ ...f, strategy_mode: v as ExtractionStrategyMode }))}
                     >
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-10">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -229,53 +224,59 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                       value={form.parser_version || ""}
                       onChange={e => setForm(f => ({ ...f, parser_version: e.target.value }))}
                       placeholder="3.0.2"
-                      className="h-9"
+                      className="h-10"
                     />
                   </div>
                 </div>
-                <div className="border-t border-border pt-2 space-y-1">
+                <div className="space-y-2">
                   <SwitchRow label="Parser Nativo" description="Usar parser determinístico interno" checked={form.native_enabled} onChange={v => setForm(f => ({ ...f, native_enabled: v }))} />
-                  <SwitchRow label="Suporte Avançado" description="Habilitar extração assistida para maior cobertura" checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
+                  <SwitchRow label="Suporte Avançado" description="Habilitar cobertura adicional de extração" checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={RefreshCw} title="Recuperação e Fallback">
+                <div className="space-y-2">
+                  <SwitchRow label="Recuperação Automática" description="Se o parser falhar, o sistema tenta outra rota interna" checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
+                  <SwitchRow label="Requer Conversão Backend" description="O backend converte o PDF do Storage para processamento" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
+                  <SwitchRow label="PDF Protegido" description="A fatura exige senha para abertura" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
                 </div>
               </SectionCard>
             </div>
 
-            {/* RIGHT COLUMN */}
-            <div className="space-y-4">
-              {/* Recuperação */}
-              <SectionCard icon={RefreshCw} title="Recuperação e Fallback">
-                <SwitchRow label="Recuperação Automática" description="Se parser falhar, tenta método alternativo" checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
-                <SwitchRow label="Requer Conversão Backend" description="Backend converte PDF do Storage para processamento" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
-                <SwitchRow label="PDF Protegido" description="Fatura requer senha para abrir" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
-              </SectionCard>
-
-              {/* Campos e Status */}
-              <SectionCard icon={FileText} title="Campos e Status">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] gap-4">
+              <SectionCard icon={FileText} title="Campos obrigatórios">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Campos Obrigatórios (JSON)</Label>
+                  <Label className="text-xs">Campos obrigatórios (JSON)</Label>
                   <Textarea
                     value={JSON.stringify(form.required_fields, null, 2)}
                     onChange={e => {
                       try {
                         setForm(f => ({ ...f, required_fields: JSON.parse(e.target.value) }));
-                      } catch { /* ignore parse errors during typing */ }
+                      } catch {
+                        // ignore parse errors during typing
+                      }
                     }}
-                    rows={3}
-                    className="font-mono text-xs"
+                    rows={10}
+                    className="min-h-[240px] font-mono text-xs"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Informe um array JSON com os campos críticos exigidos para validar a extração.
+                  </p>
                 </div>
+              </SectionCard>
+
+              <SectionCard icon={Settings2} title="Status e observações">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Observações</Label>
                   <Textarea
                     value={form.notes}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                     placeholder="Notas sobre esta configuração..."
-                    rows={2}
+                    rows={8}
+                    className="min-h-[180px]"
                   />
                 </div>
-                <div className="border-t border-border pt-2">
-                  <SwitchRow label="Ativo" description="Habilitar esta configuração" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
-                </div>
+                <SwitchRow label="Ativo" description="Habilitar esta configuração na Central de Extração" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
               </SectionCard>
             </div>
           </div>
