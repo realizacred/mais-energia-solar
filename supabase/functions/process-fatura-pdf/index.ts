@@ -498,7 +498,7 @@ async function reprocessInvoice(
       .download(path);
     if (!dlErr && dlData) {
       const bytes = new Uint8Array(await dlData.arrayBuffer());
-      pdfText = extractTextFromPdfBytes(bytes);
+      pdfText = await extractTextFromPdfBytesAsync(bytes);
       pdfFound = true;
       console.log(`[process-fatura-pdf] Reprocess: PDF found at ${path}`);
       break;
