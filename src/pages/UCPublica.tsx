@@ -125,6 +125,7 @@ interface ResolvedUC {
 
 export default function UCPublica() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
