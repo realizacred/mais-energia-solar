@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
+import { detectUcType } from "../_shared/ucTypeDetector.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -194,13 +195,25 @@ async function processInvoice(
 
   // ── TEST MODE: validate with base fields only (no UC context) ──
   if (test_mode) {
-    const testFoundFields = requiredFields.filter((f: string) => parsed[f] != null);
-    const testMissingFields = requiredFields.filter((f: string) => parsed[f] == null);
+    // Auto-detect UC type from extracted data (no DB UC context in test mode)
+    const ucDetection = detectUcType(parsed, pdfText);
+    console.log(`[process-fatura-pdf] Test mode UC detection: ${ucDetection.tipo_uc_detectado} (${ucDetection.confianca_tipo_uc}%)`);
+
+    // Use detected type to refine required fields for test mode
+    let testRequiredFields = [...BASE_REQUIRED];
+    if (ucDetection.tipo_uc_detectado === 'geradora') {
+      testRequiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
+    } else if (ucDetection.tipo_uc_detectado === 'beneficiaria') {
+      testRequiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
+    }
+
+    const testFoundFields = testRequiredFields.filter((f: string) => parsed[f] != null);
+    const testMissingFields = testRequiredFields.filter((f: string) => parsed[f] == null);
     const testExtractionStatus = testMissingFields.length === 0 ? 'success' : testMissingFields.length <= 2 ? 'partial' : 'failed';
 
     const gdChecks = runGdConsistencyChecks(parsed, null);
 
-    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, testExtractionStatus, testMissingFields.length > 0 ? `Faltando: ${testMissingFields.join(', ')}` : null, requiredFields, testFoundFields, testMissingFields, parsed.confidence, parsed.parser_version);
+    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, testExtractionStatus, testMissingFields.length > 0 ? `Faltando: ${testMissingFields.join(', ')}` : null, testRequiredFields, testFoundFields, testMissingFields, parsed.confidence, parsed.parser_version);
 
     return new Response(JSON.stringify({
       success: true,
@@ -210,11 +223,12 @@ async function processInvoice(
         concessionaria_detected: detectedConc || parsed.concessionaria_nome,
         config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome, strategy: strategyMode } : null,
         extraction_status: testExtractionStatus,
-        required_fields: requiredFields,
+        required_fields: testRequiredFields,
         fields_found: testFoundFields,
         fields_missing: testMissingFields,
         gd_consistency: gdChecks,
-        contexto: 'base (sem UC vinculada)',
+        uc_detection: ucDetection,
+        contexto: `auto-detectado: ${ucDetection.tipo_uc_detectado} (${ucDetection.confianca_tipo_uc}%)`,
       },
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
@@ -247,28 +261,61 @@ async function processInvoice(
     ucData = uc;
   }
 
-  // ── 5a. Resolve required fields by UC context (geradora vs beneficiária) ──
+  // ── 5a. Auto-detect UC type from invoice data ──
+  const ucDetection = detectUcType(
+    parsed,
+    pdfText,
+    ucData?.tipo_uc,
+    ucData?.papel_gd,
+  );
+  console.log(`[process-fatura-pdf] UC auto-detection: ${ucDetection.tipo_uc_detectado} (${ucDetection.confianca_tipo_uc}%) divergência=${ucDetection.divergencia_cadastro}`);
+
+  // ── 5b. Resolve required fields by context (cadastro + auto-detection) ──
   let ucContext = 'base';
   if (ucData) {
-    const isGeradora = ucData.tipo_uc === 'gd_geradora' || ucData.papel_gd === 'geradora';
-    ucContext = isGeradora ? 'geradora' : 'beneficiária';
+    const cadastroGeradora = ucData.tipo_uc === 'gd_geradora' || ucData.papel_gd === 'geradora';
+    // Use cadastro as primary, but fall back to auto-detection if cadastro is generic "consumo"
+    const isGenericCadastro = ucData.tipo_uc === 'consumo' && (!ucData.papel_gd || ucData.papel_gd === 'none');
+    const effectiveContext = isGenericCadastro && ucDetection.confianca_tipo_uc >= 50
+      ? ucDetection.tipo_uc_detectado
+      : (cadastroGeradora ? 'geradora' : 'beneficiaria');
 
-    if (isGeradora) {
+    ucContext = effectiveContext;
+
+    if (effectiveContext === 'geradora') {
       const configGeradora = extractionConfig?.required_fields_geradora;
       if (configGeradora && Array.isArray(configGeradora) && configGeradora.length > 0) {
         requiredFields = configGeradora;
       } else {
         requiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
       }
-    } else {
+    } else if (effectiveContext === 'beneficiaria') {
       const configBeneficiaria = extractionConfig?.required_fields_beneficiaria;
       if (configBeneficiaria && Array.isArray(configBeneficiaria) && configBeneficiaria.length > 0) {
         requiredFields = configBeneficiaria;
       } else {
         requiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
       }
+    } else if (effectiveContext === 'consumo') {
+      requiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
     }
-    console.log(`[process-fatura-pdf] UC contexto: ${ucContext}, campos obrigatórios: ${requiredFields.join(', ')}`);
+    // mista: use geradora fields (superset)
+    else if (effectiveContext === 'mista') {
+      requiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
+    }
+
+    console.log(`[process-fatura-pdf] UC contexto: ${ucContext} (cadastro=${ucData.tipo_uc}/${ucData.papel_gd}, detectado=${ucDetection.tipo_uc_detectado}), campos obrigatórios: ${requiredFields.join(', ')}`);
+  } else {
+    // No UC resolved — use auto-detection
+    if (ucDetection.confianca_tipo_uc >= 50) {
+      ucContext = ucDetection.tipo_uc_detectado;
+      if (ucDetection.tipo_uc_detectado === 'geradora' || ucDetection.tipo_uc_detectado === 'mista') {
+        requiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
+      } else if (ucDetection.tipo_uc_detectado === 'consumo' || ucDetection.tipo_uc_detectado === 'beneficiaria') {
+        requiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
+      }
+    }
+    console.log(`[process-fatura-pdf] Sem UC vinculada, contexto auto-detectado: ${ucContext}, campos: ${requiredFields.join(', ')}`);
   }
 
   // ── 5a.1 Perform field validation NOW (after context is known) ──
@@ -479,7 +526,7 @@ async function processInvoice(
     source_message_id: source_message_id || null,
     status: extractionStatus === 'success' ? 'received' : extractionStatus === 'partial' ? 'received' : 'pending_review',
     demanda_contratada_kw: parsed.demanda_contratada_kw,
-    raw_extraction: parsed,
+    raw_extraction: { ...parsed, uc_detection: ucDetection },
     parsing_status: extractionStatus,
     parser_version: parsed.parser_version || null,
     last_parsed_at: new Date().toISOString(),
