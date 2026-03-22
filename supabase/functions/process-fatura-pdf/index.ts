@@ -297,11 +297,19 @@ async function processInvoice(
         requiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
       }
     } else if (effectiveContext === 'consumo') {
-      requiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
-    }
-    // mista: use geradora fields (superset)
-    else if (effectiveContext === 'mista') {
-      requiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
+      const configConsumo = extractionConfig?.required_fields_consumo;
+      if (configConsumo && Array.isArray(configConsumo) && configConsumo.length > 0) {
+        requiredFields = configConsumo;
+      } else {
+        requiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
+      }
+    } else if (effectiveContext === 'mista') {
+      const configMista = extractionConfig?.required_fields_mista;
+      if (configMista && Array.isArray(configMista) && configMista.length > 0) {
+        requiredFields = configMista;
+      } else {
+        requiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
+      }
     }
 
     console.log(`[process-fatura-pdf] UC contexto: ${ucContext} (cadastro=${ucData.tipo_uc}/${ucData.papel_gd}, detectado=${ucDetection.tipo_uc_detectado}), campos obrigatórios: ${requiredFields.join(', ')}`);

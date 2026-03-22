@@ -121,6 +121,8 @@ const FIELD_CATEGORIES: FieldCategory[] = [
 const ALL_FIELD_KEYS = FIELD_CATEGORIES.flatMap(c => c.fields.map(f => f.key));
 const BASE_REQUIRED = ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"];
 const GERADORA_EXTRA = ["energia_injetada_kwh", "saldo_gd_acumulado"];
+const MISTA_EXTRA = ["energia_injetada_kwh", "energia_compensada_kwh"];
+const CONSUMO_FIELDS = ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"];
 const BENEFICIARIA_NEVER = ["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"];
 
 const IDENTIFIER_FIELD_OPTIONS = [
@@ -129,6 +131,16 @@ const IDENTIFIER_FIELD_OPTIONS = [
   { value: "numero_cliente", label: "Número do Cliente" },
   { value: "codigo_medidor", label: "Código do Medidor" },
 ];
+
+const SOURCE_TYPE_OPTIONS = [
+  { value: "pdf", label: "PDF" },
+  { value: "imagem", label: "Imagem" },
+  { value: "ambos", label: "PDF e Imagem" },
+];
+
+const DEFAULT_GERADORA_SIGNALS = ["energia_injetada_kwh", "leitura_103", "medidor_injecao"];
+const DEFAULT_BENEFICIARIA_SIGNALS = ["energia_compensada_kwh", "saldo_gd_acumulado", "creditos_recebidos"];
+const DEFAULT_MISTA_SIGNALS = ["energia_injetada_kwh", "energia_compensada_kwh"];
 
 function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
@@ -262,9 +274,18 @@ function buildFormState(config?: ExtractionConfig | null, prefill?: ExtractionCo
       provider_requires_base64: config.provider_requires_base64,
       provider_requires_password: config.provider_requires_password,
       fallback_enabled: config.fallback_enabled,
+      recovery_enabled: config.recovery_enabled ?? false,
       required_fields: config.required_fields || BASE_REQUIRED,
       required_fields_geradora: config.required_fields_geradora?.length ? config.required_fields_geradora : [...BASE_REQUIRED, ...GERADORA_EXTRA],
       required_fields_beneficiaria: config.required_fields_beneficiaria?.length ? config.required_fields_beneficiaria : BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER.includes(f)),
+      required_fields_mista: config.required_fields_mista?.length ? config.required_fields_mista : [...BASE_REQUIRED, ...MISTA_EXTRA],
+      required_fields_consumo: config.required_fields_consumo?.length ? config.required_fields_consumo : [...CONSUMO_FIELDS],
+      desired_fields: config.desired_fields || [],
+      blocking_fields: config.blocking_fields || [],
+      geradora_signals: config.geradora_signals?.length ? config.geradora_signals : DEFAULT_GERADORA_SIGNALS,
+      beneficiaria_signals: config.beneficiaria_signals?.length ? config.beneficiaria_signals : DEFAULT_BENEFICIARIA_SIGNALS,
+      mista_signals: config.mista_signals?.length ? config.mista_signals : DEFAULT_MISTA_SIGNALS,
+      source_type_supported: config.source_type_supported || "pdf",
       optional_fields: config.optional_fields || [],
       identifier_field: config.identifier_field || "numero_uc",
       parser_version: config.parser_version || "3.0.2",
@@ -290,9 +311,18 @@ function buildFormState(config?: ExtractionConfig | null, prefill?: ExtractionCo
       provider_requires_base64: false,
       provider_requires_password: false,
       fallback_enabled: false,
+      recovery_enabled: false,
       required_fields: [...BASE_REQUIRED],
       required_fields_geradora: [...BASE_REQUIRED, ...GERADORA_EXTRA],
       required_fields_beneficiaria: BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER.includes(f)),
+      required_fields_mista: [...BASE_REQUIRED, ...MISTA_EXTRA],
+      required_fields_consumo: [...CONSUMO_FIELDS],
+      desired_fields: [] as string[],
+      blocking_fields: [] as string[],
+      geradora_signals: [...DEFAULT_GERADORA_SIGNALS],
+      beneficiaria_signals: [...DEFAULT_BENEFICIARIA_SIGNALS],
+      mista_signals: [...DEFAULT_MISTA_SIGNALS],
+      source_type_supported: "pdf",
       optional_fields: optionals.filter(f => !GERADORA_EXTRA.includes(f) && !BENEFICIARIA_NEVER.includes(f)),
       identifier_field: "numero_uc",
       parser_version: prefill.parser_version || "3.0.2",
@@ -317,9 +347,18 @@ function buildFormState(config?: ExtractionConfig | null, prefill?: ExtractionCo
     provider_requires_base64: false,
     provider_requires_password: false,
     fallback_enabled: false,
+    recovery_enabled: false,
     required_fields: [...BASE_REQUIRED],
     required_fields_geradora: [...BASE_REQUIRED, ...GERADORA_EXTRA],
     required_fields_beneficiaria: BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER.includes(f)),
+    required_fields_mista: [...BASE_REQUIRED, ...MISTA_EXTRA],
+    required_fields_consumo: [...CONSUMO_FIELDS],
+    desired_fields: [] as string[],
+    blocking_fields: [] as string[],
+    geradora_signals: [...DEFAULT_GERADORA_SIGNALS],
+    beneficiaria_signals: [...DEFAULT_BENEFICIARIA_SIGNALS],
+    mista_signals: [...DEFAULT_MISTA_SIGNALS],
+    source_type_supported: "pdf",
     optional_fields: [] as string[],
     identifier_field: "numero_uc",
     parser_version: "3.0.2",
@@ -342,9 +381,18 @@ function formToJsonPayload(form: ReturnType<typeof buildFormState>) {
     provider_requires_base64: form.provider_requires_base64,
     provider_requires_password: form.provider_requires_password,
     fallback_enabled: form.fallback_enabled,
+    recovery_enabled: form.recovery_enabled,
     required_fields: form.required_fields,
     required_fields_geradora: form.required_fields_geradora,
     required_fields_beneficiaria: form.required_fields_beneficiaria,
+    required_fields_mista: form.required_fields_mista,
+    required_fields_consumo: form.required_fields_consumo,
+    desired_fields: form.desired_fields,
+    blocking_fields: form.blocking_fields,
+    geradora_signals: form.geradora_signals,
+    beneficiaria_signals: form.beneficiaria_signals,
+    mista_signals: form.mista_signals,
+    source_type_supported: form.source_type_supported,
     optional_fields: form.optional_fields,
     identifier_field: form.identifier_field,
     parser_version: form.parser_version,
@@ -469,9 +517,18 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
         provider_requires_base64: form.provider_requires_base64,
         provider_requires_password: form.provider_requires_password,
         fallback_enabled: form.fallback_enabled,
+        recovery_enabled: form.recovery_enabled,
         required_fields: form.required_fields,
         required_fields_geradora: form.required_fields_geradora,
         required_fields_beneficiaria: form.required_fields_beneficiaria,
+        required_fields_mista: form.required_fields_mista,
+        required_fields_consumo: form.required_fields_consumo,
+        desired_fields: form.desired_fields,
+        blocking_fields: form.blocking_fields,
+        geradora_signals: form.geradora_signals,
+        beneficiaria_signals: form.beneficiaria_signals,
+        mista_signals: form.mista_signals,
+        source_type_supported: form.source_type_supported,
         optional_fields: form.optional_fields,
         identifier_field: form.identifier_field || "numero_uc",
         parser_version: form.parser_version,
@@ -676,10 +733,12 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
                 </div>
 
                 <Tabs defaultValue="geral" className="w-full">
-                  <TabsList className="w-full grid grid-cols-3">
-                    <TabsTrigger value="geral">Geral (Base)</TabsTrigger>
+                  <TabsList className="w-full grid grid-cols-5">
+                    <TabsTrigger value="geral">Base</TabsTrigger>
                     <TabsTrigger value="geradora">☀️ Geradora</TabsTrigger>
                     <TabsTrigger value="beneficiaria">🏠 Beneficiária</TabsTrigger>
+                    <TabsTrigger value="mista">🔄 Mista</TabsTrigger>
+                    <TabsTrigger value="consumo">⚡ Consumo</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="geral" className="mt-3 space-y-2">
@@ -753,6 +812,61 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
                               required_fields_beneficiaria: f.required_fields_beneficiaria.includes(key)
                                 ? f.required_fields_beneficiaria.filter(k => k !== key)
                                 : [...f.required_fields_beneficiaria, key],
+                            }));
+                          }}
+                          onToggleOptional={() => {}}
+                        />
+                      );
+                    })}
+                  </TabsContent>
+
+                  <TabsContent value="mista" className="mt-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Campos para UCs mistas (geram e recebem créditos simultaneamente).
+                    </p>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                      {form.required_fields_mista.length} obrigatórios
+                    </Badge>
+                    {FIELD_CATEGORIES.map(cat => (
+                      <FieldCategorySection
+                        key={`mix-${cat.category}`}
+                        category={cat}
+                        requiredFields={form.required_fields_mista}
+                        optionalFields={[]}
+                        onToggleRequired={(key) => {
+                          setForm(f => ({
+                            ...f,
+                            required_fields_mista: f.required_fields_mista.includes(key)
+                              ? f.required_fields_mista.filter(k => k !== key)
+                              : [...f.required_fields_mista, key],
+                          }));
+                        }}
+                        onToggleOptional={() => {}}
+                      />
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="consumo" className="mt-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Campos para UCs de consumo puro (sem geração distribuída).
+                    </p>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                      {form.required_fields_consumo.length} obrigatórios
+                    </Badge>
+                    {FIELD_CATEGORIES.filter(cat => cat.fields.some(f => !f.geradoraOnly)).map(cat => {
+                      const filteredCat = { ...cat, fields: cat.fields.filter(f => !f.geradoraOnly) };
+                      return (
+                        <FieldCategorySection
+                          key={`con-${cat.category}`}
+                          category={filteredCat}
+                          requiredFields={form.required_fields_consumo}
+                          optionalFields={[]}
+                          onToggleRequired={(key) => {
+                            setForm(f => ({
+                              ...f,
+                              required_fields_consumo: f.required_fields_consumo.includes(key)
+                                ? f.required_fields_consumo.filter(k => k !== key)
+                                : [...f.required_fields_consumo, key],
                             }));
                           }}
                           onToggleOptional={() => {}}
