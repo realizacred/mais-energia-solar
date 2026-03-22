@@ -4,7 +4,7 @@
  * No authentication required.
  */
 import { useState, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,6 +98,14 @@ function timeAgo(dateStr: string | null): string {
   return `${days}d atrás`;
 }
 
+interface SiblingUC {
+  unit_id: string;
+  unit_name: string;
+  codigo_uc: string;
+  papel_gd: string | null;
+  token: string;
+}
+
 interface ResolvedUC {
   unit_id: string;
   unit_name: string;
@@ -112,10 +120,12 @@ interface ResolvedUC {
   potencia_kwp?: number | null;
   categoria_gd?: string | null;
   papel_gd?: string | null;
+  siblings?: SiblingUC[];
 }
 
 export default function UCPublica() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -308,6 +318,8 @@ export default function UCPublica() {
 
   const brand = resolved.brand;
   const latestInvoice = invoices.length > 0 ? invoices[invoices.length - 1] as any : null;
+  const siblings = (resolved.siblings || []).filter((s: SiblingUC) => s.unit_id !== resolved.unit_id);
+  const hasSiblings = siblings.length > 0;
 
   return (
     <TooltipProvider>
@@ -334,6 +346,39 @@ export default function UCPublica() {
         </header>
 
         <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-5">
+
+          {/* ═══ UC SWITCHER ═══ */}
+          {hasSiblings && (
+            <Card className="border border-primary/20 bg-primary/5">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <ArrowDownUp className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-medium text-foreground">Trocar unidade:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 flex-1">
+                    {/* Current UC */}
+                    <Badge className="text-xs bg-primary text-primary-foreground cursor-default">
+                      {resolved.unit_name}
+                      {resolved.papel_gd && <span className="ml-1 opacity-70">({PAPEL_GD_LABELS[resolved.papel_gd] || resolved.papel_gd})</span>}
+                    </Badge>
+                    {/* Sibling UCs */}
+                    {siblings.map((sib: SiblingUC) => (
+                      <Badge
+                        key={sib.unit_id}
+                        variant="outline"
+                        className="text-xs cursor-pointer hover:bg-primary/10 transition-colors"
+                        onClick={() => navigate(`/uc/${sib.token}`)}
+                      >
+                        {sib.unit_name}
+                        {sib.papel_gd && <span className="ml-1 opacity-60">({PAPEL_GD_LABELS[sib.papel_gd] || sib.papel_gd})</span>}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* ═══ UC INFO HERO ═══ */}
           <Card className="overflow-hidden">
