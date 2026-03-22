@@ -350,6 +350,8 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
         provider_requires_password: form.provider_requires_password,
         fallback_enabled: form.fallback_enabled,
         required_fields: form.required_fields,
+        required_fields_geradora: form.required_fields_geradora,
+        required_fields_beneficiaria: form.required_fields_beneficiaria,
         optional_fields: form.optional_fields,
         identifier_field: form.identifier_field || "numero_uc",
         parser_version: form.parser_version,
