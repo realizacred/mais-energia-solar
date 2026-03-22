@@ -70,6 +70,7 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       setExists(true);
+      setBaseline(config);
       toast({ title: "Configuração de auto-resposta salva!" });
     }
     setSaving(false);
