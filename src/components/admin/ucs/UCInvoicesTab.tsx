@@ -233,7 +233,7 @@ export function UCInvoicesTab({ unitId }: Props) {
       } as any);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
+      invalidateAllUcQueries();
       setDialogOpen(false);
       resetForm();
       toast({ title: "Fatura registrada com sucesso" });
