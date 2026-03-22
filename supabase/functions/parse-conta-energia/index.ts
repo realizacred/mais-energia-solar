@@ -42,6 +42,7 @@ interface ExtractedData {
   modalidade_tarifaria: string | null;
   confidence: number;
   ai_fallback_used: boolean;
+  ai_model_used: string | null;
   raw_fields: Record<string, string>;
 }
 
