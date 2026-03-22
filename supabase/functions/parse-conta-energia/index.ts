@@ -460,13 +460,28 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   // Fallback injeção
   if (energiaInjetada == null) {
+    const injTableRowMatch = flatText.match(/Energia\s+Atv\s+Injetada\s+GDI\s+(\d[\d.,]*)\s+(\d[\d.,]*)\s+(-?\d[\d.,]*)/i);
+    if (injTableRowMatch) {
+      const quantidadeInjetada = parseNum(injTableRowMatch[1]);
+      const tarifaInjetada = parseNum(injTableRowMatch[2]);
+      const valorInjetado = parseNum(injTableRowMatch[3]);
+      if (Number.isFinite(quantidadeInjetada) && quantidadeInjetada > 0) {
+        energiaInjetada = quantidadeInjetada;
+        fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:INJETADA_TABLE_ROW', true, `tarifa=${tarifaInjetada}; valor=${valorInjetado}`);
+        confidence += 15;
+      }
+    }
+  }
+
+  if (energiaInjetada == null) {
     const injPatterns = [
       /Energia\s+At[iv]+\s+Injetada\s+GDI?[:\s]*[-]?\s*(\d[\d.,]*)/i,
       /energia\s+(?:atv?\s+)?injetada\s+GDI?[:\s]*[-]?\s*(\d[\d.,]*)/i,
       /energia\s*injetada[:\s]*(\d[\d.,]*)\s*kWh/i,
     ];
-    energiaInjetada = firstMatchNum(flatText, injPatterns);
-    if (energiaInjetada != null) {
+    const fallbackInjecao = firstMatchNum(flatText, injPatterns);
+    if (fallbackInjecao != null && fallbackInjecao > 0) {
+      energiaInjetada = fallbackInjecao;
       fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:ENERGIA_INJETADA_FALLBACK', true);
     }
   }
