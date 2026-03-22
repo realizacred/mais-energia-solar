@@ -650,9 +650,37 @@ async function reprocessInvoice(
     energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
   }
   const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
-  const previousBalance = derivePreviousBalance(parsed);
   const reprocessedYear = parsed.mes_referencia ? extractYear(parsed.mes_referencia, invoice.reference_year) : invoice.reference_year;
   const reprocessedMonth = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, invoice.reference_month) : invoice.reference_month;
+
+  // Lookup previous balance from DB
+  let previousBalance: number | null = null;
+  {
+    const { data: prevInv } = await admin
+      .from('unit_invoices')
+      .select('current_balance_kwh')
+      .eq('unit_id', invoice.unit_id)
+      .eq('tenant_id', tenantId)
+      .neq('id', invoiceId)
+      .or(`reference_year.lt.${reprocessedYear},and(reference_year.eq.${reprocessedYear},reference_month.lt.${reprocessedMonth})`)
+      .order('reference_year', { ascending: false })
+      .order('reference_month', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prevInv?.current_balance_kwh != null) {
+      previousBalance = prevInv.current_balance_kwh;
+    }
+  }
+
+  // Run GD consistency
+  const gdChecks = runGdConsistencyChecks({
+    consumo_kwh: parsed.consumo_kwh,
+    energia_injetada_kwh: energyInjected,
+    energia_compensada_kwh: parsed.energia_compensada_kwh,
+    saldo_gd_acumulado: currentBalance,
+    saldo_gd_anterior: previousBalance,
+    valor_total: parsed.valor_total,
+  }, previousBalance != null ? { saldo_gd_acumulado: previousBalance } : null);
 
   let bandeira: string | null = null;
   if (parsed.bandeira_tarifaria) {
@@ -682,13 +710,18 @@ async function reprocessInvoice(
     last_parsed_at: new Date().toISOString(),
     parsing_error_reason: null,
     updated_at: new Date().toISOString(),
+    consistency_status: gdChecks.overallLevel,
+    consistency_score: gdChecks.score,
+    consistency_checks_json: gdChecks.checks,
+    consistency_warnings_json: gdChecks.checks.filter((c: any) => c.level === 'warning'),
+    consistency_errors_json: gdChecks.checks.filter((c: any) => c.level === 'error'),
   };
 
   const { data: updatedInvoice, error: updateErr } = await admin
     .from('unit_invoices')
     .update(updatePayload)
     .eq('id', invoiceId)
-    .select('id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at, demanda_contratada_kw, demanda_medida_kw, ultrapassagem_kw, multa_ultrapassagem, bandeira_tarifaria, raw_extraction, parsing_status, parsing_error_reason, parser_version, last_parsed_at')
+    .select('id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at, demanda_contratada_kw, demanda_medida_kw, ultrapassagem_kw, multa_ultrapassagem, bandeira_tarifaria, raw_extraction, parsing_status, parsing_error_reason, parser_version, last_parsed_at, consistency_status, consistency_score')
     .maybeSingle();
 
   if (updateErr || !updatedInvoice) {
@@ -699,7 +732,11 @@ async function reprocessInvoice(
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  console.log(`[process-fatura-pdf] Reprocessed invoice ${invoiceId} — parser v${parsed.parser_version}, confidence: ${parsed.confidence}`);
+  // Log extraction run
+  const detectedConc = detectConcessionariaFromText(pdfText);
+  await logExtractionRun(admin, tenantId, null, invoiceId, invoice.unit_id, detectedConc || parsed.parser_used || 'unknown', 'native', 'success', null, [], [], [], parsed.confidence, parsed.parser_version);
+
+  console.log(`[process-fatura-pdf] Reprocessed invoice ${invoiceId} — parser v${parsed.parser_version}, confidence: ${parsed.confidence}, GD: ${gdChecks.overallLevel}`);
 
   return new Response(JSON.stringify({
     success: true,
@@ -710,6 +747,7 @@ async function reprocessInvoice(
       unit_id: invoice.unit_id,
       reprocessed: true,
       parser_version: parsed.parser_version,
+      gd_consistency: gdChecks,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
