@@ -61,6 +61,10 @@ export function UCBillingHistoryCard({ unitId, clienteId, tenantId, valorMensali
       toast({ title: "Valor inválido", variant: "destructive" });
       return;
     }
+    if (!clienteId) {
+      toast({ title: "Cliente não vinculado", description: "Esta UC não possui um cliente associado. Vincule um cliente antes de lançar cobrança.", variant: "destructive" });
+      return;
+    }
     try {
       await createMut.mutateAsync({
         tenant_id: tenantId,
