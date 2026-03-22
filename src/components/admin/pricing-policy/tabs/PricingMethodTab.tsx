@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,14 @@ interface Props {
 
 export function PricingMethodTab({ versionId, isReadOnly }: Props) {
   const [data, setData] = useState<PricingMethod | null>(null);
+  const [baseline, setBaseline] = useState<PricingMethod | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const isDirty = useMemo(() => {
+    if (!data || !baseline) return false;
+    return JSON.stringify(data) !== JSON.stringify(baseline);
+  }, [data, baseline]);
 
   const loadMethod = useCallback(async () => {
     setLoading(true);
@@ -38,6 +44,7 @@ export function PricingMethodTab({ versionId, isReadOnly }: Props) {
 
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     setData(row as unknown as PricingMethod | null);
+    setBaseline(row as unknown as PricingMethod | null);
     setLoading(false);
   }, [versionId]);
 
@@ -70,12 +77,14 @@ export function PricingMethodTab({ versionId, isReadOnly }: Props) {
     if (data.id) {
       const { error } = await supabase.from("pricing_methods").update(payload as any).eq("id", data.id);
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Método atualizado" });
+      else { setBaseline(data); toast({ title: "Método atualizado" }); }
     } else {
       const { data: ins, error } = await supabase.from("pricing_methods").insert(payload as any).select("id").single();
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
       else {
-        setData((prev) => prev ? { ...prev, id: (ins as any).id } : null);
+        const newData = { ...data, id: (ins as any).id };
+        setData(newData);
+        setBaseline(newData);
         toast({ title: "Método configurado" });
       }
     }
@@ -235,7 +244,7 @@ export function PricingMethodTab({ versionId, isReadOnly }: Props) {
 
           {!isReadOnly && (
             <div className="flex justify-end mt-6">
-              <Button onClick={handleSave} disabled={saving} className="gap-2">
+              <Button onClick={handleSave} disabled={saving || !isDirty} className="gap-2">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Salvar Método
               </Button>

@@ -2,7 +2,7 @@
  * MeterAlertConfig — Per-meter alert threshold configuration.
  * Stores config in meter_devices.metadata.alert_config
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +71,7 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
   const { toast } = useToast();
   const qc = useQueryClient();
   const [config, setConfig] = useState<AlertConfig>(DEFAULTS);
+  const [baseline, setBaseline] = useState<AlertConfig>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -100,8 +101,14 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
 
   useEffect(() => {
     const ac = metadata?.alert_config;
-    if (ac) setConfig({ ...DEFAULTS, ...ac });
+    if (ac) {
+      const merged = { ...DEFAULTS, ...ac };
+      setConfig(merged);
+      setBaseline(merged);
+    }
   }, [metadata]);
+
+  const isDirty = useMemo(() => JSON.stringify(config) !== JSON.stringify(baseline), [config, baseline]);
 
   async function handleSave() {
     setSaving(true);
@@ -112,6 +119,7 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
         .update({ metadata: newMetadata, updated_at: new Date().toISOString() } as any)
         .eq("id", meterId);
       if (error) throw error;
+      setBaseline(config);
       toast({ title: "Configurações de alerta salvas" });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
@@ -290,7 +298,7 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
           </div>
 
           <div className="flex justify-end pt-2">
-            <Button size="sm" onClick={handleSave} disabled={saving}>
+            <Button size="sm" onClick={handleSave} disabled={saving || !isDirty}>
               {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
               Salvar Configurações
             </Button>

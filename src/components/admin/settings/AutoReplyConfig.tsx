@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MessageSquareOff, Loader2, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,9 +30,12 @@ const DEFAULTS: AutoReplyData = {
 
 export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
   const [config, setConfig] = useState<AutoReplyData>(DEFAULTS);
+  const [baseline, setBaseline] = useState<AutoReplyData>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
+
+  const isDirty = useMemo(() => JSON.stringify(config) !== JSON.stringify(baseline), [config, baseline]);
 
   useEffect(() => { loadConfig(); }, [tenantId]);
 
@@ -45,6 +48,7 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
 
     if (data) {
       setConfig(data);
+      setBaseline(data);
       setExists(true);
     }
     setLoading(false);
@@ -66,6 +70,7 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       setExists(true);
+      setBaseline(config);
       toast({ title: "Configuração de auto-resposta salva!" });
     }
     setSaving(false);
@@ -93,7 +98,7 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
             <MessageSquareOff className="h-4 w-4 text-primary" />
             <CardTitle className="text-base">Auto-resposta Fora do Horário</CardTitle>
           </div>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
+          <Button size="sm" onClick={handleSave} disabled={saving || !isDirty} className="gap-1.5">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Salvar
           </Button>

@@ -1,11 +1,12 @@
 /**
  * UCBillingSettingsTab — Billing email settings + service config for a UC.
  */
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceService, type BillingEmailSettings, type BillingNotificationChannel } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlanGuard } from "@/components/plan";
+import { useDirtyForm } from "@/hooks/useDirtyForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,14 @@ export function UCBillingSettingsTab({ unitId }: Props) {
   const qc = useQueryClient();
   const { guardLimit, LimitDialog } = usePlanGuard();
   const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState({
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["billing_settings", unitId],
+    queryFn: () => invoiceService.getBillingSettings(unitId),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const defaultForm = {
     billing_capture_email: "",
     forward_to_email: "",
     pdf_password: "",
@@ -38,18 +46,13 @@ export function UCBillingSettingsTab({ unitId }: Props) {
     dias_antecedencia_alerta: "1",
     canal_notificacao: "whatsapp" as BillingNotificationChannel,
     servico_fatura_ativo: false,
-  });
-  const initialFormRef = useRef<typeof form | null>(null);
+  };
 
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["billing_settings", unitId],
-    queryFn: () => invoiceService.getBillingSettings(unitId),
-    staleTime: 1000 * 60 * 5,
-  });
+  const { form, setForm, isDirty, commitBaseline, resetTo } = useDirtyForm(defaultForm);
 
   useEffect(() => {
     if (settings) {
-      const initial = {
+      resetTo({
         billing_capture_email: settings.billing_capture_email || "",
         forward_to_email: settings.forward_to_email || "",
         pdf_password: "",
@@ -59,16 +62,9 @@ export function UCBillingSettingsTab({ unitId }: Props) {
         dias_antecedencia_alerta: String(settings.dias_antecedencia_alerta ?? 1),
         canal_notificacao: settings.canal_notificacao || "whatsapp",
         servico_fatura_ativo: settings.servico_fatura_ativo ?? false,
-      };
-      setForm(initial);
-      initialFormRef.current = initial;
+      });
     }
-  }, [settings]);
-
-  const isDirty = useMemo(() => {
-    if (!initialFormRef.current) return false;
-    return JSON.stringify(form) !== JSON.stringify(initialFormRef.current);
-  }, [form]);
+  }, [settings, resetTo]);
 
   const saveMut = useMutation({
     mutationFn: () => invoiceService.upsertBillingSettings(unitId, {
@@ -84,6 +80,7 @@ export function UCBillingSettingsTab({ unitId }: Props) {
       servico_fatura_ativo: form.servico_fatura_ativo,
     } as any),
     onSuccess: () => {
+      commitBaseline();
       qc.invalidateQueries({ queryKey: ["billing_settings", unitId] });
       toast({ title: "Configurações salvas" });
     },

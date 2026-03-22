@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Gauge, Link2, Link2Off, ArrowLeftRight, History, Search, Save, Info } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
@@ -238,17 +238,27 @@ function LeituraInicialCard({ meterId, meter }: { meterId: string; meter: any })
   const [leitura103, setLeitura103] = useState("");
   const [leituraData, setLeituraData] = useState("");
   const [leituraObs, setLeituraObs] = useState("");
+  const [baseline, setBaseline] = useState({ l03: "", l103: "", data: "", obs: "" });
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (meter && !loaded) {
-      setLeitura03(String(meter.leitura_inicial_03 || 0));
-      setLeitura103(String(meter.leitura_inicial_103 || 0));
-      setLeituraData(meter.leitura_inicial_data || "");
-      setLeituraObs(meter.leitura_inicial_observacao || "");
+      const l03 = String(meter.leitura_inicial_03 || 0);
+      const l103 = String(meter.leitura_inicial_103 || 0);
+      const data = meter.leitura_inicial_data || "";
+      const obs = meter.leitura_inicial_observacao || "";
+      setLeitura03(l03);
+      setLeitura103(l103);
+      setLeituraData(data);
+      setLeituraObs(obs);
+      setBaseline({ l03, l103, data, obs });
       setLoaded(true);
     }
   }, [meter, loaded]);
+
+  const isDirty = useMemo(() => {
+    return leitura03 !== baseline.l03 || leitura103 !== baseline.l103 || leituraData !== baseline.data || leituraObs !== baseline.obs;
+  }, [leitura03, leitura103, leituraData, leituraObs, baseline]);
 
   const saveMut = useMutation({
     mutationFn: () => meterService.updateLeituraInicial(meterId, {
@@ -258,6 +268,7 @@ function LeituraInicialCard({ meterId, meter }: { meterId: string; meter: any })
       leitura_inicial_observacao: leituraObs || null,
     }),
     onSuccess: () => {
+      setBaseline({ l03: leitura03, l103: leitura103, data: leituraData, obs: leituraObs });
       toast({ title: "Leitura inicial salva com sucesso" });
       qc.invalidateQueries({ queryKey: ["meter_device", meterId] });
     },
@@ -319,7 +330,7 @@ function LeituraInicialCard({ meterId, meter }: { meterId: string; meter: any })
           />
         </div>
 
-        <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} size="sm">
+        <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isDirty} size="sm">
           <Save className="w-3 h-3 mr-1" />
           {saveMut.isPending ? "Salvando..." : "Salvar Leitura Inicial"}
         </Button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -73,9 +73,12 @@ export function AiFollowupSettingsPanel() {
   const { hasFeature } = useTenantPlan();
   const hasAiFollowup = hasFeature("ai_followup");
   const [settings, setSettings] = useState<AiSettings>(DEFAULT_SETTINGS);
+  const [baseline, setBaseline] = useState<AiSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasRecord, setHasRecord] = useState(false);
+
+  const isDirty = useMemo(() => JSON.stringify(settings) !== JSON.stringify(baseline), [settings, baseline]);
 
   useEffect(() => {
     fetchSettings();
@@ -89,7 +92,7 @@ export function AiFollowupSettingsPanel() {
       .maybeSingle();
 
     if (data) {
-      setSettings({
+      const loaded = {
         id: data.id,
         modo: data.modo || "assistido",
         modelo_preferido: data.modelo_preferido || "gpt-4o-mini",
@@ -101,7 +104,9 @@ export function AiFollowupSettingsPanel() {
         templates: (typeof data.templates === "object" && data.templates !== null)
           ? data.templates as Record<string, any>
           : {},
-      });
+      };
+      setSettings(loaded);
+      setBaseline(loaded);
       setHasRecord(true);
     }
     setLoading(false);
@@ -144,6 +149,7 @@ export function AiFollowupSettingsPanel() {
         setHasRecord(true);
       }
 
+      setBaseline(settings);
       toast({ title: "Configurações de IA salvas" });
       fetchSettings();
     } catch (err: any) {
@@ -431,7 +437,7 @@ export function AiFollowupSettingsPanel() {
       </SectionCard>
 
       {/* Save */}
-      <Button onClick={handleSave} disabled={saving || !hasAiFollowup} className="gap-2">
+      <Button onClick={handleSave} disabled={saving || !hasAiFollowup || !isDirty} className="gap-2">
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         Salvar Configurações de IA
       </Button>
