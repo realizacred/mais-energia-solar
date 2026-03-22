@@ -289,19 +289,30 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
       <FormDivider />
 
       <FormSection title="Campos e Status">
-        <div className="space-y-1.5">
-          <Label>Campos Obrigatórios (JSON)</Label>
-          <Textarea
-            value={JSON.stringify(form.required_fields, null, 2)}
-            onChange={e => {
-              try {
-                setForm(f => ({ ...f, required_fields: JSON.parse(e.target.value) }));
-              } catch { /* ignore parse errors during typing */ }
-            }}
-            rows={3}
-            className="font-mono text-xs"
-          />
-        </div>
+        <FormGrid>
+          <div className="space-y-1.5">
+            <Label>Campos Obrigatórios (JSON)</Label>
+            <Textarea
+              value={JSON.stringify(form.required_fields, null, 2)}
+              onChange={e => {
+                try {
+                  setForm(f => ({ ...f, required_fields: JSON.parse(e.target.value) }));
+                } catch { /* ignore parse errors during typing */ }
+              }}
+              rows={4}
+              className="font-mono text-xs"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Observações</Label>
+            <Textarea
+              value={form.notes}
+              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              placeholder="Notas sobre esta configuração..."
+              rows={4}
+            />
+          </div>
+        </FormGrid>
 
         <div className="flex items-center justify-between py-2">
           <div>
@@ -309,16 +320,6 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
             <p className="text-xs text-muted-foreground">Habilitar esta configuração</p>
           </div>
           <Switch checked={form.active} onCheckedChange={v => setForm(f => ({ ...f, active: v }))} />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Observações</Label>
-          <Textarea
-            value={form.notes}
-            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-            placeholder="Notas sobre esta configuração..."
-            rows={2}
-          />
         </div>
       </FormSection>
     </FormModalTemplate>
