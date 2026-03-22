@@ -269,7 +269,17 @@ async function processInvoice(
 
   // ── 6. Update UC with reading data + enrich from first invoice ──
   const ucUpdate: any = {};
-  if (parsed.proxima_leitura_data) ucUpdate.proxima_leitura_data = parseDateBR(parsed.proxima_leitura_data);
+  if (parsed.proxima_leitura_data) {
+    const parsedDate = parseDateBR(parsed.proxima_leitura_data);
+    if (parsedDate) {
+      ucUpdate.proxima_leitura_data = parsedDate;
+      console.log(`[process-fatura-pdf] Próxima leitura extraída: ${parsed.proxima_leitura_data} → ${parsedDate}`);
+    } else {
+      console.warn(`[process-fatura-pdf] Próxima leitura inválida: "${parsed.proxima_leitura_data}"`);
+    }
+  } else {
+    console.warn("[process-fatura-pdf] Próxima leitura NÃO encontrada na fatura — campo ficará sem atualização");
+  }
   if (parsed.leitura_atual_03 != null) {
     ucUpdate.ultima_leitura_data = now.toISOString().split('T')[0];
     ucUpdate.ultima_leitura_kwh_03 = parsed.leitura_atual_03;
