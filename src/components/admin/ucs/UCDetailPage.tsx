@@ -74,7 +74,25 @@ export default function UCDetailPage() {
     queryKey: ["uc_detail", id],
     queryFn: () => unitService.getById(id!),
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // Resolve próxima leitura from latest invoice raw_extraction
+  const { data: proximaLeituraData } = useQuery({
+    queryKey: ["uc_proxima_leitura", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("unit_invoices")
+        .select("raw_extraction")
+        .eq("unit_id", id!)
+        .order("reference_year", { ascending: false })
+        .order("reference_month", { ascending: false })
+        .limit(1);
+      const raw = data?.[0]?.raw_extraction as Record<string, any> | null;
+      return raw?.proxima_leitura ?? raw?.next_reading_date ?? null;
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
   });
 
   // Resolve linked meter
