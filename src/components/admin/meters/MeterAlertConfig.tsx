@@ -119,6 +119,7 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
         .update({ metadata: newMetadata, updated_at: new Date().toISOString() } as any)
         .eq("id", meterId);
       if (error) throw error;
+      setBaseline(config);
       toast({ title: "Configurações de alerta salvas" });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
