@@ -2,6 +2,7 @@
 // process-fatura-pdf — Orchestrator: parse PDF → store → update UC → notify WA
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
+import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
