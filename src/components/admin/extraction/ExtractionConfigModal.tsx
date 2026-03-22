@@ -3,6 +3,7 @@
  * §25: FormModalTemplate pattern. Reposicionado para modelo 100% nativo.
  */
 import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
