@@ -151,16 +151,20 @@ async function processInvoice(
   }
 
   const strategyMode = extractionConfig?.strategy_mode || 'native';
-  // Required fields will be resolved AFTER UC type is known (geradora vs beneficiária)
-  // For test_mode (no UC), use base required_fields
-  let requiredFields = extractionConfig?.required_fields || ['consumo_kwh', 'valor_total'];
+
+  // ── BASE required fields — always mandatory regardless of context ──
+  const BASE_REQUIRED = ['consumo_kwh', 'valor_total', 'vencimento', 'numero_uc', 'mes_referencia'];
+  const GERADORA_EXTRA = ['energia_injetada_kwh', 'saldo_gd_acumulado', 'leitura_anterior_103', 'leitura_atual_103'];
+  const BENEFICIARIA_NEVER_REQUIRED = ['energia_injetada_kwh', 'saldo_gd_acumulado', 'leitura_anterior_103', 'leitura_atual_103', 'medidor_injecao_codigo', 'categoria_gd'];
+
+  // Start with base only — context will refine after UC resolution
+  let requiredFields = [...BASE_REQUIRED];
 
   // ── 3. Call parse-conta-energia (deterministic parser — NO AI) ──
   let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
-    // Log failed extraction run
     await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || 'unknown', strategyMode, 'failed', parseResult?.error || 'Parser retornou erro', requiredFields, [], requiredFields);
 
     if (test_mode) {
@@ -185,17 +189,18 @@ async function processInvoice(
   const parsed = parseResult.data;
   console.log(`[process-fatura-pdf] Deterministic parser v${parsed.parser_version || '?'} (${parsed.parser_used || 'generic'}), confidence: ${parsed.confidence}`);
 
-  // ── 4. Validate required fields from config ──
-  const foundFields = requiredFields.filter((f: string) => parsed[f] != null);
-  const missingFields = requiredFields.filter((f: string) => parsed[f] == null);
-  const extractionStatus = missingFields.length === 0 ? 'success' : missingFields.length <= 2 ? 'partial' : 'failed';
+  // ── NOTE: Field validation is DEFERRED until after UC context resolution ──
+  // This prevents blocking beneficiária invoices for missing geradora-only fields
 
-  // ── TEST MODE: return results without persisting ──
+  // ── TEST MODE: validate with base fields only (no UC context) ──
   if (test_mode) {
-    // Run GD consistency on test data too
+    const testFoundFields = requiredFields.filter((f: string) => parsed[f] != null);
+    const testMissingFields = requiredFields.filter((f: string) => parsed[f] == null);
+    const testExtractionStatus = testMissingFields.length === 0 ? 'success' : testMissingFields.length <= 2 ? 'partial' : 'failed';
+
     const gdChecks = runGdConsistencyChecks(parsed, null);
 
-    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version);
+    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, testExtractionStatus, testMissingFields.length > 0 ? `Faltando: ${testMissingFields.join(', ')}` : null, requiredFields, testFoundFields, testMissingFields, parsed.confidence, parsed.parser_version);
 
     return new Response(JSON.stringify({
       success: true,
@@ -204,11 +209,12 @@ async function processInvoice(
         parsed,
         concessionaria_detected: detectedConc || parsed.concessionaria_nome,
         config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome, strategy: strategyMode } : null,
-        extraction_status: extractionStatus,
+        extraction_status: testExtractionStatus,
         required_fields: requiredFields,
-        fields_found: foundFields,
-        fields_missing: missingFields,
+        fields_found: testFoundFields,
+        fields_missing: testMissingFields,
         gd_consistency: gdChecks,
+        contexto: 'base (sem UC vinculada)',
       },
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
@@ -242,17 +248,33 @@ async function processInvoice(
   }
 
   // ── 5a. Resolve required fields by UC context (geradora vs beneficiária) ──
-  if (ucData && extractionConfig) {
+  let ucContext = 'base';
+  if (ucData) {
     const isGeradora = ucData.tipo_uc === 'gd_geradora' || ucData.papel_gd === 'geradora';
-    const contextFields = isGeradora
-      ? extractionConfig.required_fields_geradora
-      : extractionConfig.required_fields_beneficiaria;
-    
-    if (contextFields && Array.isArray(contextFields) && contextFields.length > 0) {
-      requiredFields = contextFields;
-      console.log(`[process-fatura-pdf] Using context-aware required fields (${isGeradora ? 'geradora' : 'beneficiária'}): ${requiredFields.join(', ')}`);
+    ucContext = isGeradora ? 'geradora' : 'beneficiária';
+
+    if (isGeradora) {
+      const configGeradora = extractionConfig?.required_fields_geradora;
+      if (configGeradora && Array.isArray(configGeradora) && configGeradora.length > 0) {
+        requiredFields = configGeradora;
+      } else {
+        requiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
+      }
+    } else {
+      const configBeneficiaria = extractionConfig?.required_fields_beneficiaria;
+      if (configBeneficiaria && Array.isArray(configBeneficiaria) && configBeneficiaria.length > 0) {
+        requiredFields = configBeneficiaria;
+      } else {
+        requiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
+      }
     }
+    console.log(`[process-fatura-pdf] UC contexto: ${ucContext}, campos obrigatórios: ${requiredFields.join(', ')}`);
   }
+
+  // ── 5a.1 Perform field validation NOW (after context is known) ──
+  const foundFields = requiredFields.filter((f: string) => parsed[f] != null);
+  const missingFields = requiredFields.filter((f: string) => parsed[f] == null);
+  const extractionStatus = missingFields.length === 0 ? 'success' : missingFields.length <= 2 ? 'partial' : 'failed';
 
   // ── 5b. Ownership validation ──
   const identifierField = extractionConfig?.identifier_field || 'numero_uc';
@@ -455,13 +477,13 @@ async function processInvoice(
     pdf_file_url: pdfUrl,
     source: invoiceSource,
     source_message_id: source_message_id || null,
-    status: 'received',
+    status: extractionStatus === 'success' ? 'received' : extractionStatus === 'partial' ? 'received' : 'pending_review',
     demanda_contratada_kw: parsed.demanda_contratada_kw,
     raw_extraction: parsed,
     parsing_status: extractionStatus,
     parser_version: parsed.parser_version || null,
     last_parsed_at: new Date().toISOString(),
-    parsing_error_reason: missingFields.length > 0 ? `Campos faltantes: ${missingFields.join(', ')}` : null,
+    parsing_error_reason: missingFields.length > 0 ? `Campos faltantes (${ucContext}): ${missingFields.join(', ')}` : null,
     // GD consistency results
     consistency_status: gdChecks.overallLevel,
     consistency_score: gdChecks.score,
@@ -491,7 +513,7 @@ async function processInvoice(
   }
 
   // ── 10. Log extraction run ──
-  await logExtractionRun(admin, tenantId, extractionConfig?.id, invoice.id, resolvedUnitId, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version, ownershipResult.status, ownershipResult.score, identifierExtracted, ownershipResult.status === 'valid');
+  await logExtractionRun(admin, tenantId, extractionConfig?.id, invoice.id, resolvedUnitId, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Faltando (${ucContext}): ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version, ownershipResult.status, ownershipResult.score, identifierExtracted, ownershipResult.status === 'valid');
 
   // ── 11. Update UC with reading data + enrich from first invoice ──
   const ucUpdate: any = {};
