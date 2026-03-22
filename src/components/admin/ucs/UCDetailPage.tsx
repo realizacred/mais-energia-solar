@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, ArrowLeft, Zap, FileText, Settings, Edit, Trash2, Plus,
-  Calendar, MoreHorizontal, Activity, BarChart3, TrendingUp, DollarSign, Gauge
+  Calendar, MoreHorizontal, Activity, BarChart3, TrendingUp, DollarSign, Gauge, Sun
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
