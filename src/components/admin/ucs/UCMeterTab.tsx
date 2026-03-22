@@ -330,7 +330,7 @@ function LeituraInicialCard({ meterId, meter }: { meterId: string; meter: any })
           />
         </div>
 
-        <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} size="sm">
+        <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isDirty} size="sm">
           <Save className="w-3 h-3 mr-1" />
           {saveMut.isPending ? "Salvando..." : "Salvar Leitura Inicial"}
         </Button>
