@@ -150,7 +150,249 @@ function extractMeterRow(flatText: string, labelPattern: string) {
   };
 }
 
-// ── LAYER 1: Regex extraction ───────────────────────────────────────────────
+// ── LAYER 0: Energisa-specific strict regex extraction ──────────────────────
+
+function extractEnergisa(text: string): ExtractedData | null {
+  const flatText = text.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Only run for Energisa bills
+  if (!/ENERGISA/i.test(flatText)) return null;
+
+  console.log("[parse-conta-energia] Energisa detected — using strict extraction");
+
+  const raw: Record<string, string> = {};
+  let confidence = 20; // Base: concessionária detected
+
+  // ── 1. Dados de Identificação e Datas ──
+
+  // Referência: "REF: MES/ANO" → capture month/year text (e.g. "Fevereiro/2026" or "FEV/2026")
+  let mesRef: string | null = null;
+  const refMatch = flatText.match(/REF[:\s]*MES\s*\/\s*ANO\s+([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i)
+    || flatText.match(/REF[:\s]*([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i);
+  if (refMatch) {
+    mesRef = refMatch[1].trim();
+    raw['energisa_ref'] = refMatch[0];
+    confidence += 10;
+  }
+
+  // Vencimento: "VENCIMENTO" followed by DD/MM/AAAA
+  let vencimento: string | null = null;
+  const vencMatch = flatText.match(/VENCIMENTO[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i);
+  if (vencMatch) {
+    vencimento = normalizeDateLike(vencMatch[1]);
+    raw['energisa_vencimento'] = vencMatch[0];
+    confidence += 10;
+  }
+
+  // Valor Total: "TOTAL A PAGAR" followed by R$ value
+  let valorTotal: number | null = null;
+  // Pattern 1: "TOTAL A PAGAR MES/ANO DD/MM/AAAA R$ XX,XX"
+  const totalMatch = flatText.match(/TOTAL\s+A\s+PAGAR\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(?:\d{2}[\/.]\d{2}[\/.]\d{2,4}\s+)?R\$\s*(\d[\d.,]*)/i)
+    || flatText.match(/TOTAL\s+A\s+PAGAR[:\s]*R?\$?\s*(\d[\d.,]*)/i);
+  if (totalMatch) {
+    valorTotal = parseNum(totalMatch[1]);
+    raw['energisa_total'] = totalMatch[0];
+    confidence += 10;
+  }
+
+  // Próxima Leitura
+  let proximaLeitura: string | null = null;
+  const proxMatch = flatText.match(/Pr[óo]xima\s+Leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i)
+    || flatText.match(/pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i);
+  if (proxMatch) {
+    const candidate = normalizeDateLike(proxMatch[1]);
+    if (isPlausibleDate(candidate)) {
+      proximaLeitura = candidate;
+      raw['energisa_prox_leitura'] = proxMatch[0];
+      confidence += 10;
+    }
+  }
+
+  // ── 2. Leituras do Medidor ──
+
+  // Medidor number (e.g. "007718" or similar 6+ digit)
+  const medidorMatch = flatText.match(/(?:medidor|n[°º]?\s*medidor)[:\s]*(\d{4,})/i);
+  if (medidorMatch) {
+    raw['energisa_medidor'] = medidorMatch[1];
+  }
+
+  // Leitura Anterior / Atual — from meter table
+  let leituraAnterior03: number | null = null;
+  let leituraAtual03: number | null = null;
+  let consumoKwh: number | null = null;
+
+  // Try the structured meter row pattern first
+  const activeMeterRow = extractMeterRow(flatText, 'energia\\s+ativa(?:\\s+em\\s+kwh)?');
+  if (activeMeterRow) {
+    leituraAnterior03 = activeMeterRow.previous;
+    leituraAtual03 = activeMeterRow.current;
+    consumoKwh = activeMeterRow.total;
+    raw['energisa_leitura_03'] = `ant=${activeMeterRow.previous} atu=${activeMeterRow.current} cons=${activeMeterRow.total}`;
+    confidence += 15;
+  }
+
+  // Consumo em kWh: "Consumo em kWh" or "Consumo kWh" with value
+  if (consumoKwh == null) {
+    const consumoMatch = flatText.match(/Consumo\s+(?:em\s+)?kWh[:\s]*(\d[\d.,]*)/i)
+      || flatText.match(/consumo\s*(?:faturado|ativo)?[:\s]*(\d[\d.,]*)\s*(?:,\s*\d+)?\s*kWh/i);
+    if (consumoMatch) {
+      consumoKwh = parseNum(consumoMatch[1]);
+      raw['energisa_consumo'] = consumoMatch[0];
+      confidence += 10;
+    }
+  }
+
+  // ── 3. Geração Distribuída (Solar) ──
+
+  // Energia Injetada: "Energia Atv Injetada GDI" with negative value
+  let energiaInjetada: number | null = null;
+  const injetadaMatch = flatText.match(/Energia\s+At[iv]+\s+Injetada\s+GDI?[:\s]*[-]?\s*(\d[\d.,]*)/i)
+    || flatText.match(/energia\s+(?:atv?\s+)?injetada\s+GDI?[:\s]*[-]?\s*(\d[\d.,]*)/i);
+  if (injetadaMatch) {
+    energiaInjetada = parseNum(injetadaMatch[1]);
+    raw['energisa_injetada'] = injetadaMatch[0];
+    confidence += 10;
+  }
+
+  // Injected meter row (registro 103)
+  let leituraAnterior103: number | null = null;
+  let leituraAtual103: number | null = null;
+  const injectedMeterRow = extractMeterRow(flatText, 'energia\\s+(?:atv\\s+)?injetada(?:\\s+gdi)?');
+  if (injectedMeterRow) {
+    leituraAnterior103 = injectedMeterRow.previous;
+    leituraAtual103 = injectedMeterRow.current;
+    if (energiaInjetada == null) energiaInjetada = injectedMeterRow.total;
+    raw['energisa_leitura_103'] = `ant=${injectedMeterRow.previous} atu=${injectedMeterRow.current}`;
+    confidence += 10;
+  }
+
+  // Saldo Acumulado: "Saldo Acumulado:" followed by number
+  let saldoGdAcumulado: number | null = null;
+  const saldoMatch = flatText.match(/Saldo\s+Acumulado[:\s]*(\d[\d.,]*)/i);
+  if (saldoMatch) {
+    saldoGdAcumulado = parseNum(saldoMatch[1]);
+    raw['energisa_saldo_acumulado'] = saldoMatch[0];
+    confidence += 10;
+  }
+
+  // Classificação GD (e.g. "GD I", "GDI")
+  let categoriaGd: string | null = null;
+  const gdMatch = flatText.match(/GD[\s_-]*(I{1,3}|1|2|3)\b/i);
+  if (gdMatch) {
+    const num = gdMatch[1]?.toUpperCase();
+    if (num === 'I' || num === '1') categoriaGd = 'GD_I';
+    else if (num === 'II' || num === '2') categoriaGd = 'GD_II';
+    else if (num === 'III' || num === '3') categoriaGd = 'GD_III';
+    raw['energisa_gd'] = gdMatch[0];
+  }
+
+  // Energia compensada
+  let energiaCompensada: number | null = null;
+  const compMatch = flatText.match(/energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)/i)
+    || flatText.match(/compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i);
+  if (compMatch) {
+    energiaCompensada = parseNum(compMatch[1]);
+    raw['energisa_compensada'] = compMatch[0];
+  }
+
+  // ── 4. Configuração Técnica ──
+
+  // Tipo de Ligação: "LIGAÇÃO:" followed by type
+  let tipoLigacao: string | null = null;
+  const ligacaoMatch = flatText.match(/LIGA[ÇC][ÃA]O[:\s]*(MONOF[ÁA]SIC[AO]|BIF[ÁA]SIC[AO]|TRIF[ÁA]SIC[AO])/i);
+  if (ligacaoMatch) {
+    const val = ligacaoMatch[1].toLowerCase();
+    if (val.includes('mono')) tipoLigacao = 'monofasico';
+    else if (val.includes('bi')) tipoLigacao = 'bifasico';
+    else if (val.includes('tri')) tipoLigacao = 'trifasico';
+    raw['energisa_ligacao'] = ligacaoMatch[0];
+    confidence += 5;
+  }
+
+  // Nº UC: "CÓDIGO DA INSTALAÇÃO" or "CÓDIGO DO CLIENTE"
+  let numeroUc: string | null = null;
+  const ucMatch = flatText.match(/C[ÓO]DIGO\s+DA\s+INSTALA[ÇC][ÃA]O[:\s]*([\d\/-]{5,20})/i)
+    || flatText.match(/C[ÓO]DIGO\s+DO\s+CLIENTE[:\s]*([\d\/-]{5,20})/i)
+    || flatText.match(/utilize\s+o\s+c[óo]digo[:\s]*([\d\/-]{6,20})/i);
+  if (ucMatch) {
+    numeroUc = normalizeUcCode(ucMatch[1]);
+    raw['energisa_uc'] = ucMatch[0];
+    confidence += 10;
+  }
+
+  // Bandeira tarifária
+  let bandeira: string | null = null;
+  const bandeiraMatch = flatText.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
+  if (bandeiraMatch) {
+    bandeira = bandeiraMatch[1];
+    raw['energisa_bandeira'] = bandeiraMatch[0];
+  }
+
+  // Classe consumo
+  let classe: string | null = null;
+  if (/residencial/i.test(flatText)) classe = 'Residencial';
+  else if (/comercial/i.test(flatText)) classe = 'Comercial';
+  else if (/industrial/i.test(flatText)) classe = 'Industrial';
+  else if (/rural/i.test(flatText)) classe = 'Rural';
+
+  // ── VALIDATION: Leitura Atual - Leitura Anterior = Consumo kWh ──
+  let validationWarning: string | null = null;
+  if (leituraAnterior03 != null && leituraAtual03 != null && consumoKwh != null) {
+    const diff = leituraAtual03 - leituraAnterior03;
+    if (Math.abs(diff - consumoKwh) > 1) {
+      validationWarning = `Erro na integridade dos dados extraídos: Leitura(${leituraAtual03}-${leituraAnterior03}=${diff}) ≠ Consumo(${consumoKwh})`;
+      console.warn(`[parse-conta-energia] [ENERGISA] ${validationWarning}`);
+      raw['energisa_validation_warning'] = validationWarning;
+    }
+  }
+
+  confidence = Math.min(confidence, 100);
+
+  // Only return if we captured enough (at least UC or valor or consumo)
+  if (!numeroUc && valorTotal == null && consumoKwh == null) {
+    console.warn("[parse-conta-energia] Energisa detected but extraction too sparse — falling back to generic");
+    return null;
+  }
+
+  return {
+    concessionaria_nome: "Energisa",
+    cliente_nome: null,
+    endereco: null,
+    cidade: null,
+    estado: null,
+    consumo_kwh: consumoKwh,
+    tarifa_energia_kwh: null,
+    tarifa_fio_b_kwh: null,
+    valor_total: valorTotal,
+    icms_percentual: null,
+    pis_valor: null,
+    cofins_valor: null,
+    bandeira_tarifaria: bandeira,
+    classe_consumo: classe,
+    tipo_ligacao: tipoLigacao,
+    mes_referencia: mesRef,
+    demanda_contratada_kw: null,
+    numero_uc: numeroUc,
+    vencimento,
+    proxima_leitura_data: proximaLeitura,
+    saldo_gd: null,
+    saldo_gd_acumulado: saldoGdAcumulado,
+    leitura_anterior_03: leituraAnterior03,
+    leitura_atual_03: leituraAtual03,
+    leitura_anterior_103: leituraAnterior103,
+    leitura_atual_103: leituraAtual103,
+    energia_injetada_kwh: energiaInjetada,
+    energia_compensada_kwh: energiaCompensada,
+    categoria_gd: categoriaGd,
+    modalidade_tarifaria: null,
+    confidence,
+    ai_fallback_used: false,
+    ai_model_used: null,
+    raw_fields: raw,
+  };
+}
+
+// ── LAYER 1: Regex extraction (generic) ─────────────────────────────────────
 
 function extractFromText(text: string): ExtractedData {
   const raw: Record<string, string> = {};
