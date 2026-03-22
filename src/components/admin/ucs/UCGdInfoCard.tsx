@@ -34,9 +34,7 @@ export function UCGdInfoCard({ ucId }: Props) {
                   <Sun className="w-3 h-3 mr-1" /> Geradora
                 </Badge>
                 <span className="text-sm text-foreground">{g.nome}</span>
-                <Link to={`/admin/gd-rateio?group=${g.id}`} className="text-xs text-primary hover:underline flex items-center gap-0.5">
-                  Ver grupo <ExternalLink className="w-3 h-3" />
-                </Link>
+                <span className="text-xs text-muted-foreground">Grupo GD</span>
               </div>
             ))}
           </div>
