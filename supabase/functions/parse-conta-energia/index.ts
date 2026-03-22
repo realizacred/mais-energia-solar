@@ -607,6 +607,7 @@ function extractFromText(text: string): ExtractedData {
     modalidade_tarifaria: modalidadeTarifaria,
     confidence,
     ai_fallback_used: false,
+    ai_model_used: null,
     raw_fields: raw,
   };
 }
