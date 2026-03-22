@@ -24,6 +24,8 @@ import {
   type ExtractionConfig,
 } from "@/hooks/useExtractionConfigs";
 import { ExtractionConfigModal } from "./ExtractionConfigModal";
+import { ExtractionTestTab } from "./ExtractionTestTab";
+import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
