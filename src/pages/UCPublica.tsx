@@ -318,6 +318,8 @@ export default function UCPublica() {
 
   const brand = resolved.brand;
   const latestInvoice = invoices.length > 0 ? invoices[invoices.length - 1] as any : null;
+  const siblings = (resolved.siblings || []).filter((s: SiblingUC) => s.unit_id !== resolved.unit_id);
+  const hasSiblings = siblings.length > 0;
 
   return (
     <TooltipProvider>
