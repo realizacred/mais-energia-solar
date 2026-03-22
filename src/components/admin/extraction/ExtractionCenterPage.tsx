@@ -4,7 +4,7 @@
  * Reposicionada para modelo 100% nativo — provedores internos não expostos.
  */
 import { useState } from "react";
-import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Pencil, Trash2, Eye, Shield, Database, RefreshCw } from "lucide-react";
+import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Pencil, Trash2, Eye, Shield, Database, RefreshCw, Upload, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +83,7 @@ export default function ExtractionCenterPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editConfig, setEditConfig] = useState<ExtractionConfig | null>(null);
+  const [activeTab, setActiveTab] = useState("configs");
 
   const activeConfigs = configs.filter(c => c.active).length;
   const nativeConfigs = configs.filter(c => c.native_enabled).length;
@@ -116,13 +117,38 @@ export default function ExtractionCenterPage() {
       <PageHeader
         icon={Settings2}
         title="Central de Extração"
-        description="Configure a estratégia de extração de dados por concessionária"
+        description="Configure, teste e ensine o sistema a analisar contas de luz por concessionária"
         actions={
-          <Button size="sm" onClick={handleCreate}>
-            <Plus className="w-4 h-4 mr-1" /> Nova Configuração
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setActiveTab("test")}>
+              <Upload className="w-4 h-4 mr-1" /> Importar conta para análise
+            </Button>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="w-4 h-4 mr-1" /> Nova Configuração
+            </Button>
+          </div>
         }
       />
+
+      <Card className="border-border bg-muted/30">
+        <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Onde importar uma conta de luz?</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Use a aba <strong>Teste de Extração</strong> para enviar uma conta real, ver os campos encontrados,
+                entender o que faltou e alimentar o aprendizado de layouts.
+              </p>
+            </div>
+          </div>
+          <Button size="sm" onClick={() => setActiveTab("test")}>
+            <Upload className="w-4 h-4 mr-1" /> Abrir Teste de Extração
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -184,7 +210,7 @@ export default function ExtractionCenterPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="configs">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="configs">Configurações</TabsTrigger>
           <TabsTrigger value="test">Teste de Extração</TabsTrigger>

@@ -3,7 +3,7 @@
  * Accepts PDF/images, calls parse-conta-energia, shows detailed results.
  */
 import { useState, useRef } from "react";
-import { Upload, FileText, CheckCircle2, AlertTriangle, XCircle, Info, Download, Settings2, Cpu } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertTriangle, XCircle, Info, Download, Settings2, Cpu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 import { useExtractionConfigs, type ExtractionConfig } from "@/hooks/useExtractionConfigs";
+import { ExtractionHelpHint } from "./ExtractionHelpHint";
 
 interface TestResult {
   concessionaria_detected: string | null;
@@ -93,10 +94,8 @@ export function ExtractionTestTab() {
         return;
       }
 
-      // Upload to temp storage
       const storagePath = await uploadInvoiceTempPdf(file);
 
-      // Call process-fatura-pdf in TEST MODE — parses without requiring UC
       const data = await invokeEdgeFunction<any>("process-fatura-pdf", {
         body: {
           pdf_storage_path: storagePath,
@@ -113,14 +112,12 @@ export function ExtractionTestTab() {
         const warnings: string[] = [];
         const errors: string[] = [];
 
-        // Check validations from parser
         if (parsed?.validations) {
           for (const v of parsed.validations) {
             if (!v.passed) warnings.push(v.detail);
           }
         }
 
-        // Add GD consistency warnings/errors
         if (testData.gd_consistency?.checks) {
           for (const c of testData.gd_consistency.checks) {
             if (c.level === "warning") warnings.push(`GD: ${c.message}`);
@@ -164,7 +161,6 @@ export function ExtractionTestTab() {
           validations: [],
         });
       } else {
-        // Fallback: old response format (non-test-mode)
         const parsed = data?.data?.parsed;
         if (parsed) {
           const config = selectedConc !== "auto"
@@ -221,69 +217,76 @@ export function ExtractionTestTab() {
 
   return (
     <div className="space-y-6">
-      {/* Explanation */}
       <Card className="bg-muted/30 border-border">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+            <Sparkles className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Como funciona o teste</p>
+              <p className="text-sm font-medium text-foreground">Importe uma conta real para o sistema analisar</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Envie um PDF de conta de energia para simular a leitura antes de processar no fluxo operacional.
-                O sistema detecta automaticamente a concessionária, aplica o parser nativo e mostra todos os campos extraídos,
-                faltantes e alertas de consistência.
+                Esta é a área de importação da Central de Extração. Envie um PDF real, veja o que foi encontrado,
+                entenda o que faltou e use o resultado para ajustar a configuração e o aprendizado de layouts.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Upload area */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Concessionária (opcional)</Label>
-              <Select value={selectedConc} onValueChange={setSelectedConc}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Detectar automaticamente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Detectar automaticamente</SelectItem>
-                  {configs.map(c => (
-                    <SelectItem key={c.id} value={c.concessionaria_code}>
-                      {c.concessionaria_nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Arquivo (PDF, PNG, JPG, WEBP)</Label>
-              <div
-                className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-background cursor-pointer hover:bg-muted/30 transition-colors"
-                onClick={() => fileRef.current?.click()}
-              >
-                <Upload className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground truncate">
-                  {file ? file.name : "Selecionar arquivo..."}
-                </span>
+      <Card className="border-border bg-card shadow-sm">
+        <CardContent className="space-y-4 p-5">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs">Concessionária (opcional)</Label>
+                    <ExtractionHelpHint text="Deixe em detecção automática na maioria dos casos. Se você já souber a concessionária, selecione aqui para comparar com a configuração existente." />
+                  </div>
+                  <Select value={selectedConc} onValueChange={setSelectedConc}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Detectar automaticamente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Detectar automaticamente</SelectItem>
+                      {configs.map(c => (
+                        <SelectItem key={c.id} value={c.concessionaria_code}>
+                          {c.concessionaria_nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs">Arquivo da conta</Label>
+                    <ExtractionHelpHint text="Envie preferencialmente o PDF original da concessionária. O sistema usa este arquivo para extrair texto, testar parser e identificar campos faltantes." />
+                  </div>
+                  <div
+                    className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-background cursor-pointer hover:bg-muted/30 transition-colors"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground truncate">
+                      {file ? file.name : "Selecionar conta de luz..."}
+                    </span>
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept={ACCEPTED_TYPES}
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
               </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept={ACCEPTED_TYPES}
-                onChange={handleFileChange}
-                className="hidden"
-              />
             </div>
+            <Button onClick={handleTest} disabled={!file || isProcessing} className="h-10">
+              {isProcessing && <Spinner size="sm" className="mr-2" />}
+              {isProcessing ? "Analisando..." : "Importar e Analisar"}
+            </Button>
           </div>
-        </div>
-        <Button onClick={handleTest} disabled={!file || isProcessing} className="h-10">
-          {isProcessing && <Spinner size="sm" className="mr-2" />}
-          {isProcessing ? "Analisando..." : "Testar Extração"}
-        </Button>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Results */}
       {isProcessing && (

@@ -22,6 +22,7 @@ import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight } from "
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useSaveExtractionConfig, type ExtractionConfig, type ExtractionStrategyMode } from "@/hooks/useExtractionConfigs";
 import { toast } from "sonner";
+import { ExtractionHelpHint } from "./ExtractionHelpHint";
 
 interface ExtractionConfigModalProps {
   open: boolean;
@@ -373,7 +374,10 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
               <SectionCard icon={Settings2} title="Concessionária">
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Nome</Label>
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">Nome</Label>
+                      <ExtractionHelpHint text="Nome exibido na Central de Extração. Use o nome comercial da concessionária para facilitar a leitura do time." />
+                    </div>
                     <Input
                       value={form.concessionaria_nome}
                       onChange={e => setForm(f => ({ ...f, concessionaria_nome: e.target.value }))}
@@ -383,7 +387,10 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Código (slug)</Label>
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">Código (slug)</Label>
+                      <ExtractionHelpHint text="Código técnico usado pelo backend para localizar parser, regras aprendidas e eventos de layout. Ex.: energisa, cemig, light." />
+                    </div>
                     <Input
                       value={form.concessionaria_code}
                       onChange={e => setForm(f => ({ ...f, concessionaria_code: e.target.value }))}
@@ -393,7 +400,10 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Campo identificador da UC</Label>
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">Campo identificador da UC</Label>
+                      <ExtractionHelpHint text="Define qual campo da conta será comparado com a UC cadastrada para validar titularidade e vínculo automático." />
+                    </div>
                     <Select
                       value={form.identifier_field}
                       onValueChange={v => setForm(f => ({ ...f, identifier_field: v }))}
@@ -417,7 +427,10 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
               <SectionCard icon={Cpu} title="Estratégia de Extração">
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Modo</Label>
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">Modo</Label>
+                      <ExtractionHelpHint text="Nativo usa parser determinístico. Automático combina rotas internas. Use esta seção para orientar o backend sem esconder a lógica." />
+                    </div>
                     <Select
                       value={form.strategy_mode}
                       onValueChange={(v) => setForm(f => ({ ...f, strategy_mode: v as ExtractionStrategyMode }))}
@@ -433,7 +446,10 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Versão do Parser</Label>
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">Versão do Parser</Label>
+                      <ExtractionHelpHint text="Versão auditável do parser usada para esta concessionária. Ajuda a rastrear mudanças de comportamento entre releases." />
+                    </div>
                     <Input
                       value={form.parser_version || ""}
                       onChange={e => setForm(f => ({ ...f, parser_version: e.target.value }))}
@@ -451,8 +467,8 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
               <SectionCard icon={RefreshCw} title="Recuperação e Fallback">
                 <div className="space-y-2">
                   <SwitchRow label="Recuperação Automática" description="Se o parser falhar, o sistema tenta outra rota interna" checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
-                  <SwitchRow label="Requer Conversão Backend" description="O backend converte o PDF do Storage para processamento" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
-                  <SwitchRow label="PDF Protegido" description="A fatura exige senha para abertura" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
+                  <SwitchRow label="Requer Conversão Backend" description="O backend prepara e converte o arquivo antes do processamento" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
+                  <SwitchRow label="PDF Protegido" description="Marque quando a conta costuma exigir senha para abertura" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
                 </div>
                 <SwitchRow label="Ativo" description="Habilitar esta configuração" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
               </SectionCard>
