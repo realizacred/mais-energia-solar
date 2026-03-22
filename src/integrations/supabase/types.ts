@@ -7632,7 +7632,7 @@ export type Database = {
           provider_requires_password: boolean
           required_fields: Json
           strategy_mode: Database["public"]["Enums"]["extraction_strategy_mode"]
-          tenant_id: string
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -7654,7 +7654,7 @@ export type Database = {
           provider_requires_password?: boolean
           required_fields?: Json
           strategy_mode?: Database["public"]["Enums"]["extraction_strategy_mode"]
-          tenant_id?: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -7676,7 +7676,7 @@ export type Database = {
           provider_requires_password?: boolean
           required_fields?: Json
           strategy_mode?: Database["public"]["Enums"]["extraction_strategy_mode"]
-          tenant_id?: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Relationships: [
