@@ -404,7 +404,7 @@ export function CsvImportPanel() {
         await new Promise(r => setTimeout(r, 10));
       }
 
-      log("success", `✅ Todos os ${points.length.toLocaleString("pt-BR")} pontos enviados!`);
+      log("success", `✅ Todos os ${formatIntegerBR(points.length)} pontos enviados!`);
 
       log("info", "Verificando contagem no banco...");
       const { count } = await supabase
