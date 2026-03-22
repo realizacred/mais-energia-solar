@@ -109,7 +109,7 @@ export default function UCDetailPage() {
     queryKey: ["meter_device", activeMeterIdResolved],
     queryFn: () => meterService.getById(activeMeterIdResolved!),
     enabled: !!activeMeterIdResolved,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
 
   // Resolve linked plant (use distinct queryKey to avoid collision with UCPlantLinksTab)
