@@ -21,8 +21,7 @@ import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Clock, User, Externa
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useVisitasTecnicas, useCriarVisita } from "@/hooks/useVisitasTecnicas";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useConsultoresList } from "@/hooks/useConsultoresList";
 
 const STATUS_COLORS: Record<string, string> = {
   agendada: "bg-info/10 text-info border-info/20",
