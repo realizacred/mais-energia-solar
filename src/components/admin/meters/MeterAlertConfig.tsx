@@ -2,7 +2,7 @@
  * MeterAlertConfig — Per-meter alert threshold configuration.
  * Stores config in meter_devices.metadata.alert_config
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
