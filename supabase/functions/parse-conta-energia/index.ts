@@ -758,6 +758,7 @@ Seja preciso — nunca invente dados.`
       modalidade_tarifaria: fields.modalidade_tarifaria || null,
       confidence: 85,
       ai_fallback_used: true,
+      ai_model_used: "google/gemini-2.5-flash",
       raw_fields: { ai_full_extraction: "true" },
     };
   } catch (err: any) {
