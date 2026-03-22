@@ -3,7 +3,7 @@
  * §26: PageHeader. §27: KPI cards. §4: Table. §12: Skeleton.
  */
 import { useState } from "react";
-import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Globe, Pencil, Trash2, Eye } from "lucide-react";
+import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Globe, Pencil, Trash2, Eye, Shield, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,12 @@ const STRATEGY_LABELS: Record<string, string> = {
   native: "Parser Nativo",
   provider: "Provedor Externo",
   auto: "Automático",
+};
+
+const STRATEGY_COLORS: Record<string, string> = {
+  native: "bg-primary/10 text-primary border-primary/20",
+  provider: "bg-info/10 text-info border-info/20",
+  auto: "bg-warning/10 text-warning border-warning/20",
 };
 
 const STATUS_LABELS: Record<string, { label: string; variant: string }> = {
@@ -63,12 +69,30 @@ export default function ExtractionCenterPage() {
   };
 
   const handleDelete = async (config: ExtractionConfig) => {
+    if ((config as any).is_system_default) {
+      toast.error("Configurações padrão do sistema não podem ser removidas");
+      return;
+    }
     try {
       await deleteConfig.mutateAsync(config.id);
       toast.success(`Configuração "${config.concessionaria_nome}" removida`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover");
     }
+  };
+
+  const getCapabilityBadges = (config: ExtractionConfig) => {
+    const badges: { label: string; className: string }[] = [];
+    if (config.native_enabled) {
+      badges.push({ label: "Nativo", className: "bg-primary/10 text-primary border-primary/20" });
+    }
+    if (config.provider_enabled) {
+      badges.push({ label: config.provider_name || "Provedor", className: "bg-info/10 text-info border-info/20" });
+    }
+    if (config.provider_requires_base64) {
+      badges.push({ label: "Base64 Backend", className: "bg-muted text-muted-foreground border-border" });
+    }
+    return badges;
   };
 
   return (
@@ -171,95 +195,123 @@ export default function ExtractionCenterPage() {
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold text-foreground">Concessionária</TableHead>
                     <TableHead className="font-semibold text-foreground">Estratégia</TableHead>
-                    <TableHead className="font-semibold text-foreground">Parser</TableHead>
-                    <TableHead className="font-semibold text-foreground">Provedor</TableHead>
-                    <TableHead className="font-semibold text-foreground">Fallback</TableHead>
+                    <TableHead className="font-semibold text-foreground">Capacidades</TableHead>
+                    <TableHead className="font-semibold text-foreground">Campos Obrigatórios</TableHead>
                     <TableHead className="font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="font-semibold text-foreground">Origem</TableHead>
                     <TableHead className="w-[60px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {configs.map(config => (
-                    <TableRow key={config.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-medium text-foreground">
-                        <div>
-                          <p>{config.concessionaria_nome}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{config.concessionaria_code}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {STRATEGY_LABELS[config.strategy_mode] || config.strategy_mode}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <Cpu className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-sm">{config.native_enabled ? "Ativo" : "—"}</span>
-                          {config.parser_version && (
-                            <span className="text-xs text-muted-foreground">v{config.parser_version}</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {config.provider_enabled ? (
-                          <div className="flex items-center gap-1.5">
-                            <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-sm capitalize">{config.provider_name || "—"}</span>
+                  {configs.map(config => {
+                    const isSystemDefault = (config as any).is_system_default;
+                    const capabilities = getCapabilityBadges(config);
+                    return (
+                      <TableRow key={config.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="font-medium text-foreground">
+                          <div>
+                            <p>{config.concessionaria_nome}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{config.concessionaria_code}</p>
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`text-xs ${config.fallback_enabled ? "bg-success/10 text-success border-success/20" : ""}`}>
-                          {config.fallback_enabled ? "Sim" : "Não"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`text-xs ${config.active ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}`}>
-                          {config.active ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="hidden lg:flex items-center gap-1">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(config)}>
-                                  <Pencil className="w-4 h-4 text-warning" />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`text-xs ${STRATEGY_COLORS[config.strategy_mode] || ""}`}>
+                            {STRATEGY_LABELS[config.strategy_mode] || config.strategy_mode}
+                          </Badge>
+                          {config.fallback_enabled && (
+                            <Badge variant="outline" className="text-xs ml-1 bg-muted text-muted-foreground">
+                              + fallback
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {capabilities.map((b, i) => (
+                              <Badge key={i} variant="outline" className={`text-xs ${b.className}`}>
+                                {b.label}
+                              </Badge>
+                            ))}
+                            {config.parser_version && config.native_enabled && (
+                              <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                                v{config.parser_version}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-xs text-muted-foreground max-w-[180px] truncate">
+                            {config.required_fields?.length || 0} campos
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`text-xs ${config.active ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}`}>
+                            {config.active ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {isSystemDefault ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                    <Shield className="w-3 h-3 mr-1" />
+                                    Sistema
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>Configuração padrão do sistema</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              <Database className="w-3 h-3 mr-1" />
+                              Customizada
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="hidden lg:flex items-center gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(config)}>
+                                    <Pencil className="w-4 h-4 text-warning" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            {!isSystemDefault && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(config)}>
+                                      <Trash2 className="w-4 h-4 text-destructive" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Remover</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                          <div className="flex lg:hidden">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="w-4 h-4" />
                                 </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Editar</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(config)}>
-                                  <Trash2 className="w-4 h-4 text-destructive" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Remover</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <div className="flex lg:hidden">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(config)}>Editar</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(config)}>Excluir</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEdit(config)}>Editar</DropdownMenuItem>
+                                {!isSystemDefault && (
+                                  <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(config)}>Excluir</DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -304,7 +356,7 @@ export default function ExtractionCenterPage() {
                           {run.concessionaria_code}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className={`text-xs ${STRATEGY_COLORS[run.strategy_used] || ""}`}>
                             {STRATEGY_LABELS[run.strategy_used] || run.strategy_used}
                           </Badge>
                         </TableCell>
