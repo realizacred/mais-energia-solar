@@ -176,10 +176,6 @@ export const invoiceImportService = {
           }
         }
 
-        // Enrich UC with first-import data
-        if (resolvedUnitId && parsed) {
-          await this._enrichUC(resolvedUnitId, parsed);
-        }
 
         await this.updateJobItem(item.id, {
           status: "imported",
