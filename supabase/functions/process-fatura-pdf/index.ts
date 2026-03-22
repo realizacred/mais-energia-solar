@@ -195,13 +195,25 @@ async function processInvoice(
 
   // ── TEST MODE: validate with base fields only (no UC context) ──
   if (test_mode) {
-    const testFoundFields = requiredFields.filter((f: string) => parsed[f] != null);
-    const testMissingFields = requiredFields.filter((f: string) => parsed[f] == null);
+    // Auto-detect UC type from extracted data (no DB UC context in test mode)
+    const ucDetection = detectUcType(parsed, pdfText);
+    console.log(`[process-fatura-pdf] Test mode UC detection: ${ucDetection.tipo_uc_detectado} (${ucDetection.confianca_tipo_uc}%)`);
+
+    // Use detected type to refine required fields for test mode
+    let testRequiredFields = [...BASE_REQUIRED];
+    if (ucDetection.tipo_uc_detectado === 'geradora') {
+      testRequiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
+    } else if (ucDetection.tipo_uc_detectado === 'beneficiaria') {
+      testRequiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
+    }
+
+    const testFoundFields = testRequiredFields.filter((f: string) => parsed[f] != null);
+    const testMissingFields = testRequiredFields.filter((f: string) => parsed[f] == null);
     const testExtractionStatus = testMissingFields.length === 0 ? 'success' : testMissingFields.length <= 2 ? 'partial' : 'failed';
 
     const gdChecks = runGdConsistencyChecks(parsed, null);
 
-    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, testExtractionStatus, testMissingFields.length > 0 ? `Faltando: ${testMissingFields.join(', ')}` : null, requiredFields, testFoundFields, testMissingFields, parsed.confidence, parsed.parser_version);
+    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, testExtractionStatus, testMissingFields.length > 0 ? `Faltando: ${testMissingFields.join(', ')}` : null, testRequiredFields, testFoundFields, testMissingFields, parsed.confidence, parsed.parser_version);
 
     return new Response(JSON.stringify({
       success: true,
@@ -211,11 +223,12 @@ async function processInvoice(
         concessionaria_detected: detectedConc || parsed.concessionaria_nome,
         config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome, strategy: strategyMode } : null,
         extraction_status: testExtractionStatus,
-        required_fields: requiredFields,
+        required_fields: testRequiredFields,
         fields_found: testFoundFields,
         fields_missing: testMissingFields,
         gd_consistency: gdChecks,
-        contexto: 'base (sem UC vinculada)',
+        uc_detection: ucDetection,
+        contexto: `auto-detectado: ${ucDetection.tipo_uc_detectado} (${ucDetection.confianca_tipo_uc}%)`,
       },
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
