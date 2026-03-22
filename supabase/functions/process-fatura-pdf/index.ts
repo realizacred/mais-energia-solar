@@ -93,7 +93,7 @@ async function processInvoice(
   supabaseUrl: string,
   serviceRoleKey: string
 ) {
-  const { pdf_base64, pdf_storage_path, unit_id, source, source_message_id, email_address, force_reprocess, invoice_id } = body;
+  const { pdf_base64, pdf_storage_path, unit_id, source, source_message_id, email_address, force_reprocess, invoice_id, test_mode } = body as ProcessRequest & { test_mode?: boolean };
   const invoiceSource = normalizeInvoiceSource(source);
 
   // ── Reprocess mode: load existing invoice PDF ──
@@ -129,12 +129,48 @@ async function processInvoice(
 
   const pdfText = await extractTextFromPdfBytesAsync(pdfBytes);
 
-  // ── 2. Call parse-conta-energia (deterministic parser — NO AI) ──
+  // ── 2. Detect concessionária & resolve extraction config ──
+  const detectedConc = detectConcessionariaFromText(pdfText);
+  let extractionConfig: any = null;
+
+  if (detectedConc) {
+    // Priority: tenant-specific > global (tenant_id IS NULL)
+    const { data: configs } = await admin
+      .from('invoice_extraction_configs')
+      .select('*')
+      .eq('concessionaria_code', detectedConc)
+      .eq('active', true)
+      .order('tenant_id', { ascending: false, nullsFirst: false });
+
+    if (configs && configs.length > 0) {
+      // Prefer tenant-specific config
+      extractionConfig = configs.find((c: any) => c.tenant_id === tenantId) || configs[0];
+      console.log(`[process-fatura-pdf] Using extraction config: ${extractionConfig.concessionaria_nome} (strategy: ${extractionConfig.strategy_mode})`);
+    }
+  }
+
+  const strategyMode = extractionConfig?.strategy_mode || 'native';
+  const requiredFields = extractionConfig?.required_fields || ['consumo_kwh', 'valor_total'];
+
+  // ── 3. Call parse-conta-energia (deterministic parser — NO AI) ──
   let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
-    // Save failed parsing status if we have an invoice_id
+    // Log failed extraction run
+    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || 'unknown', strategyMode, 'failed', parseResult?.error || 'Parser retornou erro', requiredFields, [], requiredFields);
+
+    if (test_mode) {
+      return new Response(JSON.stringify({
+        success: false,
+        test_mode: true,
+        error: 'Falha ao parsear fatura',
+        details: parseResult || null,
+        concessionaria_detected: detectedConc,
+        config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome, strategy: strategyMode } : null,
+      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     return new Response(JSON.stringify({
       error: 'Falha ao parsear fatura (parser determinístico)',
       details: parseResult || null,
@@ -146,7 +182,35 @@ async function processInvoice(
   const parsed = parseResult.data;
   console.log(`[process-fatura-pdf] Deterministic parser v${parsed.parser_version || '?'} (${parsed.parser_used || 'generic'}), confidence: ${parsed.confidence}`);
 
-  // ── 3. Resolve UC ──
+  // ── 4. Validate required fields from config ──
+  const foundFields = requiredFields.filter((f: string) => parsed[f] != null);
+  const missingFields = requiredFields.filter((f: string) => parsed[f] == null);
+  const extractionStatus = missingFields.length === 0 ? 'success' : missingFields.length <= 2 ? 'partial' : 'failed';
+
+  // ── TEST MODE: return results without persisting ──
+  if (test_mode) {
+    // Run GD consistency on test data too
+    const gdChecks = runGdConsistencyChecks(parsed, null);
+
+    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version);
+
+    return new Response(JSON.stringify({
+      success: true,
+      test_mode: true,
+      data: {
+        parsed,
+        concessionaria_detected: detectedConc || parsed.concessionaria_nome,
+        config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome, strategy: strategyMode } : null,
+        extraction_status: extractionStatus,
+        required_fields: requiredFields,
+        fields_found: foundFields,
+        fields_missing: missingFields,
+        gd_consistency: gdChecks,
+      },
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  // ── 5. Resolve UC ──
   let resolvedUnitId = unit_id || null;
   let ucData: any = null;
 
@@ -181,7 +245,7 @@ async function processInvoice(
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  // ── 4. Upload PDF to Storage ──
+  // ── 6. Upload PDF to Storage ──
   let pdfUrl: string | null = null;
   const now = new Date();
   const ano = parsed.mes_referencia ? extractYear(parsed.mes_referencia, now.getFullYear()) : now.getFullYear();
@@ -209,7 +273,44 @@ async function processInvoice(
     console.warn("[process-fatura-pdf] Upload error:", uploadErr);
   }
 
-  // ── 5. Insert unit_invoices ──
+  // ── 7. Lookup previous balance from DB history (SSOT) ──
+  let previousBalanceKwh: number | null = null;
+  {
+    const { data: prevInvoice } = await admin
+      .from('unit_invoices')
+      .select('current_balance_kwh, reference_year, reference_month')
+      .eq('unit_id', resolvedUnitId)
+      .eq('tenant_id', tenantId)
+      .lt('reference_year', ano)
+      .order('reference_year', { ascending: false })
+      .order('reference_month', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // If no result with year filter, try same year but earlier month
+    if (!prevInvoice) {
+      const { data: prevSameYear } = await admin
+        .from('unit_invoices')
+        .select('current_balance_kwh, reference_year, reference_month')
+        .eq('unit_id', resolvedUnitId)
+        .eq('tenant_id', tenantId)
+        .eq('reference_year', ano)
+        .lt('reference_month', mes)
+        .order('reference_month', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (prevSameYear?.current_balance_kwh != null) {
+        previousBalanceKwh = prevSameYear.current_balance_kwh;
+        console.log(`[process-fatura-pdf] Previous balance from DB: ${previousBalanceKwh} kWh (${prevSameYear.reference_month}/${prevSameYear.reference_year})`);
+      }
+    } else if (prevInvoice?.current_balance_kwh != null) {
+      previousBalanceKwh = prevInvoice.current_balance_kwh;
+      console.log(`[process-fatura-pdf] Previous balance from DB: ${previousBalanceKwh} kWh (${prevInvoice.reference_month}/${prevInvoice.reference_year})`);
+    }
+  }
+
+  // ── 8. Build invoice payload ──
   let bandeira: string | null = null;
   if (parsed.bandeira_tarifaria) {
     const raw = parsed.bandeira_tarifaria.toLowerCase();
@@ -219,16 +320,25 @@ async function processInvoice(
     else if (raw.includes('vermelha')) bandeira = 'vermelha_1';
   }
 
-  // Calculate energy_injected from leitura_103 diff if not directly parsed
   let energyInjected = parsed.energia_injetada_kwh ?? null;
   if (energyInjected === null && parsed.leitura_atual_103 != null && parsed.leitura_anterior_103 != null) {
     energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
   }
 
-  // Use saldo_gd_acumulado as current_balance (the total accumulated credit)
-  // saldo_gd is per-period; when unavailable for Energisa, use compensated energy to derive previous balance.
   const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
-  const previousBalance = derivePreviousBalance(parsed);
+
+  // ── 9. Run GD consistency checks ──
+  const gdPrevious = previousBalanceKwh != null ? { saldo_gd_acumulado: previousBalanceKwh } : null;
+  const gdChecks = runGdConsistencyChecks({
+    consumo_kwh: parsed.consumo_kwh,
+    energia_injetada_kwh: energyInjected,
+    energia_compensada_kwh: parsed.energia_compensada_kwh,
+    saldo_gd_acumulado: currentBalance,
+    saldo_gd_anterior: previousBalanceKwh,
+    valor_total: parsed.valor_total,
+  }, gdPrevious ? { saldo_gd_acumulado: previousBalanceKwh } : null);
+
+  console.log(`[process-fatura-pdf] GD Consistency: status=${gdChecks.overallLevel} score=${gdChecks.score}`);
 
   const invoicePayload: any = {
     tenant_id: tenantId,
@@ -240,7 +350,7 @@ async function processInvoice(
     energy_injected_kwh: energyInjected,
     compensated_kwh: parsed.energia_compensada_kwh ?? null,
     current_balance_kwh: currentBalance,
-    previous_balance_kwh: previousBalance,
+    previous_balance_kwh: previousBalanceKwh,
     bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
     pdf_file_url: pdfUrl,
@@ -249,10 +359,16 @@ async function processInvoice(
     status: 'received',
     demanda_contratada_kw: parsed.demanda_contratada_kw,
     raw_extraction: parsed,
-    parsing_status: 'success',
+    parsing_status: extractionStatus,
     parser_version: parsed.parser_version || null,
     last_parsed_at: new Date().toISOString(),
-    parsing_error_reason: null,
+    parsing_error_reason: missingFields.length > 0 ? `Campos faltantes: ${missingFields.join(', ')}` : null,
+    // GD consistency results
+    consistency_status: gdChecks.overallLevel,
+    consistency_score: gdChecks.score,
+    consistency_checks_json: gdChecks.checks,
+    consistency_warnings_json: gdChecks.checks.filter((c: any) => c.level === 'warning'),
+    consistency_errors_json: gdChecks.checks.filter((c: any) => c.level === 'error'),
   };
 
   const { data: invoice, error: invoiceErr } = await admin
@@ -269,7 +385,10 @@ async function processInvoice(
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  // ── 6. Update UC with reading data + enrich from first invoice ──
+  // ── 10. Log extraction run ──
+  await logExtractionRun(admin, tenantId, extractionConfig?.id, invoice.id, resolvedUnitId, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version);
+
+  // ── 11. Update UC with reading data + enrich from first invoice ──
   const ucUpdate: any = {};
   if (parsed.proxima_leitura_data) {
     const parsedDate = parseDateBR(parsed.proxima_leitura_data);
@@ -307,48 +426,25 @@ async function processInvoice(
       .maybeSingle();
 
     if (currentUc) {
-      // categoria_gd
-      if (parsed.categoria_gd && !currentUc.categoria_gd) {
-        ucUpdate.categoria_gd = parsed.categoria_gd;
-      }
-      // concessionaria_nome
-      if (parsed.concessionaria_nome && !currentUc.concessionaria_nome) {
-        ucUpdate.concessionaria_nome = parsed.concessionaria_nome;
-      }
-      // endereco (concatena endereço + cidade + estado)
+      if (parsed.categoria_gd && !currentUc.categoria_gd) ucUpdate.categoria_gd = parsed.categoria_gd;
+      if (parsed.concessionaria_nome && !currentUc.concessionaria_nome) ucUpdate.concessionaria_nome = parsed.concessionaria_nome;
       if (!currentUc.endereco) {
         const parts = [parsed.endereco, parsed.cidade, parsed.estado].filter(Boolean);
-        if (parts.length > 0) {
-          ucUpdate.endereco = parts.join(', ');
-        }
+        if (parts.length > 0) ucUpdate.endereco = parts.join(', ');
       }
-      // classificacao_grupo (ex: B1, A4) — extraído de classe_consumo
       if (parsed.classe_consumo && !currentUc.classificacao_grupo) {
         const grupoMatch = parsed.classe_consumo.match(/^([AB]\d?)/i);
-        if (grupoMatch) {
-          ucUpdate.classificacao_grupo = grupoMatch[1].toUpperCase();
-        }
+        if (grupoMatch) ucUpdate.classificacao_grupo = grupoMatch[1].toUpperCase();
       }
-      // classificacao_subgrupo (parte restante da classe)
       if (parsed.classe_consumo && !currentUc.classificacao_subgrupo) {
         const subMatch = parsed.classe_consumo.replace(/^[AB]\d?\s*[-:]?\s*/i, '').trim();
-        if (subMatch) {
-          ucUpdate.classificacao_subgrupo = subMatch;
-        }
+        if (subMatch) ucUpdate.classificacao_subgrupo = subMatch;
       }
-      // modalidade_tarifaria
-      if (parsed.modalidade_tarifaria && !currentUc.modalidade_tarifaria) {
-        ucUpdate.modalidade_tarifaria = parsed.modalidade_tarifaria;
-      }
-      // nome (titular da conta)
-      if (parsed.cliente_nome && !currentUc.nome) {
-        ucUpdate.nome = parsed.cliente_nome;
-      }
+      if (parsed.modalidade_tarifaria && !currentUc.modalidade_tarifaria) ucUpdate.modalidade_tarifaria = parsed.modalidade_tarifaria;
+      if (parsed.cliente_nome && !currentUc.nome) ucUpdate.nome = parsed.cliente_nome;
 
       const enrichedKeys = Object.keys(ucUpdate).filter(k => enrichFields.includes(k as any));
-      if (enrichedKeys.length > 0) {
-        console.log(`[process-fatura-pdf] UC enriched from invoice: ${enrichedKeys.join(', ')}`);
-      }
+      if (enrichedKeys.length > 0) console.log(`[process-fatura-pdf] UC enriched from invoice: ${enrichedKeys.join(', ')}`);
     }
   }
 
@@ -367,7 +463,7 @@ async function processInvoice(
     .eq('unit_id', resolvedUnitId)
     .eq('tenant_id', tenantId);
 
-  // ── 7. WhatsApp notification ──
+  // ── 12. WhatsApp notification ──
   if (ucData?.cliente_id) {
     try {
       const { data: cliente } = await admin
@@ -415,6 +511,9 @@ async function processInvoice(
       pdf_url: pdfUrl,
       uc_found: !!ucData,
       source: invoiceSource,
+      extraction_status: extractionStatus,
+      gd_consistency: gdChecks,
+      config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome } : null,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
@@ -551,9 +650,37 @@ async function reprocessInvoice(
     energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
   }
   const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
-  const previousBalance = derivePreviousBalance(parsed);
   const reprocessedYear = parsed.mes_referencia ? extractYear(parsed.mes_referencia, invoice.reference_year) : invoice.reference_year;
   const reprocessedMonth = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, invoice.reference_month) : invoice.reference_month;
+
+  // Lookup previous balance from DB
+  let previousBalance: number | null = null;
+  {
+    const { data: prevInv } = await admin
+      .from('unit_invoices')
+      .select('current_balance_kwh')
+      .eq('unit_id', invoice.unit_id)
+      .eq('tenant_id', tenantId)
+      .neq('id', invoiceId)
+      .or(`reference_year.lt.${reprocessedYear},and(reference_year.eq.${reprocessedYear},reference_month.lt.${reprocessedMonth})`)
+      .order('reference_year', { ascending: false })
+      .order('reference_month', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prevInv?.current_balance_kwh != null) {
+      previousBalance = prevInv.current_balance_kwh;
+    }
+  }
+
+  // Run GD consistency
+  const gdChecks = runGdConsistencyChecks({
+    consumo_kwh: parsed.consumo_kwh,
+    energia_injetada_kwh: energyInjected,
+    energia_compensada_kwh: parsed.energia_compensada_kwh,
+    saldo_gd_acumulado: currentBalance,
+    saldo_gd_anterior: previousBalance,
+    valor_total: parsed.valor_total,
+  }, previousBalance != null ? { saldo_gd_acumulado: previousBalance } : null);
 
   let bandeira: string | null = null;
   if (parsed.bandeira_tarifaria) {
@@ -583,13 +710,18 @@ async function reprocessInvoice(
     last_parsed_at: new Date().toISOString(),
     parsing_error_reason: null,
     updated_at: new Date().toISOString(),
+    consistency_status: gdChecks.overallLevel,
+    consistency_score: gdChecks.score,
+    consistency_checks_json: gdChecks.checks,
+    consistency_warnings_json: gdChecks.checks.filter((c: any) => c.level === 'warning'),
+    consistency_errors_json: gdChecks.checks.filter((c: any) => c.level === 'error'),
   };
 
   const { data: updatedInvoice, error: updateErr } = await admin
     .from('unit_invoices')
     .update(updatePayload)
     .eq('id', invoiceId)
-    .select('id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at, demanda_contratada_kw, demanda_medida_kw, ultrapassagem_kw, multa_ultrapassagem, bandeira_tarifaria, raw_extraction, parsing_status, parsing_error_reason, parser_version, last_parsed_at')
+    .select('id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at, demanda_contratada_kw, demanda_medida_kw, ultrapassagem_kw, multa_ultrapassagem, bandeira_tarifaria, raw_extraction, parsing_status, parsing_error_reason, parser_version, last_parsed_at, consistency_status, consistency_score')
     .maybeSingle();
 
   if (updateErr || !updatedInvoice) {
@@ -600,7 +732,11 @@ async function reprocessInvoice(
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  console.log(`[process-fatura-pdf] Reprocessed invoice ${invoiceId} — parser v${parsed.parser_version}, confidence: ${parsed.confidence}`);
+  // Log extraction run
+  const detectedConc = detectConcessionariaFromText(pdfText);
+  await logExtractionRun(admin, tenantId, null, invoiceId, invoice.unit_id, detectedConc || parsed.parser_used || 'unknown', 'native', 'success', null, [], [], [], parsed.confidence, parsed.parser_version);
+
+  console.log(`[process-fatura-pdf] Reprocessed invoice ${invoiceId} — parser v${parsed.parser_version}, confidence: ${parsed.confidence}, GD: ${gdChecks.overallLevel}`);
 
   return new Response(JSON.stringify({
     success: true,
@@ -611,6 +747,7 @@ async function reprocessInvoice(
       unit_id: invoice.unit_id,
       reprocessed: true,
       parser_version: parsed.parser_version,
+      gd_consistency: gdChecks,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
@@ -739,17 +876,7 @@ function parseDateBR(dateStr: string): string | null {
   return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
-function derivePreviousBalance(parsed: {
-  saldo_gd_acumulado?: number | null;
-  saldo_gd?: number | null;
-  energia_compensada_kwh?: number | null;
-}): number | null {
-  const currentBalance = parsed.saldo_gd_acumulado ?? null;
-  const deductedAmount = parsed.saldo_gd ?? parsed.energia_compensada_kwh ?? null;
 
-  if (currentBalance == null || deductedAmount == null) return null;
-  return Math.max(currentBalance - deductedAmount, 0);
-}
 
 function extractYear(mesRef: string, fallback: number): number {
   const match = mesRef.match(/(\d{4})/);
@@ -792,4 +919,142 @@ function normalizeInvoiceSource(source?: string): InvoiceSource {
   if (normalized === 'api') return 'api';
 
   return 'import';
+}
+
+// ── Detect concessionária from text ──
+function detectConcessionariaFromText(text: string): string | null {
+  const upper = text.toUpperCase();
+  if (upper.includes("ENERGISA")) return "energisa";
+  if (upper.includes("LIGHT S") || upper.includes("LIGHT -")) return "light";
+  if (upper.includes("ENEL") || upper.includes("ELETROPAULO")) return "enel";
+  if (upper.includes("CEMIG")) return "cemig";
+  if (upper.includes("CPFL")) return "cpfl";
+  if (upper.includes("CELESC")) return "celesc";
+  if (upper.includes("COPEL")) return "copel";
+  if (upper.includes("EQUATORIAL")) return "equatorial";
+  if (upper.includes("NEOENERGIA") || upper.includes("COELBA") || upper.includes("CELPE") || upper.includes("COSERN")) return "neoenergia";
+  return null;
+}
+
+// ── GD Consistency Engine (inline for edge function) ──
+interface GdData {
+  consumo_kwh?: number | null;
+  energia_injetada_kwh?: number | null;
+  energia_compensada_kwh?: number | null;
+  saldo_gd_acumulado?: number | null;
+  saldo_gd_anterior?: number | null;
+  valor_total?: number | null;
+}
+
+interface GdCheck {
+  rule: string;
+  level: "ok" | "warning" | "error";
+  message: string;
+  expected?: number | string | null;
+  actual?: number | string | null;
+}
+
+function runGdConsistencyChecks(current: GdData, previous: GdData | null) {
+  const checks: GdCheck[] = [];
+
+  // 1. Injeção vs Compensado
+  const injected = current.energia_injetada_kwh;
+  const compensated = current.energia_compensada_kwh;
+  if (injected != null && compensated != null) {
+    if (compensated > injected) {
+      checks.push({ rule: "injection_vs_compensation", level: "warning", message: `Compensado (${compensated} kWh) > injetado (${injected} kWh). Possível uso de saldo anterior.`, expected: injected, actual: compensated });
+    } else {
+      checks.push({ rule: "injection_vs_compensation", level: "ok", message: "Compensado dentro do limite da injeção." });
+    }
+  }
+
+  // 2. Saldo coerente
+  const saldoAtual = current.saldo_gd_acumulado;
+  const saldoAnterior = current.saldo_gd_anterior;
+  if (saldoAtual != null && saldoAnterior != null && injected != null && compensated != null) {
+    const expected = saldoAnterior + injected - compensated;
+    const diff = Math.abs(saldoAtual - expected);
+    const tolerance = Math.max(expected * 0.05, 5);
+    if (diff > tolerance) {
+      checks.push({ rule: "balance_coherence", level: "error", message: `Saldo acumulado (${saldoAtual}) diverge do esperado (${Math.round(expected)}). Diferença: ${Math.round(diff)} kWh.`, expected: Math.round(expected), actual: saldoAtual });
+    } else {
+      checks.push({ rule: "balance_coherence", level: "ok", message: "Saldo acumulado coerente." });
+    }
+  }
+
+  // 3. Histórico de saldo
+  if (previous?.saldo_gd_acumulado != null && saldoAnterior != null) {
+    if (Math.abs(previous.saldo_gd_acumulado - saldoAnterior) > 5) {
+      checks.push({ rule: "historical_balance_match", level: "warning", message: `Saldo anterior desta fatura (${saldoAnterior}) difere do saldo acumulado da fatura anterior (${previous.saldo_gd_acumulado}).`, expected: previous.saldo_gd_acumulado, actual: saldoAnterior });
+    } else {
+      checks.push({ rule: "historical_balance_match", level: "ok", message: "Saldo anterior confere com histórico." });
+    }
+  }
+
+  // 4. Valores não negativos
+  const nonNegFields: Array<{ key: keyof GdData; label: string }> = [
+    { key: "energia_injetada_kwh", label: "Energia injetada" },
+    { key: "energia_compensada_kwh", label: "Energia compensada" },
+    { key: "saldo_gd_acumulado", label: "Saldo acumulado" },
+    { key: "consumo_kwh", label: "Consumo" },
+  ];
+  for (const { key, label } of nonNegFields) {
+    const val = current[key];
+    if (val != null && (val as number) < 0) {
+      checks.push({ rule: `non_negative_${key}`, level: "error", message: `${label} é negativo (${val}).`, actual: val });
+    }
+  }
+
+  // 5. Balance reduction check
+  if (previous?.saldo_gd_acumulado != null && saldoAtual != null && compensated != null) {
+    const reduction = previous.saldo_gd_acumulado - saldoAtual;
+    if (reduction > 0 && reduction > compensated * 1.1 + 10) {
+      checks.push({ rule: "balance_reduction_exceeds_compensation", level: "warning", message: `Saldo reduziu ${Math.round(reduction)} kWh mas compensado foi ${compensated} kWh.`, expected: compensated, actual: Math.round(reduction) });
+    }
+  }
+
+  const overallLevel = checks.some(c => c.level === "error") ? "error" : checks.some(c => c.level === "warning") ? "warning" : "ok";
+  const score = checks.length === 0 ? 100 : Math.round((checks.reduce((sum, c) => sum + ({ ok: 1, warning: 0.5, error: 0 }[c.level]), 0) / checks.length) * 100);
+
+  return { checks, overallLevel, score };
+}
+
+// ── Log extraction run ──
+async function logExtractionRun(
+  admin: any,
+  tenantId: string,
+  configId: string | null,
+  invoiceId: string | null,
+  unitId: string | null,
+  concessionariaCode: string,
+  strategyUsed: string,
+  status: string,
+  errorReason: string | null,
+  requiredFields: string[],
+  foundFields: string[],
+  missingFields: string[],
+  confidenceScore?: number | null,
+  parserVersion?: string | null,
+) {
+  try {
+    await admin.from('invoice_extraction_runs').insert({
+      tenant_id: tenantId,
+      config_id: configId,
+      invoice_id: invoiceId,
+      uc_id: unitId,
+      concessionaria_code: concessionariaCode,
+      strategy_used: strategyUsed,
+      provider_used: null,
+      parser_version: parserVersion || null,
+      status,
+      error_reason: errorReason,
+      required_fields_found: foundFields,
+      required_fields_missing: missingFields,
+      confidence_score: confidenceScore ?? null,
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn("[process-fatura-pdf] Failed to log extraction run:", err);
+  }
 }
