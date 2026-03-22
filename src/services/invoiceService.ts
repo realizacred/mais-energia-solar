@@ -28,6 +28,10 @@ export interface UnitInvoice {
   multa_ultrapassagem: number | null;
   bandeira_tarifaria: BandeiraTarifaria | null;
   raw_extraction: Record<string, any> | null;
+  parsing_status: string | null;
+  parsing_error_reason: string | null;
+  parser_version: string | null;
+  last_parsed_at: string | null;
 }
 
 export type BillingNotificationChannel = "whatsapp" | "email" | "ambos";
