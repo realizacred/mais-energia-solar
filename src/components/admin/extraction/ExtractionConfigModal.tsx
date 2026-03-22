@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useSaveExtractionConfig, type ExtractionConfig, type ExtractionStrategyMode } from "@/hooks/useExtractionConfigs";
 import { toast } from "sonner";
