@@ -295,7 +295,7 @@ export function DataResetManager() {
                     .filter((s) => selected.has(s.key))
                     .map((s) => (
                       <li key={s.key}>
-                        {s.label} ({totalRecords(s.tables).toLocaleString("pt-BR")} registros)
+                        {s.label} ({formatIntegerBR(totalRecords(s.tables))} registros)
                       </li>
                     ))}
                 </ul>

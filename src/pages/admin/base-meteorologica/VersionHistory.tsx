@@ -39,7 +39,7 @@ export function VersionHistory({ versions }: VersionHistoryProps) {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-muted-foreground">
-                  {(v.row_count ?? 0).toLocaleString("pt-BR")} pts
+                  {formatIntegerBR(v.row_count ?? 0)} pts
                 </span>
                 <span className="text-muted-foreground text-[10px]">
                   {formatDistanceToNow(new Date(v.created_at), { addSuffix: true, locale: ptBR })}

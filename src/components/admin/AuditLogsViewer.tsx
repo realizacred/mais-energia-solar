@@ -286,7 +286,7 @@ export function AuditLogsViewer() {
         <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
           <CardTitle className="text-base font-semibold text-foreground">Registros de Auditoria</CardTitle>
           <span className="text-sm text-muted-foreground">
-            {totalCount.toLocaleString("pt-BR")} registros
+            {formatIntegerBR(totalCount)} registros
             {totalPages > 1 && ` • Página ${page + 1} de ${totalPages}`}
           </span>
         </CardHeader>

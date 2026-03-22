@@ -260,7 +260,7 @@ export function BackupRestorePage() {
                               <TooltipTrigger asChild>
                                 <span className="cursor-help underline decoration-dotted">
                                   {log.tables_included?.length || 0} tabelas
-                                  {totalTableRows > 0 && ` · ${totalTableRows.toLocaleString("pt-BR")} reg.`}
+                                  {totalTableRows > 0 && ` · ${formatIntegerBR(totalTableRows)} reg.`}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="max-w-xs">

@@ -64,7 +64,7 @@ const HIGHLIGHT_LIMITS = [
 function formatLimitValue(v: number): string {
   if (v === 0) return "—";
   if (v >= 999999) return "Ilimitado";
-  return `até ${v.toLocaleString("pt-BR")}/mês`;
+  return `até ${formatIntegerBR(v)}/mês`;
 }
 
 export default function ClientPlansPage() {
