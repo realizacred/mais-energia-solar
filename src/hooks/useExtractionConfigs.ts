@@ -65,7 +65,10 @@ export function useExtractionConfigs() {
         .select("*")
         .order("concessionaria_nome");
       if (error) throw error;
-      return (data || []) as unknown as ExtractionConfig[];
+      return (data || []).map((d: any) => ({
+        ...d,
+        is_system_default: !d.tenant_id,
+      })) as unknown as (ExtractionConfig & { is_system_default: boolean })[];
     },
     staleTime: STALE_TIME,
   });
