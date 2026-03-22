@@ -768,11 +768,14 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  // Second medidor code for injection
-  const medidorInjMatch = flatText.match(/(?:medidor|registro)\s*(?:103|inje[çc][ãa]o)[:\s]*(\d{4,})/i);
-  if (medidorInjMatch) {
-    medidorInjecaoCodigo = medidorInjMatch[1];
-    fieldResults['medidor_injecao_codigo'] = makeField(medidorInjecaoCodigo, 'regex:MEDIDOR_103', true);
+  // Second medidor code for injection (fallback if early detection missed it)
+  let medidorInjecaoCodigo: string | null = medidorInjecaoCodigoEarly;
+  if (!medidorInjecaoCodigo) {
+    const medidorInjMatch = flatText.match(/(?:medidor|registro)\s*(?:103|inje[çc][ãa]o)[:\s]*(\w{4,})/i);
+    if (medidorInjMatch) {
+      medidorInjecaoCodigo = medidorInjMatch[1];
+      fieldResults['medidor_injecao_codigo'] = makeField(medidorInjecaoCodigo, 'regex:MEDIDOR_103', true);
+    }
   }
 
   // ── 4. GD / Créditos ──
