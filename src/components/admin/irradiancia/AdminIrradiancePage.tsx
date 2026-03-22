@@ -417,7 +417,7 @@ export function CsvImportPanel() {
 
       setState("done");
       toast.success("Upload concluído!", {
-        description: `${(count ?? 0).toLocaleString("pt-BR")} pontos carregados.`,
+        description: `${formatIntegerBR(count ?? 0)} pontos carregados.`,
       });
     } catch (e: any) {
       log("error", `Erro: ${e.message}`);
