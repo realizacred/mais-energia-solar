@@ -249,6 +249,10 @@ async function processInvoice(
     status: 'received',
     demanda_contratada_kw: parsed.demanda_contratada_kw,
     raw_extraction: parsed,
+    parsing_status: 'success',
+    parser_version: parsed.parser_version || null,
+    last_parsed_at: new Date().toISOString(),
+    parsing_error_reason: null,
   };
 
   const { data: invoice, error: invoiceErr } = await admin
