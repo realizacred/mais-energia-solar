@@ -520,7 +520,7 @@ export function BaseMeteorologicaPage() {
                 <AuditMetric value={auditDatasets.length} label="Datasets registrados" color="text-primary" />
                 <AuditMetric value={auditVersions.filter(v => v.status === "active").length} label="Versões ativas" color="text-success" />
                 <AuditMetric value={auditVersions.filter(v => v.status === "processing").length} label="Em processamento" color="text-warning" />
-                <AuditMetric value={auditVersions.reduce((sum, v) => sum + v.row_count, 0).toLocaleString("pt-BR")} label="Total de pontos" color="text-primary" />
+                <AuditMetric value={formatIntegerBR(auditVersions.reduce((sum, v) => sum + v.row_count, 0))} label="Total de pontos" color="text-primary" />
               </div>
             </CardContent>
           </Card>
