@@ -86,27 +86,13 @@ const EMPTY_FORM: Omit<CostComponent, "id"> = {
 };
 
 export function CostComponentsTab({ versionId, isReadOnly }: Props) {
-  const [components, setComponents] = useState<CostComponent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: components = [], isLoading: loading } = useCostComponents(versionId);
+  const saveMut = useSaveCostComponent();
+  const deleteMut = useDeleteCostComponent();
+  const toggleMut = useToggleCostComponent();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-
-  const loadComponents = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("pricing_cost_components")
-      .select("id, category, name, calculation_strategy, parameters, display_order, is_active, description")
-      .eq("version_id", versionId)
-      .order("display_order", { ascending: true });
-
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else setComponents((data as unknown as CostComponent[]) || []);
-    setLoading(false);
-  }, [versionId]);
-
-  useEffect(() => { loadComponents(); }, [loadComponents]);
 
   function openCreate() {
     setEditingId(null);
