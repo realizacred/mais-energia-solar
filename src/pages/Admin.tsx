@@ -71,6 +71,7 @@ const MetersListPage = lazy(() => import("@/components/admin/meters/MetersListPa
 const MeterDetailPage = lazy(() => import("@/components/admin/meters/MeterDetailPage"));
 const FaturasEnergiaPage = lazy(() => import("@/components/admin/faturas/FaturasEnergiaPage"));
 const InvoiceReviewPage = lazy(() => import("@/components/admin/faturas/InvoiceReviewPage"));
+const ExtractionCenterPage = lazy(() => import("@/components/admin/extraction/ExtractionCenterPage"));
 // GdGroupsPage removida — funcionalidade migrada para aba Beneficiárias na UC
 const EnergyAlertsPage = lazy(() => import("@/components/admin/energia/EnergyAlertsPage").then(m => ({ default: m.EnergyAlertsPage })));
 const GdAutomationPage = lazy(() => import("@/components/admin/energia/GdAutomationPage").then(m => ({ default: m.GdAutomationPage })));
