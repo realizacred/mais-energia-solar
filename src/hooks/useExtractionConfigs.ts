@@ -103,6 +103,7 @@ export function useSaveExtractionConfig() {
     mutationFn: async (payload: Partial<ExtractionConfig> & { concessionaria_code: string; concessionaria_nome: string }) => {
       const { tenantId } = await getCurrentTenantId();
       const { id, tenant_id, created_at, updated_at, is_system_default, ...rest } = payload as any;
+      const now = new Date().toISOString();
 
       // If editing a global/system config (tenant_id IS NULL), create a tenant-specific override
       const isSystemDefault = is_system_default === true || (id && !tenant_id);
@@ -110,7 +111,7 @@ export function useSaveExtractionConfig() {
       if (id && !isSystemDefault) {
         const { data, error } = await supabase
           .from("invoice_extraction_configs")
-          .update({ ...rest, updated_at: new Date().toISOString() })
+          .update({ ...rest, updated_at: now })
           .eq("id", id)
           .select()
           .maybeSingle();
@@ -119,19 +120,20 @@ export function useSaveExtractionConfig() {
         return data;
       }
 
-      // Upsert: if tenant-specific override already exists for this code, update it
-      const { data: existing } = await supabase
+      const { data: existingOverride, error: existingOverrideError } = await supabase
         .from("invoice_extraction_configs")
         .select("id")
         .eq("concessionaria_code", rest.concessionaria_code)
         .eq("tenant_id", tenantId)
         .maybeSingle();
 
-      if (existing) {
+      if (existingOverrideError) throw existingOverrideError;
+
+      if (existingOverride?.id) {
         const { data, error } = await supabase
           .from("invoice_extraction_configs")
-          .update({ ...rest, updated_at: new Date().toISOString() })
-          .eq("id", existing.id)
+          .update({ ...rest, updated_at: now })
+          .eq("id", existingOverride.id)
           .select()
           .maybeSingle();
         if (error) throw error;
@@ -141,7 +143,10 @@ export function useSaveExtractionConfig() {
 
       const { data, error } = await supabase
         .from("invoice_extraction_configs")
-        .insert({ ...rest, tenant_id: tenantId })
+        .upsert(
+          { ...rest, tenant_id: tenantId, updated_at: now },
+          { onConflict: "tenant_id,concessionaria_code" }
+        )
         .select()
         .maybeSingle();
       if (error) throw error;
