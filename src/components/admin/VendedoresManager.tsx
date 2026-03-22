@@ -156,13 +156,16 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   };
 
   // Fetch leads if not provided via props
-  useEffect(() => {
-    if (!propLeads) {
-      supabase.from("leads").select("consultor").is("deleted_at", null).then(({ data }) => {
-        if (data) setFetchedLeads(data);
-      });
-    }
-  }, [propLeads]);
+  const { data: fetchedLeadsData } = useQuery({
+    queryKey: ["leads-consultor-counts"],
+    queryFn: async () => {
+      const { data } = await supabase.from("leads").select("consultor").is("deleted_at", null);
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !propLeads,
+  });
+  const fetchedLeads = fetchedLeadsData || [];
 
   const leads = propLeads || fetchedLeads;
 
