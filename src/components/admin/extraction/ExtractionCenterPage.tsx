@@ -83,6 +83,7 @@ export default function ExtractionCenterPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editConfig, setEditConfig] = useState<ExtractionConfig | null>(null);
+  const [prefillData, setPrefillData] = useState<ExtractionConfigPrefill | null>(null);
   const [activeTab, setActiveTab] = useState("configs");
 
   const activeConfigs = configs.filter(c => c.active).length;
