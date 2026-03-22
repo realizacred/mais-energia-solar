@@ -888,10 +888,18 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   // Bandeira tarifária
   let bandeira: string | null = null;
-  const bandeiraMatch = flatText.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
-  if (bandeiraMatch) {
-    bandeira = bandeiraMatch[1];
-    fieldResults['bandeira_tarifaria'] = makeField(bandeira, 'regex:BANDEIRA', true);
+  const bandeiraPatterns = [
+    /bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i,
+    /band(?:eira)?[\s.:]*\s*(verde|amarela|vermelha)/i,
+    /(verde|amarela|vermelha)\s*(?:patamar\s*\d)?\s*(?:bandeira|band\.?)/i,
+  ];
+  for (const p of bandeiraPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      bandeira = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+      fieldResults['bandeira_tarifaria'] = makeField(bandeira, 'regex:BANDEIRA', true);
+      break;
+    }
   }
 
   // ── 6. Tarifas e Tributos ──
