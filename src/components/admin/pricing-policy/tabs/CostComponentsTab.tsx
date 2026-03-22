@@ -24,16 +24,7 @@ import {
 import { Plus, Pencil, Trash2, Loader2, Layers, GripVertical, Lock, Package, Wrench, Truck, Building2, Receipt, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface CostComponent {
-  id: string;
-  category: string;
-  name: string;
-  calculation_strategy: string;
-  parameters: Record<string, any>;
-  display_order: number;
-  is_active: boolean;
-  description: string | null;
-}
+// CostComponent type imported from hook
 
 interface Props {
   versionId: string;
