@@ -4,13 +4,14 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 export type ExtractionStrategyMode = "native" | "provider" | "auto";
 export type ExtractionRunStatus = "success" | "partial" | "failed" | "needs_ocr";
 
 export interface ExtractionConfig {
   id: string;
-  tenant_id: string;
+  tenant_id: string | null;
   concessionaria_id: string | null;
   concessionaria_code: string;
   concessionaria_nome: string;
@@ -100,13 +101,13 @@ export function useSaveExtractionConfig() {
 
   return useMutation({
     mutationFn: async (payload: Partial<ExtractionConfig> & { concessionaria_code: string; concessionaria_nome: string }) => {
+      const { tenantId } = await getCurrentTenantId();
       const { id, tenant_id, created_at, updated_at, is_system_default, ...rest } = payload as any;
 
       // If editing a global/system config (tenant_id IS NULL), create a tenant-specific override
       const isSystemDefault = is_system_default === true || (id && !tenant_id);
 
       if (id && !isSystemDefault) {
-        // Update existing tenant-specific config
         const { data, error } = await supabase
           .from("invoice_extraction_configs")
           .update({ ...rest, updated_at: new Date().toISOString() })
@@ -116,17 +117,16 @@ export function useSaveExtractionConfig() {
         if (error) throw error;
         if (!data) throw new Error("Não foi possível atualizar. Verifique permissões.");
         return data;
-      } else {
-        // Insert new config (or create tenant-specific override from global)
-        const { data, error } = await supabase
-          .from("invoice_extraction_configs")
-          .insert(rest)
-          .select()
-          .maybeSingle();
-        if (error) throw error;
-        if (!data) throw new Error("Não foi possível criar. Verifique permissões.");
-        return data;
       }
+
+      const { data, error } = await supabase
+        .from("invoice_extraction_configs")
+        .insert({ ...rest, tenant_id: tenantId })
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Não foi possível criar. Verifique permissões.");
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });
