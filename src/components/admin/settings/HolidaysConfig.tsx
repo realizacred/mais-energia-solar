@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { CalendarOff, Plus, Trash2, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { CalendarOff, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
+import { useFeriados, useAddFeriado, useSeedFeriadosNacionais, useRemoveFeriado } from "@/hooks/useFeriados";
 
 const FERIADOS_NACIONAIS_BR = [
   { data: "01-01", nome: "Confraternização Universal" },
@@ -21,99 +21,48 @@ const FERIADOS_NACIONAIS_BR = [
   { data: "12-25", nome: "Natal" },
 ];
 
-type Feriado = {
-  id?: string;
-  data: string;
-  nome: string;
-  tipo: string;
-  ativo: boolean;
-};
-
 export function HolidaysConfig({ tenantId }: { tenantId: string }) {
-  const [feriados, setFeriados] = useState<Feriado[]>([]);
-  const [loading, setLoading] = useState(true);
   const [newData, setNewData] = useState("");
   const [newNome, setNewNome] = useState("");
   const [newTipo, setNewTipo] = useState("local");
-  const [adding, setAdding] = useState(false);
 
-  useEffect(() => { loadFeriados(); }, [tenantId]);
+  const { data: feriados = [], isLoading: loading } = useFeriados(tenantId);
+  const addMut = useAddFeriado();
+  const seedMut = useSeedFeriadosNacionais();
+  const removeMut = useRemoveFeriado();
 
-  const loadFeriados = async () => {
-    const { data, error } = await supabase
-      .from("tenant_feriados")
-      .select("id, data, nome, tipo, ativo")
-      .eq("tenant_id", tenantId)
-      .order("data");
+  const adding = addMut.isPending || seedMut.isPending;
 
-    if (!error && data) setFeriados(data);
-    setLoading(false);
-  };
-
-  const seedNacionais = async () => {
-    setAdding(true);
+  const seedNacionais = () => {
     const year = new Date().getFullYear();
     const rows = FERIADOS_NACIONAIS_BR.map(f => ({
-      tenant_id: tenantId,
-      data: `${year}-${f.data}`,
-      nome: f.nome,
-      tipo: "nacional" as const,
-      ativo: true,
+      tenant_id: tenantId, data: `${year}-${f.data}`, nome: f.nome, tipo: "nacional" as const, ativo: true,
     }));
-
-    // Also add next year
     const nextYear = year + 1;
     rows.push(...FERIADOS_NACIONAIS_BR.map(f => ({
-      tenant_id: tenantId,
-      data: `${nextYear}-${f.data}`,
-      nome: f.nome,
-      tipo: "nacional" as const,
-      ativo: true,
+      tenant_id: tenantId, data: `${nextYear}-${f.data}`, nome: f.nome, tipo: "nacional" as const, ativo: true,
     })));
-
-    const { error } = await supabase
-      .from("tenant_feriados")
-      .upsert(rows, { onConflict: "tenant_id,data" });
-
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Feriados nacionais adicionados!" });
-      loadFeriados();
-    }
-    setAdding(false);
+    seedMut.mutate(rows, {
+      onSuccess: () => toast({ title: "Feriados nacionais adicionados!" }),
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   };
 
-  const addFeriado = async () => {
+  const addFeriado = () => {
     if (!newData || !newNome) {
       toast({ title: "Preencha data e nome", variant: "destructive" });
       return;
     }
-    setAdding(true);
-    const { error } = await supabase.from("tenant_feriados").insert({
-      tenant_id: tenantId,
-      data: newData,
-      nome: newNome,
-      tipo: newTipo,
+    addMut.mutate({ tenant_id: tenantId, data: newData, nome: newNome, tipo: newTipo }, {
+      onSuccess: () => { setNewData(""); setNewNome(""); toast({ title: "Feriado adicionado!" }); },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
     });
-
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      setNewData("");
-      setNewNome("");
-      toast({ title: "Feriado adicionado!" });
-      loadFeriados();
-    }
-    setAdding(false);
   };
 
-  const removeFeriado = async (id: string) => {
-    const { error } = await supabase.from("tenant_feriados").delete().eq("id", id);
-    if (!error) {
-      setFeriados(feriados.filter(f => f.id !== id));
-      toast({ title: "Feriado removido" });
-    }
+  const removeFeriado = (id: string) => {
+    removeMut.mutate(id, {
+      onSuccess: () => toast({ title: "Feriado removido" }),
+    });
   };
 
   const tipoColor = (tipo: string) => {
