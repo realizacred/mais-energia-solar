@@ -327,6 +327,7 @@ export function ConvertLeadToClientDialog({
             month: "2-digit",
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: "America/Sao_Paulo",
           });
           toast({
             title: "Dados restaurados",
@@ -1197,7 +1198,7 @@ export function ConvertLeadToClientDialog({
                                 </FormControl>
                                 <SelectContent>
                                   {simulacoes.map((s) => {
-                                    const dataFormatada = new Date(s.created_at).toLocaleDateString("pt-BR");
+                                    const dataFormatada = new Date(s.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
                                     const potencia = s.potencia_recomendada_kwp ? `${s.potencia_recomendada_kwp.toFixed(2)} kWp` : "N/A";
                                     const investimento = s.investimento_estimado
                                       ? `R$ ${s.investimento_estimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`

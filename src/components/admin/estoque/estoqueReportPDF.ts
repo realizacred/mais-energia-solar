@@ -6,7 +6,7 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
 }
 
 export async function generateEstoqueItemsPDF(saldos: EstoqueSaldo[], title = "Relatório de Estoque — Itens") {
@@ -16,7 +16,7 @@ export async function generateEstoqueItemsPDF(saldos: EstoqueSaldo[], title = "R
   doc.setFontSize(16);
   doc.text(title, 14, 16);
   doc.setFontSize(9);
-  doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 14, 22);
+  doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} às ${new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}`, 14, 22);
 
   autoTable(doc, {
     startY: 28,
@@ -55,7 +55,7 @@ export async function generateEstoqueMovimentosPDF(movimentos: EstoqueMovimento[
   doc.setFontSize(16);
   doc.text(title, 14, 16);
   doc.setFontSize(9);
-  doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 14, 22);
+  doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} às ${new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}`, 14, 22);
 
   const tipoLabels: Record<string, string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste", transferencia: "Transferência" };
 

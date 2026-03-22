@@ -316,7 +316,7 @@ export function BaseMeteorologicaPage() {
             ? formatDistanceToNow(new Date(lastUpdated), { addSuffix: true, locale: ptBR })
             : "Nunca"
           }
-          detail={lastUpdated ? new Date(lastUpdated).toLocaleDateString("pt-BR") : "Nenhum dado importado"}
+          detail={lastUpdated ? new Date(lastUpdated).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "Nenhum dado importado"}
           color={lastUpdated ? "text-foreground" : "text-muted-foreground"}
         />
         <StatusCard

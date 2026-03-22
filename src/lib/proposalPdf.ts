@@ -139,7 +139,7 @@ export async function generateProposalPdf(data: ProposalData): Promise<Blob> {
   doc.setFontSize(12);
   doc.text("PROPOSTA COMERCIAL", pageWidth - margin, 25, { align: "right" });
   
-  const today = new Date().toLocaleDateString("pt-BR");
+  const today = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
   doc.setFontSize(9);
   doc.text(`Data: ${today}`, pageWidth - margin, 35, { align: "right" });
 
