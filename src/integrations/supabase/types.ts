@@ -3553,7 +3553,7 @@ export type Database = {
           port?: number | null
           provider_type?: string
           settings?: Json | null
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           username?: string | null
         }

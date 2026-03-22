@@ -1,0 +1,1 @@
+ALTER TABLE public.email_accounts ALTER COLUMN tenant_id SET DEFAULT current_tenant_id();
