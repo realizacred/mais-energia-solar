@@ -207,13 +207,25 @@ function extractFromText(text: string): ExtractedData {
     /tarifa\s*(?:de\s*)?energia\s*(?:TE)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
     /TE\s*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
     /energia\s*el[ée]trica.*?R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)/i,
+    // Padrão tabela: "Energia Ativa Fornecida kWh ... 0,XXXXX" (valor unitário)
+    /energia\s*(?:ativa\s*)?(?:fornecida|consumida).*?kWh\s+[\d.,]+\s+(0[,.][\d]+)/i,
+    // Padrão: "Tarifa convencional ... 0,XXXXX"
+    /tarifa\s*convencional[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    // Padrão: "Pre[çc]o unit[áa]rio ... R$ 0,XXXXX"
+    /pre[çc]o\s*unit[áa]rio[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    // Padrão coluna: valor entre 0.3 e 1.5 após "energia" na mesma linha
+    /energia\s+(?:el[ée]trica|ativa).*?\s(0[,.][\d]{3,6})\s/i,
   ]) {
     const m = flatText.match(p);
     if (m) {
-      tarifaEnergia = parseNum(m[1]);
-      raw['te_match'] = m[0];
-      confidence += 15;
-      break;
+      const val = parseNum(m[1]);
+      // Validar que é um valor de tarifa plausível (R$/kWh entre 0.05 e 3.00)
+      if (val > 0.05 && val < 3.0) {
+        tarifaEnergia = val;
+        raw['te_match'] = m[0];
+        confidence += 15;
+        break;
+      }
     }
   }
 
@@ -222,13 +234,22 @@ function extractFromText(text: string): ExtractedData {
     /TUSD[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
     /uso\s*(?:do\s*)?sistema\s*(?:de\s*)?distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)/i,
     /fio\s*B[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    // Padrão: "Distribuição ... R$ 0,XXXXX"
+    /distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
+    // Padrão coluna com TUSD valor unitário
+    /TUSD.*?kWh\s+[\d.,]+\s+(0[,.][\d]+)/i,
+    // Padrão: "Componentes tarifários ... TUSD 0,XXXXX"
+    /componentes?\s*tarif[áa]ri[oa]s?.*?TUSD[:\s]*R?\$?\s*(\d[\d.,]*)/i,
   ]) {
     const m = flatText.match(p);
     if (m) {
-      tarifaFioB = parseNum(m[1]);
-      raw['tusd_match'] = m[0];
-      confidence += 10;
-      break;
+      const val = parseNum(m[1]);
+      if (val > 0.01 && val < 2.0) {
+        tarifaFioB = val;
+        raw['tusd_match'] = m[0];
+        confidence += 10;
+        break;
+      }
     }
   }
 
@@ -278,27 +299,49 @@ function extractFromText(text: string): ExtractedData {
   }
 
   let icms: number | null = null;
-  const icmsMatch = flatText.match(/ICMS[:\s]*(\d[\d.,]*)\s*%/i);
-  if (icmsMatch) {
-    icms = parseFloat(icmsMatch[1].replace(',', '.'));
-    raw['icms_match'] = icmsMatch[0];
-    confidence += 5;
+  for (const p of [
+    /ICMS[:\s]*(\d[\d.,]*)\s*%/i,
+    /al[ií]quota\s*ICMS[:\s]*(\d[\d.,]*)/i,
+    /ICMS\s*(?:Base|ST)?[:\s]*(\d[\d.,]*)\s*%/i,
+    // Padrão: "ICMS 25%" ou "ICMS 18%"
+    /ICMS\s+(\d{1,2}(?:[,.]\d+)?)\s*%/i,
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      icms = parseFloat(m[1].replace(',', '.'));
+      raw['icms_match'] = m[0];
+      confidence += 5;
+      break;
+    }
   }
 
   let pis: number | null = null;
-  const pisMatch = flatText.match(/PIS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (pisMatch) {
-    pis = parseNum(pisMatch[1]);
-    raw['pis_match'] = pisMatch[0];
-    confidence += 5;
+  for (const p of [
+    /PIS[\/\s]*(?:PASEP)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    // Valor em R$
+    /PIS[:\s]*(\d[\d.,]*)/i,
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      pis = parseNum(m[1]);
+      raw['pis_match'] = m[0];
+      confidence += 5;
+      break;
+    }
   }
 
   let cofins: number | null = null;
-  const cofinsMatch = flatText.match(/COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (cofinsMatch) {
-    cofins = parseNum(cofinsMatch[1]);
-    raw['cofins_match'] = cofinsMatch[0];
-    confidence += 5;
+  for (const p of [
+    /COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /COFINS[:\s]*(\d[\d.,]*)/i,
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      cofins = parseNum(m[1]);
+      raw['cofins_match'] = m[0];
+      confidence += 5;
+      break;
+    }
   }
 
   let bandeira: string | null = null;
@@ -589,7 +632,7 @@ Seja preciso — nunca invente dados.`
               },
               {
                 type: "text",
-                text: "Extraia todos os dados desta fatura de energia elétrica brasileira.",
+                text: "Extraia todos os dados desta fatura de energia elétrica brasileira. É ESSENCIAL extrair: tarifa de energia (TE) em R$/kWh, TUSD/Fio B em R$/kWh, alíquota de ICMS (%), valor de PIS (R$) e valor de COFINS (R$). Procure esses dados na seção de componentes tarifários, detalhamento de tributos, ou na tabela de valores unitários.",
               },
             ],
           },
