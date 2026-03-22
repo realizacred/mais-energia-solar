@@ -238,6 +238,26 @@ export function useEmailIngestionRuns(accountId: string | null, limit = 20) {
   });
 }
 
+// ─── Clear Failed Runs ──────────────────────────────────────────
+
+export function useClearFailedRuns() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (accountId: string) => {
+      const { error } = await (supabase as any)
+        .from("email_ingestion_runs")
+        .delete()
+        .eq("email_account_id", accountId)
+        .eq("status", "failed");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email_ingestion_runs"] });
+      qc.invalidateQueries({ queryKey: ["email_ingestion_summary"] });
+    },
+  });
+}
+
 // ─── Ingestion Messages ─────────────────────────────────────────
 
 export function useEmailIngestionMessages(runId: string | null) {
