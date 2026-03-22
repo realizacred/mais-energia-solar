@@ -1850,7 +1850,7 @@ export function ProposalWizard() {
                 <BarChart3 className="h-3.5 w-3.5 text-secondary" />
                 <div className="text-right">
                   <p className="text-[9px] text-muted-foreground leading-none">Consumo</p>
-                  <p className="text-xs font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</p>
+                  <p className="text-xs font-bold text-foreground">{formatNumberBR(consumoTotal)} kWh</p>
                 </div>
               </div>
             )}

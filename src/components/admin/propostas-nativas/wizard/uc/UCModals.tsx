@@ -456,7 +456,7 @@ export function MesAMesDialog({ open, onOpenChange, title, values, onSave }: Mes
           <DialogTitle>{title} — Mês a mês</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <p className="text-xs text-muted-foreground">Total: <strong>{total.toLocaleString("pt-BR")} kWh</strong> • Média: <strong>{Math.round(total / 12)} kWh/mês</strong></p>
+          <p className="text-xs text-muted-foreground">Total: <strong>{formatNumberBR(total)} kWh</strong> • Média: <strong>{Math.round(total / 12)} kWh/mês</strong></p>
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {MESES.map(m => (
               <div key={m} className="space-y-0.5">

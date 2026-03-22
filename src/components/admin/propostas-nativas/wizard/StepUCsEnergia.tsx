@@ -124,7 +124,7 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
         <div className="flex items-center gap-1.5">
           <Zap className="h-3.5 w-3.5 text-primary" />
           <span className="font-medium text-foreground">Consumo Médio Total</span>
-          <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
+          <span className="font-bold text-foreground">{formatNumberBR(consumoTotal)} kWh</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Zap className="h-3.5 w-3.5 text-primary" />

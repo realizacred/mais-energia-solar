@@ -484,7 +484,7 @@ export function CostComponentsTab({ versionId, isReadOnly }: Props) {
 }
 
 function formatParams(strategy: string, params: Record<string, any>): string {
-  if (strategy === "fixed_amount") return `R$ ${(params.amount ?? 0).toLocaleString("pt-BR")}`;
+  if (strategy === "fixed_amount") return formatBRL(params.amount ?? 0);
   if (strategy === "cost_per_kwp") return `${params.unit_cost ?? 0} R$/kWp`;
   if (strategy === "cost_per_kva") return `${params.unit_cost ?? 0} R$/kVA`;
   if (strategy === "cost_per_km") return `${params.unit_cost ?? 0} R$/km`;
