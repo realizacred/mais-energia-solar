@@ -360,9 +360,9 @@ export function UCOverviewTab({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Última leitura</span>
-                  <span className="font-mono text-xs">
-                    {meterStatus?.measured_at ? format(new Date(meterStatus.measured_at), "dd/MM HH:mm") : "—"}
-                  </span>
+                    <span className="font-mono text-xs">
+                      {meterStatus?.measured_at ? new Date(meterStatus.measured_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) : "—"}
+                    </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Potência</span>
