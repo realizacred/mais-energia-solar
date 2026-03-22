@@ -274,10 +274,12 @@ export function UCOverviewTab({
               { key: "injecao" as const, label: "Injeção", color: "bg-warning" },
             ]).map(({ key, label, color }) => (
               <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground select-none">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setChartSeries(s => ({ ...s, [key]: !s[key] }))}
-                  className={`w-3.5 h-3.5 rounded-sm border border-border transition-colors ${chartSeries[key] ? color : "bg-muted"}`}
+                  className={`w-3.5 h-3.5 min-h-0 min-w-0 p-0 rounded-sm border border-border transition-colors ${chartSeries[key] ? color : "bg-muted"}`}
                 />
                 {label}
               </label>
@@ -358,9 +360,9 @@ export function UCOverviewTab({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Última leitura</span>
-                  <span className="font-mono text-xs">
-                    {meterStatus?.measured_at ? format(new Date(meterStatus.measured_at), "dd/MM HH:mm") : "—"}
-                  </span>
+                    <span className="font-mono text-xs">
+                      {meterStatus?.measured_at ? new Date(meterStatus.measured_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) : "—"}
+                    </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Potência</span>
@@ -474,7 +476,7 @@ export function UCOverviewTab({
                         : "—"}
                     </p>
                     <Badge variant="outline" className="text-[10px]">
-                      {inv.status === "processed" ? "Processada" : inv.status === "pending" ? "Pendente" : inv.status || "—"}
+                      {inv.status === "processed" ? "Processada" : inv.status === "received" ? "Recebida" : inv.status === "pending" ? "Pendente" : inv.status === "validated" ? "Validada" : inv.status === "error" ? "Erro" : inv.status || "—"}
                     </Badge>
                   </div>
                 </div>
@@ -606,7 +608,7 @@ function TimelineSection({ ucId, meterId, plantId }: { ucId: string; meterId?: s
           <div>
             <p className="text-sm text-foreground">{ev.label}</p>
             <p className="text-xs text-muted-foreground">
-              {format(new Date(ev.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              {new Date(ev.date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
             </p>
           </div>
         </div>
