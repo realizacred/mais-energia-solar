@@ -306,7 +306,7 @@ export function BaseMeteorologicaPage() {
         <StatusCard
           icon={<MapPin className="h-4 w-4" />}
           label="Total de pontos carregados"
-          value={totalPoints.toLocaleString("pt-BR")}
+          value={formatIntegerBR(totalPoints)}
           detail={`${versions.filter(v => v.status === "active").length} versão(ões) ativa(s)`}
           color={totalPoints > 0 ? "text-primary" : "text-muted-foreground"}
         />
