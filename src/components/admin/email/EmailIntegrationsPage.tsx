@@ -21,7 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Mail, Plus, RefreshCw, Trash2, CheckCircle2, XCircle, Clock,
-  AlertTriangle, FileText, Settings2,
+  AlertTriangle, FileText, Settings2, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
