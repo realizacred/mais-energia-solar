@@ -39,6 +39,7 @@ import { UCOverviewTab } from "./UCOverviewTab";
 import { UCComparativoTab } from "./UCComparativoTab";
 import { UCHistoricoTab } from "./UCHistoricoTab";
 import { UCEconomyReportTab } from "./UCEconomyReportTab";
+import { UCGdTab } from "./UCGdTab";
 import { formatDateTime } from "@/lib/dateUtils";
 
 const UC_TYPE_LABELS: Record<string, string> = {
