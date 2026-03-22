@@ -121,6 +121,8 @@ const FIELD_CATEGORIES: FieldCategory[] = [
 const ALL_FIELD_KEYS = FIELD_CATEGORIES.flatMap(c => c.fields.map(f => f.key));
 const BASE_REQUIRED = ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"];
 const GERADORA_EXTRA = ["energia_injetada_kwh", "saldo_gd_acumulado"];
+const MISTA_EXTRA = ["energia_injetada_kwh", "energia_compensada_kwh"];
+const CONSUMO_FIELDS = ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"];
 const BENEFICIARIA_NEVER = ["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"];
 
 const IDENTIFIER_FIELD_OPTIONS = [
