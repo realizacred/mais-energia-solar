@@ -443,7 +443,7 @@ export function CsvImportPanel() {
       if (error) throw error;
       const res = data as any;
       setActivateResult({ row_count: res?.row_count ?? pointsLoaded ?? 0 });
-      toast.success("Versão ativada!", { description: `${(res?.row_count ?? 0).toLocaleString("pt-BR")} pontos.` });
+      toast.success("Versão ativada!", { description: `${formatIntegerBR(res?.row_count ?? 0)} pontos.` });
       log("success", `✅ Versão ativada! row_count=${res?.row_count}`);
     } catch (e: any) {
       toast.error("Erro ao ativar", { description: e.message });
