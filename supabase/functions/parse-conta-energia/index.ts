@@ -439,15 +439,88 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  // ── 2. Medidor / Consumo ──
+  // ── 2. Cliente, Endereço, Nota Fiscal ──
 
-  // Código do medidor de consumo
+  // Nome do cliente — geralmente logo após o cabeçalho da Energisa, antes de LIGAÇÃO
+  let clienteNome: string | null = null;
+  const clientePatterns = [
+    /ENERGISA[^]*?S\.A\.?\s+(?:\d{2}[\/.]\d{2}[\/.]\d{4}[^]*?)?([A-ZÀ-Ú][A-ZÀ-Ú\s]{5,60}?)(?:\s*LIGA[ÇC][ÃA]O|\s*Classifica|\s*CPF|\s*CNPJ|\s*RUA|\s*AV[\s.]|\s*Endere)/i,
+    /(?:CLIENTE|CONSUMIDOR|DESTINAT[ÁA]RIO)[:\s]*([A-ZÀ-Ú][A-ZÀ-Ú\s]{5,60})/i,
+    /NOME[:\s]*([A-ZÀ-Ú][A-Za-zÀ-ú\s]{5,60})/i,
+  ];
+  for (const p of clientePatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      const candidate = m[1].trim().replace(/\s+/g, ' ');
+      // Reject if it looks like an address or company name
+      if (candidate.length >= 5 && !/^(RUA|AV|TRAV|ROD|ESTR|BR\s|ENERGISA|DISTRIBUID)/i.test(candidate)) {
+        clienteNome = candidate;
+        fieldResults['cliente_nome'] = makeField(clienteNome, 'regex:CLIENTE_NOME', true);
+        break;
+      }
+    }
+  }
+
+  // Endereço do cliente
+  let endereco: string | null = null;
+  const enderecoPatterns = [
+    /(?:ENDERE[ÇC]O|Endere[çc]o)[:\s]*([A-Za-zÀ-ú\d\s,.°º\-]{10,100})/i,
+    /(?:RUA|AV(?:ENIDA)?|TRAV(?:ESSA)?|ROD(?:OVIA)?|ESTRADA|ALAMEDA|PRA[ÇC]A)\s+[A-Za-zÀ-ú\d\s,.°º\-]{5,80}(?:\s*[,-]\s*(?:N[°º]?\s*)?\d+)?/i,
+  ];
+  for (const p of enderecoPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      endereco = (m[1] || m[0]).trim().replace(/\s+/g, ' ');
+      fieldResults['endereco'] = makeField(endereco, 'regex:ENDERECO', true);
+      break;
+    }
+  }
+
+  // Número da nota fiscal
+  let numeroNotaFiscal: string | null = null;
+  const nfPatterns = [
+    /NOTA\s+FISCAL\s+N[°º]?[:\s]*([\d.]+)/i,
+    /NF[- ]?e?\s+N[°º]?[:\s]*([\d.]+)/i,
+    /N[°º]\s*(?:da\s*)?(?:NF|Nota)[:\s]*([\d.]+)/i,
+  ];
+  const nfRaw = firstMatch(flatText, nfPatterns);
+  if (nfRaw) {
+    numeroNotaFiscal = nfRaw.replace(/\./g, '');
+    fieldResults['numero_nota_fiscal'] = makeField(nfRaw, 'regex:NOTA_FISCAL', true);
+  }
+
+  // ── 3. Medidor / Consumo ──
+
+  // Código do medidor de consumo — padrão Energisa: código alfanumérico seguido de "Energia ativa"
   let medidorConsumoCodigo: string | null = null;
-  const medidorMatch = flatText.match(/(?:medidor|n[°º]?\s*medidor|medi[çc][ãa]o)[:\s]*(\d{4,})/i);
-  if (medidorMatch) {
-    medidorConsumoCodigo = medidorMatch[1];
-    raw['medidor_consumo'] = medidorMatch[1];
-    fieldResults['medidor_consumo_codigo'] = makeField(medidorConsumoCodigo, 'regex:MEDIDOR', true);
+  const medidorConsumoPatterns = [
+    /([A-Z]\d{5,})\s+(?:Ponta)?Energia\s+ativa/i,
+    /(?:medidor|n[°º]?\s*medidor|medi[çc][ãa]o)[:\s]*(\w{4,})/i,
+    /(?:medidor|aparelho)\s*(?:de\s*)?(?:consumo|ativo)[:\s]*(\w{4,})/i,
+  ];
+  for (const p of medidorConsumoPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      medidorConsumoCodigo = m[1];
+      raw['medidor_consumo'] = m[1];
+      fieldResults['medidor_consumo_codigo'] = makeField(medidorConsumoCodigo, 'regex:MEDIDOR_CONSUMO', true);
+      break;
+    }
+  }
+
+  // Código do medidor de injeção — padrão Energisa: código alfanumérico seguido de "Energia injetada"
+  let medidorInjecaoCodigoEarly: string | null = null;
+  const medidorInjPatterns = [
+    /([A-Z]\d{5,})\s+(?:Ponta)?Energia\s+injetada/i,
+    /(?:medidor|aparelho)\s*(?:de\s*)?(?:inje[çc][ãa]o|injetada)[:\s]*(\w{4,})/i,
+  ];
+  for (const p of medidorInjPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      medidorInjecaoCodigoEarly = m[1];
+      fieldResults['medidor_injecao_codigo'] = makeField(medidorInjecaoCodigoEarly, 'regex:MEDIDOR_INJECAO_EARLY', true);
+      break;
+    }
   }
 
   let leituraAnterior03: number | null = null;
