@@ -71,6 +71,7 @@ export function MeterAlertConfig({ meterId, metadata, latestStatus, configId, ex
   const { toast } = useToast();
   const qc = useQueryClient();
   const [config, setConfig] = useState<AlertConfig>(DEFAULTS);
+  const [baseline, setBaseline] = useState<AlertConfig>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
