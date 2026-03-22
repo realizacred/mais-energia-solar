@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -48,7 +49,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ plant_id: "", relation_type: "beneficiaria", allocation_percent: "" });
 
-  const { data: links = [], isLoading } = useQuery({
+  const { data: links = [], isLoading, isError } = useQuery({
     queryKey: ["unit_plant_links", unitId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -145,7 +146,23 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   // Default relation type based on UC type
   const defaultRelation = ucTipo === "gd_geradora" ? "geradora" : "beneficiaria";
 
-  if (isLoading) return <div className="py-8 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
+  if (isLoading) return (
+    <div className="space-y-3">
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-32 w-full rounded-lg" />
+      <Skeleton className="h-32 w-full rounded-lg" />
+    </div>
+  );
+
+  if (isError) return (
+    <div className="text-center py-8 space-y-2">
+      <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+        <Sun className="w-6 h-6 text-destructive" />
+      </div>
+      <p className="text-sm text-destructive">Erro ao carregar vínculos de usinas</p>
+      <p className="text-xs text-muted-foreground">Tente recarregar a página</p>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
