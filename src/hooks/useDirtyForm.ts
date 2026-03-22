@@ -3,7 +3,7 @@
  * Compares current form values against a persisted baseline using normalized comparison.
  * §20: SRP — single responsibility: dirty detection only.
  */
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 type FormValues = Record<string, unknown>;
 
@@ -37,13 +37,13 @@ function areEqual(a: FormValues, b: FormValues): boolean {
 interface UseDirtyFormReturn<T extends FormValues> {
   /** Current form state */
   form: T;
-  /** Update form fields (partial) */
+  /** Update form fields (partial or function updater) */
   setForm: (updater: Partial<T> | ((prev: T) => T)) => void;
   /** Whether current values differ from baseline */
   isDirty: boolean;
   /** Reset baseline to current form values (call after successful save) */
   commitBaseline: () => void;
-  /** Reset baseline AND form to new persisted values (call when props change) */
+  /** Reset baseline AND form to new persisted values (call when props/data change) */
   resetTo: (values: T) => void;
 }
 
@@ -54,7 +54,6 @@ interface UseDirtyFormReturn<T extends FormValues> {
 export function useDirtyForm<T extends FormValues>(initialValues: T): UseDirtyFormReturn<T> {
   const [baseline, setBaseline] = useState<T>(initialValues);
   const [form, setFormRaw] = useState<T>(initialValues);
-  const baselineRef = useRef(initialValues);
 
   const setForm = useCallback((updater: Partial<T> | ((prev: T) => T)) => {
     setFormRaw(prev => {
@@ -66,18 +65,8 @@ export function useDirtyForm<T extends FormValues>(initialValues: T): UseDirtyFo
   const isDirty = useMemo(() => !areEqual(form, baseline), [form, baseline]);
 
   const commitBaseline = useCallback(() => {
-    setBaseline(prev => {
-      // Use current form as new baseline
-      setFormRaw(current => {
-        baselineRef.current = current;
-        return current;
-      });
-      return baselineRef.current;
-    });
-    // Simpler: just sync both
     setFormRaw(current => {
       setBaseline(current);
-      baselineRef.current = current;
       return current;
     });
   }, []);
@@ -85,7 +74,6 @@ export function useDirtyForm<T extends FormValues>(initialValues: T): UseDirtyFo
   const resetTo = useCallback((values: T) => {
     setBaseline(values);
     setFormRaw(values);
-    baselineRef.current = values;
   }, []);
 
   return { form, setForm, isDirty, commitBaseline, resetTo };
