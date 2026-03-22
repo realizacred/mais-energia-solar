@@ -146,7 +146,7 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
       submitLabel={config ? "Salvar" : "Cadastrar"}
       saving={saveConfig.isPending}
       disabled={!form.concessionaria_code}
-      className="w-[90vw] max-w-2xl"
+      className="w-[90vw] max-w-3xl"
     >
       <FormSection title="Concessionária">
         <FormGrid>
