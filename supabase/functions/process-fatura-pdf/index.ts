@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
+import { detectUcType } from "../_shared/ucTypeDetector.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
