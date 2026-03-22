@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,21 +38,16 @@ import {
 import { TemplateSearchBar } from "./wa-templates/TemplateSearchBar";
 import { WhatsAppPreview } from "./wa-templates/WhatsAppPreview";
 import { VariablesHelper } from "./wa-templates/VariablesHelper";
-
-interface AutomationTemplate {
-  id: string;
-  nome: string;
-  tipo: string;
-  gatilho_config: Record<string, any>;
-  mensagem: string;
-  ativo: boolean;
-  ordem: number;
-}
-
-interface LeadStatus {
-  id: string;
-  nome: string;
-}
+import {
+  useWaAutomationTemplates,
+  useWaLeadStatuses,
+  useWaAutomationConfig,
+  useToggleWaAutomacoes,
+  useToggleWaTemplate,
+  useSalvarWaTemplate,
+  useDeletarWaTemplate,
+  type WaAutomationTemplate,
+} from "@/hooks/useWhatsAppTemplates";
 
 const TIPO_OPTIONS = [
   { value: "boas_vindas", label: "Boas-vindas", icon: UserPlus, color: "bg-success" },
@@ -64,12 +58,18 @@ const TIPO_OPTIONS = [
 
 export function WhatsAppAutomationTemplates() {
   const { toast } = useToast();
-  const [templates, setTemplates] = useState<AutomationTemplate[]>([]);
-  const [statuses, setStatuses] = useState<LeadStatus[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // §16: Queries in hooks
+  const { data: templates = [], isLoading: loadingTemplates } = useWaAutomationTemplates();
+  const { data: statuses = [] } = useWaLeadStatuses();
+  const { data: automacoesAtivas = false } = useWaAutomationConfig();
+  const toggleAutomacoesMut = useToggleWaAutomacoes();
+  const toggleTemplateMut = useToggleWaTemplate();
+  const salvarMut = useSalvarWaTemplate();
+  const deletarMut = useDeletarWaTemplate();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<AutomationTemplate | null>(null);
-  const [automacoesAtivas, setAutomacoesAtivas] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<WaAutomationTemplate | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
   // Search & filter
@@ -83,35 +83,6 @@ export function WhatsAppAutomationTemplates() {
   const [formGatilhoConfig, setFormGatilhoConfig] = useState<Record<string, any>>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [templatesRes, statusesRes, configRes] = await Promise.all([
-        supabase.from("whatsapp_automation_templates").select("id, nome, tipo, mensagem, gatilho_config, ativo, ordem, created_at, updated_at").order("ordem"),
-        supabase.from("lead_status").select("id, nome").order("ordem"),
-        supabase.from("whatsapp_automation_config").select("automacoes_ativas").maybeSingle(),
-      ]);
-
-      if (templatesRes.data) {
-        setTemplates(templatesRes.data.map(t => ({
-          ...t,
-          gatilho_config: (typeof t.gatilho_config === 'object' && t.gatilho_config !== null) 
-            ? t.gatilho_config as Record<string, any>
-            : {}
-        })));
-      }
-      if (statusesRes.data) setStatuses(statusesRes.data);
-      if (configRes.data) setAutomacoesAtivas(configRes.data.automacoes_ativas || false);
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-    }
-    setLoading(false);
-  };
-
   const filteredTemplates = useMemo(() => {
     return templates.filter((t) => {
       const matchSearch = !search || t.nome.toLowerCase().includes(search.toLowerCase()) || t.mensagem.toLowerCase().includes(search.toLowerCase());
@@ -122,40 +93,26 @@ export function WhatsAppAutomationTemplates() {
 
   const handleToggleAutomacoes = async () => {
     const newValue = !automacoesAtivas;
-    const { error } = await supabase
-      .from("whatsapp_automation_config")
-      .update({ automacoes_ativas: newValue })
-      .neq("id", "00000000-0000-0000-0000-000000000000");
-
-    if (error) {
+    try {
+      await toggleAutomacoesMut.mutateAsync(newValue);
+      toast({
+        title: newValue ? "Automações ativadas" : "Automações desativadas",
+        description: newValue ? "As mensagens automáticas serão enviadas" : "Nenhuma mensagem automática será enviada",
+      });
+    } catch {
       toast({ title: "Erro", description: "Falha ao atualizar configuração", variant: "destructive" });
-      return;
     }
-
-    setAutomacoesAtivas(newValue);
-    toast({
-      title: newValue ? "Automações ativadas" : "Automações desativadas",
-      description: newValue ? "As mensagens automáticas serão enviadas" : "Nenhuma mensagem automática será enviada",
-    });
   };
 
-  const handleToggleTemplate = async (template: AutomationTemplate) => {
-    const { error } = await supabase
-      .from("whatsapp_automation_templates")
-      .update({ ativo: !template.ativo })
-      .eq("id", template.id);
-
-    if (error) {
+  const handleToggleTemplate = async (template: WaAutomationTemplate) => {
+    try {
+      await toggleTemplateMut.mutateAsync({ id: template.id, ativo: !template.ativo });
+    } catch {
       toast({ title: "Erro", description: "Falha ao atualizar template", variant: "destructive" });
-      return;
     }
-
-    setTemplates((prev) =>
-      prev.map((t) => (t.id === template.id ? { ...t, ativo: !t.ativo } : t))
-    );
   };
 
-  const handleEditTemplate = (template: AutomationTemplate) => {
+  const handleEditTemplate = (template: WaAutomationTemplate) => {
     setEditingTemplate(template);
     setFormNome(template.nome);
     setFormTipo(template.tipo);
@@ -184,42 +141,24 @@ export function WhatsAppAutomationTemplates() {
       ordem: editingTemplate?.ordem || templates.length + 1,
     };
 
-    if (editingTemplate) {
-      const { error } = await supabase
-        .from("whatsapp_automation_templates")
-        .update(data)
-        .eq("id", editingTemplate.id);
-
-      if (error) {
-        toast({ title: "Erro", description: "Falha ao atualizar template", variant: "destructive" });
-        return;
-      }
-    } else {
-      const { error } = await supabase.from("whatsapp_automation_templates").insert(data);
-
-      if (error) {
-        toast({ title: "Erro", description: "Falha ao criar template", variant: "destructive" });
-        return;
-      }
+    try {
+      await salvarMut.mutateAsync({ id: editingTemplate?.id, data });
+      toast({ title: "Sucesso", description: editingTemplate ? "Template atualizado" : "Template criado" });
+      setIsDialogOpen(false);
+    } catch {
+      toast({ title: "Erro", description: editingTemplate ? "Falha ao atualizar template" : "Falha ao criar template", variant: "destructive" });
     }
-
-    toast({ title: "Sucesso", description: editingTemplate ? "Template atualizado" : "Template criado" });
-    setIsDialogOpen(false);
-    fetchData();
   };
 
   const handleDeleteTemplate = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este template?")) return;
 
-    const { error } = await supabase.from("whatsapp_automation_templates").delete().eq("id", id);
-
-    if (error) {
+    try {
+      await deletarMut.mutateAsync(id);
+      toast({ title: "Template excluído" });
+    } catch {
       toast({ title: "Erro", description: "Falha ao excluir template", variant: "destructive" });
-      return;
     }
-
-    toast({ title: "Template excluído" });
-    fetchData();
   };
 
   const getTipoInfo = (tipo: string) => {
@@ -321,7 +260,7 @@ export function WhatsAppAutomationTemplates() {
     }
   };
 
-  if (loading) {
+  if (loadingTemplates) {
     return (
       <Card>
         <CardContent className="p-6">
