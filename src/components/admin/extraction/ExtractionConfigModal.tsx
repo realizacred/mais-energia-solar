@@ -2,7 +2,7 @@
  * ExtractionConfigModal — Modal for creating/editing extraction config per concessionária.
  * §25: FormModalTemplate pattern. Reposicionado para modelo 100% nativo.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
