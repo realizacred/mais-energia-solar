@@ -258,8 +258,8 @@ export default function UCDetailPage() {
             <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
           </TabsContent>
 
-          {/* === FATURAS === */}
-          <TabsContent value="faturas">
+          {/* === FATURAS === forceMount to keep upload alive across tab switches */}
+          <TabsContent value="faturas" forceMount className="data-[state=inactive]:hidden">
             <UCInvoicesTab unitId={uc.id} />
           </TabsContent>
 
