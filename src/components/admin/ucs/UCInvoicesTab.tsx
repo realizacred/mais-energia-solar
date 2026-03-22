@@ -40,6 +40,7 @@ import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
+import { invalidateUcQueries } from "@/lib/invalidateUcQueries";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -162,15 +163,7 @@ export function UCInvoicesTab({ unitId }: Props) {
 
   /** Invalidate all UC-related queries for instant updates across tabs */
   const invalidateAllUcQueries = () => {
-    qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
-    qc.invalidateQueries({ queryKey: ["uc_overview_invoices", unitId] });
-    qc.invalidateQueries({ queryKey: ["uc_overview_credit_sum", unitId] });
-    qc.invalidateQueries({ queryKey: ["uc_overview_timeline", unitId] });
-    qc.invalidateQueries({ queryKey: ["uc_proxima_leitura", unitId] });
-    qc.invalidateQueries({ queryKey: ["uc_energia_resumo", unitId] });
-    qc.invalidateQueries({ queryKey: ["uc_detail", unitId] });
-    qc.invalidateQueries({ queryKey: ["gd_monthly_snapshot"] });
-    qc.invalidateQueries({ queryKey: ["gd_credit_balances"] });
+    invalidateUcQueries(qc, unitId);
   };
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);

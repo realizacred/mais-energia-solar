@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateGdMonth, type GdMonthlySnapshot, type GdMonthlyAllocation, type GdCreditBalance } from "@/services/energia/gdEnergyEngine";
+import { invalidateUcQueries } from "@/lib/invalidateUcQueries";
 
 const STALE_TIME = 1000 * 60 * 2; // 2 min for fresher energy data
 
@@ -85,11 +86,7 @@ export function useCalculateGdMonth() {
       return calculateGdMonth(gdGroupId, year, month, recalculate ?? true);
     },
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["gd_monthly_snapshot"] });
-      qc.invalidateQueries({ queryKey: ["gd_monthly_allocations"] });
-      qc.invalidateQueries({ queryKey: ["gd_credit_balances"] });
-      qc.invalidateQueries({ queryKey: ["gd_reconciliation"] });
-      qc.invalidateQueries({ queryKey: ["gd_monthly_overflows"] });
+      invalidateUcQueries(qc);
     },
   });
 }

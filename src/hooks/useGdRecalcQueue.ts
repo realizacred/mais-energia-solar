@@ -4,6 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateUcQueries } from "@/lib/invalidateUcQueries";
 import {
   enqueueGdRecalc,
   processSingleQueueItem,
@@ -118,10 +119,7 @@ export function useProcessGdRecalcItem() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QK] });
-      qc.invalidateQueries({ queryKey: ["gd_monthly_snapshot"] });
-      qc.invalidateQueries({ queryKey: ["gd_monthly_allocations"] });
-      qc.invalidateQueries({ queryKey: ["gd_credit_balances"] });
-      qc.invalidateQueries({ queryKey: ["gd_monthly_overflows"] });
+      invalidateUcQueries(qc);
     },
   });
 }
