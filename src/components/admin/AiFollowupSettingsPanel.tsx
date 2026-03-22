@@ -92,7 +92,7 @@ export function AiFollowupSettingsPanel() {
       .maybeSingle();
 
     if (data) {
-      setSettings({
+      const loaded = {
         id: data.id,
         modo: data.modo || "assistido",
         modelo_preferido: data.modelo_preferido || "gpt-4o-mini",
@@ -104,7 +104,9 @@ export function AiFollowupSettingsPanel() {
         templates: (typeof data.templates === "object" && data.templates !== null)
           ? data.templates as Record<string, any>
           : {},
-      });
+      };
+      setSettings(loaded);
+      setBaseline(loaded);
       setHasRecord(true);
     }
     setLoading(false);
