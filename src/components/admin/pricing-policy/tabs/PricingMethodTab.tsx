@@ -77,7 +77,7 @@ export function PricingMethodTab({ versionId, isReadOnly }: Props) {
     if (data.id) {
       const { error } = await supabase.from("pricing_methods").update(payload as any).eq("id", data.id);
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Método atualizado" });
+      else { setBaseline(data); toast({ title: "Método atualizado" }); }
     } else {
       const { data: ins, error } = await supabase.from("pricing_methods").insert(payload as any).select("id").single();
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
