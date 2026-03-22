@@ -98,7 +98,7 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
             <MessageSquareOff className="h-4 w-4 text-primary" />
             <CardTitle className="text-base">Auto-resposta Fora do Horário</CardTitle>
           </div>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
+          <Button size="sm" onClick={handleSave} disabled={saving || !isDirty} className="gap-1.5">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Salvar
           </Button>
