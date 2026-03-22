@@ -40,7 +40,6 @@ const EMPTY_FORM = {
 
 export function InversoresManager() {
   const { toast } = useToast();
-  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterAtivo, setFilterAtivo] = useState("all");
   const [filterFabricante, setFilterFabricante] = useState("all");
