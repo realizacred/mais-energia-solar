@@ -359,6 +359,7 @@ const TAB_TITLES: Record<string, string> = {
   medidores: "Medidores",
   ucs: "Unidades Consumidoras",
   "faturas-energia": "Faturas de Energia",
+  "central-extracao": "Central de Extração",
   // "gd-rateio" removida — funcionalidade na aba Beneficiárias da UC
   "alertas-energia": "Alertas Energéticos",
 };
