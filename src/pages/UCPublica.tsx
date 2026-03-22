@@ -16,10 +16,12 @@ import {
 } from "@/components/ui/table";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart,
 } from "recharts";
-import { Building2, Zap, DollarSign, Leaf, TrendingUp, FileText } from "lucide-react";
+import { Building2, Zap, DollarSign, Leaf, TrendingUp, FileText, Sun, Wifi, WifiOff, Gauge, Activity } from "lucide-react";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const BANDEIRA_LABELS: Record<string, string> = {
   verde: "Verde", amarela: "Amarela", vermelha_1: "Vermelha 1", vermelha_2: "Vermelha 2",
@@ -44,6 +46,45 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+/** Simplified plant status — mirrors plantStatusEngine logic */
+function derivePlantStatusSimple(lastSeenAt: string | null, isActive: boolean): { label: string; color: string } {
+  if (!isActive) return { label: "Inativa", color: "text-muted-foreground" };
+  if (!lastSeenAt) return { label: "Sem dados", color: "text-muted-foreground" };
+  const diffMs = Date.now() - new Date(lastSeenAt).getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (diffHours <= 2) return { label: "Online", color: "text-success" };
+  if (diffHours <= 6) return { label: "Standby", color: "text-warning" };
+  return { label: "Offline", color: "text-destructive" };
+}
+
+function deriveMeterStatusSimple(onlineStatus: string | null, lastSeenAt: string | null): { label: string; color: string } {
+  if (onlineStatus === "online") {
+    if (lastSeenAt) {
+      const diffHours = (Date.now() - new Date(lastSeenAt).getTime()) / (1000 * 60 * 60);
+      if (diffHours <= 2) return { label: "Conectado", color: "text-success" };
+    }
+    return { label: "Online", color: "text-success" };
+  }
+  if (lastSeenAt) {
+    const diffHours = (Date.now() - new Date(lastSeenAt).getTime()) / (1000 * 60 * 60);
+    if (diffHours <= 2) return { label: "Conectado", color: "text-success" };
+    if (diffHours <= 6) return { label: "Intermitente", color: "text-warning" };
+  }
+  return { label: "Desconectado", color: "text-destructive" };
+}
+
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Agora";
+  if (mins < 60) return `${mins} min atrás`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h atrás`;
+  const days = Math.floor(hours / 24);
+  return `${days}d atrás`;
+}
+
 export default function UCPublica() {
   const { token } = useParams<{ token: string }>();
   const currentYear = new Date().getFullYear();
@@ -65,6 +106,26 @@ export default function UCPublica() {
     },
     enabled: !!token,
     staleTime: 1000 * 60 * 10,
+  });
+
+  // Fetch monitoring data via RPC
+  const { data: monitoring } = useQuery({
+    queryKey: ["uc_public_monitoring", token],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("resolve_uc_monitoring", { p_token: token! });
+      if (error) throw error;
+      const parsed = data as any;
+      if (parsed?.error) return null;
+      return parsed as {
+        plants: Array<{ id: string; name: string; installed_power_kwp: number; is_active: boolean; last_seen_at: string | null; provider_id: string; allocation_percent: number }>;
+        meters: Array<{ id: string; name: string; model: string; manufacturer: string; serial_number: string; online_status: string | null; last_seen_at: string | null; last_reading_at: string | null }>;
+        daily: Array<{ date: string; energy_kwh: number; peak_power_kw: number }>;
+        today_kwh: number;
+        month_kwh: number;
+      };
+    },
+    enabled: !!token && !!resolved,
+    staleTime: 1000 * 60 * 2, // refresh every 2 min
   });
 
   // Fetch invoices for the UC
@@ -130,7 +191,25 @@ export default function UCPublica() {
     });
   }, [invoices, tarifa]);
 
+  // 7-day generation chart
+  const dailyChartData = useMemo(() => {
+    if (!monitoring?.daily?.length) return [];
+    return monitoring.daily.map((d) => {
+      const date = new Date(d.date + "T12:00:00");
+      const dayName = WEEKDAYS[date.getDay()];
+      const dayNum = date.getDate();
+      return {
+        label: `${dayName} ${dayNum}`,
+        "Geração (kWh)": Math.round((d.energy_kwh ?? 0) * 10) / 10,
+      };
+    });
+  }, [monitoring?.daily]);
+
   const years = Array.from({ length: 4 }, (_, i) => String(currentYear - i));
+
+  const hasPlants = monitoring?.plants && monitoring.plants.length > 0;
+  const hasMeters = monitoring?.meters && monitoring.meters.length > 0;
+  const hasMonitoring = hasPlants || hasMeters;
 
   // Loading state
   if (loadingToken) {
@@ -183,7 +262,7 @@ export default function UCPublica() {
         {/* UC Info */}
         <Card>
           <CardContent className="p-5">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Building2 className="h-5 w-5 text-primary" />
               </div>
@@ -200,6 +279,193 @@ export default function UCPublica() {
           </CardContent>
         </Card>
 
+        {/* ══════════ MONITORING SECTION ══════════ */}
+        {hasMonitoring && (
+          <>
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" /> Monitoramento em Tempo Real
+            </h2>
+
+            {/* Generation KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* Today */}
+              <Card className="border-l-[3px] border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sun className="w-4 h-4 text-primary" />
+                    <span className="text-xs text-muted-foreground">Geração Hoje</span>
+                  </div>
+                  <p className="text-xl font-bold text-foreground">
+                    {(monitoring?.today_kwh ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Month */}
+              <Card className="border-l-[3px] border-l-info">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Zap className="w-4 h-4 text-info" />
+                    <span className="text-xs text-muted-foreground">Geração Mês</span>
+                  </div>
+                  <p className="text-xl font-bold text-foreground">
+                    {(monitoring?.month_kwh ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kWh
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Plant status */}
+              {hasPlants && (
+                <Card className="border-l-[3px] border-l-success">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Wifi className="w-4 h-4 text-success" />
+                      <span className="text-xs text-muted-foreground">Usina</span>
+                    </div>
+                    {monitoring!.plants.map((plant) => {
+                      const status = derivePlantStatusSimple(plant.last_seen_at, plant.is_active);
+                      return (
+                        <div key={plant.id} className="flex items-center gap-1.5">
+                          <span className={`text-sm font-bold ${status.color}`}>● {status.label}</span>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Meter status */}
+              {hasMeters && (
+                <Card className="border-l-[3px] border-l-warning">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Gauge className="w-4 h-4 text-warning" />
+                      <span className="text-xs text-muted-foreground">Medidor</span>
+                    </div>
+                    {monitoring!.meters.map((meter) => {
+                      const status = deriveMeterStatusSimple(meter.online_status, meter.last_seen_at);
+                      return (
+                        <div key={meter.id} className="flex items-center gap-1.5">
+                          <span className={`text-sm font-bold ${status.color}`}>● {status.label}</span>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Plants detail */}
+            {hasPlants && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2"><Sun className="w-4 h-4 text-primary" /> Usinas Vinculadas</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                          <TableHead className="font-semibold text-foreground">Usina</TableHead>
+                          <TableHead className="font-semibold text-foreground text-right">Potência</TableHead>
+                          <TableHead className="font-semibold text-foreground">Status</TableHead>
+                          <TableHead className="font-semibold text-foreground">Última comunicação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {monitoring!.plants.map((plant) => {
+                          const status = derivePlantStatusSimple(plant.last_seen_at, plant.is_active);
+                          return (
+                            <TableRow key={plant.id} className="hover:bg-muted/30">
+                              <TableCell className="font-medium text-foreground">{plant.name}</TableCell>
+                              <TableCell className="text-right font-mono text-sm">
+                                {plant.installed_power_kwp ? `${Number(plant.installed_power_kwp).toLocaleString("pt-BR")} kWp` : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${status.color}`}>
+                                  {status.label}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {timeAgo(plant.last_seen_at)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Meters detail */}
+            {hasMeters && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2"><Gauge className="w-4 h-4 text-warning" /> Medidores</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                          <TableHead className="font-semibold text-foreground">Medidor</TableHead>
+                          <TableHead className="font-semibold text-foreground">Modelo</TableHead>
+                          <TableHead className="font-semibold text-foreground">Status</TableHead>
+                          <TableHead className="font-semibold text-foreground">Última leitura</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {monitoring!.meters.map((meter) => {
+                          const status = deriveMeterStatusSimple(meter.online_status, meter.last_seen_at);
+                          return (
+                            <TableRow key={meter.id} className="hover:bg-muted/30">
+                              <TableCell className="font-medium text-foreground">{meter.name || meter.serial_number || "—"}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {[meter.manufacturer, meter.model].filter(Boolean).join(" ") || "—"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${status.color}`}>
+                                  {status.label}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {timeAgo(meter.last_reading_at || meter.last_seen_at)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 7-day generation chart */}
+            {dailyChartData.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Geração - Últimos 7 dias</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={dailyChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Bar dataKey="Geração (kWh)" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* ══════════ ECONOMY SECTION ══════════ */}
         {/* Year selector */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground">Relatório de Economia</h2>
@@ -263,7 +529,7 @@ export default function UCPublica() {
           </div>
         )}
 
-        {/* Chart */}
+        {/* Economy Chart */}
         {chartData.length > 0 && (
           <Card>
             <CardHeader className="pb-2">
