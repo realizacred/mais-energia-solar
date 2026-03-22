@@ -50,7 +50,7 @@ interface TestResult {
   contexto?: string | null;
 }
 
-const ACCEPTED_TYPES = ".pdf,.png,.jpg,.jpeg,.webp";
+const ACCEPTED_TYPES = ".pdf";
 
 const STATUS_MAP: Record<string, { icon: typeof CheckCircle2; label: string; color: string }> = {
   success: { icon: CheckCircle2, label: "Sucesso", color: "text-success" },
@@ -71,9 +71,17 @@ export function ExtractionTestTab({ onGenerateConfig }: ExtractionTestTabProps =
   const [result, setResult] = useState<TestResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "bmp"];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (f) {
+      const ext = f.name.split(".").pop()?.toLowerCase() || "";
+      if (IMAGE_EXTENSIONS.includes(ext)) {
+        toast.error("Imagens não são suportadas para extração. Envie um arquivo PDF.");
+        e.target.value = "";
+        return;
+      }
       setFile(f);
       setResult(null);
     }
