@@ -573,6 +573,9 @@ async function processInvoice(
       source: invoiceSource,
       extraction_status: extractionStatus,
       gd_consistency: gdChecks,
+      ownership_validation: ownershipResult,
+      identifier_extracted: identifierExtracted,
+      identifier_expected: identifierExpected,
       config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome } : null,
     },
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

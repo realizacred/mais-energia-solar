@@ -57,7 +57,7 @@ export interface BillingEmailSettings {
   servico_fatura_ativo: boolean;
 }
 
-const INVOICE_COLS = `id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at, demanda_contratada_kw, demanda_medida_kw, ultrapassagem_kw, multa_ultrapassagem, bandeira_tarifaria, raw_extraction, parsing_status, parsing_error_reason, parser_version, last_parsed_at`;
+const INVOICE_COLS = `id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at, demanda_contratada_kw, demanda_medida_kw, ultrapassagem_kw, multa_ultrapassagem, bandeira_tarifaria, raw_extraction, parsing_status, parsing_error_reason, parser_version, last_parsed_at, ownership_validation_status, ownership_validation_score, identifier_extracted, identifier_expected, needs_manual_assignment`;
 // Use safe view that hides pdf_password — only exposes has_pdf_password boolean
 const BILLING_COLS = `id, unit_id, billing_capture_email, forward_to_email, email_billing_enabled, setup_status, notes, dia_leitura, dias_antecedencia_alerta, canal_notificacao, servico_fatura_ativo`;
 const BILLING_TABLE = "unit_billing_email_settings";
