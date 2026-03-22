@@ -962,6 +962,21 @@ Deno.serve(async (req) => {
       extracted = await aiExtractMissingFields(text, extracted);
     }
 
+    // ── Heuristic: swap TE/TUSD if they look inverted ──
+    // In most Brazilian bills, TUSD (Fio B) > TE (Tarifa Energia).
+    // If AI or regex swapped them, correct it.
+    if (extracted && extracted.tarifa_energia_kwh != null && extracted.tarifa_fio_b_kwh != null) {
+      const te = extracted.tarifa_energia_kwh;
+      const tusd = extracted.tarifa_fio_b_kwh;
+      // If TE is significantly larger than TUSD, they're likely swapped
+      if (te > tusd && te > 0.5 && tusd > 0.05) {
+        console.log(`[parse-conta-energia] Swapping TE/TUSD: TE=${te} > TUSD=${tusd} — likely inverted`);
+        extracted.tarifa_energia_kwh = tusd;
+        extracted.tarifa_fio_b_kwh = te;
+        extracted.raw_fields['tariff_swap_applied'] = `TE=${te}→${tusd}, TUSD=${tusd}→${te}`;
+      }
+    }
+
     // If nothing worked at all
     if (!extracted) {
       return new Response(JSON.stringify({
