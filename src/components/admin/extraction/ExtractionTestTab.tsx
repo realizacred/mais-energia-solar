@@ -344,9 +344,31 @@ export function ExtractionTestTab({ onGenerateConfig }: ExtractionTestTabProps =
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {result.file_type.toUpperCase()} · {result.is_textual ? "Textual" : "Imagem"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {result.file_type.toUpperCase()} · {result.is_textual ? "Textual" : "Imagem"}
+                  </Badge>
+                  {onGenerateConfig && result.concessionaria_detected && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        onGenerateConfig({
+                          concessionaria_code: (result.concessionaria_detected || "").toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
+                          concessionaria_nome: result.concessionaria_detected || "",
+                          fields_found: result.fields_found,
+                          fields_missing: result.fields_missing,
+                          parser_version: result.parser_version,
+                          tipo_uc_detectado: result.uc_detection?.tipo_uc_detectado,
+                        });
+                      }}
+                    >
+                      <PlusCircle className="w-3.5 h-3.5 mr-1" />
+                      Gerar Configuração
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
