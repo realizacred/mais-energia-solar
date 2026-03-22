@@ -86,11 +86,7 @@ export function useCalculateGdMonth() {
       return calculateGdMonth(gdGroupId, year, month, recalculate ?? true);
     },
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["gd_monthly_snapshot"] });
-      qc.invalidateQueries({ queryKey: ["gd_monthly_allocations"] });
-      qc.invalidateQueries({ queryKey: ["gd_credit_balances"] });
-      qc.invalidateQueries({ queryKey: ["gd_reconciliation"] });
-      qc.invalidateQueries({ queryKey: ["gd_monthly_overflows"] });
+      invalidateUcQueries(qc);
     },
   });
 }
