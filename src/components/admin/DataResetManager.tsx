@@ -214,7 +214,7 @@ export function DataResetManager() {
                       <CardTitle className="text-sm font-semibold text-foreground">{seg.label}</CardTitle>
                     </div>
                     <Badge variant={total > 0 ? "secondary" : "outline"} className="text-xs font-mono">
-                      {total.toLocaleString("pt-BR")} reg.
+                      {formatIntegerBR(total)} reg.
                     </Badge>
                   </div>
                 </CardHeader>
