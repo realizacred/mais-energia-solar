@@ -755,13 +755,13 @@ export default function UCPublica() {
                     <RechartsTooltip content={<ChartTooltip />} />
                     <Bar dataKey="Consumo" fill="hsl(var(--destructive))" radius={[2, 2, 0, 0]} />
                     <Bar dataKey="Compensado" fill="hsl(var(--success))" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="Injetado" fill="hsl(var(--warning))" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Injetado" fill="hsl(var(--secondary))" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
                 <div className="flex flex-wrap items-center justify-center gap-4 mt-2 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-destructive" /> Consumo</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-success" /> Compensado</span>
-                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-warning" /> Injetado</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-secondary" /> Injetado</span>
                 </div>
               </CardContent>
             </Card>
