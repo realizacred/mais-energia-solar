@@ -2,7 +2,7 @@
  * ExtractionConfigModal — Modal for creating/editing extraction config per concessionária.
  * §25: FormModalTemplate pattern. Reposicionado para modelo 100% nativo.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useSaveExtractionConfig, type ExtractionConfig, type ExtractionStrategyMode } from "@/hooks/useExtractionConfigs";
 import { toast } from "sonner";
@@ -233,6 +233,7 @@ function FieldCategorySection({
 
 export function ExtractionConfigModal({ open, onOpenChange, config }: ExtractionConfigModalProps) {
   const saveConfig = useSaveExtractionConfig();
+  const [customFieldInput, setCustomFieldInput] = useState("");
 
   const [form, setForm] = useState({
     concessionaria_code: "",
@@ -254,55 +255,64 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
     parser_version: "3.0.2",
     active: true,
     notes: "",
+    custom_fields: [] as FieldDef[],
   });
 
+  const baselineRef = useRef<string>("");
+
   useEffect(() => {
-    if (config) {
-      setForm({
-        concessionaria_code: config.concessionaria_code,
-        concessionaria_nome: config.concessionaria_nome,
-        concessionaria_id: config.concessionaria_id,
-        strategy_mode: config.strategy_mode,
-        native_enabled: config.native_enabled,
-        provider_enabled: config.provider_enabled,
-        provider_name: config.provider_name || "",
-        provider_endpoint_key: config.provider_endpoint_key || "",
-        provider_requires_base64: config.provider_requires_base64,
-        provider_requires_password: config.provider_requires_password,
-        fallback_enabled: config.fallback_enabled,
-        required_fields: config.required_fields || ["consumo_kwh", "valor_total"],
-        required_fields_geradora: config.required_fields_geradora?.length ? config.required_fields_geradora : config.required_fields || ["consumo_kwh", "valor_total"],
-        required_fields_beneficiaria: config.required_fields_beneficiaria?.length ? config.required_fields_beneficiaria : (config.required_fields || ["consumo_kwh", "valor_total"]).filter((f: string) => !["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"].includes(f)),
-        optional_fields: config.optional_fields || [],
-        identifier_field: config.identifier_field || "numero_uc",
-        parser_version: config.parser_version || "3.0.2",
-        active: config.active,
-        notes: config.notes || "",
-      });
-    } else {
-      setForm({
-        concessionaria_code: "",
-        concessionaria_nome: "",
-        concessionaria_id: null,
-        strategy_mode: "native",
-        native_enabled: true,
-        provider_enabled: false,
-        provider_name: "",
-        provider_endpoint_key: "",
-        provider_requires_base64: false,
-        provider_requires_password: false,
-        fallback_enabled: false,
-        required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
-        required_fields_geradora: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia", "energia_injetada_kwh", "saldo_gd_acumulado"],
-        required_fields_beneficiaria: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
-        optional_fields: [],
-        identifier_field: "numero_uc",
-        parser_version: "3.0.2",
-        active: true,
-        notes: "",
-      });
-    }
+    const newForm = config ? {
+      concessionaria_code: config.concessionaria_code,
+      concessionaria_nome: config.concessionaria_nome,
+      concessionaria_id: config.concessionaria_id,
+      strategy_mode: config.strategy_mode,
+      native_enabled: config.native_enabled,
+      provider_enabled: config.provider_enabled,
+      provider_name: config.provider_name || "",
+      provider_endpoint_key: config.provider_endpoint_key || "",
+      provider_requires_base64: config.provider_requires_base64,
+      provider_requires_password: config.provider_requires_password,
+      fallback_enabled: config.fallback_enabled,
+      required_fields: config.required_fields || ["consumo_kwh", "valor_total"],
+      required_fields_geradora: config.required_fields_geradora?.length ? config.required_fields_geradora : config.required_fields || ["consumo_kwh", "valor_total"],
+      required_fields_beneficiaria: config.required_fields_beneficiaria?.length ? config.required_fields_beneficiaria : (config.required_fields || ["consumo_kwh", "valor_total"]).filter((f: string) => !["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"].includes(f)),
+      optional_fields: config.optional_fields || [],
+      identifier_field: config.identifier_field || "numero_uc",
+      parser_version: config.parser_version || "3.0.2",
+      active: config.active,
+      notes: config.notes || "",
+      custom_fields: [] as FieldDef[],
+    } : {
+      concessionaria_code: "",
+      concessionaria_nome: "",
+      concessionaria_id: null as string | null,
+      strategy_mode: "native" as ExtractionStrategyMode,
+      native_enabled: true,
+      provider_enabled: false,
+      provider_name: "",
+      provider_endpoint_key: "",
+      provider_requires_base64: false,
+      provider_requires_password: false,
+      fallback_enabled: false,
+      required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
+      required_fields_geradora: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia", "energia_injetada_kwh", "saldo_gd_acumulado"],
+      required_fields_beneficiaria: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
+      optional_fields: [] as string[],
+      identifier_field: "numero_uc",
+      parser_version: "3.0.2",
+      active: true,
+      notes: "",
+      custom_fields: [] as FieldDef[],
+    };
+    setForm(newForm);
+    baselineRef.current = JSON.stringify(newForm);
+    setCustomFieldInput("");
   }, [config, open]);
+
+  const isDirty = useMemo(() => {
+    if (!config) return !!form.concessionaria_code; // new: dirty when code filled
+    return JSON.stringify(form) !== baselineRef.current;
+  }, [form, config]);
 
   const toggleRequired = (key: string) => {
     setForm(f => {
@@ -596,6 +606,86 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                   })}
                 </TabsContent>
               </Tabs>
+
+              {/* Custom field creator */}
+              <div className="rounded-lg border border-dashed border-border p-3 mt-3">
+                <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-primary" />
+                  Adicionar campo personalizado
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={customFieldInput}
+                    onChange={e => setCustomFieldInput(e.target.value)}
+                    placeholder="Ex.: taxa_iluminacao, multa_atraso..."
+                    className="h-8 text-xs flex-1"
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && customFieldInput.trim()) {
+                        e.preventDefault();
+                        const key = customFieldInput.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+                        if (!key) return;
+                        if (ALL_FIELD_KEYS.includes(key) || form.custom_fields.some(f => f.key === key)) {
+                          toast.error("Este campo já existe");
+                          return;
+                        }
+                        const label = customFieldInput.trim();
+                        setForm(f => ({
+                          ...f,
+                          custom_fields: [...f.custom_fields, { key, label }],
+                          optional_fields: [...f.optional_fields, key],
+                        }));
+                        setCustomFieldInput("");
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={!customFieldInput.trim()}
+                    onClick={() => {
+                      const key = customFieldInput.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+                      if (!key) return;
+                      if (ALL_FIELD_KEYS.includes(key) || form.custom_fields.some(f => f.key === key)) {
+                        toast.error("Este campo já existe");
+                        return;
+                      }
+                      const label = customFieldInput.trim();
+                      setForm(f => ({
+                        ...f,
+                        custom_fields: [...f.custom_fields, { key, label }],
+                        optional_fields: [...f.optional_fields, key],
+                      }));
+                      setCustomFieldInput("");
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
+                {form.custom_fields.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {form.custom_fields.map(cf => (
+                      <Badge key={cf.key} variant="outline" className="text-xs gap-1 bg-primary/5">
+                        {cf.label}
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            custom_fields: f.custom_fields.filter(c => c.key !== cf.key),
+                            optional_fields: f.optional_fields.filter(k => k !== cf.key),
+                            required_fields: f.required_fields.filter(k => k !== cf.key),
+                          }))}
+                          className="ml-0.5 hover:text-destructive"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </SectionCard>
 
             {/* Row 3: Notes */}
@@ -618,7 +708,7 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saveConfig.isPending}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={!form.concessionaria_code || saveConfig.isPending}>
+          <Button onClick={handleSave} disabled={!isDirty || !form.concessionaria_code || saveConfig.isPending}>
             {saveConfig.isPending && <Spinner size="sm" className="mr-2" />}
             {config ? "Salvar" : "Cadastrar"}
           </Button>
