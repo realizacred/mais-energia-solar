@@ -10,7 +10,8 @@ const corsHeaders = {
 
 interface ProcessRequest {
   unit_id?: string;
-  pdf_base64: string;
+  pdf_base64?: string;
+  pdf_storage_path?: string;
   source: 'email' | 'upload';
   source_message_id?: string;
   email_address?: string;

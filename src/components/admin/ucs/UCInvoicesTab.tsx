@@ -39,6 +39,7 @@ import {
 import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { parseInvokeError } from "@/lib/supabaseFunctionError";
+import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
