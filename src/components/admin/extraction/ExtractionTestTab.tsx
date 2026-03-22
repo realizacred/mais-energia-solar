@@ -78,7 +78,7 @@ export function ExtractionTestTab({ onGenerateConfig }: ExtractionTestTabProps =
     if (f) {
       const ext = f.name.split(".").pop()?.toLowerCase() || "";
       if (IMAGE_EXTENSIONS.includes(ext)) {
-        toast({ title: "Formato não suportado", description: "Imagens não são suportadas para extração. Envie um arquivo PDF.", variant: "destructive" });
+        toast.error("Imagens não são suportadas para extração. Envie um arquivo PDF.");
         e.target.value = "";
         return;
       }
