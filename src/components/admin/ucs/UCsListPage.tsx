@@ -1,10 +1,12 @@
 /**
  * UCsListPage — Main list page for Unidades Consumidoras.
+ * GD Geradora UCs show as expandable parent rows with beneficiaries nested below.
  */
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { unitService, type UCRecord } from "@/services/unitService";
+import { supabase } from "@/integrations/supabase/client";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Input } from "@/components/ui/input";
@@ -14,11 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Archive, Edit, Building2, AlertTriangle, ChevronLeft, ChevronRight, Zap, ShieldAlert, CheckCircle2, ArchiveIcon } from "lucide-react";
+import { Plus, Search, Archive, Edit, Building2, AlertTriangle, ChevronLeft, ChevronRight, Zap, ShieldAlert, CheckCircle2, ArchiveIcon, ChevronDown, ChevronRight as ChevronRightIcon, Sun, Users, CornerDownRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UCFormDialog } from "./UCFormDialog";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Beneficiária",
@@ -31,6 +33,44 @@ type QuickFilter = "all" | "no_concessionaria" | "no_billing" | "archived";
 
 const PAGE_SIZE = 25;
 
+/** Fetch GD groups with their beneficiaries for tree view */
+function useGdGroupsTree() {
+  return useQuery({
+    queryKey: ["gd_groups_tree"],
+    queryFn: async () => {
+      const { data: groups, error: gErr } = await supabase
+        .from("gd_groups")
+        .select("id, nome, uc_geradora_id, status")
+        .eq("status", "active");
+      if (gErr) throw gErr;
+
+      const { data: bens, error: bErr } = await supabase
+        .from("gd_group_beneficiaries")
+        .select("gd_group_id, uc_beneficiaria_id, allocation_percent, is_active")
+        .eq("is_active", true);
+      if (bErr) throw bErr;
+
+      // Map: generatorUcId -> { groupName, beneficiaryUcIds[] }
+      const tree = new Map<string, { groupId: string; groupName: string; beneficiaries: Array<{ ucId: string; percent: number }> }>();
+      for (const g of (groups || [])) {
+        tree.set(g.uc_geradora_id, {
+          groupId: g.id,
+          groupName: g.nome,
+          beneficiaries: [],
+        });
+      }
+      for (const b of (bens || [])) {
+        const group = [...tree.values()].find(t => t.groupId === b.gd_group_id);
+        if (group) {
+          group.beneficiaries.push({ ucId: b.uc_beneficiaria_id, percent: Number(b.allocation_percent) });
+        }
+      }
+      return tree;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 export default function UCsListPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,6 +81,7 @@ export default function UCsListPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUC, setEditingUC] = useState<UCRecord | null>(null);
   const [page, setPage] = useState(1);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const { data: allUcs = [], isLoading, error } = useQuery({
     queryKey: ["units_consumidoras", tipoFilter, search],
@@ -50,6 +91,8 @@ export default function UCsListPage() {
     }),
     staleTime: 1000 * 60 * 5,
   });
+
+  const { data: gdTree } = useGdGroupsTree();
 
   const counts = useMemo(() => {
     const active = allUcs.filter(u => !u.is_archived);
@@ -79,8 +122,49 @@ export default function UCsListPage() {
     return result;
   }, [allUcs, quickFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredUcs.length / PAGE_SIZE));
-  const pagedUcs = filteredUcs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Build ordered list: GD Geradora rows first, then non-GD UCs
+  // Beneficiary UCs that belong to a group are hidden from top-level and shown nested
+  const { topLevelUcs, beneficiaryMap, ucMap } = useMemo(() => {
+    const ucMap = new Map(filteredUcs.map(u => [u.id, u]));
+    const beneficiaryUcIds = new Set<string>();
+
+    if (gdTree) {
+      for (const [, group] of gdTree) {
+        for (const b of group.beneficiaries) {
+          beneficiaryUcIds.add(b.ucId);
+        }
+      }
+    }
+
+    // Top-level: all UCs except those that are beneficiaries of a group
+    const topLevel = filteredUcs.filter(u => !beneficiaryUcIds.has(u.id));
+
+    // Sort: GD Geradoras first, then the rest
+    topLevel.sort((a, b) => {
+      const aIsGd = gdTree?.has(a.id) ? 0 : 1;
+      const bIsGd = gdTree?.has(b.id) ? 0 : 1;
+      if (aIsGd !== bIsGd) return aIsGd - bIsGd;
+      return a.nome.localeCompare(b.nome);
+    });
+
+    // Build beneficiary map for quick lookup
+    const benMap = new Map<string, Array<{ uc: UCRecord; percent: number }>>();
+    if (gdTree) {
+      for (const [generatorId, group] of gdTree) {
+        const bens: Array<{ uc: UCRecord; percent: number }> = [];
+        for (const b of group.beneficiaries) {
+          const uc = ucMap.get(b.ucId);
+          if (uc) bens.push({ uc, percent: b.percent });
+        }
+        if (bens.length > 0) benMap.set(generatorId, bens);
+      }
+    }
+
+    return { topLevelUcs: topLevel, beneficiaryMap: benMap, ucMap };
+  }, [filteredUcs, gdTree]);
+
+  const totalPages = Math.max(1, Math.ceil(topLevelUcs.length / PAGE_SIZE));
+  const pagedUcs = topLevelUcs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => setPage(1), [quickFilter, tipoFilter, search]);
 
@@ -102,6 +186,15 @@ export default function UCsListPage() {
     setDialogOpen(true);
   }
 
+  function toggleGroup(ucId: string) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(ucId)) next.delete(ucId);
+      else next.add(ucId);
+      return next;
+    });
+  }
+
   const filterTabs: { key: QuickFilter; label: string; count: number; icon: any }[] = [
     { key: "all", label: "Ativas", count: counts.all, icon: CheckCircle2 },
     { key: "no_concessionaria", label: "Sem Concessionária", count: counts.no_concessionaria, icon: ShieldAlert },
@@ -115,6 +208,93 @@ export default function UCsListPage() {
     { label: "Sem Credenciais", value: counts.no_billing, icon: AlertTriangle, borderCls: "border-l-destructive", bgCls: "bg-destructive/10", textCls: "text-destructive" },
     { label: "Arquivadas", value: counts.archived, icon: ArchiveIcon, borderCls: "border-l-muted-foreground/40", bgCls: "bg-muted", textCls: "text-muted-foreground" },
   ];
+
+  const isGdGenerator = (ucId: string) => gdTree?.has(ucId) ?? false;
+  const hasBeneficiaries = (ucId: string) => (beneficiaryMap.get(ucId)?.length ?? 0) > 0;
+
+  function renderUCRow(uc: UCRecord, isChild = false, percent?: number) {
+    const isGenerator = isGdGenerator(uc.id);
+    const hasBens = hasBeneficiaries(uc.id);
+    const isExpanded = expandedGroups.has(uc.id);
+
+    return (
+      <TableRow
+        key={uc.id}
+        className={cn(
+          "hover:bg-muted/30 cursor-pointer transition-colors",
+          isChild && "bg-muted/20",
+          isGenerator && "border-l-2 border-l-primary/40"
+        )}
+        onClick={() => navigate(`/admin/ucs/${uc.id}`)}
+      >
+        <TableCell className="font-medium text-foreground">
+          <div className="flex items-center gap-2">
+            {isGenerator && hasBens && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={(e) => { e.stopPropagation(); toggleGroup(uc.id); }}
+              >
+                {isExpanded
+                  ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  : <ChevronRightIcon className="w-4 h-4 text-muted-foreground" />
+                }
+              </Button>
+            )}
+            {isChild && (
+              <CornerDownRight className="w-4 h-4 text-muted-foreground/50 shrink-0 ml-2" />
+            )}
+            {!isGenerator && !isChild && <div className="w-6 shrink-0" />}
+            <span className={cn(isChild && "text-sm")}>{uc.nome}</span>
+          </div>
+        </TableCell>
+        <TableCell className="font-mono text-xs text-muted-foreground">{uc.codigo_uc}</TableCell>
+        <TableCell className="text-sm text-foreground">{uc.concessionaria_nome || <span className="text-muted-foreground/50 italic">Não definida</span>}</TableCell>
+        <TableCell>
+          {isGenerator ? (
+            <Badge className="text-xs bg-primary/10 text-primary border-primary/20">
+              <Sun className="w-3 h-3 mr-1" /> Geradora
+            </Badge>
+          ) : isChild ? (
+            <Badge variant="outline" className="text-xs">
+              <Users className="w-3 h-3 mr-1" /> Beneficiária
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-xs">
+              {UC_TYPE_LABELS[uc.tipo_uc] || uc.tipo_uc}
+            </Badge>
+          )}
+        </TableCell>
+        <TableCell className="text-xs text-muted-foreground">
+          {isChild && percent != null ? (
+            <span className="font-mono">{percent.toFixed(2)}%</span>
+          ) : (
+            <>
+              {uc.classificacao_grupo || "—"}{uc.classificacao_subgrupo ? ` - ${uc.classificacao_subgrupo}` : ""}
+            </>
+          )}
+        </TableCell>
+        <TableCell>
+          <StatusBadge variant={uc.is_archived ? "muted" : uc.status === "active" ? "success" : "warning"} dot>
+            {uc.is_archived ? "Arquivada" : uc.status === "active" ? "Ativa" : uc.status}
+          </StatusBadge>
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(uc)} title="Editar">
+              <Edit className="w-4 h-4" />
+            </Button>
+            {!uc.is_archived && (
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => archiveMut.mutate(uc.id)} title="Arquivar">
+                <Archive className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
 
   return (
     <motion.div
@@ -207,7 +387,7 @@ export default function UCsListPage() {
         </Select>
       </div>
 
-      {/* §4 Table */}
+      {/* §4 Table with GD tree */}
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -239,42 +419,51 @@ export default function UCsListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedUcs.map((uc) => (
-                  <TableRow
-                    key={uc.id}
-                    className="hover:bg-muted/30 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/admin/ucs/${uc.id}`)}
-                  >
-                    <TableCell className="font-medium text-foreground">{uc.nome}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{uc.codigo_uc}</TableCell>
-                    <TableCell className="text-sm text-foreground">{uc.concessionaria_nome || <span className="text-muted-foreground/50 italic">Não definida</span>}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {UC_TYPE_LABELS[uc.tipo_uc] || uc.tipo_uc}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {uc.classificacao_grupo || "—"}{uc.classificacao_subgrupo ? ` - ${uc.classificacao_subgrupo}` : ""}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge variant={uc.is_archived ? "muted" : uc.status === "active" ? "success" : "warning"} dot>
-                        {uc.is_archived ? "Arquivada" : uc.status === "active" ? "Ativa" : uc.status}
-                      </StatusBadge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(uc)} title="Editar">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        {!uc.is_archived && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => archiveMut.mutate(uc.id)} title="Arquivar">
-                            <Archive className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {pagedUcs.map((uc) => {
+                  const isGenerator = isGdGenerator(uc.id);
+                  const isExpanded = expandedGroups.has(uc.id);
+                  const bens = beneficiaryMap.get(uc.id) || [];
+
+                  return (
+                    <AnimatePresence key={uc.id}>
+                      {renderUCRow(uc)}
+                      {isGenerator && isExpanded && bens.map(({ uc: benUc, percent }) => (
+                        <motion.tr
+                          key={`ben-${benUc.id}`}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="hover:bg-muted/30 cursor-pointer transition-colors bg-muted/20"
+                          onClick={() => navigate(`/admin/ucs/${benUc.id}`)}
+                        >
+                          <TableCell className="font-medium text-foreground">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 shrink-0" />
+                              <CornerDownRight className="w-4 h-4 text-muted-foreground/50 shrink-0 ml-2" />
+                              <span className="text-sm">{benUc.nome}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">{benUc.codigo_uc}</TableCell>
+                          <TableCell className="text-sm text-foreground">{benUc.concessionaria_nome || <span className="text-muted-foreground/50 italic">Não definida</span>}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              <Users className="w-3 h-3 mr-1" /> Beneficiária
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            <span className="font-mono">{percent.toFixed(2)}%</span>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge variant={benUc.is_archived ? "muted" : benUc.status === "active" ? "success" : "warning"} dot>
+                              {benUc.is_archived ? "Arquivada" : benUc.status === "active" ? "Ativa" : benUc.status}
+                            </StatusBadge>
+                          </TableCell>
+                          <TableCell />
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -283,7 +472,7 @@ export default function UCsListPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2 text-sm text-muted-foreground">
               <span className="text-xs">
-                {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, filteredUcs.length)} de {filteredUcs.length}
+                {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, topLevelUcs.length)} de {topLevelUcs.length}
               </span>
               <Button variant="ghost" size="icon" className="h-7 w-7" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="w-4 h-4" />
