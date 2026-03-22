@@ -712,6 +712,148 @@ export function UCInvoicesTab({ unitId }: Props) {
         </DialogContent>
       </Dialog>
 
+      {/* Debug parsing modal */}
+      <Dialog open={!!debugInvoice} onOpenChange={(open) => !open && setDebugInvoice(null)}>
+        <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Bug className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Debug do Parsing</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Detalhes da extração determinística — {debugInvoice?.parser_version ? `Parser v${debugInvoice.parser_version}` : "Versão desconhecida"}
+              </p>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+            {debugInvoice && (() => {
+              const raw = debugInvoice.raw_extraction as Record<string, any> | null;
+              if (!raw) return <p className="text-sm text-muted-foreground">Sem dados de extração disponíveis.</p>;
+
+              const FIELD_LABELS: Record<string, string> = {
+                concessionaria_nome: "Concessionária",
+                numero_uc: "Nº UC",
+                mes_referencia: "Referência",
+                vencimento: "Vencimento",
+                valor_total: "Valor Total",
+                consumo_kwh: "Consumo (kWh)",
+                energia_injetada_kwh: "Injeção (kWh)",
+                energia_compensada_kwh: "Compensado (kWh)",
+                saldo_gd_acumulado: "Saldo GD Acumulado",
+                saldo_gd: "Saldo GD",
+                leitura_anterior_03: "Leitura Anterior 03",
+                leitura_atual_03: "Leitura Atual 03",
+                leitura_anterior_103: "Leitura Anterior 103",
+                leitura_atual_103: "Leitura Atual 103",
+                proxima_leitura_data: "Próxima Leitura",
+                tipo_ligacao: "Tipo Ligação",
+                classe_consumo: "Classe",
+                categoria_gd: "Categoria GD",
+                bandeira_tarifaria: "Bandeira",
+                tarifa_energia_kwh: "Tarifa Energia",
+                tarifa_fio_b_kwh: "TUSD/Fio B",
+                icms_percentual: "ICMS %",
+                pis_valor: "PIS",
+                cofins_valor: "COFINS",
+                demanda_contratada_kw: "Demanda Contratada",
+              };
+
+              const importantFields = Object.keys(FIELD_LABELS);
+              const foundFields = importantFields.filter(f => raw[f] != null && raw[f] !== "");
+              const missingFields = importantFields.filter(f => raw[f] == null || raw[f] === "");
+              const validations = (raw.validations || []) as Array<{ rule: string; passed: boolean; detail: string }>;
+              const fieldResults = (raw.field_results || {}) as Record<string, { value: any; source: string; validated?: boolean; note?: string }>;
+
+              return (
+                <>
+                  {/* Parsing status */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className="text-xs space-y-1 flex-1">
+                      <p><strong>Status:</strong> {debugInvoice.parsing_status || "—"}</p>
+                      <p><strong>Parser:</strong> {raw.parser_used || "?"} v{raw.parser_version || "?"}</p>
+                      <p><strong>Confiança:</strong> {raw.confidence != null ? `${raw.confidence}%` : "—"}</p>
+                      {debugInvoice.parsing_error_reason && (
+                        <p className="text-destructive"><strong>Erro:</strong> {debugInvoice.parsing_error_reason}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Found fields */}
+                  <div>
+                    <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                      Campos encontrados ({foundFields.length})
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {foundFields.map(f => (
+                        <div key={f} className="text-xs p-2 rounded bg-success/5 border border-success/10">
+                          <span className="text-muted-foreground">{FIELD_LABELS[f]}:</span>{" "}
+                          <span className="font-medium text-foreground">{String(raw[f])}</span>
+                          {fieldResults[f]?.source && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">Fonte: {fieldResults[f].source}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Missing fields */}
+                  {missingFields.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                        <XCircle className="w-3.5 h-3.5 text-destructive" />
+                        Campos não encontrados ({missingFields.length})
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {missingFields.map(f => (
+                          <span key={f} className="text-[11px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+                            {FIELD_LABELS[f]}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Validations */}
+                  {validations.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-2">Validações Cruzadas</p>
+                      <div className="space-y-1">
+                        {validations.map((v, i) => (
+                          <div key={i} className={`flex items-center gap-2 text-xs p-2 rounded ${v.passed ? "bg-success/5" : "bg-destructive/5"}`}>
+                            {v.passed ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
+                            ) : (
+                              <XCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                            )}
+                            <span className="font-medium text-foreground">{v.rule}</span>
+                            <span className="text-muted-foreground flex-1">{v.detail}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            {debugInvoice?.pdf_file_url && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={reprocessingId === debugInvoice.id}
+                onClick={() => { handleReprocess(debugInvoice.id); setDebugInvoice(null); }}
+              >
+                <RefreshCw className="w-4 h-4 mr-1" /> Reprocessar
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setDebugInvoice(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
