@@ -25,8 +25,14 @@ interface Props {
 
 export function PricingMethodTab({ versionId, isReadOnly }: Props) {
   const [data, setData] = useState<PricingMethod | null>(null);
+  const [baseline, setBaseline] = useState<PricingMethod | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const isDirty = useMemo(() => {
+    if (!data || !baseline) return false;
+    return JSON.stringify(data) !== JSON.stringify(baseline);
+  }, [data, baseline]);
 
   const loadMethod = useCallback(async () => {
     setLoading(true);
