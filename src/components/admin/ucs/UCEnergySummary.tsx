@@ -56,41 +56,43 @@ export function UCEnergySummary({ ucId }: Props) {
   if (!hasData && creditBalances.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary" />
-          <CardTitle className="text-sm">Energia GD — {MONTHS[month - 1]}/{year}</CardTitle>
+          <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+            <Zap className="w-4 h-4 text-warning" />
+          </div>
+          <CardTitle className="text-sm font-semibold">Energia GD — {MONTHS[month - 1]}/{year}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* As Beneficiary */}
         {asBeneficiary && (
           <div className="space-y-3">
-            <Badge variant="outline" className="text-xs">
+            <Badge className="text-xs bg-info/10 text-info border-info/20">
               <Users className="w-3 h-3 mr-1" /> Beneficiária
             </Badge>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">Consumo</p>
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowDownUp className="w-3 h-3" /> Consumo</p>
                 <p className="text-sm font-bold font-mono">{Number(asBeneficiary.consumed_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
               </div>
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">Crédito Recebido</p>
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Crédito Recebido</p>
                 <p className="text-sm font-bold font-mono">{Number(asBeneficiary.allocated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
               </div>
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">Compensado</p>
+              <div className="rounded-lg border border-success/20 bg-success/5 p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><Sun className="w-3 h-3" /> Compensado</p>
                 <p className="text-sm font-bold font-mono text-success">{Number(asBeneficiary.compensated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
               </div>
               {Number(asBeneficiary.used_from_balance_kwh || 0) > 0 && (
-                <div className="rounded-lg border border-border p-3">
+                <div className="rounded-lg border border-info/20 bg-info/5 p-3">
                   <p className="text-xs text-muted-foreground">Usado do Saldo</p>
                   <p className="text-sm font-bold font-mono text-info">{Number(asBeneficiary.used_from_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
                 </div>
               )}
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted-foreground">Economia Est.</p>
+              <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Economia Est.</p>
                 <p className="text-sm font-bold font-mono">
                   {asBeneficiary.estimated_savings_brl != null
                     ? Number(asBeneficiary.estimated_savings_brl).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
@@ -105,39 +107,44 @@ export function UCEnergySummary({ ucId }: Props) {
         {asGeradora && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
+              <Badge className="text-xs bg-success/10 text-success border-success/20">
                 <Sun className="w-3 h-3 mr-1" /> Geradora
               </Badge>
-              <span className="text-xs text-muted-foreground">Grupo: {asGeradora.group.nome}</span>
+              <span className="text-xs text-muted-foreground font-medium">Grupo: {asGeradora.group.nome}</span>
             </div>
             {asGeradora.snapshot ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Geração</p>
+                <div className="rounded-lg border border-success/20 bg-success/5 p-3">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Sun className="w-3 h-3" /> Geração</p>
                   <p className="text-sm font-bold font-mono">{Number(asGeradora.snapshot.generation_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
                 </div>
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Distribuído</p>
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Distribuído</p>
                   <p className="text-sm font-bold font-mono">{Number(asGeradora.snapshot.total_allocated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
                 </div>
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Compensado</p>
+                <div className="rounded-lg border border-info/20 bg-info/5 p-3">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowDownUp className="w-3 h-3" /> Compensado</p>
                   <p className="text-sm font-bold font-mono text-success">{Number(asGeradora.snapshot.total_compensated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">Sem cálculo para este mês</p>
+              <p className="text-xs text-muted-foreground italic">Sem cálculo para este mês</p>
             )}
           </div>
         )}
 
         {/* Credit Balance */}
         {creditBalances.length > 0 && (
-          <div className="rounded-lg bg-muted/30 p-3">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Saldo de Crédito Acumulado</p>
-            <p className="text-sm font-bold font-mono">
-              {creditBalances.reduce((s: number, b: any) => s + Number(b.balance_kwh), 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh
-            </p>
+          <div className="rounded-lg bg-success/5 border border-success/20 p-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+              <Zap className="w-4 h-4 text-success" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Saldo de Crédito Acumulado</p>
+              <p className="text-lg font-bold font-mono text-success">
+                {creditBalances.reduce((s: number, b: any) => s + Number(b.balance_kwh), 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh
+              </p>
+            </div>
           </div>
         )}
       </CardContent>
