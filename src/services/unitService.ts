@@ -34,7 +34,7 @@ export interface UCRecord {
   updated_at: string;
 }
 
-const UC_SELECT_COLS = `id, tenant_id, codigo_uc, nome, tipo_uc, concessionaria_id, concessionaria_nome, classificacao_grupo, classificacao_subgrupo, modalidade_tarifaria, endereco, observacoes, status, is_archived, papel_gd, categoria_gd, email_fatura, leitura_automatica_email, cliente_id, plano_servico_id, valor_mensalidade, dia_vencimento, servico_cobranca_ativo, created_at, updated_at`;
+const UC_SELECT_COLS = `id, tenant_id, codigo_uc, nome, tipo_uc, concessionaria_id, concessionaria_nome, classificacao_grupo, classificacao_subgrupo, modalidade_tarifaria, endereco, observacoes, status, is_archived, papel_gd, categoria_gd, email_fatura, leitura_automatica_email, cliente_id, plano_servico_id, valor_mensalidade, dia_vencimento, servico_cobranca_ativo, unit_identifier, unit_identifier_type, created_at, updated_at`;
 
 export const unitService = {
   async list(filters?: { tipo_uc?: string; is_archived?: boolean; search?: string }) {
