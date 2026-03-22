@@ -3,6 +3,7 @@
  * §25: FormModalTemplate pattern. Reposicionado para modelo 100% nativo.
  */
 import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,8 @@ interface FieldDef {
   key: string;
   label: string;
   description?: string;
+  /** Campo exclusivo de UC geradora (injeção) */
+  geradoraOnly?: boolean;
 }
 
 interface FieldCategory {
@@ -65,18 +68,18 @@ const FIELD_CATEGORIES: FieldCategory[] = [
       { key: "dias_leitura", label: "Dias de Leitura" },
       { key: "leitura_anterior_03", label: "Leitura Anterior (03)", description: "Medidor de consumo" },
       { key: "leitura_atual_03", label: "Leitura Atual (03)", description: "Medidor de consumo" },
-      { key: "leitura_anterior_103", label: "Leitura Anterior (103)", description: "Medidor de injeção" },
-      { key: "leitura_atual_103", label: "Leitura Atual (103)", description: "Medidor de injeção" },
+      { key: "leitura_anterior_103", label: "Leitura Anterior (103)", description: "Medidor de injeção", geradoraOnly: true },
+      { key: "leitura_atual_103", label: "Leitura Atual (103)", description: "Medidor de injeção", geradoraOnly: true },
     ],
   },
   {
     category: "Geração Distribuída (GD)",
     icon: "☀️",
     fields: [
-      { key: "energia_injetada_kwh", label: "Energia Injetada (kWh)" },
+      { key: "energia_injetada_kwh", label: "Energia Injetada (kWh)", geradoraOnly: true },
       { key: "energia_compensada_kwh", label: "Energia Compensada (kWh)" },
-      { key: "saldo_gd_acumulado", label: "Saldo GD Acumulado (kWh)" },
-      { key: "categoria_gd", label: "Categoria GD", description: "Autoconsumo remoto, local, etc." },
+      { key: "saldo_gd_acumulado", label: "Saldo GD Acumulado (kWh)", geradoraOnly: true },
+      { key: "categoria_gd", label: "Categoria GD", description: "Autoconsumo remoto, local, etc.", geradoraOnly: true },
     ],
   },
   {
@@ -99,7 +102,7 @@ const FIELD_CATEGORIES: FieldCategory[] = [
       { key: "modalidade_tarifaria", label: "Modalidade Tarifária" },
       { key: "demanda_contratada_kw", label: "Demanda Contratada (kW)" },
       { key: "medidor_consumo_codigo", label: "Código Medidor Consumo" },
-      { key: "medidor_injecao_codigo", label: "Código Medidor Injeção" },
+      { key: "medidor_injecao_codigo", label: "Código Medidor Injeção", geradoraOnly: true },
       { key: "numero_nota_fiscal", label: "Número da Nota Fiscal" },
     ],
   },
@@ -188,11 +191,17 @@ function FieldCategorySection({
             return (
               <div key={field.key} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/20 transition-colors">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">{field.label}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm text-foreground">{field.label}</p>
+                    {field.geradoraOnly && (
+                      <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20 px-1 py-0">
+                        Geradora
+                      </Badge>
+                    )}
+                  </div>
                   {field.description && (
                     <p className="text-[11px] text-muted-foreground truncate">{field.description}</p>
                   )}
-                  <p className="text-[10px] font-mono text-muted-foreground/60">{field.key}</p>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
                   <label className="flex items-center gap-1.5 cursor-pointer">
@@ -238,6 +247,8 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
     provider_requires_password: false,
     fallback_enabled: false,
     required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"] as string[],
+    required_fields_geradora: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia", "energia_injetada_kwh", "saldo_gd_acumulado"] as string[],
+    required_fields_beneficiaria: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"] as string[],
     optional_fields: [] as string[],
     identifier_field: "numero_uc" as string,
     parser_version: "3.0.2",
@@ -260,6 +271,8 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
         provider_requires_password: config.provider_requires_password,
         fallback_enabled: config.fallback_enabled,
         required_fields: config.required_fields || ["consumo_kwh", "valor_total"],
+        required_fields_geradora: config.required_fields_geradora?.length ? config.required_fields_geradora : config.required_fields || ["consumo_kwh", "valor_total"],
+        required_fields_beneficiaria: config.required_fields_beneficiaria?.length ? config.required_fields_beneficiaria : (config.required_fields || ["consumo_kwh", "valor_total"]).filter((f: string) => !["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"].includes(f)),
         optional_fields: config.optional_fields || [],
         identifier_field: config.identifier_field || "numero_uc",
         parser_version: config.parser_version || "3.0.2",
@@ -280,6 +293,8 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
         provider_requires_password: false,
         fallback_enabled: false,
         required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
+        required_fields_geradora: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia", "energia_injetada_kwh", "saldo_gd_acumulado"],
+        required_fields_beneficiaria: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
         optional_fields: [],
         identifier_field: "numero_uc",
         parser_version: "3.0.2",
@@ -336,6 +351,8 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
         provider_requires_password: form.provider_requires_password,
         fallback_enabled: form.fallback_enabled,
         required_fields: form.required_fields,
+        required_fields_geradora: form.required_fields_geradora,
+        required_fields_beneficiaria: form.required_fields_beneficiaria,
         optional_fields: form.optional_fields,
         identifier_field: form.identifier_field || "numero_uc",
         parser_version: form.parser_version,
@@ -474,41 +491,111 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
               </SectionCard>
             </div>
 
-            {/* Row 2: Fields selector */}
+            {/* Row 2: Fields selector with context tabs */}
             <SectionCard icon={FileText} title="Campos de Extração">
               <div className="space-y-1 mb-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Marque os campos que o parser deve extrair desta concessionária. 
-                  <strong> Obrigatórios</strong> = a extração falha se não encontrar. 
-                  <strong> Opcionais</strong> = extrai se possível, sem bloquear.
+                  Configure quais campos são obrigatórios dependendo do tipo de UC.
+                  Campos marcados com <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20 px-1 py-0 mx-0.5 inline">Geradora</Badge> são
+                  exclusivos de unidades que injetam energia na rede.
                 </p>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mr-1">
-                      {form.required_fields.length}
-                    </Badge>
-                    obrigatórios
-                  </span>
-                  <span>
-                    <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground mr-1">
-                      {form.optional_fields.length}
-                    </Badge>
-                    opcionais
-                  </span>
-                </div>
               </div>
-              <div className="space-y-2">
-                {FIELD_CATEGORIES.map(cat => (
-                  <FieldCategorySection
-                    key={cat.category}
-                    category={cat}
-                    requiredFields={form.required_fields}
-                    optionalFields={form.optional_fields}
-                    onToggleRequired={toggleRequired}
-                    onToggleOptional={toggleOptional}
-                  />
-                ))}
-              </div>
+
+              <Tabs defaultValue="geral" className="w-full">
+                <TabsList className="w-full grid grid-cols-3">
+                  <TabsTrigger value="geral">Geral (Base)</TabsTrigger>
+                  <TabsTrigger value="geradora">☀️ Geradora</TabsTrigger>
+                  <TabsTrigger value="beneficiaria">🏠 Beneficiária</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="geral" className="mt-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground mb-2">
+                    Campos base usados quando o tipo de UC não é conhecido (ex.: teste de extração sem vínculo).
+                  </p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                      {form.required_fields.length} obrigatórios
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+                      {form.optional_fields.length} opcionais
+                    </Badge>
+                  </div>
+                  {FIELD_CATEGORIES.map(cat => (
+                    <FieldCategorySection
+                      key={cat.category}
+                      category={cat}
+                      requiredFields={form.required_fields}
+                      optionalFields={form.optional_fields}
+                      onToggleRequired={toggleRequired}
+                      onToggleOptional={toggleOptional}
+                    />
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="geradora" className="mt-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground mb-2">
+                    Campos obrigatórios para UCs que injetam energia (geradoras). Inclui campos de injeção, saldo e medidor 103.
+                  </p>
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                    {form.required_fields_geradora.length} obrigatórios para geradora
+                  </Badge>
+                  {FIELD_CATEGORIES.map(cat => (
+                    <FieldCategorySection
+                      key={`ger-${cat.category}`}
+                      category={cat}
+                      requiredFields={form.required_fields_geradora}
+                      optionalFields={[]}
+                      onToggleRequired={(key) => {
+                        setForm(f => {
+                          const has = f.required_fields_geradora.includes(key);
+                          return {
+                            ...f,
+                            required_fields_geradora: has
+                              ? f.required_fields_geradora.filter(k => k !== key)
+                              : [...f.required_fields_geradora, key],
+                          };
+                        });
+                      }}
+                      onToggleOptional={() => {}}
+                    />
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="beneficiaria" className="mt-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground mb-2">
+                    Campos obrigatórios para UCs beneficiárias (recebem créditos). Campos de injeção não se aplicam.
+                  </p>
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                    {form.required_fields_beneficiaria.length} obrigatórios para beneficiária
+                  </Badge>
+                  {FIELD_CATEGORIES.filter(cat => cat.category !== "Geração Distribuída (GD)" || cat.fields.some(f => !f.geradoraOnly)).map(cat => {
+                    const filteredCat = {
+                      ...cat,
+                      fields: cat.fields.filter(f => !f.geradoraOnly),
+                    };
+                    return (
+                      <FieldCategorySection
+                        key={`ben-${cat.category}`}
+                        category={filteredCat}
+                        requiredFields={form.required_fields_beneficiaria}
+                        optionalFields={[]}
+                        onToggleRequired={(key) => {
+                          setForm(f => {
+                            const has = f.required_fields_beneficiaria.includes(key);
+                            return {
+                              ...f,
+                              required_fields_beneficiaria: has
+                                ? f.required_fields_beneficiaria.filter(k => k !== key)
+                                : [...f.required_fields_beneficiaria, key],
+                            };
+                          });
+                        }}
+                        onToggleOptional={() => {}}
+                      />
+                    );
+                  })}
+                </TabsContent>
+              </Tabs>
             </SectionCard>
 
             {/* Row 3: Notes */}

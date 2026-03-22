@@ -7632,6 +7632,8 @@ export type Database = {
           provider_requires_base64: boolean
           provider_requires_password: boolean
           required_fields: Json
+          required_fields_beneficiaria: Json
+          required_fields_geradora: Json
           strategy_mode: Database["public"]["Enums"]["extraction_strategy_mode"]
           tenant_id: string | null
           updated_at: string
@@ -7655,6 +7657,8 @@ export type Database = {
           provider_requires_base64?: boolean
           provider_requires_password?: boolean
           required_fields?: Json
+          required_fields_beneficiaria?: Json
+          required_fields_geradora?: Json
           strategy_mode?: Database["public"]["Enums"]["extraction_strategy_mode"]
           tenant_id?: string | null
           updated_at?: string
@@ -7678,6 +7682,8 @@ export type Database = {
           provider_requires_base64?: boolean
           provider_requires_password?: boolean
           required_fields?: Json
+          required_fields_beneficiaria?: Json
+          required_fields_geradora?: Json
           strategy_mode?: Database["public"]["Enums"]["extraction_strategy_mode"]
           tenant_id?: string | null
           updated_at?: string
