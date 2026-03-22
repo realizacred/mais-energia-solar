@@ -16,6 +16,8 @@ interface ProcessRequest {
   source_message_id?: string;
   email_address?: string;
   tenant_id?: string; // Required for service_role callers
+  force_reprocess?: boolean;
+  invoice_id?: string; // For reprocessing existing invoice
 }
 
 type InvoiceSource = 'email' | 'manual' | 'import' | 'api';
