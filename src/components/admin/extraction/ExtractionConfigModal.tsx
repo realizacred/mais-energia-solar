@@ -22,6 +22,7 @@ import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight } from "
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useSaveExtractionConfig, type ExtractionConfig, type ExtractionStrategyMode } from "@/hooks/useExtractionConfigs";
 import { toast } from "sonner";
+import { ExtractionHelpHint } from "./ExtractionHelpHint";
 
 interface ExtractionConfigModalProps {
   open: boolean;
