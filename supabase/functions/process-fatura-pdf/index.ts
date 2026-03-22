@@ -213,6 +213,16 @@ async function processInvoice(
     else if (raw.includes('vermelha')) bandeira = 'vermelha_1';
   }
 
+  // Calculate energy_injected from leitura_103 diff if not directly parsed
+  let energyInjected = parsed.energia_injetada_kwh ?? null;
+  if (energyInjected === null && parsed.leitura_atual_103 != null && parsed.leitura_anterior_103 != null) {
+    energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
+  }
+
+  // Use saldo_gd_acumulado as current_balance (the total accumulated credit)
+  // saldo_gd is per-period, saldo_gd_acumulado is the running total
+  const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
+
   const invoicePayload: any = {
     tenant_id: tenantId,
     unit_id: resolvedUnitId,
@@ -220,7 +230,12 @@ async function processInvoice(
     reference_year: ano,
     total_amount: parsed.valor_total,
     energy_consumed_kwh: parsed.consumo_kwh,
-    current_balance_kwh: parsed.saldo_gd,
+    energy_injected_kwh: energyInjected,
+    compensated_kwh: parsed.energia_compensada_kwh ?? null,
+    current_balance_kwh: currentBalance,
+    previous_balance_kwh: parsed.saldo_gd_acumulado != null && parsed.saldo_gd != null
+      ? Math.max((parsed.saldo_gd_acumulado - (parsed.saldo_gd ?? 0)), 0)
+      : null,
     bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
     pdf_file_url: pdfUrl,
