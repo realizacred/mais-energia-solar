@@ -279,7 +279,7 @@ function SimulacaoInfo({ simulacao, onChangeClick }: { simulacao: NonNullable<im
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Geração Mensal Estimada</p>
-            <p className="font-semibold">{simulacao.geracao_mensal?.toLocaleString("pt-BR") || "—"} kWh</p>
+            <p className="font-semibold">{simulacao.geracao_mensal ? formatNumberBR(simulacao.geracao_mensal) : "—"} kWh</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Geração Anual Estimada</p>
