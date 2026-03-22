@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHorariosEdit";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatPhone, formatName } from "@/lib/validations";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
