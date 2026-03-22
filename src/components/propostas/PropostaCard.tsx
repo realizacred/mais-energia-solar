@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { formatBRL } from "@/lib/formatters";
 import {
   Calendar,
   Zap,
