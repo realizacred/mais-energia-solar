@@ -607,7 +607,7 @@ async function processInvoice(
       .join(' ');
   }
 
-  // Enrich UC from first invoice — only fill empty fields, never overwrite
+  // Enrich UC from invoice — on first import (no history), OVERWRITE all fields from invoice
   const enrichFields = [
     'categoria_gd', 'concessionaria_nome', 'endereco',
     'classificacao_grupo', 'classificacao_subgrupo', 'modalidade_tarifaria', 'nome',
@@ -618,6 +618,16 @@ async function processInvoice(
     || parsed.classe_consumo || parsed.cliente_nome || parsed.tipo_ligacao || parsed.numero_uc;
 
   if (hasEnrichData) {
+    // Check if this is the first invoice for this UC (excluding the one we just inserted)
+    const { count: priorInvoiceCount } = await admin
+      .from('unit_invoices')
+      .select('id', { count: 'exact', head: true })
+      .eq('unit_id', resolvedUnitId)
+      .eq('tenant_id', tenantId)
+      .neq('id', invoice.id);
+
+    const isFirstInvoice = (priorInvoiceCount || 0) === 0;
+
     const { data: currentUc } = await admin
       .from('units_consumidoras')
       .select(enrichFields.join(', '))
@@ -625,37 +635,44 @@ async function processInvoice(
       .maybeSingle();
 
     if (currentUc) {
-      if (parsed.categoria_gd && !currentUc.categoria_gd) ucUpdate.categoria_gd = parsed.categoria_gd;
-      if (parsed.concessionaria_nome && !currentUc.concessionaria_nome) {
+      // On first import: overwrite with invoice data; otherwise: only fill empty fields
+      const shouldOverwrite = isFirstInvoice;
+
+      if (parsed.categoria_gd && (shouldOverwrite || !currentUc.categoria_gd)) {
+        ucUpdate.categoria_gd = parsed.categoria_gd;
+      }
+      if (parsed.concessionaria_nome && (shouldOverwrite || !currentUc.concessionaria_nome)) {
         ucUpdate.concessionaria_nome = toTitleCase(parsed.concessionaria_nome);
       }
-      if (!currentUc.endereco) {
+      if (shouldOverwrite || !currentUc.endereco) {
         const parts = [parsed.endereco, parsed.cidade, parsed.estado].filter(Boolean);
         if (parts.length > 0) ucUpdate.endereco = parts.map(p => toTitleCase(p)).join(', ');
       }
-      if (parsed.classe_consumo && !currentUc.classificacao_grupo) {
+      if (parsed.classe_consumo && (shouldOverwrite || !currentUc.classificacao_grupo)) {
         const grupoMatch = parsed.classe_consumo.match(/^([AB]\d?)/i);
         if (grupoMatch) ucUpdate.classificacao_grupo = grupoMatch[1].toUpperCase();
       }
-      if (parsed.classe_consumo && !currentUc.classificacao_subgrupo) {
+      if (parsed.classe_consumo && (shouldOverwrite || !currentUc.classificacao_subgrupo)) {
         const subMatch = parsed.classe_consumo.replace(/^[AB]\d?\s*[-:]?\s*/i, '').trim();
         if (subMatch) ucUpdate.classificacao_subgrupo = toTitleCase(subMatch);
       }
-      if (parsed.modalidade_tarifaria && !currentUc.modalidade_tarifaria) {
+      if (parsed.modalidade_tarifaria && (shouldOverwrite || !currentUc.modalidade_tarifaria)) {
         ucUpdate.modalidade_tarifaria = toTitleCase(parsed.modalidade_tarifaria);
       }
-      if (parsed.cliente_nome && !currentUc.nome) {
+      if (parsed.cliente_nome && (shouldOverwrite || !currentUc.nome)) {
         ucUpdate.nome = toTitleCase(parsed.cliente_nome);
       }
-      if (parsed.tipo_ligacao && !currentUc.tipo_ligacao) {
+      if (parsed.tipo_ligacao && (shouldOverwrite || !currentUc.tipo_ligacao)) {
         ucUpdate.tipo_ligacao = parsed.tipo_ligacao.toLowerCase();
       }
-      if (parsed.numero_uc && !currentUc.codigo_uc) {
+      if (parsed.numero_uc && (shouldOverwrite || !currentUc.codigo_uc)) {
         ucUpdate.codigo_uc = parsed.numero_uc;
       }
 
       const enrichedKeys = Object.keys(ucUpdate).filter(k => enrichFields.includes(k as any));
-      if (enrichedKeys.length > 0) console.log(`[process-fatura-pdf] UC enriched from invoice: ${enrichedKeys.join(', ')}`);
+      if (enrichedKeys.length > 0) {
+        console.log(`[process-fatura-pdf] UC enriched (firstImport=${isFirstInvoice}): ${enrichedKeys.join(', ')}`);
+      }
     }
   }
 
