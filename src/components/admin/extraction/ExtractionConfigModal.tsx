@@ -606,6 +606,86 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                   })}
                 </TabsContent>
               </Tabs>
+
+              {/* Custom field creator */}
+              <div className="rounded-lg border border-dashed border-border p-3 mt-3">
+                <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-primary" />
+                  Adicionar campo personalizado
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={customFieldInput}
+                    onChange={e => setCustomFieldInput(e.target.value)}
+                    placeholder="Ex.: taxa_iluminacao, multa_atraso..."
+                    className="h-8 text-xs flex-1"
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && customFieldInput.trim()) {
+                        e.preventDefault();
+                        const key = customFieldInput.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+                        if (!key) return;
+                        if (ALL_FIELD_KEYS.includes(key) || form.custom_fields.some(f => f.key === key)) {
+                          toast.error("Este campo já existe");
+                          return;
+                        }
+                        const label = customFieldInput.trim();
+                        setForm(f => ({
+                          ...f,
+                          custom_fields: [...f.custom_fields, { key, label }],
+                          optional_fields: [...f.optional_fields, key],
+                        }));
+                        setCustomFieldInput("");
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={!customFieldInput.trim()}
+                    onClick={() => {
+                      const key = customFieldInput.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+                      if (!key) return;
+                      if (ALL_FIELD_KEYS.includes(key) || form.custom_fields.some(f => f.key === key)) {
+                        toast.error("Este campo já existe");
+                        return;
+                      }
+                      const label = customFieldInput.trim();
+                      setForm(f => ({
+                        ...f,
+                        custom_fields: [...f.custom_fields, { key, label }],
+                        optional_fields: [...f.optional_fields, key],
+                      }));
+                      setCustomFieldInput("");
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
+                {form.custom_fields.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {form.custom_fields.map(cf => (
+                      <Badge key={cf.key} variant="outline" className="text-xs gap-1 bg-primary/5">
+                        {cf.label}
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            custom_fields: f.custom_fields.filter(c => c.key !== cf.key),
+                            optional_fields: f.optional_fields.filter(k => k !== cf.key),
+                            required_fields: f.required_fields.filter(k => k !== cf.key),
+                          }))}
+                          className="ml-0.5 hover:text-destructive"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </SectionCard>
 
             {/* Row 3: Notes */}
