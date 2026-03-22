@@ -27,27 +27,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-interface Inversor {
-  id: string;
-  fabricante: string;
-  modelo: string;
-  potencia_nominal_kw: number;
-  tipo: string;
-  tensao_entrada_max_v: number | null;
-  corrente_entrada_max_a: number | null;
-  mppt_count: number | null;
-  strings_por_mppt: number | null;
-  fases: string;
-  tensao_saida_v: number | null;
-  eficiencia_max_percent: number | null;
-  garantia_anos: number | null;
-  peso_kg: number | null;
-  dimensoes_mm: string | null;
-  wifi_integrado: boolean | null;
-  ip_protection: string | null;
-  ativo: boolean;
-  tenant_id: string | null;
-}
+// Inversor type imported from hook
 
 const EMPTY_FORM = {
   fabricante: "", modelo: "", potencia_nominal_kw: "", tipo: "String",
