@@ -982,6 +982,30 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
                 </div>
               </SectionCard>
 
+              {/* JSONB Fields Advanced Editor */}
+              <SectionCard icon={Code2} title="JSON Avançado — Campos JSONB">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Edite campos JSONB individualmente. Cada campo aceita um array JSON válido.
+                </p>
+                <div className="space-y-4">
+                  {JSONB_FIELD_DEFS.map((def) => (
+                    <JsonbFieldEditor
+                      key={def.key}
+                      label={def.label}
+                      value={(form as any)[def.key] ?? []}
+                      onChange={(parsed) => {
+                        setForm(f => ({ ...f, [def.key]: parsed }));
+                        setJsonbErrors(prev => {
+                          const next = new Set(prev);
+                          next.delete(def.key);
+                          return next;
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
+
               {/* Notes */}
               <SectionCard icon={Settings2} title="Observações">
                 <Textarea
