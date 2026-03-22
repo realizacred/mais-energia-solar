@@ -733,10 +733,12 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
                 </div>
 
                 <Tabs defaultValue="geral" className="w-full">
-                  <TabsList className="w-full grid grid-cols-3">
-                    <TabsTrigger value="geral">Geral (Base)</TabsTrigger>
+                  <TabsList className="w-full grid grid-cols-5">
+                    <TabsTrigger value="geral">Base</TabsTrigger>
                     <TabsTrigger value="geradora">☀️ Geradora</TabsTrigger>
                     <TabsTrigger value="beneficiaria">🏠 Beneficiária</TabsTrigger>
+                    <TabsTrigger value="mista">🔄 Mista</TabsTrigger>
+                    <TabsTrigger value="consumo">⚡ Consumo</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="geral" className="mt-3 space-y-2">
