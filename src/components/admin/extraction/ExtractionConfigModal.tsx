@@ -14,9 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2, Cpu, FileText, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useSaveExtractionConfig, type ExtractionConfig, type ExtractionStrategyMode } from "@/hooks/useExtractionConfigs";
 import { toast } from "sonner";
@@ -27,7 +29,89 @@ interface ExtractionConfigModalProps {
   config?: ExtractionConfig | null;
 }
 
-const DEFAULT_REQUIRED_FIELDS = ["consumo_kwh", "valor_total", "referencia_mes", "referencia_ano"];
+// ── All available extraction fields with labels and categories ──
+interface FieldDef {
+  key: string;
+  label: string;
+  description?: string;
+}
+
+interface FieldCategory {
+  category: string;
+  icon: string;
+  fields: FieldDef[];
+}
+
+const FIELD_CATEGORIES: FieldCategory[] = [
+  {
+    category: "Dados Básicos",
+    icon: "📋",
+    fields: [
+      { key: "consumo_kwh", label: "Consumo (kWh)", description: "Consumo total faturado" },
+      { key: "valor_total", label: "Valor Total (R$)", description: "Valor total da fatura" },
+      { key: "numero_uc", label: "Número da UC", description: "Código da unidade consumidora" },
+      { key: "vencimento", label: "Vencimento", description: "Data de vencimento" },
+      { key: "mes_referencia", label: "Mês de Referência", description: "Período de referência da fatura" },
+    ],
+  },
+  {
+    category: "Leituras e Medição",
+    icon: "📊",
+    fields: [
+      { key: "data_leitura_anterior", label: "Data Leitura Anterior" },
+      { key: "data_leitura_atual", label: "Data Leitura Atual" },
+      { key: "proxima_leitura_data", label: "Próxima Leitura" },
+      { key: "dias_leitura", label: "Dias de Leitura" },
+      { key: "leitura_anterior_03", label: "Leitura Anterior (03)", description: "Medidor de consumo" },
+      { key: "leitura_atual_03", label: "Leitura Atual (03)", description: "Medidor de consumo" },
+      { key: "leitura_anterior_103", label: "Leitura Anterior (103)", description: "Medidor de injeção" },
+      { key: "leitura_atual_103", label: "Leitura Atual (103)", description: "Medidor de injeção" },
+    ],
+  },
+  {
+    category: "Geração Distribuída (GD)",
+    icon: "☀️",
+    fields: [
+      { key: "energia_injetada_kwh", label: "Energia Injetada (kWh)" },
+      { key: "energia_compensada_kwh", label: "Energia Compensada (kWh)" },
+      { key: "saldo_gd_acumulado", label: "Saldo GD Acumulado (kWh)" },
+      { key: "categoria_gd", label: "Categoria GD", description: "Autoconsumo remoto, local, etc." },
+    ],
+  },
+  {
+    category: "Tarifas e Tributos",
+    icon: "💰",
+    fields: [
+      { key: "tarifa_energia_kwh", label: "Tarifa Energia (R$/kWh)" },
+      { key: "tarifa_fio_b_kwh", label: "Tarifa Fio B (R$/kWh)" },
+      { key: "icms_percentual", label: "ICMS (%)" },
+      { key: "pis_valor", label: "PIS (R$)" },
+      { key: "cofins_valor", label: "COFINS (R$)" },
+      { key: "bandeira_tarifaria", label: "Bandeira Tarifária" },
+    ],
+  },
+  {
+    category: "Dados Técnicos",
+    icon: "⚡",
+    fields: [
+      { key: "classe_consumo", label: "Classe de Consumo" },
+      { key: "modalidade_tarifaria", label: "Modalidade Tarifária" },
+      { key: "demanda_contratada_kw", label: "Demanda Contratada (kW)" },
+      { key: "medidor_consumo_codigo", label: "Código Medidor Consumo" },
+      { key: "medidor_injecao_codigo", label: "Código Medidor Injeção" },
+      { key: "numero_nota_fiscal", label: "Número da Nota Fiscal" },
+    ],
+  },
+];
+
+const ALL_FIELD_KEYS = FIELD_CATEGORIES.flatMap(c => c.fields.map(f => f.key));
+
+const IDENTIFIER_FIELD_OPTIONS = [
+  { value: "numero_uc", label: "Número da UC" },
+  { value: "numero_instalacao", label: "Número da Instalação" },
+  { value: "numero_cliente", label: "Número do Cliente" },
+  { value: "codigo_medidor", label: "Código do Medidor" },
+];
 
 function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
@@ -57,6 +141,86 @@ function SwitchRow({ label, description, checked, onChange }: { label: string; d
   );
 }
 
+function FieldCategorySection({
+  category,
+  requiredFields,
+  optionalFields,
+  onToggleRequired,
+  onToggleOptional,
+}: {
+  category: FieldCategory;
+  requiredFields: string[];
+  optionalFields: string[];
+  onToggleRequired: (key: string) => void;
+  onToggleOptional: (key: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const catRequiredCount = category.fields.filter(f => requiredFields.includes(f.key)).length;
+  const catOptionalCount = category.fields.filter(f => optionalFields.includes(f.key)).length;
+
+  return (
+    <div className="rounded-lg border border-border overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 w-full px-3 py-2.5 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+      >
+        {expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+        <span className="text-sm">{category.icon}</span>
+        <span className="text-sm font-medium text-foreground flex-1">{category.category}</span>
+        {catRequiredCount > 0 && (
+          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+            {catRequiredCount} obrig.
+          </Badge>
+        )}
+        {catOptionalCount > 0 && (
+          <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+            {catOptionalCount} opc.
+          </Badge>
+        )}
+      </button>
+      {expanded && (
+        <div className="divide-y divide-border">
+          {category.fields.map(field => {
+            const isRequired = requiredFields.includes(field.key);
+            const isOptional = optionalFields.includes(field.key);
+            return (
+              <div key={field.key} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/20 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground">{field.label}</p>
+                  {field.description && (
+                    <p className="text-[11px] text-muted-foreground truncate">{field.description}</p>
+                  )}
+                  <p className="text-[10px] font-mono text-muted-foreground/60">{field.key}</p>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      checked={isRequired}
+                      onCheckedChange={() => onToggleRequired(field.key)}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-[11px] text-foreground font-medium">Obrigatório</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      checked={isOptional}
+                      disabled={isRequired}
+                      onCheckedChange={() => onToggleOptional(field.key)}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-[11px] text-muted-foreground">Opcional</span>
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ExtractionConfigModal({ open, onOpenChange, config }: ExtractionConfigModalProps) {
   const saveConfig = useSaveExtractionConfig();
 
@@ -72,8 +236,9 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
     provider_requires_base64: false,
     provider_requires_password: false,
     fallback_enabled: false,
-    required_fields: DEFAULT_REQUIRED_FIELDS,
+    required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"] as string[],
     optional_fields: [] as string[],
+    identifier_field: "numero_uc" as string,
     parser_version: "3.0.2",
     active: true,
     notes: "",
@@ -93,8 +258,9 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
         provider_requires_base64: config.provider_requires_base64,
         provider_requires_password: config.provider_requires_password,
         fallback_enabled: config.fallback_enabled,
-        required_fields: config.required_fields || DEFAULT_REQUIRED_FIELDS,
+        required_fields: config.required_fields || ["consumo_kwh", "valor_total"],
         optional_fields: config.optional_fields || [],
+        identifier_field: config.identifier_field || "numero_uc",
         parser_version: config.parser_version || "3.0.2",
         active: config.active,
         notes: config.notes || "",
@@ -112,14 +278,41 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
         provider_requires_base64: false,
         provider_requires_password: false,
         fallback_enabled: false,
-        required_fields: DEFAULT_REQUIRED_FIELDS,
+        required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
         optional_fields: [],
+        identifier_field: "numero_uc",
         parser_version: "3.0.2",
         active: true,
         notes: "",
       });
     }
   }, [config, open]);
+
+  const toggleRequired = (key: string) => {
+    setForm(f => {
+      const isRequired = f.required_fields.includes(key);
+      if (isRequired) {
+        return { ...f, required_fields: f.required_fields.filter(k => k !== key) };
+      }
+      // Remove from optional if adding to required
+      return {
+        ...f,
+        required_fields: [...f.required_fields, key],
+        optional_fields: f.optional_fields.filter(k => k !== key),
+      };
+    });
+  };
+
+  const toggleOptional = (key: string) => {
+    setForm(f => {
+      if (f.required_fields.includes(key)) return f; // Can't be optional if required
+      const isOptional = f.optional_fields.includes(key);
+      if (isOptional) {
+        return { ...f, optional_fields: f.optional_fields.filter(k => k !== key) };
+      }
+      return { ...f, optional_fields: [...f.optional_fields, key] };
+    });
+  };
 
   const handleSave = async () => {
     if (!form.concessionaria_code || !form.concessionaria_nome) {
@@ -143,6 +336,7 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
         fallback_enabled: form.fallback_enabled,
         required_fields: form.required_fields,
         optional_fields: form.optional_fields,
+        identifier_field: form.identifier_field || "numero_uc",
         parser_version: form.parser_version,
         active: form.active,
         notes: form.notes || null,
@@ -174,6 +368,7 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="space-y-4 p-5">
+            {/* Row 1: Concessionária + Estratégia + Fallback */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <SectionCard icon={Settings2} title="Concessionária">
                 <div className="grid grid-cols-1 gap-3">
@@ -196,6 +391,25 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                       className="h-10"
                       disabled={!!config}
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Campo identificador da UC</Label>
+                    <Select
+                      value={form.identifier_field}
+                      onValueChange={v => setForm(f => ({ ...f, identifier_field: v }))}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {IDENTIFIER_FIELD_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      Como identificar a UC nesta concessionária
+                    </p>
                   </div>
                 </div>
               </SectionCard>
@@ -240,45 +454,59 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                   <SwitchRow label="Requer Conversão Backend" description="O backend converte o PDF do Storage para processamento" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
                   <SwitchRow label="PDF Protegido" description="A fatura exige senha para abertura" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
                 </div>
+                <SwitchRow label="Ativo" description="Habilitar esta configuração" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
               </SectionCard>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] gap-4">
-              <SectionCard icon={FileText} title="Campos obrigatórios">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Campos obrigatórios (JSON)</Label>
-                  <Textarea
-                    value={JSON.stringify(form.required_fields, null, 2)}
-                    onChange={e => {
-                      try {
-                        setForm(f => ({ ...f, required_fields: JSON.parse(e.target.value) }));
-                      } catch {
-                        // ignore parse errors during typing
-                      }
-                    }}
-                    rows={10}
-                    className="min-h-[240px] font-mono text-xs"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Informe um array JSON com os campos críticos exigidos para validar a extração.
-                  </p>
+            {/* Row 2: Fields selector */}
+            <SectionCard icon={FileText} title="Campos de Extração">
+              <div className="space-y-1 mb-3">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Marque os campos que o parser deve extrair desta concessionária. 
+                  <strong> Obrigatórios</strong> = a extração falha se não encontrar. 
+                  <strong> Opcionais</strong> = extrai se possível, sem bloquear.
+                </p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mr-1">
+                      {form.required_fields.length}
+                    </Badge>
+                    obrigatórios
+                  </span>
+                  <span>
+                    <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground mr-1">
+                      {form.optional_fields.length}
+                    </Badge>
+                    opcionais
+                  </span>
                 </div>
-              </SectionCard>
+              </div>
+              <div className="space-y-2">
+                {FIELD_CATEGORIES.map(cat => (
+                  <FieldCategorySection
+                    key={cat.category}
+                    category={cat}
+                    requiredFields={form.required_fields}
+                    optionalFields={form.optional_fields}
+                    onToggleRequired={toggleRequired}
+                    onToggleOptional={toggleOptional}
+                  />
+                ))}
+              </div>
+            </SectionCard>
 
-              <SectionCard icon={Settings2} title="Status e observações">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Observações</Label>
-                  <Textarea
-                    value={form.notes}
-                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                    placeholder="Notas sobre esta configuração..."
-                    rows={8}
-                    className="min-h-[180px]"
-                  />
-                </div>
-                <SwitchRow label="Ativo" description="Habilitar esta configuração na Central de Extração" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
+            {/* Row 3: Notes */}
+            {form.notes || !config ? (
+              <SectionCard icon={Settings2} title="Observações">
+                <Textarea
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Notas sobre esta configuração..."
+                  rows={3}
+                  className="min-h-[80px]"
+                />
               </SectionCard>
-            </div>
+            ) : null}
           </div>
         </div>
 
