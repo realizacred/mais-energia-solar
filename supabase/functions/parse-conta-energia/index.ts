@@ -211,6 +211,9 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   console.log("[parse-conta-energia] Energisa detected — using strict deterministic parser v" + PARSER_VERSION);
 
+  // ── AUDIT LOG: first 2000 chars of flat text for debugging ──
+  console.log("[parse-conta-energia] AUDIT flatText sample:", flatText.slice(0, 2000));
+
   const raw: Record<string, string> = {};
   const fieldResults: Record<string, FieldResult> = {};
   const validations: ValidationResult[] = [];
