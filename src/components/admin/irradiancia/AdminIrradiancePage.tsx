@@ -413,7 +413,7 @@ export function CsvImportPanel() {
         .eq("version_id", versionId);
 
       setPointsLoaded(count ?? 0);
-      log("success", `Confirmado no banco: ${(count ?? 0).toLocaleString("pt-BR")} pontos para esta versão.`);
+      log("success", `Confirmado no banco: ${formatIntegerBR(count ?? 0)} pontos para esta versão.`);
 
       setState("done");
       toast.success("Upload concluído!", {
