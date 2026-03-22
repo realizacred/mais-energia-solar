@@ -7612,6 +7612,168 @@ export type Database = {
           },
         ]
       }
+      invoice_extraction_configs: {
+        Row: {
+          active: boolean
+          concessionaria_code: string
+          concessionaria_id: string | null
+          concessionaria_nome: string
+          created_at: string
+          fallback_enabled: boolean
+          id: string
+          native_enabled: boolean
+          notes: string | null
+          optional_fields: Json
+          parser_version: string | null
+          provider_enabled: boolean
+          provider_endpoint_key: string | null
+          provider_name: string | null
+          provider_requires_base64: boolean
+          provider_requires_password: boolean
+          required_fields: Json
+          strategy_mode: Database["public"]["Enums"]["extraction_strategy_mode"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          concessionaria_code: string
+          concessionaria_id?: string | null
+          concessionaria_nome: string
+          created_at?: string
+          fallback_enabled?: boolean
+          id?: string
+          native_enabled?: boolean
+          notes?: string | null
+          optional_fields?: Json
+          parser_version?: string | null
+          provider_enabled?: boolean
+          provider_endpoint_key?: string | null
+          provider_name?: string | null
+          provider_requires_base64?: boolean
+          provider_requires_password?: boolean
+          required_fields?: Json
+          strategy_mode?: Database["public"]["Enums"]["extraction_strategy_mode"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          concessionaria_code?: string
+          concessionaria_id?: string | null
+          concessionaria_nome?: string
+          created_at?: string
+          fallback_enabled?: boolean
+          id?: string
+          native_enabled?: boolean
+          notes?: string | null
+          optional_fields?: Json
+          parser_version?: string | null
+          provider_enabled?: boolean
+          provider_endpoint_key?: string | null
+          provider_name?: string | null
+          provider_requires_base64?: boolean
+          provider_requires_password?: boolean
+          required_fields?: Json
+          strategy_mode?: Database["public"]["Enums"]["extraction_strategy_mode"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_extraction_configs_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_extraction_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_extraction_runs: {
+        Row: {
+          concessionaria_code: string
+          confidence_score: number | null
+          config_id: string | null
+          created_at: string
+          error_reason: string | null
+          finished_at: string | null
+          id: string
+          invoice_id: string | null
+          parser_version: string | null
+          provider_used: string | null
+          required_fields_found: Json | null
+          required_fields_missing: Json | null
+          response_excerpt: Json | null
+          started_at: string
+          status: Database["public"]["Enums"]["extraction_run_status"]
+          strategy_used: Database["public"]["Enums"]["extraction_strategy_mode"]
+          tenant_id: string
+          uc_id: string | null
+        }
+        Insert: {
+          concessionaria_code: string
+          confidence_score?: number | null
+          config_id?: string | null
+          created_at?: string
+          error_reason?: string | null
+          finished_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          parser_version?: string | null
+          provider_used?: string | null
+          required_fields_found?: Json | null
+          required_fields_missing?: Json | null
+          response_excerpt?: Json | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["extraction_run_status"]
+          strategy_used: Database["public"]["Enums"]["extraction_strategy_mode"]
+          tenant_id?: string
+          uc_id?: string | null
+        }
+        Update: {
+          concessionaria_code?: string
+          confidence_score?: number | null
+          config_id?: string | null
+          created_at?: string
+          error_reason?: string | null
+          finished_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          parser_version?: string | null
+          provider_used?: string | null
+          required_fields_found?: Json | null
+          required_fields_missing?: Json | null
+          response_excerpt?: Json | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["extraction_run_status"]
+          strategy_used?: Database["public"]["Enums"]["extraction_strategy_mode"]
+          tenant_id?: string
+          uc_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_extraction_runs_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_extraction_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_extraction_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_import_job_items: {
         Row: {
           created_at: string
@@ -25145,6 +25307,8 @@ export type Database = {
         | "visit"
         | "follow_up"
         | "other"
+      extraction_run_status: "success" | "partial" | "failed" | "needs_ocr"
+      extraction_strategy_mode: "native" | "provider" | "auto"
       forma_pagamento_enum:
         | "pix"
         | "dinheiro"
@@ -25433,6 +25597,8 @@ export const Constants = {
         "follow_up",
         "other",
       ],
+      extraction_run_status: ["success", "partial", "failed", "needs_ocr"],
+      extraction_strategy_mode: ["native", "provider", "auto"],
       forma_pagamento_enum: [
         "pix",
         "dinheiro",
