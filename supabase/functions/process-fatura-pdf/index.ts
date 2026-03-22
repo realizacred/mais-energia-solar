@@ -624,7 +624,7 @@ async function processInvoice(
       .select('id', { count: 'exact', head: true })
       .eq('unit_id', resolvedUnitId)
       .eq('tenant_id', tenantId)
-      .neq('id', invoiceId);
+      .neq('id', invoice.id);
 
     const isFirstInvoice = (priorInvoiceCount || 0) === 0;
 
