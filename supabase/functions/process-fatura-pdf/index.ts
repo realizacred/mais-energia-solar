@@ -151,16 +151,20 @@ async function processInvoice(
   }
 
   const strategyMode = extractionConfig?.strategy_mode || 'native';
-  // Required fields will be resolved AFTER UC type is known (geradora vs beneficiária)
-  // For test_mode (no UC), use base required_fields
-  let requiredFields = extractionConfig?.required_fields || ['consumo_kwh', 'valor_total'];
+
+  // ── BASE required fields — always mandatory regardless of context ──
+  const BASE_REQUIRED = ['consumo_kwh', 'valor_total', 'vencimento', 'numero_uc', 'mes_referencia'];
+  const GERADORA_EXTRA = ['energia_injetada_kwh', 'saldo_gd_acumulado', 'leitura_anterior_103', 'leitura_atual_103'];
+  const BENEFICIARIA_NEVER_REQUIRED = ['energia_injetada_kwh', 'saldo_gd_acumulado', 'leitura_anterior_103', 'leitura_atual_103', 'medidor_injecao_codigo', 'categoria_gd'];
+
+  // Start with base only — context will refine after UC resolution
+  let requiredFields = [...BASE_REQUIRED];
 
   // ── 3. Call parse-conta-energia (deterministic parser — NO AI) ──
   let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
-    // Log failed extraction run
     await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || 'unknown', strategyMode, 'failed', parseResult?.error || 'Parser retornou erro', requiredFields, [], requiredFields);
 
     if (test_mode) {
@@ -185,17 +189,18 @@ async function processInvoice(
   const parsed = parseResult.data;
   console.log(`[process-fatura-pdf] Deterministic parser v${parsed.parser_version || '?'} (${parsed.parser_used || 'generic'}), confidence: ${parsed.confidence}`);
 
-  // ── 4. Validate required fields from config ──
-  const foundFields = requiredFields.filter((f: string) => parsed[f] != null);
-  const missingFields = requiredFields.filter((f: string) => parsed[f] == null);
-  const extractionStatus = missingFields.length === 0 ? 'success' : missingFields.length <= 2 ? 'partial' : 'failed';
+  // ── NOTE: Field validation is DEFERRED until after UC context resolution ──
+  // This prevents blocking beneficiária invoices for missing geradora-only fields
 
-  // ── TEST MODE: return results without persisting ──
+  // ── TEST MODE: validate with base fields only (no UC context) ──
   if (test_mode) {
-    // Run GD consistency on test data too
+    const testFoundFields = requiredFields.filter((f: string) => parsed[f] != null);
+    const testMissingFields = requiredFields.filter((f: string) => parsed[f] == null);
+    const testExtractionStatus = testMissingFields.length === 0 ? 'success' : testMissingFields.length <= 2 ? 'partial' : 'failed';
+
     const gdChecks = runGdConsistencyChecks(parsed, null);
 
-    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version);
+    await logExtractionRun(admin, tenantId, extractionConfig?.id, null, null, detectedConc || parsed.parser_used || 'unknown', strategyMode, testExtractionStatus, testMissingFields.length > 0 ? `Faltando: ${testMissingFields.join(', ')}` : null, requiredFields, testFoundFields, testMissingFields, parsed.confidence, parsed.parser_version);
 
     return new Response(JSON.stringify({
       success: true,
@@ -204,11 +209,12 @@ async function processInvoice(
         parsed,
         concessionaria_detected: detectedConc || parsed.concessionaria_nome,
         config_used: extractionConfig ? { id: extractionConfig.id, nome: extractionConfig.concessionaria_nome, strategy: strategyMode } : null,
-        extraction_status: extractionStatus,
+        extraction_status: testExtractionStatus,
         required_fields: requiredFields,
-        fields_found: foundFields,
-        fields_missing: missingFields,
+        fields_found: testFoundFields,
+        fields_missing: testMissingFields,
         gd_consistency: gdChecks,
+        contexto: 'base (sem UC vinculada)',
       },
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
