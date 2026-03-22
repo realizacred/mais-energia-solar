@@ -7621,6 +7621,7 @@ export type Database = {
           created_at: string
           fallback_enabled: boolean
           id: string
+          identifier_field: string | null
           native_enabled: boolean
           notes: string | null
           optional_fields: Json
@@ -7643,6 +7644,7 @@ export type Database = {
           created_at?: string
           fallback_enabled?: boolean
           id?: string
+          identifier_field?: string | null
           native_enabled?: boolean
           notes?: string | null
           optional_fields?: Json
@@ -7665,6 +7667,7 @@ export type Database = {
           created_at?: string
           fallback_enabled?: boolean
           id?: string
+          identifier_field?: string | null
           native_enabled?: boolean
           notes?: string | null
           optional_fields?: Json
@@ -7705,7 +7708,11 @@ export type Database = {
           error_reason: string | null
           finished_at: string | null
           id: string
+          identifier_extracted: string | null
+          identifier_matched: boolean | null
           invoice_id: string | null
+          ownership_validation_score: number | null
+          ownership_validation_status: string | null
           parser_version: string | null
           provider_used: string | null
           required_fields_found: Json | null
@@ -7725,7 +7732,11 @@ export type Database = {
           error_reason?: string | null
           finished_at?: string | null
           id?: string
+          identifier_extracted?: string | null
+          identifier_matched?: boolean | null
           invoice_id?: string | null
+          ownership_validation_score?: number | null
+          ownership_validation_status?: string | null
           parser_version?: string | null
           provider_used?: string | null
           required_fields_found?: Json | null
@@ -7745,7 +7756,11 @@ export type Database = {
           error_reason?: string | null
           finished_at?: string | null
           id?: string
+          identifier_extracted?: string | null
+          identifier_matched?: boolean | null
           invoice_id?: string | null
+          ownership_validation_score?: number | null
+          ownership_validation_status?: string | null
           parser_version?: string | null
           provider_used?: string | null
           required_fields_found?: Json | null
@@ -20576,8 +20591,13 @@ export type Database = {
           file_size_bytes: number | null
           has_file: boolean
           id: string
+          identifier_expected: string | null
+          identifier_extracted: string | null
           last_parsed_at: string | null
           multa_ultrapassagem: number | null
+          needs_manual_assignment: boolean | null
+          ownership_validation_score: number | null
+          ownership_validation_status: string | null
           parser_version: string | null
           parsing_error_reason: string | null
           parsing_status: string
@@ -20616,8 +20636,13 @@ export type Database = {
           file_size_bytes?: number | null
           has_file?: boolean
           id?: string
+          identifier_expected?: string | null
+          identifier_extracted?: string | null
           last_parsed_at?: string | null
           multa_ultrapassagem?: number | null
+          needs_manual_assignment?: boolean | null
+          ownership_validation_score?: number | null
+          ownership_validation_status?: string | null
           parser_version?: string | null
           parsing_error_reason?: string | null
           parsing_status?: string
@@ -20656,8 +20681,13 @@ export type Database = {
           file_size_bytes?: number | null
           has_file?: boolean
           id?: string
+          identifier_expected?: string | null
+          identifier_extracted?: string | null
           last_parsed_at?: string | null
           multa_ultrapassagem?: number | null
+          needs_manual_assignment?: boolean | null
+          ownership_validation_score?: number | null
+          ownership_validation_status?: string | null
           parser_version?: string | null
           parsing_error_reason?: string | null
           parsing_status?: string
@@ -20910,6 +20940,8 @@ export type Database = {
           ultima_leitura_data: string | null
           ultima_leitura_kwh_03: number | null
           ultima_leitura_kwh_103: number | null
+          unit_identifier: string | null
+          unit_identifier_type: string | null
           updated_at: string
           updated_by: string | null
           valor_mensalidade: number | null
@@ -20944,6 +20976,8 @@ export type Database = {
           ultima_leitura_data?: string | null
           ultima_leitura_kwh_03?: number | null
           ultima_leitura_kwh_103?: number | null
+          unit_identifier?: string | null
+          unit_identifier_type?: string | null
           updated_at?: string
           updated_by?: string | null
           valor_mensalidade?: number | null
@@ -20978,6 +21012,8 @@ export type Database = {
           ultima_leitura_data?: string | null
           ultima_leitura_kwh_03?: number | null
           ultima_leitura_kwh_103?: number | null
+          unit_identifier?: string | null
+          unit_identifier_type?: string | null
           updated_at?: string
           updated_by?: string | null
           valor_mensalidade?: number | null
