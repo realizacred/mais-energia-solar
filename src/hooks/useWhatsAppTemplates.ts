@@ -117,7 +117,7 @@ export function useSalvarWaTemplate() {
       } else {
         const { error } = await supabase
           .from("whatsapp_automation_templates")
-          .insert(data);
+          .insert(data as any);
         if (error) throw error;
       }
     },
