@@ -18,6 +18,14 @@ import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 import { useExtractionConfigs, type ExtractionConfig } from "@/hooks/useExtractionConfigs";
 import { ExtractionHelpHint } from "./ExtractionHelpHint";
 
+interface UcDetectionResult {
+  tipo_uc_detectado: "consumo" | "geradora" | "beneficiaria" | "mista" | "indefinida";
+  confianca_tipo_uc: number;
+  regras_disparadas: string[];
+  sinais_detectados: Record<string, boolean>;
+  divergencia_cadastro: boolean;
+}
+
 interface TestResult {
   concessionaria_detected: string | null;
   file_type: string;
@@ -37,6 +45,8 @@ interface TestResult {
   ownership_validation?: { status: "valid" | "mismatch" | "unknown"; score: number };
   identifier_extracted?: string | null;
   identifier_expected?: string | null;
+  uc_detection?: UcDetectionResult | null;
+  contexto?: string | null;
 }
 
 const ACCEPTED_TYPES = ".pdf,.png,.jpg,.jpeg,.webp";
