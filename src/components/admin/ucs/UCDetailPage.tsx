@@ -140,7 +140,7 @@ export default function UCDetailPage() {
       return data;
     },
     enabled: !!activePlantId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
 
   const solarPlantId = activePlant?.legacy_plant_id ?? null;
