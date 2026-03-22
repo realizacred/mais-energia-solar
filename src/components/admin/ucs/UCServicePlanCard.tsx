@@ -2,10 +2,11 @@
  * UCServicePlanCard — Service plan config section for UC billing tab.
  * Shows in UCBillingSettingsTab.
  */
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { usePlanosServicoAtivos, type PlanoServico } from "@/hooks/usePlanosServico";
+import { usePlanosServicoAtivos } from "@/hooks/usePlanosServico";
+import { useDirtyForm } from "@/hooks/useDirtyForm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,26 +25,27 @@ interface Props {
   servicoCobrancaAtivo: boolean;
 }
 
+function buildFormValues(planoServicoId: string | null, valorMensalidade: number | null, diaVencimento: number | null, servicoCobrancaAtivo: boolean) {
+  return {
+    plano_servico_id: planoServicoId || "",
+    valor_mensalidade: valorMensalidade != null ? String(valorMensalidade) : "",
+    dia_vencimento: diaVencimento != null ? String(diaVencimento) : "10",
+    servico_cobranca_ativo: servicoCobrancaAtivo,
+  };
+}
+
 export function UCServicePlanCard({ unitId, planoServicoId, valorMensalidade, diaVencimento, servicoCobrancaAtivo }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: planos = [] } = usePlanosServicoAtivos();
 
-  const [form, setForm] = useState({
-    plano_servico_id: planoServicoId || "",
-    valor_mensalidade: valorMensalidade != null ? String(valorMensalidade) : "",
-    dia_vencimento: diaVencimento != null ? String(diaVencimento) : "10",
-    servico_cobranca_ativo: servicoCobrancaAtivo,
-  });
+  const initial = buildFormValues(planoServicoId, valorMensalidade, diaVencimento, servicoCobrancaAtivo);
+  const { form, setForm, isDirty, commitBaseline, resetTo } = useDirtyForm(initial);
 
+  // Sync baseline when persisted props change (e.g. after query refetch)
   useEffect(() => {
-    setForm({
-      plano_servico_id: planoServicoId || "",
-      valor_mensalidade: valorMensalidade != null ? String(valorMensalidade) : "",
-      dia_vencimento: diaVencimento != null ? String(diaVencimento) : "10",
-      servico_cobranca_ativo: servicoCobrancaAtivo,
-    });
-  }, [planoServicoId, valorMensalidade, diaVencimento, servicoCobrancaAtivo]);
+    resetTo(buildFormValues(planoServicoId, valorMensalidade, diaVencimento, servicoCobrancaAtivo));
+  }, [planoServicoId, valorMensalidade, diaVencimento, servicoCobrancaAtivo, resetTo]);
 
   // Auto-fill valor when plano changes
   function handlePlanoChange(planoId: string) {
@@ -69,6 +71,7 @@ export function UCServicePlanCard({ unitId, planoServicoId, valorMensalidade, di
       if (error) throw error;
     },
     onSuccess: () => {
+      commitBaseline();
       qc.invalidateQueries({ queryKey: ["uc_billing_list"] });
       qc.invalidateQueries({ queryKey: ["uc_billing_kpis"] });
       toast({ title: "Configurações de cobrança salvas" });
@@ -84,8 +87,8 @@ export function UCServicePlanCard({ unitId, planoServicoId, valorMensalidade, di
             <CreditCard className="w-4 h-4 text-primary" /> Plano de Serviço
           </CardTitle>
           <Switch
-            checked={form.servico_cobranca_ativo}
-            onCheckedChange={(v) => setForm(f => ({ ...f, servico_cobranca_ativo: v }))}
+            checked={form.servico_cobranca_ativo as boolean}
+            onCheckedChange={(v) => setForm({ servico_cobranca_ativo: v })}
           />
         </div>
         <CardDescription>Configure o plano e valor da mensalidade para cobrança automática</CardDescription>
@@ -95,7 +98,7 @@ export function UCServicePlanCard({ unitId, planoServicoId, valorMensalidade, di
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Plano</Label>
-            <Select value={form.plano_servico_id} onValueChange={handlePlanoChange}>
+            <Select value={form.plano_servico_id as string} onValueChange={handlePlanoChange}>
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
                 {planos.map(p => (
@@ -113,8 +116,8 @@ export function UCServicePlanCard({ unitId, planoServicoId, valorMensalidade, di
               type="number"
               step="0.01"
               min="0"
-              value={form.valor_mensalidade}
-              onChange={(e) => setForm(f => ({ ...f, valor_mensalidade: e.target.value }))}
+              value={form.valor_mensalidade as string}
+              onChange={(e) => setForm({ valor_mensalidade: e.target.value })}
               placeholder="49.90"
             />
           </div>
@@ -125,14 +128,14 @@ export function UCServicePlanCard({ unitId, planoServicoId, valorMensalidade, di
               type="number"
               min={1}
               max={28}
-              value={form.dia_vencimento}
-              onChange={(e) => setForm(f => ({ ...f, dia_vencimento: e.target.value }))}
+              value={form.dia_vencimento as string}
+              onChange={(e) => setForm({ dia_vencimento: e.target.value })}
               placeholder="10"
             />
           </div>
         </div>
 
-        <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} size="sm">
+        <Button onClick={() => saveMut.mutate()} disabled={!isDirty || saveMut.isPending} size="sm">
           {saveMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           {saveMut.isPending ? "Salvando..." : "Salvar cobrança"}
         </Button>
