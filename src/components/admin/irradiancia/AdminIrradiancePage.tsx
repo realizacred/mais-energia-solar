@@ -362,7 +362,7 @@ export function CsvImportPanel() {
 
       const chunks = chunkArray(points, CHUNK_SIZE);
       setProgress({ current: 0, total: points.length });
-      log("info", `Enviando ${points.length.toLocaleString("pt-BR")} pontos em ${chunks.length} chunks...`);
+      log("info", `Enviando ${formatIntegerBR(points.length)} pontos em ${chunks.length} chunks...`);
 
       for (let i = 0; i < chunks.length; i++) {
         if (abortRef.current) {
