@@ -566,10 +566,10 @@ export function CsvImportPanel() {
           {validation && (
             <div className="rounded-md border border-border p-3 space-y-2 text-xs">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div><span className="text-muted-foreground">GHI:</span> {validation.ghiCount.toLocaleString("pt-BR")} pts</div>
-                <div><span className="text-muted-foreground">DHI:</span> {validation.dhiCount.toLocaleString("pt-BR")} pts</div>
-                <div><span className="text-muted-foreground">DNI:</span> {validation.dniCount.toLocaleString("pt-BR")} pts</div>
-                <div><span className="text-muted-foreground">Mesclados:</span> {validation.mergedCount.toLocaleString("pt-BR")} pts</div>
+                <div><span className="text-muted-foreground">GHI:</span> {formatIntegerBR(validation.ghiCount)} pts</div>
+                <div><span className="text-muted-foreground">DHI:</span> {formatIntegerBR(validation.dhiCount)} pts</div>
+                <div><span className="text-muted-foreground">DNI:</span> {formatIntegerBR(validation.dniCount)} pts</div>
+                <div><span className="text-muted-foreground">Mesclados:</span> {formatIntegerBR(validation.mergedCount)} pts</div>
               </div>
               <div className="flex gap-3 flex-wrap">
                 <span>Unidade: <strong>{validation.unitDetected}</strong></span>
