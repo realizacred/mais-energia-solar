@@ -349,6 +349,24 @@ export function UCInvoicesTab({ unitId }: Props) {
         },
       });
       if (result?.success) {
+        const updatedInvoice = result?.data?.invoice as Partial<UnitInvoice> | undefined;
+
+        if (updatedInvoice?.id) {
+          qc.setQueryData<UnitInvoice[]>(["unit_invoices", unitId], (current = []) =>
+            current.map((invoice) =>
+              invoice.id === updatedInvoice.id
+                ? ({ ...invoice, ...updatedInvoice } as UnitInvoice)
+                : invoice
+            )
+          );
+
+          if (debugInvoice?.id === updatedInvoice.id) {
+            setDebugInvoice((current) =>
+              current ? ({ ...current, ...updatedInvoice } as UnitInvoice) : current
+            );
+          }
+        }
+
         toast({ title: "Fatura reprocessada", description: `Parser v${result.data?.parser_version || '?'} — dados atualizados.` });
         invalidateAllUcQueries();
       } else {
