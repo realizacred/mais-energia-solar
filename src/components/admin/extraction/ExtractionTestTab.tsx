@@ -71,9 +71,17 @@ export function ExtractionTestTab({ onGenerateConfig }: ExtractionTestTabProps =
   const [result, setResult] = useState<TestResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "bmp"];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (f) {
+      const ext = f.name.split(".").pop()?.toLowerCase() || "";
+      if (IMAGE_EXTENSIONS.includes(ext)) {
+        toast({ title: "Formato não suportado", description: "Imagens não são suportadas para extração. Envie um arquivo PDF.", variant: "destructive" });
+        e.target.value = "";
+        return;
+      }
       setFile(f);
       setResult(null);
     }
