@@ -18,6 +18,7 @@ import {
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { DollarSign, Eye, MousePointer, TrendingUp, FlaskConical } from "lucide-react";
 import { usePricingDashboard, type VariantMetrics } from "@/hooks/usePricingDashboard";
+import { formatIntegerBR } from "@/lib/formatters";
 import { usePriceVariantsAdmin, useTogglePriceVariant } from "@/hooks/usePriceVariantsAdmin";
 import { useBillingPlans } from "@/hooks/useBillingPlans";
 

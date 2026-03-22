@@ -3,6 +3,7 @@
  */
 
 import { Badge } from "@/components/ui/badge";
+import { formatIntegerBR } from "@/lib/formatters";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle2, Loader2, XCircle, Archive } from "lucide-react";
 import type { VersionRow } from "./types";

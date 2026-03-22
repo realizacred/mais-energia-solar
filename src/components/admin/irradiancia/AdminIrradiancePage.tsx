@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

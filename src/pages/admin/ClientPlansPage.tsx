@@ -3,6 +3,7 @@
  * §26 header, §12 skeleton, §1 semantic colors only.
  */
 import { useState, useEffect, useRef } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";

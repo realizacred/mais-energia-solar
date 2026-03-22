@@ -43,6 +43,7 @@ import {
 import { motion } from "framer-motion";
 import { useBackupRestore } from "@/hooks/useBackupRestore";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { formatIntegerBR } from "@/lib/formatters";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ElementType }> = {
   completed: { label: "Concluído", className: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
