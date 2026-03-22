@@ -59,6 +59,64 @@ const BANDEIRA_COLORS: Record<string, string> = {
   vermelha_2: "border-destructive text-destructive",
 };
 
+const MESES_REFERENCIA_MAP: Record<string, number> = {
+  janeiro: 1,
+  fevereiro: 2,
+  março: 3,
+  marco: 3,
+  abril: 4,
+  maio: 5,
+  junho: 6,
+  julho: 7,
+  agosto: 8,
+  setembro: 9,
+  outubro: 10,
+  novembro: 11,
+  dezembro: 12,
+};
+
+function getReferenceFromParsed(parsed: Record<string, any> | null | undefined) {
+  const mesReferencia = parsed?.mes_referencia;
+
+  if (typeof mesReferencia !== "string") {
+    return { month: null, year: null };
+  }
+
+  const normalized = mesReferencia.trim().toLowerCase();
+  const numericMatch = normalized.match(/(\d{1,2})\D+(\d{4})/);
+  if (numericMatch) {
+    return {
+      month: Number(numericMatch[1]),
+      year: Number(numericMatch[2]),
+    };
+  }
+
+  const yearMatch = normalized.match(/(20\d{2})/);
+  const monthEntry = Object.entries(MESES_REFERENCIA_MAP).find(([label]) => normalized.includes(label));
+
+  return {
+    month: monthEntry?.[1] ?? null,
+    year: yearMatch ? Number(yearMatch[1]) : null,
+  };
+}
+
+function findRecentlySavedInvoice(invoices: UnitInvoice[], parsed: Record<string, any> | null | undefined) {
+  const { month, year } = getReferenceFromParsed(parsed);
+  const now = Date.now();
+
+  return invoices.find((invoice) => {
+    const createdAt = new Date(invoice.created_at).getTime();
+    const createdRecently = Number.isFinite(createdAt) && now - createdAt < 10 * 60 * 1000;
+
+    if (!createdRecently) return false;
+    if (month && year) {
+      return invoice.reference_month === month && invoice.reference_year === year;
+    }
+
+    return invoice.source === "import" || invoice.source === "upload";
+  }) ?? null;
+}
+
 /** Detail fields label */
 function DetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
   const display = value != null && value !== "" ? String(value) : "—";
@@ -269,7 +327,7 @@ export function UCInvoicesTab({ unitId }: Props) {
       setUploadProgress(45);
       setUploadStep("Extraindo dados da fatura...");
 
-      const data = await invokeEdgeFunction<any>("process-fatura-pdf", {
+      const response = await invokeEdgeFunction<any>("process-fatura-pdf", {
         body: {
           pdf_storage_path: pdfStoragePath,
           unit_id: unitId,
@@ -278,23 +336,42 @@ export function UCInvoicesTab({ unitId }: Props) {
         headers: { "x-client-timeout": "120" },
       });
 
-      if (!data?.data?.invoice_id) {
+      const edgeData = response?.data ?? response;
+      const parsed = edgeData?.parsed ?? null;
+      let savedInvoiceId = edgeData?.invoice_id ?? edgeData?.invoice?.id ?? null;
+
+      if (!savedInvoiceId) {
+        invalidateAllUcQueries();
+        const refreshedInvoices = await qc.fetchQuery({
+          queryKey: ["unit_invoices", unitId],
+          queryFn: () => invoiceService.listByUnit(unitId),
+          staleTime: 0,
+        });
+        savedInvoiceId = findRecentlySavedInvoice(refreshedInvoices, parsed)?.id ?? null;
+      }
+
+      if (!savedInvoiceId) {
         throw new Error("Os dados foram extraídos, mas a fatura não foi salva.");
       }
 
       setUploadProgress(90);
       setUploadStep("Finalizando...");
 
-      const parsed = data?.data?.parsed;
       const fieldsExtracted = parsed
         ? [parsed.consumo_kwh && "consumo", parsed.valor_total && "valor", parsed.vencimento && "vencimento", parsed.saldo_gd && "saldo GD"].filter(Boolean)
         : [];
+      const extractionStatus = edgeData?.extraction_status;
 
       setUploadProgress(100);
       setUploadStep("Concluído!");
       invalidateAllUcQueries();
 
-      if (fieldsExtracted.length > 0) {
+      if (extractionStatus === "partial" || extractionStatus === "failed") {
+        toast({
+          title: "Fatura salva em revisão",
+          description: "Os dados foram extraídos e a fatura foi registrada para revisão técnica.",
+        });
+      } else if (fieldsExtracted.length > 0) {
         toast({ title: "Fatura importada e processada", description: `Dados extraídos: ${fieldsExtracted.join(", ")}` });
       } else {
         toast({ title: "PDF importado", description: "Não foi possível extrair dados automaticamente. Verifique se o PDF não é uma imagem escaneada." });
