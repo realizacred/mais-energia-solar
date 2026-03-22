@@ -244,7 +244,7 @@ export function UCInvoicesTab({ unitId }: Props) {
   const deleteMut = useMutation({
     mutationFn: (id: string) => invoiceService.delete(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["unit_invoices", unitId] });
+      invalidateAllUcQueries();
       toast({ title: "Fatura excluída com sucesso" });
       setDeleteTarget(null);
     },
