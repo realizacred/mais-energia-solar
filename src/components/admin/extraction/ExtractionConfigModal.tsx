@@ -451,8 +451,13 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
     }
 
     try {
+      // If editing a system default (tenant_id IS NULL), create a tenant-specific override
+      const isSystemDefault = config && !config.tenant_id;
+      const configId = isSystemDefault ? undefined : config?.id;
+
       await saveConfig.mutateAsync({
-        ...(config?.id ? { id: config.id } : {}),
+        ...(configId ? { id: configId } : {}),
+        ...(isSystemDefault ? { is_system_default: true } : {}),
         concessionaria_id: form.concessionaria_id,
         concessionaria_code: form.concessionaria_code,
         concessionaria_nome: form.concessionaria_nome,
@@ -473,7 +478,10 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
         active: form.active,
         notes: form.notes || null,
       } as any);
-      toast.success(config ? "Configuração atualizada" : "Configuração criada");
+      toast.success(isSystemDefault
+        ? "Configuração personalizada criada (override da padrão do sistema)"
+        : config ? "Configuração atualizada" : "Configuração criada"
+      );
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar configuração");
