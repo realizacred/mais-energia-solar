@@ -1,6 +1,6 @@
 /**
  * ExtractionConfigModal — Modal for creating/editing extraction config per concessionária.
- * §25: FormModalTemplate pattern. Reposicionado para modelo 100% nativo.
+ * §25: FormModalTemplate pattern. Supports pre-fill from test results and JSON advanced mode.
  */
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,16 +19,27 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight, Plus, X } from "lucide-react";
+import { Settings2, Cpu, FileText, RefreshCw, ChevronDown, ChevronRight, Plus, X, Code2, Eye } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useSaveExtractionConfig, type ExtractionConfig, type ExtractionStrategyMode } from "@/hooks/useExtractionConfigs";
 import { toast } from "sonner";
 import { ExtractionHelpHint } from "./ExtractionHelpHint";
 
+/** Pre-fill data generated from test results */
+export interface ExtractionConfigPrefill {
+  concessionaria_code: string;
+  concessionaria_nome: string;
+  fields_found: string[];
+  fields_missing: string[];
+  parser_version?: string;
+  tipo_uc_detectado?: string;
+}
+
 interface ExtractionConfigModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   config?: ExtractionConfig | null;
+  prefill?: ExtractionConfigPrefill | null;
 }
 
 // ── All available extraction fields with labels and categories ──
@@ -36,7 +47,6 @@ interface FieldDef {
   key: string;
   label: string;
   description?: string;
-  /** Campo exclusivo de UC geradora (injeção) */
   geradoraOnly?: boolean;
 }
 
@@ -109,6 +119,9 @@ const FIELD_CATEGORIES: FieldCategory[] = [
 ];
 
 const ALL_FIELD_KEYS = FIELD_CATEGORIES.flatMap(c => c.fields.map(f => f.key));
+const BASE_REQUIRED = ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"];
+const GERADORA_EXTRA = ["energia_injetada_kwh", "saldo_gd_acumulado"];
+const BENEFICIARIA_NEVER = ["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"];
 
 const IDENTIFIER_FIELD_OPTIONS = [
   { value: "numero_uc", label: "Número da UC" },
@@ -234,37 +247,10 @@ function FieldCategorySection({
   );
 }
 
-export function ExtractionConfigModal({ open, onOpenChange, config }: ExtractionConfigModalProps) {
-  const saveConfig = useSaveExtractionConfig();
-  const [customFieldInput, setCustomFieldInput] = useState("");
-
-  const [form, setForm] = useState({
-    concessionaria_code: "",
-    concessionaria_nome: "",
-    concessionaria_id: null as string | null,
-    strategy_mode: "native" as ExtractionStrategyMode,
-    native_enabled: true,
-    provider_enabled: false,
-    provider_name: "",
-    provider_endpoint_key: "",
-    provider_requires_base64: false,
-    provider_requires_password: false,
-    fallback_enabled: false,
-    required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"] as string[],
-    required_fields_geradora: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia", "energia_injetada_kwh", "saldo_gd_acumulado"] as string[],
-    required_fields_beneficiaria: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"] as string[],
-    optional_fields: [] as string[],
-    identifier_field: "numero_uc" as string,
-    parser_version: "3.0.2",
-    active: true,
-    notes: "",
-    custom_fields: [] as FieldDef[],
-  });
-
-  const baselineRef = useRef<string>("");
-
-  useEffect(() => {
-    const newForm = config ? {
+/** Build form state from config, prefill, or defaults */
+function buildFormState(config?: ExtractionConfig | null, prefill?: ExtractionConfigPrefill | null) {
+  if (config) {
+    return {
       concessionaria_code: config.concessionaria_code,
       concessionaria_nome: config.concessionaria_nome,
       concessionaria_id: config.concessionaria_id,
@@ -276,18 +262,25 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
       provider_requires_base64: config.provider_requires_base64,
       provider_requires_password: config.provider_requires_password,
       fallback_enabled: config.fallback_enabled,
-      required_fields: config.required_fields || ["consumo_kwh", "valor_total"],
-      required_fields_geradora: config.required_fields_geradora?.length ? config.required_fields_geradora : config.required_fields || ["consumo_kwh", "valor_total"],
-      required_fields_beneficiaria: config.required_fields_beneficiaria?.length ? config.required_fields_beneficiaria : (config.required_fields || ["consumo_kwh", "valor_total"]).filter((f: string) => !["energia_injetada_kwh", "saldo_gd_acumulado", "leitura_anterior_103", "leitura_atual_103", "medidor_injecao_codigo", "categoria_gd"].includes(f)),
+      required_fields: config.required_fields || BASE_REQUIRED,
+      required_fields_geradora: config.required_fields_geradora?.length ? config.required_fields_geradora : [...BASE_REQUIRED, ...GERADORA_EXTRA],
+      required_fields_beneficiaria: config.required_fields_beneficiaria?.length ? config.required_fields_beneficiaria : BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER.includes(f)),
       optional_fields: config.optional_fields || [],
       identifier_field: config.identifier_field || "numero_uc",
       parser_version: config.parser_version || "3.0.2",
       active: config.active,
       notes: config.notes || "",
       custom_fields: [] as FieldDef[],
-    } : {
-      concessionaria_code: "",
-      concessionaria_nome: "",
+    };
+  }
+
+  // Prefill from test results
+  if (prefill) {
+    const allFound = prefill.fields_found || [];
+    const optionals = allFound.filter(f => !BASE_REQUIRED.includes(f));
+    return {
+      concessionaria_code: prefill.concessionaria_code,
+      concessionaria_nome: prefill.concessionaria_nome,
       concessionaria_id: null as string | null,
       strategy_mode: "native" as ExtractionStrategyMode,
       native_enabled: true,
@@ -297,25 +290,101 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
       provider_requires_base64: false,
       provider_requires_password: false,
       fallback_enabled: false,
-      required_fields: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
-      required_fields_geradora: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia", "energia_injetada_kwh", "saldo_gd_acumulado"],
-      required_fields_beneficiaria: ["consumo_kwh", "valor_total", "vencimento", "numero_uc", "mes_referencia"],
-      optional_fields: [] as string[],
+      required_fields: [...BASE_REQUIRED],
+      required_fields_geradora: [...BASE_REQUIRED, ...GERADORA_EXTRA],
+      required_fields_beneficiaria: BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER.includes(f)),
+      optional_fields: optionals.filter(f => !GERADORA_EXTRA.includes(f) && !BENEFICIARIA_NEVER.includes(f)),
       identifier_field: "numero_uc",
-      parser_version: "3.0.2",
+      parser_version: prefill.parser_version || "3.0.2",
       active: true,
-      notes: "",
+      notes: prefill.tipo_uc_detectado
+        ? `Tipo UC detectado automaticamente: ${prefill.tipo_uc_detectado}. Configuração gerada a partir de teste de extração.`
+        : "Configuração gerada a partir de teste de extração.",
       custom_fields: [] as FieldDef[],
     };
+  }
+
+  // Defaults
+  return {
+    concessionaria_code: "",
+    concessionaria_nome: "",
+    concessionaria_id: null as string | null,
+    strategy_mode: "native" as ExtractionStrategyMode,
+    native_enabled: true,
+    provider_enabled: false,
+    provider_name: "",
+    provider_endpoint_key: "",
+    provider_requires_base64: false,
+    provider_requires_password: false,
+    fallback_enabled: false,
+    required_fields: [...BASE_REQUIRED],
+    required_fields_geradora: [...BASE_REQUIRED, ...GERADORA_EXTRA],
+    required_fields_beneficiaria: BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER.includes(f)),
+    optional_fields: [] as string[],
+    identifier_field: "numero_uc",
+    parser_version: "3.0.2",
+    active: true,
+    notes: "",
+    custom_fields: [] as FieldDef[],
+  };
+}
+
+/** Extract the DB-saveable payload from form state (for JSON mode) */
+function formToJsonPayload(form: ReturnType<typeof buildFormState>) {
+  return {
+    concessionaria_code: form.concessionaria_code,
+    concessionaria_nome: form.concessionaria_nome,
+    strategy_mode: form.strategy_mode,
+    native_enabled: form.native_enabled,
+    provider_enabled: form.provider_enabled,
+    provider_name: form.provider_name || null,
+    provider_endpoint_key: form.provider_endpoint_key || null,
+    provider_requires_base64: form.provider_requires_base64,
+    provider_requires_password: form.provider_requires_password,
+    fallback_enabled: form.fallback_enabled,
+    required_fields: form.required_fields,
+    required_fields_geradora: form.required_fields_geradora,
+    required_fields_beneficiaria: form.required_fields_beneficiaria,
+    optional_fields: form.optional_fields,
+    identifier_field: form.identifier_field,
+    parser_version: form.parser_version,
+    active: form.active,
+    notes: form.notes || null,
+  };
+}
+
+export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: ExtractionConfigModalProps) {
+  const saveConfig = useSaveExtractionConfig();
+  const [customFieldInput, setCustomFieldInput] = useState("");
+  const [viewMode, setViewMode] = useState<"visual" | "json">("visual");
+  const [jsonText, setJsonText] = useState("");
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  const [form, setForm] = useState(() => buildFormState(config, prefill));
+  const baselineRef = useRef<string>("");
+
+  useEffect(() => {
+    const newForm = buildFormState(config, prefill);
     setForm(newForm);
     baselineRef.current = JSON.stringify(newForm);
     setCustomFieldInput("");
-  }, [config, open]);
+    setViewMode("visual");
+    setJsonError(null);
+  }, [config, prefill, open]);
+
+  // Sync form → JSON when switching to JSON mode
+  useEffect(() => {
+    if (viewMode === "json") {
+      setJsonText(JSON.stringify(formToJsonPayload(form), null, 2));
+      setJsonError(null);
+    }
+  }, [viewMode]);
 
   const isDirty = useMemo(() => {
-    if (!config) return !!form.concessionaria_code; // new: dirty when code filled
+    if (!config && !prefill) return !!form.concessionaria_code;
+    if (prefill && !config) return true; // prefilled = always dirty
     return JSON.stringify(form) !== baselineRef.current;
-  }, [form, config]);
+  }, [form, config, prefill]);
 
   const toggleRequired = (key: string) => {
     setForm(f => {
@@ -323,7 +392,6 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
       if (isRequired) {
         return { ...f, required_fields: f.required_fields.filter(k => k !== key) };
       }
-      // Remove from optional if adding to required
       return {
         ...f,
         required_fields: [...f.required_fields, key],
@@ -334,13 +402,46 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
 
   const toggleOptional = (key: string) => {
     setForm(f => {
-      if (f.required_fields.includes(key)) return f; // Can't be optional if required
+      if (f.required_fields.includes(key)) return f;
       const isOptional = f.optional_fields.includes(key);
       if (isOptional) {
         return { ...f, optional_fields: f.optional_fields.filter(k => k !== key) };
       }
       return { ...f, optional_fields: [...f.optional_fields, key] };
     });
+  };
+
+  /** Apply JSON changes back to form */
+  const applyJsonToForm = () => {
+    try {
+      const parsed = JSON.parse(jsonText);
+      setForm(f => ({
+        ...f,
+        concessionaria_code: parsed.concessionaria_code ?? f.concessionaria_code,
+        concessionaria_nome: parsed.concessionaria_nome ?? f.concessionaria_nome,
+        strategy_mode: parsed.strategy_mode ?? f.strategy_mode,
+        native_enabled: parsed.native_enabled ?? f.native_enabled,
+        provider_enabled: parsed.provider_enabled ?? f.provider_enabled,
+        provider_name: parsed.provider_name ?? "",
+        provider_endpoint_key: parsed.provider_endpoint_key ?? "",
+        provider_requires_base64: parsed.provider_requires_base64 ?? f.provider_requires_base64,
+        provider_requires_password: parsed.provider_requires_password ?? f.provider_requires_password,
+        fallback_enabled: parsed.fallback_enabled ?? f.fallback_enabled,
+        required_fields: Array.isArray(parsed.required_fields) ? parsed.required_fields : f.required_fields,
+        required_fields_geradora: Array.isArray(parsed.required_fields_geradora) ? parsed.required_fields_geradora : f.required_fields_geradora,
+        required_fields_beneficiaria: Array.isArray(parsed.required_fields_beneficiaria) ? parsed.required_fields_beneficiaria : f.required_fields_beneficiaria,
+        optional_fields: Array.isArray(parsed.optional_fields) ? parsed.optional_fields : f.optional_fields,
+        identifier_field: parsed.identifier_field ?? f.identifier_field,
+        parser_version: parsed.parser_version ?? f.parser_version,
+        active: parsed.active ?? f.active,
+        notes: parsed.notes ?? f.notes,
+      }));
+      setJsonError(null);
+      setViewMode("visual");
+      toast.success("JSON aplicado ao formulário");
+    } catch (err: any) {
+      setJsonError(err.message || "JSON inválido");
+    }
   };
 
   const handleSave = async () => {
@@ -389,310 +490,314 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
           </div>
           <div className="flex-1">
             <DialogTitle className="text-base font-semibold text-foreground">
-              {config ? "Editar Configuração" : "Nova Configuração de Extração"}
+              {config ? "Editar Configuração" : prefill ? "Nova Configuração (pré-preenchida)" : "Nova Configuração de Extração"}
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Configure a estratégia de extração nativa por concessionária
+              {prefill
+                ? `Gerada a partir do teste de extração — ${prefill.concessionaria_nome}`
+                : "Configure a estratégia de extração nativa por concessionária"
+              }
             </p>
+          </div>
+          {/* View mode toggle */}
+          <div className="flex items-center gap-1 border border-border rounded-lg p-0.5 shrink-0">
+            <Button
+              variant={viewMode === "visual" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={() => setViewMode("visual")}
+            >
+              <Eye className="w-3.5 h-3.5 mr-1" />
+              Visual
+            </Button>
+            <Button
+              variant={viewMode === "json" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={() => setViewMode("json")}
+            >
+              <Code2 className="w-3.5 h-3.5 mr-1" />
+              JSON
+            </Button>
           </div>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="space-y-4 p-5">
-            {/* Row 1: Concessionária + Estratégia + Fallback */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <SectionCard icon={Settings2} title="Concessionária">
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">Nome</Label>
-                      <ExtractionHelpHint text="Nome exibido na Central de Extração. Use o nome comercial da concessionária para facilitar a leitura do time." />
-                    </div>
-                    <Input
-                      value={form.concessionaria_nome}
-                      onChange={e => setForm(f => ({ ...f, concessionaria_nome: e.target.value }))}
-                      placeholder="Energisa, Light, Cemig..."
-                      className="h-10"
-                      disabled={!!config}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">Código (slug)</Label>
-                      <ExtractionHelpHint text="Código técnico usado pelo backend para localizar parser, regras aprendidas e eventos de layout. Ex.: energisa, cemig, light." />
-                    </div>
-                    <Input
-                      value={form.concessionaria_code}
-                      onChange={e => setForm(f => ({ ...f, concessionaria_code: e.target.value }))}
-                      placeholder="energisa, light, cemig..."
-                      className="h-10"
-                      disabled={!!config}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">Campo identificador da UC</Label>
-                      <ExtractionHelpHint text="Define qual campo da conta será comparado com a UC cadastrada para validar titularidade e vínculo automático." />
-                    </div>
-                    <Select
-                      value={form.identifier_field}
-                      onValueChange={v => setForm(f => ({ ...f, identifier_field: v }))}
-                    >
-                      <SelectTrigger className="h-10">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {IDENTIFIER_FIELD_OPTIONS.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[11px] text-muted-foreground">
-                      Como identificar a UC nesta concessionária
-                    </p>
-                  </div>
-                </div>
-              </SectionCard>
-
-              <SectionCard icon={Cpu} title="Estratégia de Extração">
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">Modo</Label>
-                      <ExtractionHelpHint text="Nativo usa parser determinístico. Automático combina rotas internas. Use esta seção para orientar o backend sem esconder a lógica." />
-                    </div>
-                    <Select
-                      value={form.strategy_mode}
-                      onValueChange={(v) => setForm(f => ({ ...f, strategy_mode: v as ExtractionStrategyMode }))}
-                    >
-                      <SelectTrigger className="h-10">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="native">Nativo</SelectItem>
-                        <SelectItem value="provider">Nativo (assistido)</SelectItem>
-                        <SelectItem value="auto">Automático</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">Versão do Parser</Label>
-                      <ExtractionHelpHint text="Versão auditável do parser usada para esta concessionária. Ajuda a rastrear mudanças de comportamento entre releases." />
-                    </div>
-                    <Input
-                      value={form.parser_version || ""}
-                      onChange={e => setForm(f => ({ ...f, parser_version: e.target.value }))}
-                      placeholder="3.0.2"
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <SwitchRow label="Parser Nativo" description="Usar parser determinístico interno" hint="O parser nativo lê o PDF diretamente sem depender de serviços externos. Ideal para concessionárias com layout de conta já mapeado." checked={form.native_enabled} onChange={v => setForm(f => ({ ...f, native_enabled: v }))} />
-                  <SwitchRow label="Suporte Avançado" description="Habilitar cobertura adicional de extração" hint="Ativa uma segunda camada de extração para campos que o parser nativo não conseguiu capturar. Útil para concessionárias com layouts variáveis." checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
-                </div>
-              </SectionCard>
-
-              <SectionCard icon={RefreshCw} title="Recuperação e Fallback">
-                <div className="space-y-2">
-                  <SwitchRow label="Recuperação Automática" description="Se o parser falhar, o sistema tenta outra rota interna" hint="Quando ativo, se o parser principal falhar (campos faltantes ou erro), o sistema tenta automaticamente uma rota alternativa. Recomendado para concessionárias com layouts instáveis." checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
-                  <SwitchRow label="Requer Conversão Backend" description="O backend prepara e converte o arquivo antes do processamento" hint="Ative quando o PDF desta concessionária precisa ser convertido (ex.: base64, imagem) antes da extração. Comum em concessionárias que geram PDFs como imagem escaneada. Se a conta já é um PDF de texto normal, deixe desativado." checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
-                  <SwitchRow label="PDF Protegido" description="Marque quando a conta costuma exigir senha para abertura" hint="Algumas concessionárias protegem o PDF da conta com senha (geralmente o CPF/CNPJ do titular). Ative para que o sistema tente desbloquear automaticamente usando dados do cadastro." checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
-                </div>
-                <SwitchRow label="Ativo" description="Habilitar esta configuração" hint="Desative para pausar temporariamente esta configuração sem excluí-la. Faturas desta concessionária usarão as regras padrão do sistema." checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
-              </SectionCard>
+          {viewMode === "json" ? (
+            /* ── JSON Advanced Mode ── */
+            <div className="p-5 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Edite o JSON diretamente. A estrutura reflete exatamente os campos salvos no banco.
+                Clique em "Aplicar JSON" para sincronizar com o modo visual.
+              </p>
+              <Textarea
+                value={jsonText}
+                onChange={e => { setJsonText(e.target.value); setJsonError(null); }}
+                rows={28}
+                className="font-mono text-xs min-h-[400px]"
+                spellCheck={false}
+              />
+              {jsonError && (
+                <p className="text-xs text-destructive">❌ {jsonError}</p>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => {
+                  navigator.clipboard.writeText(jsonText);
+                  toast.success("JSON copiado");
+                }}>
+                  Copiar
+                </Button>
+                <Button size="sm" onClick={applyJsonToForm}>
+                  Aplicar JSON ao formulário
+                </Button>
+              </div>
             </div>
+          ) : (
+            /* ── Visual Mode ── */
+            <div className="space-y-4 p-5">
+              {/* Prefill banner */}
+              {prefill && !config && (
+                <Card className="border-l-[3px] border-l-primary bg-primary/5">
+                  <CardContent className="p-3 flex items-start gap-2">
+                    <Cpu className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div className="text-xs text-foreground space-y-0.5">
+                      <p className="font-medium">Configuração gerada a partir do teste de extração</p>
+                      <p className="text-muted-foreground">
+                        {prefill.fields_found.length} campos encontrados, {prefill.fields_missing.length} faltantes.
+                        {prefill.tipo_uc_detectado && ` Tipo UC detectado: ${prefill.tipo_uc_detectado}.`}
+                        {" "}Revise e ajuste antes de salvar.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-            {/* Row 2: Fields selector with context tabs */}
-            <SectionCard icon={FileText} title="Campos de Extração">
-              <div className="space-y-1 mb-3">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Configure quais campos são obrigatórios dependendo do tipo de UC.
-                  Campos marcados com <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20 px-1 py-0 mx-0.5 inline">Geradora</Badge> são
-                  exclusivos de unidades que injetam energia na rede.
-                </p>
+              {/* Row 1: Concessionária + Estratégia + Fallback */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                <SectionCard icon={Settings2} title="Concessionária">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs">Nome</Label>
+                        <ExtractionHelpHint text="Nome exibido na Central de Extração." />
+                      </div>
+                      <Input
+                        value={form.concessionaria_nome}
+                        onChange={e => setForm(f => ({ ...f, concessionaria_nome: e.target.value }))}
+                        placeholder="Energisa, Light, Cemig..."
+                        className="h-10"
+                        disabled={!!config}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs">Código (slug)</Label>
+                        <ExtractionHelpHint text="Código técnico usado pelo backend. Ex.: energisa, cemig, light." />
+                      </div>
+                      <Input
+                        value={form.concessionaria_code}
+                        onChange={e => setForm(f => ({ ...f, concessionaria_code: e.target.value }))}
+                        placeholder="energisa, light, cemig..."
+                        className="h-10"
+                        disabled={!!config}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs">Campo identificador da UC</Label>
+                        <ExtractionHelpHint text="Define qual campo da conta será comparado com a UC cadastrada." />
+                      </div>
+                      <Select value={form.identifier_field} onValueChange={v => setForm(f => ({ ...f, identifier_field: v }))}>
+                        <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {IDENTIFIER_FIELD_OPTIONS.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <SectionCard icon={Cpu} title="Estratégia de Extração">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Modo</Label>
+                      <Select value={form.strategy_mode} onValueChange={(v) => setForm(f => ({ ...f, strategy_mode: v as ExtractionStrategyMode }))}>
+                        <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="native">Nativo</SelectItem>
+                          <SelectItem value="provider">Nativo (assistido)</SelectItem>
+                          <SelectItem value="auto">Automático</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Versão do Parser</Label>
+                      <Input value={form.parser_version || ""} onChange={e => setForm(f => ({ ...f, parser_version: e.target.value }))} placeholder="3.0.2" className="h-10" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <SwitchRow label="Parser Nativo" description="Usar parser determinístico interno" hint="Lê o PDF diretamente sem serviços externos." checked={form.native_enabled} onChange={v => setForm(f => ({ ...f, native_enabled: v }))} />
+                    <SwitchRow label="Suporte Avançado" description="Habilitar cobertura adicional" hint="Segunda camada de extração para campos extras." checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
+                  </div>
+                </SectionCard>
+
+                <SectionCard icon={RefreshCw} title="Recuperação e Opções">
+                  <div className="space-y-2">
+                    <SwitchRow label="Recuperação Automática" description="Tentar rota alternativa se falhar" checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
+                    <SwitchRow label="Requer Conversão Backend" description="Converter arquivo antes da extração" hint="Para PDFs escaneados que precisam de conversão." checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
+                    <SwitchRow label="PDF Protegido" description="Conta exige senha para abertura" hint="Geralmente CPF/CNPJ do titular." checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
+                    <SwitchRow label="Ativo" description="Habilitar esta configuração" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
+                  </div>
+                </SectionCard>
               </div>
 
-              <Tabs defaultValue="geral" className="w-full">
-                <TabsList className="w-full grid grid-cols-3">
-                  <TabsTrigger value="geral">Geral (Base)</TabsTrigger>
-                  <TabsTrigger value="geradora">☀️ Geradora</TabsTrigger>
-                  <TabsTrigger value="beneficiaria">🏠 Beneficiária</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="geral" className="mt-3 space-y-2">
-                  <p className="text-[11px] text-muted-foreground mb-2">
-                    Campos base usados quando o tipo de UC não é conhecido (ex.: teste de extração sem vínculo).
+              {/* Row 2: Fields selector with context tabs */}
+              <SectionCard icon={FileText} title="Campos de Extração">
+                <div className="space-y-1 mb-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Configure quais campos são obrigatórios dependendo do tipo de UC.
+                    Campos com <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20 px-1 py-0 mx-0.5 inline">Geradora</Badge> são
+                    exclusivos de unidades que injetam energia.
                   </p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                      {form.required_fields.length} obrigatórios
-                    </Badge>
-                    <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
-                      {form.optional_fields.length} opcionais
-                    </Badge>
-                  </div>
-                  {FIELD_CATEGORIES.map(cat => (
-                    <FieldCategorySection
-                      key={cat.category}
-                      category={cat}
-                      requiredFields={form.required_fields}
-                      optionalFields={form.optional_fields}
-                      onToggleRequired={toggleRequired}
-                      onToggleOptional={toggleOptional}
-                    />
-                  ))}
-                </TabsContent>
+                </div>
 
-                <TabsContent value="geradora" className="mt-3 space-y-2">
-                  <p className="text-[11px] text-muted-foreground mb-2">
-                    Campos obrigatórios para UCs que injetam energia (geradoras). Inclui campos de injeção, saldo e medidor 103.
-                  </p>
-                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
-                    {form.required_fields_geradora.length} obrigatórios para geradora
-                  </Badge>
-                  {FIELD_CATEGORIES.map(cat => (
-                    <FieldCategorySection
-                      key={`ger-${cat.category}`}
-                      category={cat}
-                      requiredFields={form.required_fields_geradora}
-                      optionalFields={[]}
-                      onToggleRequired={(key) => {
-                        setForm(f => {
-                          const has = f.required_fields_geradora.includes(key);
-                          return {
-                            ...f,
-                            required_fields_geradora: has
-                              ? f.required_fields_geradora.filter(k => k !== key)
-                              : [...f.required_fields_geradora, key],
-                          };
-                        });
-                      }}
-                      onToggleOptional={() => {}}
-                    />
-                  ))}
-                </TabsContent>
+                <Tabs defaultValue="geral" className="w-full">
+                  <TabsList className="w-full grid grid-cols-3">
+                    <TabsTrigger value="geral">Geral (Base)</TabsTrigger>
+                    <TabsTrigger value="geradora">☀️ Geradora</TabsTrigger>
+                    <TabsTrigger value="beneficiaria">🏠 Beneficiária</TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="beneficiaria" className="mt-3 space-y-2">
-                  <p className="text-[11px] text-muted-foreground mb-2">
-                    Campos obrigatórios para UCs beneficiárias (recebem créditos). Campos de injeção não se aplicam.
-                  </p>
-                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
-                    {form.required_fields_beneficiaria.length} obrigatórios para beneficiária
-                  </Badge>
-                  {FIELD_CATEGORIES.filter(cat => cat.category !== "Geração Distribuída (GD)" || cat.fields.some(f => !f.geradoraOnly)).map(cat => {
-                    const filteredCat = {
-                      ...cat,
-                      fields: cat.fields.filter(f => !f.geradoraOnly),
-                    };
-                    return (
+                  <TabsContent value="geral" className="mt-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Campos base usados quando o tipo de UC não é conhecido.
+                    </p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                      <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                        {form.required_fields.length} obrigatórios
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+                        {form.optional_fields.length} opcionais
+                      </Badge>
+                    </div>
+                    {FIELD_CATEGORIES.map(cat => (
                       <FieldCategorySection
-                        key={`ben-${cat.category}`}
-                        category={filteredCat}
-                        requiredFields={form.required_fields_beneficiaria}
+                        key={cat.category}
+                        category={cat}
+                        requiredFields={form.required_fields}
+                        optionalFields={form.optional_fields}
+                        onToggleRequired={toggleRequired}
+                        onToggleOptional={toggleOptional}
+                      />
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="geradora" className="mt-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Campos obrigatórios para UCs geradoras. Inclui injeção, saldo e medidor 103.
+                    </p>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                      {form.required_fields_geradora.length} obrigatórios
+                    </Badge>
+                    {FIELD_CATEGORIES.map(cat => (
+                      <FieldCategorySection
+                        key={`ger-${cat.category}`}
+                        category={cat}
+                        requiredFields={form.required_fields_geradora}
                         optionalFields={[]}
                         onToggleRequired={(key) => {
-                          setForm(f => {
-                            const has = f.required_fields_beneficiaria.includes(key);
-                            return {
-                              ...f,
-                              required_fields_beneficiaria: has
-                                ? f.required_fields_beneficiaria.filter(k => k !== key)
-                                : [...f.required_fields_beneficiaria, key],
-                            };
-                          });
+                          setForm(f => ({
+                            ...f,
+                            required_fields_geradora: f.required_fields_geradora.includes(key)
+                              ? f.required_fields_geradora.filter(k => k !== key)
+                              : [...f.required_fields_geradora, key],
+                          }));
                         }}
                         onToggleOptional={() => {}}
                       />
-                    );
-                  })}
-                </TabsContent>
-              </Tabs>
-
-              {/* Custom field creator */}
-              <div className="rounded-lg border border-dashed border-border p-3 mt-3">
-                <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5 text-primary" />
-                  Adicionar campo personalizado
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    value={customFieldInput}
-                    onChange={e => setCustomFieldInput(e.target.value)}
-                    placeholder="Ex.: taxa_iluminacao, multa_atraso..."
-                    className="h-8 text-xs flex-1"
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && customFieldInput.trim()) {
-                        e.preventDefault();
-                        const key = customFieldInput.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
-                        if (!key) return;
-                        if (ALL_FIELD_KEYS.includes(key) || form.custom_fields.some(f => f.key === key)) {
-                          toast.error("Este campo já existe");
-                          return;
-                        }
-                        const label = customFieldInput.trim();
-                        setForm(f => ({
-                          ...f,
-                          custom_fields: [...f.custom_fields, { key, label }],
-                          optional_fields: [...f.optional_fields, key],
-                        }));
-                        setCustomFieldInput("");
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                    disabled={!customFieldInput.trim()}
-                    onClick={() => {
-                      const key = customFieldInput.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
-                      if (!key) return;
-                      if (ALL_FIELD_KEYS.includes(key) || form.custom_fields.some(f => f.key === key)) {
-                        toast.error("Este campo já existe");
-                        return;
-                      }
-                      const label = customFieldInput.trim();
-                      setForm(f => ({
-                        ...f,
-                        custom_fields: [...f.custom_fields, { key, label }],
-                        optional_fields: [...f.optional_fields, key],
-                      }));
-                      setCustomFieldInput("");
-                    }}
-                  >
-                    <Plus className="w-3.5 h-3.5 mr-1" />
-                    Adicionar
-                  </Button>
-                </div>
-                {form.custom_fields.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {form.custom_fields.map(cf => (
-                      <Badge key={cf.key} variant="outline" className="text-xs gap-1 bg-primary/5">
-                        {cf.label}
-                        <button
-                          type="button"
-                          onClick={() => setForm(f => ({
-                            ...f,
-                            custom_fields: f.custom_fields.filter(c => c.key !== cf.key),
-                            optional_fields: f.optional_fields.filter(k => k !== cf.key),
-                            required_fields: f.required_fields.filter(k => k !== cf.key),
-                          }))}
-                          className="ml-0.5 hover:text-destructive"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
                     ))}
-                  </div>
-                )}
-              </div>
-            </SectionCard>
+                  </TabsContent>
 
-            {/* Row 3: Notes */}
-            {form.notes || !config ? (
+                  <TabsContent value="beneficiaria" className="mt-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Campos para UCs beneficiárias. Campos de injeção não se aplicam.
+                    </p>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                      {form.required_fields_beneficiaria.length} obrigatórios
+                    </Badge>
+                    {FIELD_CATEGORIES.filter(cat => cat.fields.some(f => !f.geradoraOnly)).map(cat => {
+                      const filteredCat = { ...cat, fields: cat.fields.filter(f => !f.geradoraOnly) };
+                      return (
+                        <FieldCategorySection
+                          key={`ben-${cat.category}`}
+                          category={filteredCat}
+                          requiredFields={form.required_fields_beneficiaria}
+                          optionalFields={[]}
+                          onToggleRequired={(key) => {
+                            setForm(f => ({
+                              ...f,
+                              required_fields_beneficiaria: f.required_fields_beneficiaria.includes(key)
+                                ? f.required_fields_beneficiaria.filter(k => k !== key)
+                                : [...f.required_fields_beneficiaria, key],
+                            }));
+                          }}
+                          onToggleOptional={() => {}}
+                        />
+                      );
+                    })}
+                  </TabsContent>
+                </Tabs>
+
+                {/* Custom field creator */}
+                <div className="rounded-lg border border-dashed border-border p-3 mt-3">
+                  <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5 text-primary" />
+                    Adicionar campo personalizado
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={customFieldInput}
+                      onChange={e => setCustomFieldInput(e.target.value)}
+                      placeholder="Ex.: taxa_iluminacao, multa_atraso..."
+                      className="h-8 text-xs flex-1"
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && customFieldInput.trim()) {
+                          e.preventDefault();
+                          addCustomField();
+                        }
+                      }}
+                    />
+                    <Button type="button" variant="outline" size="sm" className="h-8 text-xs" disabled={!customFieldInput.trim()} onClick={addCustomField}>
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
+                    </Button>
+                  </div>
+                  {form.custom_fields.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {form.custom_fields.map(cf => (
+                        <Badge key={cf.key} variant="outline" className="text-xs gap-1 bg-primary/5">
+                          {cf.label}
+                          <button
+                            type="button"
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              custom_fields: f.custom_fields.filter(c => c.key !== cf.key),
+                              optional_fields: f.optional_fields.filter(k => k !== cf.key),
+                              required_fields: f.required_fields.filter(k => k !== cf.key),
+                            }))}
+                            className="ml-0.5 hover:text-destructive"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+
+              {/* Notes */}
               <SectionCard icon={Settings2} title="Observações">
                 <Textarea
                   value={form.notes}
@@ -702,8 +807,8 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                   className="min-h-[80px]"
                 />
               </SectionCard>
-            ) : null}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -719,4 +824,20 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
       </DialogContent>
     </Dialog>
   );
+
+  function addCustomField() {
+    const key = customFieldInput.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    if (!key) return;
+    if (ALL_FIELD_KEYS.includes(key) || form.custom_fields.some(f => f.key === key)) {
+      toast.error("Este campo já existe");
+      return;
+    }
+    const label = customFieldInput.trim();
+    setForm(f => ({
+      ...f,
+      custom_fields: [...f.custom_fields, { key, label }],
+      optional_fields: [...f.optional_fields, key],
+    }));
+    setCustomFieldInput("");
+  }
 }
