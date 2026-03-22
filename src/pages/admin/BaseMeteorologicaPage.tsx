@@ -255,7 +255,7 @@ export function BaseMeteorologicaPage() {
       });
       if (error) throw error;
       toast.success("Versão ativada!", {
-        description: `${((data as any)?.row_count ?? 0).toLocaleString("pt-BR")} pontos disponíveis.`,
+        description: `${formatIntegerBR((data as any)?.row_count ?? 0)} pontos disponíveis.`,
       });
       loadData();
       auditReload();
