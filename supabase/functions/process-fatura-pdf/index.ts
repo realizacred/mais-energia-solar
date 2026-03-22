@@ -552,6 +552,8 @@ async function reprocessInvoice(
     energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
   }
   const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
+  const reprocessedYear = parsed.mes_referencia ? extractYear(parsed.mes_referencia, invoice.reference_year) : invoice.reference_year;
+  const reprocessedMonth = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, invoice.reference_month) : invoice.reference_month;
 
   let bandeira: string | null = null;
   if (parsed.bandeira_tarifaria) {
@@ -564,11 +566,16 @@ async function reprocessInvoice(
 
   // 5. Update the invoice
   const updatePayload: any = {
+    reference_month: reprocessedMonth,
+    reference_year: reprocessedYear,
     total_amount: parsed.valor_total,
     energy_consumed_kwh: parsed.consumo_kwh,
     energy_injected_kwh: energyInjected,
     compensated_kwh: parsed.energia_compensada_kwh ?? null,
     current_balance_kwh: currentBalance,
+    previous_balance_kwh: parsed.saldo_gd_acumulado != null && parsed.saldo_gd != null
+      ? Math.max((parsed.saldo_gd_acumulado - (parsed.saldo_gd ?? 0)), 0)
+      : null,
     bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
     demanda_contratada_kw: parsed.demanda_contratada_kw,
