@@ -48,7 +48,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ plant_id: "", relation_type: "beneficiaria", allocation_percent: "" });
 
-  const { data: links = [], isLoading } = useQuery({
+  const { data: links = [], isLoading, isError } = useQuery({
     queryKey: ["unit_plant_links", unitId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
