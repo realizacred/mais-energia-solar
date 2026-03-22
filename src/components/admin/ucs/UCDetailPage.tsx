@@ -286,6 +286,11 @@ export default function UCDetailPage() {
             <UCEconomyReportTab unitId={uc.id} />
           </TabsContent>
 
+          {/* === GD === */}
+          <TabsContent value="gd" className="space-y-6">
+            <UCGdTab uc={uc} />
+          </TabsContent>
+
           {/* === CONFIGURAÇÕES TAB === */}
           <TabsContent value="config" className="space-y-6">
             {/* Cadastro section */}
