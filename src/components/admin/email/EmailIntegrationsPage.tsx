@@ -31,6 +31,7 @@ import {
   useSaveEmailAccount,
   useDeleteEmailAccount,
   useTriggerEmailSync,
+  useClearFailedRuns,
   type EmailAccount,
 } from "@/hooks/useEmailAccounts";
 
