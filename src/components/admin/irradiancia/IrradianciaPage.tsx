@@ -92,7 +92,7 @@ export function IrradianciaPage() {
 
         if (data.status === "active") {
           toast.success("✅ Importação concluída!", {
-            description: `${datasetCode}: ${(data.row_count ?? 0).toLocaleString("pt-BR")} pontos importados com sucesso.`,
+            description: `${datasetCode}: ${formatIntegerBR(data.row_count ?? 0)} pontos importados com sucesso.`,
             duration: 10000,
           });
           setImportingVersions((prev) => {
