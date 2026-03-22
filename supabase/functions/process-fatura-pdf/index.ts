@@ -526,7 +526,7 @@ async function processInvoice(
     source_message_id: source_message_id || null,
     status: extractionStatus === 'success' ? 'received' : extractionStatus === 'partial' ? 'received' : 'pending_review',
     demanda_contratada_kw: parsed.demanda_contratada_kw,
-    raw_extraction: parsed,
+    raw_extraction: { ...parsed, uc_detection: ucDetection },
     parsing_status: extractionStatus,
     parser_version: parsed.parser_version || null,
     last_parsed_at: new Date().toISOString(),
