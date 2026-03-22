@@ -89,9 +89,9 @@ const GOOGLE_FONTS = [
 ];
 
 export function SiteSettingsUnified() {
-  // ─── Site settings state ──────────────────────────────────
+  // ─── Site settings via context ────────────────────────────
+  const { settings: contextSettings, loading: loadingSite, updateSettings: contextUpdate } = useSiteSettings();
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
-  const [loadingSite, setLoadingSite] = useState(true);
   const [savingSite, setSavingSite] = useState(false);
 
   // ─── Brand settings state ─────────────────────────────────
@@ -101,18 +101,10 @@ export function SiteSettingsUnified() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [extracting, setExtracting] = useState(false);
 
-  // Fetch site settings
+  // Sync context settings to local editable state
   useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("id, tenant_id, nome_empresa, slogan, texto_sobre, texto_sobre_resumido, meta_title, meta_description, telefone, whatsapp, whatsapp_mensagem_padrao, email, cidade, estado, horario_atendimento, endereco_completo, instagram_url, facebook_url, linkedin_url, youtube_url, tiktok_url, hero_titulo, hero_subtitulo, hero_badge_texto, hero_cta_texto, hero_cta_whatsapp_texto, cta_titulo, cta_subtitulo, stat_projetos_realizados, stat_economia_percentual, stat_anos_experiencia, site_url, dominio_customizado, instrucoes_dns, google_maps_url, rua, bairro, cep, coordenadas_lat, coordenadas_lng, created_at, updated_at")
-        .limit(1)
-        .single();
-      if (!error && data) setSiteSettings(data);
-      setLoadingSite(false);
-    })();
-  }, []);
+    if (contextSettings && !siteSettings) setSiteSettings(contextSettings as unknown as SiteSettings);
+  }, [contextSettings]);
 
   // Sync brand draft
   useEffect(() => {
@@ -129,9 +121,9 @@ export function SiteSettingsUnified() {
     if (!siteSettings) return;
     setSavingSite(true);
     const { id, created_at, updated_at, tenant_id, ...updates } = siteSettings;
-    const { error } = await supabase.from("site_settings").update(updates).eq("id", siteSettings.id);
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    const result = await contextUpdate(updates);
+    if (result.error) {
+      toast({ title: "Erro ao salvar", description: result.error, variant: "destructive" });
     } else {
       toast({ title: "Configurações salvas!" });
     }
