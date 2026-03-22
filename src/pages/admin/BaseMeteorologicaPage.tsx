@@ -425,7 +425,7 @@ export function BaseMeteorologicaPage() {
                       <div className="text-right shrink-0">
                         {active && (
                           <div className="text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground">{(active.row_count ?? 0).toLocaleString("pt-BR")}</span> pontos
+                            <span className="font-medium text-foreground">{formatIntegerBR(active.row_count ?? 0)}</span> pontos
                             <br />
                             <span className="text-[10px] font-mono">{active.version_tag}</span>
                           </div>
