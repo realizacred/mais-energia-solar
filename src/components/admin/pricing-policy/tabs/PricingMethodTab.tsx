@@ -1,6 +1,5 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,15 +7,7 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { toast } from "@/hooks/use-toast";
 import { Save, Loader2, DollarSign, Lock, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface PricingMethod {
-  id: string;
-  method_type: "margin_on_sale" | "margin_on_cost";
-  default_margin_percent: number;
-  default_tax_percent: number;
-  kit_margin_override_percent: number | null;
-  kit_tax_override_percent: number | null;
-}
+import { usePricingMethod, useSavePricingMethod, type PricingMethod } from "@/hooks/usePricingPolicy";
 
 interface Props {
   versionId: string;
@@ -24,31 +15,56 @@ interface Props {
 }
 
 export function PricingMethodTab({ versionId, isReadOnly }: Props) {
-  const [data, setData] = useState<PricingMethod | null>(null);
-  const [baseline, setBaseline] = useState<PricingMethod | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { data: loadedData, isLoading: loading } = usePricingMethod(versionId);
+  const saveMut = useSavePricingMethod();
+  const [localData, setLocalData] = useState<PricingMethod | null>(null);
+
+  // Sync loaded data to local state
+  const data = localData ?? loadedData ?? null;
 
   const isDirty = useMemo(() => {
-    if (!data || !baseline) return false;
-    return JSON.stringify(data) !== JSON.stringify(baseline);
-  }, [data, baseline]);
+    if (!data || !loadedData) return !!localData;
+    return JSON.stringify(data) !== JSON.stringify(loadedData);
+  }, [data, loadedData, localData]);
 
-  const loadMethod = useCallback(async () => {
-    setLoading(true);
-    const { data: row, error } = await supabase
-      .from("pricing_methods")
-      .select("id, method_type, default_margin_percent, default_tax_percent, kit_margin_override_percent, kit_tax_override_percent")
-      .eq("version_id", versionId)
-      .maybeSingle();
+  function setData(updater: ((prev: PricingMethod | null) => PricingMethod | null)) {
+    setLocalData(updater(data));
+  }
 
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    setData(row as unknown as PricingMethod | null);
-    setBaseline(row as unknown as PricingMethod | null);
-    setLoading(false);
-  }, [versionId]);
+  function initializeData(methodType: "margin_on_sale" | "margin_on_cost") {
+    setLocalData({
+      id: "",
+      method_type: methodType,
+      default_margin_percent: 25,
+      default_tax_percent: 0,
+      kit_margin_override_percent: null,
+      kit_tax_override_percent: null,
+    });
+  }
 
-  useEffect(() => { loadMethod(); }, [loadMethod]);
+  async function handleSave() {
+    if (!data) return;
+    saveMut.mutate({
+      id: data.id || undefined,
+      versionId,
+      data: {
+        method_type: data.method_type,
+        default_margin_percent: data.default_margin_percent,
+        default_tax_percent: data.default_tax_percent,
+        kit_margin_override_percent: data.kit_margin_override_percent,
+        kit_tax_override_percent: data.kit_tax_override_percent,
+      },
+    }, {
+      onSuccess: (newId) => {
+        if (!data.id && newId) setLocalData({ ...data, id: newId });
+        else setLocalData(null);
+        toast({ title: data.id ? "Método atualizado" : "Método configurado" });
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
+  }
+
+  const saving = saveMut.isPending;
 
   function initializeData(methodType: "margin_on_sale" | "margin_on_cost") {
     setData({

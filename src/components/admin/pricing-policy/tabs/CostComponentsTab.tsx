@@ -116,47 +116,32 @@ export function CostComponentsTab({ versionId, isReadOnly }: Props) {
 
   async function handleSave() {
     if (!form.name.trim()) return;
-    setSaving(true);
-
-    const payload = {
-      version_id: versionId,
-      category: form.category,
-      name: form.name.trim(),
-      calculation_strategy: form.calculation_strategy,
-      parameters: form.parameters,
-      display_order: form.display_order,
-      is_active: form.is_active,
-      description: form.description || null,
-    };
-
-    if (editingId) {
-      const { error } = await supabase
-        .from("pricing_cost_components")
-        .update(payload as any)
-        .eq("id", editingId);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Componente atualizado" });
-    } else {
-      const { error } = await supabase
-        .from("pricing_cost_components")
-        .insert(payload as any);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Componente adicionado" });
-    }
-
-    setSaving(false);
-    setDialogOpen(false);
-    loadComponents();
+    saveMut.mutate({
+      id: editingId || undefined,
+      versionId,
+      data: {
+        category: form.category,
+        name: form.name.trim(),
+        calculation_strategy: form.calculation_strategy,
+        parameters: form.parameters,
+        display_order: form.display_order,
+        is_active: form.is_active,
+        description: form.description || null,
+      },
+    }, {
+      onSuccess: () => { toast({ title: editingId ? "Componente atualizado" : "Componente adicionado" }); setDialogOpen(false); },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   }
 
   async function handleDelete(id: string) {
-    const { error } = await supabase.from("pricing_cost_components").delete().eq("id", id);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else {
-      toast({ title: "Componente removido" });
-      loadComponents();
-    }
+    deleteMut.mutate({ id, versionId }, {
+      onSuccess: () => toast({ title: "Componente removido" }),
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    });
   }
+
+  const saving = saveMut.isPending;
 
   function renderParameterFields() {
     const strategy = form.calculation_strategy;
