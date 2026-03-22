@@ -44,6 +44,7 @@ export function PricingMethodTab({ versionId, isReadOnly }: Props) {
 
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     setData(row as unknown as PricingMethod | null);
+    setBaseline(row as unknown as PricingMethod | null);
     setLoading(false);
   }, [versionId]);
 
