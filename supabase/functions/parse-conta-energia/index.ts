@@ -439,15 +439,88 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  // ── 2. Medidor / Consumo ──
+  // ── 2. Cliente, Endereço, Nota Fiscal ──
 
-  // Código do medidor de consumo
+  // Nome do cliente — geralmente logo após o cabeçalho da Energisa, antes de LIGAÇÃO
+  let clienteNome: string | null = null;
+  const clientePatterns = [
+    /ENERGISA[^]*?S\.A\.?\s+(?:\d{2}[\/.]\d{2}[\/.]\d{4}[^]*?)?([A-ZÀ-Ú][A-ZÀ-Ú\s]{5,60}?)(?:\s*LIGA[ÇC][ÃA]O|\s*Classifica|\s*CPF|\s*CNPJ|\s*RUA|\s*AV[\s.]|\s*Endere)/i,
+    /(?:CLIENTE|CONSUMIDOR|DESTINAT[ÁA]RIO)[:\s]*([A-ZÀ-Ú][A-ZÀ-Ú\s]{5,60})/i,
+    /NOME[:\s]*([A-ZÀ-Ú][A-Za-zÀ-ú\s]{5,60})/i,
+  ];
+  for (const p of clientePatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      const candidate = m[1].trim().replace(/\s+/g, ' ');
+      // Reject if it looks like an address or company name
+      if (candidate.length >= 5 && !/^(RUA|AV|TRAV|ROD|ESTR|BR\s|ENERGISA|DISTRIBUID)/i.test(candidate)) {
+        clienteNome = candidate;
+        fieldResults['cliente_nome'] = makeField(clienteNome, 'regex:CLIENTE_NOME', true);
+        break;
+      }
+    }
+  }
+
+  // Endereço do cliente
+  let endereco: string | null = null;
+  const enderecoPatterns = [
+    /(?:ENDERE[ÇC]O|Endere[çc]o)[:\s]*([A-Za-zÀ-ú\d\s,.°º\-]{10,100})/i,
+    /(?:RUA|AV(?:ENIDA)?|TRAV(?:ESSA)?|ROD(?:OVIA)?|ESTRADA|ALAMEDA|PRA[ÇC]A)\s+[A-Za-zÀ-ú\d\s,.°º\-]{5,80}(?:\s*[,-]\s*(?:N[°º]?\s*)?\d+)?/i,
+  ];
+  for (const p of enderecoPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      endereco = (m[1] || m[0]).trim().replace(/\s+/g, ' ');
+      fieldResults['endereco'] = makeField(endereco, 'regex:ENDERECO', true);
+      break;
+    }
+  }
+
+  // Número da nota fiscal
+  let numeroNotaFiscal: string | null = null;
+  const nfPatterns = [
+    /NOTA\s+FISCAL\s+N[°º]?[:\s]*([\d.]+)/i,
+    /NF[- ]?e?\s+N[°º]?[:\s]*([\d.]+)/i,
+    /N[°º]\s*(?:da\s*)?(?:NF|Nota)[:\s]*([\d.]+)/i,
+  ];
+  const nfRaw = firstMatch(flatText, nfPatterns);
+  if (nfRaw) {
+    numeroNotaFiscal = nfRaw.replace(/\./g, '');
+    fieldResults['numero_nota_fiscal'] = makeField(nfRaw, 'regex:NOTA_FISCAL', true);
+  }
+
+  // ── 3. Medidor / Consumo ──
+
+  // Código do medidor de consumo — padrão Energisa: código alfanumérico seguido de "Energia ativa"
   let medidorConsumoCodigo: string | null = null;
-  const medidorMatch = flatText.match(/(?:medidor|n[°º]?\s*medidor|medi[çc][ãa]o)[:\s]*(\d{4,})/i);
-  if (medidorMatch) {
-    medidorConsumoCodigo = medidorMatch[1];
-    raw['medidor_consumo'] = medidorMatch[1];
-    fieldResults['medidor_consumo_codigo'] = makeField(medidorConsumoCodigo, 'regex:MEDIDOR', true);
+  const medidorConsumoPatterns = [
+    /([A-Z]\d{5,})\s+(?:Ponta)?Energia\s+ativa/i,
+    /(?:medidor|n[°º]?\s*medidor|medi[çc][ãa]o)[:\s]*(\w{4,})/i,
+    /(?:medidor|aparelho)\s*(?:de\s*)?(?:consumo|ativo)[:\s]*(\w{4,})/i,
+  ];
+  for (const p of medidorConsumoPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      medidorConsumoCodigo = m[1];
+      raw['medidor_consumo'] = m[1];
+      fieldResults['medidor_consumo_codigo'] = makeField(medidorConsumoCodigo, 'regex:MEDIDOR_CONSUMO', true);
+      break;
+    }
+  }
+
+  // Código do medidor de injeção — padrão Energisa: código alfanumérico seguido de "Energia injetada"
+  let medidorInjecaoCodigoEarly: string | null = null;
+  const medidorInjPatterns = [
+    /([A-Z]\d{5,})\s+(?:Ponta)?Energia\s+injetada/i,
+    /(?:medidor|aparelho)\s*(?:de\s*)?(?:inje[çc][ãa]o|injetada)[:\s]*(\w{4,})/i,
+  ];
+  for (const p of medidorInjPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      medidorInjecaoCodigoEarly = m[1];
+      fieldResults['medidor_injecao_codigo'] = makeField(medidorInjecaoCodigoEarly, 'regex:MEDIDOR_INJECAO_EARLY', true);
+      break;
+    }
   }
 
   let leituraAnterior03: number | null = null;
@@ -578,9 +651,9 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  // ── 3. Medidor / Injeção (registro 103) ──
+  // ── 4. Medidor / Injeção (registro 103) ──
 
-  let medidorInjecaoCodigo: string | null = null;
+
   let leituraAnterior103: number | null = null;
   let leituraAtual103: number | null = null;
   let energiaInjetada: number | null = null;
@@ -695,11 +768,14 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  // Second medidor code for injection
-  const medidorInjMatch = flatText.match(/(?:medidor|registro)\s*(?:103|inje[çc][ãa]o)[:\s]*(\d{4,})/i);
-  if (medidorInjMatch) {
-    medidorInjecaoCodigo = medidorInjMatch[1];
-    fieldResults['medidor_injecao_codigo'] = makeField(medidorInjecaoCodigo, 'regex:MEDIDOR_103', true);
+  // Second medidor code for injection (fallback if early detection missed it)
+  let medidorInjecaoCodigo: string | null = medidorInjecaoCodigoEarly;
+  if (!medidorInjecaoCodigo) {
+    const medidorInjMatch = flatText.match(/(?:medidor|registro)\s*(?:103|inje[çc][ãa]o)[:\s]*(\w{4,})/i);
+    if (medidorInjMatch) {
+      medidorInjecaoCodigo = medidorInjMatch[1];
+      fieldResults['medidor_injecao_codigo'] = makeField(medidorInjecaoCodigo, 'regex:MEDIDOR_103', true);
+    }
   }
 
   // ── 4. GD / Créditos ──
@@ -812,10 +888,18 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   // Bandeira tarifária
   let bandeira: string | null = null;
-  const bandeiraMatch = flatText.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
-  if (bandeiraMatch) {
-    bandeira = bandeiraMatch[1];
-    fieldResults['bandeira_tarifaria'] = makeField(bandeira, 'regex:BANDEIRA', true);
+  const bandeiraPatterns = [
+    /bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i,
+    /band(?:eira)?[\s.:]*\s*(verde|amarela|vermelha)/i,
+    /(verde|amarela|vermelha)\s*(?:patamar\s*\d)?\s*(?:bandeira|band\.?)/i,
+  ];
+  for (const p of bandeiraPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      bandeira = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+      fieldResults['bandeira_tarifaria'] = makeField(bandeira, 'regex:BANDEIRA', true);
+      break;
+    }
   }
 
   // ── 6. Tarifas e Tributos ──
@@ -975,10 +1059,21 @@ function extractEnergisa(text: string): ExtractedData | null {
   const ufMatch = flatText.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
   if (ufMatch) estado = ufMatch[1];
 
-  // Cidade
+  // Cidade — Energisa: "Cataguases / MG" ou "Cidade - UF"
   let cidade: string | null = null;
-  const cidadeMatch = flatText.match(/(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i);
-  if (cidadeMatch) cidade = cidadeMatch[1].trim();
+  const cidadePatterns = [
+    /(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i,
+    /([A-Za-zÀ-ú\s]{3,30})\s*\/\s*(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s*[-–]\s*CEP/i,
+    /([A-Za-zÀ-ú\s]{3,30})\s*[-–]\s*(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s*[-–]?\s*CEP/i,
+  ];
+  for (const p of cidadePatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      cidade = m[1].trim();
+      fieldResults['cidade'] = makeField(cidade, 'regex:CIDADE', true);
+      break;
+    }
+  }
 
   // ── VALIDAÇÕES CRUZADAS ──
 
@@ -1043,8 +1138,8 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   return {
     concessionaria_nome: "Energisa",
-    cliente_nome: null,
-    endereco: null,
+    cliente_nome: clienteNome,
+    endereco,
     cidade,
     estado,
     consumo_kwh: consumoKwh,
@@ -1080,6 +1175,7 @@ function extractEnergisa(text: string): ExtractedData | null {
     demanda_medida_kw: demandaMedida,
     demanda_ultrapassagem_kw: demandaUltrapassagem,
     multa_demanda_valor: multaDemanda,
+    numero_nota_fiscal: numeroNotaFiscal,
     confidence,
     ai_fallback_used: false,
     ai_model_used: null,
