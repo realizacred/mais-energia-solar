@@ -39,6 +39,7 @@ interface ExtractedData {
   energia_injetada_kwh: number | null;
   energia_compensada_kwh: number | null;
   categoria_gd: string | null;
+  modalidade_tarifaria: string | null;
   confidence: number;
   ai_fallback_used: boolean;
   raw_fields: Record<string, string>;
@@ -550,6 +551,26 @@ function extractFromText(text: string): ExtractedData {
     }
   }
 
+  // Modalidade tarifária
+  let modalidadeTarifaria: string | null = null;
+  const modalidadePatterns = [
+    /modalidade\s*(?:tarif[aá]ria)?\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i,
+    /tarifa[çc][ãa]o\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i,
+    /(convencional|hor[aá]rio?\s*branco|horosazonal\s*(?:verde|azul))/i,
+  ];
+  for (const p of modalidadePatterns) {
+    const m = text.match(p);
+    if (m) {
+      const val = m[1].toLowerCase().trim();
+      if (val.includes('convencional')) modalidadeTarifaria = 'Convencional';
+      else if (val.includes('branca') || val.includes('branco')) modalidadeTarifaria = 'Branca';
+      else if (val.includes('verde')) modalidadeTarifaria = 'Horosazonal Verde';
+      else if (val.includes('azul')) modalidadeTarifaria = 'Horosazonal Azul';
+      raw['modalidade_match'] = m[0];
+      break;
+    }
+  }
+
   confidence = Math.min(confidence, 100);
 
   return {
@@ -582,6 +603,7 @@ function extractFromText(text: string): ExtractedData {
     energia_injetada_kwh: energiaInjetada,
     energia_compensada_kwh: energiaCompensada,
     categoria_gd: categoriaGd,
+    modalidade_tarifaria: modalidadeTarifaria,
     confidence,
     ai_fallback_used: false,
     raw_fields: raw,
@@ -675,6 +697,7 @@ Seja preciso — nunca invente dados.`
                   energia_injetada_kwh: { type: "number", description: "Energia injetada total no período em kWh" },
                   energia_compensada_kwh: { type: "number", description: "Energia compensada (créditos utilizados) em kWh" },
                   categoria_gd: { type: "string", description: "Categoria de geração distribuída: GD_I (microgeração), GD_II (minigeração), GD_III" },
+                  modalidade_tarifaria: { type: "string", description: "Modalidade tarifária: Convencional, Branca, Horosazonal Verde, Horosazonal Azul" },
                 },
                 additionalProperties: false,
               },
@@ -730,6 +753,7 @@ Seja preciso — nunca invente dados.`
       energia_injetada_kwh: fields.energia_injetada_kwh ?? null,
       energia_compensada_kwh: fields.energia_compensada_kwh ?? null,
       categoria_gd: fields.categoria_gd || null,
+      modalidade_tarifaria: fields.modalidade_tarifaria || null,
       confidence: 85,
       ai_fallback_used: true,
       raw_fields: { ai_full_extraction: "true" },
