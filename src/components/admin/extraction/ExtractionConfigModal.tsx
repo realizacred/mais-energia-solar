@@ -1,15 +1,23 @@
 /**
  * ExtractionConfigModal — Modal for creating/editing extraction config per concessionária.
- * §25: FormModalTemplate pattern.
+ * §25: FormModalTemplate pattern. Optimized for large screens with Card-based sections.
  */
 import { useState, useEffect } from "react";
-import { FormModalTemplate, FormSection, FormGrid, FormDivider } from "@/components/ui-kit/FormModalTemplate";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2 } from "lucide-react";
+import { Settings2, Cpu, Globe, FileText, ToggleRight } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { useSaveExtractionConfig, type ExtractionConfig, type ExtractionStrategyMode } from "@/hooks/useExtractionConfigs";
 import { toast } from "sonner";
@@ -24,6 +32,34 @@ const DEFAULT_REQUIRED_FIELDS = ["consumo_kwh", "valor_total", "referencia_mes",
 const PROVIDER_OPTIONS = [
   { value: "infosimples", label: "Infosimples" },
 ];
+
+function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
+  return (
+    <Card className="bg-card border-border">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+            <Icon className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+        </div>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SwitchRow({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <div>
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
 
 export function ExtractionConfigModal({ open, onOpenChange, config }: ExtractionConfigModalProps) {
   const { data: concessionarias = [] } = useConcessionarias();
@@ -136,192 +172,181 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
   };
 
   return (
-    <FormModalTemplate
-      open={open}
-      onOpenChange={onOpenChange}
-      title={config ? "Editar Configuração" : "Nova Configuração de Extração"}
-      subtitle="Configure a estratégia de extração de dados por concessionária"
-      icon={Settings2}
-      onSubmit={handleSave}
-      submitLabel={config ? "Salvar" : "Cadastrar"}
-      saving={saveConfig.isPending}
-      disabled={!form.concessionaria_code}
-      className="w-[90vw] max-w-3xl"
-    >
-      <FormSection title="Concessionária">
-        <FormGrid>
-          <div className="space-y-1.5">
-            <Label>Concessionária</Label>
-            <Select
-              value={form.concessionaria_id || ""}
-              onValueChange={handleConcessionariaSelect}
-              disabled={!!config}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                {concessionarias.map(c => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome} {c.sigla ? `(${c.sigla})` : ""} {c.estado ? `- ${c.estado}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        {/* Header */}
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Settings2 className="w-5 h-5 text-primary" />
           </div>
-          <div className="space-y-1.5">
-            <Label>Código (slug)</Label>
-            <Input
-              value={form.concessionaria_code}
-              onChange={e => setForm(f => ({ ...f, concessionaria_code: e.target.value }))}
-              placeholder="energisa, light, cemig..."
-            />
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              {config ? "Editar Configuração" : "Nova Configuração de Extração"}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Configure a estratégia de extração de dados por concessionária
+            </p>
           </div>
-        </FormGrid>
-      </FormSection>
+        </DialogHeader>
 
-      <FormDivider />
+        {/* Body — 2-column grid layout for large screens */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-      <FormSection title="Estratégia de Extração">
-        <FormGrid>
-          <div className="space-y-1.5">
-            <Label>Modo</Label>
-            <Select
-              value={form.strategy_mode}
-              onValueChange={(v) => setForm(f => ({ ...f, strategy_mode: v as ExtractionStrategyMode }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="native">Parser Nativo</SelectItem>
-                <SelectItem value="provider">Provedor Externo</SelectItem>
-                <SelectItem value="auto">Automático (fallback)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Versão do Parser</Label>
-            <Input
-              value={form.parser_version || ""}
-              onChange={e => setForm(f => ({ ...f, parser_version: e.target.value }))}
-              placeholder="3.0.2"
-            />
-          </div>
-        </FormGrid>
+            {/* LEFT COLUMN */}
+            <div className="space-y-4">
+              {/* Concessionária */}
+              <SectionCard icon={Settings2} title="Concessionária">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Concessionária</Label>
+                    <Select
+                      value={form.concessionaria_id || ""}
+                      onValueChange={handleConcessionariaSelect}
+                      disabled={!!config}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {concessionarias.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome} {c.sigla ? `(${c.sigla})` : ""} {c.estado ? `- ${c.estado}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Código (slug)</Label>
+                    <Input
+                      value={form.concessionaria_code}
+                      onChange={e => setForm(f => ({ ...f, concessionaria_code: e.target.value }))}
+                      placeholder="energisa, light, cemig..."
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+              </SectionCard>
 
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-medium text-foreground">Parser Nativo</p>
-            <p className="text-xs text-muted-foreground">Usar parser determinístico interno</p>
-          </div>
-          <Switch checked={form.native_enabled} onCheckedChange={v => setForm(f => ({ ...f, native_enabled: v }))} />
-        </div>
-
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-medium text-foreground">Fallback Habilitado</p>
-            <p className="text-xs text-muted-foreground">Se parser falhar, tenta provedor externo</p>
-          </div>
-          <Switch checked={form.fallback_enabled} onCheckedChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
-        </div>
-      </FormSection>
-
-      <FormDivider />
-
-      <FormSection title="Provedor Externo">
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-medium text-foreground">Provedor Habilitado</p>
-            <p className="text-xs text-muted-foreground">Ativar extração via API externa</p>
-          </div>
-          <Switch checked={form.provider_enabled} onCheckedChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
-        </div>
-
-        {form.provider_enabled && (
-          <>
-            <FormGrid>
-              <div className="space-y-1.5">
-                <Label>Provedor</Label>
-                <Select
-                  value={form.provider_name}
-                  onValueChange={v => setForm(f => ({ ...f, provider_name: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROVIDER_OPTIONS.map(p => (
-                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Endpoint Key</Label>
-                <Input
-                  value={form.provider_endpoint_key}
-                  onChange={e => setForm(f => ({ ...f, provider_endpoint_key: e.target.value }))}
-                  placeholder="light, cemig, enel..."
-                />
-              </div>
-            </FormGrid>
-
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium text-foreground">Requer Base64</p>
-                <p className="text-xs text-muted-foreground">Backend converte PDF do Storage para base64</p>
-              </div>
-              <Switch checked={form.provider_requires_base64} onCheckedChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
+              {/* Estratégia */}
+              <SectionCard icon={Cpu} title="Estratégia de Extração">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Modo</Label>
+                    <Select
+                      value={form.strategy_mode}
+                      onValueChange={(v) => setForm(f => ({ ...f, strategy_mode: v as ExtractionStrategyMode }))}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="native">Parser Nativo</SelectItem>
+                        <SelectItem value="provider">Provedor Externo</SelectItem>
+                        <SelectItem value="auto">Automático (fallback)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Versão do Parser</Label>
+                    <Input
+                      value={form.parser_version || ""}
+                      onChange={e => setForm(f => ({ ...f, parser_version: e.target.value }))}
+                      placeholder="3.0.2"
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+                <div className="border-t border-border pt-2 space-y-1">
+                  <SwitchRow label="Parser Nativo" description="Usar parser determinístico interno" checked={form.native_enabled} onChange={v => setForm(f => ({ ...f, native_enabled: v }))} />
+                  <SwitchRow label="Fallback Habilitado" description="Se parser falhar, tenta provedor externo" checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
+                </div>
+              </SectionCard>
             </div>
 
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium text-foreground">Requer Senha</p>
-                <p className="text-xs text-muted-foreground">PDF protegido por senha da concessionária</p>
-              </div>
-              <Switch checked={form.provider_requires_password} onCheckedChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
+            {/* RIGHT COLUMN */}
+            <div className="space-y-4">
+              {/* Provedor Externo */}
+              <SectionCard icon={Globe} title="Provedor Externo">
+                <SwitchRow label="Provedor Habilitado" description="Ativar extração via API externa" checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
+                {form.provider_enabled && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border pt-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Provedor</Label>
+                        <Select value={form.provider_name} onValueChange={v => setForm(f => ({ ...f, provider_name: v }))}>
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PROVIDER_OPTIONS.map(p => (
+                              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Endpoint Key</Label>
+                        <Input
+                          value={form.provider_endpoint_key}
+                          onChange={e => setForm(f => ({ ...f, provider_endpoint_key: e.target.value }))}
+                          placeholder="light, cemig, enel..."
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                    <div className="border-t border-border pt-2 space-y-1">
+                      <SwitchRow label="Requer Base64" description="Backend converte PDF do Storage" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
+                      <SwitchRow label="Requer Senha" description="PDF protegido por senha" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
+                    </div>
+                  </>
+                )}
+              </SectionCard>
+
+              {/* Campos e Status */}
+              <SectionCard icon={FileText} title="Campos e Status">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Campos Obrigatórios (JSON)</Label>
+                  <Textarea
+                    value={JSON.stringify(form.required_fields, null, 2)}
+                    onChange={e => {
+                      try {
+                        setForm(f => ({ ...f, required_fields: JSON.parse(e.target.value) }));
+                      } catch { /* ignore parse errors during typing */ }
+                    }}
+                    rows={3}
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Observações</Label>
+                  <Textarea
+                    value={form.notes}
+                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="Notas sobre esta configuração..."
+                    rows={2}
+                  />
+                </div>
+                <div className="border-t border-border pt-2">
+                  <SwitchRow label="Ativo" description="Habilitar esta configuração" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
+                </div>
+              </SectionCard>
             </div>
-          </>
-        )}
-      </FormSection>
-
-      <FormDivider />
-
-      <FormSection title="Campos e Status">
-        <FormGrid>
-          <div className="space-y-1.5">
-            <Label>Campos Obrigatórios (JSON)</Label>
-            <Textarea
-              value={JSON.stringify(form.required_fields, null, 2)}
-              onChange={e => {
-                try {
-                  setForm(f => ({ ...f, required_fields: JSON.parse(e.target.value) }));
-                } catch { /* ignore parse errors during typing */ }
-              }}
-              rows={4}
-              className="font-mono text-xs"
-            />
           </div>
-          <div className="space-y-1.5">
-            <Label>Observações</Label>
-            <Textarea
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              placeholder="Notas sobre esta configuração..."
-              rows={4}
-            />
-          </div>
-        </FormGrid>
-
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-medium text-foreground">Ativo</p>
-            <p className="text-xs text-muted-foreground">Habilitar esta configuração</p>
-          </div>
-          <Switch checked={form.active} onCheckedChange={v => setForm(f => ({ ...f, active: v }))} />
         </div>
-      </FormSection>
-    </FormModalTemplate>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saveConfig.isPending}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={!form.concessionaria_code || saveConfig.isPending}>
+            {saveConfig.isPending && <Spinner size="sm" className="mr-2" />}
+            {config ? "Salvar" : "Cadastrar"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
