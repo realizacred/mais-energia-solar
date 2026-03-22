@@ -343,6 +343,8 @@ function extractEnergisa(text: string): ExtractedData | null {
     confidence += 10;
   }
 
+  let diasLeitura: number | null = null;
+
   const leitDatasMatch = flatText.match(/(?:per[íi]odo|leitura)[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})\s*(?:a|até|at[ée])\s*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i);
   if (leitDatasMatch) {
     const d1 = normalizeDateLike(leitDatasMatch[1]);
@@ -372,7 +374,6 @@ function extractEnergisa(text: string): ExtractedData | null {
   }
 
   // Dias de leitura
-  let diasLeitura: number | null = null;
   const diasMatch = flatText.match(/(\d{2,3})\s*dias?\s*(?:de\s*)?(?:leitura|fatura|consumo)/i)
     || flatText.match(/(?:leitura|fatura|consumo)\s*(?:em|de)?\s*(\d{2,3})\s*dias?/i);
   if (diasMatch) {
