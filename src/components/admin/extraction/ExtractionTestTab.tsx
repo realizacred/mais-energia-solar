@@ -397,7 +397,45 @@ export function ExtractionTestTab() {
             </Card>
           )}
 
-          {/* Validations */}
+          {/* Ownership Validation */}
+          {result.ownership_validation && (
+            <Card className={`border-l-[3px] ${result.ownership_validation.status === "valid" ? "border-l-success" : result.ownership_validation.status === "mismatch" ? "border-l-destructive" : "border-l-warning"}`}>
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  {result.ownership_validation.status === "valid" ? (
+                    <CheckCircle2 className="w-4 h-4 text-success" />
+                  ) : result.ownership_validation.status === "mismatch" ? (
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-warning" />
+                  )}
+                  <p className="text-sm font-semibold text-foreground">
+                    Validação de Titularidade: {result.ownership_validation.status === "valid" ? "Confirmada" : result.ownership_validation.status === "mismatch" ? "Divergente" : "Indeterminada"}
+                  </p>
+                  <Badge variant="outline" className="text-xs ml-auto">
+                    Score: {result.ownership_validation.score}%
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Identificador extraído</p>
+                    <p className="font-mono font-medium text-foreground">{result.identifier_extracted || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Identificador da UC</p>
+                    <p className="font-mono font-medium text-foreground">{result.identifier_expected || "—"}</p>
+                  </div>
+                </div>
+                {result.ownership_validation.status === "mismatch" && (
+                  <p className="text-xs text-destructive font-medium">
+                    ⚠️ A fatura não será vinculada automaticamente. Revisão manual necessária.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+
           {result.validations.length > 0 && (
             <Card>
               <CardContent className="p-4 space-y-3">
