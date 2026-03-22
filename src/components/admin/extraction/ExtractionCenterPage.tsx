@@ -366,7 +366,7 @@ export default function ExtractionCenterPage() {
         </TabsContent>
 
         <TabsContent value="test" className="mt-4">
-          <ExtractionTestTab />
+          <ExtractionTestTab onGenerateConfig={handleGenerateConfig} />
         </TabsContent>
 
         <TabsContent value="learning" className="mt-4">
