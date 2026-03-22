@@ -490,41 +490,111 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
               </SectionCard>
             </div>
 
-            {/* Row 2: Fields selector */}
+            {/* Row 2: Fields selector with context tabs */}
             <SectionCard icon={FileText} title="Campos de Extração">
               <div className="space-y-1 mb-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Marque os campos que o parser deve extrair desta concessionária. 
-                  <strong> Obrigatórios</strong> = a extração falha se não encontrar. 
-                  <strong> Opcionais</strong> = extrai se possível, sem bloquear.
+                  Configure quais campos são obrigatórios dependendo do tipo de UC.
+                  Campos marcados com <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20 px-1 py-0 mx-0.5 inline">Geradora</Badge> são
+                  exclusivos de unidades que injetam energia na rede.
                 </p>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>
-                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mr-1">
-                      {form.required_fields.length}
-                    </Badge>
-                    obrigatórios
-                  </span>
-                  <span>
-                    <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground mr-1">
-                      {form.optional_fields.length}
-                    </Badge>
-                    opcionais
-                  </span>
-                </div>
               </div>
-              <div className="space-y-2">
-                {FIELD_CATEGORIES.map(cat => (
-                  <FieldCategorySection
-                    key={cat.category}
-                    category={cat}
-                    requiredFields={form.required_fields}
-                    optionalFields={form.optional_fields}
-                    onToggleRequired={toggleRequired}
-                    onToggleOptional={toggleOptional}
-                  />
-                ))}
-              </div>
+
+              <Tabs defaultValue="geral" className="w-full">
+                <TabsList className="w-full grid grid-cols-3">
+                  <TabsTrigger value="geral">Geral (Base)</TabsTrigger>
+                  <TabsTrigger value="geradora">☀️ Geradora</TabsTrigger>
+                  <TabsTrigger value="beneficiaria">🏠 Beneficiária</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="geral" className="mt-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground mb-2">
+                    Campos base usados quando o tipo de UC não é conhecido (ex.: teste de extração sem vínculo).
+                  </p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                      {form.required_fields.length} obrigatórios
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+                      {form.optional_fields.length} opcionais
+                    </Badge>
+                  </div>
+                  {FIELD_CATEGORIES.map(cat => (
+                    <FieldCategorySection
+                      key={cat.category}
+                      category={cat}
+                      requiredFields={form.required_fields}
+                      optionalFields={form.optional_fields}
+                      onToggleRequired={toggleRequired}
+                      onToggleOptional={toggleOptional}
+                    />
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="geradora" className="mt-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground mb-2">
+                    Campos obrigatórios para UCs que injetam energia (geradoras). Inclui campos de injeção, saldo e medidor 103.
+                  </p>
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                    {form.required_fields_geradora.length} obrigatórios para geradora
+                  </Badge>
+                  {FIELD_CATEGORIES.map(cat => (
+                    <FieldCategorySection
+                      key={`ger-${cat.category}`}
+                      category={cat}
+                      requiredFields={form.required_fields_geradora}
+                      optionalFields={[]}
+                      onToggleRequired={(key) => {
+                        setForm(f => {
+                          const has = f.required_fields_geradora.includes(key);
+                          return {
+                            ...f,
+                            required_fields_geradora: has
+                              ? f.required_fields_geradora.filter(k => k !== key)
+                              : [...f.required_fields_geradora, key],
+                          };
+                        });
+                      }}
+                      onToggleOptional={() => {}}
+                    />
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="beneficiaria" className="mt-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground mb-2">
+                    Campos obrigatórios para UCs beneficiárias (recebem créditos). Campos de injeção não se aplicam.
+                  </p>
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                    {form.required_fields_beneficiaria.length} obrigatórios para beneficiária
+                  </Badge>
+                  {FIELD_CATEGORIES.filter(cat => cat.category !== "Geração Distribuída (GD)" || cat.fields.some(f => !f.geradoraOnly)).map(cat => {
+                    const filteredCat = {
+                      ...cat,
+                      fields: cat.fields.filter(f => !f.geradoraOnly),
+                    };
+                    return (
+                      <FieldCategorySection
+                        key={`ben-${cat.category}`}
+                        category={filteredCat}
+                        requiredFields={form.required_fields_beneficiaria}
+                        optionalFields={[]}
+                        onToggleRequired={(key) => {
+                          setForm(f => {
+                            const has = f.required_fields_beneficiaria.includes(key);
+                            return {
+                              ...f,
+                              required_fields_beneficiaria: has
+                                ? f.required_fields_beneficiaria.filter(k => k !== key)
+                                : [...f.required_fields_beneficiaria, key],
+                            };
+                          });
+                        }}
+                        onToggleOptional={() => {}}
+                      />
+                    );
+                  })}
+                </TabsContent>
+              </Tabs>
             </SectionCard>
 
             {/* Row 3: Notes */}
