@@ -55,8 +55,8 @@ export function UCHistoricoTab({ ucId, meterId, plantId, solarPlantId }: Props) 
 
 function MeterReadingsTable({ meterId }: { meterId?: string | null }) {
   const { data: readings = [], isLoading } = useQuery({
-    queryKey: ["uc_historico_meter_readings", meterId],
-    queryFn: () => meterService.getLatestReadings(meterId!, 50),
+    queryKey: ["uc_historico_meter_daily", meterId],
+    queryFn: () => meterService.getDailyReadings(meterId!, 60),
     enabled: !!meterId,
     staleTime: STALE_5M,
   });
@@ -78,30 +78,34 @@ function MeterReadingsTable({ meterId }: { meterId?: string | null }) {
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="font-semibold text-foreground">Data/Hora</TableHead>
-            <TableHead className="font-semibold text-foreground text-right">Energia Imp. (kWh)</TableHead>
-            <TableHead className="font-semibold text-foreground text-right">Energia Exp. (kWh)</TableHead>
-            <TableHead className="font-semibold text-foreground text-right">Potência (W)</TableHead>
-            <TableHead className="font-semibold text-foreground text-right">Tensão (V)</TableHead>
+            <TableHead className="font-semibold text-foreground">Data</TableHead>
+            <TableHead className="font-semibold text-foreground text-right">Consumo do Dia (kWh)</TableHead>
+            <TableHead className="font-semibold text-foreground text-right">Injeção do Dia (kWh)</TableHead>
+            <TableHead className="font-semibold text-foreground text-right">Acum. Importação (kWh)</TableHead>
+            <TableHead className="font-semibold text-foreground text-right">Acum. Exportação (kWh)</TableHead>
+            <TableHead className="font-semibold text-foreground text-right">Leituras</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {readings.map((r: any) => (
             <TableRow key={r.id} className="hover:bg-muted/30">
               <TableCell className="text-sm font-mono">
-                {r.measured_at ? format(new Date(r.measured_at), "dd/MM/yyyy HH:mm") : "—"}
+                {r.reading_date ? format(new Date(r.reading_date + "T12:00:00"), "dd/MM/yyyy") : "—"}
               </TableCell>
               <TableCell className="text-sm text-right font-mono">
+                {r.consumo_dia_kwh != null ? Number(r.consumo_dia_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "—"}
+              </TableCell>
+              <TableCell className="text-sm text-right font-mono">
+                {r.injecao_dia_kwh != null ? Number(r.injecao_dia_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "—"}
+              </TableCell>
+              <TableCell className="text-sm text-right font-mono text-muted-foreground">
                 {r.energy_import_kwh != null ? Number(r.energy_import_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "—"}
               </TableCell>
-              <TableCell className="text-sm text-right font-mono">
+              <TableCell className="text-sm text-right font-mono text-muted-foreground">
                 {r.energy_export_kwh != null ? Number(r.energy_export_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "—"}
               </TableCell>
-              <TableCell className="text-sm text-right font-mono">
-                {r.power_w != null ? Number(r.power_w).toLocaleString("pt-BR") : "—"}
-              </TableCell>
-              <TableCell className="text-sm text-right font-mono">
-                {r.voltage_v != null ? Number(r.voltage_v).toFixed(1) : "—"}
+              <TableCell className="text-sm text-right font-mono text-muted-foreground">
+                {r.readings_count ?? "—"}
               </TableCell>
             </TableRow>
           ))}
