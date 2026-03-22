@@ -753,6 +753,7 @@ Seja preciso — nunca invente dados.`
       energia_injetada_kwh: fields.energia_injetada_kwh ?? null,
       energia_compensada_kwh: fields.energia_compensada_kwh ?? null,
       categoria_gd: fields.categoria_gd || null,
+      modalidade_tarifaria: fields.modalidade_tarifaria || null,
       confidence: 85,
       ai_fallback_used: true,
       raw_fields: { ai_full_extraction: "true" },
