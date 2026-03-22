@@ -335,6 +335,10 @@ export default function ExtractionCenterPage() {
           <ExtractionTestTab />
         </TabsContent>
 
+        <TabsContent value="learning" className="mt-4">
+          <LayoutLearningTab />
+        </TabsContent>
+
         <TabsContent value="runs" className="mt-4">
           {runsLoading ? (
             <div className="space-y-2">
