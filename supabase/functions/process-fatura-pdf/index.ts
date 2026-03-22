@@ -139,6 +139,13 @@ async function processInvoice(
   }
 
   const parsed = parseResult.data;
+  
+  // Log AI model used for traceability
+  if (parsed.ai_fallback_used) {
+    console.log(`[process-fatura-pdf] AI model used: ${parsed.ai_model_used || 'unknown'}, confidence: ${parsed.confidence}`);
+  } else {
+    console.log(`[process-fatura-pdf] Regex-only extraction, confidence: ${parsed.confidence}`);
+  }
 
   // ── 3. Resolve UC ──
   let resolvedUnitId = unit_id || null;

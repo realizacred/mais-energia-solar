@@ -42,6 +42,7 @@ interface ExtractedData {
   modalidade_tarifaria: string | null;
   confidence: number;
   ai_fallback_used: boolean;
+  ai_model_used: string | null;
   raw_fields: Record<string, string>;
 }
 
@@ -606,6 +607,7 @@ function extractFromText(text: string): ExtractedData {
     modalidade_tarifaria: modalidadeTarifaria,
     confidence,
     ai_fallback_used: false,
+    ai_model_used: null,
     raw_fields: raw,
   };
 }
@@ -756,6 +758,7 @@ Seja preciso — nunca invente dados.`
       modalidade_tarifaria: fields.modalidade_tarifaria || null,
       confidence: 85,
       ai_fallback_used: true,
+      ai_model_used: "google/gemini-2.5-flash",
       raw_fields: { ai_full_extraction: "true" },
     };
   } catch (err: any) {
@@ -849,7 +852,7 @@ async function aiExtractMissingFields(
     if (!toolCall?.function?.arguments) return regexResult;
 
     const aiFields = JSON.parse(toolCall.function.arguments);
-    const result = { ...regexResult, ai_fallback_used: true };
+    const result = { ...regexResult, ai_fallback_used: true, ai_model_used: "google/gemini-2.5-flash-lite" };
 
     if (!result.proxima_leitura_data && aiFields.proxima_leitura_data) {
       result.proxima_leitura_data = aiFields.proxima_leitura_data;
@@ -939,12 +942,13 @@ Deno.serve(async (req) => {
         // If we had partial regex, merge (AI takes precedence for nulls)
         if (extracted) {
           for (const key of Object.keys(aiResult) as Array<keyof ExtractedData>) {
-            if (key === 'raw_fields' || key === 'confidence' || key === 'ai_fallback_used') continue;
+            if (key === 'raw_fields' || key === 'confidence' || key === 'ai_fallback_used' || key === 'ai_model_used') continue;
             if ((extracted[key] === null || extracted[key] === undefined) && aiResult[key] !== null) {
               (extracted as any)[key] = aiResult[key];
             }
           }
           extracted.ai_fallback_used = true;
+          extracted.ai_model_used = aiResult.ai_model_used;
           extracted.confidence = Math.max(extracted.confidence, aiResult.confidence);
           extracted.raw_fields = { ...extracted.raw_fields, ...aiResult.raw_fields };
         } else {
