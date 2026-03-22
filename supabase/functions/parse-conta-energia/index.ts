@@ -853,8 +853,13 @@ function extractEnergisa(text: string): ExtractedData | null {
   // ilegível na extração nativa. Quando temos consumo, injeção e tipo de ligação,
   // compensada = consumo - custo_disponibilidade (30/50/100 kWh por tipo).
   if (energiaCompensada == null && consumoKwh != null && consumoKwh > 0) {
-    // Determinar tipo de ligação antecipadamente (se ainda não extraído, tentar agora)
-    let tipoLigacaoPreview = tipoLigacao;
+    // Determinar tipo de ligação sem depender da variável declarada mais abaixo
+    let tipoLigacaoPreview: string | null = null;
+    const tipoLigacaoDetectado = fieldResults['tipo_ligacao']?.value;
+    if (typeof tipoLigacaoDetectado === 'string' && tipoLigacaoDetectado.length > 0) {
+      tipoLigacaoPreview = tipoLigacaoDetectado;
+    }
+
     if (!tipoLigacaoPreview) {
       if (/trif[áa]sic/i.test(flatText)) tipoLigacaoPreview = 'trifasico';
       else if (/bif[áa]sic/i.test(flatText)) tipoLigacaoPreview = 'bifasico';
