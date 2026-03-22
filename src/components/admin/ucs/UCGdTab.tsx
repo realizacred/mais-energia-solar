@@ -409,7 +409,21 @@ function AddBeneficiaryDialog({
                 </SelectContent>
               </Select>
               {availableUcs.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhuma UC disponível para adicionar</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Nenhuma UC disponível para adicionar</p>
+                  <p className="text-xs text-muted-foreground">Cadastre novas UCs primeiro para adicioná-las como beneficiárias</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      onOpenChange(false);
+                      window.location.href = "/admin/ucs";
+                    }}
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Ir para cadastro de UCs
+                  </Button>
+                </div>
               )}
             </div>
 
