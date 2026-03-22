@@ -5,9 +5,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { invoiceService } from "@/services/invoiceService";
-import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
-import { getEdgeFunctionAuthHeaders } from "@/lib/edgeFunctionAuth";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 
 export type ImportJobStatus = "queued" | "processing" | "completed" | "failed" | "partial";
 export type ImportItemStatus = "processing" | "imported" | "duplicate" | "failed";
@@ -150,18 +149,10 @@ export const invoiceImportService = {
     try {
       const pdfStoragePath = await uploadInvoiceTempPdf(file);
 
-      // Call edge function
-      const headers = await getEdgeFunctionAuthHeaders({ "x-client-timeout": "120" });
-      const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
+      const data = await invokeEdgeFunction<any>("process-fatura-pdf", {
         body: { pdf_storage_path: pdfStoragePath, unit_id: unitId, source: "upload" },
-        headers,
+        headers: { "x-client-timeout": "120" },
       });
-
-      if (error) {
-        const parsedError = await parseInvokeError(error);
-        throw new Error(parsedError.message || "Erro ao processar fatura");
-      }
-      if (data?.error) throw new Error(data.error);
 
       const parsed = data?.data?.parsed;
       const invoiceId = data?.data?.invoice_id;
