@@ -489,18 +489,18 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <SwitchRow label="Parser Nativo" description="Usar parser determinístico interno" checked={form.native_enabled} onChange={v => setForm(f => ({ ...f, native_enabled: v }))} />
-                  <SwitchRow label="Suporte Avançado" description="Habilitar cobertura adicional de extração" checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
+                  <SwitchRow label="Parser Nativo" description="Usar parser determinístico interno" hint="O parser nativo lê o PDF diretamente sem depender de serviços externos. Ideal para concessionárias com layout de conta já mapeado." checked={form.native_enabled} onChange={v => setForm(f => ({ ...f, native_enabled: v }))} />
+                  <SwitchRow label="Suporte Avançado" description="Habilitar cobertura adicional de extração" hint="Ativa uma segunda camada de extração para campos que o parser nativo não conseguiu capturar. Útil para concessionárias com layouts variáveis." checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
                 </div>
               </SectionCard>
 
               <SectionCard icon={RefreshCw} title="Recuperação e Fallback">
                 <div className="space-y-2">
-                  <SwitchRow label="Recuperação Automática" description="Se o parser falhar, o sistema tenta outra rota interna" checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
-                  <SwitchRow label="Requer Conversão Backend" description="O backend prepara e converte o arquivo antes do processamento" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
-                  <SwitchRow label="PDF Protegido" description="Marque quando a conta costuma exigir senha para abertura" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
+                  <SwitchRow label="Recuperação Automática" description="Se o parser falhar, o sistema tenta outra rota interna" hint="Quando ativo, se o parser principal falhar (campos faltantes ou erro), o sistema tenta automaticamente uma rota alternativa. Recomendado para concessionárias com layouts instáveis." checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
+                  <SwitchRow label="Requer Conversão Backend" description="O backend prepara e converte o arquivo antes do processamento" hint="Ative quando o PDF desta concessionária precisa ser convertido (ex.: base64, imagem) antes da extração. Comum em concessionárias que geram PDFs como imagem escaneada. Se a conta já é um PDF de texto normal, deixe desativado." checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
+                  <SwitchRow label="PDF Protegido" description="Marque quando a conta costuma exigir senha para abertura" hint="Algumas concessionárias protegem o PDF da conta com senha (geralmente o CPF/CNPJ do titular). Ative para que o sistema tente desbloquear automaticamente usando dados do cadastro." checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
                 </div>
-                <SwitchRow label="Ativo" description="Habilitar esta configuração" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
+                <SwitchRow label="Ativo" description="Habilitar esta configuração" hint="Desative para pausar temporariamente esta configuração sem excluí-la. Faturas desta concessionária usarão as regras padrão do sistema." checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />
               </SectionCard>
             </div>
 
