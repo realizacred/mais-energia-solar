@@ -59,7 +59,11 @@ const STATUS_MAP: Record<string, { icon: typeof CheckCircle2; label: string; col
   needs_ocr: { icon: Info, label: "Precisa OCR", color: "text-info" },
 };
 
-export function ExtractionTestTab() {
+interface ExtractionTestTabProps {
+  onGenerateConfig?: (prefill: ExtractionConfigPrefill) => void;
+}
+
+export function ExtractionTestTab({ onGenerateConfig }: ExtractionTestTabProps = {}) {
   const { data: configs = [] } = useExtractionConfigs();
   const [selectedConc, setSelectedConc] = useState<string>("auto");
   const [file, setFile] = useState<File | null>(null);
