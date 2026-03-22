@@ -254,7 +254,7 @@ export function DataResetManager() {
                     {selected.size} segmento{selected.size > 1 ? "s" : ""} selecionado{selected.size > 1 ? "s" : ""}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {selectedTotal.toLocaleString("pt-BR")} registros serão apagados permanentemente
+                    {formatIntegerBR(selectedTotal)} registros serão apagados permanentemente
                   </p>
                 </div>
               </div>
