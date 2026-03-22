@@ -1004,6 +1004,14 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
                           return next;
                         });
                       }}
+                      onError={(hasError) => {
+                        setJsonbErrors(prev => {
+                          const next = new Set(prev);
+                          if (hasError) next.add(def.key);
+                          else next.delete(def.key);
+                          return next;
+                        });
+                      }}
                     />
                   ))}
                 </div>
