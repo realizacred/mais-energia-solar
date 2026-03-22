@@ -379,10 +379,8 @@ async function callParseContaEnergia(
       use_ai_fallback: useAiFallback,
     };
 
-    // Include PDF base64 for AI multimodal extraction when text is poor
-    if (!text || text.length < 200) {
-      payload.pdf_base64 = pdfBase64;
-    }
+    // Sempre envie o PDF base64 para permitir fallback multimodal quando o texto extraído vier parcial ou ruidoso.
+    payload.pdf_base64 = pdfBase64;
 
     const response = await fetch(`${supabaseUrl}/functions/v1/parse-conta-energia`, {
       method: 'POST',

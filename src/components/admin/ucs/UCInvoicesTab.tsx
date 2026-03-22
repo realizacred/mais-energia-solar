@@ -99,7 +99,7 @@ function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Recor
           <DetailField label="Saldo Atual (kWh)" value={fmtNum(invoice.current_balance_kwh, " kWh")} />
           <DetailField label="Saldo GD Acumulado" value={fmtNum(raw?.saldo_gd_acumulado, " kWh")} />
           <DetailField label="Categoria GD" value={raw?.categoria_gd} />
-          <DetailField label="Confiança Parser" value={raw?.confidence != null ? `${raw.confidence}%` : null} />
+          <DetailField label="Confiança da extração" value={raw?.confidence != null ? `${raw.confidence}%` : null} />
         </div>
       </div>
 
@@ -129,7 +129,7 @@ function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Recor
           <DetailField label="Classe" value={raw?.classe_consumo} />
           <DetailField label="Tipo Ligação" value={raw?.tipo_ligacao} />
           <DetailField label="Próxima Leitura" value={raw?.proxima_leitura_data} />
-          <DetailField label="AI Fallback" value={raw?.ai_fallback_used ? "Sim" : "Não"} />
+          <DetailField label="Suporte de IA" value={raw?.ai_fallback_used ? "Sim" : "Não"} />
         </div>
       </div>
 
@@ -335,6 +335,7 @@ export function UCInvoicesTab({ unitId }: Props) {
   const STATUS_LABELS: Record<string, string> = {
     pending: "Pendente",
     processed: "Processada",
+    received: "Recebida",
     error: "Erro",
   };
 
@@ -453,10 +454,10 @@ export function UCInvoicesTab({ unitId }: Props) {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
-                      <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toFixed(2)}` : "—"}</TableCell>
-                      <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)} kWh` : "—"}</TableCell>
-                      <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)} kWh` : "—"}</TableCell>
-                      <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}</TableCell>
                       <TableCell>
                         {inv.bandeira_tarifaria ? (
                           <StatusBadge variant="muted" className={BANDEIRA_COLORS[inv.bandeira_tarifaria] || ""}>

@@ -69,17 +69,92 @@ const CONC_PATTERNS: Array<{ pattern: RegExp; nome: string }> = [
   { pattern: /CEMAR/i, nome: "CEMAR" },
 ];
 
-function parseNum(s: string): number {
-  return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+function parseNum(value: string): number {
+  const normalized = value.trim().replace(/\s/g, '');
+  if (!normalized) return NaN;
+
+  const hasComma = normalized.includes(',');
+  const hasDot = normalized.includes('.');
+
+  if (hasComma && hasDot) {
+    if (normalized.lastIndexOf(',') > normalized.lastIndexOf('.')) {
+      return Number(normalized.replace(/\./g, '').replace(',', '.'));
+    }
+    return Number(normalized.replace(/,/g, ''));
+  }
+
+  if (hasComma) {
+    return Number(normalized.replace(/\./g, '').replace(',', '.'));
+  }
+
+  if (hasDot) {
+    const parts = normalized.split('.');
+    if (parts.length > 2) return Number(parts.join(''));
+    if (/^\d+\.\d{3}$/.test(normalized)) return Number(parts.join(''));
+  }
+
+  return Number(normalized);
 }
 
-// ── LAYER 1: Regex extraction ────────────────────────────────────────────────
+function normalizeUcCode(value: string): string {
+  const normalized = value.replace(/[^\d\/-]/g, '').trim();
+  if (!normalized) return value.trim();
+  return normalized.replace(/^0+(?=\d{6,})/, '');
+}
+
+function normalizeDateLike(value: string): string {
+  const parts = value.split(/[\/\.\-]/).map((part) => part.trim());
+  if (parts.length !== 3) return value;
+  const [day, month, year] = parts;
+  const fullYear = year.length === 2 ? `20${year}` : year;
+  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${fullYear}`;
+}
+
+function isPlausibleDate(value: string | null | undefined): value is string {
+  if (!value) return false;
+  const normalized = normalizeDateLike(value);
+  const match = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return false;
+
+  const [, day, month, year] = match;
+  const dayNum = Number(day);
+  const monthNum = Number(month);
+  const yearNum = Number(year);
+
+  return yearNum >= 2020 && yearNum <= 2100 && monthNum >= 1 && monthNum <= 12 && dayNum >= 1 && dayNum <= 31;
+}
+
+function extractMeterRow(flatText: string, labelPattern: string) {
+  const regex = new RegExp(
+    `(?:[A-Z0-9-]{6,}\\s+)?${labelPattern}(?:\\s+(?:ponta|fora\\s+de\\s+ponta|intermedi[aá]rio))?\\s+(\\d[\\d.,]*)\\s+(\\d[\\d.,]*)\\s+(\\d[\\d.,]*)\\s+(\\d[\\d.,]*)`,
+    'i'
+  );
+  const match = flatText.match(regex);
+  if (!match) return null;
+
+  const previous = parseNum(match[1]);
+  const current = parseNum(match[2]);
+  const factor = parseNum(match[3]);
+  const total = parseNum(match[4]);
+
+  if (![previous, current, total].every(Number.isFinite)) return null;
+  if (previous < 0 || current < previous || total < 0) return null;
+
+  return {
+    previous,
+    current,
+    factor: Number.isFinite(factor) ? factor : null,
+    total,
+  };
+}
+
+// ── LAYER 1: Regex extraction ───────────────────────────────────────────────
 
 function extractFromText(text: string): ExtractedData {
   const raw: Record<string, string> = {};
   let confidence = 0;
+  const flatText = text.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
 
-  // Concessionária
   let concNome: string | null = null;
   for (const { pattern, nome } of CONC_PATTERNS) {
     if (pattern.test(text)) {
@@ -89,251 +164,345 @@ function extractFromText(text: string): ExtractedData {
     }
   }
 
-  // Consumo kWh
-  let consumo: number | null = null;
-  const consumoPatterns = [
-    /consumo\s*(?:ativo|total|mensal)?[:\s]*(\d[\d.,]*)\s*kWh/i,
-    /(\d[\d.,]*)\s*kWh\s*(?:consumo|ativo)/i,
-    /energia\s*el[ée]trica\s*kWh\s*(\d[\d.,]*)/i,
-    /quantidade\s*kWh\s*(\d[\d.,]*)/i,
-  ];
-  for (const p of consumoPatterns) {
-    const m = text.match(p);
-    if (m) { consumo = parseNum(m[1]); raw['consumo_match'] = m[0]; confidence += 10; break; }
+  const activeMeterRow = extractMeterRow(flatText, 'energia\\s+ativa(?:\\s+em\\s+kwh)?');
+  const injectedMeterRow = extractMeterRow(flatText, 'energia\\s+(?:atv\\s+)?injetada(?:\\s+gdi)?');
+
+  let leituraAnterior03: number | null = activeMeterRow?.previous ?? null;
+  let leituraAtual03: number | null = activeMeterRow?.current ?? null;
+  let leituraAnterior103: number | null = injectedMeterRow?.previous ?? null;
+  let leituraAtual103: number | null = injectedMeterRow?.current ?? null;
+
+  if (activeMeterRow) {
+    raw['leitura_03_match'] = `${activeMeterRow.previous} ${activeMeterRow.current} ${activeMeterRow.total}`;
+    confidence += 15;
+  }
+  if (injectedMeterRow) {
+    raw['leitura_103_match'] = `${injectedMeterRow.previous} ${injectedMeterRow.current} ${injectedMeterRow.total}`;
+    confidence += 15;
   }
 
-  // Tarifa de energia (TE)
+  let consumo: number | null = activeMeterRow?.total ?? null;
+  if (consumo != null) raw['consumo_match'] = String(consumo);
+  if (consumo == null) {
+    const consumoPatterns = [
+      /consumo\s*(?:ativo|total|mensal)?[:\s]*(\d[\d.,]*)\s*kWh/i,
+      /consumo\s*em\s*kwh[:\s]*(\d[\d.,]*)/i,
+      /(\d[\d.,]*)\s*kWh\s*(?:consumo|ativo)/i,
+      /energia\s*el[ée]trica\s*kWh\s*(\d[\d.,]*)/i,
+      /quantidade\s*kWh\s*(\d[\d.,]*)/i,
+    ];
+    for (const p of consumoPatterns) {
+      const m = flatText.match(p);
+      if (m) {
+        consumo = parseNum(m[1]);
+        raw['consumo_match'] = m[0];
+        confidence += 10;
+        break;
+      }
+    }
+  }
+
   let tarifaEnergia: number | null = null;
-  const tePatterns = [
+  for (const p of [
     /tarifa\s*(?:de\s*)?energia\s*(?:TE)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
     /TE\s*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
     /energia\s*el[ée]trica.*?R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)/i,
-  ];
-  for (const p of tePatterns) {
-    const m = text.match(p);
-    if (m) { tarifaEnergia = parseNum(m[1]); raw['te_match'] = m[0]; confidence += 15; break; }
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      tarifaEnergia = parseNum(m[1]);
+      raw['te_match'] = m[0];
+      confidence += 15;
+      break;
+    }
   }
 
-  // TUSD / Fio B
   let tarifaFioB: number | null = null;
-  const tusdPatterns = [
+  for (const p of [
     /TUSD[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
     /uso\s*(?:do\s*)?sistema\s*(?:de\s*)?distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)/i,
     /fio\s*B[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-  ];
-  for (const p of tusdPatterns) {
-    const m = text.match(p);
-    if (m) { tarifaFioB = parseNum(m[1]); raw['tusd_match'] = m[0]; confidence += 10; break; }
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      tarifaFioB = parseNum(m[1]);
+      raw['tusd_match'] = m[0];
+      confidence += 10;
+      break;
+    }
   }
 
-  // Valor total
   let valorTotal: number | null = null;
-  const totalPatterns = [
-    /(?:valor\s*(?:total|a\s*pagar)|total\s*(?:da\s*fatura|a\s*pagar))[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    /R\$\s*(\d[\d.,]*)\s*(?:total|valor\s*total)/i,
-  ];
-  for (const p of totalPatterns) {
-    const m = text.match(p);
-    if (m) { valorTotal = parseNum(m[1]); raw['total_match'] = m[0]; confidence += 10; break; }
+  let vencimento: string | null = null;
+  const resumoFaturaMatch = flatText.match(/total\s+a\s+pagar\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(\d{2}[\/.]\d{2}[\/.]\d{2,4})\s+R\$\s*(\d[\d.,]*)/i);
+  if (resumoFaturaMatch) {
+    vencimento = normalizeDateLike(resumoFaturaMatch[1]);
+    valorTotal = parseNum(resumoFaturaMatch[2]);
+    raw['resumo_fatura_match'] = resumoFaturaMatch[0];
+    confidence += 15;
   }
 
-  // ICMS
+  if (valorTotal === null) {
+    for (const p of [
+      /\(=\)\s*valor\s*do\s*documento[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+      /valor\s*(?:total|a\s*pagar)[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+      /total\s*(?:da\s*fatura|a\s*pagar)[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+      /\btotal[:\s]*R?\$?\s*(\d[\d.,]*)\b/i,
+    ]) {
+      const m = flatText.match(p);
+      if (m) {
+        valorTotal = parseNum(m[1]);
+        raw['total_match'] = m[0];
+        confidence += 10;
+        break;
+      }
+    }
+  }
+
+  if (!vencimento) {
+    for (const p of [
+      /\bvencimento\b[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+      /data\s*(?:de\s*)?vencimento[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    ]) {
+      const m = flatText.match(p);
+      if (m) {
+        const candidate = normalizeDateLike(m[1]);
+        if (isPlausibleDate(candidate)) {
+          vencimento = candidate;
+          raw['venc_match'] = m[0];
+          confidence += 5;
+          break;
+        }
+      }
+    }
+  }
+
   let icms: number | null = null;
-  const icmsMatch = text.match(/ICMS[:\s]*(\d[\d.,]*)\s*%/i);
-  if (icmsMatch) { icms = parseFloat(icmsMatch[1].replace(',', '.')); raw['icms_match'] = icmsMatch[0]; confidence += 5; }
+  const icmsMatch = flatText.match(/ICMS[:\s]*(\d[\d.,]*)\s*%/i);
+  if (icmsMatch) {
+    icms = parseFloat(icmsMatch[1].replace(',', '.'));
+    raw['icms_match'] = icmsMatch[0];
+    confidence += 5;
+  }
 
-  // PIS
   let pis: number | null = null;
-  const pisMatch = text.match(/PIS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (pisMatch) { pis = parseNum(pisMatch[1]); raw['pis_match'] = pisMatch[0]; confidence += 5; }
+  const pisMatch = flatText.match(/PIS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
+  if (pisMatch) {
+    pis = parseNum(pisMatch[1]);
+    raw['pis_match'] = pisMatch[0];
+    confidence += 5;
+  }
 
-  // COFINS
   let cofins: number | null = null;
-  const cofinsMatch = text.match(/COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (cofinsMatch) { cofins = parseNum(cofinsMatch[1]); raw['cofins_match'] = cofinsMatch[0]; confidence += 5; }
+  const cofinsMatch = flatText.match(/COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
+  if (cofinsMatch) {
+    cofins = parseNum(cofinsMatch[1]);
+    raw['cofins_match'] = cofinsMatch[0];
+    confidence += 5;
+  }
 
-  // Bandeira
   let bandeira: string | null = null;
-  const bandeiraMatch = text.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
-  if (bandeiraMatch) { bandeira = bandeiraMatch[1]; raw['bandeira_match'] = bandeiraMatch[0]; confidence += 5; }
+  const bandeiraMatch = flatText.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
+  if (bandeiraMatch) {
+    bandeira = bandeiraMatch[1];
+    raw['bandeira_match'] = bandeiraMatch[0];
+    confidence += 5;
+  }
 
-  // Tipo de ligação
   let tipoLigacao: string | null = null;
-  if (/trif[áa]sic/i.test(text)) tipoLigacao = "trifasico";
-  else if (/bif[áa]sic/i.test(text)) tipoLigacao = "bifasico";
-  else if (/monof[áa]sic/i.test(text)) tipoLigacao = "monofasico";
+  if (/trif[áa]sic/i.test(flatText)) tipoLigacao = 'trifasico';
+  else if (/bif[áa]sic/i.test(flatText)) tipoLigacao = 'bifasico';
+  else if (/monof[áa]sic/i.test(flatText)) tipoLigacao = 'monofasico';
   if (tipoLigacao) confidence += 5;
 
-  // Classe
   let classe: string | null = null;
-  if (/residencial/i.test(text)) classe = "Residencial";
-  else if (/comercial/i.test(text)) classe = "Comercial";
-  else if (/industrial/i.test(text)) classe = "Industrial";
-  else if (/rural/i.test(text)) classe = "Rural";
+  if (/residencial/i.test(flatText)) classe = 'Residencial';
+  else if (/comercial/i.test(flatText)) classe = 'Comercial';
+  else if (/industrial/i.test(flatText)) classe = 'Industrial';
+  else if (/rural/i.test(flatText)) classe = 'Rural';
   if (classe) confidence += 5;
 
-  // Mês referência
   let mesRef: string | null = null;
-  const mesMatch = text.match(/(?:m[êe]s\s*(?:de\s*)?refer[êe]ncia|refer[êe]ncia)[:\s]*((?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[\w\/]*\d{2,4}|\d{2}\/\d{4})/i);
-  if (mesMatch) { mesRef = mesMatch[1]; raw['mes_match'] = mesMatch[0]; confidence += 5; }
+  const mesMatch = flatText.match(/(?:m[êe]s\s*(?:de\s*)?refer[êe]ncia|refer[êe]ncia|ref[:\s]*mes\/ano)[:\s]*((?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[\w\s\/]*\d{2,4}|\d{2}\/\d{4}|[A-Za-zÀ-ú]+\s*\/\s*\d{4})/i);
+  if (mesMatch) {
+    mesRef = mesMatch[1].trim();
+    raw['mes_match'] = mesMatch[0];
+    confidence += 5;
+  }
 
-  // Demanda contratada
   let demanda: number | null = null;
-  const demandaMatch = text.match(/demanda\s*contratada[:\s]*(\d[\d.,]*)\s*kW/i);
-  if (demandaMatch) { demanda = parseNum(demandaMatch[1]); raw['demanda_match'] = demandaMatch[0]; confidence += 5; }
+  const demandaMatch = flatText.match(/demanda\s*contratada[:\s]*(\d[\d.,]*)\s*kW/i);
+  if (demandaMatch) {
+    demanda = parseNum(demandaMatch[1]);
+    raw['demanda_match'] = demandaMatch[0];
+    confidence += 5;
+  }
 
-  // Estado
   let estado: string | null = null;
-  const ufMatch = text.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
-  if (ufMatch) { estado = ufMatch[1]; confidence += 5; }
+  const ufMatch = flatText.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
+  if (ufMatch) {
+    estado = ufMatch[1];
+    confidence += 5;
+  }
 
-  // Cidade
   let cidade: string | null = null;
-  const cidadeMatch = text.match(/(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i);
-  if (cidadeMatch) { cidade = cidadeMatch[1].trim(); raw['cidade_match'] = cidadeMatch[0]; }
+  const cidadeMatch = flatText.match(/(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i);
+  if (cidadeMatch) {
+    cidade = cidadeMatch[1].trim();
+    raw['cidade_match'] = cidadeMatch[0];
+  }
 
-  // ── NEW FIELDS ──
-
-  // Número UC (Unidade Consumidora)
   let numeroUc: string | null = null;
-  const ucPatterns = [
-    /(?:unidade\s*consumidora|UC|instala[çc][ãa]o|c[óo]d(?:igo)?[\s.]*(?:UC|instala[çc][ãa]o))[:\s]*(\d{5,15})/i,
-    /N[ºo°]\s*(?:da\s*)?(?:UC|instala[çc][ãa]o)[:\s]*(\d{5,15})/i,
-  ];
-  for (const p of ucPatterns) {
-    const m = text.match(p);
-    if (m) { numeroUc = m[1]; raw['uc_match'] = m[0]; confidence += 5; break; }
+  for (const p of [
+    /utilize\s+o\s+c[óo]digo[:\s]*([\d\/-]{6,20})/i,
+    /c[óo]digo\s+do\s+cliente[:\s]*([\d\/-]{6,20})/i,
+    /c[óo]digo\s+da\s+instala[çc][ãa]o[:\s]*([\d\/-]{6,20})/i,
+    /\b(\d+\/\d{6,}-\d)\b/,
+    /\b(\d{6,}-\d)\b/,
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      numeroUc = normalizeUcCode(m[1]);
+      raw['uc_match'] = m[0];
+      confidence += 8;
+      break;
+    }
   }
 
-  // Vencimento
-  let vencimento: string | null = null;
-  const vencPatterns = [
-    /vencimento[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-    /data\s*(?:de\s*)?vencimento[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-  ];
-  for (const p of vencPatterns) {
-    const m = text.match(p);
-    if (m) { vencimento = m[1]; raw['venc_match'] = m[0]; confidence += 5; break; }
-  }
-
-  // Próxima leitura
   let proximaLeitura: string | null = null;
-  const proxPatterns = [
+  for (const p of [
     /pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
     /data\s*(?:da\s*)?pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
     /leitura\s*pr[óo]x(?:ima)?[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-  ];
-  for (const p of proxPatterns) {
-    const m = text.match(p);
-    if (m) { proximaLeitura = m[1]; raw['prox_leitura_match'] = m[0]; confidence += 5; break; }
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      const candidate = normalizeDateLike(m[1]);
+      if (isPlausibleDate(candidate)) {
+        proximaLeitura = candidate;
+        raw['prox_leitura_match'] = m[0];
+        confidence += 5;
+        break;
+      }
+    }
   }
 
-  // Saldo GD (geração distribuída)
   let saldoGd: number | null = null;
-  const saldoGdPatterns = [
+  for (const p of [
     /saldo\s*(?:de\s*)?(?:gera[çc][ãa]o|GD|cr[ée]ditos?\s*(?:de\s*)?energia)[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
     /cr[ée]ditos?\s*(?:acumulados?|de\s*energia)[:\s]*(\d[\d.,]*)\s*kWh/i,
-  ];
-  for (const p of saldoGdPatterns) {
-    const m = text.match(p);
-    if (m) { saldoGd = parseNum(m[1]); raw['saldo_gd_match'] = m[0]; confidence += 5; break; }
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      saldoGd = parseNum(m[1]);
+      raw['saldo_gd_match'] = m[0];
+      confidence += 5;
+      break;
+    }
   }
 
-  // Saldo GD acumulado
   let saldoGdAcumulado: number | null = null;
-  const saldoAcumPatterns = [
+  for (const p of [
     /saldo\s*acumulado[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*(?:kWh)?/i,
     /total\s*(?:de\s*)?cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
     /cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
-  ];
-  for (const p of saldoAcumPatterns) {
-    const m = text.match(p);
-    if (m) { saldoGdAcumulado = parseNum(m[1]); raw['saldo_acum_match'] = m[0]; break; }
-  }
-
-  // Leitura anterior/atual registros 03 (Energia ativa consumida)
-  let leituraAnterior03: number | null = null;
-  let leituraAtual03: number | null = null;
-  const leitura03Patterns = [
-    /(?:energia\s*(?:ativa|el[ée]trica)?\s*(?:consumida)?|registro\s*03).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/is,
-    /(?:leitura|medidor).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/is,
-  ];
-  for (const p of leitura03Patterns) {
-    const m = text.match(p);
+  ]) {
+    const m = flatText.match(p);
     if (m) {
-      leituraAnterior03 = parseNum(m[1]);
-      leituraAtual03 = parseNum(m[2]);
-      raw['leitura_03_match'] = m[0].substring(0, 200);
+      saldoGdAcumulado = parseNum(m[1]);
+      raw['saldo_acum_match'] = m[0];
       confidence += 5;
       break;
     }
   }
 
-  // Leitura registros 103 (Energia injetada)
-  let leituraAnterior103: number | null = null;
-  let leituraAtual103: number | null = null;
-  const leitura103Patterns = [
-    /(?:energia\s*injetada|registro\s*103).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/is,
-    /injetada.*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/is,
-  ];
-  for (const p of leitura103Patterns) {
-    const m = text.match(p);
-    if (m) {
-      leituraAnterior103 = parseNum(m[1]);
-      leituraAtual103 = parseNum(m[2]);
-      raw['leitura_103_match'] = m[0].substring(0, 200);
-      confidence += 5;
-      break;
+  if (leituraAnterior03 == null || leituraAtual03 == null) {
+    for (const p of [
+      /(?:energia\s*(?:ativa|el[ée]trica)?\s*(?:consumida)?|registro\s*03).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
+      /(?:leitura|medidor).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
+    ]) {
+      const m = flatText.match(p);
+      if (m) {
+        leituraAnterior03 = parseNum(m[1]);
+        leituraAtual03 = parseNum(m[2]);
+        raw['leitura_03_match'] = m[0].substring(0, 200);
+        confidence += 5;
+        break;
+      }
     }
   }
 
-  // Energia injetada kWh (total do período)
-  let energiaInjetada: number | null = null;
-  const injetadaPatterns = [
-    /energia\s*injetada[:\s]*(\d[\d.,]*)\s*kWh/i,
-    /inje[çc][ãa]o[:\s]*(\d[\d.,]*)\s*kWh/i,
-    /energia\s*ativa\s*inje[çc][ãa]o[:\s]*(\d[\d.,]*)/i,
-  ];
-  for (const p of injetadaPatterns) {
-    const m = text.match(p);
-    if (m) { energiaInjetada = parseNum(m[1]); raw['injetada_match'] = m[0]; confidence += 5; break; }
+  if (leituraAnterior103 == null || leituraAtual103 == null) {
+    for (const p of [
+      /(?:energia\s*injetada|registro\s*103).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
+      /injetada.*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
+    ]) {
+      const m = flatText.match(p);
+      if (m) {
+        leituraAnterior103 = parseNum(m[1]);
+        leituraAtual103 = parseNum(m[2]);
+        raw['leitura_103_match'] = m[0].substring(0, 200);
+        confidence += 5;
+        break;
+      }
+    }
   }
-  // Fallback: calculate from leitura_103 diff
+
+  let energiaInjetada: number | null = injectedMeterRow?.total ?? null;
+  if (energiaInjetada != null) raw['injetada_match'] = String(energiaInjetada);
+  if (energiaInjetada === null) {
+    for (const p of [
+      /energia\s*injetada[:\s]*(\d[\d.,]*)\s*kWh/i,
+      /inje[çc][ãa]o[:\s]*(\d[\d.,]*)\s*kWh/i,
+      /energia\s*ativa\s*inje[çc][ãa]o[:\s]*(\d[\d.,]*)/i,
+    ]) {
+      const m = flatText.match(p);
+      if (m) {
+        energiaInjetada = parseNum(m[1]);
+        raw['injetada_match'] = m[0];
+        confidence += 5;
+        break;
+      }
+    }
+  }
   if (energiaInjetada === null && leituraAtual103 != null && leituraAnterior103 != null) {
     energiaInjetada = Math.max(leituraAtual103 - leituraAnterior103, 0);
   }
 
-  // Energia compensada kWh
   let energiaCompensada: number | null = null;
-  const compensadaPatterns = [
+  for (const p of [
     /energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
     /compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i,
+    /energia\s*atv\s*injetada\s*gdi[:\s]*(\d[\d.,]*)/i,
     /cr[ée]dito\s*(?:de\s*)?energia\s*compensad[ao][:\s]*(\d[\d.,]*)/i,
-  ];
-  for (const p of compensadaPatterns) {
-    const m = text.match(p);
-    if (m) { energiaCompensada = parseNum(m[1]); raw['compensada_match'] = m[0]; confidence += 5; break; }
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      energiaCompensada = parseNum(m[1]);
+      raw['compensada_match'] = m[0];
+      confidence += 5;
+      break;
+    }
   }
 
-  // Categoria GD (GD_I, GD_II, GD_III)
   let categoriaGd: string | null = null;
-  const gdPatterns = [
+  for (const p of [
     /GD[\s_-]*(I{1,3}|1|2|3)\b/i,
-    /microgeração/i,
-    /minigeração/i,
-  ];
-  for (const p of gdPatterns) {
-    const m = text.match(p);
+    /microgera[cç][ãa]o/i,
+    /minigera[cç][ãa]o/i,
+  ]) {
+    const m = flatText.match(p);
     if (m) {
-      if (/microgeração/i.test(m[0])) categoriaGd = "GD_I";
-      else if (/minigeração/i.test(m[0])) categoriaGd = "GD_II";
+      if (/microgera[cç][ãa]o/i.test(m[0])) categoriaGd = 'GD_I';
+      else if (/minigera[cç][ãa]o/i.test(m[0])) categoriaGd = 'GD_II';
       else {
         const num = m[1]?.toUpperCase();
-        if (num === 'I' || num === '1') categoriaGd = "GD_I";
-        else if (num === 'II' || num === '2') categoriaGd = "GD_II";
-        else if (num === 'III' || num === '3') categoriaGd = "GD_III";
+        if (num === 'I' || num === '1') categoriaGd = 'GD_I';
+        else if (num === 'II' || num === '2') categoriaGd = 'GD_II';
+        else if (num === 'III' || num === '3') categoriaGd = 'GD_III';
       }
       raw['categoria_gd_match'] = m[0];
+      confidence += 5;
       break;
     }
   }
