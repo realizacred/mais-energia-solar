@@ -4,13 +4,14 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 export type ExtractionStrategyMode = "native" | "provider" | "auto";
 export type ExtractionRunStatus = "success" | "partial" | "failed" | "needs_ocr";
 
 export interface ExtractionConfig {
   id: string;
-  tenant_id: string;
+  tenant_id: string | null;
   concessionaria_id: string | null;
   concessionaria_code: string;
   concessionaria_nome: string;
