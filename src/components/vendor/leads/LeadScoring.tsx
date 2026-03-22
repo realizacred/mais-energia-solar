@@ -210,7 +210,7 @@
            Análise inteligente para priorizar seus melhores leads
            {lastScored && (
              <span className="text-xs ml-2">
-               • Última análise: {lastScored.toLocaleTimeString("pt-BR")}
+               • Última análise: {lastScored.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}
              </span>
            )}
          </CardDescription>

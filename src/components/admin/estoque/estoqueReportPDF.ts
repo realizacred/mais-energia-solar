@@ -55,7 +55,7 @@ export async function generateEstoqueMovimentosPDF(movimentos: EstoqueMovimento[
   doc.setFontSize(16);
   doc.text(title, 14, 16);
   doc.setFontSize(9);
-  doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 14, 22);
+  doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} às ${new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}`, 14, 22);
 
   const tipoLabels: Record<string, string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste", transferencia: "Transferência" };
 

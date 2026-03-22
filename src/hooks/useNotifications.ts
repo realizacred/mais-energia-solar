@@ -123,7 +123,7 @@ export function useNotifications() {
         const { data: appts } = await q3;
         if (appts) {
           for (const appt of appts) {
-            const time = new Date(appt.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+            const time = new Date(appt.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
             items.push({
               id: `appt-${appt.id}`,
               type: "appointment",

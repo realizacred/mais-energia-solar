@@ -208,7 +208,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
 
   // ── Helpers ──
   const formatDate = useCallback((d: string) =>
-    new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }),
   []);
 
   const getStageNameById = useCallback((id: string | null) => {

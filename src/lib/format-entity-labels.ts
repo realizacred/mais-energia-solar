@@ -47,7 +47,7 @@ export function formatProjetoLabel(input: ProjetoLabelInput): EntityLabel {
 export function formatPropostaLabel(input: PropostaLabelInput): EntityLabel & { titleFallback: string } {
   const num = input.proposta_num;
   const dateStr = input.created_at
-    ? new Date(input.created_at).toLocaleDateString("pt-BR")
+    ? new Date(input.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
     : null;
   const secondaryParts = [input.codigo, input.status, dateStr].filter(Boolean);
 
