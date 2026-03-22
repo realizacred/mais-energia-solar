@@ -406,7 +406,7 @@ export function IrradianciaPage() {
                         {processingVersion && expected && (
                           <div className="space-y-1">
                             <div className="flex justify-between text-[10px] text-muted-foreground">
-                              <span>{current.toLocaleString("pt-BR")} / {expected.toLocaleString("pt-BR")} pontos</span>
+                              <span>{formatIntegerBR(current)} / {formatIntegerBR(expected)} pontos</span>
                               <span className="font-medium">{percent}%</span>
                             </div>
                             <Progress value={percent} className="h-2" />
