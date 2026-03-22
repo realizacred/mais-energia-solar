@@ -200,6 +200,20 @@ function AccountFormModal({ open, onOpenChange, initial }: AccountFormProps) {
             </div>
 
             {isImap && (
+              <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-foreground">IMAP não suportado no momento</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    As Edge Functions do Supabase não suportam conexões TCP (necessárias para IMAP).
+                    <strong> Alternativas:</strong> Use <strong>Gmail OAuth</strong> (funciona com Google Workspace),
+                    ou configure o encaminhamento automático deste e-mail para uma conta Gmail já conectada.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {isImap && (
               <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
                 <p className="text-xs font-semibold text-foreground">Configuração IMAP</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
