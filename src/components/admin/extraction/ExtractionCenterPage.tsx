@@ -26,6 +26,7 @@ import {
 import { ExtractionConfigModal } from "./ExtractionConfigModal";
 import { ExtractionTestTab } from "./ExtractionTestTab";
 import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
+import { LayoutLearningTab } from "./LayoutLearningTab";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
