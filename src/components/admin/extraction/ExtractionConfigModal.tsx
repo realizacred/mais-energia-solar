@@ -819,6 +819,61 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
                       );
                     })}
                   </TabsContent>
+
+                  <TabsContent value="mista" className="mt-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Campos para UCs mistas (geram e recebem créditos simultaneamente).
+                    </p>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                      {form.required_fields_mista.length} obrigatórios
+                    </Badge>
+                    {FIELD_CATEGORIES.map(cat => (
+                      <FieldCategorySection
+                        key={`mix-${cat.category}`}
+                        category={cat}
+                        requiredFields={form.required_fields_mista}
+                        optionalFields={[]}
+                        onToggleRequired={(key) => {
+                          setForm(f => ({
+                            ...f,
+                            required_fields_mista: f.required_fields_mista.includes(key)
+                              ? f.required_fields_mista.filter(k => k !== key)
+                              : [...f.required_fields_mista, key],
+                          }));
+                        }}
+                        onToggleOptional={() => {}}
+                      />
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="consumo" className="mt-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Campos para UCs de consumo puro (sem geração distribuída).
+                    </p>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 mb-2">
+                      {form.required_fields_consumo.length} obrigatórios
+                    </Badge>
+                    {FIELD_CATEGORIES.filter(cat => cat.fields.some(f => !f.geradoraOnly)).map(cat => {
+                      const filteredCat = { ...cat, fields: cat.fields.filter(f => !f.geradoraOnly) };
+                      return (
+                        <FieldCategorySection
+                          key={`con-${cat.category}`}
+                          category={filteredCat}
+                          requiredFields={form.required_fields_consumo}
+                          optionalFields={[]}
+                          onToggleRequired={(key) => {
+                            setForm(f => ({
+                              ...f,
+                              required_fields_consumo: f.required_fields_consumo.includes(key)
+                                ? f.required_fields_consumo.filter(k => k !== key)
+                                : [...f.required_fields_consumo, key],
+                            }));
+                          }}
+                          onToggleOptional={() => {}}
+                        />
+                      );
+                    })}
+                  </TabsContent>
                 </Tabs>
 
                 {/* Custom field creator */}
