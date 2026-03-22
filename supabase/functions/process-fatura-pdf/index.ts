@@ -248,17 +248,33 @@ async function processInvoice(
   }
 
   // ── 5a. Resolve required fields by UC context (geradora vs beneficiária) ──
-  if (ucData && extractionConfig) {
+  let ucContext = 'base';
+  if (ucData) {
     const isGeradora = ucData.tipo_uc === 'gd_geradora' || ucData.papel_gd === 'geradora';
-    const contextFields = isGeradora
-      ? extractionConfig.required_fields_geradora
-      : extractionConfig.required_fields_beneficiaria;
-    
-    if (contextFields && Array.isArray(contextFields) && contextFields.length > 0) {
-      requiredFields = contextFields;
-      console.log(`[process-fatura-pdf] Using context-aware required fields (${isGeradora ? 'geradora' : 'beneficiária'}): ${requiredFields.join(', ')}`);
+    ucContext = isGeradora ? 'geradora' : 'beneficiária';
+
+    if (isGeradora) {
+      const configGeradora = extractionConfig?.required_fields_geradora;
+      if (configGeradora && Array.isArray(configGeradora) && configGeradora.length > 0) {
+        requiredFields = configGeradora;
+      } else {
+        requiredFields = [...BASE_REQUIRED, ...GERADORA_EXTRA];
+      }
+    } else {
+      const configBeneficiaria = extractionConfig?.required_fields_beneficiaria;
+      if (configBeneficiaria && Array.isArray(configBeneficiaria) && configBeneficiaria.length > 0) {
+        requiredFields = configBeneficiaria;
+      } else {
+        requiredFields = BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f));
+      }
     }
+    console.log(`[process-fatura-pdf] UC contexto: ${ucContext}, campos obrigatórios: ${requiredFields.join(', ')}`);
   }
+
+  // ── 5a.1 Perform field validation NOW (after context is known) ──
+  const foundFields = requiredFields.filter((f: string) => parsed[f] != null);
+  const missingFields = requiredFields.filter((f: string) => parsed[f] == null);
+  const extractionStatus = missingFields.length === 0 ? 'success' : missingFields.length <= 2 ? 'partial' : 'failed';
 
   // ── 5b. Ownership validation ──
   const identifierField = extractionConfig?.identifier_field || 'numero_uc';
