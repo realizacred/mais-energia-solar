@@ -1,6 +1,6 @@
 /**
  * ExtractionConfigModal — Modal for creating/editing extraction config per concessionária.
- * §25: FormModalTemplate pattern. Optimized for large screens with Card-based sections.
+ * §25: FormModalTemplate pattern. Reposicionado para modelo 100% nativo.
  */
 import { useState, useEffect } from "react";
 import {
@@ -16,9 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings2, Cpu, Globe, FileText, ToggleRight } from "lucide-react";
+import { Settings2, Cpu, FileText, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { useSaveExtractionConfig, type ExtractionConfig, type ExtractionStrategyMode } from "@/hooks/useExtractionConfigs";
 import { toast } from "sonner";
 
@@ -29,9 +28,6 @@ interface ExtractionConfigModalProps {
 }
 
 const DEFAULT_REQUIRED_FIELDS = ["consumo_kwh", "valor_total", "referencia_mes", "referencia_ano"];
-const PROVIDER_OPTIONS = [
-  { value: "infosimples", label: "Infosimples" },
-];
 
 function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
@@ -62,7 +58,6 @@ function SwitchRow({ label, description, checked, onChange }: { label: string; d
 }
 
 export function ExtractionConfigModal({ open, onOpenChange, config }: ExtractionConfigModalProps) {
-  const { data: concessionarias = [] } = useConcessionarias();
   const saveConfig = useSaveExtractionConfig();
 
   const [form, setForm] = useState({
@@ -126,21 +121,9 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
     }
   }, [config, open]);
 
-  const handleConcessionariaSelect = (concId: string) => {
-    const conc = concessionarias.find(c => c.id === concId);
-    if (conc) {
-      setForm(f => ({
-        ...f,
-        concessionaria_id: conc.id,
-        concessionaria_code: conc.sigla || conc.nome.toLowerCase().replace(/\s+/g, "_"),
-        concessionaria_nome: conc.nome,
-      }));
-    }
-  };
-
   const handleSave = async () => {
     if (!form.concessionaria_code || !form.concessionaria_nome) {
-      toast.error("Selecione uma concessionária");
+      toast.error("Preencha o nome e código da concessionária");
       return;
     }
 
@@ -184,12 +167,12 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
               {config ? "Editar Configuração" : "Nova Configuração de Extração"}
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Configure a estratégia de extração de dados por concessionária
+              Configure a estratégia de extração nativa por concessionária
             </p>
           </div>
         </DialogHeader>
 
-        {/* Body — 2-column grid layout for large screens */}
+        {/* Body — 2-column grid layout */}
         <div className="flex-1 min-h-0 overflow-y-auto p-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
@@ -199,23 +182,14 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
               <SectionCard icon={Settings2} title="Concessionária">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Concessionária</Label>
-                    <Select
-                      value={form.concessionaria_id || ""}
-                      onValueChange={handleConcessionariaSelect}
+                    <Label className="text-xs">Nome</Label>
+                    <Input
+                      value={form.concessionaria_nome}
+                      onChange={e => setForm(f => ({ ...f, concessionaria_nome: e.target.value }))}
+                      placeholder="Energisa, Light, Cemig..."
+                      className="h-9"
                       disabled={!!config}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {concessionarias.map(c => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nome} {c.sigla ? `(${c.sigla})` : ""} {c.estado ? `- ${c.estado}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Código (slug)</Label>
@@ -224,6 +198,7 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                       onChange={e => setForm(f => ({ ...f, concessionaria_code: e.target.value }))}
                       placeholder="energisa, light, cemig..."
                       className="h-9"
+                      disabled={!!config}
                     />
                   </div>
                 </div>
@@ -242,9 +217,9 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="native">Parser Nativo</SelectItem>
-                        <SelectItem value="provider">Provedor Externo</SelectItem>
-                        <SelectItem value="auto">Automático (fallback)</SelectItem>
+                        <SelectItem value="native">Nativo</SelectItem>
+                        <SelectItem value="provider">Nativo (assistido)</SelectItem>
+                        <SelectItem value="auto">Automático</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -260,48 +235,18 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
                 </div>
                 <div className="border-t border-border pt-2 space-y-1">
                   <SwitchRow label="Parser Nativo" description="Usar parser determinístico interno" checked={form.native_enabled} onChange={v => setForm(f => ({ ...f, native_enabled: v }))} />
-                  <SwitchRow label="Fallback Habilitado" description="Se parser falhar, tenta provedor externo" checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
+                  <SwitchRow label="Suporte Avançado" description="Habilitar extração assistida para maior cobertura" checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
                 </div>
               </SectionCard>
             </div>
 
             {/* RIGHT COLUMN */}
             <div className="space-y-4">
-              {/* Provedor Externo */}
-              <SectionCard icon={Globe} title="Provedor Externo">
-                <SwitchRow label="Provedor Habilitado" description="Ativar extração via API externa" checked={form.provider_enabled} onChange={v => setForm(f => ({ ...f, provider_enabled: v }))} />
-                {form.provider_enabled && (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-border pt-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Provedor</Label>
-                        <Select value={form.provider_name} onValueChange={v => setForm(f => ({ ...f, provider_name: v }))}>
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {PROVIDER_OPTIONS.map(p => (
-                              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Endpoint Key</Label>
-                        <Input
-                          value={form.provider_endpoint_key}
-                          onChange={e => setForm(f => ({ ...f, provider_endpoint_key: e.target.value }))}
-                          placeholder="light, cemig, enel..."
-                          className="h-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="border-t border-border pt-2 space-y-1">
-                      <SwitchRow label="Requer Base64" description="Backend converte PDF do Storage" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
-                      <SwitchRow label="Requer Senha" description="PDF protegido por senha" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
-                    </div>
-                  </>
-                )}
+              {/* Recuperação */}
+              <SectionCard icon={RefreshCw} title="Recuperação e Fallback">
+                <SwitchRow label="Recuperação Automática" description="Se parser falhar, tenta método alternativo" checked={form.fallback_enabled} onChange={v => setForm(f => ({ ...f, fallback_enabled: v }))} />
+                <SwitchRow label="Requer Conversão Backend" description="Backend converte PDF do Storage para processamento" checked={form.provider_requires_base64} onChange={v => setForm(f => ({ ...f, provider_requires_base64: v }))} />
+                <SwitchRow label="PDF Protegido" description="Fatura requer senha para abrir" checked={form.provider_requires_password} onChange={v => setForm(f => ({ ...f, provider_requires_password: v }))} />
               </SectionCard>
 
               {/* Campos e Status */}

@@ -1,9 +1,10 @@
 /**
  * ExtractionCenterPage — Central de Extração de Dados por concessionária.
  * §26: PageHeader. §27: KPI cards. §4: Table. §12: Skeleton.
+ * Reposicionada para modelo 100% nativo — provedores internos não expostos.
  */
 import { useState } from "react";
-import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Globe, Pencil, Trash2, Eye, Shield, Database } from "lucide-react";
+import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Pencil, Trash2, Eye, Shield, Database, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +27,10 @@ import { ExtractionConfigModal } from "./ExtractionConfigModal";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+/** UI-facing strategy labels — 100% nativo */
 const STRATEGY_LABELS: Record<string, string> = {
-  native: "Parser Nativo",
-  provider: "Provedor Externo",
+  native: "Nativo",
+  provider: "Nativo (assistido)",
   auto: "Automático",
 };
 
@@ -45,6 +47,31 @@ const STATUS_LABELS: Record<string, { label: string; variant: string }> = {
   needs_ocr: { label: "Precisa OCR", variant: "bg-info/10 text-info border-info/20" },
 };
 
+/** Resolve parser label from config */
+function getParserLabel(config: ExtractionConfig): string {
+  if (config.native_enabled && config.parser_version) {
+    return `Parser ${config.concessionaria_nome} v${config.parser_version}`;
+  }
+  if (config.native_enabled) return "Parser Nativo";
+  return "Parser Universal";
+}
+
+/** Resolve capability badges — sem menção a provedores */
+function getCapabilityBadges(config: ExtractionConfig) {
+  const badges: { label: string; className: string }[] = [];
+
+  if (config.native_enabled) {
+    badges.push({ label: "Parser Nativo", className: "bg-primary/10 text-primary border-primary/20" });
+  }
+  if (config.provider_enabled) {
+    badges.push({ label: "Suporte avançado", className: "bg-info/10 text-info border-info/20" });
+  }
+  if (config.fallback_enabled) {
+    badges.push({ label: "Recuperação automática", className: "bg-warning/10 text-warning border-warning/20" });
+  }
+  return badges;
+}
+
 export default function ExtractionCenterPage() {
   const { data: configs = [], isLoading } = useExtractionConfigs();
   const { data: stats } = useExtractionRunStats();
@@ -56,7 +83,7 @@ export default function ExtractionCenterPage() {
 
   const activeConfigs = configs.filter(c => c.active).length;
   const nativeConfigs = configs.filter(c => c.native_enabled).length;
-  const providerConfigs = configs.filter(c => c.provider_enabled).length;
+  const withFallback = configs.filter(c => c.fallback_enabled).length;
 
   const handleEdit = (config: ExtractionConfig) => {
     setEditConfig(config);
@@ -79,20 +106,6 @@ export default function ExtractionCenterPage() {
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover");
     }
-  };
-
-  const getCapabilityBadges = (config: ExtractionConfig) => {
-    const badges: { label: string; className: string }[] = [];
-    if (config.native_enabled) {
-      badges.push({ label: "Nativo", className: "bg-primary/10 text-primary border-primary/20" });
-    }
-    if (config.provider_enabled) {
-      badges.push({ label: config.provider_name || "Provedor", className: "bg-info/10 text-info border-info/20" });
-    }
-    if (config.provider_requires_base64) {
-      badges.push({ label: "Base64 Backend", className: "bg-muted text-muted-foreground border-border" });
-    }
-    return badges;
   };
 
   return (
@@ -155,13 +168,13 @@ export default function ExtractionCenterPage() {
         <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
-              <Globe className="w-5 h-5" />
+              <RefreshCw className="w-5 h-5" />
             </div>
             <div>
               <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                {isLoading ? <Skeleton className="h-8 w-12" /> : providerConfigs}
+                {isLoading ? <Skeleton className="h-8 w-12" /> : withFallback}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">Com Provedor</p>
+              <p className="text-sm text-muted-foreground mt-1">Com Recuperação</p>
             </div>
           </CardContent>
         </Card>
@@ -195,8 +208,9 @@ export default function ExtractionCenterPage() {
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold text-foreground">Concessionária</TableHead>
                     <TableHead className="font-semibold text-foreground">Estratégia</TableHead>
+                    <TableHead className="font-semibold text-foreground">Parser</TableHead>
                     <TableHead className="font-semibold text-foreground">Capacidades</TableHead>
-                    <TableHead className="font-semibold text-foreground">Campos Obrigatórios</TableHead>
+                    <TableHead className="font-semibold text-foreground">Campos</TableHead>
                     <TableHead className="font-semibold text-foreground">Status</TableHead>
                     <TableHead className="font-semibold text-foreground">Origem</TableHead>
                     <TableHead className="w-[60px]" />
@@ -218,11 +232,9 @@ export default function ExtractionCenterPage() {
                           <Badge variant="outline" className={`text-xs ${STRATEGY_COLORS[config.strategy_mode] || ""}`}>
                             {STRATEGY_LABELS[config.strategy_mode] || config.strategy_mode}
                           </Badge>
-                          {config.fallback_enabled && (
-                            <Badge variant="outline" className="text-xs ml-1 bg-muted text-muted-foreground">
-                              + fallback
-                            </Badge>
-                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-foreground">{getParserLabel(config)}</span>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
@@ -231,16 +243,11 @@ export default function ExtractionCenterPage() {
                                 {b.label}
                               </Badge>
                             ))}
-                            {config.parser_version && config.native_enabled && (
-                              <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
-                                v{config.parser_version}
-                              </Badge>
-                            )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="text-xs text-muted-foreground max-w-[180px] truncate">
-                            {config.required_fields?.length || 0} campos
+                          <p className="text-xs text-muted-foreground">
+                            {config.required_fields?.length || 0} obrigatórios
                           </p>
                         </TableCell>
                         <TableCell>
