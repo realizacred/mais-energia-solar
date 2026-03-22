@@ -419,6 +419,16 @@ function extractFromText(text: string): ExtractedData {
     /pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
     /data\s*(?:da\s*)?pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
     /leitura\s*pr[óo]x(?:ima)?[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    // "Apresentação da próxima fatura 15/04/2026"
+    /pr[óo]x(?:ima)?\s*(?:fatura|conta)[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    // "Previsão da próxima leitura: 15/04/2026"
+    /previs[ãa]o\s*(?:da\s*)?(?:pr[óo]x(?:ima)?\s*)?leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    // "Data prevista para leitura: 15/04/2026"
+    /data\s*prevista\s*(?:para\s*)?leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    // "Leitura seguinte 15/04/2026"
+    /leitura\s*seguinte[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    // Some bills: "Período de Leitura ... a 15/04/2026"
+    /per[íi]odo\s*(?:de\s*)?leitura.*?\ba\b\s*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
   ]) {
     const m = flatText.match(p);
     if (m) {
