@@ -299,27 +299,49 @@ function extractFromText(text: string): ExtractedData {
   }
 
   let icms: number | null = null;
-  const icmsMatch = flatText.match(/ICMS[:\s]*(\d[\d.,]*)\s*%/i);
-  if (icmsMatch) {
-    icms = parseFloat(icmsMatch[1].replace(',', '.'));
-    raw['icms_match'] = icmsMatch[0];
-    confidence += 5;
+  for (const p of [
+    /ICMS[:\s]*(\d[\d.,]*)\s*%/i,
+    /al[ií]quota\s*ICMS[:\s]*(\d[\d.,]*)/i,
+    /ICMS\s*(?:Base|ST)?[:\s]*(\d[\d.,]*)\s*%/i,
+    // Padrão: "ICMS 25%" ou "ICMS 18%"
+    /ICMS\s+(\d{1,2}(?:[,.]\d+)?)\s*%/i,
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      icms = parseFloat(m[1].replace(',', '.'));
+      raw['icms_match'] = m[0];
+      confidence += 5;
+      break;
+    }
   }
 
   let pis: number | null = null;
-  const pisMatch = flatText.match(/PIS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (pisMatch) {
-    pis = parseNum(pisMatch[1]);
-    raw['pis_match'] = pisMatch[0];
-    confidence += 5;
+  for (const p of [
+    /PIS[\/\s]*(?:PASEP)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    // Valor em R$
+    /PIS[:\s]*(\d[\d.,]*)/i,
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      pis = parseNum(m[1]);
+      raw['pis_match'] = m[0];
+      confidence += 5;
+      break;
+    }
   }
 
   let cofins: number | null = null;
-  const cofinsMatch = flatText.match(/COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (cofinsMatch) {
-    cofins = parseNum(cofinsMatch[1]);
-    raw['cofins_match'] = cofinsMatch[0];
-    confidence += 5;
+  for (const p of [
+    /COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /COFINS[:\s]*(\d[\d.,]*)/i,
+  ]) {
+    const m = flatText.match(p);
+    if (m) {
+      cofins = parseNum(m[1]);
+      raw['cofins_match'] = m[0];
+      confidence += 5;
+      break;
+    }
   }
 
   let bandeira: string | null = null;
