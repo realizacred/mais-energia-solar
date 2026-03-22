@@ -242,8 +242,9 @@ function extractFromText(text: string): ExtractedData {
   // Saldo GD acumulado
   let saldoGdAcumulado: number | null = null;
   const saldoAcumPatterns = [
-    /saldo\s*acumulado[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
+    /saldo\s*acumulado[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*(?:kWh)?/i,
     /total\s*(?:de\s*)?cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
+    /cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
   ];
   for (const p of saldoAcumPatterns) {
     const m = text.match(p);
