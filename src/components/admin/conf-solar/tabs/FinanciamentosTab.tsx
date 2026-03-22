@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,34 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, Loader2, Building2 } from "lucide-react";
-
-interface BancoRow {
-  id: string;
-  nome: string;
-  taxa_mensal: number;
-  max_parcelas: number;
-  ativo: boolean;
-  ordem: number;
-  isNew?: boolean;
-}
+import { useFinanciamentoBancos, useSaveFinanciamentoBancos, type BancoRow } from "@/hooks/useFinanciamentoBancos";
 
 export function FinanciamentosTab() {
+  const { data: loadedBancos, isLoading: loading } = useFinanciamentoBancos();
+  const saveMut = useSaveFinanciamentoBancos();
   const [bancos, setBancos] = useState<BancoRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
-
-  async function loadData() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("financiamento_bancos")
-      .select("id, nome, taxa_mensal, max_parcelas, ativo, ordem")
-      .order("ordem", { ascending: true });
-    if (error) toast({ title: "Erro ao carregar bancos", description: error.message, variant: "destructive" });
-    setBancos((data as unknown as BancoRow[]) || []);
-    setLoading(false);
-  }
+  // Sync loaded data to local state
+  useEffect(() => {
+    if (loadedBancos) setBancos(loadedBancos);
+  }, [loadedBancos]);
 
   function addBanco() {
     setBancos([...bancos, {
@@ -51,25 +33,11 @@ export function FinanciamentosTab() {
     setBancos(updated);
   }
 
-  async function handleSave() {
-    setSaving(true);
-    try {
-      for (const banco of bancos) {
-        const { isNew, id, ...payload } = banco;
-        if (isNew) {
-          const { error } = await supabase.from("financiamento_bancos").insert(payload as any);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from("financiamento_bancos").update(payload as any).eq("id", id);
-          if (error) throw error;
-        }
-      }
-      toast({ title: "Financiamentos salvos" });
-      await loadData();
-    } catch (e: any) {
-      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
-    }
-    setSaving(false);
+  function handleSave() {
+    saveMut.mutate(bancos, {
+      onSuccess: () => toast({ title: "Financiamentos salvos" }),
+      onError: (e: any) => toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" }),
+    });
   }
 
   if (loading) {
@@ -129,8 +97,8 @@ export function FinanciamentosTab() {
           </div>
         )}
         <div className="flex justify-end mt-6">
-          <Button onClick={handleSave} disabled={saving} className="gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          <Button onClick={handleSave} disabled={saveMut.isPending} className="gap-2">
+            {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Salvar Financiamentos
           </Button>
         </div>

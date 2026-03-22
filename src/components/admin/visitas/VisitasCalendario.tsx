@@ -21,8 +21,7 @@ import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Clock, User, Externa
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useVisitasTecnicas, useCriarVisita } from "@/hooks/useVisitasTecnicas";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useConsultoresList } from "@/hooks/useConsultoresList";
 
 const STATUS_COLORS: Record<string, string> = {
   agendada: "bg-info/10 text-info border-info/20",
@@ -60,14 +59,7 @@ export function VisitasCalendario() {
   const criarVisita = useCriarVisita();
 
   // Fetch consultores for select
-  const { data: consultores = [] } = useQuery({
-    queryKey: ["consultores_list"],
-    queryFn: async () => {
-      const { data } = await supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome");
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 15,
-  });
+  const { data: consultores = [] } = useConsultoresList();
 
   // Form state
   const [form, setForm] = useState({

@@ -66,46 +66,6 @@ export function PricingMethodTab({ versionId, isReadOnly }: Props) {
 
   const saving = saveMut.isPending;
 
-  function initializeData(methodType: "margin_on_sale" | "margin_on_cost") {
-    setData({
-      id: "",
-      method_type: methodType,
-      default_margin_percent: 25,
-      default_tax_percent: 0,
-      kit_margin_override_percent: null,
-      kit_tax_override_percent: null,
-    });
-  }
-
-  async function handleSave() {
-    if (!data) return;
-    setSaving(true);
-
-    const payload = {
-      version_id: versionId,
-      method_type: data.method_type,
-      default_margin_percent: data.default_margin_percent,
-      default_tax_percent: data.default_tax_percent,
-      kit_margin_override_percent: data.kit_margin_override_percent,
-      kit_tax_override_percent: data.kit_tax_override_percent,
-    };
-
-    if (data.id) {
-      const { error } = await supabase.from("pricing_methods").update(payload as any).eq("id", data.id);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else { setBaseline(data); toast({ title: "Método atualizado" }); }
-    } else {
-      const { data: ins, error } = await supabase.from("pricing_methods").insert(payload as any).select("id").single();
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else {
-        const newData = { ...data, id: (ins as any).id };
-        setData(newData);
-        setBaseline(newData);
-        toast({ title: "Método configurado" });
-      }
-    }
-    setSaving(false);
-  }
 
   if (loading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

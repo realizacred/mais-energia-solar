@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHorariosEdit";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatPhone, formatName } from "@/lib/validations";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -61,7 +62,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const [showPassword, setShowPassword] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [fetchedLeads, setFetchedLeads] = useState<{ consultor: string | null }[]>([]);
+  
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -155,13 +156,16 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   };
 
   // Fetch leads if not provided via props
-  useEffect(() => {
-    if (!propLeads) {
-      supabase.from("leads").select("consultor").is("deleted_at", null).then(({ data }) => {
-        if (data) setFetchedLeads(data);
-      });
-    }
-  }, [propLeads]);
+  const { data: fetchedLeadsData } = useQuery({
+    queryKey: ["leads-consultor-counts"],
+    queryFn: async () => {
+      const { data } = await supabase.from("leads").select("consultor").is("deleted_at", null);
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !propLeads,
+  });
+  const fetchedLeads = fetchedLeadsData || [];
 
   const leads = propLeads || fetchedLeads;
 
