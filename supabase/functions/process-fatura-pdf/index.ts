@@ -151,7 +151,9 @@ async function processInvoice(
   }
 
   const strategyMode = extractionConfig?.strategy_mode || 'native';
-  const requiredFields = extractionConfig?.required_fields || ['consumo_kwh', 'valor_total'];
+  // Required fields will be resolved AFTER UC type is known (geradora vs beneficiária)
+  // For test_mode (no UC), use base required_fields
+  let requiredFields = extractionConfig?.required_fields || ['consumo_kwh', 'valor_total'];
 
   // ── 3. Call parse-conta-energia (deterministic parser — NO AI) ──
   let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
