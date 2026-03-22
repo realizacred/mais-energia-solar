@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { formatNumberBR } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
