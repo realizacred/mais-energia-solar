@@ -132,6 +132,16 @@ const IDENTIFIER_FIELD_OPTIONS = [
   { value: "codigo_medidor", label: "Código do Medidor" },
 ];
 
+const SOURCE_TYPE_OPTIONS = [
+  { value: "pdf", label: "PDF" },
+  { value: "imagem", label: "Imagem" },
+  { value: "ambos", label: "PDF e Imagem" },
+];
+
+const DEFAULT_GERADORA_SIGNALS = ["energia_injetada_kwh", "leitura_103", "medidor_injecao"];
+const DEFAULT_BENEFICIARIA_SIGNALS = ["energia_compensada_kwh", "saldo_gd_acumulado", "creditos_recebidos"];
+const DEFAULT_MISTA_SIGNALS = ["energia_injetada_kwh", "energia_compensada_kwh"];
+
 function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
     <Card className="border-border bg-card shadow-sm">
