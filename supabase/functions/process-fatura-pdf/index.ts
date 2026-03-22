@@ -271,27 +271,65 @@ async function processInvoice(
     ucUpdate.ultima_leitura_kwh_103 = parsed.leitura_atual_103;
   }
 
-  // Enrich UC with categoria_gd from bill (only if not already set)
-  if (parsed.categoria_gd) {
-    const { data: currentUc } = await admin
-      .from('units_consumidoras')
-      .select('categoria_gd')
-      .eq('id', resolvedUnitId)
-      .maybeSingle();
-    if (!currentUc?.categoria_gd) {
-      ucUpdate.categoria_gd = parsed.categoria_gd;
-    }
-  }
+  // Enrich UC from first invoice — only fill empty fields, never overwrite
+  const enrichFields = [
+    'categoria_gd', 'concessionaria_nome', 'endereco',
+    'classificacao_grupo', 'classificacao_subgrupo', 'modalidade_tarifaria', 'nome',
+  ] as const;
 
-  // Enrich UC with concessionaria from bill (only if not already set)
-  if (parsed.concessionaria_nome && ucData) {
+  const hasEnrichData = parsed.categoria_gd || parsed.concessionaria_nome || parsed.endereco
+    || parsed.classe_consumo || parsed.cliente_nome;
+
+  if (hasEnrichData) {
     const { data: currentUc } = await admin
       .from('units_consumidoras')
-      .select('concessionaria_nome')
+      .select(enrichFields.join(', '))
       .eq('id', resolvedUnitId)
       .maybeSingle();
-    if (!currentUc?.concessionaria_nome) {
-      ucUpdate.concessionaria_nome = parsed.concessionaria_nome;
+
+    if (currentUc) {
+      // categoria_gd
+      if (parsed.categoria_gd && !currentUc.categoria_gd) {
+        ucUpdate.categoria_gd = parsed.categoria_gd;
+      }
+      // concessionaria_nome
+      if (parsed.concessionaria_nome && !currentUc.concessionaria_nome) {
+        ucUpdate.concessionaria_nome = parsed.concessionaria_nome;
+      }
+      // endereco (concatena endereço + cidade + estado)
+      if (!currentUc.endereco) {
+        const parts = [parsed.endereco, parsed.cidade, parsed.estado].filter(Boolean);
+        if (parts.length > 0) {
+          ucUpdate.endereco = parts.join(', ');
+        }
+      }
+      // classificacao_grupo (ex: B1, A4) — extraído de classe_consumo
+      if (parsed.classe_consumo && !currentUc.classificacao_grupo) {
+        const grupoMatch = parsed.classe_consumo.match(/^([AB]\d?)/i);
+        if (grupoMatch) {
+          ucUpdate.classificacao_grupo = grupoMatch[1].toUpperCase();
+        }
+      }
+      // classificacao_subgrupo (parte restante da classe)
+      if (parsed.classe_consumo && !currentUc.classificacao_subgrupo) {
+        const subMatch = parsed.classe_consumo.replace(/^[AB]\d?\s*[-:]?\s*/i, '').trim();
+        if (subMatch) {
+          ucUpdate.classificacao_subgrupo = subMatch;
+        }
+      }
+      // modalidade_tarifaria
+      if (parsed.modalidade_tarifaria && !currentUc.modalidade_tarifaria) {
+        ucUpdate.modalidade_tarifaria = parsed.modalidade_tarifaria;
+      }
+      // nome (titular da conta)
+      if (parsed.cliente_nome && !currentUc.nome) {
+        ucUpdate.nome = parsed.cliente_nome;
+      }
+
+      const enrichedKeys = Object.keys(ucUpdate).filter(k => enrichFields.includes(k as any));
+      if (enrichedKeys.length > 0) {
+        console.log(`[process-fatura-pdf] UC enriched from invoice: ${enrichedKeys.join(', ')}`);
+      }
     }
   }
 
