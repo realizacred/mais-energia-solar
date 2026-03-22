@@ -94,9 +94,9 @@ export default function UCDetailPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Resolve linked plant
+  // Resolve linked plant (use distinct queryKey to avoid collision with UCPlantLinksTab)
   const { data: plantLinks = [] } = useQuery({
-    queryKey: ["unit_plant_links", id],
+    queryKey: ["unit_plant_links_active", id],
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("unit_plant_links")
