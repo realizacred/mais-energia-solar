@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sun, Users, Plus, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { Sun, Users, Plus, Trash2, Loader2, AlertCircle, ExternalLink } from "lucide-react";
 import { useGdGroupByGenerator, useGdBeneficiaries, useGdBeneficiariesByUC, useSaveGdBeneficiary, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { useSaveGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { unitService, type UCRecord } from "@/services/unitService";
