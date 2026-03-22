@@ -342,55 +342,77 @@ export function UCInvoicesTab({ unitId }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((inv) => (
-                <TableRow key={inv.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="font-medium text-foreground">{MONTHS[inv.reference_month - 1]}/{inv.reference_year}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
-                  <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toFixed(2)}` : "—"}</TableCell>
-                  <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)} kWh` : "—"}</TableCell>
-                  <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)} kWh` : "—"}</TableCell>
-                  <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toFixed(1)} kWh` : "—"}</TableCell>
-                  <TableCell>
-                    {inv.bandeira_tarifaria ? (
-                      <StatusBadge variant="muted" className={BANDEIRA_COLORS[inv.bandeira_tarifaria] || ""}>
-                        {BANDEIRA_LABELS[inv.bandeira_tarifaria] || inv.bandeira_tarifaria}
-                      </StatusBadge>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
-                      {STATUS_LABELS[inv.status] || inv.status}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {inv.pdf_file_url && (
-                          <DropdownMenuItem asChild>
-                            <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
-                              <Eye className="w-4 h-4 mr-2" /> Ver PDF
-                            </a>
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteTarget(inv.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {invoices.map((inv) => {
+                const isExpanded = expandedId === inv.id;
+                const raw = inv.raw_extraction as Record<string, any> | null;
+                return (
+                  <>
+                    <TableRow
+                      key={inv.id}
+                      className="hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => setExpandedId(isExpanded ? null : inv.id)}
+                    >
+                      <TableCell className="font-medium text-foreground">
+                        <div className="flex items-center gap-1.5">
+                          {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                          {MONTHS[inv.reference_month - 1]}/{inv.reference_year}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
+                      <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toFixed(2)}` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                      <TableCell>
+                        {inv.bandeira_tarifaria ? (
+                          <StatusBadge variant="muted" className={BANDEIRA_COLORS[inv.bandeira_tarifaria] || ""}>
+                            {BANDEIRA_LABELS[inv.bandeira_tarifaria] || inv.bandeira_tarifaria}
+                          </StatusBadge>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
+                          {STATUS_LABELS[inv.status] || inv.status}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {inv.pdf_file_url && (
+                              <DropdownMenuItem asChild>
+                                <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
+                                  <Eye className="w-4 h-4 mr-2" /> Ver PDF
+                                </a>
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(inv.id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow key={`${inv.id}-detail`} className="bg-muted/20 hover:bg-muted/20">
+                        <TableCell colSpan={10} className="p-0">
+                          <InvoiceDetailPanel invoice={inv} raw={raw} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
