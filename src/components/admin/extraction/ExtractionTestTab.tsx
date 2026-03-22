@@ -346,6 +346,70 @@ export function ExtractionTestTab() {
             </CardContent>
           </Card>
 
+          {/* UC Type Detection */}
+          {result.uc_detection && (
+            <Card className={`border-l-[3px] ${result.uc_detection.divergencia_cadastro ? "border-l-warning" : "border-l-primary"}`}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-semibold text-foreground">Tipo de UC Detectado</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {result.uc_detection.tipo_uc_detectado === "geradora" ? "Geradora" :
+                       result.uc_detection.tipo_uc_detectado === "beneficiaria" ? "Beneficiária" :
+                       result.uc_detection.tipo_uc_detectado === "mista" ? "Mista" :
+                       result.uc_detection.tipo_uc_detectado === "consumo" ? "Consumo" : "Indefinida"}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      Confiança: {result.uc_detection.confianca_tipo_uc}%
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Signals */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {Object.entries(result.uc_detection.sinais_detectados).map(([key, val]) => (
+                    <div key={key} className="flex items-center gap-1.5 text-xs">
+                      {val ? (
+                        <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
+                      ) : (
+                        <XCircle className="w-3 h-3 text-muted-foreground/40 shrink-0" />
+                      )}
+                      <span className={val ? "text-foreground" : "text-muted-foreground"}>
+                        {key.replace(/^tem_/, "").replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Rules fired */}
+                {result.uc_detection.regras_disparadas.length > 0 && (
+                  <div className="space-y-1 pt-1 border-t border-border">
+                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Regras aplicadas</p>
+                    {result.uc_detection.regras_disparadas.map((r, i) => (
+                      <p key={i} className="text-xs text-muted-foreground">{r}</p>
+                    ))}
+                  </div>
+                )}
+
+                {result.uc_detection.divergencia_cadastro && (
+                  <div className="flex items-start gap-2 p-2 rounded-md bg-warning/10 border border-warning/20">
+                    <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                    <p className="text-xs text-foreground">
+                      A detecção automática diverge do cadastro atual da UC. Recomenda-se revisar o tipo cadastrado.
+                    </p>
+                  </div>
+                )}
+
+                {result.contexto && (
+                  <p className="text-[10px] text-muted-foreground">Contexto utilizado: {result.contexto}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Fields found / missing */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
