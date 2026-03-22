@@ -46,13 +46,6 @@ export interface InvoiceImportJobItem {
 const JOB_COLS = `id, tenant_id, source, status, total_files, processed_files, success_count, duplicate_count, error_count, created_by, started_at, finished_at, summary_json, created_at, updated_at`;
 const ITEM_COLS = `id, job_id, file_name, unit_id, reference_year, reference_month, status, error_message, parser_summary_json, invoice_id, created_at, updated_at`;
 
-// Fields eligible for UC enrichment from parsed invoice data
-const UC_ENRICHABLE_FIELDS: Record<string, string> = {
-  concessionaria_nome: "concessionaria",
-  classificacao_grupo: "grupo_tarifario",
-  classificacao_subgrupo: "subgrupo_tarifario",
-  modalidade_tarifaria: "modalidade_tarifaria",
-};
 
 export const invoiceImportService = {
   /** Create a new import job */
