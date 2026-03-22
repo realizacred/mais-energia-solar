@@ -97,6 +97,13 @@ export default function ExtractionCenterPage() {
 
   const handleCreate = () => {
     setEditConfig(null);
+    setPrefillData(null);
+    setModalOpen(true);
+  };
+
+  const handleGenerateConfig = (prefill: ExtractionConfigPrefill) => {
+    setEditConfig(null);
+    setPrefillData(prefill);
     setModalOpen(true);
   };
 
