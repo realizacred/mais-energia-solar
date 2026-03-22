@@ -148,7 +148,11 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
             <p className="text-xs text-muted-foreground mt-0.5">
               Vincule uma UC existente ou crie uma nova como beneficiária
             </p>
-          </div>
+            {noAvailableUcs && (
+              <p className="text-xs text-warning mt-0.5">
+                Nenhuma UC existente disponível — crie uma nova abaixo
+              </p>
+            )}
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
