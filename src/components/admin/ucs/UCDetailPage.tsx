@@ -100,7 +100,7 @@ export default function UCDetailPage() {
     queryKey: ["unit_meter_links", id],
     queryFn: () => meterService.getLinksForUnit(id!),
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
   const activeLink = meterLinks.find(l => l.is_active);
   const activeMeterIdResolved = activeLink?.meter_device_id ?? null;
