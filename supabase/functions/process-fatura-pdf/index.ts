@@ -577,6 +577,7 @@ async function reprocessInvoice(
   }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
+async function callParseContaEnergia(
   supabaseUrl: string,
   serviceRoleKey: string,
   text: string,
