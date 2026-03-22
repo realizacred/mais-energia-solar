@@ -446,7 +446,7 @@ async function processInvoice(
   }
 
   // ── 10. Log extraction run ──
-  await logExtractionRun(admin, tenantId, extractionConfig?.id, invoice.id, resolvedUnitId, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version);
+  await logExtractionRun(admin, tenantId, extractionConfig?.id, invoice.id, resolvedUnitId, detectedConc || parsed.parser_used || 'unknown', strategyMode, extractionStatus, missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}` : null, requiredFields, foundFields, missingFields, parsed.confidence, parsed.parser_version, ownershipResult.status, ownershipResult.score, identifierExtracted, ownershipResult.status === 'valid');
 
   // ── 11. Update UC with reading data + enrich from first invoice ──
   const ucUpdate: any = {};
