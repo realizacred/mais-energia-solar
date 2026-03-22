@@ -247,16 +247,25 @@ function AccountsTable() {
 
   if (!accounts || accounts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-3">
-          <Mail className="w-6 h-6 text-muted-foreground" />
+      <>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-3">
+            <Mail className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm font-medium text-foreground">Nenhuma conta de e-mail cadastrada</p>
+          <p className="text-xs text-muted-foreground mt-1">Adicione sua primeira conta para começar a ingestão automática</p>
+          <Button size="sm" className="mt-4" onClick={() => { setEditAccount(null); setFormOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> Adicionar Conta
+          </Button>
         </div>
-        <p className="text-sm font-medium text-foreground">Nenhuma conta de e-mail cadastrada</p>
-        <p className="text-xs text-muted-foreground mt-1">Adicione sua primeira conta para começar a ingestão automática</p>
-        <Button size="sm" className="mt-4" onClick={() => { setEditAccount(null); setFormOpen(true); }}>
-          <Plus className="w-4 h-4 mr-1" /> Adicionar Conta
-        </Button>
-      </div>
+        {formOpen && (
+          <AccountFormModal
+            open={formOpen}
+            onOpenChange={setFormOpen}
+            initial={editAccount}
+          />
+        )}
+      </>
     );
   }
 
