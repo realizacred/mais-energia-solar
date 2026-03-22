@@ -1,13 +1,33 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// parse-conta-energia — Extract tariff data from energy bill PDF text
-// Layer 1: Regex (fast) + Layer 2: OpenAI fallback (for missing fields)
+// parse-conta-energia — Deterministic PDF invoice parser (NO AI/LLM)
+// Layer 0: Concessionária-specific parsers (Energisa, etc.)
+// Layer 1: Generic regex fallback
+// NO AI fallback — 100% deterministic, auditable, reproducible
+// Parser version: 3.0.0
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
+
+const PARSER_VERSION = "3.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-client-timeout, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface FieldResult {
+  value: any;
+  source: string;
+  validated: boolean;
+  note: string | null;
+}
+
+interface ValidationResult {
+  rule: string;
+  passed: boolean;
+  detail: string;
+}
 
 interface ExtractedData {
   concessionaria_nome: string | null;
@@ -30,19 +50,32 @@ interface ExtractedData {
   numero_uc: string | null;
   vencimento: string | null;
   proxima_leitura_data: string | null;
+  data_leitura_anterior: string | null;
+  data_leitura_atual: string | null;
+  dias_leitura: number | null;
   saldo_gd: number | null;
   saldo_gd_acumulado: number | null;
   leitura_anterior_03: number | null;
   leitura_atual_03: number | null;
   leitura_anterior_103: number | null;
   leitura_atual_103: number | null;
+  medidor_consumo_codigo: string | null;
+  medidor_injecao_codigo: string | null;
   energia_injetada_kwh: number | null;
   energia_compensada_kwh: number | null;
   categoria_gd: string | null;
   modalidade_tarifaria: string | null;
+  demanda_medida_kw: number | null;
+  demanda_ultrapassagem_kw: number | null;
+  multa_demanda_valor: number | null;
   confidence: number;
-  ai_fallback_used: boolean;
-  ai_model_used: string | null;
+  ai_fallback_used: false;
+  ai_model_used: null;
+  parser_version: string;
+  parser_used: string;
+  extraction_method: "deterministic";
+  field_results: Record<string, FieldResult>;
+  validations: ValidationResult[];
   raw_fields: Record<string, string>;
 }
 
@@ -71,30 +104,25 @@ const CONC_PATTERNS: Array<{ pattern: RegExp; nome: string }> = [
   { pattern: /CEMAR/i, nome: "CEMAR" },
 ];
 
+// ── Utility Functions ────────────────────────────────────────────────────────
+
 function parseNum(value: string): number {
   const normalized = value.trim().replace(/\s/g, '');
   if (!normalized) return NaN;
-
   const hasComma = normalized.includes(',');
   const hasDot = normalized.includes('.');
-
   if (hasComma && hasDot) {
     if (normalized.lastIndexOf(',') > normalized.lastIndexOf('.')) {
       return Number(normalized.replace(/\./g, '').replace(',', '.'));
     }
     return Number(normalized.replace(/,/g, ''));
   }
-
-  if (hasComma) {
-    return Number(normalized.replace(/\./g, '').replace(',', '.'));
-  }
-
+  if (hasComma) return Number(normalized.replace(/\./g, '').replace(',', '.'));
   if (hasDot) {
     const parts = normalized.split('.');
     if (parts.length > 2) return Number(parts.join(''));
     if (/^\d+\.\d{3}$/.test(normalized)) return Number(parts.join(''));
   }
-
   return Number(normalized);
 }
 
@@ -117,14 +145,45 @@ function isPlausibleDate(value: string | null | undefined): value is string {
   const normalized = normalizeDateLike(value);
   const match = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!match) return false;
-
   const [, day, month, year] = match;
-  const dayNum = Number(day);
-  const monthNum = Number(month);
-  const yearNum = Number(year);
-
-  return yearNum >= 2020 && yearNum <= 2100 && monthNum >= 1 && monthNum <= 12 && dayNum >= 1 && dayNum <= 31;
+  return Number(year) >= 2020 && Number(year) <= 2100 && Number(month) >= 1 && Number(month) <= 12 && Number(day) >= 1 && Number(day) <= 31;
 }
+
+function firstMatch(text: string, patterns: RegExp[], groupIdx = 1): string | null {
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m && m[groupIdx]) return m[groupIdx];
+  }
+  return null;
+}
+
+function firstMatchNum(text: string, patterns: RegExp[], groupIdx = 1): number | null {
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m && m[groupIdx]) {
+      const v = parseNum(m[groupIdx]);
+      if (Number.isFinite(v)) return v;
+    }
+  }
+  return null;
+}
+
+function firstMatchDate(text: string, patterns: RegExp[], groupIdx = 1): string | null {
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m && m[groupIdx]) {
+      const candidate = normalizeDateLike(m[groupIdx]);
+      if (isPlausibleDate(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+function makeField(value: any, source: string, validated = false, note: string | null = null): FieldResult {
+  return { value, source, validated, note };
+}
+
+// ── Meter Row Extraction ────────────────────────────────────────────────────
 
 function extractMeterRow(flatText: string, labelPattern: string) {
   const regex = new RegExp(
@@ -133,149 +192,271 @@ function extractMeterRow(flatText: string, labelPattern: string) {
   );
   const match = flatText.match(regex);
   if (!match) return null;
-
   const previous = parseNum(match[1]);
   const current = parseNum(match[2]);
   const factor = parseNum(match[3]);
   const total = parseNum(match[4]);
-
   if (![previous, current, total].every(Number.isFinite)) return null;
   if (previous < 0 || current < previous || total < 0) return null;
-
-  return {
-    previous,
-    current,
-    factor: Number.isFinite(factor) ? factor : null,
-    total,
-  };
+  return { previous, current, factor: Number.isFinite(factor) ? factor : null, total };
 }
 
-// ── LAYER 0: Energisa-specific strict regex extraction ──────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// ENERGISA PARSER — Deterministic, regex-only, auditable
+// ══════════════════════════════════════════════════════════════════════════════
 
 function extractEnergisa(text: string): ExtractedData | null {
   const flatText = text.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
-
-  // Only run for Energisa bills
   if (!/ENERGISA/i.test(flatText)) return null;
 
-  console.log("[parse-conta-energia] Energisa detected — using strict extraction");
+  console.log("[parse-conta-energia] Energisa detected — using strict deterministic parser v" + PARSER_VERSION);
 
   const raw: Record<string, string> = {};
-  let confidence = 20; // Base: concessionária detected
+  const fieldResults: Record<string, FieldResult> = {};
+  const validations: ValidationResult[] = [];
+  let confidence = 20;
 
-  // ── 1. Dados de Identificação e Datas ──
+  // ── 1. Identificação e Datas ──
 
-  // Referência: "REF: MES/ANO" → capture month/year text (e.g. "Fevereiro/2026" or "FEV/2026")
+  // Referência
   let mesRef: string | null = null;
   const refMatch = flatText.match(/REF[:\s]*MES\s*\/\s*ANO\s+([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i)
-    || flatText.match(/REF[:\s]*([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i);
+    || flatText.match(/REF[:\s]*([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i)
+    || flatText.match(/(?:m[êe]s\s*(?:de\s*)?refer[êe]ncia)[:\s]*((?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[\w\s\/]*\d{2,4})/i);
   if (refMatch) {
     mesRef = refMatch[1].trim();
-    raw['energisa_ref'] = refMatch[0];
+    raw['ref'] = refMatch[0];
+    fieldResults['mes_referencia'] = makeField(mesRef, 'regex:REF_MES_ANO', true);
     confidence += 10;
   }
 
-  // Vencimento: "VENCIMENTO" followed by DD/MM/AAAA
+  // Vencimento
   let vencimento: string | null = null;
   const vencMatch = flatText.match(/VENCIMENTO[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i);
   if (vencMatch) {
     vencimento = normalizeDateLike(vencMatch[1]);
-    raw['energisa_vencimento'] = vencMatch[0];
+    raw['vencimento'] = vencMatch[0];
+    fieldResults['vencimento'] = makeField(vencimento, 'regex:VENCIMENTO', isPlausibleDate(vencimento));
     confidence += 10;
   }
 
-  // Valor Total: "TOTAL A PAGAR" followed by R$ value
+  // Valor Total
   let valorTotal: number | null = null;
-  // Pattern 1: "TOTAL A PAGAR MES/ANO DD/MM/AAAA R$ XX,XX"
-  const totalMatch = flatText.match(/TOTAL\s+A\s+PAGAR\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(?:\d{2}[\/.]\d{2}[\/.]\d{2,4}\s+)?R\$\s*(\d[\d.,]*)/i)
-    || flatText.match(/TOTAL\s+A\s+PAGAR[:\s]*R?\$?\s*(\d[\d.,]*)/i);
-  if (totalMatch) {
-    valorTotal = parseNum(totalMatch[1]);
-    raw['energisa_total'] = totalMatch[0];
+  const totalPatterns = [
+    /TOTAL\s+A\s+PAGAR\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(?:\d{2}[\/.]\d{2}[\/.]\d{2,4}\s+)?R\$\s*(\d[\d.,]*)/i,
+    /TOTAL\s+A\s+PAGAR[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /\(=\)\s*valor\s*do\s*documento[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /valor\s*(?:total|a\s*pagar)[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+  ];
+  valorTotal = firstMatchNum(flatText, totalPatterns);
+  if (valorTotal != null) {
+    raw['total'] = String(valorTotal);
+    fieldResults['valor_total'] = makeField(valorTotal, 'regex:TOTAL_A_PAGAR', valorTotal > 0, valorTotal <= 0 ? 'Valor <= 0' : null);
     confidence += 10;
   }
 
   // Próxima Leitura
-  let proximaLeitura: string | null = null;
-  const proxMatch = flatText.match(/Pr[óo]xima\s+Leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i)
-    || flatText.match(/pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i);
-  if (proxMatch) {
-    const candidate = normalizeDateLike(proxMatch[1]);
-    if (isPlausibleDate(candidate)) {
-      proximaLeitura = candidate;
-      raw['energisa_prox_leitura'] = proxMatch[0];
-      confidence += 10;
+  const proxPatterns = [
+    /Pr[óo]xima\s+Leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    /pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    /data\s*(?:da\s*)?pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    /previs[ãa]o\s*(?:da\s*)?(?:pr[óo]x(?:ima)?\s*)?leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    /data\s*prevista\s*(?:para\s*)?leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+    /leitura\s*seguinte[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
+  ];
+  const proximaLeitura = firstMatchDate(flatText, proxPatterns);
+  if (proximaLeitura) {
+    raw['prox_leitura'] = proximaLeitura;
+    fieldResults['proxima_leitura_data'] = makeField(proximaLeitura, 'regex:PROXIMA_LEITURA', true);
+    confidence += 10;
+  }
+
+  // Data leitura anterior e atual
+  let dataLeituraAnterior: string | null = null;
+  let dataLeituraAtual: string | null = null;
+  const leitDatasMatch = flatText.match(/(?:per[íi]odo|leitura)[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})\s*(?:a|até|at[ée])\s*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i);
+  if (leitDatasMatch) {
+    const d1 = normalizeDateLike(leitDatasMatch[1]);
+    const d2 = normalizeDateLike(leitDatasMatch[2]);
+    if (isPlausibleDate(d1)) { dataLeituraAnterior = d1; fieldResults['data_leitura_anterior'] = makeField(d1, 'regex:PERIODO_LEITURA', true); }
+    if (isPlausibleDate(d2)) { dataLeituraAtual = d2; fieldResults['data_leitura_atual'] = makeField(d2, 'regex:PERIODO_LEITURA', true); }
+  }
+
+  // Dias de leitura
+  let diasLeitura: number | null = null;
+  const diasMatch = flatText.match(/(\d{2,3})\s*dias?\s*(?:de\s*)?(?:leitura|fatura|consumo)/i)
+    || flatText.match(/(?:leitura|fatura|consumo)\s*(?:em|de)?\s*(\d{2,3})\s*dias?/i);
+  if (diasMatch) {
+    diasLeitura = parseInt(diasMatch[1]);
+    if (diasLeitura > 0 && diasLeitura < 90) {
+      fieldResults['dias_leitura'] = makeField(diasLeitura, 'regex:DIAS_LEITURA', true);
+    } else {
+      diasLeitura = null;
     }
   }
 
-  // ── 2. Leituras do Medidor ──
+  // ── 2. Medidor / Consumo ──
 
-  // Medidor number (e.g. "007718" or similar 6+ digit)
-  const medidorMatch = flatText.match(/(?:medidor|n[°º]?\s*medidor)[:\s]*(\d{4,})/i);
+  // Código do medidor de consumo
+  let medidorConsumoCodigo: string | null = null;
+  const medidorMatch = flatText.match(/(?:medidor|n[°º]?\s*medidor|medi[çc][ãa]o)[:\s]*(\d{4,})/i);
   if (medidorMatch) {
-    raw['energisa_medidor'] = medidorMatch[1];
+    medidorConsumoCodigo = medidorMatch[1];
+    raw['medidor_consumo'] = medidorMatch[1];
+    fieldResults['medidor_consumo_codigo'] = makeField(medidorConsumoCodigo, 'regex:MEDIDOR', true);
   }
 
-  // Leitura Anterior / Atual — from meter table
   let leituraAnterior03: number | null = null;
   let leituraAtual03: number | null = null;
   let consumoKwh: number | null = null;
 
-  // Try the structured meter row pattern first
+  // Structured meter row
   const activeMeterRow = extractMeterRow(flatText, 'energia\\s+ativa(?:\\s+em\\s+kwh)?');
   if (activeMeterRow) {
     leituraAnterior03 = activeMeterRow.previous;
     leituraAtual03 = activeMeterRow.current;
     consumoKwh = activeMeterRow.total;
-    raw['energisa_leitura_03'] = `ant=${activeMeterRow.previous} atu=${activeMeterRow.current} cons=${activeMeterRow.total}`;
+    raw['leitura_03'] = `ant=${activeMeterRow.previous} atu=${activeMeterRow.current} cons=${activeMeterRow.total}`;
+    fieldResults['leitura_anterior_03'] = makeField(leituraAnterior03, 'regex:METER_ROW_ENERGIA_ATIVA', true);
+    fieldResults['leitura_atual_03'] = makeField(leituraAtual03, 'regex:METER_ROW_ENERGIA_ATIVA', true);
+    fieldResults['consumo_kwh'] = makeField(consumoKwh, 'regex:METER_ROW_ENERGIA_ATIVA', true);
     confidence += 15;
   }
 
-  // Consumo em kWh: "Consumo em kWh" or "Consumo kWh" with value
+  // Fallback consumo patterns
   if (consumoKwh == null) {
-    const consumoMatch = flatText.match(/Consumo\s+(?:em\s+)?kWh[:\s]*(\d[\d.,]*)/i)
-      || flatText.match(/consumo\s*(?:faturado|ativo)?[:\s]*(\d[\d.,]*)\s*(?:,\s*\d+)?\s*kWh/i);
-    if (consumoMatch) {
-      consumoKwh = parseNum(consumoMatch[1]);
-      raw['energisa_consumo'] = consumoMatch[0];
+    const consumoPatterns = [
+      /Consumo\s+(?:em\s+)?kWh[:\s]*(\d[\d.,]*)/i,
+      /consumo\s*(?:faturado|ativo)?[:\s]*(\d[\d.,]*)\s*(?:,\s*\d+)?\s*kWh/i,
+      /consumo\s*(?:ativo|total|mensal)?[:\s]*(\d[\d.,]*)\s*kWh/i,
+      /(\d[\d.,]*)\s*kWh\s*(?:consumo|ativo)/i,
+    ];
+    consumoKwh = firstMatchNum(flatText, consumoPatterns);
+    if (consumoKwh != null) {
+      fieldResults['consumo_kwh'] = makeField(consumoKwh, 'regex:CONSUMO_KWH_FALLBACK', true);
       confidence += 10;
     }
   }
 
-  // ── 3. Geração Distribuída (Solar) ──
-
-  // Energia Injetada: "Energia Atv Injetada GDI" with negative value
-  let energiaInjetada: number | null = null;
-  const injetadaMatch = flatText.match(/Energia\s+At[iv]+\s+Injetada\s+GDI?[:\s]*[-]?\s*(\d[\d.,]*)/i)
-    || flatText.match(/energia\s+(?:atv?\s+)?injetada\s+GDI?[:\s]*[-]?\s*(\d[\d.,]*)/i);
-  if (injetadaMatch) {
-    energiaInjetada = parseNum(injetadaMatch[1]);
-    raw['energisa_injetada'] = injetadaMatch[0];
-    confidence += 10;
+  // Fallback leitura patterns
+  if (leituraAnterior03 == null || leituraAtual03 == null) {
+    const leitPatterns = [
+      /(?:energia\s*(?:ativa|el[ée]trica)?\s*(?:consumida)?|registro\s*03).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
+      /(?:leitura|medidor).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
+    ];
+    for (const p of leitPatterns) {
+      const m = flatText.match(p);
+      if (m) {
+        leituraAnterior03 = leituraAnterior03 ?? parseNum(m[1]);
+        leituraAtual03 = leituraAtual03 ?? parseNum(m[2]);
+        if (leituraAnterior03 != null) fieldResults['leitura_anterior_03'] = makeField(leituraAnterior03, 'regex:LEITURA_FALLBACK', true);
+        if (leituraAtual03 != null) fieldResults['leitura_atual_03'] = makeField(leituraAtual03, 'regex:LEITURA_FALLBACK', true);
+        confidence += 5;
+        break;
+      }
+    }
   }
 
-  // Injected meter row (registro 103)
+  // ── 3. Medidor / Injeção (registro 103) ──
+
+  let medidorInjecaoCodigo: string | null = null;
   let leituraAnterior103: number | null = null;
   let leituraAtual103: number | null = null;
-  const injectedMeterRow = extractMeterRow(flatText, 'energia\\s+(?:atv\\s+)?injetada(?:\\s+gdi)?');
+  let energiaInjetada: number | null = null;
+
+  const injectedMeterRow = extractMeterRow(flatText, 'energia\\s+(?:atv\\s+)?injetada(?:\\s+gdi?)?');
   if (injectedMeterRow) {
     leituraAnterior103 = injectedMeterRow.previous;
     leituraAtual103 = injectedMeterRow.current;
-    if (energiaInjetada == null) energiaInjetada = injectedMeterRow.total;
-    raw['energisa_leitura_103'] = `ant=${injectedMeterRow.previous} atu=${injectedMeterRow.current}`;
+    energiaInjetada = injectedMeterRow.total;
+    raw['leitura_103'] = `ant=${injectedMeterRow.previous} atu=${injectedMeterRow.current} inj=${injectedMeterRow.total}`;
+    fieldResults['leitura_anterior_103'] = makeField(leituraAnterior103, 'regex:METER_ROW_INJETADA', true);
+    fieldResults['leitura_atual_103'] = makeField(leituraAtual103, 'regex:METER_ROW_INJETADA', true);
+    fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:METER_ROW_INJETADA', true);
     confidence += 10;
   }
 
-  // Saldo Acumulado: "Saldo Acumulado:" followed by number
+  // Fallback injeção
+  if (energiaInjetada == null) {
+    const injPatterns = [
+      /Energia\s+At[iv]+\s+Injetada\s+GDI?[:\s]*[-]?\s*(\d[\d.,]*)/i,
+      /energia\s+(?:atv?\s+)?injetada\s+GDI?[:\s]*[-]?\s*(\d[\d.,]*)/i,
+      /energia\s*injetada[:\s]*(\d[\d.,]*)\s*kWh/i,
+    ];
+    energiaInjetada = firstMatchNum(flatText, injPatterns);
+    if (energiaInjetada != null) {
+      fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:ENERGIA_INJETADA_FALLBACK', true);
+    }
+  }
+
+  // Calculate from meter readings if not found
+  if (energiaInjetada == null && leituraAtual103 != null && leituraAnterior103 != null) {
+    energiaInjetada = Math.max(leituraAtual103 - leituraAnterior103, 0);
+    fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'calc:LEITURA_103_DIFF', true, `${leituraAtual103} - ${leituraAnterior103} = ${energiaInjetada}`);
+  }
+
+  // Fallback leitura 103
+  if (leituraAnterior103 == null || leituraAtual103 == null) {
+    const leit103Patterns = [
+      /(?:energia\s*injetada|registro\s*103).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
+      /injetada.*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
+    ];
+    for (const p of leit103Patterns) {
+      const m = flatText.match(p);
+      if (m) {
+        leituraAnterior103 = leituraAnterior103 ?? parseNum(m[1]);
+        leituraAtual103 = leituraAtual103 ?? parseNum(m[2]);
+        break;
+      }
+    }
+  }
+
+  // Second medidor code for injection
+  const medidorInjMatch = flatText.match(/(?:medidor|registro)\s*(?:103|inje[çc][ãa]o)[:\s]*(\d{4,})/i);
+  if (medidorInjMatch) {
+    medidorInjecaoCodigo = medidorInjMatch[1];
+    fieldResults['medidor_injecao_codigo'] = makeField(medidorInjecaoCodigo, 'regex:MEDIDOR_103', true);
+  }
+
+  // ── 4. GD / Créditos ──
+
+  // Saldo Acumulado
   let saldoGdAcumulado: number | null = null;
-  const saldoMatch = flatText.match(/Saldo\s+Acumulado[:\s]*(\d[\d.,]*)/i);
-  if (saldoMatch) {
-    saldoGdAcumulado = parseNum(saldoMatch[1]);
-    raw['energisa_saldo_acumulado'] = saldoMatch[0];
+  const saldoAcumPatterns = [
+    /Saldo\s+Acumulado[:\s]*(\d[\d.,]*)/i,
+    /total\s*(?:de\s*)?cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
+    /cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
+  ];
+  saldoGdAcumulado = firstMatchNum(flatText, saldoAcumPatterns);
+  if (saldoGdAcumulado != null) {
+    raw['saldo_acumulado'] = String(saldoGdAcumulado);
+    fieldResults['saldo_gd_acumulado'] = makeField(saldoGdAcumulado, 'regex:SALDO_ACUMULADO', true);
     confidence += 10;
   }
 
-  // Classificação GD (e.g. "GD I", "GDI")
+  // Saldo GD mensal
+  let saldoGd: number | null = null;
+  const saldoPatterns = [
+    /saldo\s*(?:de\s*)?(?:gera[çc][ãa]o|GD|cr[ée]ditos?\s*(?:de\s*)?energia)[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
+    /cr[ée]ditos?\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)\s*kWh/i,
+  ];
+  saldoGd = firstMatchNum(flatText, saldoPatterns);
+  if (saldoGd != null) {
+    fieldResults['saldo_gd'] = makeField(saldoGd, 'regex:SALDO_GD', true);
+  }
+
+  // Energia compensada
+  let energiaCompensada: number | null = null;
+  const compPatterns = [
+    /energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)/i,
+    /compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i,
+  ];
+  energiaCompensada = firstMatchNum(flatText, compPatterns);
+  if (energiaCompensada != null) {
+    fieldResults['energia_compensada_kwh'] = makeField(energiaCompensada, 'regex:COMPENSADA', true);
+  }
+
+  // Categoria GD
   let categoriaGd: string | null = null;
   const gdMatch = flatText.match(/GD[\s_-]*(I{1,3}|1|2|3)\b/i);
   if (gdMatch) {
@@ -283,21 +464,13 @@ function extractEnergisa(text: string): ExtractedData | null {
     if (num === 'I' || num === '1') categoriaGd = 'GD_I';
     else if (num === 'II' || num === '2') categoriaGd = 'GD_II';
     else if (num === 'III' || num === '3') categoriaGd = 'GD_III';
-    raw['energisa_gd'] = gdMatch[0];
+    raw['gd'] = gdMatch[0];
+    fieldResults['categoria_gd'] = makeField(categoriaGd, 'regex:GD_CLASSIFICACAO', true);
   }
 
-  // Energia compensada
-  let energiaCompensada: number | null = null;
-  const compMatch = flatText.match(/energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)/i)
-    || flatText.match(/compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i);
-  if (compMatch) {
-    energiaCompensada = parseNum(compMatch[1]);
-    raw['energisa_compensada'] = compMatch[0];
-  }
+  // ── 5. Configuração Técnica ──
 
-  // ── 4. Configuração Técnica ──
-
-  // Tipo de Ligação: "LIGAÇÃO:" followed by type
+  // Tipo de Ligação
   let tipoLigacao: string | null = null;
   const ligacaoMatch = flatText.match(/LIGA[ÇC][ÃA]O[:\s]*(MONOF[ÁA]SIC[AO]|BIF[ÁA]SIC[AO]|TRIF[ÁA]SIC[AO])/i);
   if (ligacaoMatch) {
@@ -305,27 +478,33 @@ function extractEnergisa(text: string): ExtractedData | null {
     if (val.includes('mono')) tipoLigacao = 'monofasico';
     else if (val.includes('bi')) tipoLigacao = 'bifasico';
     else if (val.includes('tri')) tipoLigacao = 'trifasico';
-    raw['energisa_ligacao'] = ligacaoMatch[0];
+    fieldResults['tipo_ligacao'] = makeField(tipoLigacao, 'regex:LIGACAO', true);
     confidence += 5;
+  } else {
+    if (/trif[áa]sic/i.test(flatText)) tipoLigacao = 'trifasico';
+    else if (/bif[áa]sic/i.test(flatText)) tipoLigacao = 'bifasico';
+    else if (/monof[áa]sic/i.test(flatText)) tipoLigacao = 'monofasico';
+    if (tipoLigacao) {
+      fieldResults['tipo_ligacao'] = makeField(tipoLigacao, 'regex:TIPO_LIGACAO_GENERICO', true);
+      confidence += 3;
+    }
   }
 
-  // Nº UC: "CÓDIGO DA INSTALAÇÃO" or "CÓDIGO DO CLIENTE"
+  // Nº UC
   let numeroUc: string | null = null;
-  const ucMatch = flatText.match(/C[ÓO]DIGO\s+DA\s+INSTALA[ÇC][ÃA]O[:\s]*([\d\/-]{5,20})/i)
-    || flatText.match(/C[ÓO]DIGO\s+DO\s+CLIENTE[:\s]*([\d\/-]{5,20})/i)
-    || flatText.match(/utilize\s+o\s+c[óo]digo[:\s]*([\d\/-]{6,20})/i);
-  if (ucMatch) {
-    numeroUc = normalizeUcCode(ucMatch[1]);
-    raw['energisa_uc'] = ucMatch[0];
+  const ucPatterns = [
+    /C[ÓO]DIGO\s+DA\s+INSTALA[ÇC][ÃA]O[:\s]*([\d\/-]{5,20})/i,
+    /C[ÓO]DIGO\s+DO\s+CLIENTE[:\s]*([\d\/-]{5,20})/i,
+    /utilize\s+o\s+c[óo]digo[:\s]*([\d\/-]{6,20})/i,
+    /\b(\d+\/\d{6,}-\d)\b/,
+    /\b(\d{6,}-\d)\b/,
+  ];
+  const ucRaw = firstMatch(flatText, ucPatterns);
+  if (ucRaw) {
+    numeroUc = normalizeUcCode(ucRaw);
+    raw['uc'] = ucRaw;
+    fieldResults['numero_uc'] = makeField(numeroUc, 'regex:CODIGO_INSTALACAO', true);
     confidence += 10;
-  }
-
-  // Bandeira tarifária
-  let bandeira: string | null = null;
-  const bandeiraMatch = flatText.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
-  if (bandeiraMatch) {
-    bandeira = bandeiraMatch[1];
-    raw['energisa_bandeira'] = bandeiraMatch[0];
   }
 
   // Classe consumo
@@ -334,68 +513,255 @@ function extractEnergisa(text: string): ExtractedData | null {
   else if (/comercial/i.test(flatText)) classe = 'Comercial';
   else if (/industrial/i.test(flatText)) classe = 'Industrial';
   else if (/rural/i.test(flatText)) classe = 'Rural';
+  if (classe) fieldResults['classe_consumo'] = makeField(classe, 'regex:CLASSE', true);
 
-  // ── VALIDATION: Leitura Atual - Leitura Anterior = Consumo kWh ──
-  let validationWarning: string | null = null;
+  // Bandeira tarifária
+  let bandeira: string | null = null;
+  const bandeiraMatch = flatText.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
+  if (bandeiraMatch) {
+    bandeira = bandeiraMatch[1];
+    fieldResults['bandeira_tarifaria'] = makeField(bandeira, 'regex:BANDEIRA', true);
+  }
+
+  // ── 6. Tarifas e Tributos ──
+
+  let tarifaEnergia: number | null = null;
+  const tePatterns = [
+    /tarifa\s*(?:de\s*)?energia\s*(?:TE)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /TE\s*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
+    /energia\s*(?:ativa\s*)?(?:fornecida|consumida).*?kWh\s+[\d.,]+\s+(0[,.][\d]+)/i,
+  ];
+  for (const p of tePatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      const val = parseNum(m[1]);
+      if (val > 0.05 && val < 3.0) {
+        tarifaEnergia = val;
+        fieldResults['tarifa_energia_kwh'] = makeField(tarifaEnergia, 'regex:TE', true);
+        confidence += 10;
+        break;
+      }
+    }
+  }
+
+  let tarifaFioB: number | null = null;
+  const tusdPatterns = [
+    /TUSD[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
+    /uso\s*(?:do\s*)?sistema\s*(?:de\s*)?distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /fio\s*B[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
+  ];
+  for (const p of tusdPatterns) {
+    const m = flatText.match(p);
+    if (m) {
+      const val = parseNum(m[1]);
+      if (val > 0.01 && val < 2.0) {
+        tarifaFioB = val;
+        fieldResults['tarifa_fio_b_kwh'] = makeField(tarifaFioB, 'regex:TUSD', true);
+        confidence += 5;
+        break;
+      }
+    }
+  }
+
+  // ICMS
+  let icms: number | null = null;
+  const icmsPatterns = [
+    /ICMS[:\s]*(\d[\d.,]*)\s*%/i,
+    /al[ií]quota\s*ICMS[:\s]*(\d[\d.,]*)/i,
+    /ICMS\s+(\d{1,2}(?:[,.]\d+)?)\s*%/i,
+  ];
+  for (const p of icmsPatterns) {
+    const m = flatText.match(p);
+    if (m) { icms = parseFloat(m[1].replace(',', '.')); fieldResults['icms_percentual'] = makeField(icms, 'regex:ICMS', true); break; }
+  }
+
+  // PIS
+  let pis: number | null = null;
+  const pisMatch = flatText.match(/PIS[\/\s]*(?:PASEP)?[:\s]*R?\$?\s*(\d[\d.,]*)/i);
+  if (pisMatch) { pis = parseNum(pisMatch[1]); fieldResults['pis_valor'] = makeField(pis, 'regex:PIS', true); }
+
+  // COFINS
+  let cofins: number | null = null;
+  const cofinsMatch = flatText.match(/COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i);
+  if (cofinsMatch) { cofins = parseNum(cofinsMatch[1]); fieldResults['cofins_valor'] = makeField(cofins, 'regex:COFINS', true); }
+
+  // ── 7. Demanda (Grupo A) ──
+
+  let demandaContratada: number | null = null;
+  const demandaCMatch = flatText.match(/demanda\s*contratada[:\s]*(\d[\d.,]*)\s*kW/i);
+  if (demandaCMatch) {
+    demandaContratada = parseNum(demandaCMatch[1]);
+    fieldResults['demanda_contratada_kw'] = makeField(demandaContratada, 'regex:DEMANDA_CONTRATADA', true);
+  }
+
+  let demandaMedida: number | null = null;
+  const demandaMMatch = flatText.match(/demanda\s*medida[:\s]*(\d[\d.,]*)\s*kW/i);
+  if (demandaMMatch) {
+    demandaMedida = parseNum(demandaMMatch[1]);
+    fieldResults['demanda_medida_kw'] = makeField(demandaMedida, 'regex:DEMANDA_MEDIDA', true);
+  }
+
+  let demandaUltrapassagem: number | null = null;
+  const demandaUMatch = flatText.match(/ultrapassagem[:\s]*(\d[\d.,]*)\s*kW/i);
+  if (demandaUMatch) {
+    demandaUltrapassagem = parseNum(demandaUMatch[1]);
+    fieldResults['demanda_ultrapassagem_kw'] = makeField(demandaUltrapassagem, 'regex:ULTRAPASSAGEM', true);
+  }
+
+  let multaDemanda: number | null = null;
+  const multaMatch = flatText.match(/multa\s*(?:de\s*)?(?:demanda|ultrapassagem)[:\s]*R?\$?\s*(\d[\d.,]*)/i);
+  if (multaMatch) {
+    multaDemanda = parseNum(multaMatch[1]);
+    fieldResults['multa_demanda_valor'] = makeField(multaDemanda, 'regex:MULTA_DEMANDA', true);
+  }
+
+  // Modalidade tarifária
+  let modalidade: string | null = null;
+  const modPatterns = [
+    /modalidade\s*(?:tarif[aá]ria)?\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i,
+    /tarifa[çc][ãa]o\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i,
+  ];
+  const modRaw = firstMatch(flatText, modPatterns);
+  if (modRaw) {
+    const v = modRaw.toLowerCase();
+    if (v.includes('convencional')) modalidade = 'Convencional';
+    else if (v.includes('branca') || v.includes('branco')) modalidade = 'Branca';
+    else if (v.includes('verde')) modalidade = 'Horosazonal Verde';
+    else if (v.includes('azul')) modalidade = 'Horosazonal Azul';
+    fieldResults['modalidade_tarifaria'] = makeField(modalidade, 'regex:MODALIDADE', true);
+  }
+
+  // Estado
+  let estado: string | null = null;
+  const ufMatch = flatText.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
+  if (ufMatch) estado = ufMatch[1];
+
+  // Cidade
+  let cidade: string | null = null;
+  const cidadeMatch = flatText.match(/(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i);
+  if (cidadeMatch) cidade = cidadeMatch[1].trim();
+
+  // ── VALIDAÇÕES CRUZADAS ──
+
+  // Validação 1: Leitura consumo
   if (leituraAnterior03 != null && leituraAtual03 != null && consumoKwh != null) {
     const diff = leituraAtual03 - leituraAnterior03;
-    if (Math.abs(diff - consumoKwh) > 1) {
-      validationWarning = `Erro na integridade dos dados extraídos: Leitura(${leituraAtual03}-${leituraAnterior03}=${diff}) ≠ Consumo(${consumoKwh})`;
-      console.warn(`[parse-conta-energia] [ENERGISA] ${validationWarning}`);
-      raw['energisa_validation_warning'] = validationWarning;
+    const passed = Math.abs(diff - consumoKwh) <= 1;
+    validations.push({
+      rule: 'consumo_vs_leitura_03',
+      passed,
+      detail: `Leitura(${leituraAtual03}-${leituraAnterior03}=${diff}) ${passed ? '==' : '≠'} Consumo(${consumoKwh})`,
+    });
+    if (!passed) {
+      raw['validation_warning_consumo'] = `Divergência: ${diff} ≠ ${consumoKwh}`;
     }
+  }
+
+  // Validação 2: Leitura injeção
+  if (leituraAnterior103 != null && leituraAtual103 != null && energiaInjetada != null) {
+    const diff = leituraAtual103 - leituraAnterior103;
+    const passed = Math.abs(diff - energiaInjetada) <= 1;
+    validations.push({
+      rule: 'injecao_vs_leitura_103',
+      passed,
+      detail: `Leitura(${leituraAtual103}-${leituraAnterior103}=${diff}) ${passed ? '==' : '≠'} Injeção(${energiaInjetada})`,
+    });
+  }
+
+  // Validação 3: Vencimento é data válida
+  if (vencimento) {
+    validations.push({ rule: 'vencimento_valido', passed: isPlausibleDate(vencimento), detail: vencimento });
+  }
+
+  // Validação 4: UC padrão esperado (6+ dígitos)
+  if (numeroUc) {
+    const ucValid = /^\d{5,}/.test(numeroUc.replace(/[\/\-]/g, ''));
+    validations.push({ rule: 'uc_formato_valido', passed: ucValid, detail: numeroUc });
+  }
+
+  // Validação 5: Valor total > 0
+  if (valorTotal != null) {
+    validations.push({ rule: 'valor_total_positivo', passed: valorTotal > 0, detail: `R$ ${valorTotal}` });
   }
 
   confidence = Math.min(confidence, 100);
 
-  // Only return if we captured enough (at least UC or valor or consumo)
+  // Require at least UC or valor or consumo
   if (!numeroUc && valorTotal == null && consumoKwh == null) {
     console.warn("[parse-conta-energia] Energisa detected but extraction too sparse — falling back to generic");
     return null;
+  }
+
+  // Heuristic: swap TE/TUSD if inverted
+  if (tarifaEnergia != null && tarifaFioB != null && tarifaEnergia > tarifaFioB && tarifaEnergia > 0.5 && tarifaFioB > 0.05) {
+    const tmp = tarifaEnergia;
+    tarifaEnergia = tarifaFioB;
+    tarifaFioB = tmp;
+    raw['tariff_swap_applied'] = `TE↔TUSD`;
+    fieldResults['tarifa_energia_kwh'] = makeField(tarifaEnergia, 'regex:TE (swapped)', true, 'TE/TUSD invertidos e corrigidos');
+    fieldResults['tarifa_fio_b_kwh'] = makeField(tarifaFioB, 'regex:TUSD (swapped)', true, 'TE/TUSD invertidos e corrigidos');
   }
 
   return {
     concessionaria_nome: "Energisa",
     cliente_nome: null,
     endereco: null,
-    cidade: null,
-    estado: null,
+    cidade,
+    estado,
     consumo_kwh: consumoKwh,
-    tarifa_energia_kwh: null,
-    tarifa_fio_b_kwh: null,
+    tarifa_energia_kwh: tarifaEnergia,
+    tarifa_fio_b_kwh: tarifaFioB,
     valor_total: valorTotal,
-    icms_percentual: null,
-    pis_valor: null,
-    cofins_valor: null,
+    icms_percentual: icms,
+    pis_valor: pis,
+    cofins_valor: cofins,
     bandeira_tarifaria: bandeira,
     classe_consumo: classe,
     tipo_ligacao: tipoLigacao,
     mes_referencia: mesRef,
-    demanda_contratada_kw: null,
+    demanda_contratada_kw: demandaContratada,
     numero_uc: numeroUc,
     vencimento,
     proxima_leitura_data: proximaLeitura,
-    saldo_gd: null,
+    data_leitura_anterior: dataLeituraAnterior,
+    data_leitura_atual: dataLeituraAtual,
+    dias_leitura: diasLeitura,
+    saldo_gd: saldoGd,
     saldo_gd_acumulado: saldoGdAcumulado,
     leitura_anterior_03: leituraAnterior03,
     leitura_atual_03: leituraAtual03,
     leitura_anterior_103: leituraAnterior103,
     leitura_atual_103: leituraAtual103,
+    medidor_consumo_codigo: medidorConsumoCodigo,
+    medidor_injecao_codigo: medidorInjecaoCodigo,
     energia_injetada_kwh: energiaInjetada,
     energia_compensada_kwh: energiaCompensada,
     categoria_gd: categoriaGd,
-    modalidade_tarifaria: null,
+    modalidade_tarifaria: modalidade,
+    demanda_medida_kw: demandaMedida,
+    demanda_ultrapassagem_kw: demandaUltrapassagem,
+    multa_demanda_valor: multaDemanda,
     confidence,
     ai_fallback_used: false,
     ai_model_used: null,
+    parser_version: PARSER_VERSION,
+    parser_used: "energisa",
+    extraction_method: "deterministic",
+    field_results: fieldResults,
+    validations,
     raw_fields: raw,
   };
 }
 
-// ── LAYER 1: Regex extraction (generic) ─────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// GENERIC PARSER — Regex fallback for unknown concessionárias
+// ══════════════════════════════════════════════════════════════════════════════
 
 function extractFromText(text: string): ExtractedData {
   const raw: Record<string, string> = {};
+  const fieldResults: Record<string, FieldResult> = {};
+  const validations: ValidationResult[] = [];
   let confidence = 0;
   const flatText = text.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -416,302 +782,142 @@ function extractFromText(text: string): ExtractedData {
   let leituraAnterior103: number | null = injectedMeterRow?.previous ?? null;
   let leituraAtual103: number | null = injectedMeterRow?.current ?? null;
 
-  if (activeMeterRow) {
-    raw['leitura_03_match'] = `${activeMeterRow.previous} ${activeMeterRow.current} ${activeMeterRow.total}`;
-    confidence += 15;
-  }
-  if (injectedMeterRow) {
-    raw['leitura_103_match'] = `${injectedMeterRow.previous} ${injectedMeterRow.current} ${injectedMeterRow.total}`;
-    confidence += 15;
-  }
+  if (activeMeterRow) { confidence += 15; }
+  if (injectedMeterRow) { confidence += 15; }
 
   let consumo: number | null = activeMeterRow?.total ?? null;
-  if (consumo != null) raw['consumo_match'] = String(consumo);
   if (consumo == null) {
     const consumoPatterns = [
       /consumo\s*(?:ativo|total|mensal)?[:\s]*(\d[\d.,]*)\s*kWh/i,
       /consumo\s*em\s*kwh[:\s]*(\d[\d.,]*)/i,
       /(\d[\d.,]*)\s*kWh\s*(?:consumo|ativo)/i,
       /energia\s*el[ée]trica\s*kWh\s*(\d[\d.,]*)/i,
-      /quantidade\s*kWh\s*(\d[\d.,]*)/i,
     ];
-    for (const p of consumoPatterns) {
-      const m = flatText.match(p);
-      if (m) {
-        consumo = parseNum(m[1]);
-        raw['consumo_match'] = m[0];
-        confidence += 10;
-        break;
-      }
-    }
+    consumo = firstMatchNum(flatText, consumoPatterns);
+    if (consumo != null) confidence += 10;
   }
 
   let tarifaEnergia: number | null = null;
-  for (const p of [
+  const tePatterns = [
     /tarifa\s*(?:de\s*)?energia\s*(?:TE)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
     /TE\s*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
-    /energia\s*el[ée]trica.*?R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)/i,
-    // Padrão tabela: "Energia Ativa Fornecida kWh ... 0,XXXXX" (valor unitário)
     /energia\s*(?:ativa\s*)?(?:fornecida|consumida).*?kWh\s+[\d.,]+\s+(0[,.][\d]+)/i,
-    // Padrão: "Tarifa convencional ... 0,XXXXX"
     /tarifa\s*convencional[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    // Padrão: "Pre[çc]o unit[áa]rio ... R$ 0,XXXXX"
-    /pre[çc]o\s*unit[áa]rio[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    // Padrão coluna: valor entre 0.3 e 1.5 após "energia" na mesma linha
-    /energia\s+(?:el[ée]trica|ativa).*?\s(0[,.][\d]{3,6})\s/i,
-  ]) {
+  ];
+  for (const p of tePatterns) {
     const m = flatText.match(p);
     if (m) {
       const val = parseNum(m[1]);
-      // Validar que é um valor de tarifa plausível (R$/kWh entre 0.05 e 3.00)
-      if (val > 0.05 && val < 3.0) {
-        tarifaEnergia = val;
-        raw['te_match'] = m[0];
-        confidence += 15;
-        break;
-      }
+      if (val > 0.05 && val < 3.0) { tarifaEnergia = val; confidence += 15; break; }
     }
   }
 
   let tarifaFioB: number | null = null;
-  for (const p of [
+  const tusdPatterns = [
     /TUSD[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
     /uso\s*(?:do\s*)?sistema\s*(?:de\s*)?distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)/i,
     /fio\s*B[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    // Padrão: "Distribuição ... R$ 0,XXXXX"
     /distribui[çc][ãa]o[:\s]*R?\$?\s*(\d[\d.,]*)\s*(?:\/kWh)?/i,
-    // Padrão coluna com TUSD valor unitário
-    /TUSD.*?kWh\s+[\d.,]+\s+(0[,.][\d]+)/i,
-    // Padrão: "Componentes tarifários ... TUSD 0,XXXXX"
-    /componentes?\s*tarif[áa]ri[oa]s?.*?TUSD[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-  ]) {
+  ];
+  for (const p of tusdPatterns) {
     const m = flatText.match(p);
     if (m) {
       const val = parseNum(m[1]);
-      if (val > 0.01 && val < 2.0) {
-        tarifaFioB = val;
-        raw['tusd_match'] = m[0];
-        confidence += 10;
-        break;
-      }
+      if (val > 0.01 && val < 2.0) { tarifaFioB = val; confidence += 10; break; }
     }
   }
 
   let valorTotal: number | null = null;
   let vencimento: string | null = null;
-  const resumoFaturaMatch = flatText.match(/total\s+a\s+pagar\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(\d{2}[\/.]\d{2}[\/.]\d{2,4})\s+R\$\s*(\d[\d.,]*)/i);
-  if (resumoFaturaMatch) {
-    vencimento = normalizeDateLike(resumoFaturaMatch[1]);
-    valorTotal = parseNum(resumoFaturaMatch[2]);
-    raw['resumo_fatura_match'] = resumoFaturaMatch[0];
+  const resumoMatch = flatText.match(/total\s+a\s+pagar\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(\d{2}[\/.]\d{2}[\/.]\d{2,4})\s+R\$\s*(\d[\d.,]*)/i);
+  if (resumoMatch) {
+    vencimento = normalizeDateLike(resumoMatch[1]);
+    valorTotal = parseNum(resumoMatch[2]);
     confidence += 15;
   }
 
   if (valorTotal === null) {
-    for (const p of [
+    const valPatterns = [
       /\(=\)\s*valor\s*do\s*documento[:\s]*R?\$?\s*(\d[\d.,]*)/i,
       /valor\s*(?:total|a\s*pagar)[:\s]*R?\$?\s*(\d[\d.,]*)/i,
       /total\s*(?:da\s*fatura|a\s*pagar)[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-      /\btotal[:\s]*R?\$?\s*(\d[\d.,]*)\b/i,
-    ]) {
-      const m = flatText.match(p);
-      if (m) {
-        valorTotal = parseNum(m[1]);
-        raw['total_match'] = m[0];
-        confidence += 10;
-        break;
-      }
-    }
+    ];
+    valorTotal = firstMatchNum(flatText, valPatterns);
+    if (valorTotal != null) confidence += 10;
   }
 
   if (!vencimento) {
-    for (const p of [
+    vencimento = firstMatchDate(flatText, [
       /\bvencimento\b[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
       /data\s*(?:de\s*)?vencimento[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-    ]) {
-      const m = flatText.match(p);
-      if (m) {
-        const candidate = normalizeDateLike(m[1]);
-        if (isPlausibleDate(candidate)) {
-          vencimento = candidate;
-          raw['venc_match'] = m[0];
-          confidence += 5;
-          break;
-        }
-      }
-    }
+    ]);
+    if (vencimento) confidence += 5;
   }
 
   let icms: number | null = null;
-  for (const p of [
-    /ICMS[:\s]*(\d[\d.,]*)\s*%/i,
-    /al[ií]quota\s*ICMS[:\s]*(\d[\d.,]*)/i,
-    /ICMS\s*(?:Base|ST)?[:\s]*(\d[\d.,]*)\s*%/i,
-    // Padrão: "ICMS 25%" ou "ICMS 18%"
-    /ICMS\s+(\d{1,2}(?:[,.]\d+)?)\s*%/i,
-  ]) {
+  for (const p of [/ICMS[:\s]*(\d[\d.,]*)\s*%/i, /ICMS\s+(\d{1,2}(?:[,.]\d+)?)\s*%/i]) {
     const m = flatText.match(p);
-    if (m) {
-      icms = parseFloat(m[1].replace(',', '.'));
-      raw['icms_match'] = m[0];
-      confidence += 5;
-      break;
-    }
+    if (m) { icms = parseFloat(m[1].replace(',', '.')); confidence += 5; break; }
   }
 
-  let pis: number | null = null;
-  for (const p of [
-    /PIS[\/\s]*(?:PASEP)?[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    // Valor em R$
-    /PIS[:\s]*(\d[\d.,]*)/i,
-  ]) {
-    const m = flatText.match(p);
-    if (m) {
-      pis = parseNum(m[1]);
-      raw['pis_match'] = m[0];
-      confidence += 5;
-      break;
-    }
-  }
-
-  let cofins: number | null = null;
-  for (const p of [
-    /COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    /COFINS[:\s]*(\d[\d.,]*)/i,
-  ]) {
-    const m = flatText.match(p);
-    if (m) {
-      cofins = parseNum(m[1]);
-      raw['cofins_match'] = m[0];
-      confidence += 5;
-      break;
-    }
-  }
+  let pis: number | null = firstMatchNum(flatText, [/PIS[\/\s]*(?:PASEP)?[:\s]*R?\$?\s*(\d[\d.,]*)/i]);
+  let cofins: number | null = firstMatchNum(flatText, [/COFINS[:\s]*R?\$?\s*(\d[\d.,]*)/i]);
 
   let bandeira: string | null = null;
-  const bandeiraMatch = flatText.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
-  if (bandeiraMatch) {
-    bandeira = bandeiraMatch[1];
-    raw['bandeira_match'] = bandeiraMatch[0];
-    confidence += 5;
-  }
+  const bMatch = flatText.match(/bandeira\s*(verde|amarela|vermelha(?:\s*patamar\s*\d)?)/i);
+  if (bMatch) bandeira = bMatch[1];
 
   let tipoLigacao: string | null = null;
   if (/trif[áa]sic/i.test(flatText)) tipoLigacao = 'trifasico';
   else if (/bif[áa]sic/i.test(flatText)) tipoLigacao = 'bifasico';
   else if (/monof[áa]sic/i.test(flatText)) tipoLigacao = 'monofasico';
-  if (tipoLigacao) confidence += 5;
 
   let classe: string | null = null;
   if (/residencial/i.test(flatText)) classe = 'Residencial';
   else if (/comercial/i.test(flatText)) classe = 'Comercial';
   else if (/industrial/i.test(flatText)) classe = 'Industrial';
   else if (/rural/i.test(flatText)) classe = 'Rural';
-  if (classe) confidence += 5;
 
   let mesRef: string | null = null;
   const mesMatch = flatText.match(/(?:m[êe]s\s*(?:de\s*)?refer[êe]ncia|refer[êe]ncia|ref[:\s]*mes\/ano)[:\s]*((?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[\w\s\/]*\d{2,4}|\d{2}\/\d{4}|[A-Za-zÀ-ú]+\s*\/\s*\d{4})/i);
-  if (mesMatch) {
-    mesRef = mesMatch[1].trim();
-    raw['mes_match'] = mesMatch[0];
-    confidence += 5;
-  }
+  if (mesMatch) mesRef = mesMatch[1].trim();
 
   let demanda: number | null = null;
-  const demandaMatch = flatText.match(/demanda\s*contratada[:\s]*(\d[\d.,]*)\s*kW/i);
-  if (demandaMatch) {
-    demanda = parseNum(demandaMatch[1]);
-    raw['demanda_match'] = demandaMatch[0];
-    confidence += 5;
-  }
+  const demMatch = flatText.match(/demanda\s*contratada[:\s]*(\d[\d.,]*)\s*kW/i);
+  if (demMatch) demanda = parseNum(demMatch[1]);
 
   let estado: string | null = null;
   const ufMatch = flatText.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
-  if (ufMatch) {
-    estado = ufMatch[1];
-    confidence += 5;
-  }
+  if (ufMatch) estado = ufMatch[1];
 
   let cidade: string | null = null;
-  const cidadeMatch = flatText.match(/(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i);
-  if (cidadeMatch) {
-    cidade = cidadeMatch[1].trim();
-    raw['cidade_match'] = cidadeMatch[0];
-  }
+  const cidMatch = flatText.match(/(?:cidade|munic[íi]pio)[:\s]*([A-Za-zÀ-ú\s]+?)(?:\s*[-\/]\s*[A-Z]{2}|\n)/i);
+  if (cidMatch) cidade = cidMatch[1].trim();
 
   let numeroUc: string | null = null;
-  for (const p of [
+  const ucRaw = firstMatch(flatText, [
     /utilize\s+o\s+c[óo]digo[:\s]*([\d\/-]{6,20})/i,
     /c[óo]digo\s+do\s+cliente[:\s]*([\d\/-]{6,20})/i,
     /c[óo]digo\s+da\s+instala[çc][ãa]o[:\s]*([\d\/-]{6,20})/i,
     /\b(\d+\/\d{6,}-\d)\b/,
     /\b(\d{6,}-\d)\b/,
-  ]) {
-    const m = flatText.match(p);
-    if (m) {
-      numeroUc = normalizeUcCode(m[1]);
-      raw['uc_match'] = m[0];
-      confidence += 8;
-      break;
-    }
-  }
+  ]);
+  if (ucRaw) { numeroUc = normalizeUcCode(ucRaw); confidence += 8; }
 
-  let proximaLeitura: string | null = null;
-  for (const p of [
+  const proximaLeitura = firstMatchDate(flatText, [
     /pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
     /data\s*(?:da\s*)?pr[óo]x(?:ima)?\s*leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-    /leitura\s*pr[óo]x(?:ima)?[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-    // "Apresentação da próxima fatura 15/04/2026"
-    /pr[óo]x(?:ima)?\s*(?:fatura|conta)[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-    // "Previsão da próxima leitura: 15/04/2026"
     /previs[ãa]o\s*(?:da\s*)?(?:pr[óo]x(?:ima)?\s*)?leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-    // "Data prevista para leitura: 15/04/2026"
-    /data\s*prevista\s*(?:para\s*)?leitura[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-    // "Leitura seguinte 15/04/2026"
     /leitura\s*seguinte[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-    // Some bills: "Período de Leitura ... a 15/04/2026"
-    /per[íi]odo\s*(?:de\s*)?leitura.*?\ba\b\s*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
-  ]) {
-    const m = flatText.match(p);
-    if (m) {
-      const candidate = normalizeDateLike(m[1]);
-      if (isPlausibleDate(candidate)) {
-        proximaLeitura = candidate;
-        raw['prox_leitura_match'] = m[0];
-        confidence += 5;
-        break;
-      }
-    }
-  }
+  ]);
 
-  let saldoGd: number | null = null;
-  for (const p of [
+  let saldoGd: number | null = firstMatchNum(flatText, [
     /saldo\s*(?:de\s*)?(?:gera[çc][ãa]o|GD|cr[ée]ditos?\s*(?:de\s*)?energia)[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
-    /cr[ée]ditos?\s*(?:acumulados?|de\s*energia)[:\s]*(\d[\d.,]*)\s*kWh/i,
-  ]) {
-    const m = flatText.match(p);
-    if (m) {
-      saldoGd = parseNum(m[1]);
-      raw['saldo_gd_match'] = m[0];
-      confidence += 5;
-      break;
-    }
-  }
-
-  let saldoGdAcumulado: number | null = null;
-  for (const p of [
+  ]);
+  let saldoGdAcumulado: number | null = firstMatchNum(flatText, [
     /saldo\s*acumulado[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*(?:kWh)?/i,
-    /total\s*(?:de\s*)?cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
     /cr[ée]ditos?\s*acumulados?[:\s]*(\d[\d.,]*)/i,
-  ]) {
-    const m = flatText.match(p);
-    if (m) {
-      saldoGdAcumulado = parseNum(m[1]);
-      raw['saldo_acum_match'] = m[0];
-      confidence += 5;
-      break;
-    }
-  }
+  ]);
 
   if (leituraAnterior03 == null || leituraAtual03 == null) {
     for (const p of [
@@ -720,10 +926,8 @@ function extractFromText(text: string): ExtractedData {
     ]) {
       const m = flatText.match(p);
       if (m) {
-        leituraAnterior03 = parseNum(m[1]);
-        leituraAtual03 = parseNum(m[2]);
-        raw['leitura_03_match'] = m[0].substring(0, 200);
-        confidence += 5;
+        leituraAnterior03 = leituraAnterior03 ?? parseNum(m[1]);
+        leituraAtual03 = leituraAtual03 ?? parseNum(m[2]);
         break;
       }
     }
@@ -732,96 +936,61 @@ function extractFromText(text: string): ExtractedData {
   if (leituraAnterior103 == null || leituraAtual103 == null) {
     for (const p of [
       /(?:energia\s*injetada|registro\s*103).*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
-      /injetada.*?(?:anterior|ant\.?)[:\s]*(\d[\d.,]*).*?(?:atual|atu\.?)[:\s]*(\d[\d.,]*)/i,
     ]) {
       const m = flatText.match(p);
       if (m) {
-        leituraAnterior103 = parseNum(m[1]);
-        leituraAtual103 = parseNum(m[2]);
-        raw['leitura_103_match'] = m[0].substring(0, 200);
-        confidence += 5;
+        leituraAnterior103 = leituraAnterior103 ?? parseNum(m[1]);
+        leituraAtual103 = leituraAtual103 ?? parseNum(m[2]);
         break;
       }
     }
   }
 
   let energiaInjetada: number | null = injectedMeterRow?.total ?? null;
-  if (energiaInjetada != null) raw['injetada_match'] = String(energiaInjetada);
   if (energiaInjetada === null) {
-    for (const p of [
+    energiaInjetada = firstMatchNum(flatText, [
       /energia\s*injetada[:\s]*(\d[\d.,]*)\s*kWh/i,
       /inje[çc][ãa]o[:\s]*(\d[\d.,]*)\s*kWh/i,
-      /energia\s*ativa\s*inje[çc][ãa]o[:\s]*(\d[\d.,]*)/i,
-    ]) {
-      const m = flatText.match(p);
-      if (m) {
-        energiaInjetada = parseNum(m[1]);
-        raw['injetada_match'] = m[0];
-        confidence += 5;
-        break;
-      }
-    }
+    ]);
   }
   if (energiaInjetada === null && leituraAtual103 != null && leituraAnterior103 != null) {
     energiaInjetada = Math.max(leituraAtual103 - leituraAnterior103, 0);
   }
 
-  let energiaCompensada: number | null = null;
-  for (const p of [
+  let energiaCompensada: number | null = firstMatchNum(flatText, [
     /energia\s*compensada[:\s]*(?:-?\s*)?(\d[\d.,]*)\s*kWh/i,
     /compensa[çc][ãa]o\s*(?:de\s*)?energia[:\s]*(\d[\d.,]*)/i,
-    /energia\s*atv\s*injetada\s*gdi[:\s]*(\d[\d.,]*)/i,
-    /cr[ée]dito\s*(?:de\s*)?energia\s*compensad[ao][:\s]*(\d[\d.,]*)/i,
-  ]) {
-    const m = flatText.match(p);
-    if (m) {
-      energiaCompensada = parseNum(m[1]);
-      raw['compensada_match'] = m[0];
-      confidence += 5;
-      break;
-    }
-  }
+  ]);
 
   let categoriaGd: string | null = null;
-  for (const p of [
-    /GD[\s_-]*(I{1,3}|1|2|3)\b/i,
-    /microgera[cç][ãa]o/i,
-    /minigera[cç][ãa]o/i,
-  ]) {
-    const m = flatText.match(p);
-    if (m) {
-      if (/microgera[cç][ãa]o/i.test(m[0])) categoriaGd = 'GD_I';
-      else if (/minigera[cç][ãa]o/i.test(m[0])) categoriaGd = 'GD_II';
-      else {
-        const num = m[1]?.toUpperCase();
-        if (num === 'I' || num === '1') categoriaGd = 'GD_I';
-        else if (num === 'II' || num === '2') categoriaGd = 'GD_II';
-        else if (num === 'III' || num === '3') categoriaGd = 'GD_III';
-      }
-      raw['categoria_gd_match'] = m[0];
-      confidence += 5;
-      break;
-    }
+  const gdMatch = flatText.match(/GD[\s_-]*(I{1,3}|1|2|3)\b/i);
+  if (gdMatch) {
+    const num = gdMatch[1]?.toUpperCase();
+    if (num === 'I' || num === '1') categoriaGd = 'GD_I';
+    else if (num === 'II' || num === '2') categoriaGd = 'GD_II';
+    else if (num === 'III' || num === '3') categoriaGd = 'GD_III';
   }
 
-  // Modalidade tarifária
-  let modalidadeTarifaria: string | null = null;
-  const modalidadePatterns = [
-    /modalidade\s*(?:tarif[aá]ria)?\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i,
-    /tarifa[çc][ãa]o\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i,
-    /(convencional|hor[aá]rio?\s*branco|horosazonal\s*(?:verde|azul))/i,
-  ];
-  for (const p of modalidadePatterns) {
-    const m = text.match(p);
-    if (m) {
-      const val = m[1].toLowerCase().trim();
-      if (val.includes('convencional')) modalidadeTarifaria = 'Convencional';
-      else if (val.includes('branca') || val.includes('branco')) modalidadeTarifaria = 'Branca';
-      else if (val.includes('verde')) modalidadeTarifaria = 'Horosazonal Verde';
-      else if (val.includes('azul')) modalidadeTarifaria = 'Horosazonal Azul';
-      raw['modalidade_match'] = m[0];
-      break;
-    }
+  let modalidade: string | null = null;
+  const modMatch = flatText.match(/modalidade\s*(?:tarif[aá]ria)?\s*[:=]?\s*(convencional|hora[- ]?sazonal\s*(?:verde|azul)|branca)/i);
+  if (modMatch) {
+    const v = modMatch[1].toLowerCase();
+    if (v.includes('convencional')) modalidade = 'Convencional';
+    else if (v.includes('branca') || v.includes('branco')) modalidade = 'Branca';
+    else if (v.includes('verde')) modalidade = 'Horosazonal Verde';
+    else if (v.includes('azul')) modalidade = 'Horosazonal Azul';
+  }
+
+  // Heuristic: swap TE/TUSD if inverted
+  if (tarifaEnergia != null && tarifaFioB != null && tarifaEnergia > tarifaFioB && tarifaEnergia > 0.5 && tarifaFioB > 0.05) {
+    const tmp = tarifaEnergia; tarifaEnergia = tarifaFioB; tarifaFioB = tmp;
+    raw['tariff_swap_applied'] = `TE↔TUSD`;
+  }
+
+  // Validations
+  if (leituraAnterior03 != null && leituraAtual03 != null && consumo != null) {
+    const diff = leituraAtual03 - leituraAnterior03;
+    validations.push({ rule: 'consumo_vs_leitura_03', passed: Math.abs(diff - consumo) <= 1, detail: `${leituraAtual03}-${leituraAnterior03}=${diff} vs ${consumo}` });
   }
 
   confidence = Math.min(confidence, 100);
@@ -847,296 +1016,34 @@ function extractFromText(text: string): ExtractedData {
     numero_uc: numeroUc,
     vencimento,
     proxima_leitura_data: proximaLeitura,
+    data_leitura_anterior: null,
+    data_leitura_atual: null,
+    dias_leitura: null,
     saldo_gd: saldoGd,
     saldo_gd_acumulado: saldoGdAcumulado,
     leitura_anterior_03: leituraAnterior03,
     leitura_atual_03: leituraAtual03,
     leitura_anterior_103: leituraAnterior103,
     leitura_atual_103: leituraAtual103,
+    medidor_consumo_codigo: null,
+    medidor_injecao_codigo: null,
     energia_injetada_kwh: energiaInjetada,
     energia_compensada_kwh: energiaCompensada,
     categoria_gd: categoriaGd,
-    modalidade_tarifaria: modalidadeTarifaria,
+    modalidade_tarifaria: modalidade,
+    demanda_medida_kw: null,
+    demanda_ultrapassagem_kw: null,
+    multa_demanda_valor: null,
     confidence,
     ai_fallback_used: false,
     ai_model_used: null,
+    parser_version: PARSER_VERSION,
+    parser_used: "generic",
+    extraction_method: "deterministic",
+    field_results: fieldResults,
+    validations,
     raw_fields: raw,
   };
-}
-
-// ── LAYER 2: AI full extraction from PDF base64 (multimodal) ─────────────────
-
-async function aiFullExtractFromPdf(
-  pdfBase64: string,
-): Promise<ExtractedData | null> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    console.warn("[parse-conta-energia] LOVABLE_API_KEY not available, skipping AI full extraction");
-    return null;
-  }
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um extrator especializado de dados de faturas de energia elétrica brasileiras. 
-Analise o PDF da fatura e extraia TODOS os campos usando a tool fornecida.
-Números decimais: use ponto como separador (ex: 1234.56).
-Datas: formato DD/MM/YYYY.
-Se não encontrar um campo, retorne null.
-Seja preciso — nunca invente dados.`
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${pdfBase64}`,
-                },
-              },
-              {
-                type: "text",
-                text: "Extraia todos os dados desta fatura de energia elétrica brasileira. É ESSENCIAL extrair: tarifa de energia (TE) em R$/kWh, TUSD/Fio B em R$/kWh, alíquota de ICMS (%), valor de PIS (R$), valor de COFINS (R$) e DATA DA PRÓXIMA LEITURA (campo crítico — procure por 'próxima leitura', 'previsão de leitura', 'apresentação da próxima fatura', 'data prevista para leitura'). Procure esses dados na seção de componentes tarifários, detalhamento de tributos, ou na tabela de valores unitários.",
-              },
-            ],
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_invoice_data",
-              description: "Extract all fields from a Brazilian energy bill PDF",
-              parameters: {
-                type: "object",
-                properties: {
-                  concessionaria_nome: { type: "string", description: "Nome da concessionária (CEMIG, CPFL, Enel, etc.)" },
-                  cliente_nome: { type: "string", description: "Nome do titular da conta" },
-                  endereco: { type: "string", description: "Endereço completo do imóvel" },
-                  cidade: { type: "string", description: "Cidade" },
-                  estado: { type: "string", description: "UF (sigla de 2 letras)" },
-                  numero_uc: { type: "string", description: "Número/código da unidade consumidora" },
-                  consumo_kwh: { type: "number", description: "Consumo em kWh" },
-                   tarifa_energia_kwh: { type: "number", description: "Tarifa de energia (TE) em R$/kWh — geralmente o menor valor unitário entre TE e TUSD" },
-                   tarifa_fio_b_kwh: { type: "number", description: "TUSD/Fio B (uso do sistema de distribuição) em R$/kWh — geralmente o maior valor unitário entre TE e TUSD" },
-                  valor_total: { type: "number", description: "Valor total da fatura em R$" },
-                  icms_percentual: { type: "number", description: "ICMS em %" },
-                  pis_valor: { type: "number", description: "PIS em R$" },
-                  cofins_valor: { type: "number", description: "COFINS em R$" },
-                  bandeira_tarifaria: { type: "string", description: "Bandeira: verde, amarela, vermelha patamar 1, vermelha patamar 2" },
-                  classe_consumo: { type: "string", description: "Classe: Residencial, Comercial, Industrial, Rural" },
-                  tipo_ligacao: { type: "string", description: "monofasico, bifasico ou trifasico" },
-                  mes_referencia: { type: "string", description: "Mês de referência (ex: MAR/2026, 03/2026)" },
-                  demanda_contratada_kw: { type: "number", description: "Demanda contratada em kW" },
-                  vencimento: { type: "string", description: "Data de vencimento DD/MM/YYYY" },
-                  proxima_leitura_data: { type: "string", description: "Data da próxima leitura DD/MM/YYYY" },
-                  saldo_gd: { type: "number", description: "Saldo de geração distribuída em kWh" },
-                  saldo_gd_acumulado: { type: "number", description: "Saldo GD acumulado em kWh" },
-                  leitura_anterior_03: { type: "number", description: "Leitura anterior registro 03 (energia ativa)" },
-                  leitura_atual_03: { type: "number", description: "Leitura atual registro 03 (energia ativa)" },
-                  leitura_anterior_103: { type: "number", description: "Leitura anterior registro 103 (energia injetada)" },
-                  leitura_atual_103: { type: "number", description: "Leitura atual registro 103 (energia injetada)" },
-                  energia_injetada_kwh: { type: "number", description: "Energia injetada total no período em kWh" },
-                  energia_compensada_kwh: { type: "number", description: "Energia compensada (créditos utilizados) em kWh" },
-                  categoria_gd: { type: "string", description: "Categoria de geração distribuída: GD_I (microgeração), GD_II (minigeração), GD_III" },
-                  modalidade_tarifaria: { type: "string", description: "Modalidade tarifária: Convencional, Branca, Horosazonal Verde, Horosazonal Azul" },
-                },
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "extract_invoice_data" } },
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.warn(`[parse-conta-energia] AI full extraction failed: ${response.status} ${errText}`);
-      return null;
-    }
-
-    const aiResult = await response.json();
-    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) return null;
-
-    const fields = JSON.parse(toolCall.function.arguments);
-
-    return {
-      concessionaria_nome: fields.concessionaria_nome || null,
-      cliente_nome: fields.cliente_nome || null,
-      endereco: fields.endereco || null,
-      cidade: fields.cidade || null,
-      estado: fields.estado || null,
-      consumo_kwh: fields.consumo_kwh ?? null,
-      tarifa_energia_kwh: fields.tarifa_energia_kwh ?? null,
-      tarifa_fio_b_kwh: fields.tarifa_fio_b_kwh ?? null,
-      valor_total: fields.valor_total ?? null,
-      icms_percentual: fields.icms_percentual ?? null,
-      pis_valor: fields.pis_valor ?? null,
-      cofins_valor: fields.cofins_valor ?? null,
-      bandeira_tarifaria: fields.bandeira_tarifaria || null,
-      classe_consumo: fields.classe_consumo || null,
-      tipo_ligacao: fields.tipo_ligacao || null,
-      mes_referencia: fields.mes_referencia || null,
-      demanda_contratada_kw: fields.demanda_contratada_kw ?? null,
-      numero_uc: fields.numero_uc || null,
-      vencimento: fields.vencimento || null,
-      proxima_leitura_data: fields.proxima_leitura_data || null,
-      saldo_gd: fields.saldo_gd ?? null,
-      saldo_gd_acumulado: fields.saldo_gd_acumulado ?? null,
-      leitura_anterior_03: fields.leitura_anterior_03 ?? null,
-      leitura_atual_03: fields.leitura_atual_03 ?? null,
-      leitura_anterior_103: fields.leitura_anterior_103 ?? null,
-      leitura_atual_103: fields.leitura_atual_103 ?? null,
-      energia_injetada_kwh: fields.energia_injetada_kwh ?? null,
-      energia_compensada_kwh: fields.energia_compensada_kwh ?? null,
-      categoria_gd: fields.categoria_gd || null,
-      modalidade_tarifaria: fields.modalidade_tarifaria || null,
-      confidence: 85,
-      ai_fallback_used: true,
-      ai_model_used: "google/gemini-2.5-flash",
-      raw_fields: { ai_full_extraction: "true" },
-    };
-  } catch (err: any) {
-    if (err?.name === "AbortError") {
-      console.warn("[parse-conta-energia] AI full extraction timeout");
-    } else {
-      console.error("[parse-conta-energia] AI full extraction error:", err);
-    }
-    return null;
-  }
-}
-
-// ── LAYER 3: AI text-based fallback for missing fields ───────────────────────
-
-async function aiExtractMissingFields(
-  text: string,
-  regexResult: ExtractedData
-): Promise<ExtractedData> {
-  const missingFields: string[] = [];
-  if (!regexResult.proxima_leitura_data) missingFields.push("proxima_leitura_data (formato DD/MM/YYYY)");
-  if (regexResult.saldo_gd === null) missingFields.push("saldo_gd (em kWh, número)");
-  if (!regexResult.numero_uc) missingFields.push("numero_uc (código da unidade consumidora)");
-  if (!regexResult.vencimento) missingFields.push("vencimento (formato DD/MM/YYYY)");
-  if (regexResult.valor_total === null) missingFields.push("valor_total (em R$, número)");
-
-  if (missingFields.length === 0) return regexResult;
-
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    console.warn("[parse-conta-energia] LOVABLE_API_KEY not available, skipping AI fallback");
-    return regexResult;
-  }
-
-  try {
-    const truncatedText = text.substring(0, 4000);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          {
-            role: "system",
-            content: "Você é um extrator de dados de faturas de energia elétrica brasileiras. Retorne APENAS os campos solicitados em formato JSON. Se não encontrar um campo, retorne null. Números devem ser sem formatação (use ponto como decimal). Datas no formato DD/MM/YYYY."
-          },
-          {
-            role: "user",
-            content: `Extraia APENAS estes campos da fatura abaixo:\n${missingFields.join("\n")}\n\nTexto da fatura:\n${truncatedText}`
-          }
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_invoice_fields",
-              description: "Extract specific fields from a Brazilian energy bill",
-              parameters: {
-                type: "object",
-                properties: {
-                  proxima_leitura_data: { type: "string", description: "Next reading date DD/MM/YYYY" },
-                  saldo_gd: { type: "number", description: "GD balance in kWh" },
-                  numero_uc: { type: "string", description: "Consumer unit code" },
-                  vencimento: { type: "string", description: "Due date DD/MM/YYYY" },
-                  valor_total: { type: "number", description: "Total amount in BRL" },
-                },
-                additionalProperties: false,
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "extract_invoice_fields" } },
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      console.warn(`[parse-conta-energia] AI fallback failed: ${response.status}`);
-      return regexResult;
-    }
-
-    const aiResult = await response.json();
-    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) return regexResult;
-
-    const aiFields = JSON.parse(toolCall.function.arguments);
-    const result = { ...regexResult, ai_fallback_used: true, ai_model_used: "google/gemini-2.5-flash-lite" };
-
-    if (!result.proxima_leitura_data && aiFields.proxima_leitura_data) {
-      result.proxima_leitura_data = aiFields.proxima_leitura_data;
-      result.raw_fields['ai_proxima_leitura'] = aiFields.proxima_leitura_data;
-    }
-    if (result.saldo_gd === null && aiFields.saldo_gd != null) {
-      result.saldo_gd = aiFields.saldo_gd;
-      result.raw_fields['ai_saldo_gd'] = String(aiFields.saldo_gd);
-    }
-    if (!result.numero_uc && aiFields.numero_uc) {
-      result.numero_uc = aiFields.numero_uc;
-      result.raw_fields['ai_numero_uc'] = aiFields.numero_uc;
-    }
-    if (!result.vencimento && aiFields.vencimento) {
-      result.vencimento = aiFields.vencimento;
-      result.raw_fields['ai_vencimento'] = aiFields.vencimento;
-    }
-    if (result.valor_total === null && aiFields.valor_total != null) {
-      result.valor_total = aiFields.valor_total;
-      result.raw_fields['ai_valor_total'] = String(aiFields.valor_total);
-    }
-
-    result.confidence = Math.min(result.confidence + 10, 100);
-    return result;
-  } catch (err: any) {
-    if (err?.name === "AbortError") {
-      console.warn("[parse-conta-energia] AI fallback timeout, usando regex apenas");
-      return regexResult;
-    }
-    console.error("[parse-conta-energia] AI fallback error:", err);
-    return regexResult;
-  }
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -1148,8 +1055,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const authHeader = req.headers.get('Authorization');
-
-    // Allow service_role calls (from process-fatura-pdf) without user auth
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const isServiceRole = authHeader === `Bearer ${serviceRoleKey}`;
 
@@ -1171,88 +1076,50 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text, pdf_base64, use_ai_fallback = true } = body;
+    const { text } = body;
 
-    if (!text && !pdf_base64) {
-      return new Response(JSON.stringify({ error: 'Campo "text" ou "pdf_base64" é obrigatório' }),
+    if (!text) {
+      return new Response(JSON.stringify({ error: 'Campo "text" é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     let extracted: ExtractedData | null = null;
 
-    // Strategy 0: Try concessionária-specific extractors first (strict, no AI)
+    // Strategy 0: Concessionária-specific parsers (strict, deterministic)
     if (text && typeof text === 'string' && text.length >= 50) {
       extracted = extractEnergisa(text);
       if (extracted) {
-        console.log(`[parse-conta-energia] Energisa strict extraction — confidence: ${extracted.confidence}`);
+        console.log(`[parse-conta-energia] Energisa parser v${PARSER_VERSION} — confidence: ${extracted.confidence}, validations: ${extracted.validations.length}`);
       }
     }
 
-    // Strategy 1: If no concessionária-specific match, try generic regex
+    // Strategy 1: Generic regex (also deterministic)
     if (!extracted && text && typeof text === 'string' && text.length >= 50) {
       extracted = extractFromText(text);
-      console.log(`[parse-conta-energia] Generic regex confidence: ${extracted.confidence}`);
+      console.log(`[parse-conta-energia] Generic parser v${PARSER_VERSION} — confidence: ${extracted.confidence}`);
     }
 
-    // Strategy 2: If regex confidence is low (< 30) or no text, use AI multimodal on PDF
-    if (pdf_base64 && (!extracted || extracted.confidence < 30)) {
-      console.log("[parse-conta-energia] Low regex confidence or no text, using AI multimodal extraction");
-      const aiResult = await aiFullExtractFromPdf(pdf_base64);
-      if (aiResult) {
-        // If we had partial regex, merge (AI takes precedence for nulls)
-        if (extracted) {
-          for (const key of Object.keys(aiResult) as Array<keyof ExtractedData>) {
-            if (key === 'raw_fields' || key === 'confidence' || key === 'ai_fallback_used' || key === 'ai_model_used') continue;
-            if ((extracted[key] === null || extracted[key] === undefined) && aiResult[key] !== null) {
-              (extracted as any)[key] = aiResult[key];
-            }
-          }
-          extracted.ai_fallback_used = true;
-          extracted.ai_model_used = aiResult.ai_model_used;
-          extracted.confidence = Math.max(extracted.confidence, aiResult.confidence);
-          extracted.raw_fields = { ...extracted.raw_fields, ...aiResult.raw_fields };
-        } else {
-          extracted = aiResult;
-        }
-      }
-    }
+    // NO AI FALLBACK — deterministic only
 
-    // Strategy 3: If still no good result but we have text, try text-based AI fallback
-    if (extracted && use_ai_fallback && text) {
-      extracted = await aiExtractMissingFields(text, extracted);
-    }
-
-    // ── Heuristic: swap TE/TUSD if they look inverted ──
-    // In most Brazilian bills, TUSD (Fio B) > TE (Tarifa Energia).
-    // If AI or regex swapped them, correct it.
-    if (extracted && extracted.tarifa_energia_kwh != null && extracted.tarifa_fio_b_kwh != null) {
-      const te = extracted.tarifa_energia_kwh;
-      const tusd = extracted.tarifa_fio_b_kwh;
-      // If TE is significantly larger than TUSD, they're likely swapped
-      if (te > tusd && te > 0.5 && tusd > 0.05) {
-        console.log(`[parse-conta-energia] Swapping TE/TUSD: TE=${te} > TUSD=${tusd} — likely inverted`);
-        extracted.tarifa_energia_kwh = tusd;
-        extracted.tarifa_fio_b_kwh = te;
-        extracted.raw_fields['tariff_swap_applied'] = `TE=${te}→${tusd}, TUSD=${tusd}→${te}`;
-      }
-    }
-
-    // If nothing worked at all
     if (!extracted) {
       return new Response(JSON.stringify({
         success: false,
         error: 'Não foi possível extrair dados da fatura. O PDF pode estar escaneado ou protegido.',
+        parser_version: PARSER_VERSION,
+        extraction_method: 'deterministic',
       }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({
       success: true,
       data: extracted,
+      parser_version: PARSER_VERSION,
+      extraction_method: 'deterministic',
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (err: any) {
     console.error("[parse-conta-energia] Error:", err);
-    return new Response(JSON.stringify({ error: err.message || 'Erro interno' }),
+    return new Response(JSON.stringify({ error: err.message || 'Erro interno', parser_version: PARSER_VERSION }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
