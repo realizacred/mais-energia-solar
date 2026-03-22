@@ -100,9 +100,13 @@ export function useSaveExtractionConfig() {
 
   return useMutation({
     mutationFn: async (payload: Partial<ExtractionConfig> & { concessionaria_code: string; concessionaria_nome: string }) => {
-      const { id, tenant_id, created_at, updated_at, ...rest } = payload as any;
+      const { id, tenant_id, created_at, updated_at, is_system_default, ...rest } = payload as any;
 
-      if (id) {
+      // If editing a global/system config (tenant_id IS NULL), create a tenant-specific override
+      const isSystemDefault = is_system_default === true || (id && !tenant_id);
+
+      if (id && !isSystemDefault) {
+        // Update existing tenant-specific config
         const { data, error } = await supabase
           .from("invoice_extraction_configs")
           .update({ ...rest, updated_at: new Date().toISOString() })
@@ -113,6 +117,7 @@ export function useSaveExtractionConfig() {
         if (!data) throw new Error("Não foi possível atualizar. Verifique permissões.");
         return data;
       } else {
+        // Insert new config (or create tenant-specific override from global)
         const { data, error } = await supabase
           .from("invoice_extraction_configs")
           .insert(rest)

@@ -451,8 +451,13 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
     }
 
     try {
+      // If editing a system default (tenant_id IS NULL), create a tenant-specific override
+      const isSystemDefault = config && !config.tenant_id;
+      const configId = isSystemDefault ? undefined : config?.id;
+
       await saveConfig.mutateAsync({
-        ...(config?.id ? { id: config.id } : {}),
+        ...(configId ? { id: configId } : {}),
+        ...(isSystemDefault ? { is_system_default: true } : {}),
         concessionaria_id: form.concessionaria_id,
         concessionaria_code: form.concessionaria_code,
         concessionaria_nome: form.concessionaria_nome,
@@ -473,7 +478,10 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
         active: form.active,
         notes: form.notes || null,
       } as any);
-      toast.success(config ? "Configuração atualizada" : "Configuração criada");
+      toast.success(isSystemDefault
+        ? "Configuração personalizada criada (override da padrão do sistema)"
+        : config ? "Configuração atualizada" : "Configuração criada"
+      );
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar configuração");
@@ -490,12 +498,16 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
           </div>
           <div className="flex-1">
             <DialogTitle className="text-base font-semibold text-foreground">
-              {config ? "Editar Configuração" : prefill ? "Nova Configuração (pré-preenchida)" : "Nova Configuração de Extração"}
+              {config && !config.tenant_id
+                ? "Personalizar Configuração Padrão"
+                : config ? "Editar Configuração" : prefill ? "Nova Configuração (pré-preenchida)" : "Nova Configuração de Extração"}
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {prefill
-                ? `Gerada a partir do teste de extração — ${prefill.concessionaria_nome}`
-                : "Configure a estratégia de extração nativa por concessionária"
+              {config && !config.tenant_id
+                ? "Esta é uma configuração padrão do sistema. Ao salvar, será criada uma cópia personalizada para sua empresa."
+                : prefill
+                  ? `Gerada a partir do teste de extração — ${prefill.concessionaria_nome}`
+                  : "Configure a estratégia de extração nativa por concessionária"
               }
             </p>
           </div>
