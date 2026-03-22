@@ -3,7 +3,7 @@
  * Accepts PDF/images, calls parse-conta-energia, shows detailed results.
  */
 import { useState, useRef } from "react";
-import { Upload, FileText, CheckCircle2, AlertTriangle, XCircle, Info, Download, Settings2, Cpu, Sparkles } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertTriangle, XCircle, Info, Download, Settings2, Cpu, Sparkles, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
