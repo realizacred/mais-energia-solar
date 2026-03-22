@@ -230,6 +230,7 @@ export default function UCDetailPage() {
             <TabsTrigger value="historico" className="gap-1"><Calendar className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
             <TabsTrigger value="comparativo" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Comparativo</TabsTrigger>
             <TabsTrigger value="economia" className="gap-1"><DollarSign className="w-3.5 h-3.5" /> Economia</TabsTrigger>
+            <TabsTrigger value="gd" className="gap-1"><Sun className="w-3.5 h-3.5" /> GD</TabsTrigger>
             <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
           </TabsList>
 
