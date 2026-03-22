@@ -103,22 +103,31 @@ export function InversoresManager() {
       return;
     }
     saveMutation.mutate({
-      fabricante: form.fabricante.trim(),
-      modelo: form.modelo.trim(),
-      potencia_nominal_kw: parseFloat(form.potencia_nominal_kw),
-      tipo: form.tipo,
-      tensao_entrada_max_v: form.tensao_entrada_max_v ? parseInt(form.tensao_entrada_max_v) : null,
-      corrente_entrada_max_a: form.corrente_entrada_max_a ? parseFloat(form.corrente_entrada_max_a) : null,
-      mppt_count: form.mppt_count ? parseInt(form.mppt_count) : null,
-      strings_por_mppt: form.strings_por_mppt ? parseInt(form.strings_por_mppt) : null,
-      fases: form.fases,
-      tensao_saida_v: form.tensao_saida_v ? parseInt(form.tensao_saida_v) : null,
-      eficiencia_max_percent: form.eficiencia_max_percent ? parseFloat(form.eficiencia_max_percent) : null,
-      garantia_anos: form.garantia_anos ? parseInt(form.garantia_anos) : null,
-      peso_kg: form.peso_kg ? parseFloat(form.peso_kg) : null,
-      dimensoes_mm: form.dimensoes_mm || null,
-      wifi_integrado: form.wifi_integrado,
-      ip_protection: form.ip_protection || null,
+      id: editing?.id,
+      data: {
+        fabricante: form.fabricante.trim(),
+        modelo: form.modelo.trim(),
+        potencia_nominal_kw: parseFloat(form.potencia_nominal_kw),
+        tipo: form.tipo,
+        tensao_entrada_max_v: form.tensao_entrada_max_v ? parseInt(form.tensao_entrada_max_v) : null,
+        corrente_entrada_max_a: form.corrente_entrada_max_a ? parseFloat(form.corrente_entrada_max_a) : null,
+        mppt_count: form.mppt_count ? parseInt(form.mppt_count) : null,
+        strings_por_mppt: form.strings_por_mppt ? parseInt(form.strings_por_mppt) : null,
+        fases: form.fases,
+        tensao_saida_v: form.tensao_saida_v ? parseInt(form.tensao_saida_v) : null,
+        eficiencia_max_percent: form.eficiencia_max_percent ? parseFloat(form.eficiencia_max_percent) : null,
+        garantia_anos: form.garantia_anos ? parseInt(form.garantia_anos) : null,
+        peso_kg: form.peso_kg ? parseFloat(form.peso_kg) : null,
+        dimensoes_mm: form.dimensoes_mm || null,
+        wifi_integrado: form.wifi_integrado,
+        ip_protection: form.ip_protection || null,
+      },
+    }, {
+      onSuccess: () => {
+        toast({ title: editing ? "Inversor atualizado" : "Inversor cadastrado" });
+        setDialogOpen(false);
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
     });
   };
 
