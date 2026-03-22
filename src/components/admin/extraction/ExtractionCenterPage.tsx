@@ -186,7 +186,9 @@ export default function ExtractionCenterPage() {
       <Tabs defaultValue="configs">
         <TabsList>
           <TabsTrigger value="configs">Configurações</TabsTrigger>
-          <TabsTrigger value="runs">Histórico de Extrações</TabsTrigger>
+          <TabsTrigger value="test">Teste de Extração</TabsTrigger>
+          <TabsTrigger value="runs">Histórico</TabsTrigger>
+          <TabsTrigger value="assistant">Assistente</TabsTrigger>
         </TabsList>
 
         <TabsContent value="configs" className="mt-4">
