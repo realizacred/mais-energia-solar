@@ -203,48 +203,6 @@ export const invoiceImportService = {
     }
   },
 
-  /** Enrich UC with parsed invoice data — only fill empty fields */
-  async _enrichUC(unitId: string, parsed: Record<string, any>) {
-    try {
-      const { data: uc } = await supabase
-        .from("units_consumidoras")
-        .select("id, concessionaria_nome, classificacao_grupo, classificacao_subgrupo, modalidade_tarifaria, nome, endereco")
-        .eq("id", unitId)
-        .single();
-
-      if (!uc) return;
-
-      const updates: Record<string, any> = {};
-
-      // Only fill empty fields
-      for (const [ucField, parsedField] of Object.entries(UC_ENRICHABLE_FIELDS)) {
-        const currentVal = (uc as any)[ucField];
-        const parsedVal = parsed[parsedField];
-        if ((!currentVal || currentVal === "") && parsedVal) {
-          updates[ucField] = parsedVal;
-        }
-      }
-
-      // Address enrichment (only if current address is empty/default)
-      const currentAddr = uc.endereco as any;
-      const hasAddress = currentAddr && (currentAddr.rua || currentAddr.logradouro || currentAddr.cidade);
-      if (!hasAddress && parsed.endereco) {
-        updates.endereco = typeof parsed.endereco === "string"
-          ? { logradouro: parsed.endereco }
-          : parsed.endereco;
-      }
-
-      if (Object.keys(updates).length > 0) {
-        updates.updated_at = new Date().toISOString();
-        await supabase
-          .from("units_consumidoras")
-          .update(updates as any)
-          .eq("id", unitId);
-      }
-    } catch (err) {
-      console.warn("[invoiceImportService] UC enrichment error:", err);
-    }
-  },
 
   _extractMonth(mesRef: string): number | null {
     const meses: Record<string, number> = {
