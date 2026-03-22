@@ -119,6 +119,26 @@ export function useSaveExtractionConfig() {
         return data;
       }
 
+      // Upsert: if tenant-specific override already exists for this code, update it
+      const { data: existing } = await supabase
+        .from("invoice_extraction_configs")
+        .select("id")
+        .eq("concessionaria_code", rest.concessionaria_code)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (existing) {
+        const { data, error } = await supabase
+          .from("invoice_extraction_configs")
+          .update({ ...rest, updated_at: new Date().toISOString() })
+          .eq("id", existing.id)
+          .select()
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) throw new Error("Não foi possível atualizar. Verifique permissões.");
+        return data;
+      }
+
       const { data, error } = await supabase
         .from("invoice_extraction_configs")
         .insert({ ...rest, tenant_id: tenantId })
