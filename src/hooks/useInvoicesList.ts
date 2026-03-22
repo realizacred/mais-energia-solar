@@ -61,21 +61,31 @@ export function useInvoiceKPIs() {
   return useQuery({
     queryKey: ["invoice_kpis"],
     queryFn: async () => {
-      // Total invoices count + value
-      const { count: totalCount } = await supabase
-        .from("unit_invoices")
-        .select("id", { count: "exact", head: true });
+      // Resolve tenant_id for the RPC call
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) throw new Error("Usuário não autenticado");
 
-      const { data: sumData } = await supabase
-        .from("unit_invoices")
-        .select("total_amount");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      const totalValor = (sumData || []).reduce((s, i) => s + (Number(i.total_amount) || 0), 0);
+      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
 
-      // Current month stats from import jobs
+      // Aggregation via server-side RPC (no full table scan)
+      const { data: kpiData, error: kpiError } = await supabase.rpc(
+        "get_invoice_kpis" as any,
+        { p_tenant_id: profile.tenant_id }
+      );
+      if (kpiError) throw kpiError;
+
+      const kpi = (kpiData as any) || {};
+
+      // Current month stats from import jobs (lightweight query)
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      
+
       const { data: monthJobs } = await supabase
         .from("invoice_import_jobs")
         .select("success_count, duplicate_count, error_count")
@@ -86,8 +96,13 @@ export function useInvoiceKPIs() {
       const monthErrors = (monthJobs || []).reduce((s, j) => s + (j.error_count || 0), 0);
 
       return {
-        totalCount: totalCount ?? 0,
-        totalValor,
+        totalCount: Number(kpi.total_faturas) || 0,
+        totalValor: Number(kpi.total_valor) || 0,
+        totalKwh: Number(kpi.total_kwh) || 0,
+        totalInjetadoKwh: Number(kpi.total_injetado_kwh) || 0,
+        mediaValor: Number(kpi.media_valor) || 0,
+        faturasPendentes: Number(kpi.faturas_pendentes) || 0,
+        faturasErro: Number(kpi.faturas_erro) || 0,
         monthImported,
         monthDuplicate,
         monthErrors,
