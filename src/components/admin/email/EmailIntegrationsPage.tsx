@@ -21,7 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Mail, Plus, RefreshCw, Trash2, CheckCircle2, XCircle, Clock,
-  AlertTriangle, FileText, Settings2,
+  AlertTriangle, FileText, Settings2, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -113,6 +113,8 @@ interface AccountFormProps {
 
 function AccountFormModal({ open, onOpenChange, initial }: AccountFormProps) {
   const save = useSaveEmailAccount();
+  const initialSettings = (initial?.settings || {}) as Record<string, unknown>;
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     email_address: initial?.email_address || "",
     provider_type: initial?.provider_type || "gmail",
@@ -120,6 +122,8 @@ function AccountFormModal({ open, onOpenChange, initial }: AccountFormProps) {
     host: initial?.host || "",
     port: initial?.port?.toString() || "993",
     username: initial?.username || "",
+    password: (initialSettings.password as string) || "",
+    use_ssl: (initialSettings.use_ssl as boolean) ?? true,
     is_active: initial?.is_active ?? true,
   });
 
@@ -140,6 +144,7 @@ function AccountFormModal({ open, onOpenChange, initial }: AccountFormProps) {
         port: isImap ? parseInt(form.port) || 993 : null,
         username: isImap ? form.username : null,
         is_active: form.is_active,
+        settings: isImap ? { password: form.password, use_ssl: form.use_ssl } : {},
       });
       toast({ title: initial?.id ? "Conta atualizada" : "Conta adicionada" });
       onOpenChange(false);
@@ -210,6 +215,32 @@ function AccountFormModal({ open, onOpenChange, initial }: AccountFormProps) {
                 <div className="space-y-2">
                   <Label>Usuário</Label>
                   <Input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="usuario@servidor.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Senha</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      placeholder="••••••••"
+                      className="pr-9"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full w-9"
+                      onClick={() => setShowPassword(v => !v)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch checked={form.use_ssl} onCheckedChange={v => setForm(f => ({ ...f, use_ssl: v }))} />
+                  <Label className="text-xs">Usar conexão segura (SSL)</Label>
                 </div>
               </div>
             )}
