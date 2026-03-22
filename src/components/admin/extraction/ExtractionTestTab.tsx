@@ -70,7 +70,6 @@ export function ExtractionTestTab() {
       const isPdf = ext === "pdf";
 
       if (!isPdf) {
-        // For images, we can't extract text natively — inform user
         setResult({
           concessionaria_detected: null,
           file_type: ext,
@@ -94,60 +93,104 @@ export function ExtractionTestTab() {
       // Upload to temp storage
       const storagePath = await uploadInvoiceTempPdf(file);
 
-      // Call process-fatura-pdf in test mode (without unit_id, it will parse but fail at UC resolution)
-      // Instead, call parse-conta-energia directly with the text
+      // Call process-fatura-pdf in TEST MODE — parses without requiring UC
       const data = await invokeEdgeFunction<any>("process-fatura-pdf", {
         body: {
           pdf_storage_path: storagePath,
           source: "import",
-          // No unit_id — will try to detect UC
+          test_mode: true,
         },
         headers: { "x-client-timeout": "120" },
       });
 
-      const parsed = data?.data?.parsed;
-      if (parsed) {
-        const config = selectedConc !== "auto"
-          ? configs.find(c => c.concessionaria_code === selectedConc)
-          : null;
-
-        const requiredFields = config?.required_fields || ["consumo_kwh", "valor_total"];
-        const found = requiredFields.filter((f: string) => parsed[f] != null);
-        const missing = requiredFields.filter((f: string) => parsed[f] == null);
+      if (data?.test_mode && data?.data) {
+        const parsed = data.data.parsed;
+        const testData = data.data;
 
         const warnings: string[] = [];
         const errors: string[] = [];
 
         // Check validations from parser
-        if (parsed.validations) {
+        if (parsed?.validations) {
           for (const v of parsed.validations) {
             if (!v.passed) warnings.push(v.detail);
           }
         }
 
-        const status: TestResult["status"] = missing.length === 0 ? "success"
-          : missing.length <= 2 ? "partial" : "failed";
+        // Add GD consistency warnings/errors
+        if (testData.gd_consistency?.checks) {
+          for (const c of testData.gd_consistency.checks) {
+            if (c.level === "warning") warnings.push(`GD: ${c.message}`);
+            if (c.level === "error") errors.push(`GD: ${c.message}`);
+          }
+        }
 
         setResult({
-          concessionaria_detected: parsed.concessionaria_nome || parsed.parser_used || null,
+          concessionaria_detected: testData.concessionaria_detected || parsed?.concessionaria_nome || null,
           file_type: "pdf",
           is_textual: true,
-          strategy_used: "native",
-          parser_used: parsed.parser_used || "generic",
-          parser_version: parsed.parser_version || "?",
-          status,
-          confidence: parsed.confidence || 0,
-          fields_found: found,
-          fields_missing: missing,
+          strategy_used: testData.config_used?.strategy || "native",
+          parser_used: parsed?.parser_used || "generic",
+          parser_version: parsed?.parser_version || "?",
+          status: testData.extraction_status || "failed",
+          confidence: parsed?.confidence || 0,
+          fields_found: testData.fields_found || [],
+          fields_missing: testData.fields_missing || [],
           warnings,
           errors,
-          raw_extraction: parsed,
-          field_results: parsed.field_results || {},
-          validations: parsed.validations || [],
+          raw_extraction: parsed || {},
+          field_results: parsed?.field_results || {},
+          validations: parsed?.validations || [],
         });
+      } else if (data?.success === false && data?.test_mode) {
+        setResult({
+          concessionaria_detected: data.concessionaria_detected || null,
+          file_type: "pdf",
+          is_textual: true,
+          strategy_used: data.config_used?.strategy || "native",
+          parser_used: "unknown",
+          parser_version: "",
+          status: "failed",
+          confidence: 0,
+          fields_found: [],
+          fields_missing: [],
+          warnings: [],
+          errors: [data.error || "Falha ao parsear fatura"],
+          raw_extraction: {},
+          field_results: {},
+          validations: [],
+        });
+      } else {
+        // Fallback: old response format (non-test-mode)
+        const parsed = data?.data?.parsed;
+        if (parsed) {
+          const config = selectedConc !== "auto"
+            ? configs.find(c => c.concessionaria_code === selectedConc)
+            : null;
+          const requiredFields = config?.required_fields || ["consumo_kwh", "valor_total"];
+          const found = requiredFields.filter((f: string) => parsed[f] != null);
+          const missing = requiredFields.filter((f: string) => parsed[f] == null);
+          const status: TestResult["status"] = missing.length === 0 ? "success" : missing.length <= 2 ? "partial" : "failed";
+          setResult({
+            concessionaria_detected: parsed.concessionaria_nome || parsed.parser_used || null,
+            file_type: "pdf",
+            is_textual: true,
+            strategy_used: "native",
+            parser_used: parsed.parser_used || "generic",
+            parser_version: parsed.parser_version || "?",
+            status,
+            confidence: parsed.confidence || 0,
+            fields_found: found,
+            fields_missing: missing,
+            warnings: [],
+            errors: [],
+            raw_extraction: parsed,
+            field_results: parsed.field_results || {},
+            validations: parsed.validations || [],
+          });
+        }
       }
     } catch (err: any) {
-      // Even on error, try to show partial results
       const errMsg = err?.message || "Erro desconhecido";
       setResult({
         concessionaria_detected: null,

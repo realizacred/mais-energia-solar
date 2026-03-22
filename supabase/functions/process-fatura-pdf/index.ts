@@ -876,17 +876,7 @@ function parseDateBR(dateStr: string): string | null {
   return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
-function derivePreviousBalance(parsed: {
-  saldo_gd_acumulado?: number | null;
-  saldo_gd?: number | null;
-  energia_compensada_kwh?: number | null;
-}): number | null {
-  const currentBalance = parsed.saldo_gd_acumulado ?? null;
-  const deductedAmount = parsed.saldo_gd ?? parsed.energia_compensada_kwh ?? null;
 
-  if (currentBalance == null || deductedAmount == null) return null;
-  return Math.max(currentBalance - deductedAmount, 0);
-}
 
 function extractYear(mesRef: string, fallback: number): number {
   const match = mesRef.match(/(\d{4})/);
