@@ -419,15 +419,16 @@ function JsonbFieldEditor({
   label,
   value,
   onChange,
+  onError,
 }: {
   label: string;
   value: unknown;
   onChange: (parsed: any) => void;
+  onError: (hasError: boolean) => void;
 }) {
   const [text, setText] = useState(() => JSON.stringify(value, null, 2));
   const [error, setError] = useState<string | null>(null);
 
-  // Sync external changes
   useEffect(() => {
     setText(JSON.stringify(value, null, 2));
     setError(null);
@@ -438,9 +439,11 @@ function JsonbFieldEditor({
     try {
       const parsed = JSON.parse(newText);
       setError(null);
+      onError(false);
       onChange(parsed);
-    } catch (e: any) {
+    } catch {
       setError("JSON inválido");
+      onError(true);
     }
   };
 
