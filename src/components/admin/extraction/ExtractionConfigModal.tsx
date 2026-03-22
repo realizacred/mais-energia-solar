@@ -708,7 +708,7 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saveConfig.isPending}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={!form.concessionaria_code || saveConfig.isPending}>
+          <Button onClick={handleSave} disabled={!isDirty || !form.concessionaria_code || saveConfig.isPending}>
             {saveConfig.isPending && <Spinner size="sm" className="mr-2" />}
             {config ? "Salvar" : "Cadastrar"}
           </Button>
