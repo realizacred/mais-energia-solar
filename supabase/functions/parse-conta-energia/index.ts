@@ -1180,10 +1180,18 @@ Deno.serve(async (req) => {
 
     let extracted: ExtractedData | null = null;
 
-    // Strategy 1: If we have text, try regex first
+    // Strategy 0: Try concessionária-specific extractors first (strict, no AI)
     if (text && typeof text === 'string' && text.length >= 50) {
+      extracted = extractEnergisa(text);
+      if (extracted) {
+        console.log(`[parse-conta-energia] Energisa strict extraction — confidence: ${extracted.confidence}`);
+      }
+    }
+
+    // Strategy 1: If no concessionária-specific match, try generic regex
+    if (!extracted && text && typeof text === 'string' && text.length >= 50) {
       extracted = extractFromText(text);
-      console.log(`[parse-conta-energia] Regex confidence: ${extracted.confidence}`);
+      console.log(`[parse-conta-energia] Generic regex confidence: ${extracted.confidence}`);
     }
 
     // Strategy 2: If regex confidence is low (< 30) or no text, use AI multimodal on PDF
