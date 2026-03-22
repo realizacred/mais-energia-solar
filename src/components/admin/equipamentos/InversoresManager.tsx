@@ -49,74 +49,10 @@ export function InversoresManager() {
   const [deleting, setDeleting] = useState<Inversor | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const { data: inversores = [], isLoading } = useQuery({
-    queryKey: ["inversores-catalogo"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inversores_catalogo")
-        .select("id, tenant_id, fabricante, modelo, potencia_nominal_kw, tipo, fases, mppt_count, strings_por_mppt, tensao_entrada_max_v, tensao_saida_v, corrente_entrada_max_a, eficiencia_max_percent, peso_kg, dimensoes_mm, garantia_anos, ip_protection, wifi_integrado, ativo, created_at, updated_at")
-        .order("fabricante")
-        .order("potencia_nominal_kw");
-      if (error) throw error;
-      return data as Inversor[];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const fabricantes = useMemo(() => {
-    const set = new Set(inversores.map((i) => i.fabricante));
-    return Array.from(set).sort();
-  }, [inversores]);
-
-  const filtered = inversores.filter((i) => {
-    const matchSearch = !search ||
-      `${i.fabricante} ${i.modelo}`.toLowerCase().includes(search.toLowerCase());
-    const matchAtivo = filterAtivo === "all" || (filterAtivo === "ativo" ? i.ativo : !i.ativo);
-    const matchFab = filterFabricante === "all" || i.fabricante === filterFabricante;
-    const matchTipo = filterTipo === "all" || i.tipo === filterTipo;
-    return matchSearch && matchAtivo && matchFab && matchTipo;
-  });
-
-  const isGlobal = (i: Inversor) => i.tenant_id === null;
-
-  const saveMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) => {
-      if (editing) {
-        const { error } = await supabase.from("inversores_catalogo").update(payload).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("inversores_catalogo").insert(payload as any);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
-      toast({ title: editing ? "Inversor atualizado" : "Inversor cadastrado" });
-      setDialogOpen(false);
-    },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("inversores_catalogo").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
-      toast({ title: "Inversor excluído" });
-      setDeleting(null);
-    },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase.from("inversores_catalogo").update({ ativo }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["inversores-catalogo"] }),
-  });
+  const { data: inversores = [], isLoading } = useInversoresCatalogo();
+  const saveMutation = useSalvarInversor();
+  const deleteMutation = useDeletarInversor();
+  const toggleMutation = useToggleInversor();
 
   const openDialog = (inv?: Inversor) => {
     if (inv) {
