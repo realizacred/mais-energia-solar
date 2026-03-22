@@ -5,9 +5,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { invoiceService } from "@/services/invoiceService";
-import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
-import { getEdgeFunctionAuthHeaders } from "@/lib/edgeFunctionAuth";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 
 export type ImportJobStatus = "queued" | "processing" | "completed" | "failed" | "partial";
 export type ImportItemStatus = "processing" | "imported" | "duplicate" | "failed";
