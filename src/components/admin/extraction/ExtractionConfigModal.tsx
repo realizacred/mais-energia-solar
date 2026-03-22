@@ -498,12 +498,16 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
           </div>
           <div className="flex-1">
             <DialogTitle className="text-base font-semibold text-foreground">
-              {config ? "Editar Configuração" : prefill ? "Nova Configuração (pré-preenchida)" : "Nova Configuração de Extração"}
+              {config && !config.tenant_id
+                ? "Personalizar Configuração Padrão"
+                : config ? "Editar Configuração" : prefill ? "Nova Configuração (pré-preenchida)" : "Nova Configuração de Extração"}
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {prefill
-                ? `Gerada a partir do teste de extração — ${prefill.concessionaria_nome}`
-                : "Configure a estratégia de extração nativa por concessionária"
+              {config && !config.tenant_id
+                ? "Esta é uma configuração padrão do sistema. Ao salvar, será criada uma cópia personalizada para sua empresa."
+                : prefill
+                  ? `Gerada a partir do teste de extração — ${prefill.concessionaria_nome}`
+                  : "Configure a estratégia de extração nativa por concessionária"
               }
             </p>
           </div>
