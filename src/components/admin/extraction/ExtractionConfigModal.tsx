@@ -233,6 +233,7 @@ function FieldCategorySection({
 
 export function ExtractionConfigModal({ open, onOpenChange, config }: ExtractionConfigModalProps) {
   const saveConfig = useSaveExtractionConfig();
+  const [customFieldInput, setCustomFieldInput] = useState("");
 
   const [form, setForm] = useState({
     concessionaria_code: "",
@@ -254,7 +255,10 @@ export function ExtractionConfigModal({ open, onOpenChange, config }: Extraction
     parser_version: "3.0.2",
     active: true,
     notes: "",
+    custom_fields: [] as FieldDef[],
   });
+
+  const baselineRef = useRef<string>("");
 
   useEffect(() => {
     if (config) {
