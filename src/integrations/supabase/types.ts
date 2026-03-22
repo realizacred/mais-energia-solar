@@ -25083,6 +25083,10 @@ export type Database = {
         Args: { _service_key: string; _tenant_id?: string }
         Returns: string
       }
+      get_invoice_kpis: {
+        Args: { p_month?: number; p_tenant_id: string; p_year?: number }
+        Returns: Json
+      }
       get_irradiacao_estado: {
         Args: { _estado: string; _tenant_id?: string }
         Returns: number
