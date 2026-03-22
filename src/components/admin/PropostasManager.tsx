@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { formatBRL } from "@/lib/formatters";
 import {
   FileText, Plus, Search, Zap, DollarSign,
   SunMedium, FileX,
