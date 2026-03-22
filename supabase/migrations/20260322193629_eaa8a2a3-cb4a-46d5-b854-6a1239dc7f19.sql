@@ -1,0 +1,1 @@
+DELETE FROM invoice_extraction_configs WHERE id = '8f21578b-d3d8-4051-a16a-fed8eaa578a2';
