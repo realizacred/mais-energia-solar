@@ -329,6 +329,10 @@ export default function ExtractionCenterPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="test" className="mt-4">
+          <ExtractionTestTab />
+        </TabsContent>
+
         <TabsContent value="runs" className="mt-4">
           {runsLoading ? (
             <div className="space-y-2">
@@ -389,6 +393,10 @@ export default function ExtractionCenterPage() {
               </Table>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="assistant" className="mt-4">
+          <ExtractionAssistantTab />
         </TabsContent>
       </Tabs>
 
