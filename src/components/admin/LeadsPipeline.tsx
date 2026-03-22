@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { formatPhoneBR } from "@/lib/formatters";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,40 +32,15 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { formatBRLCompact } from "@/lib/formatters";
 import confetti from "canvas-confetti";
-
-const LEADS_PAGE_SIZE = 25;
-
-const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consumo, consultor, status_id, created_at, ultimo_contato, visto";
-
-interface MotivoPerda {
-  id: string;
-  nome: string;
-}
-
-interface LeadStatus {
-  id: string;
-  nome: string;
-  ordem: number;
-  cor: string;
-}
-
-interface Lead {
-  id: string;
-  lead_code: string | null;
-  nome: string;
-  telefone: string;
-  cidade: string;
-  estado: string;
-  media_consumo: number;
-  consultor: string | null;
-  status_id: string | null;
-  created_at: string;
-  ultimo_contato?: string | null;
-  visto?: boolean;
-  potencia_kwp?: number | null;
-  valor_projeto?: number | null;
-  status_nome?: string | null;
-}
+import {
+  usePipelineLeads,
+  usePipelineStatuses,
+  usePipelineMotivosPerda,
+  useUpdatePipelineLead,
+  useBulkUpdateLeadStatus,
+  LEADS_PAGE_SIZE,
+  type PipelineLead,
+} from "@/hooks/useLeadsPipeline";
 
 function estimateKwp(consumo: number): number {
   return Math.round((consumo / 130) * 10) / 10;
@@ -77,27 +51,22 @@ function estimateValue(kwp: number): number {
 }
 
 export default function LeadsPipeline() {
-  const [statuses, setStatuses] = useState<LeadStatus[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
+  const [page, setPage] = useState(0);
+  const [allLeads, setAllLeads] = useState<PipelineLead[]>([]);
+  const [draggedLead, setDraggedLead] = useState<PipelineLead | null>(null);
   const [activeTab, setActiveTab] = useState("kanban");
   const [whatsappOpen, setWhatsappOpen] = useState(false);
-  const [selectedLeadForWhatsApp, setSelectedLeadForWhatsApp] = useState<Lead | null>(null);
+  const [selectedLeadForWhatsApp, setSelectedLeadForWhatsApp] = useState<PipelineLead | null>(null);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatusId, setBulkStatusId] = useState("");
-  const [bulkLoading, setBulkLoading] = useState(false);
 
   // Loss dialog
   const [lossDialogOpen, setLossDialogOpen] = useState(false);
-  const [lossLead, setLossLead] = useState<Lead | null>(null);
+  const [lossLead, setLossLead] = useState<PipelineLead | null>(null);
   const [lossReasonId, setLossReasonId] = useState("");
   const [lossNotes, setLossNotes] = useState("");
-  const [motivosPerda, setMotivosPerda] = useState<MotivoPerda[]>([]);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -109,52 +78,41 @@ export default function LeadsPipeline() {
 
   const { toast } = useToast();
 
-  const fetchData = useCallback(async (append = false) => {
-    try {
-      if (append) setLoadingMore(true);
-      else setLoading(true);
+  // §16: Queries in hooks
+  const { data: leadsData, isLoading: loadingLeads } = usePipelineLeads(page);
+  const { data: statuses = [], isLoading: loadingStatuses } = usePipelineStatuses();
+  const { data: motivosPerda = [] } = usePipelineMotivosPerda();
+  const updateLeadMutation = useUpdatePipelineLead();
+  const bulkUpdateMutation = useBulkUpdateLeadStatus();
 
-      const from = append ? leads.length : 0;
-      const to = from + LEADS_PAGE_SIZE - 1;
+  // Merge paginated results into allLeads
+  const leads = useMemo(() => {
+    if (!leadsData) return allLeads;
+    if (page === 0) return leadsData.leads;
+    // For subsequent pages, append new leads (dedup by id)
+    const existingIds = new Set(allLeads.map(l => l.id));
+    const newLeads = leadsData.leads.filter(l => !existingIds.has(l.id));
+    return [...allLeads, ...newLeads];
+  }, [leadsData, page, allLeads]);
 
-      const leadsPromise = supabase.from("leads")
-        .select(LEADS_SELECT, { count: "exact" })
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .range(from, to);
-
-      if (append) {
-        const leadsRes = await leadsPromise;
-        if (leadsRes.error) throw leadsRes.error;
-        const newLeads = leadsRes.data || [];
-        const totalCount = leadsRes.count || 0;
-        setLeads(prev => [...prev, ...newLeads]);
-        setHasMore(leads.length + newLeads.length < totalCount);
+  // Keep allLeads in sync for pagination
+  useMemo(() => {
+    if (leadsData) {
+      if (page === 0) {
+        setAllLeads(leadsData.leads);
       } else {
-        const [leadsRes, statusRes, motivosRes] = await Promise.all([
-          leadsPromise,
-          supabase.from("lead_status").select("id, nome, ordem, cor, motivo_perda_obrigatorio").order("ordem"),
-          supabase.from("motivos_perda").select("id, nome").eq("ativo", true).order("ordem"),
-        ]);
-        if (leadsRes.error) throw leadsRes.error;
-        if (statusRes.error) throw statusRes.error;
-        const newLeads = leadsRes.data || [];
-        const totalCount = leadsRes.count || 0;
-        setLeads(newLeads);
-        setStatuses(statusRes.data || []);
-        setMotivosPerda(motivosRes.data || []);
-        setHasMore(newLeads.length < totalCount);
+        setAllLeads(prev => {
+          const existingIds = new Set(prev.map(l => l.id));
+          const newLeads = leadsData.leads.filter(l => !existingIds.has(l.id));
+          return [...prev, ...newLeads];
+        });
       }
-    } catch (error) {
-      console.error("Erro ao buscar dados:", error);
-      toast({ title: "Erro", description: "Não foi possível carregar o pipeline.", variant: "destructive" });
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
     }
-  }, [leads.length, toast]);
+  }, [leadsData, page]);
 
-  useEffect(() => { fetchData(); }, []);
+  const hasMore = leadsData ? leads.length < leadsData.totalCount : false;
+  const loading = loadingLeads && page === 0 && allLeads.length === 0;
+  const loadingMore = loadingLeads && page > 0;
 
   // Enrich leads with status name
   const enrichedLeads = useMemo(() => {
@@ -222,7 +180,7 @@ export default function LeadsPipeline() {
     setDateRange("all");
   };
 
-  const handleDragStart = (e: React.DragEvent, lead: Lead) => {
+  const handleDragStart = (e: React.DragEvent, lead: PipelineLead) => {
     setDraggedLead(lead);
     e.dataTransfer.effectAllowed = "move";
   };
@@ -238,25 +196,25 @@ export default function LeadsPipeline() {
       setDraggedLead(null);
       return;
     }
-    setLeads(prev => prev.map(l => l.id === draggedLead.id ? { ...l, status_id: statusId } : l));
+    // Optimistic update
+    setAllLeads(prev => prev.map(l => l.id === draggedLead.id ? { ...l, status_id: statusId } : l));
     try {
-      const { error } = await supabase.from("leads").update({ status_id: statusId }).eq("id", draggedLead.id);
-      if (error) throw error;
+      await updateLeadMutation.mutateAsync({ id: draggedLead.id, updates: { status_id: statusId } });
       toast({ title: "Lead movido!", description: `${draggedLead.nome} foi movido para a nova etapa.` });
     } catch {
-      setLeads(prev => prev.map(l => l.id === draggedLead.id ? { ...l, status_id: draggedLead.status_id } : l));
+      // Rollback
+      setAllLeads(prev => prev.map(l => l.id === draggedLead.id ? { ...l, status_id: draggedLead.status_id } : l));
       toast({ title: "Erro", description: "Não foi possível mover o lead.", variant: "destructive" });
     } finally {
       setDraggedLead(null);
     }
   };
 
-  const getLeadsByStatus = (statusId: string | null): Lead[] => {
+  const getLeadsByStatus = (statusId: string | null): PipelineLead[] => {
     if (statusId === null) return filteredLeads.filter(l => !l.status_id);
     return filteredLeads.filter(l => l.status_id === statusId);
   };
 
-  // Column value sum
   const getColumnValue = (statusId: string | null) => {
     const columnLeads = getLeadsByStatus(statusId);
     return columnLeads.reduce((sum, l) => {
@@ -265,11 +223,11 @@ export default function LeadsPipeline() {
     }, 0);
   };
 
-  const handleViewDetails = (lead: Lead) => {
+  const handleViewDetails = (lead: PipelineLead) => {
     toast({ title: "Ver detalhes", description: `Abrindo detalhes de ${lead.nome}` });
   };
 
-  const handleQuickAction = async (lead: Lead, action: string) => {
+  const handleQuickAction = async (lead: PipelineLead, action: string) => {
     switch (action) {
       case "whatsapp":
         setSelectedLeadForWhatsApp(lead);
@@ -279,29 +237,30 @@ export default function LeadsPipeline() {
         window.open(`tel:${lead.telefone}`, "_self");
         break;
       case "markContacted": {
-        const { error } = await supabase.from("leads").update({ ultimo_contato: new Date().toISOString() }).eq("id", lead.id);
-        if (!error) {
-          setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ultimo_contato: new Date().toISOString() } : l));
+        const now = new Date().toISOString();
+        setAllLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ultimo_contato: now } : l));
+        try {
+          await updateLeadMutation.mutateAsync({ id: lead.id, updates: { ultimo_contato: now } });
           toast({ title: "Contato registrado" });
+        } catch {
+          // Rollback handled by invalidation
         }
         break;
       }
     }
   };
 
-  // ── Win: confetti + move to last stage ──
-  const handleWin = async (lead: Lead) => {
+  const handleWin = async (lead: PipelineLead) => {
     confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
     const lastStatus = statuses.length > 0 ? statuses[statuses.length - 1] : null;
     if (lastStatus && lead.status_id !== lastStatus.id) {
-      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status_id: lastStatus.id } : l));
-      await supabase.from("leads").update({ status_id: lastStatus.id }).eq("id", lead.id);
+      setAllLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status_id: lastStatus.id } : l));
+      await updateLeadMutation.mutateAsync({ id: lead.id, updates: { status_id: lastStatus.id } });
     }
     toast({ title: "🎉 Venda ganha!", description: `${lead.nome} movido para implementação.` });
   };
 
-  // ── Lose: open dialog ──
-  const handleLose = (lead: Lead) => {
+  const handleLose = (lead: PipelineLead) => {
     setLossLead(lead);
     setLossReasonId("");
     setLossNotes("");
@@ -310,18 +269,16 @@ export default function LeadsPipeline() {
 
   const confirmLoss = async () => {
     if (!lossLead || !lossReasonId) return;
-    // Find the "Perdido" status
     const perdidoStatus = statuses.find(s => s.nome.toLowerCase().includes("perdido"));
-    const updateData: any = {
+    const updateData: Record<string, any> = {
       motivo_perda_id: lossReasonId,
       motivo_perda_obs: lossNotes || null,
     };
     if (perdidoStatus) {
       updateData.status_id = perdidoStatus.id;
     }
-    await supabase.from("leads").update(updateData).eq("id", lossLead.id);
-    // Update local state
-    setLeads(prev => prev.map(l => l.id === lossLead.id ? { ...l, ...updateData } : l));
+    setAllLeads(prev => prev.map(l => l.id === lossLead.id ? { ...l, ...updateData } : l));
+    await updateLeadMutation.mutateAsync({ id: lossLead.id, updates: updateData });
     const motivoNome = motivosPerda.find(m => m.id === lossReasonId)?.nome;
     toast({ title: "Lead marcado como perdido", description: `${lossLead.nome}: ${motivoNome}` });
     setLossDialogOpen(false);
@@ -338,23 +295,19 @@ export default function LeadsPipeline() {
 
   const handleBulkAssign = async () => {
     if (!bulkStatusId || selectedIds.size === 0) return;
-    setBulkLoading(true);
+    const ids = Array.from(selectedIds);
+    setAllLeads(prev => prev.map(l => ids.includes(l.id) ? { ...l, status_id: bulkStatusId } : l));
     try {
-      const ids = Array.from(selectedIds);
-      const { error } = await supabase.from("leads").update({ status_id: bulkStatusId }).in("id", ids);
-      if (error) throw error;
-      setLeads(prev => prev.map(l => ids.includes(l.id) ? { ...l, status_id: bulkStatusId } : l));
+      await bulkUpdateMutation.mutateAsync({ ids, status_id: bulkStatusId });
       toast({ title: "Status atualizado", description: `${ids.length} lead(s) classificados.` });
       setSelectedIds(new Set());
       setBulkStatusId("");
     } catch {
       toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
-    } finally {
-      setBulkLoading(false);
     }
   };
 
-  if (loading) return <LoadingState message="Carregando pipeline..." />;
+  if (loading || loadingStatuses) return <LoadingState message="Carregando pipeline..." />;
 
   return (
     <div className="space-y-4">
@@ -423,8 +376,8 @@ export default function LeadsPipeline() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" onClick={handleBulkAssign} disabled={!bulkStatusId || bulkLoading}>
-                {bulkLoading ? "Aplicando..." : "Aplicar"}
+              <Button size="sm" onClick={handleBulkAssign} disabled={!bulkStatusId || bulkUpdateMutation.isPending}>
+                {bulkUpdateMutation.isPending ? "Aplicando..." : "Aplicar"}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => { setSelectedIds(new Set()); setBulkStatusId(""); }}>
                 Cancelar
@@ -474,7 +427,7 @@ export default function LeadsPipeline() {
 
           {hasMore && (
             <div className="flex justify-center py-3">
-              <Button variant="outline" onClick={() => fetchData(true)} disabled={loadingMore} className="gap-2">
+              <Button variant="outline" onClick={() => setPage(p => p + 1)} disabled={loadingMore} className="gap-2">
                 {loadingMore && <Spinner size="sm" />}
                 Carregar mais leads ({leads.length} carregados)
               </Button>
